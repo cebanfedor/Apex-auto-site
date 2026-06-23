@@ -1,0 +1,15 @@
+# dependencies
+node_modules/
+
+# env / secrets — NEVER commit
+.env
+.env.local
+.env*.local
+
+# vercel
+.vercel
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>APEX AUTO CRM</title>
+  <link rel="stylesheet" href="/admin/admin.css?v=admin-v169">
+  <link rel="icon" type="image/png" href="/favicon.png">
+</head>
+<body>
+  <main class="adminShell">
+    <section id="loginScreen" class="loginScreen">
+      <form id="loginForm" class="loginCard">
+        <span>APEX AUTO</span>
+        <h1>Вход в админку</h1>
+        <p>Пароль проверяется только на сервере. После входа создается защищенная сессия.</p>
+        <input id="adminPassword" type="password" placeholder="Пароль администратора" autocomplete="current-password" required>
+        <button type="submit">Войти</button>
+        <small id="loginError"></small>
+      </form>
+    </section>
+
+    <section id="appScreen" class="appScreen" hidden>
+      <aside class="sidebar">
+        <div class="brand">
+          <b>APEX</b>
+          <span>CRM</span>
+        </div>
+        <nav class="tabs">
+          <button class="active" data-view="dashboard">Dashboard</button>
+          <button data-view="vehicles">Автомобили</button>
+          <button data-view="customers">Клиенты</button>
+          <button data-view="leads">Заявки</button>
+          <button data-view="content">Контент сайта</button>
+        </nav>
+        <button id="logoutBtn" class="logoutBtn">Выйти</button>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <span>APEX AUTO</span>
+            <h1 id="viewTitle">Dashboard</h1>
+          </div>
+          <button id="refreshBtn">Обновить</button>
+        </header>
+
+        <div id="notice" class="notice" hidden></div>
+
+        <section id="dashboardView" class="view active">
+          <div class="statGrid">
+            <article><span>Клиенты</span><b id="statCustomers">0</b></article>
+            <article><span>Заявки</span><b id="statLeads">0</b></article>
+            <article><span>Автомобили</span><b id="statVehicles">0</b></article>
+          </div>
+          <div class="panel">
+            <div class="panelHead">
+              <h2>Последние заявки</h2>
+            </div>
+            <div id="latestLeads" class="tableLike"></div>
+          </div>
+        </section>
+
+        <section id="vehiclesView" class="view">
+          <div class="split">
+            <div class="panel">
+              <div class="panelHead">
+                <h2>Автомобили</h2>
+                <input id="vehicleSearch" class="search" placeholder="Поиск VIN, LOT, марка, модель">
+              </div>
+              <div id="vehiclesList" class="tableLike"></div>
+            </div>
+            <form id="vehicleForm" class="panel formPanel">
+              <h2 id="vehicleFormTitle">Новый автомобиль</h2>
+              <input type="hidden" name="id">
+              <div class="grid2">
+                <label>VIN<input name="vin"></label>
+                <label>LOT<input name="lot"></label>
+                <label>Год<input name="year" type="number"></label>
+                <label>Марка<input name="make"></label>
+                <label>Модель<input name="model"></label>
+                <label>Цена, $<input name="price" type="number"></label>
+                <label>Статус
+                  <select name="status">
+                    <option>Рекомендуется</option>
+                    <option>В наличии</option>
+                    <option>В пути</option>
+                    <option>Продан</option>
+                    <option>Архив</option>
+                  </select>
+                </label>
+                <label>Аукцион<input name="auction" placeholder="Copart / IAAI / Manheim"></label>
+              </div>
+              <label>Описание<textarea name="description" rows="4"></textarea></label>
+              <label>Фотографии
+                <input id="vehiclePhotos" type="file" accept="image/*" multiple>
+                <textarea name="photos" rows="3" placeholder="URL фотографий, по одному в строке"></textarea>
+              </label>
+              <div class="formActions">
+                <button type="submit">Сохранить</button>
+                <button type="button" class="ghost" data-reset-form="vehicleForm">Очистить</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="customersView" class="view">
+          <div class="split">
+            <div class="panel">
+              <div class="panelHead">
+                <h2>Клиенты</h2>
+                <div class="filters">
+                  <input id="customerSearch" class="search" placeholder="Поиск по имени, телефону, Telegram">
+                  <select id="customerStatusFilter">
+                    <option value="">Все статусы</option>
+                    <option>Новый</option>
+                    <option>Активный</option>
+                    <option>Купил</option>
+                    <option>Архив</option>
+                  </select>
+                </div>
+              </div>
+              <div id="customersList" class="tableLike"></div>
+            </div>
+            <form id="customerForm" class="panel formPanel">
+              <h2 id="customerFormTitle">Новый клиент</h2>
+              <input type="hidden" name="id">
+              <div class="grid2">
+                <label>Имя<input name="name" required></label>
+                <label>Телефон<input name="phone"></label>
+                <label>Telegram<input name="telegram"></label>
+                <label>WhatsApp<input name="whatsapp"></label>
+                <label>Email<input name="email" type="email"></label>
+                <label>Источник<input name="source" placeholder="Сайт / Telegram / Рекомендация"></label>
+                <label>Статус
+                  <select name="status">
+                    <option>Новый</option>
+                    <option>Активный</option>
+                    <option>Купил</option>
+                    <option>Архив</option>
+                  </select>
+                </label>
+              </div>
+              <label>Заметки<textarea name="notes" rows="4"></textarea></label>
+              <div class="formActions">
+                <button type="submit">Сохранить</button>
+                <button type="button" class="ghost" data-reset-form="customerForm">Очистить</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="leadsView" class="view">
+          <div class="split">
+            <div class="panel">
+              <div class="panelHead">
+                <h2>Заявки</h2>
+                <select id="leadStatusFilter">
+                  <option value="">Все статусы</option>
+                  <option>Новый</option>
+                  <option>Перезвонить</option>
+                  <option>В работе</option>
+                  <option>Купил</option>
+                  <option>Закрыт</option>
+                </select>
+              </div>
+              <div id="leadsList" class="tableLike"></div>
+            </div>
+            <form id="leadForm" class="panel formPanel">
+              <h2 id="leadFormTitle">Новая заявка</h2>
+              <input type="hidden" name="id">
+              <label>Клиент<select name="customer_id" id="leadCustomerSelect"></select></label>
+              <label>Автомобиль<select name="vehicle_id" id="leadVehicleSelect"></select></label>
+              <div class="grid2">
+                <label>Статус
+                  <select name="status">
+                    <option>Новый</option>
+                    <option>Перезвонить</option>
+                    <option>В работе</option>
+                    <option>Купил</option>
+                    <option>Закрыт</option>
+                  </select>
+                </label>
+                <label>Бюджет<input name="budget"></label>
+                <label>Источник<input name="source" placeholder="Сайт / Telegram / WhatsApp"></label>
+                <label>Перезвонить<input name="next_contact_at" type="datetime-local"></label>
+              </div>
+              <label>Заголовок<input name="title"></label>
+              <label>Сообщение<textarea name="message" rows="5"></textarea></label>
+              <div class="formActions">
+                <button type="submit">Сохранить</button>
+                <button type="button" class="ghost" data-reset-form="leadForm">Очистить</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="contentView" class="view">
+          <form id="contentForm" class="panel formPanel widePanel">
+            <h2>Контент сайта</h2>
+            <label>Логотип
+              <input id="logoFile" type="file" accept="image/*">
+              <input name="logo_url" placeholder="URL логотипа">
+            </label>
+            <div class="grid2">
+              <label>Телефон<input name="phone" placeholder="068-832-032"></label>
+              <label>Telegram<input name="telegram" placeholder="https://t.me/fedukusa"></label>
+              <label>WhatsApp<input name="whatsapp" placeholder="https://wa.me/37368832032"></label>
+            </div>
+            <label>Заголовок главной<input name="hero_title"></label>
+            <label>Текст главной<textarea name="hero_text" rows="4"></textarea></label>
+            <label>Преимущества компании<textarea name="benefits" rows="5" placeholder="Каждое преимущество с новой строки"></textarea></label>
+            <div class="formActions">
+              <button type="submit">Сохранить контент</button>
+            </div>
+          </form>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="/admin/admin.js?v=admin-v169"></script>
+</body>
+</html>

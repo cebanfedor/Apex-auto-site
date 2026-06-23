@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/auctions",
+      "destination": "/auctions.html"
+    },
+    {
+      "source": "/auctions/:slug",
+      "destination": "/auctions.html?slug=:slug"
+    }
+  ]
+}

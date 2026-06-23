@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apex Auto — авто из США и Канады под ключ в Молдову</title>
+  <meta name="description" content="Расчёт полной стоимости авто из США и Канады под ключ до Кишинёва: аукционы Copart, IAAI, Manheim, доставка, таможня, страховка. Подбор, бесплатный Carfax и сопровождение.">
+  <link rel="canonical" href="https://apexauto.md/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Apex Auto">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Apex Auto — авто из США и Канады под ключ в Молдову">
+  <meta property="og:description" content="Расчёт полной стоимости авто из США и Канады под ключ до Кишинёва: аукционы Copart, IAAI, Manheim, доставка, таможня, страховка. Подбор, бесплатный Carfax и сопровождение.">
+  <meta property="og:url" content="https://apexauto.md/">
+  <meta property="og:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Apex Auto — авто из США и Канады под ключ в Молдову">
+  <meta name="twitter:description" content="Расчёт полной стоимости авто из США и Канады под ключ до Кишинёва: аукционы Copart, IAAI, Manheim, доставка, таможня, страховка. Подбор, бесплатный Carfax и сопровождение.">
+  <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
+  <link rel="stylesheet" href="styles.css?v=v300">
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+    <header class="siteHeader apexHdrV201">
+    <a class="headerBrand apexBrandV201" href="/index.html" aria-label="Apex Auto — на главную">
+      <img src="/assets/apex-logo-glass-upload-v117.png" alt="Apex Auto">
+      <span class="apexBrandTextV201">
+        <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
+        <small>Доставка авто из США и Канады в Молдову</small>
+      </span>
+    </a>
+    <input type="checkbox" id="navToggleV210" class="navToggleV210">
+    <label for="navToggleV210" class="burgerV210" aria-label="Меню"><span></span><span></span><span></span></label>
+    <nav class="mainNavV82 apexNavV201">
+      <a href="/index.html" class="active">Главная</a>
+      <a href="/auctions">Аукционы</a>
+      <a href="hot.html">Горячие предложения</a>
+      <a href="about.html">Моя история</a>
+      <a href="contacts.html">Контакты</a>
+    </nav>
+  </header>
+
+  <main class="homeMainV201">
+    
+
+
+<section class="hero heroV45">
+  <div class="heroMainV45">
+<span class="heroEyebrowV207">Apex Auto · в авто-бизнесе с 2016 года</span>
+<h1>Рассчитайте полную стоимость автомобиля до Кишинева</h1>
+    <p>Цена покупки автомобиля, аукционные сборы, доставка, страховка, таможенные платежи и сопровождение сделки — в одном понятном расчете.</p>
+    <div class="heroCtasV207">
+      <a class="heroBtnPrimaryV207" href="#calculator">Рассчитать стоимость</a>
+      <a class="heroBtnGhostV207" href="https://t.me/fedukusa" target="_blank" rel="noopener">Написать в Telegram</a>
+    </div>
+    <ul class="heroTrustV207">
+      <li>Бесплатный Carfax</li>
+      <li>Copart · IAAI · Manheim</li>
+      <li>Расчёт до ставки</li>
+      <li>Под ключ до Кишинёва</li>
+    </ul>
+  </div>
+
+  <aside class="heroSideV45">
+    <span class="sideLabelV45">Рабочий инструмент APEX AUTO</span>
+    <h2>Используем этот калькулятор для расчетов клиентам перед покупкой</h2>
+    <p>Перед ставкой на аукционе вы заранее видите ориентировочную стоимость автомобиля под ключ: покупка, доставка, таможня и обязательные расходы.</p>
+
+    <div class="heroContactsV45">
+      <a href="tel:068832032">068-832-032</a>
+      <a href="https://t.me/fedukusa" target="_blank" rel="noopener">@fedukusa</a>
+    </div>
+  </aside>
+</section>
+
+
+
+
+    <section id="calculator" class="layout">
+        <div class="lotImportV118 lotImportWideV148">
+          <label for="auctionUrl">Ссылка на лот с аукциона</label>
+          <div class="lotImportControlV118">
+            <input id="auctionUrl" type="text" inputmode="url" placeholder="Вставьте ссылку Copart / IAAI / Manheim">
+            <button id="parseLotBtn" type="button">Разобрать</button>
+          </div>
+          <div id="lotImportStatus" class="lotImportStatusV118" hidden></div>
+          <button id="sendLotCheckBtn" class="lotImportCheckBtnV120" type="button" hidden>Отправить лот на проверку</button>
+        </div>
+
+      <form id="calcForm" class="card formCard">
+
+        <div class="formRow wide">
+          <label>Аукцион</label>
+          <select id="auction">
+            <option value="copart">Copart</option>
+            <option value="iaai">IAAI</option>
+            <option value="manheim">Manheim</option>
+          </select>
+        </div>
+
+        <div class="formRow wide">
+          <label>Локация аукциона</label>
+          <select id="location">
+            <option value="">Выбери локацию</option>
+          </select>
+        </div>
+        <label class="check offsiteCheck">
+          <input id="offsite" type="checkbox">
+          Offsite / Sublot (+$100) <span class="offsiteInfoV65 infoTipV65" tabindex="0" aria-label="Машина находится не на основной локации аукциона.">i</span>
+        </label>
+
+        <div class="grid">
+          <div class="formRow">
+            <label>Тип транспортного средства</label>
+            <select id="vehicleType">
+              <option value="sedan">Седан</option>
+              <option value="crossover">Кроссовер</option>
+              <option value="suv">Внедорожник</option>
+              <option value="pickup">Пикап</option>
+              <option value="vanLarge">Van Large</option>
+              <option value="moto">Мото</option>
+              <option value="atv">Квадро / ATV</option>
+            </select>
+          </div>
+          <div class="formRow">
+            <label>Тип топлива</label>
+            <select id="fuel">
+              <option value="gasoline">Бензин</option>
+              <option value="hybrid">Гибрид</option>
+              <option value="phev">Плагин гибрид</option>
+              <option value="electric">Электро</option>
+              <option value="diesel">Дизель</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="hybridGuard" class="hybridGuardV125" hidden>
+          <strong>Проверьте тип гибрида</strong>
+          <p>Обычный Hybrid и Plug-in Hybrid считаются по-разному. Если авто заряжается от розетки или в названии есть PHEV / Plug-in, выберите Plug-in.</p>
+          <div>
+            <button type="button" data-fuel-choice="hybrid">Обычный гибрид</button>
+            <button type="button" data-fuel-choice="phev">Plug-in / PHEV</button>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="formRow">
+            <label>Стоимость лота, $</label>
+            <input id="lotPrice" type="number" min="0" value="12000">
+          </div>
+          <div class="formRow">
+            <label>Аукционный сбор, $</label>
+            <input id="auctionFeeView" readonly value="0">
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="formRow">
+            <label>Объем двигателя, л</label>
+            <select id="engineLiters"></select>
+          </div>
+          <div class="formRow">
+            <label>Год производства</label>
+            <select id="year"></select>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="formRow">
+            <label>Порт отправки</label>
+            <input id="portView" readonly value="—">
+          </div>
+          <div class="formRow">
+            <label>Доставка по суше, $</label>
+            <input id="landView" readonly value="0">
+          </div>
+        </div>
+
+        <div class="options">
+          <label class="check"><input id="insurance" type="checkbox" checked> Страховка 1% от стоимости лота <span class="insuranceInfoV65 infoTipV65" tabindex="0" aria-label="Страхование автомобиля во время морской перевозки. Размер страхового покрытия рассчитывается от стоимости автомобиля.">i</span></label>
+          <label class="check"><input id="exportDocs" type="checkbox"> Экспортные документы +$400 <span class="exportInfoV65 infoTipV65" tabindex="0" aria-label="Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.">i</span></label>
+          <div id="insuranceWarning" class="risk hidden">
+            Без страховки есть риск остаться без компенсации при повреждениях, воде, спорных ситуациях на складе или во время доставки.
+          </div>
+        </div>
+
+        <div class="currencyBox">
+          <span>Показать итог:</span>
+          <button type="button" data-currency="usd" class="currency active">USD</button>
+          <button type="button" data-currency="mdl" class="currency">MDL</button>
+          <button type="button" data-currency="eur" class="currency">EUR</button>
+        </div>
+
+        <details>
+          <summary>Дополнительно</summary>
+          <div class="grid extra">
+            <div class="formRow"><label>Курс USD → MDL MAIB</label><input id="usdMdl" type="number" step="0.01" value="17.45"></div>
+            <div class="formRow"><label>Курс EUR → MDL MAIB</label><input id="eurMdl" type="number" step="0.01" value="20.28"></div>
+            
+            
+            
+            
+          </div>
+        </details>
+
+        <button class="primary" type="submit">Обновить расчет</button>
+      </form>
+
+            <aside class="card resultCard">
+        <div class="resultHeader">
+          <div id="chosenRoute" class="route topRoute">Локация не выбрана</div>
+          <div class="auctionBadge" id="auctionBadge">Copart</div>
+        </div>
+
+        <div id="breakdown" class="breakdown"></div>
+
+        <div class="totalFooter">
+          <div>
+            <div class="resultLabel">Итого</div>
+            <div id="total" class="total">$0</div>
+            <div id="subTotal" class="subTotal">0 MDL / €0</div>
+          </div>
+          <div class="finalNote">
+            Расчет предварительный.<br>
+            Финальную сумму нужно проверить перед покупкой.
+          </div>
+        </div>
+
+<div class="companyMini">
+          <strong>Сопровождение APEX AUTO</strong>
+          <span>Подбор и проверка лота, бесплатная проверка Carfax, участие в торгах, оформление документов, организация доставки и сопровождение автомобиля до выдачи.</span>
+        </div>
+
+        <div class="actions">
+          <button id="copyBtn" type="button">Скопировать расчет</button>
+          
+          <a id="tgBtn" href="#" target="_blank" rel="noopener">Поделиться расчетом</a>
+        </div>
+      </aside>
+
+      <div id="smartLotAdvice" class="smartLotAdviceV129 calcWideAdviceV146" hidden></div>
+      <div class="bidAdvisorV138 bidAdvisorWideV156">
+        <div class="smartHeadV129">
+          <span>Торговая рекомендация</span>
+          <b>APEX</b>
+        </div>
+        <div class="bidAdvisorGridV138">
+          <label>
+            Рынок Молдовы от, $
+            <input id="marketMin" type="number" min="0" placeholder="20000">
+          </label>
+          <label>
+            Рынок Молдовы до, $
+            <input id="marketMax" type="number" min="0" placeholder="23000">
+          </label>
+          <label>
+            Ремонт от, $
+            <input id="repairMin" type="number" min="0" placeholder="3500">
+          </label>
+          <label>
+            Ремонт до, $
+            <input id="repairMax" type="number" min="0" placeholder="4000">
+          </label>
+          <label>
+            Желаемая экономия, $
+            <input id="targetSavings" type="number" min="0" value="3000">
+          </label>
+        </div>
+        <button id="aiBidBtn" class="aiBidBtnV139" type="button">AI оценить ставку</button>
+        <div id="bidAdvisorResult" class="bidAdvisorResultV138"></div>
+      </div>
+    </section>
+
+  
+
+<section class="calcInfoPlainV52">
+  <div class="container">
+    <span class="sectionKicker">Экономия при покупке авто</span><h2>Автомобили из США и Канады выгоднее на 20–35% чем на местном рынке</h2>
+
+    <p>
+      Многие автомобили из США и Канады можно привезти дешевле аналогичных предложений
+      на рынке Молдовы даже с учетом доставки, таможенных платежей и обязательных расходов.
+    </p>
+
+    <p>
+      Именно поэтому клиенты выбирают аукционы Copart, IAAI и Manheim: там часто можно найти
+      более свежий год, лучшую комплектацию и заметную экономию по сравнению с местным рынком.
+    </p>
+
+    <p>
+      Калькулятор помогает заранее оценить ориентировочную стоимость автомобиля под ключ до Кишинева.
+      Возможные расходы на обслуживание или восстановление рассчитываются отдельно после проверки конкретного автомобиля.
+    </p>
+  </div>
+</section>
+</main>
+  <script src="locations.js?v=ai-bid-fixed-v144"></script>
+  <script src="script.js?v=ai-bid-fixed-v144"></script>
+  <script src="site-content.js?v=admin-v166" defer></script>
+  <script src="i18n.js?v=multilang-v165" defer></script>
+
+  <section class="apexProcessV205" id="how">
+    <span class="sectionKicker">Как мы работаем</span>
+    <h2>От заявки до ключей в Кишиневе — 6 шагов</h2>
+    <p class="apexProcessLeadV205">Вы понимаете каждый этап заранее: что происходит, сколько стоит и в какие сроки.</p>
+    <div class="apexProcessGridV205">
+      <article class="apexStepV205"><span class="apexStepNumV205">01</span><h3>Заявка и консультация</h3><p>Обсуждаем бюджет, цели и подходящие модели.</p></article>
+      <article class="apexStepV205"><span class="apexStepNumV205">02</span><h3>Подбор автомобиля</h3><p>Находим лоты на Copart, IAAI и Manheim под ваш запрос.</p></article>
+      <article class="apexStepV205"><span class="apexStepNumV205">03</span><h3>Проверка до ставки</h3><p>VIN, Carfax, история, повреждения и документы — до покупки.</p></article>
+      <article class="apexStepV205"><span class="apexStepNumV205">04</span><h3>Торги и покупка</h3><p>Участвуем в аукционе по согласованному лимиту.</p></article>
+      <article class="apexStepV205"><span class="apexStepNumV205">05</span><h3>Доставка</h3><p>США / Канада → порт → море → транзит через ЕС.</p></article>
+      <article class="apexStepV205"><span class="apexStepNumV205">06</span><h3>Таможня и выдача</h3><p>Растаможка и передача автомобиля в Кишиневе.</p></article>
+    </div>
+  </section>
+
+  <section class="apexWhyV212" id="why">
+    <span class="sectionKicker">Почему Apex Auto</span>
+    <h2>Почему клиенты выбирают нас</h2>
+    <div class="apexWhyGridV212">
+      <article class="apexWhyCardV212" data-i="exp"><h3>Опыт с 2016 года</h3><p>Реальная ежедневная практика на аукционах США и Канады, а не теория из роликов.</p></article>
+      <article class="apexWhyCardV212" data-i="carfax"><h3>Бесплатная проверка Carfax</h3><p>История, пробег, аварии и документы проверяем до покупки, а не после.</p></article>
+      <article class="apexWhyCardV212" data-i="calc"><h3>Расчёт до ставки</h3><p>Вы видите цену под ключ до Кишинёва заранее — без скрытых расходов.</p></article>
+      <article class="apexWhyCardV212" data-i="auc"><h3>Copart · IAAI · Manheim</h3><p>Доступ к страховым и дилерским аукционам — больше выбора и выгодных лотов.</p></article>
+      <article class="apexWhyCardV212" data-i="key"><h3>Сопровождение под ключ</h3><p>От подбора и торгов до доставки, таможни и выдачи автомобиля в Кишинёве.</p></article>
+      <article class="apexWhyCardV212" data-i="person"><h3>Личный эксперт</h3><p>Федор лично проверяет лот и ведёт сделку — вы общаетесь не с колл-центром.</p></article>
+    </div>
+  </section>
+
+  <section class="leadSection" id="selection">
+    <div class="container leadGrid">
+      <div class="leadText">
+        <span class="sectionKicker">Заявка на подбор</span>
+        <h2>Получить подбор автомобилей</h2>
+        <p>Оставьте параметры автомобиля, а мы подберем реальные варианты с аукционов США и Канады с расчетом под ключ до Кишинева.</p>
+        
+        
+        <div class="leadBadges leadBadgesLinksV48">
+          <a href="https://www.copart.com" target="_blank" rel="noopener">Copart</a>
+          <a href="https://www.iaai.com" target="_blank" rel="noopener">IAAI</a>
+          <a href="https://www.manheim.com" target="_blank" rel="noopener">Manheim</a>
+          <a href="https://ca.iaai.com" target="_blank" rel="noopener">Канада</a>
+        </div>
+        <p class="auctionHintV48">Нажми на аукцион и найди свой автомобиль прямо сейчас.</p>
+
+
+</div>
+
+      <form class="miniForm" id="selectionForm">
+        <div class="miniGrid">
+          <input id="leadName" placeholder="Имя">
+          <input id="leadPhone" placeholder="Телефон">
+          <input id="leadTelegram" placeholder="Telegram">
+          <input id="leadBudget" placeholder="Бюджет">
+        </div>
+        <input id="leadCar" placeholder="Какой автомобиль ищете? Например: BMW X5, Tesla Model Y, Porsche Macan">
+        <button type="submit">Получить подбор автомобилей</button>
+        <small>Заявка откроется готовым сообщением в Telegram.</small>
+      </form>
+    </div>
+  </section>
+
+  <section class="checkSection" id="vin-check">
+    <div class="container splitCards">
+      <div class="infoCard darkInfo">
+        <span class="sectionKicker">БЕСПЛАТНАЯ ПРОВЕРКА АВТОМОБИЛЯ</span>
+        <h2>Не уверены, стоит ли покупать этот автомобиль?</h2>
+        <p>Отправьте VIN или ссылку на аукцион. Мы бесплатно проверим историю автомобиля, повреждения, документы, риски и подскажем ориентировочную стоимость под ключ до Кишинева.</p>
+      </div>
+
+      <form class="checkForm" id="checkForm">
+        <input id="checkLot" placeholder="VIN, номер лота или ссылка на Copart / IAAI" required>
+        <button type="submit">Отправить на проверку</button>
+        <small>Ответим в Telegram в рабочее время.</small>
+      </form>
+    </div>
+  </section>
+
+  
+<section class="hotSectionIntroV89">
+  <span class="sectionKicker">ГОРЯЧИЕ ПРЕДЛОЖЕНИЯ</span>
+  <h2>Авто, которые выгодно привозить под ключ</h2>
+  <p>Показываем ориентировочную разницу между стоимостью под ключ и рынком Молдовы. Финальная цена зависит от конкретного автомобиля, состояния, документов и даты покупки.</p>
+</section>
+
+<section class="hotLots" id="hot-lots">
+<article class="telegramHotTileV86 telegramHotTileV88 telegramHotTileV89">
+  <div class="telegramHotTopV88">
+    <div class="telegramHotTileIconV86">📲</div>
+    <h3>Telegram-канал Apex Auto</h3>
+  </div>
+
+  <div class="telegramHotBodyV88">
+    <p>Публикуем интересные автомобили с аукционов США и Канады.</p>
+    <p>Показываем цены покупки, расчет под ключ до Молдовы и возможную экономию.</p>
+
+    <div class="telegramHotChecksV88">
+      <span>Новые лоты ежедневно</span>
+      <span>Реальные цены покупки</span>
+      <span>Расчет стоимости под ключ</span>
+    </div>
+  </div>
+
+  <a href="https://t.me/fedukauto" target="_blank" rel="noopener">Смотреть все лоты</a>
+</article>
+<article class="textLotCard">
+          <img class="hotCarImgV202" src="/assets/hot/bmw-530e.jpg" alt="BMW 530e" loading="lazy">
+          <div class="textLotTop">
+            <span class="lotYear">2018</span>
+            <span class="lotType">plug-in hybrid</span>
+          </div>
+          <h3>BMW 530e</h3>
+          <div class="textLotPrice"><small>Под ключ</small><b>от $16,000</b></div>
+          <div class="textLotRows">
+            <p><span>Цена в Молдове</span><b>от $20,000</b></p>
+            <p class="green"><span>Экономия</span><b>от $4,000</b></p>
+          </div>
+          <a class="examplesBtnV89" href="hot.html">Смотреть примеры</a>
+<a href="https://t.me/fedukusa?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9C%D0%B5%D0%BD%D1%8F%20%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%B5%D1%81%D1%83%D0%B5%D1%82%20%D0%B0%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%20%D0%B8%D0%B7%20%D0%B1%D0%BB%D0%BE%D0%BA%D0%B0%20%D0%B3%D0%BE%D1%80%D1%8F%D1%87%D0%B8%D1%85%20%D0%BF%D1%80%D0%B5%D0%B4%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9.%0A%0A%D0%90%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%3A%202018%20BMW%20530e%20Plug-in%20Hybrid%0A%0A%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%BB%D1%83%D1%87%D0%B8%D1%82%D1%8C%20%D1%80%D0%B0%D1%81%D1%87%D0%B5%D1%82%20%D0%BF%D0%BE%D0%B4%20%D0%BA%D0%BB%D1%8E%D1%87%20%D0%B8%20%D0%BF%D0%BE%D0%BD%D1%8F%D1%82%D1%8C%2C%20%D0%B7%D0%B0%20%D1%81%D0%BA%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE%20%D0%B5%D0%B3%D0%BE%20%D0%BC%D0%BE%D0%B6%D0%BD%D0%BE%20%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D0%B7%D1%82%D0%B8%20%D0%B2%20%D0%9A%D0%B8%D1%88%D0%B8%D0%BD%D0%B5%D0%B2." target="_blank" rel="noopener">Отправить заявку</a>
+        </article>
+<article class="textLotCard">
+          <img class="hotCarImgV202" src="/assets/hot/mercedes-e300.jpg" alt="Mercedes E300" loading="lazy">
+          <div class="textLotTop">
+            <span class="lotYear">2018</span>
+            <span class="lotType">2.0 бензин</span>
+          </div>
+          <h3>Mercedes E300</h3>
+          <div class="textLotPrice"><small>Под ключ</small><b>от $15,000</b></div>
+          <div class="textLotRows">
+            <p><span>Цена в Молдове</span><b>от $19,000</b></p>
+            <p class="green"><span>Экономия</span><b>от $4,000</b></p>
+          </div>
+          <a class="examplesBtnV89" href="hot.html">Смотреть примеры</a>
+<a href="https://t.me/fedukusa?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9C%D0%B5%D0%BD%D1%8F%20%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%B5%D1%81%D1%83%D0%B5%D1%82%20%D0%B0%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%20%D0%B8%D0%B7%20%D0%B1%D0%BB%D0%BE%D0%BA%D0%B0%20%D0%B3%D0%BE%D1%80%D1%8F%D1%87%D0%B8%D1%85%20%D0%BF%D1%80%D0%B5%D0%B4%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9.%0A%0A%D0%90%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%3A%202018%20Mercedes%20E300%20%D0%B1%D0%B5%D0%BD%D0%B7%D0%B8%D0%BD%0A%0A%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%BB%D1%83%D1%87%D0%B8%D1%82%D1%8C%20%D1%80%D0%B0%D1%81%D1%87%D0%B5%D1%82%20%D0%BF%D0%BE%D0%B4%20%D0%BA%D0%BB%D1%8E%D1%87%20%D0%B8%20%D0%BF%D0%BE%D0%BD%D1%8F%D1%82%D1%8C%2C%20%D0%B7%D0%B0%20%D1%81%D0%BA%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE%20%D0%B5%D0%B3%D0%BE%20%D0%BC%D0%BE%D0%B6%D0%BD%D0%BE%20%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D0%B7%D1%82%D0%B8%20%D0%B2%20%D0%9A%D0%B8%D1%88%D0%B8%D0%BD%D0%B5%D0%B2." target="_blank" rel="noopener">Отправить заявку</a>
+        </article>
+<article class="textLotCard accentLot">
+          <img class="hotCarImgV202" src="/assets/hot/honda-accord.jpg" alt="Honda Accord Hybrid" loading="lazy">
+          <div class="textLotTop">
+            <span class="lotYear">2023</span>
+            <span class="lotType">hybrid</span>
+          </div>
+          <h3>Honda Accord Hybrid</h3>
+          <div class="textLotPrice"><small>Под ключ</small><b>от $18,000</b></div>
+          <div class="textLotRows">
+            <p><span>Цена в Молдове</span><b>от $25,000</b></p>
+            <p class="green"><span>Экономия</span><b>от $7,000</b></p>
+          </div>
+          <a class="examplesBtnV89" href="hot.html">Смотреть примеры</a>
+<a href="https://t.me/fedukusa?text=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%21%20%D0%9C%D0%B5%D0%BD%D1%8F%20%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%B5%D1%81%D1%83%D0%B5%D1%82%20%D0%B0%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%20%D0%B8%D0%B7%20%D0%B1%D0%BB%D0%BE%D0%BA%D0%B0%20%D0%B3%D0%BE%D1%80%D1%8F%D1%87%D0%B8%D1%85%20%D0%BF%D1%80%D0%B5%D0%B4%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9.%0A%0A%D0%90%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C%3A%202023%20Honda%20Accord%20Hybrid%0A%0A%D0%A5%D0%BE%D1%87%D1%83%20%D0%BF%D0%BE%D0%BB%D1%83%D1%87%D0%B8%D1%82%D1%8C%20%D1%80%D0%B0%D1%81%D1%87%D0%B5%D1%82%20%D0%BF%D0%BE%D0%B4%20%D0%BA%D0%BB%D1%8E%D1%87%20%D0%B8%20%D0%BF%D0%BE%D0%BD%D1%8F%D1%82%D1%8C%2C%20%D0%B7%D0%B0%20%D1%81%D0%BA%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE%20%D0%B5%D0%B3%D0%BE%20%D0%BC%D0%BE%D0%B6%D0%BD%D0%BE%20%D0%BF%D1%80%D0%B8%D0%B2%D0%B5%D0%B7%D1%82%D0%B8%20%D0%B2%20%D0%9A%D0%B8%D1%88%D0%B8%D0%BD%D0%B5%D0%B2." target="_blank" rel="noopener">Отправить заявку</a>
+        </article>
+</section>
+
+<section class="apexReviewsV212" id="reviews">
+  <span class="sectionKicker">Отзывы</span>
+  <h2>Что говорят клиенты</h2>
+  <div class="apexReviewsGridV212">
+    <figure class="apexReviewCardV212">
+      <div class="apexStarsV212">★★★★★</div>
+      <blockquote>Привёз BMW из США под ключ. Расчёт совпал с тем, что озвучили заранее — без сюрпризов по таможне. Всё показывали на каждом этапе.</blockquote>
+      <figcaption><b>Андрей</b><span>BMW 3 series · Кишинёв</span></figcaption>
+    </figure>
+    <figure class="apexReviewCardV212">
+      <div class="apexStarsV212">★★★★★</div>
+      <blockquote>Боялся брать авто с аукциона, но Федор проверил историю и отговорил от пары рисковых лотов. В итоге машина — огонь, сэкономил прилично.</blockquote>
+      <figcaption><b>Виктор</b><span>Mercedes E-class · Бэлць</span></figcaption>
+    </figure>
+    <figure class="apexReviewCardV212">
+      <div class="apexStarsV212">★★★★★</div>
+      <blockquote>Спокойно, прозрачно, по делу. Доставка и растаможка заняли как и обещали. Уже советую друзьям.</blockquote>
+      <figcaption><b>Олег</b><span>Honda Accord · Кишинёв</span></figcaption>
+    </figure>
+  </div>
+  <p class="apexReviewsNoteV212">Больше реальных примеров и отзывов — в Telegram-канале <a href="https://t.me/fedukauto" target="_blank" rel="noopener">@fedukauto</a></p>
+</section>
+
+<section class="apexFaqV205" id="faq">
+  <span class="sectionKicker">Частые вопросы</span>
+  <h2>Коротко о главном</h2>
+  <div class="apexFaqListV205">
+    <details class="apexFaqItemV205"><summary>Сколько времени занимает доставка авто из США?</summary><p>В среднем 6–10 недель: внутренняя перевозка к порту, морская доставка, транзит через ЕС и растаможка в Кишиневе. Точные сроки зависят от порта и расписания судов.</p></details>
+    <details class="apexFaqItemV205"><summary>Можно узнать полную стоимость до покупки?</summary><p>Да. Калькулятор показывает предварительную цену под ключ — лот, сборы, доставку и таможню — ещё до ставки на аукционе.</p></details>
+    <details class="apexFaqItemV205"><summary>Проверяете ли вы автомобиль перед покупкой?</summary><p>Обязательно. Проверяем VIN, Carfax, историю, повреждения и документы, чтобы вы понимали реальное состояние и риски лота до торгов.</p></details>
+    <details class="apexFaqItemV205"><summary>С какими аукционами вы работаете?</summary><p>Copart, IAAI и Manheim — основные площадки США и Канады. Подбираем лоты под ваш бюджет и задачи.</p></details>
+    <details class="apexFaqItemV205"><summary>Что входит в сопровождение под ключ?</summary><p>Подбор и проверка лота, участие в торгах, оплата и документы, организация доставки, растаможка и передача автомобиля в Кишиневе.</p></details>
+  </div>
+</section>
+
+<footer class="siteFooter">
+    <div class="container footerInner">
+      <div class="footerBrand">
+        <strong>Apex <span>Auto</span></strong>
+        <p>Доставка авто из США и Канады в Молдову</p>
+      </div>
+
+      <div class="footerStats">
+        <div><b>С 2016 года</b><span>в автомобильном бизнесе</span></div>
+        <div><b>APEX AUTO — с 2026</b><span>новый бренд на базе накопленного опыта</span></div>
+        <div><b>Сотни авто</b><span>привезены клиентам</span></div>
+        <div><b>Под ключ</b><span>подбор, торги, документы и логистика</span></div>
+      </div>
+
+      <div class="footerContacts">
+        <a href="https://t.me/fedukusa" target="_blank" rel="noopener" class="contactBtn telegramIcon">Telegram: @fedukusa</a>
+        <a href="https://wa.me/37368832032" target="_blank" rel="noopener" class="contactBtn whatsappIcon">WhatsApp: 068-832-032</a>
+        <a href="https://t.me/fedukauto" target="_blank" rel="noopener" class="contactBtn channelIcon">Telegram канал: @fedukauto</a>
+      </div>
+    </div>
+  </footer>
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"AutoDealer","name":"Apex Auto","description":"Доставка авто из США и Канады в Молдову под ключ: подбор, проверка, аукционы Copart/IAAI/Manheim, доставка и таможня.","url":"https://apexauto.md","telephone":"+373 68 832 032","areaServed":{"@type":"Country","name":"Moldova"},"address":{"@type":"PostalAddress","addressLocality":"Кишинёв","addressCountry":"MD"},"sameAs":["https://t.me/fedukusa","https://t.me/fedukauto"],"foundingDate":"2016"}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Сколько времени занимает доставка авто из США?","acceptedAnswer":{"@type":"Answer","text":"В среднем 6–10 недель: перевозка к порту, морская доставка, транзит через ЕС и растаможка в Кишинёве."}},{"@type":"Question","name":"Можно узнать полную стоимость до покупки?","acceptedAnswer":{"@type":"Answer","text":"Да, калькулятор показывает предварительную цену под ключ ещё до ставки на аукционе."}},{"@type":"Question","name":"Проверяете ли автомобиль перед покупкой?","acceptedAnswer":{"@type":"Answer","text":"Да: VIN, Carfax, история, повреждения и документы до торгов."}},{"@type":"Question","name":"С какими аукционами вы работаете?","acceptedAnswer":{"@type":"Answer","text":"Copart, IAAI и Manheim — основные площадки США и Канады."}}]}
+</script>
+</body>
+</html>
