@@ -173,6 +173,91 @@ section { position: relative; }
 .heroContactsV45 a { padding: 9px 16px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14); color: #fff; font-weight: 600; font-size: 14px; transition: background 0.2s; }
 .heroContactsV45 a:hover { background: rgba(255, 255, 255, 0.14); }
 
+/* ---- Hero showcase (v301): real car photo on the first screen ---------- */
+.heroShowcaseV301 { padding: 0; min-height: 360px; display: flex; }
+.heroShowcaseV301::before { display: none; }
+.heroShowcaseImgV301 {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; transform: scale(1.02);
+  transition: transform 0.6s var(--ease);
+}
+.heroShowcaseV301:hover .heroShowcaseImgV301 { transform: scale(1.06); }
+.heroShowcaseOverlayV301 {
+  position: relative; z-index: 1; margin-top: auto; width: 100%;
+  padding: 26px 24px 22px;
+  background: linear-gradient(0deg, rgba(11, 14, 19, 0.92) 0%, rgba(11, 14, 19, 0.74) 45%, rgba(11, 14, 19, 0) 100%);
+}
+.heroShowcaseTagV301 {
+  display: inline-flex; align-items: center; gap: 7px; margin-bottom: 10px;
+  padding: 5px 12px; border-radius: 999px; color: #fff;
+  background: var(--red); box-shadow: var(--shadow-red);
+}
+.heroShowcaseTagV301::before { content: ""; width: 13px; height: 13px; flex: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 17h14M6 17l1.5-5A2 2 0 0 1 9.4 10.6h5.2a2 2 0 0 1 1.9 1.4L18 17M7 17v2M17 17v2'/%3E%3Ccircle cx='7.5' cy='14.5' r='.6'/%3E%3Ccircle cx='16.5' cy='14.5' r='.6'/%3E%3C/svg%3E") no-repeat center / contain; }
+.heroShowcaseOverlayV301 h2 { color: #fff; font-size: 23px; line-height: 1.12; margin: 0 0 8px; }
+.heroShowcaseOverlayV301 p { color: rgba(255, 255, 255, 0.78); font-size: 14.5px; margin: 0 0 16px; max-width: 42ch; }
+
+/* ---- Hero wide (v302): full-bleed photo, text left, stats bottom ------- */
+.heroV45.heroWideV302 {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 0;
+  position: relative; overflow: hidden;
+  min-height: 552px; padding: 0; margin-top: 10px;
+  border-radius: var(--radius-lg); box-shadow: var(--shadow);
+}
+.heroWideBgV302 {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover; object-position: 72% center;
+}
+.heroWideOverlayV302 {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(13,16,22,0.92) 0%, rgba(13,16,22,0.78) 28%, rgba(13,16,22,0.42) 55%, rgba(13,16,22,0.08) 100%),
+    linear-gradient(0deg, rgba(13,16,22,0.72) 0%, rgba(13,16,22,0) 42%);
+}
+.heroWideContentV302 { position: relative; z-index: 2; padding: 50px 48px 8px; max-width: 660px; }
+.heroV45.heroWideV302 .heroMainV45 { align-self: auto; }
+.heroV45.heroWideV302 .heroMainV45 h1 { color: #fff; }
+.heroV45.heroWideV302 .heroMainV45 p { color: rgba(255,255,255,0.82); }
+.heroV45.heroWideV302 .heroTrustV207 li { color: rgba(255,255,255,0.92); }
+.heroV45.heroWideV302 .heroBtnGhostV207 {
+  background: rgba(255,255,255,0.10); color: #fff; border-color: rgba(255,255,255,0.30);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.heroV45.heroWideV302 .heroBtnGhostV207:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.55); }
+.heroWideStatsV302 {
+  position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 40px;
+  padding: 18px 48px 26px;
+}
+.heroWideStatsV302 > div { display: flex; flex-direction: column; gap: 2px; }
+.heroWideStatsV302 b { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
+.heroWideStatsV302 span { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; color: rgba(255,255,255,0.6); text-transform: uppercase; }
+@media (max-width: 720px) {
+  .heroV45.heroWideV302 { min-height: 500px; }
+  .heroWideContentV302 { padding: 30px 22px 6px; max-width: none; }
+  .heroWideStatsV302 { padding: 14px 22px 20px; gap: 12px 24px; }
+  .heroWideStatsV302 b { font-size: 15.5px; }
+  .heroWideBgV302 { object-position: 66% center; }
+}
+
+/* ---- Brand strip (v301): marquee of car brands we import --------------- */
+.brandStripV301 {
+  width: calc(100% - 48px); max-width: var(--maxw); margin: 6px auto 2px;
+  overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+.brandStripTrackV301 {
+  display: inline-flex; align-items: center; gap: 44px; white-space: nowrap;
+  padding: 6px 0; will-change: transform; animation: brandScrollV301 36s linear infinite;
+}
+.brandStripTrackV301 span {
+  font-size: 16px; font-weight: 800; letter-spacing: 0.01em; color: var(--muted);
+  opacity: 0.85; transition: color 0.18s, opacity 0.18s; flex: none;
+}
+.brandStripV301:hover .brandStripTrackV301 { animation-play-state: paused; }
+.brandStripTrackV301 span:hover { color: var(--ink); opacity: 1; }
+@keyframes brandScrollV301 { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .brandStripTrackV301 { animation: none; } }
+
 /* ---- Calculator -------------------------------------------------------- */
 .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin: 12px 0 8px; }
 .lotImportV118 { grid-column: 1 / -1; background: #f6f7f9; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
@@ -290,6 +375,40 @@ details[open] > summary::before { content: "– "; }
 .calcInfoPlainV52 p:nth-of-type(2)::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ed0012' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='23 6 13.5 15.5 8.5 10.5 1 18'/%3E%3Cpolyline points='17 6 23 6 23 12'/%3E%3C/svg%3E"); }
 .calcInfoPlainV52 p:nth-of-type(3)::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ed0012' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 11l3 3L22 4'/%3E%3Cpath d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/%3E%3C/svg%3E"); }
 
+/* ---- Economy block (v303): two columns, text + savings card --------- */
+.econGridV303 { display: grid; grid-template-columns: 1.04fr 0.96fr; gap: clamp(24px, 4vw, 56px); align-items: center; }
+.econTextV303 .sectionKicker { margin-bottom: 12px; }
+.econTextV303 h2 { max-width: 20ch; }
+.econTextV303 p:last-child { margin-bottom: 0; }
+.econCardV303 {
+  position: relative; overflow: hidden;
+  background: linear-gradient(165deg, var(--dark), var(--dark-2)); color: #fff;
+  border-radius: var(--radius-lg); padding: 26px 26px 24px; box-shadow: var(--shadow);
+}
+.econCardV303::before { content: ""; position: absolute; top: -34%; right: -16%; width: 56%; height: 72%;
+  background: radial-gradient(circle, rgba(237,0,18,0.24), transparent 70%); pointer-events: none; }
+.econCardHeadV303 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; position: relative; }
+.econCardHeadV303 > span { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+.econSaveBadgeV303 { font-size: 15px; font-weight: 800; color: #fff; background: var(--red); padding: 4px 13px; border-radius: 999px; box-shadow: var(--shadow-red); }
+.econBarsV303 { display: flex; flex-direction: column; gap: 18px; position: relative; }
+.econRowTopV303 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+.econRowTopV303 span { font-size: 13.5px; color: rgba(255,255,255,0.72); }
+.econRowTopV303 b { font-size: 16px; font-weight: 800; color: #fff; }
+.econBarTrackV303 { height: 12px; border-radius: 999px; background: rgba(255,255,255,0.10); overflow: hidden; }
+.econBarFillV303 { display: block; height: 100%; border-radius: 999px; transform-origin: left; }
+.econBarFillV303.isMarket { width: 100%; background: rgba(255,255,255,0.34); animation: econGrowV303 1s var(--ease) both; }
+.econBarFillV303.isApex { width: 75%; background: linear-gradient(90deg, var(--red), #ff6a3d); animation: econGrowV303 1s var(--ease) 0.12s both; }
+@keyframes econGrowV303 { from { transform: scaleX(0.04); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .econBarFillV303 { animation: none; } }
+.econFootV303 { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.14); position: relative; }
+.econFootV303 b { display: block; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
+.econFootV303 span { font-size: 12.5px; color: rgba(255,255,255,0.6); }
+.econCtaV303 { display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 11px;
+  background: #fff; color: var(--ink); font-weight: 700; font-size: 14px; transition: transform .18s, box-shadow .18s; }
+.econCtaV303:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0,0,0,0.28); }
+@media (max-width: 860px) { .econGridV303 { grid-template-columns: 1fr; } .econTextV303 h2 { max-width: 28ch; } }
+
 /* ---- Process timeline -------------------------------------------------- */
 .apexProcessV205 { max-width: 1180px; padding: 24px 0; }
 .apexProcessLeadV205 { margin-top: 12px; max-width: 62ch; font-size: 15px; color: var(--muted); }
@@ -370,7 +489,8 @@ details[open] > summary::before { content: "– "; }
 .textLotCard { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); transition: transform 0.22s var(--ease), box-shadow 0.22s, border-color 0.22s; }
 .textLotCard:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--red-line); }
 .textLotCard.accentLot { border-color: var(--red-line); }
-.hotCarImgV202 { display: block; width: 100%; height: 172px; object-fit: cover; border-radius: 14px; margin-bottom: 16px; background: var(--line); }
+.hotCarImgV202 { display: block; width: 100%; height: 172px; object-fit: cover; border-radius: 14px; margin-bottom: 16px; background: var(--line); transition: transform 0.4s var(--ease), filter 0.4s; }
+.textLotCard:hover .hotCarImgV202 { transform: scale(1.03); filter: saturate(1.06); }
 .textLotTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .lotYear { font-weight: 700; color: var(--ink); }
 .lotType { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #ff5a64; background: var(--red-soft); padding: 4px 10px; border-radius: 999px; }
