@@ -612,11 +612,16 @@ details[open] > summary::before { content: "– "; }
 .contactMapV306 iframe { display: block; width: 100%; height: 100%; min-height: 320px; border: 0; }
 @media (max-width: 860px) { .contactLocationV306 { grid-template-columns: 1fr; } }
 
-/* ---- Footer socials (v306) ------------------------------------------ */
-.footerSocialsV306 { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-.footerSocialsV306 a { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; transition: background .18s, transform .18s, border-color .18s; }
-.footerSocialsV306 a:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); transform: translateY(-1px); }
-.footerSocialsV306 svg { width: 19px; height: 19px; }
+/* ---- Contacts: social method cards with brand icons (v307) ---------- */
+.socialMethodV307 { position: relative; }
+.socialMethodV307::after { content: ""; position: absolute; top: 16px; right: 16px; width: 30px; height: 30px;
+  border-radius: 9px; background-repeat: no-repeat; background-position: center; background-size: 17px; }
+.igMethodV307::after { background-color: #fdeef4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23e1306c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='2' width='20' height='20' rx='5.5'/%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Ccircle cx='17.5' cy='6.5' r='1.1' fill='%23e1306c' stroke='none'/%3E%3C/svg%3E"); }
+.ttMethodV307::after { background-color: #eef0f3;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%2314181f'%3E%3Cpath d='M16.5 3c.35 2.3 1.7 3.8 3.9 4.05v2.4c-1.45.05-2.8-.4-3.95-1.15V15a5.6 5.6 0 1 1-5.6-5.6c.32 0 .63.03.93.08v2.5a3.15 3.15 0 1 0 2.22 3.02V3h2.5z'/%3E%3C/svg%3E"); }
+.fbMethodV307::after { background-color: #eaf1ff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%231877f2'%3E%3Cpath d='M14 9V7.2c0-.85.2-1.2 1.25-1.2H17V3h-2.8C11.55 3 10.5 4.3 10.5 6.6V9H8.5v3h2v9h3.5v-9h2.4l.4-3H14z'/%3E%3C/svg%3E"); }
 .contactPanelV110 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; background: rgba(255, 255, 255, 0.62); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-sm); }
 .contactChecklistV110 h2 { margin: 6px 0 14px; }
 .contactChecklistV110 ul { margin: 0; padding-left: 20px; color: var(--ink-2); }
