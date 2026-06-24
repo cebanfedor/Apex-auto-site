@@ -8,45 +8,40 @@
 
 .auctionsShellV1 { width:92%; max-width:1640px; margin:0 auto; padding:24px 0 80px; }
 
-/* Hero */
-.auctionsHeroV1 {
-  display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap;
-  background:var(--aSurf); border:1px solid var(--aLine); border-radius:20px; padding:28px; box-shadow:var(--aShadow);
-}
-.auctionsKickerV1 { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--aRed); margin-bottom:8px; }
-.auctionCrumbsV1 { display:block; font-size:13px; color:var(--aMuted); margin-bottom:6px; }
-.auctionsHeroV1 h1 { font-size:clamp(26px,3vw,40px); letter-spacing:-.03em; color:var(--aInk); }
-.auctionsHeroV1 p { margin-top:10px; max-width:60ch; color:var(--aInk2); }
-.auctionsHeroStatsV1 { display:flex; gap:10px; flex-wrap:wrap; }
-.auctionsHeroStatsV1 span { padding:8px 14px; border:1px solid var(--aLine); border-radius:999px; font-size:13px; font-weight:600; color:var(--aInk2); background:var(--aSoft); }
+/* Compact header */
+.auctionsHeadV2 { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+.auctionsKickerV1 { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--aRed); margin-bottom:4px; }
+.auctionsHeadV2 h1 { font-size:clamp(22px,2.4vw,30px); letter-spacing:-.02em; color:var(--aInk); }
 
 /* Tabs */
-.auctionTabsV1 { display:flex; gap:8px; flex-wrap:wrap; margin:22px 0; }
-.auctionTabsV1 button { height:40px; padding:0 18px; border:1px solid var(--aLine); border-radius:999px; background:var(--aSurf); font-weight:600; font-size:14px; color:var(--aInk2); cursor:pointer; transition:all .18s; }
+.auctionTabsV1 { display:flex; gap:6px; flex-wrap:wrap; }
+.auctionTabsV1 button { height:38px; padding:0 14px; border:1px solid var(--aLine); border-radius:999px; background:var(--aSurf); font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:all .18s; }
 .auctionTabsV1 button:hover { border-color:var(--aMuted); }
 .auctionTabsV1 button.active { background:var(--aRed); color:#fff; border-color:var(--aRed); }
 
-/* Topbar / search */
-.auctionTopbarV1 { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
-.auctionSearchV1 { display:flex; gap:8px; flex-wrap:wrap; flex:1; min-width:280px; }
-.auctionSearchV1 input { flex:1; min-width:120px; height:46px; padding:0 14px; border:1px solid #ccd2db; border-radius:11px; background:var(--aSoft); font-size:14px; color:var(--aInk); }
-.auctionSearchV1 input:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.15); }
-.auctionSearchV1 button { height:46px; padding:0 24px; border:none; border-radius:11px; background:var(--aRed); color:#fff; font-weight:600; cursor:pointer; white-space:nowrap; transition:.18s; }
-.auctionSearchV1 button:hover { background:var(--aRed600); transform:translateY(-1px); }
-.auctionTopActionsV1 { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.filterDrawerBtnV1 { height:46px; padding:0 18px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSurf); font-weight:600; color:var(--aInk2); cursor:pointer; transition:.18s; }
+/* Toolbar */
+.auctionToolbarV2 { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.auctionToolRightV2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.filterDrawerBtnV1 { height:38px; padding:0 14px; border:1px solid var(--aLine); border-radius:10px; background:var(--aSurf); font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:.18s; }
 .filterDrawerBtnV1:hover { border-color:var(--aMuted); }
-.auctionSwitchV1 { display:inline-flex; border:1px solid var(--aLine); border-radius:11px; overflow:hidden; }
-.auctionSwitchV1 button { height:46px; padding:0 18px; border:none; background:var(--aSurf); font-weight:600; color:var(--aInk2); cursor:pointer; transition:.18s; }
+.auctionSwitchV1 { display:inline-flex; border:1px solid var(--aLine); border-radius:10px; overflow:hidden; }
+.auctionSwitchV1 button { height:38px; padding:0 16px; border:none; background:var(--aSurf); font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:.18s; }
 .auctionSwitchV1 button.active { background:var(--aRed); color:#fff; }
-#auctionSort { height:46px; min-width:190px; padding:0 14px; border:1px solid #ccd2db; border-radius:11px; background:var(--aSoft); color:var(--aInk); }
+#auctionSort { height:38px; min-width:170px; padding:0 12px; border:1px solid #ccd2db; border-radius:10px; background:var(--aSoft); font-size:13px; color:var(--aInk); }
 
-.auctionCountV1 { margin:4px 0 18px; font-size:14px; color:var(--aMuted); }
+/* Search row */
+.auctionSearchRowV2 { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
+.auctionSearchRowV2 input { flex:1; min-width:110px; height:38px; padding:0 12px; border:1px solid #ccd2db; border-radius:10px; background:var(--aSoft); font-size:13px; color:var(--aInk); }
+.auctionSearchRowV2 input:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.13); }
+.auctionSearchRowV2 #auctionSearchBtn { height:38px; padding:0 22px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; }
+.auctionSearchRowV2 #auctionSearchBtn:hover { background:var(--aRed600); }
+
+.auctionCountV1 { font-size:13px; color:var(--aMuted); white-space:nowrap; }
 .auctionCountV1 b { color:var(--aInk); font-size:16px; }
 
 /* Layout */
-.auctionLayoutV1 { display:grid; grid-template-columns:280px 1fr; gap:22px; align-items:start; }
-.auctionFiltersV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:20px; padding:18px; box-shadow:var(--aShadow); position:sticky; top:90px; }
+.auctionLayoutV1 { display:grid; grid-template-columns:264px 1fr; gap:22px; align-items:start; }
+.auctionFiltersV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:14px; box-shadow:var(--aShadow); position:sticky; top:80px; max-height:calc(100vh - 96px); overflow-y:auto; }
 .filterHeadV1 { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .filterHeadV1 h2 { font-size:18px; color:var(--aInk); }
 .filterHeadV1 button { display:none; border:none; background:none; font-size:22px; color:var(--aMuted); cursor:pointer; }

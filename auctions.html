@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v334c">
+  <link rel="stylesheet" href="/auctions.css?v=v335c">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -44,38 +44,23 @@
 
   <main class="auctionsShellV1">
     <section id="auctionCatalog" class="auctionsCatalogV1">
-      <div class="auctionsHeroV1">
-        <div>
+      <div class="auctionsHeadV2">
+        <div class="auctionsHeadLeftV2">
           <span class="auctionsKickerV1">COPART / IAAI</span>
-          <span class="auctionCrumbsV1">Главная / Аукционы</span>
           <h1>Текущие аукционы</h1>
-          <p>Реальные лоты Copart и IAAI через AuctionsAPI: поиск, фильтры, отдельная страница лота и заявка в ApexAuto.</p>
         </div>
-        <div class="auctionsHeroStatsV1">
-          <span>Run & Drive</span>
-          <span>Buy Now</span>
-          <span>No Reserve</span>
-        </div>
+        <div class="auctionCountV1"><b id="auctionResultCount">0</b><span id="auctionResultLabel">лотов найдено</span></div>
       </div>
 
-      <section class="auctionTabsV1" aria-label="Статус каталога">
-        <button class="active" type="button" data-tab="all">Все</button>
-        <button type="button" data-tab="open">Открытые</button>
-        <button type="button" data-tab="sold">Завершенные</button>
-        <button type="button" data-tab="buy_now">Купить сейчас</button>
-        <button type="button" data-tab="archived">Архивные</button>
-      </section>
-
-      <section class="auctionTopbarV1">
-        <div class="auctionSearchV1">
-          <input id="auctionMakeSearch" placeholder="Марка">
-          <input id="auctionModelSearch" placeholder="Модель">
-          <input id="auctionVinSearch" placeholder="VIN">
-          <input id="auctionLotSearch" placeholder="LOT">
-          <button id="auctionSearchBtn" type="button">Найти</button>
-        </div>
-        <div class="auctionTopActionsV1">
-          <button id="searchSettingsBtn" class="filterDrawerBtnV1 desktopSettingsV1" type="button">Настройки поиска</button>
+      <div class="auctionToolbarV2">
+        <section class="auctionTabsV1" aria-label="Статус каталога">
+          <button class="active" type="button" data-tab="all">Все</button>
+          <button type="button" data-tab="open">Открытые</button>
+          <button type="button" data-tab="sold">Завершенные</button>
+          <button type="button" data-tab="buy_now">Купить сейчас</button>
+          <button type="button" data-tab="archived">Архивные</button>
+        </section>
+        <div class="auctionToolRightV2">
           <div class="auctionSwitchV1" role="group" aria-label="Аукцион">
             <button class="active" type="button" data-auction-switch="copart">Copart</button>
             <button type="button" data-auction-switch="iaai">IAAI</button>
@@ -89,11 +74,15 @@
           </select>
           <button id="openFiltersBtn" class="filterDrawerBtnV1" type="button">Фильтры</button>
         </div>
-      </section>
+      </div>
 
-      <div class="auctionCountV1">
-        <b id="auctionResultCount">0</b>
-        <span id="auctionResultLabel">лотов найдено</span>
+      <div class="auctionSearchRowV2">
+        <input id="auctionMakeSearch" placeholder="Марка">
+        <input id="auctionModelSearch" placeholder="Модель">
+        <input id="auctionVinSearch" placeholder="VIN">
+        <input id="auctionLotSearch" placeholder="LOT">
+        <button id="auctionSearchBtn" type="button">Найти</button>
+        <button id="searchSettingsBtn" class="filterDrawerBtnV1 desktopSettingsV1" type="button">Настройки</button>
       </div>
 
       <section class="auctionLayoutV1">
