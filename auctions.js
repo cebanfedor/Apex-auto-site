@@ -98,9 +98,9 @@
   function statusTone(value){
     const text = String(value || "").toLowerCase();
     if(!value) return "";
-    if(/run|drive|clear|yes|без|no reserve|live|available/.test(text)) return "good";
-    if(/approval|minimum|salvage|starts|unknown|timed|upcoming/.test(text)) return "warn";
-    if(/non|not|bill|parts|flood|water|sold|missing/.test(text)) return "bad";
+    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут/.test(text)) return "bad";
+    if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown/.test(text)) return "warn";
+    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|есть|на ходу|live|available|no reserve|без резерва/.test(text)) return "good";
     return "";
   }
 
@@ -503,9 +503,26 @@
     navigator.clipboard?.writeText(text);
   }
 
+  function dMain(label, value){
+    if(value == null || value === "") return "";
+    const t = statusTone(value) || "neutral";
+    const ic = t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q";
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal dTone-${t}">${dbIco(ic)}<span>${escapeHtml(value)}</span></span></div>`;
+  }
+  function dPlain(label, valueHtml){
+    if(valueHtml == null || valueHtml === "") return "";
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal">${valueHtml}</span></div>`;
+  }
+
   function renderDetail(lot){
     const images = lot.images?.length ? lot.images : [lot.image].filter(Boolean);
     const title = lotTitle(lot);
+    const dmgParts = String(lot.damage || "").split("/").map(s => s.trim()).filter(Boolean);
+    const primaryDmg = lot.primaryDamage || dmgParts[0] || "";
+    const secondaryDmg = lot.secondaryDamage || dmgParts[1] || "";
+    const driveLine = [lot.engine, lot.cylinders && `${lot.cylinders} цил`, lot.drive, lot.transmission].filter(Boolean).join(" · ");
+    const specLine = [lot.engine, lot.cylinders && `${lot.cylinders} цил`, lot.drive, lot.transmission].filter(Boolean).join(" • ");
+    const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
     $("#auctionCatalog").hidden = true;
     const detail = $("#auctionDetail");
     detail.hidden = false;
@@ -513,61 +530,60 @@
       <a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a>
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
-          <span class="auctionCrumbsV1">Главная / Аукционы / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
-          <h1>${escapeHtml(title)}</h1>
-          <p>${escapeHtml([lot.engine, lot.fuel, lot.transmission, lot.drive, lot.odometerText].filter(Boolean).join(" · ") || "Данные лота загружены из AuctionsAPI")}</p>
+          <div>
+            <span class="auctionCrumbsV1">Главная / Аукционы / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
+            <h1>${escapeHtml(title)}</h1>
+            <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? `<span class="dSpecVin">${dbIco("vin")}${escapeHtml(lot.vin)}</span>` : ""}</p>
+          </div>
+          ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
         </div>
         <div class="lotDetailGridV1">
           <div class="detailGalleryV1">
-            <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
+            <div class="dGalMainV2">
+              <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
+              <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
+              <span class="dGalCountV2">1/${escapeHtml(images.length || 1)}</span>
+            </div>
             <div class="detailThumbsV1">
               ${images.map(src => `<img src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}">`).join("")}
             </div>
           </div>
           <div class="lotDetailCenterV1">
-            <section class="lotInfoBlockV1">
-              <span class="auctionsKickerV1">Информация о лоте</span>
-              <div class="auctionBadgesV1">
-                <span class="lotStatusV1">${escapeHtml(lot.lotStatus || "Live")}</span>
-                ${lot.saleStatus ? `<span class="saleBadgeV1 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</span>` : ""}
-              </div>
-              <div class="lotQuickSpecV1">
-                ${spec("VIN", lot.vin)}
-                ${spec("LOT", lot.lot)}
-                ${spec("Аукцион", lot.auction?.toUpperCase())}
-                ${spec("Локация", lot.location)}
-                ${spec("Дата торгов", dateText(lot.auctionDate))}
-                ${spec("Пробег", lot.odometerText)}
-              </div>
+            <section class="dSec">
+              <div class="dSecHead">Главное</div>
+              ${dMain("Состояние", lot.condition)}
+              ${dMain("Продавец", lot.seller)}
+              ${dMain("Ключ доступен", lot.keys)}
+              ${dMain("Статус документов", lot.document)}
+              ${dMain("История", lot.priceHistory?.length ? `${lot.priceHistory.length} записи` : "Впервые в продаже")}
+              ${dPlain("Привод", escapeHtml(driveLine))}
+              ${dPlain("Пробег", escapeHtml(dbOdo(lot.odometerText)))}
+              ${dMain("Основное повреждение", primaryDmg)}
+              ${dMain("Вторичное повреждение", secondaryDmg)}
+              ${dPlain("Тип документа", escapeHtml(lot.document))}
+              ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчёт VIN</a>`) : ""}
             </section>
-            <section class="lotInfoBlockV1">
-              <span class="auctionsKickerV1">Характеристики</span>
-              <div class="detailSpecGridV1">
-                ${spec("Primary damage", lot.primaryDamage)}
-                ${spec("Secondary damage", lot.secondaryDamage)}
-                ${spec("Документ / Title", lot.document)}
-                ${spec("Двигатель", lot.engine)}
-                ${spec("КПП", lot.transmission)}
-                ${spec("Привод", lot.drive)}
-                ${spec("Цилиндры", lot.cylinders)}
-                ${spec("Топливо", lot.fuel)}
-                ${spec("Цвет", lot.color)}
-                ${spec("Ключи", lot.keys)}
-                ${spec("Estimated retail value", money(lot.estimatedRetailValue))}
-                ${spec("Seller", lot.seller)}
-              </div>
+            <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
+            <section class="dSec">
+              <div class="dSecHead">Аукцион</div>
+              ${dPlain("VIN", escapeHtml(lot.vin))}
+              ${dPlain("Номер лота", `${escapeHtml(lot.lot || "—")} <span class="dAucMini">${escapeHtml(lot.auction.toUpperCase())}</span>`)}
+              ${dPlain("Статус продажи", escapeHtml(lot.saleStatus))}
+              ${dPlain("Продавец", escapeHtml(lot.seller))}
+              ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate)))}
+              ${dPlain("Локация", escapeHtml(lot.location))}
+              ${dPlain("Оценка (ACV)", lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "")}
             </section>
-            <section class="lotInfoBlockV1">
-              <h2>Почему стоит проверить этот лот перед покупкой</h2>
-              <p>Перед ставкой важно сверить историю, документы, реальные повреждения, статус запуска и итоговую стоимость доставки. Это помогает не переплатить и заранее понимать бюджет восстановления.</p>
+            <section class="dSec">
+              <div class="dSecHead">Описание</div>
+              ${dPlain("Тип топлива", escapeHtml(lot.fuel))}
+              ${dPlain("Цвет кузова", escapeHtml(lot.color))}
+              ${dPlain("Тип кузова", escapeHtml(lot.body))}
+              ${dPlain("Цилиндры", escapeHtml(lot.cylinders))}
             </section>
-            <section class="lotInfoBlockV1">
-              <h2>ApexAuto assistance</h2>
-              <p>Мы помогаем с проверкой лота, расчетом под ключ, участием в торгах, документами, логистикой и сопровождением автомобиля до выдачи в Молдове.</p>
-            </section>
-            ${Array.isArray(lot.priceHistory) && lot.priceHistory.length ? `<section class="priceHistoryV1">
-              <h2>История цены</h2>
-              ${lot.priceHistory.slice(0, 8).map(item => `<span>${escapeHtml(item.date || item.sale_date || "")} ${escapeHtml(money(item.price || item.bid || item.amount))}</span>`).join("")}
+            ${Array.isArray(lot.priceHistory) && lot.priceHistory.length ? `<section class="dSec">
+              <div class="dSecHead">История цены</div>
+              <div class="priceHistoryV1">${lot.priceHistory.slice(0, 8).map(item => `<span>${escapeHtml(item.date || item.sale_date || "")} ${escapeHtml(money(item.price || item.bid || item.amount))}</span>`).join("")}</div>
             </section>` : ""}
           </div>
           ${renderLotCalculator(lot)}

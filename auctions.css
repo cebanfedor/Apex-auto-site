@@ -6,7 +6,7 @@
   --aLine:#e6e8ec; --aLine2:#eef0f3; --aSurf:#ffffff; --aSoft:#f1f4f8;
   --aShadow:0 1px 2px rgba(16,20,28,.04), 0 14px 34px rgba(16,20,28,.08); }
 
-.auctionsShellV1 { width:100%; max-width:1292px; margin:0 auto; padding:24px 24px 80px; }
+.auctionsShellV1 { width:92%; max-width:1640px; margin:0 auto; padding:24px 0 80px; }
 
 /* Hero */
 .auctionsHeroV1 {
@@ -139,7 +139,7 @@
 .auctionBadgesV1 { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
 .lotStatusV1, .saleBadgeV1 { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:var(--aSoft); color:var(--aInk2); border:1px solid var(--aLine); }
 .saleBadgeV1 { background:#fff1f1; color:var(--aRed); border-color:rgba(237,0,18,.2); }
-.lotDetailGridV1 { display:grid; grid-template-columns:1.1fr 1fr 320px; gap:24px; margin-top:22px; align-items:start; }
+.lotDetailGridV1 { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) 372px; gap:24px; margin-top:22px; align-items:start; }
 .detailGalleryV1 { position:sticky; top:90px; }
 .detailMainImageV1 { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:16px; background:var(--aSoft); }
 .detailThumbsV1 { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:8px; }
@@ -170,6 +170,35 @@
 .stickyCtasV1 a, .stickyCtasV1 button { height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:11px; font-weight:600; border:none; cursor:pointer; }
 .stickyCtasV1 button, .stickyCtasV1 .auctionBtnPrimaryV1 { background:var(--aRed); color:#fff; }
 .stickyCtasV1 a { background:rgba(255,255,255,.1); color:#fff; }
+
+/* Lot detail — DreamBid-style center column */
+.detailHeaderV1 { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+.dSpecLine { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; font-size:14px; color:var(--aInk2); }
+.dSpecLine .dbIco { width:16px; height:16px; color:var(--aMuted); }
+.dSpecVin { display:inline-flex; align-items:center; gap:5px; color:var(--aMuted); font-size:13px; font-variant-numeric:tabular-nums; }
+.dVinBtn { flex:none; height:40px; display:inline-flex; align-items:center; padding:0 16px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); font-weight:600; font-size:13px; color:var(--aInk); white-space:nowrap; }
+.dVinBtn:hover { border-color:var(--aMuted); }
+.dGalMainV2 { position:relative; }
+.dGalChipV2 { left:10px; bottom:10px; }
+.dGalCountV2 { position:absolute; right:10px; bottom:10px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.7); color:#fff; font-size:12px; }
+.lotDetailCenterV1 { gap:16px; }
+.dSec { background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; padding:14px 18px; }
+.dSecHead { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); padding-bottom:9px; border-bottom:1px solid var(--aLine2); }
+.dRowV2 { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:8px 0; font-size:14px; }
+.dRowV2 + .dRowV2 { border-top:1px solid var(--aLine2); }
+.dRowLbl { color:var(--aInk2); flex:none; }
+.dRowVal { display:inline-flex; align-items:center; gap:7px; color:var(--aInk); font-weight:600; text-align:right; justify-content:flex-end; }
+.dRowVal .dbIco { width:16px; height:16px; flex:none; }
+.dTone-good .dbIco { color:#1b9c5b; }
+.dTone-warn .dbIco { color:#e8a000; }
+.dTone-bad .dbIco { color:var(--aRed); }
+.dTone-neutral .dbIco { color:var(--aMuted); }
+.dAucMini { background:#fff1f1; color:var(--aRed); font-weight:700; font-size:10.5px; padding:2px 7px; border-radius:5px; margin-left:6px; }
+.dLink { color:#1f6bff; font-weight:600; }
+.dRecoV2 { display:flex; gap:12px; background:#eefaf2; border:1px solid #cdeed9; border-radius:14px; padding:14px 16px; }
+.dRecoV2 > .dbIco { color:#1b9c5b; width:22px; height:22px; flex:none; margin-top:1px; }
+.dRecoV2 b { font-size:14px; color:#176a3c; display:block; margin-bottom:3px; }
+.dRecoV2 p { font-size:13px; color:#2f6b48; line-height:1.4; }
 
 /* Lot calculator — DreamBid-style, light sticky panel */
 .lotCalcV2 { position:sticky; top:90px; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:18px; box-shadow:var(--aShadow); display:flex; flex-direction:column; gap:14px; }
