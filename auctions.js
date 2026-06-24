@@ -92,6 +92,14 @@
     Array.from(params.entries()).forEach(([key, value]) => {
       if(!value) params.delete(key);
     });
+    // Mileage may be entered in km; the API expects miles.
+    const odoUnit = document.querySelector("[data-odo-unit].active")?.dataset.odoUnit;
+    if(odoUnit === "km"){
+      ["mileageFrom", "mileageTo"].forEach(k => {
+        const v = params.get(k);
+        if(v) params.set(k, String(Math.round(Number(v) / 1.609)));
+      });
+    }
     return params;
   }
 
@@ -794,6 +802,46 @@
     }
   }
 
+  function rangeUnitFactor(rangeEl){
+    const t = rangeEl.closest("details")?.querySelector("[data-odo-unit].active");
+    return (t && t.dataset.odoUnit === "km") ? 1.609 : 1;
+  }
+  function initRanges(){
+    document.querySelectorAll("[data-range]").forEach(range => {
+      if(range.dataset.init) return;
+      range.dataset.init = "1";
+      const min = Number(range.dataset.min), max = Number(range.dataset.max);
+      const lo = range.querySelector(".rLoV2"), hi = range.querySelector(".rHiV2"), fill = range.querySelector(".rangeFillV2");
+      const nums = range.querySelectorAll(".rangeNumsV2 input"), numLo = nums[0], numHi = nums[1];
+      const pct = v => ((v - min) / (max - min)) * 100;
+      const paint = () => {
+        const a = Math.min(Number(lo.value), Number(hi.value)), b = Math.max(Number(lo.value), Number(hi.value));
+        fill.style.left = pct(a) + "%";
+        fill.style.width = (pct(b) - pct(a)) + "%";
+      };
+      const fromSlider = () => {
+        let a = Number(lo.value), b = Number(hi.value);
+        if(a > b){ const t = a; a = b; b = t; lo.value = a; hi.value = b; }
+        const f = rangeUnitFactor(range);
+        numLo.value = a > min ? Math.round(a * f) : "";
+        numHi.value = b < max ? Math.round(b * f) : "";
+        paint();
+      };
+      const fromNum = () => {
+        const f = rangeUnitFactor(range);
+        lo.value = numLo.value !== "" ? Math.min(max, Math.max(min, Number(numLo.value) / f)) : min;
+        hi.value = numHi.value !== "" ? Math.min(max, Math.max(min, Number(numHi.value) / f)) : max;
+        paint();
+      };
+      lo.addEventListener("input", fromSlider);
+      hi.addEventListener("input", fromSlider);
+      if(numLo) numLo.addEventListener("input", fromNum);
+      if(numHi) numHi.addEventListener("input", fromNum);
+      range._refresh = fromSlider;
+      paint();
+    });
+  }
+
   function bindEvents(){
     $("#auctionSearchBtn").addEventListener("click", () => { state.page = 1; loadLots(); });
     ["#auctionMakeSearch", "#auctionModelSearch", "#auctionVinSearch", "#auctionLotSearch"].forEach(selector => {
@@ -832,6 +880,8 @@
         const input = $(selector);
         if(input) input.value = "";
       });
+      document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("[data-range]").forEach(range => { if(range._refresh) range._refresh(); });
       state.page = 1;
       loadLots();
     });
@@ -846,6 +896,28 @@
       if(event.target.closest("#openFiltersBtn")) document.body.classList.add("filtersOpenV1");
       if(event.target.closest("#searchSettingsBtn")) document.body.classList.add("filtersOpenV1");
       if(event.target.closest("#closeFiltersBtn")) document.body.classList.remove("filtersOpenV1");
+      const odoBtn = event.target.closest("[data-odo-unit]");
+      if(odoBtn){
+        const wrap = odoBtn.closest("details");
+        wrap.querySelectorAll("[data-odo-unit]").forEach(b => b.classList.toggle("active", b === odoBtn));
+        const range = wrap.querySelector("[data-range]");
+        if(range && range._refresh) range._refresh();
+      }
+      const dq = event.target.closest("[data-date-range]");
+      if(dq){
+        const form = $("#auctionFiltersForm");
+        const pad = n => String(n).padStart(2, "0");
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const from = new Date(); from.setHours(0, 0, 0, 0);
+        const to = new Date(from);
+        const kind = dq.dataset.dateRange;
+        if(kind === "tomorrow"){ from.setDate(from.getDate() + 1); to.setDate(to.getDate() + 1); }
+        else if(kind === "week"){ to.setDate(to.getDate() + 7); }
+        else if(kind === "nextweek"){ from.setDate(from.getDate() + 7); to.setDate(to.getDate() + 14); }
+        if(form.auctionDateFrom) form.auctionDateFrom.value = fmt(from);
+        if(form.auctionDateTo) form.auctionDateTo.value = fmt(to);
+        dq.closest(".dateQuickV2").querySelectorAll("button").forEach(b => b.classList.toggle("active", b === dq));
+      }
       const leadButton = event.target.closest("[data-lead]");
       if(leadButton){
         const lot = state.items.find(item => item.id === leadButton.dataset.lead) || state.selectedLot;
@@ -908,6 +980,7 @@
   async function initAuctions(){
     closeLead();
     bindEvents();
+    initRanges();
     const isDetail = await loadDetailFromUrl();
     if(!isDetail) loadLots();
   }

@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v327c">
+  <link rel="stylesheet" href="/auctions.css?v=v329c">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -103,40 +103,112 @@
             <button id="closeFiltersBtn" type="button">×</button>
           </div>
           <form id="auctionFiltersForm">
-            <details open><summary>Фильтры</summary>
-              <label>Поиск<input name="q" placeholder="VIN / LOT / марка / модель"></label>
-              <label>VIN<input name="vin" placeholder="Например 4T1..."></label>
+            <details open class="fSecV2"><summary>Поиск</summary>
+              <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
-            <details><summary>Сохраненные</summary><label class="checkLineV1"><input type="checkbox" name="saved"> Сохраненные поиски</label></details>
-            <details><summary>Избранное</summary><label class="checkLineV1"><input type="checkbox" name="favorites"> Только избранные</label></details>
-            <details><summary>Безопасность</summary><label class="checkLineV1"><input type="checkbox" name="safeLots"> Только безопасные лоты</label></details>
-            <details><summary>Оценочная стоимость</summary><div class="filterGridV1"><label>От<input name="retailFrom" type="number"></label><label>До<input name="retailTo" type="number"></label></div></details>
-            <details open><summary>Автомобиль</summary>
-              <label>Марка<input name="make" placeholder="BMW, Toyota, Tesla"></label>
-              <label>Модель<input name="model" placeholder="X5, Camry, Model Y"></label>
-              <label>Версия<input name="version" placeholder="xDrive, Limited"></label>
-              <div class="filterGridV1"><label>Год от<input name="yearFrom" type="number" inputmode="numeric"></label><label>Год до<input name="yearTo" type="number" inputmode="numeric"></label></div>
-              <div class="filterGridV1"><label>Пробег от<input name="mileageFrom" type="number" inputmode="numeric"></label><label>Пробег до<input name="mileageTo" type="number" inputmode="numeric"></label></div>
+            <details open class="fSecV2"><summary>Марка</summary>
+              <input name="make" class="fInputV2" placeholder="BMW, Toyota, Tesla">
             </details>
-            <details open><summary>Аукцион</summary>
-              <label>Статус лота<select name="lotStatus"><option value="">Любой</option><option value="live">Live</option><option value="upcoming">Upcoming</option><option value="sold">Sold</option><option value="buy now">Buy Now</option></select></label>
-              <label>Статус продажи<select name="saleStatus"><option value="">Любой</option><option value="no reserve">Без резерва</option><option value="approval">На утверждении</option><option value="minimum bid">Минимальный резерв</option><option value="timed">Аукцион timed</option></select></label>
-              <div class="filterGridV1"><label>Дата от<input name="auctionDateFrom" type="date"></label><label>Дата до<input name="auctionDateTo" type="date"></label></div>
+            <details open class="fSecV2"><summary>Модель</summary>
+              <input name="model" class="fInputV2" placeholder="X5, Camry, Model Y">
             </details>
-            <details><summary>Характеристики</summary>
-              <label>Тип кузова<input name="body" placeholder="Sedan, SUV, Pickup"></label>
-              <label>Топливо<select name="fuel"><option value="">Любое</option><option value="gasoline">Бензин</option><option value="diesel">Дизель</option><option value="hybrid">Гибрид</option><option value="electric">Электро</option></select></label>
-              <div class="filterGridV1"><label>КПП<input name="transmission" placeholder="Automatic"></label><label>Привод<input name="drive" placeholder="AWD, RWD"></label></div>
+            <details open class="fSecV2"><summary>Год</summary>
+              <div class="rangeV2" data-range data-min="1980" data-max="2027">
+                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="1980" max="2027" value="1980"><input type="range" class="rHiV2" min="1980" max="2027" value="2027"></div>
+                <div class="rangeNumsV2"><input name="yearFrom" type="number" inputmode="numeric" placeholder="1980"><input name="yearTo" type="number" inputmode="numeric" placeholder="2027"></div>
+              </div>
             </details>
-            <details><summary>Повреждения и документы</summary>
-              <label>Повреждение<input name="damage" placeholder="Front End, Rear, Hail"></label>
-              <label>Документ / Title<input name="document" placeholder="Salvage, Clear, Bill of Sale"></label>
-              <label>Локация<input name="location" placeholder="Chicago North, Fremont"></label>
-              <label>Состояние<input name="condition" placeholder="Run & Drive"></label>
+            <details open class="fSecV2"><summary>Пробег</summary>
+              <div class="kmToggleV2"><button type="button" class="active" data-odo-unit="mi">миль</button><button type="button" data-odo-unit="km">км</button></div>
+              <div class="rangeV2" data-range data-min="0" data-max="250000" data-step="1000">
+                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="250000" step="1000" value="0"><input type="range" class="rHiV2" min="0" max="250000" step="1000" value="250000"></div>
+                <div class="rangeNumsV2"><input name="mileageFrom" type="number" inputmode="numeric" placeholder="0"><input name="mileageTo" type="number" inputmode="numeric" placeholder="250 000"></div>
+              </div>
             </details>
-            <details><summary>Цена</summary>
-              <div class="filterGridV1"><label>Ставка от<input name="bidFrom" type="number" inputmode="numeric"></label><label>Ставка до<input name="bidTo" type="number" inputmode="numeric"></label></div>
-              <div class="filterGridV1"><label>Buy Now от<input name="buyNowFrom" type="number" inputmode="numeric"></label><label>Buy Now до<input name="buyNowTo" type="number" inputmode="numeric"></label></div>
+            <details class="fSecV2"><summary>Цена (ставка)</summary>
+              <div class="rangeV2" data-range data-min="0" data-max="100000" data-step="500">
+                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="100000" step="500" value="0"><input type="range" class="rHiV2" min="0" max="100000" step="500" value="100000"></div>
+                <div class="rangeNumsV2"><input name="bidFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="bidTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
+              </div>
+            </details>
+            <details open class="fSecV2"><summary>Тип топлива</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="fuel" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="fuel" value="gasoline"><span>Бензин</span></label>
+                <label class="optV2"><input type="radio" name="fuel" value="hybrid"><span>Гибрид</span></label>
+                <label class="optV2"><input type="radio" name="fuel" value="electric"><span>Электро</span></label>
+                <label class="optV2"><input type="radio" name="fuel" value="diesel"><span>Дизель</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Привод</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="drive" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="drive" value="awd"><span>4×4 / AWD</span></label>
+                <label class="optV2"><input type="radio" name="drive" value="fwd"><span>FWD</span></label>
+                <label class="optV2"><input type="radio" name="drive" value="rwd"><span>RWD</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Трансмиссия</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="transmission" value="" checked><span>Любая</span></label>
+                <label class="optV2"><input type="radio" name="transmission" value="automatic"><span>Автомат</span></label>
+                <label class="optV2"><input type="radio" name="transmission" value="manual"><span>Механика</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Тип кузова</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="body" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="body" value="sedan"><span>Sedan</span></label>
+                <label class="optV2"><input type="radio" name="body" value="suv"><span>SUV</span></label>
+                <label class="optV2"><input type="radio" name="body" value="coupe"><span>Coupe</span></label>
+                <label class="optV2"><input type="radio" name="body" value="convertible"><span>Convertible</span></label>
+                <label class="optV2"><input type="radio" name="body" value="pickup"><span>Pickup</span></label>
+                <label class="optV2"><input type="radio" name="body" value="hatchback"><span>Hatchback</span></label>
+                <label class="optV2"><input type="radio" name="body" value="minivan"><span>Minivan</span></label>
+                <label class="optV2"><input type="radio" name="body" value="wagon"><span>Wagon</span></label>
+                <label class="optV2"><input type="radio" name="body" value="van"><span>Van</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Состояние</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="condition" value="" checked><span>Любое</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="run and drive"><span>Заводится и едет</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="starts"><span>Заводится</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="non-runner"><span>Не на ходу</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Повреждение</summary>
+              <input name="damage" class="fInputV2" placeholder="Front End, Rear, Hail">
+            </details>
+            <details class="fSecV2"><summary>Локация</summary>
+              <input name="location" class="fInputV2" placeholder="Chicago, Fremont, CA">
+            </details>
+            <details class="fSecV2"><summary>Статус лота</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="lotStatus" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="live"><span>Идут торги</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="upcoming"><span>Скоро</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="sold"><span>Завершён</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="buy now"><span>Купить сейчас</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Статус продажи</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="saleStatus" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="no reserve"><span>Без резерва</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="approval"><span>На утверждении</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="minimum bid"><span>Минимальный резерв</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="timed"><span>Аукцион Timed</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Дата аукциона</summary>
+              <div class="dateQuickV2">
+                <button type="button" data-date-range="today">Сегодня</button>
+                <button type="button" data-date-range="tomorrow">Завтра</button>
+                <button type="button" data-date-range="week">Эта неделя</button>
+                <button type="button" data-date-range="nextweek">След. неделя</button>
+              </div>
+              <div class="rangeNumsV2"><input name="auctionDateFrom" type="date"><input name="auctionDateTo" type="date"></div>
             </details>
             <div class="filterActionsV1">
               <button type="submit">Показать</button>
@@ -176,7 +248,7 @@
 
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
-  <script src="/auctions.js?v=auctions-v15" defer></script>
+  <script src="/auctions.js?v=auctions-v16" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>

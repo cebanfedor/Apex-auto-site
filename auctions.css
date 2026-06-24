@@ -62,6 +62,40 @@
 .filterActionsV1 button[type="submit"] { background:var(--aRed); color:#fff; border-color:var(--aRed); }
 .filterActionsV1 #resetFiltersBtn { background:var(--aSurf); color:var(--aInk2); }
 
+/* Filters sidebar — DreamBid-style */
+.fSecV2 { border:none; border-top:1px solid var(--aLine2); padding:14px 0 6px; }
+.fSecV2:first-of-type { border-top:none; padding-top:4px; }
+.fSecV2 > summary { list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; font-size:15px; font-weight:700; color:var(--aInk); padding:0 0 4px; }
+.fSecV2 > summary::-webkit-details-marker { display:none; }
+.fSecV2 > summary::before { content:none !important; }
+.fSecV2 > summary::after { content:""; width:8px; height:8px; border-right:2px solid var(--aMuted); border-bottom:2px solid var(--aMuted); transform:rotate(45deg); transition:transform .18s; margin:0 2px 3px 0; flex:none; }
+.fSecV2[open] > summary::after { transform:rotate(-135deg); margin-bottom:-2px; }
+.fInputV2 { width:100%; height:42px; margin-top:10px; padding:0 14px; border:1px solid #ccd2db; border-radius:11px; background:var(--aSoft); font-size:14px; color:var(--aInk); }
+.fInputV2:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.14); }
+
+.rangeV2 { margin-top:12px; }
+.rangeSliderV2 { position:relative; height:30px; }
+.rangeSliderV2::before { content:""; position:absolute; left:8px; right:8px; top:13px; height:4px; border-radius:2px; background:var(--aLine); }
+.rangeFillV2 { position:absolute; top:13px; height:4px; border-radius:2px; background:var(--aRed); }
+.rangeSliderV2 input[type=range] { position:absolute; top:0; left:0; width:100%; height:30px; margin:0; background:none; pointer-events:none; -webkit-appearance:none; appearance:none; }
+.rangeSliderV2 input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; pointer-events:auto; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--aRed); box-shadow:0 1px 3px rgba(0,0,0,.18); cursor:pointer; }
+.rangeSliderV2 input[type=range]::-moz-range-thumb { pointer-events:auto; width:16px; height:16px; border-radius:50%; background:#fff; border:2px solid var(--aRed); cursor:pointer; }
+.rangeNumsV2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.rangeNumsV2 input { height:40px; padding:0 12px; border:1px solid #ccd2db; border-radius:10px; background:var(--aSoft); font-size:14px; color:var(--aInk); width:100%; }
+.rangeNumsV2 input:focus { outline:none; border-color:var(--aRed); background:#fff; }
+
+.kmToggleV2 { display:inline-flex; gap:4px; margin-top:10px; font-size:13px; }
+.kmToggleV2 button { border:none; background:none; color:var(--aMuted); font-weight:600; cursor:pointer; padding:2px 4px; }
+.kmToggleV2 button.active { color:var(--aRed); }
+
+.optListV2 { display:flex; flex-direction:column; margin-top:8px; }
+.optV2 { display:flex; align-items:center; gap:10px; padding:7px 0; font-size:14px; color:var(--aInk); cursor:pointer; }
+.optV2 input { width:18px; height:18px; flex:none; accent-color:var(--aRed); cursor:pointer; }
+
+.dateQuickV2 { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.dateQuickV2 button { height:36px; padding:0 12px; border:1px solid var(--aLine); border-radius:9px; background:var(--aSoft); font-size:13px; font-weight:600; color:var(--aInk2); cursor:pointer; transition:.15s; }
+.dateQuickV2 button:hover, .dateQuickV2 button.active { border-color:var(--aRed); color:var(--aRed); }
+
 /* Results */
 .auctionResultsV1 { min-width:0; }
 .auctionCardsV1 { display:flex; flex-direction:column; gap:0; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; box-shadow:var(--aShadow); overflow:hidden; }
