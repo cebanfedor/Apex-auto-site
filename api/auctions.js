@@ -433,18 +433,29 @@ module.exports = async function handler(request, response){
       return;
     }
 
-    // TEMPORARY diagnostic — discover AuctionsAPI reference endpoints. Remove after.
-    if(action === "apiprobe"){
-      const path = String(query.get("path") || "").replace(/[^a-zA-Z0-9_\/-]/g, "");
-      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,\/-]/g, "");
-      const url = `${AUCTIONS_API_BASE}/${path}${extra ? "?" + extra : ""}`;
-      try{
-        const payload = await fetchJson(url);
-        const text = JSON.stringify(payload);
-        sendJson(response, 200, {ok:true, path, count:Array.isArray(payload) ? payload.length : (Array.isArray(payload?.data) ? payload.data.length : undefined), topKeys:Array.isArray(payload) ? Object.keys(payload[0] || {}) : Object.keys(payload || {}), sample:text.slice(0, 1800)});
-      }catch(e){
-        sendJson(response, 200, {ok:false, path, status:e.status, error:String(e.message || e).slice(0, 300)});
-      }
+    if(action === "manufacturers"){
+      const list = await fetchJson(`${AUCTIONS_API_BASE}/manufacturers`);
+      const items = (Array.isArray(list?.data) ? list.data : [])
+        .filter(m => m && m.cars && Number(m.cars_qty) > 0)
+        .map(m => ({id:m.id, name:m.name, image:m.image || "", qty:m.cars_qty}))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const payload = {ok:true, items};
+      setCached(key, payload);
+      sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "models"){
+      const mid = String(query.get("manufacturer_id") || "").replace(/[^0-9]/g, "");
+      if(!mid){ sendJson(response, 200, {ok:true, items:[]}); return; }
+      const list = await fetchJson(`${AUCTIONS_API_BASE}/models/${mid}`);
+      const items = (Array.isArray(list?.data) ? list.data : [])
+        .filter(m => m && Number(m.cars_qty) > 0)
+        .map(m => ({id:m.id, name:m.name, qty:m.cars_qty}))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const payload = {ok:true, items};
+      setCached(key, payload);
+      sendJson(response, 200, payload);
       return;
     }
 

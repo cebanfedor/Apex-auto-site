@@ -842,54 +842,72 @@
     });
   }
 
+  // optionsFn returns an array of strings or {id,name,image,qty}. onPick(option) fires on selection.
   function setupCombo(inputId, menuId, optionsFn, onPick){
     const input = document.getElementById(inputId);
     const menu = document.getElementById(menuId);
     if(!input || !menu) return;
     const wrap = input.closest(".comboV2");
+    const norm = o => (typeof o === "string" ? {id:null, name:o} : o);
     const render = (showAll) => {
       const q = showAll ? "" : input.value.trim().toLowerCase();
-      const opts = (optionsFn() || []).filter(o => !q || o.toLowerCase().includes(q));
+      const opts = (optionsFn() || []).map(norm).filter(o => !q || String(o.name).toLowerCase().includes(q));
+      menu._opts = opts;
       menu.innerHTML = opts.length
-        ? opts.map(o => `<div class="comboOptV2" data-val="${escapeHtml(o)}">${escapeHtml(o)}</div>`).join("")
+        ? opts.map((o, i) => `<div class="comboOptV2" data-i="${i}">${o.image ? `<img class="comboLogoV2" src="${escapeHtml(o.image)}" alt="" loading="lazy">` : ""}<span>${escapeHtml(o.name)}</span>${o.qty ? `<span class="comboQtyV2">${escapeHtml(o.qty)}</span>` : ""}</div>`).join("")
         : `<div class="comboEmptyV2">Ничего не найдено</div>`;
     };
     const close = () => { menu.hidden = true; };
-    // Click / focus → always show the full list (so you can re-pick without deleting text)
     input.addEventListener("focus", () => { render(true); menu.hidden = false; setTimeout(() => { try{ input.select(); }catch(e){} }, 0); });
     input.addEventListener("click", () => { render(true); menu.hidden = false; });
     input.addEventListener("input", () => { render(false); menu.hidden = false; });
     input.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
     menu.addEventListener("mousedown", e => {
-      const opt = e.target.closest("[data-val]");
-      if(!opt) return;
+      const el = e.target.closest("[data-i]");
+      if(!el) return;
       e.preventDefault();
-      input.value = opt.dataset.val;
+      const opt = menu._opts[Number(el.dataset.i)];
+      input.value = opt.name;
       close();
-      if(onPick) onPick(input.value);
+      if(onPick) onPick(opt);
     });
     document.addEventListener("click", e => { if(e.target.closest(".comboV2") !== wrap) close(); });
   }
 
   function initCarData(){
-    const data = window.CAR_DATA;
-    if(!data) return;
-    const modelInput = document.getElementById("filterModelV2");
+    const data = window.CAR_DATA || {};
     const makeInput = document.getElementById("filterMakeV2");
-    const modelsForMake = () => {
-      const make = (makeInput?.value || "").trim().toLowerCase();
-      const key = Object.keys(data.models).find(k => k.toLowerCase() === make);
-      return key ? data.models[key] : [];
-    };
-    const syncModelPlaceholder = () => {
-      if(modelInput) modelInput.placeholder = modelsForMake().length ? "Выбрать модель" : "Модель (введите вручную)";
-    };
-    setupCombo("filterMakeV2", "makeMenuV2", () => data.makes, () => { if(modelInput) modelInput.value = ""; syncModelPlaceholder(); });
-    setupCombo("filterModelV2", "modelMenuV2", modelsForMake);
-    makeInput?.addEventListener("input", syncModelPlaceholder);
-    syncModelPlaceholder();
+    const makeId = document.getElementById("filterMakeIdV2");
+    const modelInput = document.getElementById("filterModelV2");
+    const modelId = document.getElementById("filterModelIdV2");
+    let manufacturers = [];
+    let models = [];
 
-    // Damage list (standard descriptions)
+    // Make + Model: live from API (manufacturer_id / model_id); fall back to static names locally.
+    setupCombo("filterMakeV2", "makeMenuV2", () => manufacturers, async (opt) => {
+      if(makeId) makeId.value = opt.id != null ? opt.id : "";
+      if(modelInput){ modelInput.value = ""; modelInput.placeholder = "Загрузка моделей…"; }
+      if(modelId) modelId.value = "";
+      models = [];
+      if(opt.id != null){
+        try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(opt.id)}`); models = r.items || []; }
+        catch(e){ models = []; }
+      }else{
+        const key = Object.keys(data.models || {}).find(k => k.toLowerCase() === String(opt.name).toLowerCase());
+        models = key ? data.models[key].map(n => ({id:null, name:n})) : [];
+      }
+      if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
+    });
+    makeInput?.addEventListener("input", () => { if(makeId) makeId.value = ""; });
+
+    setupCombo("filterModelV2", "modelMenuV2", () => models, (opt) => { if(modelId) modelId.value = opt.id != null ? opt.id : ""; });
+    modelInput?.addEventListener("input", () => { if(modelId) modelId.value = ""; });
+
+    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; }).catch(() => {
+      manufacturers = (data.makes || []).map(n => ({id:null, name:n}));
+    });
+
+    // Damage list (standard descriptions; sent as text — confirmed filterable)
     setupCombo("filterDamageV2", "damageMenuV2", () => data.damages || []);
 
     // Location list derived from locations.js (city, state)
