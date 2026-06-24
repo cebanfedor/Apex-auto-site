@@ -31,6 +31,7 @@
 
   const dict = {
     ro:{
+      "Меня вы можете знать как":"Mă puteți cunoaște și ca",
       "Подбор и проверка лота":"Selecția și verificarea lotului",
       "Участие в торгах":"Participare la licitație",
       "Документы, доставка и сопровождение":"Acte, transport și asistență",
@@ -349,6 +350,7 @@
       "опыт работы со страховыми и дилерскими аукционами":"experiență cu licitații de asigurări și dealer"
     },
     en:{
+      "Меня вы можете знать как":"You may also know me as",
       "Подбор и проверка лота":"Lot selection and inspection",
       "Участие в торгах":"Bidding at auction",
       "Документы, доставка и сопровождение":"Documents, shipping and support",

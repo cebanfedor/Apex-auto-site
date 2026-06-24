@@ -705,6 +705,9 @@ details[open] > summary::before { content: "– "; }
 .footerBrand strong { font-size: 1.4rem; font-weight: 800; color: #fff; }
 .footerBrand strong span { color: var(--red); }
 .footerBrand p { color: rgba(255, 255, 255, 0.55); margin-top: 8px; font-size: 14px; }
+.footerFedukV320 { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.footerFedukLabelV320 { font-size: 12px; color: rgba(255, 255, 255, 0.4); letter-spacing: .02em; }
+.footerFedukImgV320 { width: 172px; height: auto; display: block; }
 .footerStats { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .footerStats div b { display: block; color: #fff; font-size: 16px; }
 .footerStats div span { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
