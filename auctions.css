@@ -108,7 +108,7 @@
 .dbCheck.neutral .dbIco { color:var(--aMuted); }
 .dbCheck b { font-weight:600; color:var(--aInk2); }
 
-.dbAside { display:flex; flex-direction:column; justify-content:space-between; gap:16px; border-left:1px solid var(--aLine2); padding-left:18px; }
+.dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:16px; border-left:1px solid var(--aLine2); padding-left:18px; }
 .dbWhen { display:flex; flex-direction:column; gap:6px; align-items:flex-end; text-align:right; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--aInk2); white-space:nowrap; }
 .dbWhen .dbIco { color:var(--aMuted); }
