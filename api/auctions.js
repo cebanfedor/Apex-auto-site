@@ -447,7 +447,7 @@ module.exports = async function handler(request, response){
 
     if(action === "apiprobe"){
       const path = String(query.get("path") || "cars").replace(/[^a-zA-Z0-9_\/-]/g, "");
-      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,.\/+:-]/g, "");
+      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,.\/+:\[\]-]/g, "");
       const url = `${AUCTIONS_API_BASE}/${path}?${extra}${extra ? "&" : ""}domain_id=3&per_page=2`;
       try{
         const payload = await fetchJson(url);
