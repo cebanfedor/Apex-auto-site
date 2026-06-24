@@ -257,10 +257,13 @@
 /* Gallery HD badge + lightbox */
 .dGalMainV2 { cursor:zoom-in; }
 .detailMainImageV1 { display:block; }
-.dGalHdV2 { position:absolute; right:10px; bottom:10px; display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:7px; background:rgba(11,13,16,.72); color:#fff; font-size:12px; font-weight:600; }
-.dGalHdV2 .dbIco { width:14px; height:14px; }
-.detailThumbsV1 img { transition:border-color .15s, transform .15s; }
-.detailThumbsV1 img:hover { transform:translateY(-1px); }
+.dGalBadgesV2 { position:absolute; right:10px; bottom:10px; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.dGalTagV2 { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:7px; background:rgba(11,13,16,.72); color:#fff; font-size:12px; font-weight:600; }
+.dGalTagV2 .dbIco { width:14px; height:14px; }
+.detailThumbsV1 { grid-template-columns:repeat(5,1fr); gap:8px; }
+.detailThumbsV1 .dThumbV2 { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:9px; cursor:pointer; border:2px solid transparent; transition:border-color .15s, transform .15s; }
+.detailThumbsV1 .dThumbV2:hover { transform:translateY(-1px); border-color:var(--aMuted); }
+.detailThumbsV1 .dThumbV2.isActiveThumbV2 { border-color:var(--aRed); box-shadow:0 0 0 2px rgba(237,0,18,.16); }
 
 .lbV1 { position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
 .lbV1[hidden] { display:none !important; }

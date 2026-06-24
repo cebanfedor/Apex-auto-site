@@ -261,7 +261,8 @@
     q:'<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.3 2.2c-.8.4-1 .9-1 1.6M12 16v.5"/>',
     star:'<path d="M12 4l2.3 4.9 5.2.7-3.8 3.7.9 5.2L12 16.7 7.4 18.2l.9-5.2L4.5 9.6l5.2-.7z"/>',
     vin:'<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M6 10v4M9 10v4M12 10v4M15 10v4M18 10v4"/>',
-    zoom:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>'
+    zoom:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>',
+    play:'<circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -675,10 +676,14 @@
             <div class="dGalMainV2" data-lb-open role="button" tabindex="0" aria-label="Открыть фото в HD">
               <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
-              <span class="dGalHdV2">${dbIco("zoom")} HD · ${escapeHtml(images.length || 1)} фото</span>
+              <div class="dGalBadgesV2">
+                ${lot.video ? `<span class="dGalTagV2">${dbIco("play")} Видео</span>` : ""}
+                ${lot.has360 || lot.spin ? `<span class="dGalTagV2">360°</span>` : ""}
+                <span class="dGalTagV2">${dbIco("zoom")} HD · ${escapeHtml(images.length || 1)} фото</span>
+              </div>
             </div>
             <div class="detailThumbsV1">
-              ${images.map((src, i) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}">`).join("")}
+              ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}">`).join("")}
             </div>
           </div>
           <div class="lotDetailCenterV1">
@@ -867,6 +872,8 @@
       if(thumb){
         if($("#detailMainImage")) $("#detailMainImage").src = thumb.dataset.detailImage;
         state.detailIndex = Number(thumb.dataset.detailIndex || 0);
+        document.querySelectorAll(".detailThumbsV1 .dThumbV2").forEach(t => t.classList.remove("isActiveThumbV2"));
+        thumb.classList.add("isActiveThumbV2");
       }
       // Lightbox controls
       if(event.target.closest("[data-lb-copy]")){ lbCopyLink(); return; }
