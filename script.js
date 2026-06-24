@@ -90,6 +90,34 @@ function refreshGlassSelect(select){
       closeGlassSelects();
       refreshGlassSelect(select);
     });
+    // typeahead: jump to options by typed letters (like a native select)
+    let typeBuf = "", typeTimer = null;
+    wrap.querySelector("button").addEventListener("keydown", event => {
+      if(event.key.length !== 1 || event.altKey || event.ctrlKey || event.metaKey) return;
+      const ch = event.key.toLowerCase();
+      if(!/[\p{L}\p{N}]/u.test(ch)) return;
+      event.preventDefault();
+      clearTimeout(typeTimer);
+      typeTimer = setTimeout(() => { typeBuf = ""; }, 700);
+      const opts = Array.from(select.options).filter(o => o.value !== "");
+      const text = o => (o.textContent || "").trim().toLowerCase();
+      let next = null;
+      if(typeBuf === ch){
+        const matches = opts.filter(o => text(o).startsWith(ch));
+        if(matches.length){ const i = matches.findIndex(o => o.value === select.value); next = matches[(i + 1) % matches.length]; }
+      } else {
+        typeBuf += ch;
+        next = opts.find(o => text(o).startsWith(typeBuf));
+        if(!next){ typeBuf = ch; next = opts.find(o => text(o).startsWith(ch)); }
+      }
+      if(next){
+        select.value = next.value;
+        select.dispatchEvent(new Event("change", {bubbles:true}));
+        refreshGlassSelect(select);
+        const item = wrap.querySelector('.glassSelectMenuV152 [data-value="' + (window.CSS && CSS.escape ? CSS.escape(next.value) : next.value) + '"]');
+        if(item && wrap.classList.contains("isOpenV152")) item.scrollIntoView({block:"nearest"});
+      }
+    });
   }
 
   const buttonText = wrap.querySelector(".glassSelectButtonV152 span");
@@ -836,7 +864,7 @@ function calculate(){
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
   $("chosenRoute").textContent = route;
   if($("auctionBadge")) $("auctionBadge").textContent = $("auction").value.toUpperCase();
-  $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
+  if($("insuranceWarning")) $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
   const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
   if($("dangerCargoTag")) $("dangerCargoTag").hidden = !greenFuel;

@@ -314,6 +314,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .offsiteCheck { background: var(--field); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; }
 .options { display: flex; flex-direction: column; gap: 10px; }
 .risk { font-size: 13px; color: var(--red-700); background: var(--red-soft); border: 1px solid var(--red-line); border-radius: 10px; padding: 10px 12px; }
+.insuranceFixedV313 { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border-radius: 10px;
+  background: rgba(10, 143, 60, 0.07); border: 1px solid rgba(10, 143, 60, 0.22);
+  font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.insuranceFixedV313 strong { color: var(--ink); }
+.insuranceFixedIconV313 { flex: none; width: 19px; height: 19px; margin-top: 1px; border-radius: 50%;
+  background: #0a8f3c; color: #fff; font-size: 12px; font-weight: 800; line-height: 19px; text-align: center; }
 
 /* info tooltips */
 .infoTipV65 { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #e7eaee; border: 1px solid var(--line); color: var(--muted); font-size: 11px; font-style: normal; font-weight: 700; cursor: help; position: relative; }
@@ -351,7 +357,7 @@ details[open] > summary::before { content: "– "; }
 
 /* result card */
 .resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 24px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
-.resultCard .companyMini { margin-top: auto; }
+.resultCard .actions { margin-top: auto; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
 .auctionBadge { padding: 5px 12px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
@@ -364,9 +370,9 @@ details[open] > summary::before { content: "– "; }
 .total { font-size: 38px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
 .subTotal { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; }
 .finalNote { font-size: 12px; line-height: 1.45; color: rgba(255, 255, 255, 0.5); text-align: right; max-width: 52%; }
-.companyMini { margin-top: 16px; padding: 14px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
-.companyMini strong { display: block; color: #fff; font-size: 14px; margin-bottom: 4px; }
-.companyMini span { font-size: 13px; color: rgba(255, 255, 255, 0.6); line-height: 1.5; }
+.companyMini { margin-top: 20px; margin-bottom: 14px; padding: 12px 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
+.companyMini strong { display: block; color: #fff; font-size: 13px; margin-bottom: 3px; }
+.companyMini span { font-size: 12px; color: rgba(255, 255, 255, 0.55); line-height: 1.4; }
 .actions { display: grid; gap: 10px; margin-top: 16px; }
 .actions #copyBtn, .actions a { width: 100%; height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 700; font-size: 15px; }
 .actions a { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.14); transition: background 0.18s; }

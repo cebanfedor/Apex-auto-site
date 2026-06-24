@@ -17,7 +17,7 @@
   <meta name="twitter:title" content="Apex Auto — авто из США и Канады под ключ в Молдову">
   <meta name="twitter:description" content="Расчёт полной стоимости авто из США и Канады под ключ до Кишинёва: аукционы Copart, IAAI, Manheim, доставка, таможня, страховка. Подбор, бесплатный Carfax и сопровождение.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/og-cover.jpg">
-  <link rel="stylesheet" href="styles.css?v=v313">
+  <link rel="stylesheet" href="styles.css?v=v314">
   <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
@@ -183,11 +183,12 @@
         </div>
 
         <div class="options">
-          <label class="check"><input id="insurance" type="checkbox" checked> Страховка 1% от стоимости лота <span class="insuranceInfoV65 infoTipV65" tabindex="0" aria-label="Страхование автомобиля во время морской перевозки. Размер страхового покрытия рассчитывается от стоимости автомобиля.">i</span></label>
-          <label class="check"><input id="exportDocs" type="checkbox"> Экспортные документы +$400 <span class="exportInfoV65 infoTipV65" tabindex="0" aria-label="Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.">i</span></label>
-          <div id="insuranceWarning" class="risk hidden">
-            Без страховки есть риск остаться без компенсации при повреждениях, воде, спорных ситуациях на складе или во время доставки.
+          <input id="insurance" type="checkbox" checked hidden aria-hidden="true">
+          <div class="insuranceFixedV313">
+            <span class="insuranceFixedIconV313" aria-hidden="true">✓</span>
+            <span>Все автомобили страхуем при морской перевозке — <strong>1% от стоимости лота</strong>. Страховка включена в расчёт по умолчанию и защищает авто при повреждениях, воде и спорных ситуациях.</span>
           </div>
+          <label class="check"><input id="exportDocs" type="checkbox"> Экспортные документы +$400 <span class="exportInfoV65 infoTipV65" tabindex="0" aria-label="Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.">i</span></label>
         </div>
 
         <div class="currencyBox">
@@ -326,8 +327,8 @@
   </div>
 </section>
 </main>
-  <script src="locations.js?v=calc-v148"></script>
-  <script src="script.js?v=calc-v148"></script>
+  <script src="locations.js?v=calc-v149"></script>
+  <script src="script.js?v=calc-v149"></script>
   <script src="site-content.js?v=admin-v166" defer></script>
   <script src="i18n.js?v=multilang-v165" defer></script>
 
