@@ -312,11 +312,14 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .check input[type="checkbox"]:checked { background: var(--red); }
 .check input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .offsiteCheck { background: var(--field); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; }
+.locationOffsiteRowV314 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 12px; align-items: end; }
+.locationOffsiteRowV314 .offsiteCheck { min-height: 48px; font-size: 13px; gap: 8px; line-height: 1.25; }
+@media (max-width: 640px) { .locationOffsiteRowV314 { grid-template-columns: 1fr; } }
 .options { display: flex; flex-direction: column; gap: 10px; }
 .risk { font-size: 13px; color: var(--red-700); background: var(--red-soft); border: 1px solid var(--red-line); border-radius: 10px; padding: 10px 12px; }
-.insuranceFixedV313 { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border-radius: 10px;
+.insuranceFixedV313 { display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; border-radius: 10px;
   background: rgba(10, 143, 60, 0.07); border: 1px solid rgba(10, 143, 60, 0.22);
-  font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+  font-size: 12.5px; line-height: 1.4; color: var(--ink-2); }
 .insuranceFixedV313 strong { color: var(--ink); }
 .insuranceFixedIconV313 { flex: none; width: 19px; height: 19px; margin-top: 1px; border-radius: 50%;
   background: #0a8f3c; color: #fff; font-size: 12px; font-weight: 800; line-height: 19px; text-align: center; }
