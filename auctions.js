@@ -572,6 +572,37 @@
     if(btn){ btn.textContent = "Скопировано"; setTimeout(() => { btn.textContent = "Скопировать ссылку"; }, 1500); }
   }
 
+  function renderSimilarCard(lot){
+    const title = lotTitle(lot);
+    const specLine = [lot.engine, lot.drive, lot.transmission].filter(Boolean).join(" • ");
+    const cond = [lot.condition, dbOdo(lot.odometerText)].filter(Boolean).join(" · ");
+    return `<a class="simCardV1" href="${detailHref(lot)}">
+      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<span class="simBidV1">${money(lot.currentBid || lot.buyNow)}</span></div>
+      <h4>${escapeHtml(title)}</h4>
+      <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
+      <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
+      <span>${dbIco("odo")}${escapeHtml(cond || "—")}</span>
+    </a>`;
+  }
+
+  async function loadSimilar(lot){
+    const box = document.getElementById("similarLots");
+    const sec = document.getElementById("similarSection");
+    if(!box || !sec) return;
+    let items = [];
+    try{
+      if(isLocalHost()) throw new Error("local-demo");
+      const params = new URLSearchParams({action:"search", auction:lot.auction || "copart", make:lot.make || "", model:lot.model || "", per_page:"12", sort:"soon"});
+      const payload = await api(`/api/auctions?${params}`);
+      items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
+    }catch(error){
+      if(isLocalHost()) items = demoLots().filter(x => String(x.id) !== String(lot.id));
+    }
+    if(!items.length) return;
+    box.innerHTML = items.map(renderSimilarCard).join("");
+    sec.hidden = false;
+  }
+
   function renderDetail(lot){
     const images = lot.images?.length ? lot.images : [lot.image].filter(Boolean);
     const title = lotTitle(lot);
@@ -646,6 +677,10 @@
           </div>
           ${renderLotCalculator(lot)}
         </div>
+        <section class="simSecV1" id="similarSection" hidden>
+          <h2>Похожие лоты</h2>
+          <div class="simGridV1" id="similarLots"></div>
+        </section>
       </section>
     `;
     state.selectedLot = lot;
@@ -653,6 +688,7 @@
     state.detailIndex = 0;
     setSeo(lot);
     updateLotCalculator();
+    loadSimilar(lot);
   }
 
   async function loadDetailFromUrl(){
