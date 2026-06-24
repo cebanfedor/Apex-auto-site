@@ -48,5 +48,25 @@
   const makes = Array.from(new Set([...Object.keys(MODELS), ...EXTRA_MAKES])).sort();
   // Standard Copart/IAAI primary-damage descriptions (best-effort; confirm against API docs).
   const damages = ["All Over","Front End","Rear End","Side","Left Front","Right Front","Left Rear","Right Rear","Top/Roof","Undercarriage","Mechanical","Electrical","Engine Damage","Frame Damage","Hail","Water/Flood","Fire","Vandalism","Minor Dent/Scratches","Normal Wear","Rollover","Stripped","Biohazard/Chemical","Suspension","Unknown"];
-  global.CAR_DATA = { makes, models: MODELS, damages };
+  // AuctionsAPI color ids (from /cars docs)
+  const colors = [
+    {id:13,name:"Белый"},{id:15,name:"Чёрный"},{id:9,name:"Серый"},{id:1,name:"Серебристый"},
+    {id:11,name:"Синий"},{id:5,name:"Красный"},{id:4,name:"Зелёный"},{id:8,name:"Коричневый"},
+    {id:16,name:"Жёлтый"},{id:3,name:"Оранжевый"},{id:6,name:"Золотой"},{id:7,name:"Угольный"},
+    {id:12,name:"Бронзовый"},{id:14,name:"Кремовый"},{id:17,name:"Бежевый"},{id:2,name:"Фиолетовый"},
+    {id:10,name:"Бирюзовый"},{id:18,name:"Розовый"}
+  ];
+  // US states (state_code = 2-letter)
+  const states = [
+    ["AL","Алабама"],["AK","Аляска"],["AZ","Аризона"],["AR","Арканзас"],["CA","Калифорния"],["CO","Колорадо"],
+    ["CT","Коннектикут"],["DE","Делавэр"],["FL","Флорида"],["GA","Джорджия"],["HI","Гавайи"],["ID","Айдахо"],
+    ["IL","Иллинойс"],["IN","Индиана"],["IA","Айова"],["KS","Канзас"],["KY","Кентукки"],["LA","Луизиана"],
+    ["ME","Мэн"],["MD","Мэриленд"],["MA","Массачусетс"],["MI","Мичиган"],["MN","Миннесота"],["MS","Миссисипи"],
+    ["MO","Миссури"],["MT","Монтана"],["NE","Небраска"],["NV","Невада"],["NH","Нью-Гэмпшир"],["NJ","Нью-Джерси"],
+    ["NM","Нью-Мексико"],["NY","Нью-Йорк"],["NC","Сев. Каролина"],["ND","Сев. Дакота"],["OH","Огайо"],["OK","Оклахома"],
+    ["OR","Орегон"],["PA","Пенсильвания"],["RI","Род-Айленд"],["SC","Юж. Каролина"],["SD","Юж. Дакота"],["TN","Теннесси"],
+    ["TX","Техас"],["UT","Юта"],["VT","Вермонт"],["VA","Вирджиния"],["WA","Вашингтон"],["WV","Зап. Вирджиния"],
+    ["WI","Висконсин"],["WY","Вайоминг"],["DC","Вашингтон, округ Колумбия"]
+  ].map(s => ({id:s[0], name:`${s[1]} (${s[0]})`}));
+  global.CAR_DATA = { makes, models: MODELS, damages, colors, states };
 })(window);

@@ -219,13 +219,17 @@ function buildSearchParams(query){
     transmission:"transmission",
     drive:"drive_wheel",
     condition:"condition",
+    color:"color",
+    cylinders:"cylinders",
     damage:"damage",
     document:"document_title",
-    location:"location",
+    name:"name",
+    state:"state_code",
+    country:"country",
+    generation:"generation_id",
     auctionDateFrom:"sale_date_from",
     auctionDateTo:"sale_date_to",
-    lotStatus:"status",
-    saleStatus:"sale_status"
+    lotStatus:"status"
   };
   for(const [from, to] of Object.entries(map)){
     const value = query.get(from);
@@ -233,15 +237,11 @@ function buildSearchParams(query){
   }
   const make = query.get("make");
   const model = query.get("model");
-  if(make && /^\d+$/.test(make)) params.set("manufacturer_id", make);
+  if(make && /^[\d,]+$/.test(make)) params.set("manufacturer_id", make);
   if(model && /^\d+$/.test(model)) params.set("model_id", model);
-  if((make && !/^\d+$/.test(make)) || (model && !/^\d+$/.test(model))){
-    params.set("search_query", [params.get("search_query"), make, model].filter(Boolean).join(" "));
-  }
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
-  if(tab === "open") params.set("status", "live");
-  if(tab === "sold") params.set("status", "sold");
+  if(tab === "sold") params.set("status", "6");
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
   params.set("simple_paginate", "0");

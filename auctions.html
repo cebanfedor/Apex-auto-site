@@ -169,9 +169,18 @@
             <details class="fSecV2"><summary>Состояние</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="condition" value="" checked><span>Любое</span></label>
-                <label class="optV2"><input type="radio" name="condition" value="run_and_drives"><span>Заводится и едет</span></label>
-                <label class="optV2"><input type="radio" name="condition" value="engine_starts"><span>Заводится</span></label>
-                <label class="optV2"><input type="radio" name="condition" value="enhanced"><span>Не на ходу / прочее</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="0"><span>Заводится и едет</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="6"><span>Заводится</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="3"><span>Не на ходу</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="1"><span>На запчасти / ремонт</span></label>
+                <label class="optV2"><input type="radio" name="condition" value="4"><span>Б/у</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Цвет</summary>
+              <div class="comboV2">
+                <input id="filterColorV2" class="fInputV2" placeholder="Выбрать цвет" autocomplete="off">
+                <input type="hidden" name="color" id="filterColorIdV2">
+                <div class="comboMenuV2" id="colorMenuV2" hidden></div>
               </div>
             </details>
             <details class="fSecV2"><summary>Повреждение</summary>
@@ -180,28 +189,21 @@
                 <div class="comboMenuV2" id="damageMenuV2" hidden></div>
               </div>
             </details>
-            <details class="fSecV2"><summary>Локация</summary>
+            <details class="fSecV2"><summary>Штат (США)</summary>
               <div class="comboV2">
-                <input name="location" id="filterLocationV2" class="fInputV2" placeholder="Выбрать локацию" autocomplete="off">
-                <div class="comboMenuV2" id="locationMenuV2" hidden></div>
+                <input id="filterStateV2" class="fInputV2" placeholder="Выбрать штат" autocomplete="off">
+                <input type="hidden" name="state" id="filterStateIdV2">
+                <div class="comboMenuV2" id="stateMenuV2" hidden></div>
               </div>
             </details>
             <details class="fSecV2"><summary>Статус лота</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="lotStatus" value="" checked><span>Любой</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="live"><span>Идут торги</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="upcoming"><span>Скоро</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="sold"><span>Завершён</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="buy now"><span>Купить сейчас</span></label>
-              </div>
-            </details>
-            <details class="fSecV2" open><summary>Статус продажи</summary>
-              <div class="optListV2">
-                <label class="optV2"><input type="radio" name="saleStatus" value="" checked><span>Любой</span></label>
-                <label class="optV2"><input type="radio" name="saleStatus" value="no reserve"><span>Без резерва</span></label>
-                <label class="optV2"><input type="radio" name="saleStatus" value="approval"><span>На утверждении</span></label>
-                <label class="optV2"><input type="radio" name="saleStatus" value="minimum bid"><span>Минимальный резерв</span></label>
-                <label class="optV2"><input type="radio" name="saleStatus" value="timed"><span>Аукцион Timed</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="10"><span>Скоро торги</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="3"><span>В продаже</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="4"><span>На одобрении</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="6"><span>Продан</span></label>
+                <label class="optV2"><input type="radio" name="lotStatus" value="8"><span>Не продан</span></label>
               </div>
             </details>
             <details class="fSecV2"><summary>Дата аукциона</summary>
@@ -249,8 +251,8 @@
 
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
-  <script src="/car-data.js?v=cars-v2" defer></script>
-  <script src="/auctions.js?v=auctions-v23" defer></script>
+  <script src="/car-data.js?v=cars-v3" defer></script>
+  <script src="/auctions.js?v=auctions-v24" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>

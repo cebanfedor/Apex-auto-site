@@ -76,12 +76,11 @@
   function formParams(){
     const form = $("#auctionFiltersForm");
     const params = new URLSearchParams(new FormData(form));
-    const make = $("#auctionMakeSearch")?.value.trim();
-    const model = $("#auctionModelSearch")?.value.trim();
+    // Top search bar: make/model text → "name" (title search), VIN → vin, LOT → search_query.
+    const nameText = [$("#auctionMakeSearch")?.value.trim(), $("#auctionModelSearch")?.value.trim()].filter(Boolean).join(" ");
     const vin = $("#auctionVinSearch")?.value.trim();
     const lot = $("#auctionLotSearch")?.value.trim();
-    if(make) params.set("make", make);
-    if(model) params.set("model", model);
+    if(nameText) params.set("name", nameText);
     if(vin) params.set("vin", vin);
     if(lot) params.set("q", lot);
     params.set("auction", state.auction);
@@ -919,17 +918,15 @@
     // Damage list (standard descriptions; sent as text — confirmed filterable)
     setupCombo("filterDamageV2", "damageMenuV2", () => data.damages || []);
 
-    // Location list derived from locations.js (city, state)
-    const locOptions = () => {
-      const set = new Set();
-      (window.LOCATIONS || []).forEach(l => {
-        const city = String(l.city || "").trim();
-        const state = String(l.state || "").trim();
-        if(city) set.add(state ? `${city}, ${state}` : city);
-      });
-      return Array.from(set).sort();
-    };
-    setupCombo("filterLocationV2", "locationMenuV2", locOptions);
+    // Color → color id
+    const colorId = document.getElementById("filterColorIdV2");
+    setupCombo("filterColorV2", "colorMenuV2", () => data.colors || [], (opt) => { if(colorId) colorId.value = opt.id != null ? opt.id : ""; });
+    document.getElementById("filterColorV2")?.addEventListener("input", () => { if(colorId) colorId.value = ""; });
+
+    // State → state_code
+    const stateId = document.getElementById("filterStateIdV2");
+    setupCombo("filterStateV2", "stateMenuV2", () => data.states || [], (opt) => { if(stateId) stateId.value = opt.id != null ? opt.id : ""; });
+    document.getElementById("filterStateV2")?.addEventListener("input", () => { if(stateId) stateId.value = ""; });
   }
 
   function bindEvents(){
