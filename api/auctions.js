@@ -446,6 +446,20 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    if(action === "attrmap"){
+      const list = await fetchJson(`${AUCTIONS_API_BASE}/cars?domain_id=3&per_page=1000`);
+      const data = Array.isArray(list?.data) ? list.data : [];
+      const fields = ["fuel", "body_type", "transmission", "drive_wheel", "color", "vehicle_type"];
+      const maps = {};
+      fields.forEach(f => { maps[f] = {}; });
+      data.forEach(car => fields.forEach(f => {
+        const v = car && car[f];
+        if(v && v.id != null && v.name) maps[f][v.id] = v.name;
+      }));
+      sendJson(response, 200, {ok:true, sampled:data.length, maps});
+      return;
+    }
+
     if(action === "models"){
       const mid = String(query.get("manufacturer_id") || "").replace(/[^0-9]/g, "");
       if(!mid){ sendJson(response, 200, {ok:true, items:[]}); return; }
