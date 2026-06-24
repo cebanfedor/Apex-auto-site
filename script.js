@@ -839,14 +839,13 @@ function calculate(){
   $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
   const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
-  if($("dangerousCargoNote")) $("dangerousCargoNote").hidden = !greenFuel;
-  const seaSub = [selectedLocation ? selectedLocation.portLabel : "", greenFuel ? "опасный груз +$100" : ""].filter(Boolean).join(" · ");
+  if($("dangerCargoTag")) $("dangerCargoTag").hidden = !greenFuel;
 
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
     ["Доставка по США", land, selectedLocation ? route : "выбери локацию", "usd"],
-    ["Доставка в Chișinău", sea, seaSub, "usd"],
+    ["Доставка в Chișinău", sea, selectedLocation ? selectedLocation.portLabel : "", "usd"],
     ["Экспортные документы", exportDocs, exportDocs ? "включены" : "отключены", "usd"],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
