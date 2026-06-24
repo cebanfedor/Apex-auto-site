@@ -291,10 +291,6 @@
             <b>${price}</b>
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
-          <div class="dbActions">
-            <a class="dbBtnGhost" href="${calcHref(lot)}">Рассчитать доставку</a>
-            <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
-          </div>
         </div>
       </aside>
     </article>`;
