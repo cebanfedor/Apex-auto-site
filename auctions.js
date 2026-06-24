@@ -307,6 +307,22 @@
     $("#loadMoreLots").hidden = !state.hasMore;
   }
 
+  // Demo lots so the catalog is reviewable on localhost without AUCTIONS_API_KEY.
+  function isLocalHost(){ return /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname); }
+  function demoLots(){
+    const base = o => Object.assign({
+      id:"", auction:"copart", year:"", make:"", model:"", vin:"", lot:"", engine:"", drive:"",
+      transmission:"", odometerText:"", damage:"", document:"", location:"", condition:"", seller:"",
+      keys:"", priceHistory:[], photoCount:6, lotStatus:"upcoming", saleStatus:"На утверждении",
+      currentBid:0, buyNow:0, estimatedRetailValue:0, auctionDate:"2026-06-24T19:30:00", image:""
+    }, o);
+    return [
+      base({id:"demo1", year:"2017", make:"Ford", model:"Mustang EcoBoost", vin:"1FA6P8TH7H5205020", lot:"44500315", engine:"I4", drive:"RWD", transmission:"AT", odometerText:"105,000 mi", damage:"Front End / Bio-Chemical", document:"CA • Salvage", location:"Wilmington, CA", condition:"Не на ходу", seller:"Allied Solutions", keys:"Да", currentBid:1050, estimatedRetailValue:5500, image:"/assets/hot-bmw-5.png"}),
+      base({id:"demo2", year:"2019", make:"Land Rover", model:"Range Rover Sport", vin:"SALWR2RE8KA828197", lot:"42923654", engine:"5.0L V8", drive:"4×4", transmission:"AT", odometerText:"78,000 mi", damage:"Front End", document:"CA • Salvage", location:"Los Angeles, CA", condition:"Заводится и едет", seller:"Progressive Insurance", keys:"Да", currentBid:15100, estimatedRetailValue:26000, image:"/assets/hot-bmw-x5.png"}),
+      base({id:"demo3", year:"2021", make:"Mercedes-Benz", model:"E-Class", vin:"W1KZF8DB4MA948271", lot:"44758603", engine:"2.0L", drive:"RWD", transmission:"AT", odometerText:"41,000 mi", damage:"Rear End", document:"CA • Salvage", location:"Los Angeles, CA", condition:"Заводится и едет", seller:"GEICO", keys:"Да", currentBid:9800, estimatedRetailValue:21000, saleStatus:"Без резерва", image:"/assets/hot-mercedes-e.png"})
+    ];
+  }
+
   async function loadLots({append = false} = {}){
     if(state.loading) return;
     state.loading = true;
@@ -326,8 +342,15 @@
     }catch(error){
       state.hasMore = false;
       $("#loadMoreLots").hidden = true;
-      $("#auctionResultCount").textContent = "0";
-      setMessage(error.message || "Не удалось загрузить реальные лоты AuctionsAPI. Проверьте AUCTIONS_API_KEY или попробуйте позже.");
+      if(isLocalHost()){
+        state.items = demoLots();
+        $("#auctionResultCount").textContent = "373 909";
+        $("#auctionResultLabel").textContent = "демо-лоты (локально, без AUCTIONS_API_KEY)";
+        renderCards(false);
+      }else{
+        $("#auctionResultCount").textContent = "0";
+        setMessage(error.message || "Не удалось загрузить реальные лоты AuctionsAPI. Проверьте AUCTIONS_API_KEY или попробуйте позже.");
+      }
     }finally{
       state.loading = false;
     }
