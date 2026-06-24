@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v329c">
+  <link rel="stylesheet" href="/auctions.css?v=v330c">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -107,10 +107,12 @@
               <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
             <details open class="fSecV2"><summary>Марка</summary>
-              <input name="make" class="fInputV2" placeholder="BMW, Toyota, Tesla">
+              <input name="make" id="filterMakeV2" class="fInputV2" placeholder="Выбрать марку" list="makesListV2" autocomplete="off">
+              <datalist id="makesListV2"></datalist>
             </details>
             <details open class="fSecV2"><summary>Модель</summary>
-              <input name="model" class="fInputV2" placeholder="X5, Camry, Model Y">
+              <input name="model" id="filterModelV2" class="fInputV2" placeholder="Сначала выберите марку" list="modelsListV2" autocomplete="off">
+              <datalist id="modelsListV2"></datalist>
             </details>
             <details open class="fSecV2"><summary>Год</summary>
               <div class="rangeV2" data-range data-min="1980" data-max="2027">
@@ -125,7 +127,7 @@
                 <div class="rangeNumsV2"><input name="mileageFrom" type="number" inputmode="numeric" placeholder="0"><input name="mileageTo" type="number" inputmode="numeric" placeholder="250 000"></div>
               </div>
             </details>
-            <details class="fSecV2"><summary>Цена (ставка)</summary>
+            <details class="fSecV2" open><summary>Цена (ставка)</summary>
               <div class="rangeV2" data-range data-min="0" data-max="100000" data-step="500">
                 <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="100000" step="500" value="0"><input type="range" class="rHiV2" min="0" max="100000" step="500" value="100000"></div>
                 <div class="rangeNumsV2"><input name="bidFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="bidTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
@@ -140,7 +142,7 @@
                 <label class="optV2"><input type="radio" name="fuel" value="diesel"><span>Дизель</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Привод</summary>
+            <details class="fSecV2" open><summary>Привод</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="drive" value="" checked><span>Любой</span></label>
                 <label class="optV2"><input type="radio" name="drive" value="awd"><span>4×4 / AWD</span></label>
@@ -148,14 +150,14 @@
                 <label class="optV2"><input type="radio" name="drive" value="rwd"><span>RWD</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Трансмиссия</summary>
+            <details class="fSecV2" open><summary>Трансмиссия</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="transmission" value="" checked><span>Любая</span></label>
                 <label class="optV2"><input type="radio" name="transmission" value="automatic"><span>Автомат</span></label>
                 <label class="optV2"><input type="radio" name="transmission" value="manual"><span>Механика</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Тип кузова</summary>
+            <details class="fSecV2" open><summary>Тип кузова</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="body" value="" checked><span>Любой</span></label>
                 <label class="optV2"><input type="radio" name="body" value="sedan"><span>Sedan</span></label>
@@ -169,7 +171,7 @@
                 <label class="optV2"><input type="radio" name="body" value="van"><span>Van</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Состояние</summary>
+            <details class="fSecV2" open><summary>Состояние</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="condition" value="" checked><span>Любое</span></label>
                 <label class="optV2"><input type="radio" name="condition" value="run and drive"><span>Заводится и едет</span></label>
@@ -177,13 +179,13 @@
                 <label class="optV2"><input type="radio" name="condition" value="non-runner"><span>Не на ходу</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Повреждение</summary>
+            <details class="fSecV2" open><summary>Повреждение</summary>
               <input name="damage" class="fInputV2" placeholder="Front End, Rear, Hail">
             </details>
-            <details class="fSecV2"><summary>Локация</summary>
+            <details class="fSecV2" open><summary>Локация</summary>
               <input name="location" class="fInputV2" placeholder="Chicago, Fremont, CA">
             </details>
-            <details class="fSecV2"><summary>Статус лота</summary>
+            <details class="fSecV2" open><summary>Статус лота</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="lotStatus" value="" checked><span>Любой</span></label>
                 <label class="optV2"><input type="radio" name="lotStatus" value="live"><span>Идут торги</span></label>
@@ -192,7 +194,7 @@
                 <label class="optV2"><input type="radio" name="lotStatus" value="buy now"><span>Купить сейчас</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Статус продажи</summary>
+            <details class="fSecV2" open><summary>Статус продажи</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="saleStatus" value="" checked><span>Любой</span></label>
                 <label class="optV2"><input type="radio" name="saleStatus" value="no reserve"><span>Без резерва</span></label>
@@ -201,14 +203,17 @@
                 <label class="optV2"><input type="radio" name="saleStatus" value="timed"><span>Аукцион Timed</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Дата аукциона</summary>
+            <details class="fSecV2" open><summary>Дата аукциона</summary>
               <div class="dateQuickV2">
                 <button type="button" data-date-range="today">Сегодня</button>
                 <button type="button" data-date-range="tomorrow">Завтра</button>
                 <button type="button" data-date-range="week">Эта неделя</button>
                 <button type="button" data-date-range="nextweek">След. неделя</button>
               </div>
-              <div class="rangeNumsV2"><input name="auctionDateFrom" type="date"><input name="auctionDateTo" type="date"></div>
+              <div class="dateNumsV2">
+                <label>От<input name="auctionDateFrom" type="date"></label>
+                <label>До<input name="auctionDateTo" type="date"></label>
+              </div>
             </details>
             <div class="filterActionsV1">
               <button type="submit">Показать</button>
@@ -248,7 +253,8 @@
 
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
-  <script src="/auctions.js?v=auctions-v16" defer></script>
+  <script src="/car-data.js?v=cars-v1" defer></script>
+  <script src="/auctions.js?v=auctions-v17" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>

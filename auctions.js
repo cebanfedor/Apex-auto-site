@@ -842,6 +842,25 @@
     });
   }
 
+  function initCarData(){
+    const data = window.CAR_DATA;
+    if(!data) return;
+    const makesList = document.getElementById("makesListV2");
+    const modelsList = document.getElementById("modelsListV2");
+    const makeInput = document.getElementById("filterMakeV2");
+    const modelInput = document.getElementById("filterModelV2");
+    if(makesList) makesList.innerHTML = data.makes.map(m => `<option value="${escapeHtml(m)}"></option>`).join("");
+    const updateModels = () => {
+      const make = (makeInput?.value || "").trim().toLowerCase();
+      const key = Object.keys(data.models).find(k => k.toLowerCase() === make);
+      const models = key ? data.models[key] : [];
+      if(modelsList) modelsList.innerHTML = models.map(m => `<option value="${escapeHtml(m)}"></option>`).join("");
+      if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
+    };
+    makeInput?.addEventListener("input", updateModels);
+    makeInput?.addEventListener("change", updateModels);
+  }
+
   function bindEvents(){
     $("#auctionSearchBtn").addEventListener("click", () => { state.page = 1; loadLots(); });
     ["#auctionMakeSearch", "#auctionModelSearch", "#auctionVinSearch", "#auctionLotSearch"].forEach(selector => {
@@ -981,6 +1000,7 @@
     closeLead();
     bindEvents();
     initRanges();
+    initCarData();
     const isDetail = await loadDetailFromUrl();
     if(!isDetail) loadLots();
   }

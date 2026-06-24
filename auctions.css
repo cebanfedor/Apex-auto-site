@@ -95,6 +95,10 @@
 .dateQuickV2 { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
 .dateQuickV2 button { height:36px; padding:0 12px; border:1px solid var(--aLine); border-radius:9px; background:var(--aSoft); font-size:13px; font-weight:600; color:var(--aInk2); cursor:pointer; transition:.15s; }
 .dateQuickV2 button:hover, .dateQuickV2 button.active { border-color:var(--aRed); color:var(--aRed); }
+.dateNumsV2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.dateNumsV2 label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:600; color:var(--aInk2); }
+.dateNumsV2 input { height:40px; padding:0 10px; border:1px solid #ccd2db; border-radius:10px; background:var(--aSoft); font-size:13px; color:var(--aInk); width:100%; }
+.dateNumsV2 input:focus { outline:none; border-color:var(--aRed); background:#fff; }
 
 /* Results */
 .auctionResultsV1 { min-width:0; }
