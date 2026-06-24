@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v335c">
+  <link rel="stylesheet" href="/auctions.css?v=v336c">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -128,6 +128,16 @@
                 <div class="rangeNumsV2"><input name="bidFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="bidTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
               </div>
             </details>
+            <details class="fSecV2" open><summary>Тип топлива</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="fuelClient" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="fuelClient" value="gasoline"><span>Бензин</span></label>
+                <label class="optV2"><input type="radio" name="fuelClient" value="diesel"><span>Дизель</span></label>
+                <label class="optV2"><input type="radio" name="fuelClient" value="hybrid"><span>Гибрид</span></label>
+                <label class="optV2"><input type="radio" name="fuelClient" value="electric"><span>Электро</span></label>
+              </div>
+              <p class="fNoteV2">Фильтр по топливу применяется к загруженным лотам.</p>
+            </details>
             <details class="fSecV2"><summary>Состояние</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="condition" value="" checked><span>Любое</span></label>
@@ -217,7 +227,7 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
   <script src="/car-data.js?v=cars-v2" defer></script>
-  <script src="/auctions.js?v=auctions-v20" defer></script>
+  <script src="/auctions.js?v=auctions-v21" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>

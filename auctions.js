@@ -369,9 +369,12 @@
 
   function renderCards(append = false){
     const box = $("#auctionCards");
-    const html = state.items.map(renderCard).join("");
+    const fuelSel = document.querySelector('input[name="fuelClient"]:checked')?.value || "";
+    const items = fuelSel ? state.items.filter(l => String(l.fuel || "").toLowerCase().includes(fuelSel)) : state.items;
+    const html = items.map(renderCard).join("");
     box.innerHTML = append ? box.innerHTML + html : html;
     $("#loadMoreLots").hidden = !state.hasMore;
+    if(fuelSel && $("#auctionMessage")) setMessage(items.length ? "" : "На загруженной странице нет лотов с этим топливом — нажмите «Загрузить ещё».");
   }
 
   // Demo lots so the catalog is reviewable on localhost without AUCTIONS_API_KEY.
@@ -1045,6 +1048,7 @@
     });
     document.addEventListener("change", event => {
       if(event.target.closest("[data-calc-input]")) updateLotCalculator();
+      if(event.target.name === "fuelClient") renderCards(false);
     });
     document.addEventListener("keydown", event => {
       const lbOpen = document.getElementById("lotLightbox") && !document.getElementById("lotLightbox").hidden;
