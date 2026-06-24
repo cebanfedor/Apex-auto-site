@@ -100,6 +100,15 @@
         if(v) params.set(k, String(Math.round(Number(v) / 1.609)));
       });
     }
+    // sale_date_to is exclusive (treated as 00:00) — bump the "До" day by 1 so the picked day is included.
+    const dTo = params.get("auctionDateTo");
+    if(dTo){
+      const d = new Date(dTo + "T00:00:00");
+      if(!Number.isNaN(d.getTime())){
+        d.setDate(d.getDate() + 1);
+        params.set("auctionDateTo", d.toISOString().slice(0, 10));
+      }
+    }
     return params;
   }
 
