@@ -214,6 +214,7 @@ function buildSearchParams(query){
     buyNowTo:"buy_now_price_to",
     mileageFrom:"odometer_from_mi",
     mileageTo:"odometer_to_mi",
+    fuel:"fuel_type",
     condition:"condition",
     damage:"damage",
     document:"document_title",
@@ -442,20 +443,6 @@ module.exports = async function handler(request, response){
       const payload = {ok:true, items};
       setCached(key, payload);
       sendJson(response, 200, payload);
-      return;
-    }
-
-    if(action === "apiprobe"){
-      const path = String(query.get("path") || "cars").replace(/[^a-zA-Z0-9_\/-]/g, "");
-      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,.\/+:\[\]-]/g, "");
-      const url = `${AUCTIONS_API_BASE}/${path}?${extra}${extra ? "&" : ""}domain_id=3&per_page=2`;
-      try{
-        const payload = await fetchJson(url);
-        const text = JSON.stringify(payload);
-        sendJson(response, 200, {ok:true, path, total:payload?.total ?? payload?.meta?.total, count:Array.isArray(payload?.data) ? payload.data.length : undefined, sample:text.slice(0, 1200)});
-      }catch(e){
-        sendJson(response, 200, {ok:false, path, status:e.status, error:String(e.message || e).slice(0, 400)});
-      }
       return;
     }
 
