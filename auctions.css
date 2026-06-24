@@ -64,50 +64,70 @@
 
 /* Results */
 .auctionResultsV1 { min-width:0; }
-.auctionCardsV1 { display:flex; flex-direction:column; gap:16px; }
+.auctionCardsV1 { display:flex; flex-direction:column; gap:0; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; box-shadow:var(--aShadow); overflow:hidden; }
+.auctionCardsV1:empty { display:none; }
 .auctionMessageV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:16px; padding:28px; text-align:center; color:var(--aInk2); }
 .loadMoreLotsV1 { display:block; margin:24px auto 0; height:48px; padding:0 28px; border:1px solid var(--aLine); border-radius:12px; background:var(--aSurf); font-weight:600; color:var(--aInk); cursor:pointer; transition:.18s; }
 .loadMoreLotsV1:hover { border-color:var(--aMuted); background:var(--aSoft); }
 
-/* Card (row) */
-.auctionCardV1 { display:grid; grid-template-columns:260px 1.4fr .9fr .9fr; gap:18px; background:var(--aSurf); border:1px solid var(--aLine); border-radius:20px; padding:16px; box-shadow:var(--aShadow); transition:box-shadow .22s, transform .22s, border-color .22s; }
-.auctionCardV1:hover { box-shadow:0 18px 44px rgba(16,20,28,.12); border-color:rgba(237,0,18,.28); transform:translateY(-2px); }
-.auctionPhotoZoneV1 { display:flex; flex-direction:column; gap:8px; }
-.auctionCardImageV1 { position:relative; display:block; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:var(--aSoft); }
-.auctionCardImageV1 img { width:100%; height:100%; object-fit:cover; transition:transform .4s; }
-.auctionCardImageV1:hover img { transform:scale(1.05); }
-.auctionChipV1 { position:absolute; top:8px; left:8px; padding:4px 10px; border-radius:999px; background:rgba(11,13,16,.85); color:#fff; font-size:11px; font-weight:700; }
-.photoCountV1 { position:absolute; bottom:8px; right:8px; padding:3px 9px; border-radius:999px; background:rgba(11,13,16,.7); color:#fff; font-size:11px; }
-.rowIconBarV1 { display:flex; gap:6px; align-items:center; }
-.rowIconBtnV1 { width:34px; height:34px; border:1px solid var(--aLine); border-radius:9px; background:var(--aSurf); color:var(--aInk2); font-size:15px; cursor:pointer; transition:.18s; }
-.rowIconBtnV1:hover { border-color:var(--aRed); color:var(--aRed); }
-.vinReportV1 { flex:1; display:inline-flex; align-items:center; justify-content:center; height:34px; border:1px solid var(--aLine); border-radius:9px; font-size:12px; font-weight:600; color:var(--aInk2); }
-.vinReportV1:hover { border-color:var(--aMuted); }
-.auctionCardBodyV1 { min-width:0; }
-.auctionLotMainV1 { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
-.auctionLotMainV1 h3 { font-size:18px; color:var(--aInk); }
-.detailInlineV1 { font-size:13px; font-weight:600; color:var(--aRed); white-space:nowrap; }
-.auctionBadgesV1 { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
-.lotStatusV1, .saleBadgeV1 { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:var(--aSoft); color:var(--aInk2); border:1px solid var(--aLine); }
-.saleBadgeV1 { background:#fff1f1; color:var(--aRed); border-color:rgba(237,0,18,.2); }
-.auctionMetaGridV1 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 14px; }
-.auctionMetaGridV1 > div { min-width:0; }
-.auctionMetaGridV1 span { display:block; font-size:11px; color:var(--aMuted); }
-.auctionMetaGridV1 b { display:block; font-size:13px; color:var(--aInk); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.auctionLotChecksV1 { display:flex; flex-direction:column; gap:8px; border-left:1px solid var(--aLine2); padding-left:16px; }
-.auctionLotChecksV1 > * { font-size:13px; color:var(--aInk2); display:flex; justify-content:space-between; gap:8px; }
-.auctionLotPriceV1 { display:flex; flex-direction:column; gap:10px; border-left:1px solid var(--aLine2); padding-left:16px; }
-.auctionSideFactsV1 { display:flex; flex-direction:column; gap:6px; }
-.auctionSideFactsV1 div { display:flex; justify-content:space-between; gap:8px; font-size:13px; color:var(--aMuted); }
-.auctionSideFactsV1 b { color:var(--aInk); }
-.auctionPriceRowV1 { display:flex; gap:10px; }
-.auctionPriceRowV1 strong { flex:1; padding:10px; border-radius:11px; background:var(--aSoft); font-size:13px; font-weight:700; color:var(--aInk); line-height:1.5; }
-.auctionCardActionsV1 { display:flex; flex-direction:column; gap:8px; margin-top:auto; }
-.auctionBtnGhostV1 { display:inline-flex; align-items:center; justify-content:center; height:40px; border:1px solid var(--aLine); border-radius:11px; font-weight:600; font-size:13px; color:var(--aInk); transition:.18s; }
-.auctionBtnGhostV1:hover { border-color:var(--aMuted); background:var(--aSoft); }
-.auctionBtnPrimaryV1 { display:inline-flex; align-items:center; justify-content:center; height:42px; border:none; border-radius:11px; background:var(--aRed); color:#fff; font-weight:600; cursor:pointer; transition:.18s; }
-.auctionBtnPrimaryV1:hover { background:var(--aRed600); transform:translateY(-1px); }
-.fullV1 { width:100%; }
+/* Card (row) — DreamBid-style */
+.dbCard { display:grid; grid-template-columns:300px minmax(0,1fr) 232px; gap:20px; padding:20px; border-bottom:1px solid var(--aLine2); transition:background .15s; }
+.dbCard:last-child { border-bottom:none; }
+.dbCard:hover { background:#fafbfc; }
+
+.dbPhoto { position:relative; display:block; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:var(--aSoft); }
+.dbPhoto img { width:100%; height:100%; object-fit:cover; transition:transform .4s; }
+.dbPhoto:hover img { transform:scale(1.04); }
+.dbNoPhoto { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--aMuted); font-size:13px; }
+.dbAuc { position:absolute; left:8px; bottom:8px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.82); color:#fff; font-size:11px; font-weight:700; letter-spacing:.04em; }
+.dbPhotoCount { position:absolute; right:8px; bottom:8px; padding:3px 8px; border-radius:7px; background:rgba(11,13,16,.7); color:#fff; font-size:11px; }
+.dbFav { position:absolute; right:8px; top:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.92); color:var(--aInk2); cursor:pointer; }
+.dbFav:hover { color:var(--aRed); }
+.dbFav .dbIco { width:18px; height:18px; }
+
+.dbBody { min-width:0; display:flex; flex-direction:column; gap:15px; }
+.dbTitle { display:block; font-size:19px; font-weight:800; letter-spacing:-.02em; color:var(--aInk); line-height:1.2; }
+.dbTitle:hover { color:var(--aRed); }
+.dbIds { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:7px; }
+.dbIds span { display:inline-flex; align-items:center; gap:5px; font-size:13px; color:var(--aMuted); }
+.dbVin { font-variant-numeric:tabular-nums; }
+.dbLotNo { color:var(--aInk2); }
+.dbNew { background:#eaf1ff; color:#1f6bff; font-weight:700; font-size:11px; padding:3px 9px; border-radius:6px; }
+.dbIco { width:16px; height:16px; flex:none; }
+
+.dbCols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:6px 24px; }
+.dbSpecs, .dbChecks { list-style:none; display:flex; flex-direction:column; gap:9px; margin:0; padding:0; }
+.dbSpecs li, .dbChecks li { display:flex; align-items:flex-start; gap:9px; font-size:13.5px; color:var(--aInk2); line-height:1.35; }
+.dbSpecs .dbIco { color:var(--aMuted); margin-top:1px; }
+.dbVinReport a { color:#1f6bff; font-weight:600; }
+.dbVinReport .dbIco { color:#1f6bff; }
+.dbChecks .dbIco { margin-top:1px; }
+.dbCheck.good .dbIco { color:#1b9c5b; }
+.dbCheck.warn .dbIco { color:#e8a000; }
+.dbCheck.bad .dbIco { color:var(--aRed); }
+.dbCheck.neutral .dbIco { color:var(--aMuted); }
+.dbCheck b { font-weight:600; color:var(--aInk2); }
+
+.dbAside { display:flex; flex-direction:column; justify-content:space-between; gap:16px; border-left:1px solid var(--aLine2); padding-left:18px; }
+.dbWhen { display:flex; flex-direction:column; gap:6px; align-items:flex-end; text-align:right; }
+.dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--aInk2); white-space:nowrap; }
+.dbWhen .dbIco { color:var(--aMuted); }
+.dbLive.live { color:#1b9c5b; } .dbLive.live .dbIco { color:#1b9c5b; }
+.dbLive.soon { color:#e8780c; } .dbLive.soon .dbIco { color:#e8780c; }
+
+.dbPriceWrap { display:flex; flex-direction:column; gap:8px; }
+.dbEst { display:flex; align-items:center; gap:6px; justify-content:flex-end; font-size:12.5px; color:var(--aMuted); }
+.dbEst .dbIco { color:var(--aMuted); }
+.dbPriceBox { border:1px solid var(--aLine); border-radius:12px; padding:10px 14px; text-align:center; background:var(--aSoft); }
+.dbPriceBox span { display:block; font-size:10.5px; letter-spacing:.07em; color:var(--aMuted); text-transform:uppercase; }
+.dbPriceBox b { display:block; font-size:22px; font-weight:800; color:var(--aInk); margin-top:2px; }
+.dbSale { text-align:center; font-size:11px; font-weight:700; color:#e8780c; text-transform:uppercase; letter-spacing:.03em; }
+.dbSale::before { content:"• "; }
+.dbActions { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+.dbBtnGhost { display:inline-flex; align-items:center; justify-content:center; height:38px; border:1px solid var(--aLine); border-radius:10px; font-weight:600; font-size:13px; color:var(--aInk); transition:.18s; }
+.dbBtnGhost:hover { border-color:var(--aMuted); background:var(--aSoft); }
+.dbBtnPrimary { height:42px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:700; font-size:14px; cursor:pointer; transition:.18s; }
+.dbBtnPrimary:hover { background:var(--aRed600); transform:translateY(-1px); }
 
 /* Lot detail */
 .auctionDetailV1 { padding-top:8px; }
@@ -116,6 +136,9 @@
 .auctionDetailPanelV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:20px; padding:28px; box-shadow:var(--aShadow); }
 .detailHeaderV1 h1 { margin-top:6px; font-size:clamp(24px,3vw,34px); letter-spacing:-.03em; color:var(--aInk); }
 .detailHeaderV1 p { margin-top:8px; color:var(--aInk2); }
+.auctionBadgesV1 { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
+.lotStatusV1, .saleBadgeV1 { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:var(--aSoft); color:var(--aInk2); border:1px solid var(--aLine); }
+.saleBadgeV1 { background:#fff1f1; color:var(--aRed); border-color:rgba(237,0,18,.2); }
 .lotDetailGridV1 { display:grid; grid-template-columns:1.1fr 1fr 320px; gap:24px; margin-top:22px; align-items:start; }
 .detailGalleryV1 { position:sticky; top:90px; }
 .detailMainImageV1 { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:16px; background:var(--aSoft); }
@@ -165,17 +188,19 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionLayoutV1 { grid-template-columns:1fr; }
   .auctionFiltersV1 { position:static; }
   .filterHeadV1 button { display:block; }
-  .auctionCardV1 { grid-template-columns:220px 1fr; }
-  .auctionLotChecksV1, .auctionLotPriceV1 { grid-column:1 / -1; border-left:none; border-top:1px solid var(--aLine2); padding-left:0; padding-top:12px; }
-  .auctionLotChecksV1 { flex-direction:row; flex-wrap:wrap; }
-  .auctionLotChecksV1 > * { flex:1; min-width:140px; }
+  .dbCard { grid-template-columns:240px minmax(0,1fr); }
+  .dbAside { grid-column:1 / -1; flex-direction:row; align-items:flex-start; justify-content:space-between; gap:20px; border-left:none; border-top:1px solid var(--aLine2); padding-left:0; padding-top:14px; }
+  .dbWhen { align-items:flex-start; text-align:left; order:-1; }
+  .dbPriceWrap { min-width:220px; }
   .lotDetailGridV1 { grid-template-columns:1fr; }
   .detailGalleryV1, .lotCalcCardV1, .lotStickyV1 { position:static; }
 }
 @media (max-width:640px) {
   .auctionsShellV1 { padding:18px 16px 60px; }
-  .auctionCardV1 { grid-template-columns:1fr; }
-  .auctionMetaGridV1 { grid-template-columns:1fr 1fr; }
+  .dbCard { grid-template-columns:1fr; gap:14px; padding:16px; }
+  .dbCols { grid-template-columns:1fr; gap:9px; }
+  .dbAside { flex-direction:column; }
+  .dbWhen { align-items:flex-start; }
   .auctionDetailPanelV1 { padding:18px; }
 }
 
@@ -185,13 +210,13 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* ---- Override legacy global button{background:red!important} ---- */
 .auctionTabsV1 button, .auctionSwitchV1 button, .filterDrawerBtnV1,
 .filterActionsV1 #resetFiltersBtn, .rowIconBtnV1, .loadMoreLotsV1,
-.auctionBtnGhostV1, .calcToggleV1 {
+.auctionBtnGhostV1, .calcToggleV1, .dbBtnGhost {
   background: var(--aSurf) !important; box-shadow: none !important; color: var(--aInk2) !important;
 }
 .filterHeadV1 button, .modalCloseV1 { background: var(--aSoft) !important; box-shadow: none !important; color: var(--aMuted) !important; }
 .auctionTabsV1 button.active, .auctionSwitchV1 button.active,
 .auctionSearchV1 button, .filterActionsV1 button[type="submit"],
-.auctionBtnPrimaryV1, .calcToggleV1.active,
+.auctionBtnPrimaryV1, .calcToggleV1.active, .dbBtnPrimary,
 .auctionLeadFormV1 button[type="submit"], .stickyCtasV1 button {
   background: var(--aRed) !important; color: #fff !important; box-shadow: 0 8px 22px rgba(237,0,18,.25) !important;
 }

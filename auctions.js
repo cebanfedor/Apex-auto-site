@@ -185,63 +185,116 @@
     box.textContent = text || "";
   }
 
+  const DB_ICONS = {
+    engine:'<path d="M5 9h2l2-2h3v2h3l2 2h2v4h-2v2h-5l-2 2H9v-4H5z"/>',
+    odo:'<circle cx="12" cy="13" r="7"/><path d="M12 13l3.5-2.5M12 4v1M5 13H4M20 13h-1"/>',
+    damage:'<path d="M14.5 5.6a3.4 3.4 0 0 0-.7 3.8L5 18l1 1 8.6-8.6a3.4 3.4 0 0 0 3.8-.7 3.4 3.4 0 0 0 .8-3.6l-2 2-1.8-1.8 2-2a3.4 3.4 0 0 0-1.7.5z"/>',
+    doc:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+    pin:'<path d="M12 21s6-5.3 6-10a6 6 0 1 0-12 0c0 4.7 6 10 6 10z"/><circle cx="12" cy="11" r="2"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/>',
+    clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    chart:'<path d="M4 19V5M4 19h16"/><path d="M7 14l3-3 3 2 4-5"/>',
+    check:'<circle cx="12" cy="12" r="8.5"/><path d="M8.2 12.4l2.4 2.4 5-5"/>',
+    warn:'<path d="M12 4l8.5 15H3.5z"/><path d="M12 10v4M12 16.5v.5"/>',
+    q:'<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.3 2.2c-.8.4-1 .9-1 1.6M12 16v.5"/>',
+    star:'<path d="M12 4l2.3 4.9 5.2.7-3.8 3.7.9 5.2L12 16.7 7.4 18.2l.9-5.2L4.5 9.6l5.2-.7z"/>',
+    vin:'<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M6 10v4M9 10v4M12 10v4M15 10v4M18 10v4"/>'
+  };
+  function dbIco(name){
+    return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
+  }
+  function dbDate(value){
+    if(!value) return "—";
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return String(value).slice(0, 16);
+    const lang = window.APEX_LANG || "ru";
+    const loc = lang === "ro" ? "ro-RO" : lang === "en" ? "en-US" : "ru-RU";
+    return d.toLocaleString(loc, {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
+  }
+  function dbOdo(text){
+    if(!text) return "";
+    const num = Number(String(text).replace(/[^\d.]/g, ""));
+    if(!num) return escapeHtml(text);
+    const k = v => v >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
+    if(/mi/i.test(text)) return `${k(num)} mi ≈ ${k(num * 1.609)} km`;
+    return `${k(num)} km`;
+  }
+  function dbLive(lot){
+    const s = String(lot.lotStatus || "").toLowerCase();
+    if(/live/.test(s)) return ["Идут торги", "live"];
+    if(/upcoming|new|soon|скоро/.test(s)) return ["Live скоро начнётся", "soon"];
+    if(/sold|завер/.test(s)) return ["Торги завершены", "done"];
+    if(/buy/.test(s)) return ["Купить сейчас", "buy"];
+    return [lot.lotStatus || "—", ""];
+  }
+  function dbSpec(icon, value){
+    if(!value) return "";
+    return `<li>${dbIco(icon)}<span>${value}</span></li>`;
+  }
+  function dbCheck(label, value){
+    const tone = statusTone(value) || "neutral";
+    const icon = tone === "good" ? "check" : tone === "bad" ? "warn" : tone === "warn" ? "warn" : "q";
+    return `<li class="dbCheck ${tone}">${dbIco(icon)}<span><b>${escapeHtml(label)}:</b> ${escapeHtml(value || "—")}</span></li>`;
+  }
+
   function renderCard(lot){
     const title = lotTitle(lot);
-    return `<article class="auctionCardV1 auctionLotRowV1">
-      <div class="auctionPhotoZoneV1">
-        <a class="auctionCardImageV1" href="${detailHref(lot)}">
-          ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}
-          <span class="auctionChipV1">${escapeHtml(lot.auction.toUpperCase())}</span>
-          <span class="photoCountV1">${escapeHtml(lot.photoCount || lot.images?.length || 0)} фото</span>
-        </a>
-        <div class="rowIconBarV1" aria-label="Действия с лотом">
-          <button class="rowIconBtnV1" type="button" title="Добавить в избранное">♡</button>
-          <button class="rowIconBtnV1" type="button" title="Скрыть лот">−</button>
-          ${lot.vin ? `<a class="vinReportV1" href="https://www.google.com/search?q=${encodeURIComponent(lot.vin)}" target="_blank" rel="noopener">Отчет VIN</a>` : ""}
+    const [liveLabel, liveTone] = dbLive(lot);
+    const isNew = /upcoming|new/i.test(lot.lotStatus || "");
+    const engineLine = [lot.engine, lot.drive, lot.transmission].filter(Boolean).join(" • ");
+    const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
+    const price = money(lot.currentBid || lot.buyNow);
+    const photos = lot.photoCount || lot.images?.length || 1;
+    return `<article class="dbCard">
+      <a class="dbPhoto" href="${detailHref(lot)}">
+        ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : `<span class="dbNoPhoto">Нет фото</span>`}
+        <span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>
+        <span class="dbPhotoCount">1/${escapeHtml(photos)}</span>
+        <span class="dbFav" role="button" title="В избранное">${dbIco("star")}</span>
+      </a>
+      <div class="dbBody">
+        <div class="dbHead">
+          <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
+          <div class="dbIds">
+            <span class="dbVin">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
+            <span class="dbLotNo">${dbIco("warn")}${escapeHtml(lot.lot || "—")}</span>
+            ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
+          </div>
+        </div>
+        <div class="dbCols">
+          <ul class="dbSpecs">
+            ${dbSpec("engine", escapeHtml(engineLine))}
+            ${dbSpec("odo", dbOdo(lot.odometerText))}
+            ${dbSpec("damage", escapeHtml(lot.damage))}
+            ${dbSpec("doc", escapeHtml(lot.document))}
+            ${dbSpec("pin", escapeHtml(lot.location))}
+            ${lot.vin ? `<li class="dbVinReport">${dbIco("doc")}<a href="https://www.google.com/search?q=${encodeURIComponent(lot.vin)}" target="_blank" rel="noopener">Отчет VIN</a></li>` : ""}
+          </ul>
+          <ul class="dbChecks">
+            ${dbCheck("Состояние", lot.condition)}
+            ${dbCheck("Продавец", lot.seller)}
+            ${dbCheck("Ключ доступен", lot.keys)}
+            ${dbCheck("Документы", lot.document)}
+            ${dbCheck("История", lot.priceHistory?.length ? `${lot.priceHistory.length} записей` : "Впервые в продаже")}
+          </ul>
         </div>
       </div>
-      <div class="auctionCardBodyV1">
-        <div class="auctionLotMainV1">
-          <h3>${escapeHtml(title)}</h3>
-          <a class="detailInlineV1" href="${detailHref(lot)}">Подробнее</a>
+      <aside class="dbAside">
+        <div class="dbWhen">
+          <span>${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
+          <span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>
         </div>
-        <div class="auctionBadgesV1">
-          <span class="lotStatusV1">${escapeHtml(lot.lotStatus || "Live")}</span>
-          ${lot.saleStatus ? `<span class="saleBadgeV1 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</span>` : ""}
-        </div>
-        <div class="auctionMetaGridV1">
-          <div><span>VIN</span><b>${escapeHtml(lot.vin || "—")}</b></div>
-          <div><span>LOT</span><b>${escapeHtml(lot.lot || "—")}</b></div>
-          <div><span>Двигатель</span><b>${escapeHtml(lot.engine || "—")}</b></div>
-          <div><span>Топливо</span><b>${escapeHtml(lot.fuel || "—")}</b></div>
-          <div><span>КПП / привод</span><b>${escapeHtml([lot.transmission, lot.drive].filter(Boolean).join(" / ") || "—")}</b></div>
-          <div><span>Пробег</span><b>${escapeHtml(lot.odometerText || "—")}</b></div>
-          <div><span>Повреждение</span><b>${escapeHtml(lot.damage || "—")}</b></div>
-          <div><span>Документ</span><b>${escapeHtml(lot.document || "—")}</b></div>
-          <div><span>Локация</span><b>${escapeHtml(lot.location || "—")}</b></div>
-        </div>
-      </div>
-      <aside class="auctionLotChecksV1">
-        ${statusItem("Состояние авто", lot.condition || lot.lotStatus)}
-        ${statusItem("Документы", lot.document)}
-        ${statusItem("Ключ", lot.keys)}
-        ${statusItem("Продавец", lot.seller)}
-        ${statusItem("История", lot.priceHistory?.length ? "есть" : "проверить")}
-        ${statusItem("Статус продажи", lot.saleStatus || "—")}
-      </aside>
-      <aside class="auctionLotPriceV1">
-        <div class="auctionSideFactsV1">
-          <div><span>Дата торгов</span><b>${escapeHtml(dateText(lot.auctionDate))}</b></div>
-          <div><span>Локация</span><b>${escapeHtml(lot.location || "—")}</b></div>
-        </div>
-        <div class="auctionPriceRowV1">
-          <strong>Ставка<br>${money(lot.currentBid)}</strong>
-          <strong>Buy Now<br>${money(lot.buyNow)}</strong>
-        </div>
-        <div class="auctionCardActionsV1">
-          <a class="auctionBtnGhostV1" href="${detailHref(lot)}">Подробнее</a>
-          <a class="auctionBtnGhostV1" href="${calcHref(lot)}">Рассчитать доставку</a>
-          <button class="auctionBtnPrimaryV1 fullV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
+        <div class="dbPriceWrap">
+          ${estimate ? `<div class="dbEst">${dbIco("chart")}<span>оценка ${escapeHtml(estimate)}</span></div>` : ""}
+          <div class="dbPriceBox">
+            <span>Текущая цена</span>
+            <b>${price}</b>
+          </div>
+          ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
+          <div class="dbActions">
+            <a class="dbBtnGhost" href="${calcHref(lot)}">Рассчитать доставку</a>
+            <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
+          </div>
         </div>
       </aside>
     </article>`;
