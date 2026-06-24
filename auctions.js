@@ -166,17 +166,35 @@
     return Math.round(engineCc * rate * ageFactor * 19.4);
   }
 
+  function vehicleKind(lot, override){
+    if(override) return override;
+    const b = String(lot.body || lot.bodyStyle || "").toLowerCase();
+    const t = (String(lot.model || "") + " " + String(lot.make || "")).toLowerCase();
+    if(/pickup|truck|silverado|sierra|ram|f-150|f150|tundra|tacoma/.test(b + t)) return "pickup";
+    if(/van|cargo|sprinter|transit|minivan/.test(b + t)) return "van";
+    if(/suv|utility|cuv|crossover/.test(b)) return "suv";
+    return "sedan";
+  }
+  function landMultFor(kind){ return kind === "suv" ? 1.2 : kind === "crossover" ? 1.1 : (kind === "pickup" || kind === "van") ? 1.5 : 1; }
+  function seaSurchargeFor(kind){ return kind === "suv" ? 300 : kind === "crossover" ? 200 : (kind === "pickup" || kind === "van") ? 500 : 0; }
+  function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
+  function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
+
   function calcLotTotal(lot, options = {}){
-    const bid = Number(options.bid || lot.currentBid || lot.buyNow || 0);
+    const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
     const auctionFee = auctionFeeFor(bid, lot.auction);
-    const land = (landShippingFor(lot) || 0) + (landShippingFor(lot) ? 100 : 0);
-    const sea = seaShippingFor(lot);
+    const kind = options.vehicleType || vehicleKind(lot);
+    const baseLand = landShippingFor(lot) || 0;
+    const land = baseLand ? Math.round(baseLand * landMultFor(kind)) + 100 + (options.offsite ? 100 : 0) : 0;
+    const green = !!options.green;
+    const sea = seaShippingFor(lot) + seaSurchargeFor(kind) + (green ? 100 : 0);
     const insurance = options.insurance === false ? 0 : Math.round(bid * 0.01);
     const exportDocs = options.exportDocs ? 400 : 0;
     const service = Math.max(300, Math.round((bid + auctionFee) * 0.025));
-    const customsUsd = Math.round(customsFor(lot) / 17.45);
+    const customsUsd = green ? 0 : Math.round(customsFor(lot) / 17.45);
     const total = bid + auctionFee + land + sea + insurance + exportDocs + service + customsUsd;
-    return {bid, auctionFee, land, sea, insurance, exportDocs, service, customsUsd, total};
+    return {bid, auctionFee, land, sea, insurance, exportDocs, service, customsUsd, total, kind, green,
+      landRoute: landRouteLabel(lot), seaRoute: seaRouteLabel(lot)};
   }
 
   function setMessage(text){
@@ -387,64 +405,87 @@
     return `<div><span>${escapeHtml(label)}</span><b>${escapeHtml(value || "—")}</b></div>`;
   }
 
+  function altCurrency(usd){
+    const mdl = Math.round(usd * 17.45).toLocaleString("ru-RU");
+    const eur = Math.round(usd * 17.45 / 19.2).toLocaleString("ru-RU");
+    return `${mdl} MDL · €${eur}`;
+  }
+
+  function calcRow(label, value, sub){
+    return `<div class="calcRowV2"><span>${escapeHtml(label)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span><b>${money(value)}</b></div>`;
+  }
+
   function renderCalcRows(calc){
+    const shippingSub = calc.bid + calc.auctionFee + calc.land + calc.sea;
+    const clearingSub = calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
     return `
-      <div><span>Ставка</span><b>${money(calc.bid)}</b></div>
-      <div><span>Аукционный сбор</span><b>${money(calc.auctionFee)}</b></div>
-      <div><span>Доставка по США</span><b>${money(calc.land)}</b></div>
-      <div><span>Доставка в Chisinau</span><b>${money(calc.sea)}</b></div>
-      <div><span>Страховка</span><b>${money(calc.insurance)}</b></div>
-      <div><span>Экспортные документы</span><b>${money(calc.exportDocs)}</b></div>
-      <div><span>Сопровождение ApexAuto</span><b>${money(calc.service)}</b></div>
-      <div><span>Таможня</span><b>${money(calc.customsUsd)}</b></div>
-    `;
+      <section class="calcSecV2">
+        <div class="calcSecHeadV2"><span>Калькулятор стоимости</span><b>${money(shippingSub)}</b></div>
+        ${calcRow("Ставка", calc.bid)}
+        ${calcRow("Аукционный сбор", calc.auctionFee)}
+        ${calcRow("Доставка по США", calc.land, calc.landRoute)}
+        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}
+      </section>
+      <section class="calcSecV2">
+        <div class="calcSecHeadV2"><span>Таможня и оформление</span><b>${money(clearingSub)}</b></div>
+        ${calcRow("Таможенные платежи", calc.customsUsd)}
+        ${calcRow("Страховка", calc.insurance)}
+        ${calcRow("Экспортные документы", calc.exportDocs)}
+        ${calcRow("Сопровождение Apex Auto", calc.service)}
+      </section>`;
   }
 
   function renderLotCalculator(lot){
     const initialBid = lot.currentBid || lot.buyNow || 0;
-    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false});
-    return `<aside class="lotStickyV1">
-      <section class="lotCalcCardV1">
-        <span class="auctionsKickerV1">Расчет ApexAuto</span>
-        <h2>Стоимость под ключ</h2>
-        <div class="calcModeV1" role="group" aria-label="Выбор ставки">
-          <button type="button" class="active" data-bid-mode="current">Текущая</button>
-          <button type="button" data-bid-mode="buy">Buy Now</button>
-          <button type="button" data-bid-mode="custom">Своя</button>
-        </div>
-        <div class="calcBidControlV1">
-          <button type="button" data-bid-step="-500">−</button>
-          <input id="lotBidInput" type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="Ставка, $">
-          <button type="button" data-bid-step="500">+</button>
-        </div>
-        <label class="calcToggleV1"><input id="lotCalcInsurance" type="checkbox" checked> Страховка 1%</label>
-        <label class="calcToggleV1"><input id="lotCalcExportDocs" type="checkbox"> Экспортные документы +$400</label>
-        <div id="lotCalcRows" class="calcRowsV1">${renderCalcRows(calc)}</div>
-        <div class="calcTotalV1">
-          <span>Итого</span>
-          <strong id="lotCalcTotal">${money(calc.total)}</strong>
-          <small id="lotCalcTotalAlt">${Math.round(calc.total * 17.45).toLocaleString("ru-RU")} MDL / €${Math.round(calc.total * 17.45 / 19.2).toLocaleString("ru-RU")}</small>
-        </div>
-        <div class="stickyCtasV1">
-          <button class="auctionBtnPrimaryV1" type="button" data-lead="${escapeHtml(lot.id)}">Сделать расчет</button>
-          <button class="auctionBtnGhostV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
-          <button class="auctionBtnGhostV1" type="button" data-copy-calc>Скопировать расчет</button>
-          <a class="auctionBtnGhostV1" href="${calcHref(lot)}">Открыть в калькуляторе</a>
-        </div>
-      </section>
+    const kind = vehicleKind(lot);
+    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, vehicleType:kind});
+    const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
+    return `<aside class="lotCalcV2">
+      <div class="calcTopV2">
+        <div class="calcBidLabelV2"><span>Текущая ставка</span><b>${money(initialBid)}</b></div>
+        ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
+      </div>
+      ${lot.saleStatus ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
+      <div class="calcStepperV2">
+        <button type="button" data-bid-step="-500" aria-label="Уменьшить ставку">−</button>
+        <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="Ваша ставка, $">
+        <button type="button" data-bid-step="500" aria-label="Увеличить ставку">+</button>
+      </div>
+      <div class="calcOptsV2">
+        <label class="calcOptV2"><input type="checkbox" id="lotVehSuv" data-calc-input ${kind === "suv" || kind === "crossover" ? "checked" : ""}><span>SUV / кроссовер</span><i>+20% по США · +$300 море</i></label>
+        <label class="calcOptV2"><input type="checkbox" id="lotVehPickup" data-calc-input ${kind === "pickup" || kind === "van" ? "checked" : ""}><span>Пикап / минивэн</span><i>+50% по США · +$500 море</i></label>
+        <label class="calcOptV2"><input type="checkbox" id="lotGreen" data-calc-input><span>Гибрид / электро</span><i>+$100 море</i></label>
+        <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
+        <label class="calcOptV2"><input type="checkbox" id="lotCalcInsurance" data-calc-input checked><span>Страховка 1%</span><i>защита в пути</i></label>
+      </div>
+      <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
+      <div class="calcGrandV2">
+        <span>Итого под ключ до Кишинёва</span>
+        <b id="lotCalcTotal">${money(calc.total)}</b>
+        <small id="lotCalcTotalAlt">${altCurrency(calc.total)}</small>
+      </div>
+      <div class="calcCtasV2">
+        <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
+        <button class="dbBtnGhost" type="button" data-copy-calc>Скопировать расчёт</button>
+        <a class="dbBtnGhost" href="${calcHref(lot)}">Открыть в полном калькуляторе</a>
+      </div>
+      <p class="calcNoteV2">Расчёт предварительный, для ориентира. Итоговую сумму подтверждаем перед покупкой.</p>
     </aside>`;
   }
 
   function updateLotCalculator(){
     if(!state.selectedLot || !$("#lotBidInput")) return;
+    const veh = $("#lotVehPickup")?.checked ? "pickup" : $("#lotVehSuv")?.checked ? "suv" : "sedan";
     const calc = calcLotTotal(state.selectedLot, {
       bid:Number($("#lotBidInput").value || 0),
       insurance:$("#lotCalcInsurance")?.checked,
-      exportDocs:$("#lotCalcExportDocs")?.checked
+      exportDocs:$("#lotCalcExportDocs")?.checked,
+      green:$("#lotGreen")?.checked,
+      vehicleType:veh
     });
-    $("#lotCalcRows").innerHTML = renderCalcRows(calc);
+    $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
-    $("#lotCalcTotalAlt").textContent = `${Math.round(calc.total * 17.45).toLocaleString("ru-RU")} MDL / €${Math.round(calc.total * 17.45 / 19.2).toLocaleString("ru-RU")}`;
+    $("#lotCalcTotalAlt").textContent = altCurrency(calc.total);
     return calc;
   }
 
@@ -548,7 +589,12 @@
       const payload = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(slug.auction)}&lot=${encodeURIComponent(slug.lot)}`);
       renderDetail(payload.lot);
     }catch(error){
-      $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">${escapeHtml(error.message || "Лот временно недоступен.")}</div>`;
+      const demo = isLocalHost() && demoLots().find(l => String(l.lot) === String(slug.lot));
+      if(demo){
+        renderDetail(demo);
+      }else{
+        $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">${escapeHtml(error.message || "Лот временно недоступен.")}</div>`;
+      }
     }
     return true;
   }
@@ -666,14 +712,10 @@
       if(event.target.closest("[data-close-lead]") || event.target.id === "leadModal") closeLead();
     });
     document.addEventListener("input", event => {
-      if(event.target.id === "lotBidInput" || event.target.id === "lotCalcInsurance" || event.target.id === "lotCalcExportDocs"){
-        updateLotCalculator();
-      }
+      if(event.target.closest("[data-calc-input]")) updateLotCalculator();
     });
     document.addEventListener("change", event => {
-      if(event.target.id === "lotCalcInsurance" || event.target.id === "lotCalcExportDocs"){
-        updateLotCalculator();
-      }
+      if(event.target.closest("[data-calc-input]")) updateLotCalculator();
     });
     document.addEventListener("keydown", event => {
       if(event.key === "Escape") closeLead();

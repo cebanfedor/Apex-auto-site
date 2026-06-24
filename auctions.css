@@ -171,6 +171,42 @@
 .stickyCtasV1 button, .stickyCtasV1 .auctionBtnPrimaryV1 { background:var(--aRed); color:#fff; }
 .stickyCtasV1 a { background:rgba(255,255,255,.1); color:#fff; }
 
+/* Lot calculator — DreamBid-style, light sticky panel */
+.lotCalcV2 { position:sticky; top:90px; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:18px; box-shadow:var(--aShadow); display:flex; flex-direction:column; gap:14px; }
+.calcTopV2 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.calcBidLabelV2 span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); }
+.calcBidLabelV2 b { font-size:24px; font-weight:800; color:var(--aInk); }
+.calcEstV2 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aMuted); }
+.calcEstV2 .dbIco { width:15px; height:15px; }
+.calcSaleV2 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#e8780c; }
+.calcSaleV2::before { content:"• "; }
+.calcStepperV2 { display:grid; grid-template-columns:44px 1fr 44px; gap:8px; }
+.calcStepperV2 button { height:46px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); font-size:22px; color:var(--aInk); cursor:pointer; transition:.15s; }
+.calcStepperV2 button:hover { border-color:var(--aMuted); }
+.calcStepperV2 input { height:46px; text-align:center; border:1px solid #ccd2db; border-radius:11px; background:var(--aSoft); font-size:18px; font-weight:700; color:var(--aInk); width:100%; }
+.calcStepperV2 input:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.15); }
+.calcOptsV2 { display:flex; flex-direction:column; }
+.calcOptV2 { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--aLine2); font-size:13px; color:var(--aInk); cursor:pointer; }
+.calcOptV2:last-child { border-bottom:none; }
+.calcOptV2 input { width:18px; height:18px; accent-color:var(--aRed); flex:none; }
+.calcOptV2 span { flex:1; }
+.calcOptV2 i { font-style:normal; font-size:11px; color:var(--aMuted); text-align:right; }
+.calcBodyV2 { display:flex; flex-direction:column; gap:14px; }
+.calcSecV2 { display:flex; flex-direction:column; gap:7px; }
+.calcSecHeadV2 { display:flex; align-items:center; justify-content:space-between; padding-bottom:6px; border-bottom:1px solid var(--aLine); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
+.calcSecHeadV2 b { font-size:13px; color:var(--aInk); }
+.calcRowV2 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; font-size:13.5px; color:var(--aInk2); }
+.calcRowV2 > span { display:flex; flex-direction:column; }
+.calcRowV2 small { font-size:11px; color:var(--aMuted); margin-top:1px; }
+.calcRowV2 b { color:var(--aInk); white-space:nowrap; }
+.calcGrandV2 { border-top:2px solid var(--aLine); padding-top:12px; }
+.calcGrandV2 span { display:block; font-size:12px; color:var(--aMuted); }
+.calcGrandV2 b { display:block; font-size:30px; font-weight:800; color:var(--aInk); letter-spacing:-.02em; line-height:1.1; }
+.calcGrandV2 small { display:block; font-size:13px; color:var(--aInk2); margin-top:3px; }
+.calcCtasV2 { display:flex; flex-direction:column; gap:8px; }
+.calcCtasV2 .dbBtnPrimary, .calcCtasV2 .dbBtnGhost { width:100%; height:44px; }
+.calcNoteV2 { font-size:11.5px; color:var(--aMuted); line-height:1.4; }
+
 /* Lead modal */
 .auctionModalV1 { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(11,13,16,.55); backdrop-filter:blur(4px); }
 body.leadModalOpenV1 { overflow:hidden; }
@@ -193,7 +229,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbWhen { align-items:flex-start; text-align:left; order:-1; }
   .dbPriceWrap { min-width:220px; }
   .lotDetailGridV1 { grid-template-columns:1fr; }
-  .detailGalleryV1, .lotCalcCardV1, .lotStickyV1 { position:static; }
+  .detailGalleryV1, .lotCalcCardV1, .lotStickyV1, .lotCalcV2 { position:static; }
 }
 @media (max-width:640px) {
   .auctionsShellV1 { padding:18px 16px 60px; }
