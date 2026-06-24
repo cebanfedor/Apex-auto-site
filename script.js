@@ -46,7 +46,7 @@ function initYears(){const y=$("year");if(!y)return;y.innerHTML="";for(let year=
 function initLiters(){const e=$("engineLiters");if(!e)return;e.innerHTML="";for(let i=1;i<=70;i++){let v=(i/10).toFixed(1),o=document.createElement("option");o.value=v;o.textContent=`${v} л`;if(v==="2.0")o.selected=true;e.appendChild(o)}refreshGlassSelect(e)}
 function normalizeAuction(v){return String(v||"").toLowerCase().replace(/\s+/g,"")}function matchesAuction(item){let a=normalizeAuction(item.auction),s=$("auction")?.value||"copart";if(s==="copart")return a.includes("copart");if(s==="iaai")return a.includes("iaai");return a.includes("manheim")||a.includes("manhei")}
 function getFilteredLocations(){return (window.LOCATIONS||[]).filter(matchesAuction)}
-function initLocations(){let select=$("location");if(!select)return;select.innerHTML='<option value="">Выбери локацию</option>';getFilteredLocations().forEach((item,i)=>{let o=document.createElement("option");o.value=String(i);o.textContent=item.displayName||"Локация";select.appendChild(o)});refreshGlassSelect(select)}
+function initLocations(){let select=$("location");if(!select)return;select.innerHTML='<option value="">Выбери локацию</option>';const locs=getFilteredLocations();locs.forEach((item,i)=>{let o=document.createElement("option");o.value=String(i);o.textContent=item.displayName||"Локация";select.appendChild(o)});if(locs.length)select.value="0";refreshGlassSelect(select);updateLocation();}
 function updateLocation(){let locationEl=$("location");if(!locationEl)return;let idx=locationEl.value;selectedLocation=idx===""?null:getFilteredLocations()[Number(idx)];if(!selectedLocation){if($("portView"))$("portView").value="—";if($("landView"))$("landView").value="0";return}if($("portView"))$("portView").value=selectedLocation.portLabel||SEA[selectedLocation.autoPort]?.label||"—";if($("landView"))$("landView").value=getLandShipping().toFixed(0)}
 function getLandMultiplier(){let t=$("vehicleType")?.value||"sedan";if(t==="crossover")return 1.1;if(t==="suv"||t==="suvLarge")return 1.2;if(t==="pickup"||t==="pickupLarge"||t==="vanLarge"||t==="pickupOversized")return 1.5;return 1}
 function getLandShipping(){if(!selectedLocation)return 0;const base=Number(selectedLocation.landPrice||selectedLocation.autoLand||0)*getLandMultiplier();const apexSurcharge=100;const offsite=$("offsite")&&$("offsite").checked?100:0;return Math.ceil(base+apexSurcharge+offsite)}
@@ -869,11 +869,14 @@ function calculate(){
   const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
   if($("dangerCargoTag")) $("dangerCargoTag").hidden = !greenFuel;
 
+  const lang = window.APEX_LANG || document.documentElement.lang || "ru";
+  const chisinau = lang === "en" ? "Chisinau" : lang === "ro" ? "Chișinău" : "Кишинёв";
+
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
     ["Доставка по США", land, selectedLocation ? route : "выбери локацию", "usd"],
-    ["Доставка в Chișinău", sea, selectedLocation ? selectedLocation.portLabel : "", "usd"],
+    ["Доставка в " + chisinau, sea, selectedLocation ? selectedLocation.portLabel : "", "usd"],
     ["Экспортные документы", exportDocs, exportDocs ? "включены" : "отключены", "usd"],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
@@ -896,7 +899,7 @@ function calculate(){
   updateShare();
 }
 
-function textCalc(){if(!lastCalc)calculate();if(!lastCalc)return"";let lines=lastCalc.rows.filter(x=>x[1]>0||x[0].includes("Carfax")).map(x=>`• ${x[0]} — ${x[3]==="mdl"?displayMdl(x[1]):displayUsd(x[1])}`);let lotLines=lastCalc.importedLot?.original?["",`Ссылка на лот: ${lastCalc.importedLot.original}`,lastCalc.importedLot.lotNumber?`Номер лота: ${lastCalc.importedLot.lotNumber}`:"",lastCalc.importedLot.vin?`VIN: ${lastCalc.importedLot.vin}`:""].filter(Boolean):[];let adviceLines=lastCalc.smartAdvice?["",`Оценка лота: ${lastCalc.smartAdvice.verdict} (${lastCalc.smartAdvice.score}/100)`,"Лимит ставки: после проверки рынка и ремонта"].filter(Boolean):[];let bidLines=lastCalc.bidAdvice?["",`Торговая рекомендация: ${lastCalc.bidAdvice.verdict}`,`Разумная ставка: ${moneyUsd(lastCalc.bidAdvice.bidLow)}–${moneyUsd(lastCalc.bidAdvice.bidHigh)}`,`После ремонта: ${moneyUsd(lastCalc.bidAdvice.afterRepairLow)}–${moneyUsd(lastCalc.bidAdvice.afterRepairHigh)}`,`Экономия к рынку: ${moneyUsd(lastCalc.bidAdvice.savingLow)}–${moneyUsd(lastCalc.bidAdvice.savingHigh)}`].filter(Boolean):[];return["APEX AUTO | Расчет под ключ","",`Лот: ${moneyUsd(lastCalc.lot)}`,`Аукцион: ${lastCalc.auction.toUpperCase()}`,`Локация: ${lastCalc.route}`,...lotLines,...adviceLines,...bidLines,"",...lines,"",`Итого: ${moneyUsd(lastCalc.totalUsd)}`,`${moneyMdl(lastCalc.totalMdl)} | ${moneyEur(mdlToEur(lastCalc.totalMdl))}`,"","Расчет предварительный."].join("\n")}
+function textCalc(){if(!lastCalc)calculate();if(!lastCalc)return"";let lines=lastCalc.rows.filter(x=>x[1]>0||x[0].includes("Carfax")).map(x=>`• ${x[0]==="Сопровождение APEX AUTO"?"Сопровождение компании":x[0]} — ${x[3]==="mdl"?displayMdl(x[1]):displayUsd(x[1])}`);let lotLines=lastCalc.importedLot?.original?["",`Ссылка на лот: ${lastCalc.importedLot.original}`,lastCalc.importedLot.lotNumber?`Номер лота: ${lastCalc.importedLot.lotNumber}`:"",lastCalc.importedLot.vin?`VIN: ${lastCalc.importedLot.vin}`:""].filter(Boolean):[];let adviceLines=lastCalc.smartAdvice?["",`Оценка лота: ${lastCalc.smartAdvice.verdict} (${lastCalc.smartAdvice.score}/100)`,"Лимит ставки: после проверки рынка и ремонта"].filter(Boolean):[];let bidLines=lastCalc.bidAdvice?["",`Торговая рекомендация: ${lastCalc.bidAdvice.verdict}`,`Разумная ставка: ${moneyUsd(lastCalc.bidAdvice.bidLow)}–${moneyUsd(lastCalc.bidAdvice.bidHigh)}`,`После ремонта: ${moneyUsd(lastCalc.bidAdvice.afterRepairLow)}–${moneyUsd(lastCalc.bidAdvice.afterRepairHigh)}`,`Экономия к рынку: ${moneyUsd(lastCalc.bidAdvice.savingLow)}–${moneyUsd(lastCalc.bidAdvice.savingHigh)}`].filter(Boolean):[];return["APEX AUTO | Расчет под ключ","",`Аукцион: ${lastCalc.auction.toUpperCase()}`,`Локация: ${lastCalc.route}`,...lotLines,...adviceLines,...bidLines,"",...lines,"",`Итого: ${moneyUsd(lastCalc.totalUsd)}`,`${moneyMdl(lastCalc.totalMdl)} | ${moneyEur(mdlToEur(lastCalc.totalMdl))}`,"","Расчет предварительный."].join("\n")}
 function updateShare(){if($("tgBtn"))$("tgBtn").href=`https://t.me/share/url?url=&text=${encodeURIComponent(textCalc())}`}
 async function copyCalc(){try{await navigator.clipboard.writeText(textCalc());$("copyBtn").textContent="Скопировано";setTimeout(()=>$("copyBtn").textContent="Скопировать расчет",1200)}catch(e){alert(textCalc())}}
 function downloadPng(){alert("PNG добавим следующим этапом. Сейчас расчет можно скопировать или отправить в Telegram.")}
@@ -906,7 +909,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
   ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();calculate()}));
-  if($("auction"))$("auction").addEventListener("change",()=>{initLocations();$("location").value="";calculate()});
+  if($("auction"))$("auction").addEventListener("change",()=>{initLocations();calculate()});
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);
   if($("auctionUrl")){
     $("auctionUrl").addEventListener("paste",()=>setTimeout(applyAuctionImport,80));

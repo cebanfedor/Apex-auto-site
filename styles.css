@@ -362,24 +362,25 @@ details[open] > summary::before { content: "– "; }
 .resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 24px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
 .resultCard .actions { margin-top: auto; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
-.route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
-.auctionBadge { padding: 5px 12px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
-.breakdown { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.breakdown > div, .breakdown > p { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-size: 14.5px; color: rgba(255, 255, 255, 0.72); }
+.route, .topRoute { font-size: 15px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
+.auctionBadge { padding: 5px 12px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 13px; font-weight: 700; color: #fff; }
+.breakdown { display: flex; flex-direction: column; gap: 11px; padding: 16px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.breakdown > div, .breakdown > p { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-size: 15.5px; color: rgba(255, 255, 255, 0.72); }
 .breakdown b, .breakdown strong { color: #fff; font-variant-numeric: tabular-nums; font-weight: 700; }
-.breakdown small { display: block; font-size: 11.5px; color: rgba(255, 255, 255, 0.45); }
+.breakdown small { display: block; font-size: 12.5px; color: rgba(255, 255, 255, 0.45); }
 .totalFooter { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 18px; }
-.resultLabel { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
-.total { font-size: 38px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
-.subTotal { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; }
-.finalNote { font-size: 12px; line-height: 1.45; color: rgba(255, 255, 255, 0.5); text-align: right; max-width: 52%; }
-.companyMini { margin-top: 20px; margin-bottom: 14px; padding: 12px 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
-.companyMini strong { display: block; color: #fff; font-size: 13px; margin-bottom: 3px; }
-.companyMini span { font-size: 12px; color: rgba(255, 255, 255, 0.55); line-height: 1.4; }
+.resultLabel { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
+.total { font-size: 40px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
+.subTotal { font-size: 15px; color: rgba(255, 255, 255, 0.6); margin-top: 4px; }
+.finalNote { font-size: 13px; line-height: 1.45; color: rgba(255, 255, 255, 0.5); text-align: right; max-width: 52%; }
+.companyMini { margin-top: 20px; margin-bottom: 14px; padding: 13px 15px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; }
+.companyMini strong { display: block; color: #fff; font-size: 14px; margin-bottom: 3px; }
+.companyMini span { font-size: 13px; color: rgba(255, 255, 255, 0.55); line-height: 1.4; }
 .actions { display: grid; gap: 10px; margin-top: 16px; }
-.actions #copyBtn, .actions a { width: 100%; height: 48px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 700; font-size: 15px; }
+.actions #copyBtn, .actions a { width: 100%; height: 52px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 700; font-size: 16px; }
 .actions a { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.14); transition: background 0.18s; }
 .actions a:hover { background: rgba(255, 255, 255, 0.16); }
+#calcForm button[type="submit"] { height: 52px; font-size: 16px; }
 
 /* ---- Economy band ------------------------------------------------------ */
 .calcInfoPlainV52 { background: rgba(255, 255, 255, 0.62); border: 1px solid var(--line); border-radius: 22px; margin: 52px auto; padding: 40px clamp(22px, 4vw, 52px); box-shadow: var(--shadow-sm); }
