@@ -847,17 +847,18 @@
     const menu = document.getElementById(menuId);
     if(!input || !menu) return;
     const wrap = input.closest(".comboV2");
-    const render = () => {
-      const q = input.value.trim().toLowerCase();
+    const render = (showAll) => {
+      const q = showAll ? "" : input.value.trim().toLowerCase();
       const opts = (optionsFn() || []).filter(o => !q || o.toLowerCase().includes(q));
       menu.innerHTML = opts.length
         ? opts.map(o => `<div class="comboOptV2" data-val="${escapeHtml(o)}">${escapeHtml(o)}</div>`).join("")
         : `<div class="comboEmptyV2">Ничего не найдено</div>`;
     };
-    const open = () => { render(); menu.hidden = false; };
     const close = () => { menu.hidden = true; };
-    input.addEventListener("focus", open);
-    input.addEventListener("input", () => { open(); });
+    // Click / focus → always show the full list (so you can re-pick without deleting text)
+    input.addEventListener("focus", () => { render(true); menu.hidden = false; setTimeout(() => { try{ input.select(); }catch(e){} }, 0); });
+    input.addEventListener("click", () => { render(true); menu.hidden = false; });
+    input.addEventListener("input", () => { render(false); menu.hidden = false; });
     input.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
     menu.addEventListener("mousedown", e => {
       const opt = e.target.closest("[data-val]");
@@ -887,6 +888,21 @@
     setupCombo("filterModelV2", "modelMenuV2", modelsForMake);
     makeInput?.addEventListener("input", syncModelPlaceholder);
     syncModelPlaceholder();
+
+    // Damage list (standard descriptions)
+    setupCombo("filterDamageV2", "damageMenuV2", () => data.damages || []);
+
+    // Location list derived from locations.js (city, state)
+    const locOptions = () => {
+      const set = new Set();
+      (window.LOCATIONS || []).forEach(l => {
+        const city = String(l.city || "").trim();
+        const state = String(l.state || "").trim();
+        if(city) set.add(state ? `${city}, ${state}` : city);
+      });
+      return Array.from(set).sort();
+    };
+    setupCombo("filterLocationV2", "locationMenuV2", locOptions);
   }
 
   function bindEvents(){

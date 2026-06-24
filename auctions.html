@@ -184,10 +184,16 @@
               </div>
             </details>
             <details class="fSecV2"><summary>Повреждение</summary>
-              <input name="damage" class="fInputV2" placeholder="Front End, Rear, Hail">
+              <div class="comboV2">
+                <input name="damage" id="filterDamageV2" class="fInputV2" placeholder="Выбрать повреждение" autocomplete="off">
+                <div class="comboMenuV2" id="damageMenuV2" hidden></div>
+              </div>
             </details>
             <details class="fSecV2"><summary>Локация</summary>
-              <input name="location" class="fInputV2" placeholder="Chicago, Fremont, CA">
+              <div class="comboV2">
+                <input name="location" id="filterLocationV2" class="fInputV2" placeholder="Выбрать локацию" autocomplete="off">
+                <div class="comboMenuV2" id="locationMenuV2" hidden></div>
+              </div>
             </details>
             <details class="fSecV2"><summary>Статус лота</summary>
               <div class="optListV2">
@@ -257,8 +263,8 @@
 
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
-  <script src="/car-data.js?v=cars-v1" defer></script>
-  <script src="/auctions.js?v=auctions-v18" defer></script>
+  <script src="/car-data.js?v=cars-v2" defer></script>
+  <script src="/auctions.js?v=auctions-v19" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>

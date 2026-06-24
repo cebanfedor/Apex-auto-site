@@ -46,5 +46,7 @@
   };
   const EXTRA_MAKES = ["Hummer","Isuzu","Lotus","McLaren","Mercury","Pontiac","Saab","Saturn","Scion","Smart","Suzuki","Polestar","Rivian","Lucid","Fisker"];
   const makes = Array.from(new Set([...Object.keys(MODELS), ...EXTRA_MAKES])).sort();
-  global.CAR_DATA = { makes, models: MODELS };
+  // Standard Copart/IAAI primary-damage descriptions (best-effort; confirm against API docs).
+  const damages = ["All Over","Front End","Rear End","Side","Left Front","Right Front","Left Rear","Right Rear","Top/Roof","Undercarriage","Mechanical","Electrical","Engine Damage","Frame Damage","Hail","Water/Flood","Fire","Vandalism","Minor Dent/Scratches","Normal Wear","Rollover","Stripped","Biohazard/Chemical","Suspension","Unknown"];
+  global.CAR_DATA = { makes, models: MODELS, damages };
 })(window);
