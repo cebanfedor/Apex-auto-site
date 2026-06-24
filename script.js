@@ -50,7 +50,7 @@ function initLocations(){let select=$("location");if(!select)return;select.inner
 function updateLocation(){let locationEl=$("location");if(!locationEl)return;let idx=locationEl.value;selectedLocation=idx===""?null:getFilteredLocations()[Number(idx)];if(!selectedLocation){if($("portView"))$("portView").value="—";if($("landView"))$("landView").value="0";return}if($("portView"))$("portView").value=selectedLocation.portLabel||SEA[selectedLocation.autoPort]?.label||"—";if($("landView"))$("landView").value=getLandShipping().toFixed(0)}
 function getLandMultiplier(){let t=$("vehicleType")?.value||"sedan";if(t==="crossover")return 1.1;if(t==="suv"||t==="suvLarge")return 1.2;if(t==="pickup"||t==="pickupLarge"||t==="vanLarge"||t==="pickupOversized")return 1.5;return 1}
 function getLandShipping(){if(!selectedLocation)return 0;const base=Number(selectedLocation.landPrice||selectedLocation.autoLand||0)*getLandMultiplier();const apexSurcharge=100;const offsite=$("offsite")&&$("offsite").checked?100:0;return Math.ceil(base+apexSurcharge+offsite)}
-function getSeaShipping(){let type=$("vehicleType")?.value||"sedan",fuel=$("fuel")?.value||"gasoline";if(type==="moto")return 900;if(type==="atv")return 1200;let port=selectedLocation?.autoPort||"nj",price=SEA[port]?.price||2400,green=["hybrid","phev","electric"].includes(fuel);if(type==="crossover")price+=green?300:200;else if(type==="suv"||type==="suvLarge")price+=300;else if(type==="pickup"||type==="pickupLarge"||type==="pickupOversized"||type==="vanLarge")price+=500;else if(green)price+=100;return price}
+function getSeaShipping(){let type=$("vehicleType")?.value||"sedan",fuel=$("fuel")?.value||"gasoline";if(type==="moto")return 900;if(type==="atv")return 1200;let port=selectedLocation?.autoPort||"nj",price=SEA[port]?.price||2400,green=["hybrid","phev","electric"].includes(fuel);if(type==="crossover")price+=200;else if(type==="suv"||type==="suvLarge")price+=300;else if(type==="pickup"||type==="pickupLarge"||type==="pickupOversized"||type==="vanLarge")price+=500;if(green)price+=100;return price}
 function ageKey(){let age=Math.max(0,YEAR_NOW-num("year"));if(age<=2)return"0-2";if(age<=4)return"3-4";if(age<=6)return"5-6";if(age>=20)return"20+";return String(age)}
 function gasolineColumn(cc){if(cc<=1000)return 0;if(cc<=1500)return 1;if(cc<=2000)return 2;if(cc<=3000)return 3;return 4}function dieselColumn(cc){if(cc<=1500)return 0;if(cc<=2500)return 1;return 2}
 function fuelDiscount(){let f=$("fuel")?.value||"gasoline";if(f==="phev")return .5;if(f==="hybrid")return .75;return 1}function luxuryPct(mdl){let r=LUXURY_RATES.find(x=>mdl>=x.min&&mdl<=x.max);return r?r.pct:0}
@@ -101,7 +101,10 @@ function refreshGlassSelect(select){
 
   if(wrap.dataset.signature === signature){
     menu.querySelectorAll("[data-value]").forEach(item => {
-      item.classList.toggle("isSelectedV152", item.dataset.value === select.value);
+      const isSel = item.dataset.value === select.value;
+      item.classList.toggle("isSelectedV152", isSel);
+      const mark = item.querySelector("span");
+      if(mark) mark.textContent = isSel ? "✓" : "";
     });
     return;
   }
@@ -127,11 +130,11 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
   const type = $("vehicleType")?.value || "sedan";
   const fuel = $("fuel")?.value || "gasoline";
 
-  // Мото и пикапы:
+  // Мото, пикапы и Van Large:
   // НДС 20% считается от: стоимость лота + аукционный сбор + доставка морем.
   // Доставка по США, страховка и прочие расходы в базу не входят.
-  // Для пикапа правило одинаковое, даже если он электрический.
-  if(type === "moto" || type === "pickup"){
+  // Для пикапа и van large правило одинаковое, даже если он электрический.
+  if(type === "moto" || type === "pickup" || type === "vanLarge"){
     const vat = customsBaseMdl * 0.20;
     return {
       total: vat,
@@ -835,11 +838,15 @@ function calculate(){
   if($("auctionBadge")) $("auctionBadge").textContent = $("auction").value.toUpperCase();
   $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
+  const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
+  if($("dangerousCargoNote")) $("dangerousCargoNote").hidden = !greenFuel;
+  const seaSub = [selectedLocation ? selectedLocation.portLabel : "", greenFuel ? "опасный груз +$100" : ""].filter(Boolean).join(" · ");
+
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
     ["Доставка по США", land, selectedLocation ? route : "выбери локацию", "usd"],
-    ["Доставка в Chișinău", sea, selectedLocation ? selectedLocation.portLabel : "", "usd"],
+    ["Доставка в Chișinău", sea, seaSub, "usd"],
     ["Экспортные документы", exportDocs, exportDocs ? "включены" : "отключены", "usd"],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],

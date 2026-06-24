@@ -261,7 +261,7 @@ section { position: relative; }
 @media (prefers-reduced-motion: reduce) { .brandStripTrackV301 { animation: none; } }
 
 /* ---- Calculator -------------------------------------------------------- */
-.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin: 12px 0 8px; }
+.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; margin: 12px 0 8px; }
 .lotImportV118 { grid-column: 1 / -1; background: #f6f7f9; border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
 .lotImportV118 > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
 .lotImportControlV118 { display: flex; gap: 10px; align-items: stretch; }
@@ -295,7 +295,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .glassSelectButtonV152 b { flex: none; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--muted); transition: transform 0.2s; }
 .glassSelectV152.isOpenV152 .glassSelectButtonV152 { border-color: var(--red); background: #fff; box-shadow: 0 0 0 3px rgba(237, 0, 18, 0.15); }
 .glassSelectV152.isOpenV152 .glassSelectButtonV152 b { transform: rotate(180deg); }
-.glassSelectMenuV152 { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; max-height: 280px; overflow-y: auto; display: none; flex-direction: column; gap: 2px; padding: 6px; background: #fff; border: 1px solid var(--field-line); border-radius: 12px; box-shadow: var(--shadow); }
+.glassSelectMenuV152 { position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; max-height: 440px; overflow-y: auto; display: none; flex-direction: column; gap: 2px; padding: 6px; background: #fff; border: 1px solid var(--field-line); border-radius: 12px; box-shadow: var(--shadow); }
 .glassSelectV152.isOpenV152 .glassSelectMenuV152 { display: flex; }
 .glassSelectMenuV152 button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 11px; border: none; border-radius: 9px; background: transparent; font-size: 14.5px; color: var(--ink-2); text-align: left; transition: background 0.14s; }
 .glassSelectMenuV152 button:hover { background: var(--field); color: var(--ink); }
@@ -338,6 +338,11 @@ details[open] > summary::before { content: "– "; }
 .hybridGuardV125 p { font-size: 14px; color: #7a5a14; margin: 6px 0 10px; }
 .hybridGuardV125 button { height: 38px; padding: 0 14px; margin-right: 8px; border: 1px solid rgba(255, 196, 0, 0.45); background: #fff; border-radius: 9px; font-weight: 600; font-size: 14px; color: #7a5a14; }
 .hybridGuardV125 button:hover { background: #fff7e0; }
+.dangerousCargoV311 { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 10px;
+  background: var(--red-soft); border: 1px solid var(--red-line); border-radius: 12px; padding: 12px 14px;
+  font-size: 13.5px; line-height: 1.45; color: var(--red-700); }
+.dangerousCargoV311 strong { color: var(--red); }
+.dangerousCargoIconV311 { flex: none; font-size: 16px; line-height: 1.2; }
 
 /* hide duplicate calc fields (shown in result panel) + hidden bid advisor */
 .formRow:has(#auctionFeeView) { display: none !important; }
@@ -346,7 +351,8 @@ details[open] > summary::before { content: "– "; }
 .bidAdvisorV138, .bidAdvisorWideV156, .smartLotAdviceV129 { display: none !important; }
 
 /* result card */
-.resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 24px; color: #e8eaee; display: flex; flex-direction: column; position: sticky; top: 84px; box-shadow: var(--shadow); overflow: hidden; }
+.resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 24px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
+.resultCard .companyMini { margin-top: auto; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
 .auctionBadge { padding: 5px 12px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
