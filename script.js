@@ -157,6 +157,15 @@ document.addEventListener("click", event => {
 function customsMdl(customsBaseMdl, luxuryBaseMdl){
   const type = $("vehicleType")?.value || "sedan";
   const fuel = $("fuel")?.value || "gasoline";
+  const lang = window.APEX_LANG || document.documentElement.lang || "ru";
+  const L = {
+    vat: lang === "ro" ? "TVA 20% din valoarea vamală" : lang === "en" ? "VAT 20% of the customs value" : "НДС 20% от таможенной стоимости",
+    electric: lang === "ro" ? "electric: acciză 0" : lang === "en" ? "electric: excise 0" : "электро: акциз 0",
+    lux: lang === "ro" ? "taxa de lux" : lang === "en" ? "luxury" : "люкс",
+    cc: lang === "ru" ? "см³" : "cm³",
+    from: lang === "ro" ? "din" : lang === "en" ? "of" : "от",
+    hybrid: lang === "ro" ? "hibrid -25%" : lang === "en" ? "hybrid -25%" : "гибрид -25%"
+  };
 
   // Мото, пикапы и Van Large:
   // НДС 20% считается от: стоимость лота + аукционный сбор + доставка морем.
@@ -170,7 +179,7 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
       luxury: 0,
       luxuryPct: 0,
       luxuryBase: luxuryBaseMdl,
-      text: "НДС 20% от таможенной стоимости"
+      text: L.vat
     };
   }
 
@@ -186,8 +195,8 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
       luxuryPct: pct,
       luxuryBase,
       text: luxury > 0
-        ? `электро: акциз 0 · люкс ${pct}% от ${(Math.round(luxuryBase)).toLocaleString("ru-RU")} MDL`
-        : `электро: акциз 0 · люкс 0%`
+        ? `${L.electric} · ${L.lux} ${pct}% ${L.from} ${(Math.round(luxuryBase)).toLocaleString("ru-RU")} MDL`
+        : `${L.electric} · ${L.lux} 0%`
     };
   }
 
@@ -198,7 +207,7 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
     : GASOLINE_RATES[key][gasolineColumn(cc)];
 
   const baseExcise = cc * rate * fuelDiscount();
-  const discount = fuel === "hybrid" ? " · гибрид -25%" : fuel === "phev" ? " · plug-in -50%" : "";
+  const discount = fuel === "hybrid" ? ` · ${L.hybrid}` : fuel === "phev" ? " · plug-in -50%" : "";
 
   return {
     total: baseExcise + luxury,
@@ -206,9 +215,7 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
     luxury,
     luxuryPct: pct,
     luxuryBase,
-    text: luxury > 0
-      ? `${cc} см³ × ${rate} MDL/см³${discount} · люкс ${pct}%`
-      : `${cc} см³ × ${rate} MDL/см³${discount} · люкс 0%`
+    text: `${cc} ${L.cc} × ${rate} MDL/${L.cc}${discount} · ${L.lux} ${luxury > 0 ? pct : 0}%`
   };
 }
 
@@ -881,12 +888,15 @@ function calculate(){
   ];
 
   if(customs.luxury > 0){
-    rows.push([
-      "Доп. акциз люкс",
-      customs.luxury,
-      `считается от лот + аукцион + море: ${Math.round(customs.luxuryBase).toLocaleString("ru-RU")} MDL · ${customs.luxuryPct}%`,
-      "mdl"
-    ]);
+    const lng = window.APEX_LANG || document.documentElement.lang || "ru";
+    const luxLabel = lng === "ro" ? "Acciză suplimentară de lux" : lng === "en" ? "Additional luxury excise" : "Доп. акциз люкс";
+    const luxBaseStr = Math.round(customs.luxuryBase).toLocaleString("ru-RU");
+    const luxNote = lng === "ro"
+      ? `se calculează din lot + licitație + mare: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
+      : lng === "en"
+      ? `calculated from lot + auction fee + sea: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
+      : `считается от лот + аукцион + море: ${luxBaseStr} MDL · ${customs.luxuryPct}%`;
+    rows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
   }
 
   $("breakdown").innerHTML = rows.map(r => row(...r)).join("");
