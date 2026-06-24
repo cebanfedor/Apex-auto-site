@@ -446,6 +446,16 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    if(action === "apiprobe"){
+      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,.\/+:\[\]-]/g, "");
+      const url = `${AUCTIONS_API_BASE}/cars?${extra}${extra ? "&" : ""}domain_id=3&per_page=1`;
+      try{
+        const payload = await fetchJson(url);
+        sendJson(response, 200, {ok:true, total:payload?.total ?? payload?.meta?.total, sample:JSON.stringify(payload).slice(0, 900)});
+      }catch(e){ sendJson(response, 200, {ok:false, status:e.status, error:String(e.message || e).slice(0, 300)}); }
+      return;
+    }
+
     if(action === "attrmap"){
       const list = await fetchJson(`${AUCTIONS_API_BASE}/cars?domain_id=3&per_page=1000`);
       const data = Array.isArray(list?.data) ? list.data : [];
