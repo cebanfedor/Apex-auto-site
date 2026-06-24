@@ -245,7 +245,11 @@ function buildSearchParams(query){
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
   params.set("simple_paginate", "0");
-  params.set("exclude_expired_auctions", tab === "archived" ? "0" : "1");
+  // exclude_expired_auctions keeps only future/no-date lots — but "past" statuses
+  // (sold=6, not_sold=8) and the archived/sold tabs need expired lots included.
+  const status = params.get("status");
+  const wantsPast = tab === "archived" || tab === "sold" || status === "6" || status === "8";
+  params.set("exclude_expired_auctions", wantsPast ? "0" : "1");
   return params;
 }
 
