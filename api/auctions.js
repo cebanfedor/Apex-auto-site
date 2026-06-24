@@ -215,6 +215,9 @@ function buildSearchParams(query){
     mileageFrom:"odometer_from_mi",
     mileageTo:"odometer_to_mi",
     fuel:"fuel_type",
+    body:"body_type",
+    transmission:"transmission",
+    drive:"drive_wheel",
     condition:"condition",
     damage:"damage",
     document:"document_title",
@@ -443,30 +446,6 @@ module.exports = async function handler(request, response){
       const payload = {ok:true, items};
       setCached(key, payload);
       sendJson(response, 200, payload);
-      return;
-    }
-
-    if(action === "apiprobe"){
-      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,.\/+:\[\]-]/g, "");
-      const url = `${AUCTIONS_API_BASE}/cars?${extra}${extra ? "&" : ""}domain_id=3&per_page=1`;
-      try{
-        const payload = await fetchJson(url);
-        sendJson(response, 200, {ok:true, total:payload?.total ?? payload?.meta?.total, sample:JSON.stringify(payload).slice(0, 900)});
-      }catch(e){ sendJson(response, 200, {ok:false, status:e.status, error:String(e.message || e).slice(0, 300)}); }
-      return;
-    }
-
-    if(action === "attrmap"){
-      const list = await fetchJson(`${AUCTIONS_API_BASE}/cars?domain_id=3&per_page=1000`);
-      const data = Array.isArray(list?.data) ? list.data : [];
-      const fields = ["fuel", "body_type", "transmission", "drive_wheel", "color", "vehicle_type"];
-      const maps = {};
-      fields.forEach(f => { maps[f] = {}; });
-      data.forEach(car => fields.forEach(f => {
-        const v = car && car[f];
-        if(v && v.id != null && v.name) maps[f][v.id] = v.name;
-      }));
-      sendJson(response, 200, {ok:true, sampled:data.length, maps});
       return;
     }
 
