@@ -268,7 +268,6 @@
             ${dbSpec("damage", escapeHtml(lot.damage))}
             ${dbSpec("doc", escapeHtml(lot.document))}
             ${dbSpec("pin", escapeHtml(lot.location))}
-            ${lot.vin ? `<li class="dbVinReport">${dbIco("doc")}<a href="https://www.google.com/search?q=${encodeURIComponent(lot.vin)}" target="_blank" rel="noopener">Отчет VIN</a></li>` : ""}
           </ul>
           <ul class="dbChecks">
             ${dbCheck("Состояние", lot.condition)}
