@@ -216,7 +216,8 @@
     warn:'<path d="M12 4l8.5 15H3.5z"/><path d="M12 10v4M12 16.5v.5"/>',
     q:'<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.3 2.2c-.8.4-1 .9-1 1.6M12 16v.5"/>',
     star:'<path d="M12 4l2.3 4.9 5.2.7-3.8 3.7.9 5.2L12 16.7 7.4 18.2l.9-5.2L4.5 9.6l5.2-.7z"/>',
-    vin:'<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M6 10v4M9 10v4M12 10v4M15 10v4M18 10v4"/>'
+    vin:'<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M6 10v4M9 10v4M12 10v4M15 10v4M18 10v4"/>',
+    zoom:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -514,6 +515,63 @@
     return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal">${valueHtml}</span></div>`;
   }
 
+  const lb = {images:[], index:0};
+  function ensureLightbox(){
+    let el = document.getElementById("lotLightbox");
+    if(el) return el;
+    el = document.createElement("div");
+    el.id = "lotLightbox";
+    el.className = "lbV1";
+    el.hidden = true;
+    el.innerHTML = `
+      <div class="lbTopV1">
+        <span id="lbCount" class="lbCountV1"></span>
+        <div class="lbActionsV1">
+          <button class="lbBtnV1" type="button" data-lb-copy>Скопировать ссылку</button>
+          <button class="lbBtnV1 lbCloseV1" type="button" data-lb-close aria-label="Закрыть">✕</button>
+        </div>
+      </div>
+      <button class="lbNavV1 lbPrevV1" type="button" data-lb-prev aria-label="Предыдущее фото">‹</button>
+      <img id="lbImg" class="lbImgV1" alt="">
+      <button class="lbNavV1 lbNextV1" type="button" data-lb-next aria-label="Следующее фото">›</button>`;
+    document.body.appendChild(el);
+    return el;
+  }
+  function renderLightbox(){
+    const img = document.getElementById("lbImg");
+    if(img) img.src = lb.images[lb.index] || "";
+    const c = document.getElementById("lbCount");
+    if(c) c.textContent = `${lb.index + 1} / ${lb.images.length}`;
+    const multi = lb.images.length > 1;
+    document.querySelectorAll(".lbNavV1").forEach(b => b.style.display = multi ? "" : "none");
+  }
+  function openLightbox(images, index){
+    if(!images || !images.length) return;
+    lb.images = images;
+    lb.index = Math.max(0, Math.min(index || 0, images.length - 1));
+    const el = ensureLightbox();
+    el.hidden = false;
+    document.body.classList.add("lbOpenV1");
+    renderLightbox();
+  }
+  function closeLightbox(){
+    const el = document.getElementById("lotLightbox");
+    if(el) el.hidden = true;
+    document.body.classList.remove("lbOpenV1");
+  }
+  function lbMove(step){
+    if(!lb.images.length) return;
+    lb.index = (lb.index + step + lb.images.length) % lb.images.length;
+    renderLightbox();
+  }
+  function lbCopyLink(){
+    const url = lb.images[lb.index];
+    if(!url) return;
+    navigator.clipboard?.writeText(url);
+    const btn = document.querySelector("[data-lb-copy]");
+    if(btn){ btn.textContent = "Скопировано"; setTimeout(() => { btn.textContent = "Скопировать ссылку"; }, 1500); }
+  }
+
   function renderDetail(lot){
     const images = lot.images?.length ? lot.images : [lot.image].filter(Boolean);
     const title = lotTitle(lot);
@@ -539,13 +597,13 @@
         </div>
         <div class="lotDetailGridV1">
           <div class="detailGalleryV1">
-            <div class="dGalMainV2">
+            <div class="dGalMainV2" data-lb-open role="button" tabindex="0" aria-label="Открыть фото в HD">
               <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
-              <span class="dGalCountV2">1/${escapeHtml(images.length || 1)}</span>
+              <span class="dGalHdV2">${dbIco("zoom")} HD · ${escapeHtml(images.length || 1)} фото</span>
             </div>
             <div class="detailThumbsV1">
-              ${images.map(src => `<img src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}">`).join("")}
+              ${images.map((src, i) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}">`).join("")}
             </div>
           </div>
           <div class="lotDetailCenterV1">
@@ -591,6 +649,8 @@
       </section>
     `;
     state.selectedLot = lot;
+    state.detailImages = images;
+    state.detailIndex = 0;
     setSeo(lot);
     updateLotCalculator();
   }
@@ -724,7 +784,20 @@
       }
       if(event.target.closest("[data-copy-calc]")) copyCalculation();
       const thumb = event.target.closest("[data-detail-image]");
-      if(thumb && $("#detailMainImage")) $("#detailMainImage").src = thumb.dataset.detailImage;
+      if(thumb){
+        if($("#detailMainImage")) $("#detailMainImage").src = thumb.dataset.detailImage;
+        state.detailIndex = Number(thumb.dataset.detailIndex || 0);
+      }
+      // Lightbox controls
+      if(event.target.closest("[data-lb-copy]")){ lbCopyLink(); return; }
+      if(event.target.closest("[data-lb-prev]")){ lbMove(-1); return; }
+      if(event.target.closest("[data-lb-next]")){ lbMove(1); return; }
+      if(event.target.closest("[data-lb-close]")){ closeLightbox(); return; }
+      if(event.target.id === "lotLightbox"){ closeLightbox(); return; }
+      if(event.target.closest("[data-lb-open]")){
+        openLightbox(state.detailImages || [], state.detailIndex || 0);
+        return;
+      }
       if(event.target.closest("[data-close-lead]") || event.target.id === "leadModal") closeLead();
     });
     document.addEventListener("input", event => {
@@ -734,6 +807,12 @@
       if(event.target.closest("[data-calc-input]")) updateLotCalculator();
     });
     document.addEventListener("keydown", event => {
+      const lbOpen = document.getElementById("lotLightbox") && !document.getElementById("lotLightbox").hidden;
+      if(lbOpen){
+        if(event.key === "Escape"){ closeLightbox(); return; }
+        if(event.key === "ArrowLeft"){ lbMove(-1); return; }
+        if(event.key === "ArrowRight"){ lbMove(1); return; }
+      }
       if(event.key === "Escape") closeLead();
     });
     $("#auctionLeadForm").addEventListener("submit", submitLead);
