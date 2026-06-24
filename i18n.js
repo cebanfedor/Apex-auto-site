@@ -31,6 +31,9 @@
 
   const dict = {
     ro:{
+      "Подбор и проверка лота":"Selecția și verificarea lotului",
+      "Участие в торгах":"Participare la licitație",
+      "Документы, доставка и сопровождение":"Acte, transport și asistență",
       "Экспортные документы":"Acte de export",
       "Страховка":"Asigurare",
       "Рассчитайте полную стоимость автомобиля до Кишинева":"Calculează costul complet al mașinii până la Chișinău",
@@ -346,6 +349,9 @@
       "опыт работы со страховыми и дилерскими аукционами":"experiență cu licitații de asigurări și dealer"
     },
     en:{
+      "Подбор и проверка лота":"Lot selection and inspection",
+      "Участие в торгах":"Bidding at auction",
+      "Документы, доставка и сопровождение":"Documents, shipping and support",
       "Экспортные документы":"Export documents",
       "Страховка":"Insurance",
       "Рассчитайте полную стоимость автомобиля до Кишинева":"Calculate the full turnkey cost of the car to Chișinău",
@@ -664,6 +670,16 @@
 
   const attrDict = {
     ro:{
+      "Имя":"Nume",
+      "Бюджет":"Buget",
+      "Машина находится не на основной локации аукциона. Доплата +$100.":"Mașina nu se află în locația principală a licitației. Supliment +$100.",
+      "Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.":"Bill of Sale / Parts Only / ACQ. Actele necesită formalizare suplimentară înainte de exportul mașinii. Termenul de obținere este de obicei 30–45 de zile.",
+      "Меню":"Meniu",
+      "Позвонить 068-832-032":"Sună la 068-832-032",
+      "Apex Auto — на главную":"Apex Auto — la pagina principală",
+      "Доставка авто морем":"Transport auto pe mare",
+      "Марки, которые мы возим":"Mărcile pe care le aducem",
+      "Пример экономии при покупке авто":"Exemplu de economie la cumpărarea mașinii",
       "Вставьте ссылку Copart / IAAI / Manheim":"Introduceți linkul Copart / IAAI / Manheim",
       "Телефон":"Telefon",
       "Телефон или Telegram":"Telefon sau Telegram",
@@ -673,6 +689,16 @@
       "Коротко опишите задачу: расчет, подбор, проверка VIN, покупка под ключ":"Descrieți pe scurt: calcul, selecție, verificare VIN, cumpărare la cheie"
     },
     en:{
+      "Имя":"Name",
+      "Бюджет":"Budget",
+      "Машина находится не на основной локации аукциона. Доплата +$100.":"The car is not at the auction's main location. +$100 surcharge.",
+      "Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.":"Bill of Sale / Parts Only / ACQ. The documents require extra processing before exporting the car. Issuance usually takes 30–45 days.",
+      "Меню":"Menu",
+      "Позвонить 068-832-032":"Call 068-832-032",
+      "Apex Auto — на главную":"Apex Auto — to home",
+      "Доставка авто морем":"Car shipping by sea",
+      "Марки, которые мы возим":"Brands we import",
+      "Пример экономии при покупке авто":"Savings example when buying a car",
       "Вставьте ссылку Copart / IAAI / Manheim":"Paste a Copart / IAAI / Manheim link",
       "Телефон":"Phone",
       "Телефон или Telegram":"Phone or Telegram",
@@ -730,6 +756,13 @@
       if(src === undefined){ src = el.getAttribute("placeholder") || ""; el.__i18nPh = src; }
       const val = lang === "ru" ? src : (map[src] || src);
       if(el.getAttribute("placeholder") !== val) el.setAttribute("placeholder", val);
+    });
+    document.querySelectorAll("[aria-label]").forEach(el => {
+      if(el.closest("[data-no-i18n]")) return;
+      let src = el.__i18nAria;
+      if(src === undefined){ src = el.getAttribute("aria-label") || ""; el.__i18nAria = src; }
+      const val = lang === "ru" ? src : (map[src] || src);
+      if(el.getAttribute("aria-label") !== val) el.setAttribute("aria-label", val);
     });
     const titleMap = {
       ro:{
