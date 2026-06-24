@@ -842,23 +842,51 @@
     });
   }
 
+  function setupCombo(inputId, menuId, optionsFn, onPick){
+    const input = document.getElementById(inputId);
+    const menu = document.getElementById(menuId);
+    if(!input || !menu) return;
+    const wrap = input.closest(".comboV2");
+    const render = () => {
+      const q = input.value.trim().toLowerCase();
+      const opts = (optionsFn() || []).filter(o => !q || o.toLowerCase().includes(q));
+      menu.innerHTML = opts.length
+        ? opts.map(o => `<div class="comboOptV2" data-val="${escapeHtml(o)}">${escapeHtml(o)}</div>`).join("")
+        : `<div class="comboEmptyV2">Ничего не найдено</div>`;
+    };
+    const open = () => { render(); menu.hidden = false; };
+    const close = () => { menu.hidden = true; };
+    input.addEventListener("focus", open);
+    input.addEventListener("input", () => { open(); });
+    input.addEventListener("keydown", e => { if(e.key === "Escape") close(); });
+    menu.addEventListener("mousedown", e => {
+      const opt = e.target.closest("[data-val]");
+      if(!opt) return;
+      e.preventDefault();
+      input.value = opt.dataset.val;
+      close();
+      if(onPick) onPick(input.value);
+    });
+    document.addEventListener("click", e => { if(e.target.closest(".comboV2") !== wrap) close(); });
+  }
+
   function initCarData(){
     const data = window.CAR_DATA;
     if(!data) return;
-    const makesList = document.getElementById("makesListV2");
-    const modelsList = document.getElementById("modelsListV2");
-    const makeInput = document.getElementById("filterMakeV2");
     const modelInput = document.getElementById("filterModelV2");
-    if(makesList) makesList.innerHTML = data.makes.map(m => `<option value="${escapeHtml(m)}"></option>`).join("");
-    const updateModels = () => {
+    const makeInput = document.getElementById("filterMakeV2");
+    const modelsForMake = () => {
       const make = (makeInput?.value || "").trim().toLowerCase();
       const key = Object.keys(data.models).find(k => k.toLowerCase() === make);
-      const models = key ? data.models[key] : [];
-      if(modelsList) modelsList.innerHTML = models.map(m => `<option value="${escapeHtml(m)}"></option>`).join("");
-      if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
+      return key ? data.models[key] : [];
     };
-    makeInput?.addEventListener("input", updateModels);
-    makeInput?.addEventListener("change", updateModels);
+    const syncModelPlaceholder = () => {
+      if(modelInput) modelInput.placeholder = modelsForMake().length ? "Выбрать модель" : "Модель (введите вручную)";
+    };
+    setupCombo("filterMakeV2", "makeMenuV2", () => data.makes, () => { if(modelInput) modelInput.value = ""; syncModelPlaceholder(); });
+    setupCombo("filterModelV2", "modelMenuV2", modelsForMake);
+    makeInput?.addEventListener("input", syncModelPlaceholder);
+    syncModelPlaceholder();
   }
 
   function bindEvents(){

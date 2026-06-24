@@ -71,8 +71,14 @@
 .fSecV2 > summary::before { content:none !important; }
 .fSecV2 > summary::after { content:""; width:7px; height:7px; border-right:2px solid var(--aMuted); border-bottom:2px solid var(--aMuted); transform:rotate(45deg); transition:transform .18s; margin:0 2px 3px 0; flex:none; }
 .fSecV2[open] > summary::after { transform:rotate(-135deg); margin-bottom:-2px; }
-.fInputV2 { width:100%; height:34px; margin-top:7px; padding:0 11px; border:1px solid #ccd2db; border-radius:9px; background:var(--aSoft); font-size:13px; color:var(--aInk); }
-.fInputV2:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.13); }
+.fSecV2 .fInputV2 { width:100%; height:34px; margin-top:7px; padding:0 10px; border:1px solid #ccd2db; border-radius:8px; background:var(--aSoft); font-size:13px; color:var(--aInk); box-sizing:border-box; }
+.fSecV2 .fInputV2:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.13); }
+.comboV2 { position:relative; }
+.comboMenuV2 { position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:40; max-height:236px; overflow-y:auto; background:#fff; border:1px solid var(--aLine); border-radius:10px; box-shadow:0 14px 32px rgba(16,20,28,.16); padding:4px; }
+.comboMenuV2[hidden] { display:none; }
+.comboOptV2 { padding:7px 10px; font-size:13px; color:var(--aInk); border-radius:7px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.comboOptV2:hover { background:var(--aSoft); }
+.comboEmptyV2 { padding:8px 10px; font-size:12px; color:var(--aMuted); }
 
 .rangeV2 { margin-top:9px; }
 .rangeSliderV2 { position:relative; height:26px; }

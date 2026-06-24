@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v331c">
+  <link rel="stylesheet" href="/auctions.css?v=v333c">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -107,12 +107,16 @@
               <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
             <details open class="fSecV2"><summary>Марка</summary>
-              <input name="make" id="filterMakeV2" class="fInputV2" placeholder="Выбрать марку" list="makesListV2" autocomplete="off">
-              <datalist id="makesListV2"></datalist>
+              <div class="comboV2">
+                <input name="make" id="filterMakeV2" class="fInputV2" placeholder="Выбрать марку" autocomplete="off">
+                <div class="comboMenuV2" id="makeMenuV2" hidden></div>
+              </div>
             </details>
             <details open class="fSecV2"><summary>Модель</summary>
-              <input name="model" id="filterModelV2" class="fInputV2" placeholder="Сначала выберите марку" list="modelsListV2" autocomplete="off">
-              <datalist id="modelsListV2"></datalist>
+              <div class="comboV2">
+                <input name="model" id="filterModelV2" class="fInputV2" placeholder="Сначала выберите марку" autocomplete="off">
+                <div class="comboMenuV2" id="modelMenuV2" hidden></div>
+              </div>
             </details>
             <details open class="fSecV2"><summary>Год</summary>
               <div class="rangeV2" data-range data-min="1980" data-max="2027">
@@ -254,7 +258,7 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
   <script src="/car-data.js?v=cars-v1" defer></script>
-  <script src="/auctions.js?v=auctions-v17" defer></script>
+  <script src="/auctions.js?v=auctions-v18" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>
