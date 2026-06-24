@@ -445,6 +445,20 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    if(action === "apiprobe"){
+      const path = String(query.get("path") || "").replace(/[^a-zA-Z0-9_\/-]/g, "");
+      const extra = String(query.get("q2") || "").replace(/[^a-zA-Z0-9_=&,\/-]/g, "");
+      const url = `${AUCTIONS_API_BASE}/${path}${extra ? "?" + extra : ""}`;
+      try{
+        const payload = await fetchJson(url);
+        const text = JSON.stringify(payload);
+        sendJson(response, 200, {ok:true, path, count:Array.isArray(payload) ? payload.length : (Array.isArray(payload?.data) ? payload.data.length : undefined), topKeys:Array.isArray(payload) ? Object.keys(payload[0] || {}) : Object.keys(payload || {}), sample:text.slice(0, 1800)});
+      }catch(e){
+        sendJson(response, 200, {ok:false, path, status:e.status, error:String(e.message || e).slice(0, 300)});
+      }
+      return;
+    }
+
     if(action === "models"){
       const mid = String(query.get("manufacturer_id") || "").replace(/[^0-9]/g, "");
       if(!mid){ sendJson(response, 200, {ok:true, items:[]}); return; }
