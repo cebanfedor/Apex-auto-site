@@ -180,21 +180,65 @@
   function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
   function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
 
+  function mapFuel(raw, greenOverride){
+    const f = String(raw || "").toLowerCase();
+    if(/electric|электро|tesla/.test(f)) return "electric";
+    if(/plug|phev/.test(f)) return "phev";
+    if(/hybrid|гибрид/.test(f)) return "hybrid";
+    if(/diesel|дизель/.test(f)) return "diesel";
+    return greenOverride ? "hybrid" : "gasoline";
+  }
+  function findLotLocation(lot){
+    const locs = window.LOCATIONS || [];
+    if(!locs.length) return null;
+    const auction = String(lot.auction || "").toLowerCase();
+    const byAuction = locs.filter(l => {
+      const a = String(l.auction || "").toLowerCase();
+      if(!a) return true;
+      if(auction.includes("copart")) return a.includes("copart");
+      if(auction.includes("iaai")) return a.includes("iaai");
+      return true;
+    });
+    const src = String(lot.location || "").toLowerCase().replace(/[^a-z0-9, ]/g, "").trim();
+    if(!src) return null;
+    const tokens = src.split(",").map(s => s.trim()).filter(Boolean);
+    const city = tokens[0] || "";
+    const state = (tokens[1] || "").slice(0, 2);
+    let m = byAuction.find(l => {
+      const lc = String(l.city || "").toLowerCase();
+      const ls = String(l.state || "").toLowerCase();
+      return city && (lc === city || lc.includes(city) || city.includes(lc)) && (!state || ls === state);
+    });
+    if(!m && city) m = byAuction.find(l => String(l.displayName || l.location || "").toLowerCase().includes(city));
+    return m || null;
+  }
   function calcLotTotal(lot, options = {}){
     const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
-    const auctionFee = auctionFeeFor(bid, lot.auction);
     const kind = options.vehicleType || vehicleKind(lot);
-    const baseLand = landShippingFor(lot) || 0;
-    const land = baseLand ? Math.round(baseLand * landMultFor(kind)) + 100 + (options.offsite ? 100 : 0) : 0;
-    const green = !!options.green;
-    const sea = seaShippingFor(lot) + seaSurchargeFor(kind) + (green ? 100 : 0);
-    const insurance = options.insurance === false ? 0 : Math.round(bid * 0.01);
-    const exportDocs = options.exportDocs ? 400 : 0;
-    const service = Math.max(300, Math.round((bid + auctionFee) * 0.025));
-    const customsUsd = green ? 0 : Math.round(customsFor(lot) / 17.45);
-    const total = bid + auctionFee + land + sea + insurance + exportDocs + service + customsUsd;
-    return {bid, auctionFee, land, sea, insurance, exportDocs, service, customsUsd, total, kind, green,
-      landRoute: landRouteLabel(lot), seaRoute: seaRouteLabel(lot)};
+    const fuel = mapFuel(lot.fuel, !!options.green);
+    const loc = findLotLocation(lot);
+    const r = (window.ApexCalc && window.ApexCalc.compute) ? window.ApexCalc.compute({
+      lotPrice:bid, auction:String(lot.auction || "copart").toLowerCase(),
+      vehicleType:kind, fuel, engineLiters:numberFromEngine(lot.engine),
+      year:Number(lot.year) || new Date().getFullYear(),
+      insurance:options.insurance !== false, exportDocs:!!options.exportDocs, offsite:!!options.offsite,
+      location:loc, usdMdl:17.45, eurMdl:20.28
+    }) : null;
+    if(!r){
+      const auctionFee = auctionFeeFor(bid, lot.auction);
+      return {bid, auctionFee, land:0, sea:0, insurance:0, exportDocs:0, service:300, customsUsd:0,
+        total:bid + auctionFee, totalMdl:0, totalEur:0, kind, green:false,
+        landRoute:landRouteLabel(lot), seaRoute:seaRouteLabel(lot)};
+    }
+    return {
+      bid:r.lot, auctionFee:r.auctionFee, land:r.land, sea:r.sea,
+      insurance:Math.round(r.insurance), exportDocs:r.exportDocs, service:Math.round(r.company),
+      customsUsd:Math.round(r.customsUsd), total:Math.round(r.totalUsd),
+      totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
+      kind, green:["hybrid","phev","electric"].includes(fuel),
+      landRoute: r.route || landRouteLabel(lot),
+      seaRoute: r.port ? `${r.port} → Кишинёв` : seaRouteLabel(lot)
+    };
   }
 
   function setMessage(text){
@@ -406,9 +450,9 @@
     return `<div><span>${escapeHtml(label)}</span><b>${escapeHtml(value || "—")}</b></div>`;
   }
 
-  function altCurrency(usd){
-    const mdl = Math.round(usd * 17.45).toLocaleString("ru-RU");
-    const eur = Math.round(usd * 17.45 / 19.2).toLocaleString("ru-RU");
+  function altCurrency(calc){
+    const mdl = Math.round(calc.totalMdl || calc.total * 17.45).toLocaleString("ru-RU");
+    const eur = Math.round(calc.totalEur || calc.total * 17.45 / 20.28).toLocaleString("ru-RU");
     return `${mdl} MDL · €${eur}`;
   }
 
@@ -463,7 +507,7 @@
       <div class="calcGrandV2">
         <span>Итого под ключ до Кишинёва</span>
         <b id="lotCalcTotal">${money(calc.total)}</b>
-        <small id="lotCalcTotalAlt">${altCurrency(calc.total)}</small>
+        <small id="lotCalcTotalAlt">${altCurrency(calc)}</small>
       </div>
       <div class="calcCtasV2">
         <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
@@ -486,7 +530,7 @@
     });
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
-    $("#lotCalcTotalAlt").textContent = altCurrency(calc.total);
+    $("#lotCalcTotalAlt").textContent = altCurrency(calc);
     return calc;
   }
 
