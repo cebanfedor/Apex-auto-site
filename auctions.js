@@ -278,13 +278,16 @@
     star:'<path d="M12 4l2.3 4.9 5.2.7-3.8 3.7.9 5.2L12 16.7 7.4 18.2l.9-5.2L4.5 9.6l5.2-.7z"/>',
     vin:'<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M6 10v4M9 10v4M12 10v4M15 10v4M18 10v4"/>',
     zoom:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>',
-    play:'<circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/>'
+    play:'<circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/>',
+    excl:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.2M12 16v.4"/>',
+    dot:'<circle cx="12" cy="12" r="7.5"/><path d="M8.5 12h7"/>',
+    ext:'<path d="M14 5h5v5M19 5l-7 7M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
   }
   function dbDate(value){
-    if(!value) return "—";
+    if(!value) return "Future";
     const d = new Date(value);
     if(Number.isNaN(d.getTime())) return String(value).slice(0, 16);
     const lang = window.APEX_LANG || "ru";
@@ -296,16 +299,43 @@
     const num = Number(String(text).replace(/[^\d.]/g, ""));
     if(!num) return escapeHtml(text);
     const k = v => v >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
-    if(/mi/i.test(text)) return `${k(num)} mi ≈ ${k(num * 1.609)} km`;
-    return `${k(num)} km`;
+    if(/mi/i.test(text)) return `${k(num)} миль ≈ ${k(num * 1.609)} км`;
+    return `${k(num)} км`;
   }
+  // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){
-    const s = String(lot.lotStatus || "").toLowerCase();
-    if(/live/.test(s)) return ["Идут торги", "live"];
-    if(/upcoming|new|soon|скоро/.test(s)) return ["Live скоро начнётся", "soon"];
-    if(/sold|завер/.test(s)) return ["Торги завершены", "done"];
+    const s = String(lot.statusName || lot.lotStatus || "").toLowerCase();
+    if(/sold|завер|not_sold/.test(s)) return ["Торги завершены", "done"];
     if(/buy/.test(s)) return ["Купить сейчас", "buy"];
-    return [lot.lotStatus || "—", ""];
+    const d = lot.auctionDate ? new Date(lot.auctionDate) : null;
+    if(d && !Number.isNaN(d.getTime())){
+      const diff = d.getTime() - Date.now();
+      if(diff <= 0 && diff > -3 * 3600 * 1000) return ["Идут торги", "live"];
+      if(diff > 0 && diff <= 3600 * 1000) return ["Live скоро начнётся", "soon"];
+      return ["", ""];
+    }
+    if(/\blive\b|active|идут/.test(s)) return ["Идут торги", "live"];
+    return ["", ""];
+  }
+  // Condition → Russian label + tone + icon (green check / yellow ! / gray dash)
+  function conditionInfo(raw){
+    const t = String(raw || "").toLowerCase().replace(/[_-]+/g, " ").trim();
+    if(!t) return {label:"—", tone:"neutral", icon:"q"};
+    if(/run.?and.?drive|runs.?and.?drives|заводится и едет|на ходу(?!.*не)/.test(t) && !/не на ходу/.test(t))
+      return {label:"Заводится и едет", tone:"good", icon:"check"};
+    if(/engine starts|\bstarts?\b|стартует|^заводится$|заводится(?!.*едет)/.test(t))
+      return {label:"Заводится", tone:"warn", icon:"excl"};
+    if(/enhanced|inop|non run|not run|stationary|не на ходу|не заводится/.test(t))
+      return {label:"Не на ходу", tone:"neutral", icon:"dot"};
+    return {label: raw, tone: statusTone(raw) || "neutral", icon:"q"};
+  }
+  // Clickable auction mark linking to the lot on Copart/IAAI.
+  function aucMark(lot){
+    const a = lot.auction === "iaai" ? "iaai" : "copart";
+    const label = a.toUpperCase();
+    const mark = a === "iaai" ? "IA" : "C";
+    const href = lot.url || "#";
+    return `<a class="dbLotLink dbLotLink--${a}" href="${escapeHtml(href)}" target="_blank" rel="noopener nofollow" title="Открыть лот ${escapeHtml(lot.lot || "")} на ${label}"><span class="aucMark aucMark--${a}">${mark}</span>${escapeHtml(lot.lot || "—")}${dbIco("ext")}</a>`;
   }
   function dbSpec(icon, value){
     if(!value) return "";
@@ -315,6 +345,10 @@
     const tone = statusTone(value) || "neutral";
     const icon = tone === "good" ? "check" : tone === "bad" ? "warn" : tone === "warn" ? "warn" : "q";
     return `<li class="dbCheck ${tone}">${dbIco(icon)}<span><b>${escapeHtml(label)}:</b> ${escapeHtml(value || "—")}</span></li>`;
+  }
+  function dbCondition(raw){
+    const c = conditionInfo(raw);
+    return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>Состояние:</b> ${escapeHtml(c.label)}</span></li>`;
   }
 
   function histStatusLabel(name){
@@ -381,7 +415,7 @@
           <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
           <div class="dbIds">
             <span class="dbVin">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
-            <span class="dbLotNo">${dbIco("warn")}${escapeHtml(lot.lot || "—")}</span>
+            ${aucMark(lot)}
             ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
           </div>
         </div>
@@ -394,10 +428,10 @@
             ${dbSpec("pin", escapeHtml(lot.location))}
           </ul>
           <ul class="dbChecks">
-            ${dbCheck("Состояние", lot.condition)}
+            ${dbCondition(lot.condition)}
             ${dbCheck("Продавец", lot.seller)}
             ${dbCheck("Ключ доступен", lot.keys)}
-            ${dbCheck("Документы", lot.document)}
+            ${dbCheck("Статус документов", lot.document)}
             ${dbCheck("История", lot.priceHistory?.length ? `${lot.priceHistory.length} ${plural(lot.priceHistory.length, "запись", "записи", "записей")}` : "Впервые в продаже")}
           </ul>
         </div>
@@ -405,7 +439,7 @@
       <aside class="dbAside">
         <div class="dbWhen">
           <span>${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
-          <span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>
+          ${liveLabel ? `<span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>` : ""}
         </div>
         <div class="dbPriceWrap">
           ${estimate ? `<div class="dbEst">${dbIco("chart")}<span>оценка ${escapeHtml(estimate)}</span></div>` : ""}
@@ -693,7 +727,7 @@
   function renderSimilarCard(lot){
     const title = lotTitle(lot);
     const specLine = [lot.engine, lot.drive, lot.transmission].filter(Boolean).join(" • ");
-    const cond = [lot.condition, dbOdo(lot.odometerText)].filter(Boolean).join(" · ");
+    const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
     return `<a class="simCardV1" href="${detailHref(lot)}">
       <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<span class="simBidV1">${money(lot.currentBid || lot.buyNow)}</span></div>
       <h4>${escapeHtml(title)}</h4>
@@ -762,7 +796,7 @@
           <div class="lotDetailCenterV1">
             <section class="dSec">
               <div class="dSecHead">Главное</div>
-              ${dMain("Состояние", lot.condition)}
+              ${dMain("Состояние", conditionInfo(lot.condition).label)}
               ${dMain("Продавец", lot.seller)}
               ${dMain("Ключ доступен", lot.keys)}
               ${dMain("Статус документов", lot.document)}

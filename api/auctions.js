@@ -35,8 +35,9 @@ function safeNumber(value){
 }
 
 function normalizeAuction(value){
-  const text = String(value || "").toLowerCase();
-  if(text.includes("iaai")) return "iaai";
+  // value may be a string ("iaai_com") or an object ({name:"iaai_com", id:1})
+  const text = (value && typeof value === "object" ? (value.name || value.title || "") : String(value || "")).toLowerCase();
+  if(text.includes("iaai") || text === "1" || value === 1) return "iaai";
   return "copart";
 }
 
