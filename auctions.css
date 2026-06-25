@@ -167,14 +167,30 @@
 .copyChipV1.copiedV1 { background:#e7f6ec; color:#1d9b53; }
 .copyChipV1.copiedV1 .dbIco:last-child { opacity:0; }
 .copyChipV1.copiedV1::after { content:"Скопировано"; position:absolute; left:50%; top:-26px; transform:translateX(-50%); background:#1d9b53; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; white-space:nowrap; z-index:5; }
-/* Auction badge — links to the lot on Copart/IAAI */
-.aucMark { display:inline-flex; align-items:center; gap:3px; height:18px; padding:0 6px; border-radius:5px; font-size:9.5px; font-weight:800; letter-spacing:.02em; color:#fff; text-decoration:none; }
-.aucMark .dbIco { width:11px; height:11px; opacity:.85; }
-.aucMark:hover { filter:brightness(1.1); }
-.aucMark--copart { background:#1f6bff; }
-.aucMark--iaai { background:#e8780c; }
+/* Auction brand badge — links to the lot on Copart/IAAI */
+.aucMark { display:inline-flex; align-items:center; gap:4px; height:19px; padding:0 8px; border-radius:5px; font-size:10.5px; font-weight:800; letter-spacing:.01em; color:#fff; text-decoration:none; }
+.aucWordV1 { font-weight:800; }
+.aucMark .dbIco { width:11px; height:11px; opacity:.9; }
+.aucMark:hover { filter:brightness(1.08); }
+.aucMark--copart { background:#0072ce; }   /* Copart blue */
+.aucMark--iaai { background:#ed1c24; }      /* IAAI red */
 /* Detail copy value */
 .dCopyValV1 { display:inline-flex; align-items:center; gap:5px; font-variant-numeric:tabular-nums; }
+/* Loading skeletons */
+.dbSkelV1 { pointer-events:none; }
+.skBoxV1, .skLineV1 { background:linear-gradient(90deg,#eef0f3 25%,#e4e7eb 37%,#eef0f3 63%); background-size:400% 100%; animation:skShimmer 1.3s ease infinite; border-radius:8px; }
+.skLineV1 { display:block; height:11px; margin:7px 0; }
+.skW80{ width:80%; } .skW60{ width:60%; } .skW40{ width:40%; }
+.dbSkelV1 .dbPhoto.skBoxV1 { min-height:150px; border-radius:12px; }
+.dbSkelV1 .dbAside .skBoxV1 { width:100%; }
+@keyframes skShimmer { 0%{ background-position:100% 0; } 100%{ background-position:0 0; } }
+/* Market statistics block */
+.lotStatsBoxV1 .statGridV1 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px; }
+.statCellV1 { background:var(--aSoft); border:1px solid var(--aLine); border-radius:11px; padding:11px 13px; }
+.statCellV1 span { display:block; font-size:11px; color:var(--aMuted); margin-bottom:3px; }
+.statCellV1 b { font-size:17px; font-weight:800; color:var(--aInk); }
+.statNoteV1 { font-size:11.5px; color:var(--aMuted); margin-top:9px; }
+@media(max-width:600px){ .lotStatsBoxV1 .statGridV1 { grid-template-columns:1fr 1fr; } }
 /* Odometer status badge */
 .odoOkV1, .odoWarnV1 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; padding:1px 7px; border-radius:999px; margin-left:6px; }
 .odoOkV1 { background:#e7f6ec; color:#1d9b53; }

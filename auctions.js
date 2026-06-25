@@ -413,13 +413,12 @@
       return {label:"Не на ходу", tone:"neutral", icon:"dot"};
     return {label: tc(raw), tone: statusTone(raw) || "neutral", icon:"q"};
   }
-  // Auction badge (C / IA) — links straight to the lot on Copart/IAAI.
+  // Auction brand badge — links straight to the lot on Copart/IAAI.
   function aucLinkBadge(lot){
     const a = lot.auction === "iaai" ? "iaai" : "copart";
-    const label = a.toUpperCase();
-    const mark = a === "iaai" ? "IA" : "C";
+    const word = a === "iaai" ? "IAAI" : "Copart";
     const href = lot.url || "#";
-    return `<a class="aucMark aucMark--${a}" href="${escapeHtml(href)}" target="_blank" rel="noopener nofollow" title="Открыть лот ${escapeHtml(lot.lot || "")} на ${label}">${mark}${dbIco("ext")}</a>`;
+    return `<a class="aucMark aucMark--${a}" href="${escapeHtml(href)}" target="_blank" rel="noopener nofollow" title="Открыть лот ${escapeHtml(lot.lot || "")} на ${word}"><span class="aucWordV1">${word}</span>${dbIco("ext")}</a>`;
   }
   // Click-to-copy chip (VIN / lot number).
   function copyChip(value, label, cls, preIcon){
@@ -552,6 +551,22 @@
     return lot.saleStatusKey === sale;
   }
 
+  function skeletonCards(n = 6){
+    const one = `<article class="dbCard dbSkelV1">
+      <div class="dbPhoto skBoxV1"></div>
+      <div class="dbBody">
+        <div class="skLineV1 skW60"></div>
+        <div class="skLineV1 skW40"></div>
+        <div class="dbCols">
+          <ul class="dbSpecs">${"<li><span class='skLineV1 skW80'></span></li>".repeat(5)}</ul>
+          <ul class="dbChecks">${"<li><span class='skLineV1 skW80'></span></li>".repeat(4)}</ul>
+        </div>
+      </div>
+      <aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside>
+    </article>`;
+    return one.repeat(n);
+  }
+
   function renderCards(append = false){
     const box = $("#auctionCards");
     const sale = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
@@ -597,7 +612,7 @@
     if(state.loading) return;
     state.loading = true;
     setMessage("");
-    if(!append) $("#auctionCards").innerHTML = "";
+    if(!append) $("#auctionCards").innerHTML = skeletonCards(6);
     const archived = state.tab === "archived";
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
@@ -938,6 +953,7 @@
               ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory)}
+            <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
           </div>
           ${renderLotCalculator(lot)}
         </div>
@@ -953,6 +969,43 @@
     setSeo(lot);
     updateLotCalculator();
     loadSimilar(lot);
+    loadStats(lot);
+  }
+
+  // Market statistics for this make/model (avg sale price, range, sample size).
+  async function loadStats(lot){
+    const box = document.getElementById("lotStatsBox");
+    if(!box || !lot.makeId || !lot.modelId) return;
+    try{
+      const params = new URLSearchParams({manufacturer_id:String(lot.makeId), model_id:String(lot.modelId)});
+      if(lot.year) params.set("year", String(lot.year));
+      const r = await api(`/api/auctions?action=statistics&${params}`);
+      const rows = Array.isArray(r.stats) ? r.stats : [];
+      if(!rows.length) return;
+      const yr = Number(lot.year) || null;
+      let scope = yr ? rows.filter(x => Number(x.year) === yr) : rows;
+      if(!scope.length) scope = rows;
+      let sumW = 0, cnt = 0, min = Infinity, max = 0;
+      scope.forEach(x => {
+        const c = Number(x.lot_count) || 0, avg = Number(x.avg_final_bid) || 0;
+        if(avg > 0 && c > 0){ sumW += avg * c; cnt += c; }
+        const mn = Number(x.min_final_bid) || 0, mx = Number(x.max_final_bid) || 0;
+        if(mn > 0) min = Math.min(min, mn);
+        if(mx > 0) max = Math.max(max, mx);
+      });
+      if(!cnt) return;
+      const avg = Math.round(sumW / cnt);
+      const title = [yr, lot.make, lot.model].filter(Boolean).join(" ");
+      box.innerHTML = `
+        <div class="dSecHead">Рыночная статистика <span class="histCountV1">${escapeHtml(title)} · ${cnt} ${plural(cnt, "продажа", "продажи", "продаж")}</span></div>
+        <div class="statGridV1">
+          <div class="statCellV1"><span>Средняя цена продажи</span><b>${money(avg)}</b></div>
+          ${min < Infinity && max ? `<div class="statCellV1"><span>Диапазон</span><b>${money(min)} – ${money(max)}</b></div>` : ""}
+          <div class="statCellV1"><span>Анализ лотов</span><b>${cnt}</b></div>
+        </div>
+        <p class="statNoteV1">По данным проданных лотов Copart и IAAI${yr ? ` за ${yr} год` : ""}. Помогает оценить адекватную ставку.</p>`;
+      box.hidden = false;
+    }catch(e){ /* stats optional — ignore */ }
   }
 
   async function loadDetailFromUrl(){
