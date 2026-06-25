@@ -398,6 +398,18 @@ async function fetchDetail(query){
   throw lastError || new Error("Lot detail failed");
 }
 
+async function fetchVin(query){
+  const vin = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "");
+  if(vin.length < 11){
+    const error = new Error("VIN указан неверно");
+    error.status = 400;
+    throw error;
+  }
+  const params = new URLSearchParams({prices_history:"1"});
+  const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(vin)}?${params}`);
+  return normalizeLot(payload, normalizeAuction(payload?.domain || payload?.data?.domain || payload?.auction));
+}
+
 async function handleDebug(query, response){
   const auction = normalizeAuction(query.get("auction"));
   const searchParams = buildSearchParams(query);
@@ -592,6 +604,14 @@ module.exports = async function handler(request, response){
 
     if(action === "detail"){
       const lot = await fetchDetail(query);
+      const payload = {ok:true,lot};
+      setCached(key, payload);
+      sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "vin"){
+      const lot = await fetchVin(query);
       const payload = {ok:true,lot};
       setCached(key, payload);
       sendJson(response, 200, payload);

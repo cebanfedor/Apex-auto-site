@@ -26,6 +26,64 @@
     return date.toLocaleDateString("ru-RU");
   }
 
+  // ---- Favorites (localStorage) ----
+  const FAV_KEY = "apexFavsV1";
+  function favLoad(){ try{ return JSON.parse(localStorage.getItem(FAV_KEY) || "{}") || {}; }catch(e){ return {}; } }
+  function favSave(map){ try{ localStorage.setItem(FAV_KEY, JSON.stringify(map)); }catch(e){} }
+  function favHas(id){ return id != null && !!favLoad()[id]; }
+  function favCompact(lot){
+    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","keys","estimatedRetailValue","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory"];
+    const o = {}; keep.forEach(k => { if(lot[k] !== undefined) o[k] = lot[k]; }); return o;
+  }
+  function favToggle(lot){
+    if(!lot || lot.id == null) return false;
+    const map = favLoad();
+    if(map[lot.id]) delete map[lot.id]; else map[lot.id] = favCompact(lot);
+    favSave(map);
+    updateFavCount();
+    return !!favLoad()[lot.id];
+  }
+  function favList(){ return Object.values(favLoad()).reverse(); }
+  function updateFavCount(){
+    const n = Object.keys(favLoad()).length;
+    const el = document.getElementById("favCount");
+    if(el) el.textContent = n ? ` (${n})` : "";
+    document.querySelectorAll("[data-fav]").forEach(s => s.classList.toggle("is-fav", favHas(s.dataset.fav)));
+  }
+
+  // ---- URL state sync (shareable searches, survives refresh) ----
+  function syncUrl(){
+    if(parseSlug(currentSlug())) return; // on a detail page — leave its path
+    const p = formParams();
+    p.delete("page"); p.delete("per_page");
+    if(p.get("sort") === "soon") p.delete("sort");
+    if(p.get("auction") === "copart") p.delete("auction");
+    if(p.get("tab") === "all") p.delete("tab");
+    const qs = p.toString();
+    try{ history.replaceState(null, "", qs ? `${location.pathname}?${qs}` : location.pathname); }catch(e){}
+  }
+  function restoreFromUrl(){
+    const p = new URLSearchParams(location.search);
+    if(!Array.from(p.keys()).length) return;
+    const setActive = (sel, attr, val) => document.querySelectorAll(sel).forEach(b => b.classList.toggle("active", b.getAttribute(attr) === val));
+    if(p.get("tab")){ state.tab = p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); }
+    if(p.get("auction")){ state.auction = p.get("auction"); setActive("[data-auction-switch]", "data-auction-switch", state.auction); }
+    if(p.get("sort") && $("#auctionSort")) $("#auctionSort").value = p.get("sort");
+    if(p.get("name") && $("#auctionMakeSearch")) $("#auctionMakeSearch").value = p.get("name");
+    if(p.get("vin") && $("#auctionVinSearch")) $("#auctionVinSearch").value = p.get("vin");
+    if(p.get("q") && $("#auctionLotSearch")) $("#auctionLotSearch").value = p.get("q");
+    const form = $("#auctionFiltersForm");
+    if(form) for(const [k, v] of p.entries()){
+      const radios = form.querySelectorAll(`[name="${k}"]`);
+      if(radios.length && radios[0].type === "radio"){
+        radios.forEach(r => { r.checked = (r.value === v); });
+      }else if(form.elements[k]){
+        try{ form.elements[k].value = v; }catch(e){}
+      }
+    }
+    document.querySelectorAll("[data-range]").forEach(r => { if(r._refresh) r._refresh(); });
+  }
+
   function saleClass(value){
     const text = String(value || "").toLowerCase();
     if(text.includes("без")) return "noReserve";
@@ -408,7 +466,7 @@
         ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : `<span class="dbNoPhoto">Нет фото</span>`}
         <span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>
         <span class="dbPhotoCount">1/${escapeHtml(photos)}</span>
-        <span class="dbFav" role="button" title="В избранное">${dbIco("star")}</span>
+        <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
       </a>
       <div class="dbBody">
         <div class="dbHead">
@@ -488,7 +546,20 @@
     ];
   }
 
+  function renderFavorites(){
+    state.items = favList();
+    state.hasMore = false;
+    $("#auctionCards").innerHTML = "";
+    $("#loadMoreLots").hidden = true;
+    $("#auctionResultCount").textContent = state.items.length;
+    $("#auctionResultLabel").textContent = "в избранном";
+    renderCards(false);
+    setMessage(state.items.length ? "" : "В избранном пусто. Нажмите ★ на карточке лота, чтобы сохранить его сюда.");
+    syncUrl();
+  }
+
   async function loadLots({append = false} = {}){
+    if(state.tab === "favorites"){ renderFavorites(); return; }
     if(state.loading) return;
     state.loading = true;
     setMessage("");
@@ -504,6 +575,8 @@
         ? (archived ? "лотов в архиве" : (payload.cached ? "лотов найдено · кэш" : "лотов найдено"))
         : `Показано ${state.items.length} лотов`;
       renderCards(false);
+      syncUrl();
+      updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
       state.hasMore = false;
@@ -776,7 +849,10 @@
             <h1>${escapeHtml(title)}</h1>
             <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? `<span class="dSpecVin">${dbIco("vin")}${escapeHtml(lot.vin)}</span>` : ""}</p>
           </div>
-          ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
+          <div class="dHeadActionsV1">
+            <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
+            ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
+          </div>
         </div>
         <div class="lotDetailGridV1">
           <div class="detailGalleryV1">
@@ -862,6 +938,35 @@
       }
     }
     return true;
+  }
+
+  // VIN report — uses the dedicated /search-vin endpoint (car info + price history).
+  async function openVinReport(vin){
+    const clean = String(vin || "").replace(/[^A-Za-z0-9]/g, "");
+    $("#auctionCatalog").hidden = true;
+    $("#auctionDetail").hidden = false;
+    $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Получаем отчёт по VIN…</div>';
+    window.scrollTo(0, 0);
+    try{
+      const payload = await api(`/api/auctions?action=vin&vin=${encodeURIComponent(clean)}`);
+      renderDetail(payload.lot);
+    }catch(error){
+      $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Назад к каталогу</a>
+        <div class="vinEmptyV1">
+          <h2>По VIN ${escapeHtml(clean)} лот не найден</h2>
+          <p>Возможно, машина ещё не выставлена на Copart/IAAI или VIN указан с ошибкой. Проверьте номер или оставьте заявку — найдём и проверим вручную.</p>
+          <a class="vinLeadBtnV1" href="/index.html#lead">Оставить заявку</a>
+        </div>`;
+    }
+  }
+
+  function triggerSearch(){
+    const vin = String($("#auctionVinSearch")?.value || "").replace(/[^A-Za-z0-9]/g, "");
+    const others = [$("#auctionMakeSearch")?.value, $("#auctionModelSearch")?.value, $("#auctionLotSearch")?.value].some(v => String(v || "").trim());
+    // A complete VIN on its own → open the VIN report instead of filtering the list.
+    if(vin.length >= 11 && !others){ openVinReport(vin); return; }
+    state.page = 1;
+    loadLots();
   }
 
   function openLead(lot){
@@ -1041,10 +1146,10 @@
   }
 
   function bindEvents(){
-    $("#auctionSearchBtn").addEventListener("click", () => { state.page = 1; loadLots(); });
+    $("#auctionSearchBtn").addEventListener("click", () => triggerSearch());
     ["#auctionMakeSearch", "#auctionModelSearch", "#auctionVinSearch", "#auctionLotSearch"].forEach(selector => {
       $(selector)?.addEventListener("keydown", event => {
-        if(event.key === "Enter"){ event.preventDefault(); state.page = 1; loadLots(); }
+        if(event.key === "Enter"){ event.preventDefault(); triggerSearch(); }
       });
     });
     $("#auctionSort").addEventListener("change", () => { state.page = 1; loadLots(); });
@@ -1091,6 +1196,21 @@
     $("#searchSettingsBtn")?.addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
     $("#closeFiltersBtn").addEventListener("click", () => document.body.classList.remove("filtersOpenV1"));
     document.addEventListener("click", event => {
+      const favBtn = event.target.closest("[data-fav]");
+      if(favBtn){
+        event.preventDefault();
+        event.stopPropagation();
+        const id = favBtn.dataset.fav;
+        const lot = state.items.find(l => String(l.id) === String(id)) || (state.selectedLot && String(state.selectedLot.id) === String(id) ? state.selectedLot : null);
+        if(lot){
+          const on = favToggle(lot);
+          favBtn.classList.toggle("is-fav", on);
+          const label = favBtn.querySelector("span");
+          if(label) label.textContent = on ? "В избранном" : "В избранное";
+          if(state.tab === "favorites") renderFavorites();
+        }
+        return;
+      }
       if(event.target.closest("#openFiltersBtn")) document.body.classList.add("filtersOpenV1");
       if(event.target.closest("#searchSettingsBtn")) document.body.classList.add("filtersOpenV1");
       if(event.target.closest("#closeFiltersBtn")) document.body.classList.remove("filtersOpenV1");
@@ -1180,8 +1300,12 @@
     bindEvents();
     initRanges();
     initCarData();
+    updateFavCount();
     const isDetail = await loadDetailFromUrl();
-    if(!isDetail) loadLots();
+    if(!isDetail){
+      restoreFromUrl();
+      loadLots();
+    }
   }
 
   if(document.readyState === "loading"){

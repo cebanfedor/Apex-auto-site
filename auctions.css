@@ -129,9 +129,28 @@
 .dbNoPhoto { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--aMuted); font-size:13px; }
 .dbAuc { position:absolute; left:8px; bottom:8px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.82); color:#fff; font-size:11px; font-weight:700; letter-spacing:.04em; }
 .dbPhotoCount { position:absolute; right:8px; bottom:8px; padding:3px 8px; border-radius:7px; background:rgba(11,13,16,.7); color:#fff; font-size:11px; }
-.dbFav { position:absolute; right:8px; top:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.92); color:var(--aInk2); cursor:pointer; }
-.dbFav:hover { color:var(--aRed); }
+.dbFav { position:absolute; right:8px; top:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.92); color:var(--aInk2); cursor:pointer; transition:color .15s, transform .1s; }
+.dbFav:hover { color:#f0a500; }
+.dbFav:active { transform:scale(.9); }
 .dbFav .dbIco { width:18px; height:18px; }
+.dbFav.is-fav { color:#f0a500; }
+.dbFav.is-fav .dbIco { fill:#f0a500; stroke:#f0a500; }
+/* Favorites tab */
+.auctionTabsV1 button.favTabV2 { color:#b7791f; border-color:#f3dca0; background:#fffaf0; }
+.auctionTabsV1 button.favTabV2:hover { border-color:#e0a82e; }
+.auctionTabsV1 button.favTabV2.active { background:#e0a82e; color:#fff; border-color:#e0a82e; }
+/* VIN report — not found state */
+.vinEmptyV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:16px; padding:34px; text-align:center; max-width:560px; }
+.vinEmptyV1 h2 { font-size:19px; margin-bottom:8px; }
+.vinEmptyV1 p { color:var(--aInk2); margin-bottom:18px; }
+.vinLeadBtnV1 { display:inline-block; background:var(--aRed); color:#fff; font-weight:700; padding:11px 22px; border-radius:10px; }
+/* Detail header actions */
+.dHeadActionsV1 { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.dFavBtnV1 { display:inline-flex; align-items:center; gap:7px; padding:9px 15px; border:1px solid var(--aLine); border-radius:10px; background:#fff; color:var(--aInk2); font-weight:600; font-size:13px; cursor:pointer; transition:all .15s; }
+.dFavBtnV1 .dbIco { width:16px; height:16px; }
+.dFavBtnV1:hover { border-color:#e0a82e; color:#b7791f; }
+.dFavBtnV1.is-fav { background:#fffaf0; border-color:#e0a82e; color:#b7791f; }
+.dFavBtnV1.is-fav .dbIco { fill:#f0a500; stroke:#f0a500; }
 
 .dbBody { min-width:0; display:flex; flex-direction:column; gap:11px; }
 .dbTitle { display:block; font-size:16px; font-weight:700; letter-spacing:-.01em; color:var(--aInk); line-height:1.2; }
