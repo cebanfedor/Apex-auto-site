@@ -331,14 +331,15 @@ function buildSearchParams(query){
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6,8");
   }
-  // Show only lots that actually have an upcoming auction date. The API returns
-  // sale_date=null for unscheduled lots; next_hours_auction returns lots whose
-  // auction is within the next N hours (real, current/soon, status "sale").
-  // Applied to the live tabs, with or without filters.
+  // Show only lots that actually have an auction date. The API returns
+  // sale_date=null for unscheduled lots; sale_date_in_days returns the dated
+  // (scheduled/recent) ones. next_hours_auction would be ideal for *future*
+  // auctions, but the feed's sale dates are recent-past, so it returns 0 —
+  // sale_date_in_days is the reliable choice. Applied to the live tabs.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days") || params.get("next_hours_auction");
   if(tabUpcoming && !hasDateFilter){
-    params.set("next_hours_auction", "168"); // ~7 days of scheduled auctions
+    params.set("sale_date_in_days", "14"); // dated lots from the last ~2 weeks
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
@@ -382,39 +383,46 @@ async function fetchSearch(query){
   // "all" → omit domain_id so Copart (3) + IAAI (1) come together (domain_id
   // does not accept a CSV). Encar/Korea (12) is filtered out below.
   if(!isAll) params.set("domain_id", auctionsApiDomainId(auction));
-  const attempts = isAll
-    ? [`${AUCTIONS_API_BASE}/cars?${params}`]
-    : [
-        `${AUCTIONS_API_BASE}/cars?${params}`,
-        `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(params), domain})}`
-      ];
   const isEncar = it => { const d = it && it.domain; const id = d && d.id; const nm = String((d && d.name) || d || "").toLowerCase(); return id === 12 || nm.includes("encar") || nm.includes("korea"); };
+  const perPage = safeNumber(query.get("per_page") || query.get("limit") || 50) || 50;
 
-  let lastError;
-  let lastEndpoint = attempts[0];
-  for(const url of attempts){
-    try{
-      lastEndpoint = url;
-      const payload = await fetchJson(url);
-      const items = findItems(payload)
-        .filter(item => !isAll || !isEncar(item))
-        .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction));
-      const perPage = safeNumber(query.get("per_page") || query.get("limit") || 50) || 50;
-      const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
-      return {
-        items,
-        total,
-        shown:items.length,
-        page:safeNumber(query.get("page")) || 1,
-        perPage,
-        hasMore:total ? (safeNumber(query.get("page")) || 1) * perPage < total : items.length >= perPage,
-        endpoint:lastEndpoint.replace(process.env.AUCTIONS_API_KEY || "", "")
-      };
-    }catch(error){
-      lastError = error;
+  const run = async () => {
+    const attempts = isAll
+      ? [`${AUCTIONS_API_BASE}/cars?${params}`]
+      : [
+          `${AUCTIONS_API_BASE}/cars?${params}`,
+          `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(params), domain})}`
+        ];
+    let lastError, lastEndpoint = attempts[0];
+    for(const url of attempts){
+      try{
+        lastEndpoint = url;
+        const payload = await fetchJson(url);
+        const items = findItems(payload)
+          .filter(item => !isAll || !isEncar(item))
+          .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction));
+        const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
+        return {
+          items, total, shown:items.length,
+          page:safeNumber(query.get("page")) || 1, perPage,
+          hasMore:total ? (safeNumber(query.get("page")) || 1) * perPage < total : items.length >= perPage,
+          endpoint:lastEndpoint.replace(process.env.AUCTIONS_API_KEY || "", "")
+        };
+      }catch(error){ lastError = error; }
     }
+    throw lastError || new Error("Auctions search failed");
+  };
+
+  // Safety net: if our injected date filter yields nothing (e.g. the feed has no
+  // recently-dated lots), retry once without it so the catalog is never empty.
+  const userDate = query.get("daysAhead") || query.get("auctionDateFrom") || query.get("auctionDateTo") || query.get("nextHours");
+  const injectedDate = !userDate && params.get("sale_date_in_days");
+  let result = await run();
+  if(!result.items.length && injectedDate){
+    params.delete("sale_date_in_days");
+    result = await run();
   }
-  throw lastError || new Error("Auctions search failed");
+  return result;
 }
 
 async function fetchDetail(query){
