@@ -276,6 +276,7 @@ function buildSearchParams(query){
     generation:"generation_id",
     auctionDateFrom:"sale_date_from",
     auctionDateTo:"sale_date_to",
+    daysAhead:"sale_date_in_days",
     lotStatus:"status"
   };
   for(const [from, to] of Object.entries(map)){
@@ -429,7 +430,9 @@ function sortItems(items, sort){
   if(sort === "price_desc") return list.sort((a, b) => (b.currentBid || b.buyNow || 0) - (a.currentBid || a.buyNow || 0));
   if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
   if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 0) - (b.odometer || 0));
-  return list.sort((a, b) => String(a.auctionDate || "").localeCompare(String(b.auctionDate || "")));
+  // "soon": lots with a real sale date first (soonest at top), undated lots last.
+  const ts = v => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? Infinity : t; };
+  return list.sort((a, b) => ts(a.auctionDate) - ts(b.auctionDate));
 }
 
 async function handleLead(request, response){
