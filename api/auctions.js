@@ -262,9 +262,10 @@ function buildSearchParams(query){
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
-  // Archive = past auctions (any outcome): include expired + cut off at today.
-  if(tab === "archived" && !params.get("sale_date_to")){
-    params.set("sale_date_to", new Date().toISOString().slice(0, 10));
+  // Archive = completed auctions (sold + not sold). sale_date filters are
+  // unreliable in this API, so use the status field (CSV is accepted).
+  if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
+    params.set("status", "6,8");
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
