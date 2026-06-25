@@ -179,6 +179,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     year,
     make,
     model,
+    makeId:(item?.manufacturer && item.manufacturer.id) || null,
+    modelId:(item?.model && item.model.id) || null,
+    generationId:(item?.generation && item.generation.id) || null,
+    engineId:(item?.engine && item.engine.id) || null,
     vin:item?.vin || lot?.vin || "",
     lot:lotNumber,
     url:auctionUrl(auction, lotNumber),
@@ -643,6 +647,19 @@ module.exports = async function handler(request, response){
     if(action === "vin"){
       const lot = await fetchVin(query);
       const payload = {ok:true,lot};
+      setCached(key, payload);
+      sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "statistics"){
+      const p = new URLSearchParams();
+      ["manufacturer_id","model_id","generation_id","engine_id","year"].forEach(k => {
+        const v = String(query.get(k) || "").replace(/[^0-9]/g, "");
+        if(v) p.set(k, v);
+      });
+      const data = await fetchJson(`${AUCTIONS_API_BASE}/statistics?${p}`);
+      const payload = {ok:true, stats:(data && data.data) || data || null};
       setCached(key, payload);
       sendJson(response, 200, payload);
       return;
