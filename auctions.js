@@ -1,7 +1,7 @@
 (function(){
   const $ = selector => document.querySelector(selector);
   const state = {
-    auction:"copart",
+    auction:"all",
     tab:"all",
     page:1,
     hasMore:false,
@@ -72,7 +72,7 @@
     const p = formParams();
     p.delete("page"); p.delete("per_page");
     if(p.get("sort") === "soon") p.delete("sort");
-    if(p.get("auction") === "copart") p.delete("auction");
+    if(p.get("auction") === "all") p.delete("auction");
     if(p.get("tab") === "all") p.delete("tab");
     const qs = p.toString();
     try{ history.replaceState(null, "", qs ? `${location.pathname}?${qs}` : location.pathname); }catch(e){}
@@ -504,8 +504,6 @@
           <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
           <div class="dbIds">
             ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
-            ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
-            ${aucLinkBadge(lot)}
             ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
           </div>
         </div>
@@ -528,6 +526,10 @@
         </div>
       </div>
       <aside class="dbAside">
+        <div class="dbLotRowV1">
+          ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
+          ${aucLinkBadge(lot)}
+        </div>
         <div class="dbWhen">
           <span>${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${liveLabel ? `<span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>` : ""}

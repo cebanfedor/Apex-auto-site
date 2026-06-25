@@ -212,6 +212,9 @@
 .dbCheck b { font-weight:600; color:var(--aInk2); }
 
 .dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:12px; border-left:1px solid var(--aLine2); padding-left:16px; }
+/* Lot number + auction badge pinned above the right (price) block */
+.dbLotRowV1 { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+.dbLotRowV1 .dbLotNo { font-size:12.5px; color:var(--aInk2); font-variant-numeric:tabular-nums; }
 .dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-end; text-align:right; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); white-space:nowrap; }
 .dbWhen .dbIco { color:var(--aMuted); }
@@ -421,7 +424,8 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionFiltersV1 { position:static; }
   .filterHeadV1 button { display:block; }
   .dbCard { grid-template-columns:240px minmax(0,1fr); }
-  .dbAside { grid-column:1 / -1; flex-direction:row; align-items:flex-start; justify-content:space-between; gap:20px; border-left:none; border-top:1px solid var(--aLine2); padding-left:0; padding-top:14px; }
+  .dbAside { grid-column:1 / -1; flex-direction:row; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px 20px; border-left:none; border-top:1px solid var(--aLine2); padding-left:0; padding-top:14px; }
+  .dbLotRowV1 { order:-2; width:100%; justify-content:flex-start; }
   .dbWhen { align-items:flex-start; text-align:left; order:-1; }
   .dbPriceWrap { min-width:220px; }
   .lotDetailGridV1 { grid-template-columns:1fr; }

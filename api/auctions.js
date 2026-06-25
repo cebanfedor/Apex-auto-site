@@ -374,14 +374,20 @@ async function fetchJson(url){
 }
 
 async function fetchSearch(query){
+  const rawAuction = String(query.get("auction") || "").toLowerCase();
+  const isAll = rawAuction === "all" || rawAuction === "both" || rawAuction === "";
   const auction = normalizeAuction(query.get("auction"));
   const params = buildSearchParams(query);
   const domain = auctionsApiDomain(auction);
-  params.set("domain_id", auctionsApiDomainId(auction));
-  const attempts = [
-    `${AUCTIONS_API_BASE}/cars?${params}`,
-    `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(params), domain})}`
-  ];
+  // "all" → Copart (3) + IAAI (1) together, excluding Encar/Korea (12).
+  if(isAll) params.set("domain_id", "1,3");
+  else params.set("domain_id", auctionsApiDomainId(auction));
+  const attempts = isAll
+    ? [`${AUCTIONS_API_BASE}/cars?${params}`]
+    : [
+        `${AUCTIONS_API_BASE}/cars?${params}`,
+        `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(params), domain})}`
+      ];
 
   let lastError;
   let lastEndpoint = attempts[0];
@@ -389,7 +395,7 @@ async function fetchSearch(query){
     try{
       lastEndpoint = url;
       const payload = await fetchJson(url);
-      const items = findItems(payload).map(item => normalizeLot(item, auction));
+      const items = findItems(payload).map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction));
       const perPage = safeNumber(query.get("per_page") || query.get("limit") || 50) || 50;
       const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
       return {
