@@ -111,6 +111,16 @@
     return params;
   }
 
+  function sortClient(items, sort){
+    const list = items.slice();
+    const price = l => l.finalBid || l.currentBid || l.buyNow || 0;
+    if(sort === "price_asc") return list.sort((a, b) => price(a) - price(b));
+    if(sort === "price_desc") return list.sort((a, b) => price(b) - price(a));
+    if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
+    if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 1e12) - (b.odometer || 1e12));
+    return list.sort((a, b) => new Date(b.auctionDate || 0) - new Date(a.auctionDate || 0));
+  }
+
   function statusTone(value){
     const text = String(value || "").toLowerCase();
     if(!value) return "";
@@ -317,13 +327,57 @@
     return `<li class="dbCheck ${tone}">${dbIco(icon)}<span><b>${escapeHtml(label)}:</b> ${escapeHtml(value || "—")}</span></li>`;
   }
 
+  function histStatusLabel(name){
+    const t = String(name || "").toLowerCase();
+    if(t.includes("sold") && !t.includes("not")) return ["Продан", "histSold"];
+    if(t.includes("not_sold") || t === "not sold") return ["Не продан", "histUnsold"];
+    if(t.includes("approval")) return ["На утверждении", "histPend"];
+    if(t.includes("upcoming") || t.includes("future")) return ["Предстоит", "histPend"];
+    if(t.includes("cancel")) return ["Отменён", "histUnsold"];
+    return [name ? name.replace(/_/g, " ") : "", "histPend"];
+  }
+
+  function renderPriceHistory(history){
+    if(!Array.isArray(history) || !history.length) return "";
+    const bids = history.map(h => Number(h.bid || h.buyNow || 0)).filter(Boolean);
+    const max = Math.max(1, ...bids);
+    const min = bids.length ? Math.min(...bids) : 0;
+    const hi = bids.length ? Math.max(...bids) : 0;
+    const rows = history.slice(0, 12).map(h => {
+      const val = Number(h.bid || h.buyNow || 0);
+      const [label, cls] = histStatusLabel(h.status);
+      const pct = Math.max(6, Math.round(val / max * 100));
+      return `<div class="histRowV1">
+        <span class="histDateV1">${escapeHtml(dbDate(h.date))}</span>
+        <span class="histBarWrapV1"><span class="histBarV1" style="width:${pct}%"></span></span>
+        <span class="histStatusV1 ${cls}">${escapeHtml(label)}</span>
+        <b class="histBidV1">${escapeHtml(money(val))}</b>
+      </div>`;
+    }).join("");
+    const range = bids.length ? `${money(min)} – ${money(hi)}` : "";
+    return `<section class="dSec">
+      <div class="dSecHead">История цены <span class="histCountV1">${history.length} ${plural(history.length, "запись", "записи", "записей")}${range ? ` · ${escapeHtml(range)}` : ""}</span></div>
+      <div class="histListV1">${rows}</div>
+    </section>`;
+  }
+
+  function plural(n, one, few, many){
+    const m10 = n % 10, m100 = n % 100;
+    if(m10 === 1 && m100 !== 11) return one;
+    if(m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+    return many;
+  }
+
   function renderCard(lot){
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
     const engineLine = [lot.engine, lot.drive, lot.transmission].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
-    const price = money(lot.currentBid || lot.buyNow);
+    const isSold = lot.statusId === 6 || /sold/i.test(lot.statusName || lot.lotStatus || "");
+    const priceVal = isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow);
+    const priceLabel = isSold && lot.finalBid ? "Финальная цена" : "Текущая цена";
+    const price = money(priceVal);
     const photos = lot.photoCount || lot.images?.length || 1;
     return `<article class="dbCard">
       <a class="dbPhoto" href="${detailHref(lot)}">
@@ -354,7 +408,7 @@
             ${dbCheck("Продавец", lot.seller)}
             ${dbCheck("Ключ доступен", lot.keys)}
             ${dbCheck("Документы", lot.document)}
-            ${dbCheck("История", lot.priceHistory?.length ? `${lot.priceHistory.length} записей` : "Впервые в продаже")}
+            ${dbCheck("История", lot.priceHistory?.length ? `${lot.priceHistory.length} ${plural(lot.priceHistory.length, "запись", "записи", "записей")}` : "Впервые в продаже")}
           </ul>
         </div>
       </div>
@@ -365,8 +419,8 @@
         </div>
         <div class="dbPriceWrap">
           ${estimate ? `<div class="dbEst">${dbIco("chart")}<span>оценка ${escapeHtml(estimate)}</span></div>` : ""}
-          <div class="dbPriceBox">
-            <span>Текущая цена</span>
+          <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
+            <span>${priceLabel}</span>
             <b>${price}</b>
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
@@ -403,17 +457,22 @@
     state.loading = true;
     setMessage("");
     if(!append) $("#auctionCards").innerHTML = "";
+    const archived = state.tab === "archived";
     try{
-      const payload = await api(`/api/auctions?action=search&${formParams()}`);
-      state.hasMore = Boolean(payload.hasMore);
-      const nextItems = payload.items || [];
+      const url = archived
+        ? `/api/auctions?action=archived&per_page=200&auction=${encodeURIComponent(state.auction)}`
+        : `/api/auctions?action=search&${formParams()}`;
+      const payload = await api(url);
+      let nextItems = payload.items || [];
+      if(archived) nextItems = sortClient(nextItems, $("#auctionSort").value);
+      state.hasMore = archived ? false : Boolean(payload.hasMore);
       state.items = append ? state.items.concat(nextItems) : nextItems;
-      $("#auctionResultCount").textContent = payload.total || state.items.length || 0;
-      $("#auctionResultLabel").textContent = payload.total
-        ? (payload.cached ? "лотов найдено · кэш" : "лотов найдено")
-        : `Показано ${state.items.length} лотов`;
+      $("#auctionResultCount").textContent = (archived ? state.items.length : (payload.total || state.items.length)) || 0;
+      $("#auctionResultLabel").textContent = archived
+        ? "лотов в архиве (за 3 дня)"
+        : (payload.total ? (payload.cached ? "лотов найдено · кэш" : "лотов найдено") : `Показано ${state.items.length} лотов`);
       renderCards(false);
-      if(!state.items.length) setMessage("По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
+      if(!state.items.length) setMessage(archived ? "В архиве пока нет недавно завершённых лотов. Загляните позже." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
       state.hasMore = false;
       $("#loadMoreLots").hidden = true;
@@ -709,7 +768,7 @@
               ${dMain("Продавец", lot.seller)}
               ${dMain("Ключ доступен", lot.keys)}
               ${dMain("Статус документов", lot.document)}
-              ${dMain("История", lot.priceHistory?.length ? `${lot.priceHistory.length} записи` : "Впервые в продаже")}
+              ${dMain("История", lot.priceHistory?.length ? `${lot.priceHistory.length} ${plural(lot.priceHistory.length, "запись", "записи", "записей")}` : "Впервые в продаже")}
               ${dPlain("Привод", escapeHtml(driveLine))}
               ${dPlain("Пробег", escapeHtml(dbOdo(lot.odometerText)))}
               ${dMain("Основное повреждение", primaryDmg)}
@@ -735,10 +794,7 @@
               ${dPlain("Тип кузова", escapeHtml(lot.body))}
               ${dPlain("Цилиндры", escapeHtml(lot.cylinders))}
             </section>
-            ${Array.isArray(lot.priceHistory) && lot.priceHistory.length ? `<section class="dSec">
-              <div class="dSecHead">История цены</div>
-              <div class="priceHistoryV1">${lot.priceHistory.slice(0, 8).map(item => `<span>${escapeHtml(item.date || item.sale_date || "")} ${escapeHtml(money(item.price || item.bid || item.amount))}</span>`).join("")}</div>
-            </section>` : ""}
+            ${renderPriceHistory(lot.priceHistory)}
           </div>
           ${renderLotCalculator(lot)}
         </div>

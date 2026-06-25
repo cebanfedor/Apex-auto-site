@@ -202,6 +202,25 @@
 .lotQuickSpecV1 b, .detailSpecGridV1 b { font-size:14px; color:var(--aInk); }
 .priceHistoryV1 { display:flex; flex-wrap:wrap; gap:8px; }
 .priceHistoryV1 span { padding:6px 10px; border-radius:9px; background:var(--aSoft); font-size:13px; color:var(--aInk2); }
+/* Price history (detail) */
+.histCountV1 { font-weight:600; font-size:11px; color:var(--aMuted); text-transform:none; letter-spacing:0; }
+.histListV1 { display:flex; flex-direction:column; gap:6px; }
+.histRowV1 { display:grid; grid-template-columns:78px 1fr auto auto; align-items:center; gap:10px; }
+.histDateV1 { font-size:11.5px; color:var(--aMuted); white-space:nowrap; }
+.histBarWrapV1 { height:7px; border-radius:999px; background:var(--aSoft); overflow:hidden; }
+.histBarV1 { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#aeb6c2,#6b7382); }
+.histStatusV1 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 7px; border-radius:999px; white-space:nowrap; }
+.histStatusV1.histSold { background:#e7f6ec; color:#1d9b53; }
+.histStatusV1.histUnsold { background:#fdeceb; color:#d33a2c; }
+.histStatusV1.histPend { background:#eef1f6; color:#6b7382; }
+.histBidV1 { font-size:13px; font-weight:800; color:var(--aInk); min-width:60px; text-align:right; }
+/* Final price highlight on sold cards */
+.dbPriceBox.dbPriceSold { background:#e7f6ec; border-color:#bfe6cd; }
+.dbPriceBox.dbPriceSold b { color:#1d9b53; }
+/* Archive tab accent */
+.auctionTabsV1 button.archiveTabV2 { color:var(--aRed); border-color:#f4c4c4; background:#fff5f5; }
+.auctionTabsV1 button.archiveTabV2:hover { border-color:var(--aRed); }
+.auctionTabsV1 button.archiveTabV2.active { background:var(--aRed); color:#fff; border-color:var(--aRed); }
 .lotCalcCardV1, .lotStickyV1 { position:sticky; top:90px; background:linear-gradient(165deg,#1b2029,#12151b); color:#fff; border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:22px; box-shadow:0 18px 44px rgba(16,20,28,.22); }
 .lotCalcCardV1 h2, .lotStickyV1 h2 { color:#fff; font-size:18px; margin-bottom:12px; }
 .calcModeV1 { display:flex; gap:6px; margin-bottom:14px; }

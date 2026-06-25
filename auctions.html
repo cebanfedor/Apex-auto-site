@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v336c">
+  <link rel="stylesheet" href="/auctions.css?v=v337">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -58,7 +58,7 @@
           <button type="button" data-tab="open">Открытые</button>
           <button type="button" data-tab="sold">Завершенные</button>
           <button type="button" data-tab="buy_now">Купить сейчас</button>
-          <button type="button" data-tab="archived">Архивные</button>
+          <button type="button" class="archiveTabV2" data-tab="archived">Архивные</button>
         </section>
         <div class="auctionToolRightV2">
           <div class="auctionSwitchV1" role="group" aria-label="Аукцион">
@@ -238,6 +238,15 @@
                 <label class="optV2"><input type="radio" name="lotStatus" value="8"><span>Не продан</span></label>
               </div>
             </details>
+            <details class="fSecV2"><summary>Статус продажи</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="saleStatus" value="" checked><span>Любой</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="no_reserve"><span>Без резерва</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="min_reserve"><span>Минимальный резерв</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="timed"><span>Timed аукцион</span></label>
+                <label class="optV2"><input type="radio" name="saleStatus" value="on_approval"><span>На утверждении</span></label>
+              </div>
+            </details>
             <details class="fSecV2"><summary>Дата аукциона</summary>
               <div class="dateNumsV2">
                 <label>От<input name="auctionDateFrom" type="date"></label>
@@ -284,7 +293,7 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
   <script src="/car-data.js?v=cars-v3" defer></script>
-  <script src="/auctions.js?v=auctions-v25" defer></script>
+  <script src="/auctions.js?v=auctions-v26" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>
