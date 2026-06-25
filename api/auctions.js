@@ -77,30 +77,31 @@ function imageList(value){
     .filter((item, index, all) => all.indexOf(item) === index);
 }
 
-function saleStatusRaw(item, lot){
-  return [
-    item?.sale_status,
-    item?.saleStatus,
-    item?.bid_status,
-    item?.bidStatus,
-    item?.condition,
-    item?.sale_type,
-    lot?.sale_status,
-    lot?.saleStatus,
-    lot?.bid_status,
-    lot?.bidStatus,
-    lot?.condition,
-    lot?.sale_type
-  ].map(safeName).find(Boolean) || "";
+function locationLabel(loc){
+  if(!loc) return "";
+  if(typeof loc === "string") return loc;
+  if(typeof loc === "object"){
+    const city = safeName(loc.city || loc.name);
+    const state = safeName(loc.state || loc.state_code || loc.region);
+    const country = safeName(loc.country || loc.country_code);
+    const tail = state || country;
+    return [city, tail].filter(Boolean).join(", ");
+  }
+  return "";
 }
 
-function saleStatusLabel(value){
-  const text = String(value || "").toLowerCase();
-  if(/no\s*reserve|without\s*reserve/.test(text)) return "Без резерва";
-  if(/on\s*approval|\bapproval\b/.test(text)) return "На утверждении";
-  if(/minimum\s*bid|minimum\s*reserve|min\s*bid/.test(text)) return "Минимальный резерв";
-  if(/timed\s*auction|\btimed\b/.test(text)) return "Аукцион timed";
-  return value ? safeName(value) : "";
+// Sale status = reserve type of the lot (not the vehicle condition).
+// Sources: lots[0].auction_type ("pure_sale"), lots[0].seller_reserve, is_timed_auction.
+function saleStatusInfo(lot, item){
+  const reserve = lot?.seller_reserve != null ? lot.seller_reserve : item?.seller_reserve;
+  const auctionType = String(lot?.auction_type || item?.auction_type || "").toLowerCase();
+  const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true;
+  let key = "", label = "";
+  if(reserve != null && Number(reserve) > 0){ key = "min_reserve"; label = "Минимальный резерв"; }
+  else if(auctionType === "pure_sale"){ key = "no_reserve"; label = "Без резерва"; }
+  if(!label && timed){ key = "timed"; label = "Timed аукцион"; }
+  else if(label && timed){ label += " · Timed"; }
+  return {key, label, timed};
 }
 
 function lotStatus(item, lot){
@@ -130,13 +131,23 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const year = safeNumber(item?.year);
   const lotNumber = String(lot?.lot || lot?.lot_number || lot?.lotNumber || lot?.external_id || item?.lot || item?.lot_number || item?.lotNumber || "").replace(/~.*/, "");
   const title = item?.title || [year, make, model].filter(Boolean).join(" ") || "Автомобиль";
-  const location = safeName(lot?.location || lot?.branch || lot?.selling_branch || item?.location);
+  const location = locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location);
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
   const odometer = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
   const currentBid = safeNumber(lot?.bid || lot?.current_bid || lot?.currentBid || item?.current_bid || item?.bid);
+  const finalBid = safeNumber(lot?.final_bid || lot?.finalBid);
   const buyNow = safeNumber(lot?.buy_now || lot?.buyNow || item?.buy_now || item?.buyNow);
-  const rawSaleStatus = saleStatusRaw(item, lot);
+  const statusName = safeName(lot?.status || item?.status);
+  const statusId = (lot?.status && lot.status.id) || (item?.status && item.status.id) || null;
+  const sale = saleStatusInfo(lot, item);
+  const rawHistory = Array.isArray(lot?.prices) ? lot.prices : Array.isArray(item?.prices) ? item.prices : [];
+  const priceHistory = rawHistory.map(p => ({
+    bid:safeNumber(p?.bid || p?.final_bid),
+    buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
+    date:p?.sale_date || p?.final_bid_updated_at || p?.date || "",
+    status:safeName(p?.status)
+  })).filter(p => p.bid || p.buyNow || p.date);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
 
   return {
@@ -152,8 +163,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     location,
     auctionDate:lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "",
     currentBid,
+    finalBid,
     buyNow,
     odometer,
+    odometerKm:safeNumber(lot?.odometer?.km),
     odometerText:odometer ? `${odometer.toLocaleString("en-US")} mi` : "",
     primaryDamage,
     secondaryDamage,
@@ -170,11 +183,14 @@ function normalizeLot(source, fallbackAuction = "copart"){
     estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || item?.estimated_retail_value || item?.acv),
     seller:safeName(lot?.seller || item?.seller),
     condition:safeName(lot?.condition || item?.condition),
-    priceHistory:Array.isArray(lot?.prices) ? lot.prices : Array.isArray(item?.prices) ? item.prices : [],
+    priceHistory,
     photoCount:images.length,
     lotStatus:lotStatus(item, lot),
-    saleStatus:saleStatusLabel(rawSaleStatus),
-    saleStatusRaw:rawSaleStatus,
+    statusName,
+    statusId,
+    saleStatus:sale.label,
+    saleStatusKey:sale.key,
+    timed:sale.timed,
     images,
     image:images[0] || "",
     source:item
@@ -240,6 +256,12 @@ function buildSearchParams(query){
   const model = query.get("model");
   if(make && /^[\d,]+$/.test(make)) params.set("manufacturer_id", make);
   if(model && /^\d+$/.test(model)) params.set("model_id", model);
+  // Sale status → reserve-type filters
+  const saleStatus = query.get("saleStatus");
+  if(saleStatus === "no_reserve") params.set("auction_type", "pure_sale");
+  else if(saleStatus === "min_reserve") params.set("auction_type", "minimum_bid");
+  else if(saleStatus === "timed") params.set("is_timed_auction", "1");
+  else if(saleStatus === "on_approval") params.set("status", "4");
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
@@ -479,6 +501,18 @@ module.exports = async function handler(request, response){
       const payload = {ok:true, items};
       setCached(key, payload);
       sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "archived"){
+      const perPage = Math.min(1000, Math.max(1, Number(query.get("per_page") || query.get("limit") || 100) || 100));
+      const minutes = Math.min(4320, Math.max(1, Number(query.get("minutes") || 4320) || 4320));
+      const p = new URLSearchParams({per_page:String(perPage), minutes:String(minutes)});
+      const payload = await fetchJson(`${AUCTIONS_API_BASE}/archived-lots?${p}`);
+      const items = findItems(payload).map(it => normalizeLot(it, normalizeAuction(it?.domain || it?.auction || query.get("auction"))));
+      const result = {ok:true, items, total:items.length, archived:true};
+      setCached(key, result);
+      sendJson(response, 200, result);
       return;
     }
 
