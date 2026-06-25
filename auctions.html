@@ -109,6 +109,13 @@
                 <div class="comboMenuV2" id="modelMenuV2" hidden></div>
               </div>
             </details>
+            <details class="fSecV2"><summary>Поколение</summary>
+              <div class="comboV2">
+                <input id="filterGenV2" class="fInputV2" placeholder="Сначала выберите модель" autocomplete="off">
+                <input type="hidden" name="generation" id="filterGenIdV2">
+                <div class="comboMenuV2" id="genMenuV2" hidden></div>
+              </div>
+            </details>
             <details open class="fSecV2"><summary>Год</summary>
               <div class="rangeV2" data-range data-min="1980" data-max="2027">
                 <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="1980" max="2027" value="1980"><input type="range" class="rHiV2" min="1980" max="2027" value="2027"></div>
@@ -126,6 +133,12 @@
               <div class="rangeV2" data-range data-min="0" data-max="100000" data-step="500">
                 <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="100000" step="500" value="0"><input type="range" class="rHiV2" min="0" max="100000" step="500" value="100000"></div>
                 <div class="rangeNumsV2"><input name="bidFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="bidTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Цена «Купить сейчас»</summary>
+              <div class="rangeV2" data-range data-min="0" data-max="100000" data-step="500">
+                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="100000" step="500" value="0"><input type="range" class="rHiV2" min="0" max="100000" step="500" value="100000"></div>
+                <div class="rangeNumsV2"><input name="buyNowFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="buyNowTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
               </div>
             </details>
             <details class="fSecV2" open><summary>Тип топлива</summary>
@@ -164,6 +177,25 @@
                 <label class="optV2"><input type="radio" name="transmission" value="" checked><span>Любая</span></label>
                 <label class="optV2"><input type="radio" name="transmission" value="1"><span>Автомат</span></label>
                 <label class="optV2"><input type="radio" name="transmission" value="2"><span>Механика</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Цилиндры</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="cylinders" value="" checked><span>Любое</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="3"><span>3</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="4"><span>4</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="5"><span>5</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="6"><span>6</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="8"><span>8</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="10"><span>10</span></label>
+                <label class="optV2"><input type="radio" name="cylinders" value="12"><span>12</span></label>
+              </div>
+            </details>
+            <details class="fSecV2"><summary>Страна</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="radio" name="country" value="" checked><span>Любая</span></label>
+                <label class="optV2"><input type="radio" name="country" value="US"><span>США</span></label>
+                <label class="optV2"><input type="radio" name="country" value="CA"><span>Канада</span></label>
               </div>
             </details>
             <details class="fSecV2"><summary>Состояние</summary>
@@ -252,7 +284,7 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
   <script src="/car-data.js?v=cars-v3" defer></script>
-  <script src="/auctions.js?v=auctions-v24" defer></script>
+  <script src="/auctions.js?v=auctions-v25" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>

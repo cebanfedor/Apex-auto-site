@@ -214,6 +214,8 @@ function buildSearchParams(query){
     buyNowTo:"buy_now_price_to",
     mileageFrom:"odometer_from_mi",
     mileageTo:"odometer_to_mi",
+    mileageFromKm:"odometer_from_km",
+    mileageToKm:"odometer_to_km",
     fuel:"fuel_type",
     body:"body_type",
     transmission:"transmission",
@@ -223,7 +225,6 @@ function buildSearchParams(query){
     cylinders:"cylinders",
     damage:"damage",
     document:"document_title",
-    name:"name",
     state:"state_code",
     country:"country",
     generation:"generation_id",
@@ -461,6 +462,20 @@ module.exports = async function handler(request, response){
         .filter(m => m && Number(m.cars_qty) > 0)
         .map(m => ({id:m.id, name:m.name, qty:m.cars_qty}))
         .sort((a, b) => a.name.localeCompare(b.name));
+      const payload = {ok:true, items};
+      setCached(key, payload);
+      sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "generations"){
+      const mid = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+      if(!mid){ sendJson(response, 200, {ok:true, items:[]}); return; }
+      const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${mid}`);
+      const items = (Array.isArray(list?.data) ? list.data : [])
+        .filter(m => m && m.name)
+        .map(m => ({id:m.id, name:m.name, qty:m.cars_qty}))
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
       const payload = {ok:true, items};
       setCached(key, payload);
       sendJson(response, 200, payload);

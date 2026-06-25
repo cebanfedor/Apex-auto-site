@@ -91,12 +91,12 @@
     Array.from(params.entries()).forEach(([key, value]) => {
       if(!value) params.delete(key);
     });
-    // Mileage may be entered in km; the API expects miles.
+    // Mileage may be entered in km; the API has native odometer_from_km/to_km params.
     const odoUnit = document.querySelector("[data-odo-unit].active")?.dataset.odoUnit;
     if(odoUnit === "km"){
-      ["mileageFrom", "mileageTo"].forEach(k => {
-        const v = params.get(k);
-        if(v) params.set(k, String(Math.round(Number(v) / 1.609)));
+      [["mileageFrom","mileageFromKm"], ["mileageTo","mileageToKm"]].forEach(([from, to]) => {
+        const v = params.get(from);
+        if(v){ params.set(to, v); params.delete(from); }
       });
     }
     // sale_date_to is exclusive (treated as 00:00) — bump the "До" day by 1 so the picked day is included.
@@ -888,8 +888,17 @@
     const makeId = document.getElementById("filterMakeIdV2");
     const modelInput = document.getElementById("filterModelV2");
     const modelId = document.getElementById("filterModelIdV2");
+    const genInput = document.getElementById("filterGenV2");
+    const genId = document.getElementById("filterGenIdV2");
     let manufacturers = [];
     let models = [];
+    let generations = [];
+
+    function resetGenerations(){
+      generations = [];
+      if(genInput){ genInput.value = ""; genInput.placeholder = "Сначала выберите модель"; }
+      if(genId) genId.value = "";
+    }
 
     // Make + Model: live from API (manufacturer_id / model_id); fall back to static names locally.
     setupCombo("filterMakeV2", "makeMenuV2", () => manufacturers, async (opt) => {
@@ -897,6 +906,7 @@
       if(modelInput){ modelInput.value = ""; modelInput.placeholder = "Загрузка моделей…"; }
       if(modelId) modelId.value = "";
       models = [];
+      resetGenerations();
       if(opt.id != null){
         try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(opt.id)}`); models = r.items || []; }
         catch(e){ models = []; }
@@ -908,8 +918,21 @@
     });
     makeInput?.addEventListener("input", () => { if(makeId) makeId.value = ""; });
 
-    setupCombo("filterModelV2", "modelMenuV2", () => models, (opt) => { if(modelId) modelId.value = opt.id != null ? opt.id : ""; });
-    modelInput?.addEventListener("input", () => { if(modelId) modelId.value = ""; });
+    setupCombo("filterModelV2", "modelMenuV2", () => models, async (opt) => {
+      if(modelId) modelId.value = opt.id != null ? opt.id : "";
+      resetGenerations();
+      if(opt.id != null){
+        if(genInput) genInput.placeholder = "Загрузка поколений…";
+        try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(opt.id)}`); generations = r.items || []; }
+        catch(e){ generations = []; }
+        if(genInput) genInput.placeholder = generations.length ? "Любое поколение" : "Поколения не найдены";
+      }
+    });
+    modelInput?.addEventListener("input", () => { if(modelId) modelId.value = ""; resetGenerations(); });
+
+    // Generation → generation_id (depends on the selected model)
+    setupCombo("filterGenV2", "genMenuV2", () => generations, (opt) => { if(genId) genId.value = opt.id != null ? opt.id : ""; });
+    genInput?.addEventListener("input", () => { if(genId) genId.value = ""; });
 
     api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; }).catch(() => {
       manufacturers = (data.makes || []).map(n => ({id:null, name:n}));
