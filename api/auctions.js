@@ -327,13 +327,14 @@ function buildSearchParams(query){
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6,8");
   }
-  // Show only lots that actually have an auction date. The API returns
-  // sale_date=null for unscheduled lots; sale_date_in_days returns the dated
-  // (scheduled/current) ones. Applied to the live tabs, with or without filters.
+  // Show only lots that actually have an upcoming auction date. The API returns
+  // sale_date=null for unscheduled lots; next_hours_auction returns lots whose
+  // auction is within the next N hours (real, current/soon, status "sale").
+  // Applied to the live tabs, with or without filters.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
-  const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days");
+  const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days") || params.get("next_hours_auction");
   if(tabUpcoming && !hasDateFilter){
-    params.set("sale_date_in_days", "3");
+    params.set("next_hours_auction", "168"); // ~7 days of scheduled auctions
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");

@@ -391,17 +391,27 @@
     if(/\blive\b|active|идут/.test(s)) return ["Идут торги", "live"];
     return ["", ""];
   }
-  // Condition → Russian label + tone + icon (green check / yellow ! / gray dash)
+  // Condition → Russian label + tone + icon. Full AuctionsAPI enum:
+  // 0 run_and_drives, 1 for_repair, 2 to_be_dismantled, 3 not_run, 4 used,
+  // 5 unconfirmed, 6 engine_starts, 7 enhanced.
   function conditionInfo(raw){
     const t = String(raw || "").toLowerCase().replace(/[_-]+/g, " ").trim();
     if(!t) return {label:"—", tone:"neutral", icon:"q"};
-    if(/run.?and.?drive|runs.?and.?drives|заводится и едет|на ходу(?!.*не)/.test(t) && !/не на ходу/.test(t))
+    if(/run and drive|runs and drives|заводится и едет/.test(t))
       return {label:"Заводится и едет", tone:"good", icon:"check"};
-    if(/engine starts|\bstarts?\b|стартует|^заводится$|заводится(?!.*едет)/.test(t))
+    if(/engine start|стартует|^заводится$|заводится(?!.*едет)/.test(t))
       return {label:"Заводится", tone:"warn", icon:"excl"};
+    if(/to be dismantled|dismantl|на разбор/.test(t))
+      return {label:"На разбор", tone:"bad", icon:"warn"};
+    if(/for repair|на запчаст|ремонт/.test(t))
+      return {label:"На запчасти / ремонт", tone:"warn", icon:"excl"};
+    if(/unconfirmed|не подтвержд/.test(t))
+      return {label:"Не подтверждено", tone:"neutral", icon:"q"};
+    if(/^used$|^б ?\/? ?у$|^used /.test(t))
+      return {label:"Б/у", tone:"neutral", icon:"dot"};
     if(/enhanced|inop|non run|not run|stationary|не на ходу|не заводится/.test(t))
       return {label:"Не на ходу", tone:"neutral", icon:"dot"};
-    return {label: raw, tone: statusTone(raw) || "neutral", icon:"q"};
+    return {label: tc(raw), tone: statusTone(raw) || "neutral", icon:"q"};
   }
   // Auction badge (C / IA) — links straight to the lot on Copart/IAAI.
   function aucLinkBadge(lot){
