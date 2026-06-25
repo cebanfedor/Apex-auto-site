@@ -290,6 +290,8 @@ function buildSearchParams(query){
   // Sale status (reserve type) is not a server-side filter on /cars — applied
   // client-side over loaded lots. "На утверждении" maps to the status param.
   if(query.get("saleStatus") === "on_approval") params.set("status", "4");
+  // Whether the user has applied any real filter (decides if we narrow to dated lots).
+  const hasUserFilters = Array.from(params.keys()).length > 0;
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
@@ -304,7 +306,7 @@ function buildSearchParams(query){
   const sort = query.get("sort") || "soon";
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days");
-  if(sort === "soon" && tabUpcoming && !hasDateFilter){
+  if(sort === "soon" && tabUpcoming && !hasDateFilter && !hasUserFilters){
     params.set("sale_date_in_days", "3");
   }
   params.set("page", query.get("page") || "1");
