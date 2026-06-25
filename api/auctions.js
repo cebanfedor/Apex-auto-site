@@ -303,6 +303,9 @@ function buildSearchParams(query){
     auctionDateFrom:"sale_date_from",
     auctionDateTo:"sale_date_to",
     daysAhead:"sale_date_in_days",
+    nextHours:"next_hours_auction",
+    withoutSaleDate:"without_sale_date",
+    engineName:"engine_name",
     lotStatus:"status"
   };
   for(const [from, to] of Object.entries(map)){

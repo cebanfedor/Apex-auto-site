@@ -16,3 +16,5 @@ npm-debug.log*
 
 # local tooling
 .claude/
+assets/Claude.dmg
+*.dmg
