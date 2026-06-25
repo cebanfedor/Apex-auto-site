@@ -354,7 +354,8 @@
     play:'<circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/>',
     excl:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.2M12 16v.4"/>',
     dot:'<circle cx="12" cy="12" r="7.5"/><path d="M8.5 12h7"/>',
-    ext:'<path d="M14 5h5v5M19 5l-7 7M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/>'
+    ext:'<path d="M14 5h5v5M19 5l-7 7M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/>',
+    copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -402,13 +403,18 @@
       return {label:"Не на ходу", tone:"neutral", icon:"dot"};
     return {label: raw, tone: statusTone(raw) || "neutral", icon:"q"};
   }
-  // Clickable auction mark linking to the lot on Copart/IAAI.
-  function aucMark(lot){
+  // Auction badge (C / IA) — links straight to the lot on Copart/IAAI.
+  function aucLinkBadge(lot){
     const a = lot.auction === "iaai" ? "iaai" : "copart";
     const label = a.toUpperCase();
     const mark = a === "iaai" ? "IA" : "C";
     const href = lot.url || "#";
-    return `<a class="dbLotLink dbLotLink--${a}" href="${escapeHtml(href)}" target="_blank" rel="noopener nofollow" title="Открыть лот ${escapeHtml(lot.lot || "")} на ${label}"><span class="aucMark aucMark--${a}">${mark}</span>${escapeHtml(lot.lot || "—")}${dbIco("ext")}</a>`;
+    return `<a class="aucMark aucMark--${a}" href="${escapeHtml(href)}" target="_blank" rel="noopener nofollow" title="Открыть лот ${escapeHtml(lot.lot || "")} на ${label}">${mark}${dbIco("ext")}</a>`;
+  }
+  // Click-to-copy chip (VIN / lot number).
+  function copyChip(value, label, cls, preIcon){
+    if(!value) return `<span class="${cls}">${preIcon ? dbIco(preIcon) : ""}—</span>`;
+    return `<span class="${cls} copyChipV1" role="button" tabindex="0" data-copy="${escapeHtml(value)}" title="${escapeHtml(label)}">${preIcon ? dbIco(preIcon) : ""}<span class="copyTextV1">${escapeHtml(value)}</span>${dbIco("copy")}</span>`;
   }
   function dbSpec(icon, value){
     if(!value) return "";
@@ -488,8 +494,9 @@
         <div class="dbHead">
           <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
           <div class="dbIds">
-            <span class="dbVin">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
-            ${aucMark(lot)}
+            ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
+            ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
+            ${aucLinkBadge(lot)}
             ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
           </div>
         </div>
@@ -864,7 +871,7 @@
           <div>
             <span class="auctionCrumbsV1">Главная / Аукционы / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
             <h1>${escapeHtml(title)}</h1>
-            <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? `<span class="dSpecVin">${dbIco("vin")}${escapeHtml(lot.vin)}</span>` : ""}</p>
+            <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}</p>
           </div>
           <div class="dHeadActionsV1">
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
@@ -902,8 +909,8 @@
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
             <section class="dSec">
               <div class="dSecHead">Аукцион</div>
-              ${dPlain("VIN", escapeHtml(lot.vin))}
-              ${dPlain("Номер лота", `<a class="dLink" href="${escapeHtml(lot.url || "#")}" target="_blank" rel="noopener nofollow">${escapeHtml(lot.lot || "—")}</a> <span class="dAucMini">${escapeHtml(lot.auction.toUpperCase())}</span>`)}
+              ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
+              ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${dPlain("Статус продажи", escapeHtml(lot.saleStatus))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate)))}
               ${dPlain("Локация", escapeHtml(tc(lot.location)))}
@@ -1211,6 +1218,23 @@
     $("#searchSettingsBtn")?.addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
     $("#closeFiltersBtn").addEventListener("click", () => document.body.classList.remove("filtersOpenV1"));
     document.addEventListener("click", event => {
+      const copyEl = event.target.closest("[data-copy]");
+      if(copyEl){
+        event.preventDefault();
+        event.stopPropagation();
+        const val = copyEl.dataset.copy || "";
+        const done = () => { copyEl.classList.add("copiedV1"); setTimeout(() => copyEl.classList.remove("copiedV1"), 1100); };
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(val).then(done).catch(() => {
+            const ta = document.createElement("textarea"); ta.value = val; document.body.appendChild(ta); ta.select();
+            try{ document.execCommand("copy"); }catch(e){} ta.remove(); done();
+          });
+        }else{
+          const ta = document.createElement("textarea"); ta.value = val; document.body.appendChild(ta); ta.select();
+          try{ document.execCommand("copy"); }catch(e){} ta.remove(); done();
+        }
+        return;
+      }
       const favBtn = event.target.closest("[data-fav]");
       if(favBtn){
         event.preventDefault();

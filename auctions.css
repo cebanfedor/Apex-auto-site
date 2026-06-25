@@ -155,18 +155,26 @@
 .dbBody { min-width:0; display:flex; flex-direction:column; gap:11px; }
 .dbTitle { display:block; font-size:16px; font-weight:700; letter-spacing:-.01em; color:var(--aInk); line-height:1.2; }
 .dbTitle:hover { color:var(--aRed); }
-.dbIds { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:5px; }
-.dbIds span { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aMuted); }
+.dbIds { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:5px; }
+.dbIds > span { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aMuted); }
 .dbVin { font-variant-numeric:tabular-nums; }
 .dbLotNo { color:var(--aInk2); }
-/* Clickable auction lot link with Copart/IAAI mark */
-.dbLotLink { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); text-decoration:none; font-variant-numeric:tabular-nums; }
-.dbLotLink:hover { color:var(--aRed); }
-.dbLotLink:hover .aucMark { filter:brightness(1.08); }
-.dbLotLink .dbIco { width:12px; height:12px; opacity:.5; }
-.aucMark { display:inline-flex; align-items:center; justify-content:center; min-width:19px; height:16px; padding:0 4px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:.02em; color:#fff; }
+/* Click-to-copy chips (VIN / lot number) */
+.copyChipV1 { cursor:pointer; border-radius:6px; padding:1px 5px; transition:background .15s, color .15s; position:relative; }
+.copyChipV1 .dbIco:last-child { width:12px; height:12px; opacity:.4; transition:opacity .15s; }
+.copyChipV1:hover { background:var(--aSoft); color:var(--aInk); }
+.copyChipV1:hover .dbIco:last-child { opacity:.85; }
+.copyChipV1.copiedV1 { background:#e7f6ec; color:#1d9b53; }
+.copyChipV1.copiedV1 .dbIco:last-child { opacity:0; }
+.copyChipV1.copiedV1::after { content:"Скопировано"; position:absolute; left:50%; top:-26px; transform:translateX(-50%); background:#1d9b53; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; white-space:nowrap; z-index:5; }
+/* Auction badge — links to the lot on Copart/IAAI */
+.aucMark { display:inline-flex; align-items:center; gap:3px; height:18px; padding:0 6px; border-radius:5px; font-size:9.5px; font-weight:800; letter-spacing:.02em; color:#fff; text-decoration:none; }
+.aucMark .dbIco { width:11px; height:11px; opacity:.85; }
+.aucMark:hover { filter:brightness(1.1); }
 .aucMark--copart { background:#1f6bff; }
 .aucMark--iaai { background:#e8780c; }
+/* Detail copy value */
+.dCopyValV1 { display:inline-flex; align-items:center; gap:5px; font-variant-numeric:tabular-nums; }
 .dbNew { background:#eaf1ff; color:#1f6bff; font-weight:700; font-size:10.5px; padding:2px 8px; border-radius:6px; }
 .dbIco { width:15px; height:15px; flex:none; }
 
