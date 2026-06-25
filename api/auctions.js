@@ -216,6 +216,23 @@ function findItems(payload){
   return [];
 }
 
+// Pull every page of a paginated /usa/* dictionary (small lists; capped).
+async function fetchAllPages(path, cap = 12){
+  const all = [];
+  for(let page = 1; page <= cap; page++){
+    const sep = path.includes("?") ? "&" : "?";
+    const payload = await fetchJson(`${AUCTIONS_API_BASE}${path}${sep}page=${page}`);
+    const rows = findItems(payload);
+    if(!rows.length) break;
+    all.push(...rows);
+    const meta = payload?.meta || payload?.data?.meta || payload;
+    const lastPage = Number(meta?.last_page || meta?.lastPage || 0);
+    if(lastPage && page >= lastPage) break;
+    if(!lastPage && rows.length < 20) break;
+  }
+  return all;
+}
+
 function buildSearchParams(query){
   const params = new URLSearchParams();
   const map = {
@@ -500,6 +517,32 @@ module.exports = async function handler(request, response){
         .filter(m => m && m.name)
         .map(m => ({id:m.id, name:m.name, qty:m.cars_qty}))
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      const payload = {ok:true, items};
+      setCached(key, payload);
+      sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "usadict"){
+      const dict = String(query.get("dict") || "").toLowerCase();
+      const country = String(query.get("country") || "us").toLowerCase() === "ca" ? "ca" : "us";
+      const domainId = String(query.get("domain_id") || "3").replace(/[^0-9]/g, "") || "3";
+      const stateId = String(query.get("state_id") || "").replace(/[^0-9]/g, "");
+      const paths = {
+        damages:"/usa/damages",
+        states:`/usa/states?country=${country}`,
+        titles:"/usa/titles",
+        branches:`/usa/branches?domain_id=${domainId}`,
+        cities:stateId ? `/usa/cities/${stateId}` : ""
+      };
+      const path = paths[dict];
+      if(!path){ sendJson(response, 200, {ok:true, items:[]}); return; }
+      const rows = await fetchAllPages(path);
+      const items = rows.map(d => ({
+        id:d.id != null ? d.id : null,
+        name:safeName(d.name || d.title || d.damage || d),
+        code:d.state_code || d.code || d.abbr || ""
+      })).filter(d => d.name);
       const payload = {ok:true, items};
       setCached(key, payload);
       sendJson(response, 200, payload);
