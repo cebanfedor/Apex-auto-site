@@ -290,8 +290,6 @@ function buildSearchParams(query){
   // Sale status (reserve type) is not a server-side filter on /cars — applied
   // client-side over loaded lots. "На утверждении" maps to the status param.
   if(query.get("saleStatus") === "on_approval") params.set("status", "4");
-  // Whether the user has applied any real filter (decides if we narrow to dated lots).
-  const hasUserFilters = Array.from(params.keys()).length > 0;
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
@@ -300,13 +298,12 @@ function buildSearchParams(query){
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6,8");
   }
-  // Default "Скоро торги" view: the API returns sale_date=null for unscheduled
-  // lots (so every card would show "Future"). sale_date_in_days makes it return
-  // lots that actually have an auction date (today/recent) — the cars on today.
-  const sort = query.get("sort") || "soon";
+  // Show only lots that actually have an auction date. The API returns
+  // sale_date=null for unscheduled lots; sale_date_in_days returns the dated
+  // (scheduled/current) ones. Applied to the live tabs, with or without filters.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days");
-  if(sort === "soon" && tabUpcoming && !hasDateFilter && !hasUserFilters){
+  if(tabUpcoming && !hasDateFilter){
     params.set("sale_date_in_days", "3");
   }
   params.set("page", query.get("page") || "1");
