@@ -111,16 +111,6 @@
     return params;
   }
 
-  function sortClient(items, sort){
-    const list = items.slice();
-    const price = l => l.finalBid || l.currentBid || l.buyNow || 0;
-    if(sort === "price_asc") return list.sort((a, b) => price(a) - price(b));
-    if(sort === "price_desc") return list.sort((a, b) => price(b) - price(a));
-    if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
-    if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 1e12) - (b.odometer || 1e12));
-    return list.sort((a, b) => new Date(b.auctionDate || 0) - new Date(a.auctionDate || 0));
-  }
-
   function statusTone(value){
     const text = String(value || "").toLowerCase();
     if(!value) return "";
@@ -429,11 +419,23 @@
     </article>`;
   }
 
+  function matchSale(lot, sale){
+    if(!sale) return true;
+    if(sale === "timed") return !!lot.timed;
+    if(sale === "on_approval") return lot.statusId === 4 || /approval/i.test(lot.statusName || "");
+    return lot.saleStatusKey === sale;
+  }
+
   function renderCards(append = false){
     const box = $("#auctionCards");
-    const html = state.items.map(renderCard).join("");
+    const sale = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
+    const items = sale ? state.items.filter(lot => matchSale(lot, sale)) : state.items;
+    const html = items.map(renderCard).join("");
     box.innerHTML = append ? box.innerHTML + html : html;
     $("#loadMoreLots").hidden = !state.hasMore;
+    if(sale && !append){
+      $("#auctionResultLabel").textContent = `показано ${items.length} (фильтр статуса продажи)`;
+    }
   }
 
   // Demo lots so the catalog is reviewable on localhost without AUCTIONS_API_KEY.
@@ -459,20 +461,16 @@
     if(!append) $("#auctionCards").innerHTML = "";
     const archived = state.tab === "archived";
     try{
-      const url = archived
-        ? `/api/auctions?action=archived&per_page=200&auction=${encodeURIComponent(state.auction)}`
-        : `/api/auctions?action=search&${formParams()}`;
-      const payload = await api(url);
-      let nextItems = payload.items || [];
-      if(archived) nextItems = sortClient(nextItems, $("#auctionSort").value);
-      state.hasMore = archived ? false : Boolean(payload.hasMore);
+      const payload = await api(`/api/auctions?action=search&${formParams()}`);
+      const nextItems = payload.items || [];
+      state.hasMore = Boolean(payload.hasMore);
       state.items = append ? state.items.concat(nextItems) : nextItems;
-      $("#auctionResultCount").textContent = (archived ? state.items.length : (payload.total || state.items.length)) || 0;
-      $("#auctionResultLabel").textContent = archived
-        ? "лотов в архиве (за 3 дня)"
-        : (payload.total ? (payload.cached ? "лотов найдено · кэш" : "лотов найдено") : `Показано ${state.items.length} лотов`);
+      $("#auctionResultCount").textContent = (payload.total || state.items.length) || 0;
+      $("#auctionResultLabel").textContent = payload.total
+        ? (archived ? "лотов в архиве" : (payload.cached ? "лотов найдено · кэш" : "лотов найдено"))
+        : `Показано ${state.items.length} лотов`;
       renderCards(false);
-      if(!state.items.length) setMessage(archived ? "В архиве пока нет недавно завершённых лотов. Загляните позже." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
+      if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
       state.hasMore = false;
       $("#loadMoreLots").hidden = true;

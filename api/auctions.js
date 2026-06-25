@@ -94,7 +94,7 @@ function locationLabel(loc){
 // Sources: lots[0].auction_type ("pure_sale"), lots[0].seller_reserve, is_timed_auction.
 function saleStatusInfo(lot, item){
   const reserve = lot?.seller_reserve != null ? lot.seller_reserve : item?.seller_reserve;
-  const auctionType = String(lot?.auction_type || item?.auction_type || "").toLowerCase();
+  const auctionType = safeName(lot?.auction_type || item?.auction_type).toLowerCase();
   const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true;
   let key = "", label = "";
   if(reserve != null && Number(reserve) > 0){ key = "min_reserve"; label = "Минимальный резерв"; }
@@ -256,15 +256,16 @@ function buildSearchParams(query){
   const model = query.get("model");
   if(make && /^[\d,]+$/.test(make)) params.set("manufacturer_id", make);
   if(model && /^\d+$/.test(model)) params.set("model_id", model);
-  // Sale status → reserve-type filters
-  const saleStatus = query.get("saleStatus");
-  if(saleStatus === "no_reserve") params.set("auction_type", "pure_sale");
-  else if(saleStatus === "min_reserve") params.set("auction_type", "minimum_bid");
-  else if(saleStatus === "timed") params.set("is_timed_auction", "1");
-  else if(saleStatus === "on_approval") params.set("status", "4");
+  // Sale status (reserve type) is not a server-side filter on /cars — applied
+  // client-side over loaded lots. "На утверждении" maps to the status param.
+  if(query.get("saleStatus") === "on_approval") params.set("status", "4");
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
+  // Archive = past auctions (any outcome): include expired + cut off at today.
+  if(tab === "archived" && !params.get("sale_date_to")){
+    params.set("sale_date_to", new Date().toISOString().slice(0, 10));
+  }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
   params.set("simple_paginate", "0");
