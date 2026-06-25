@@ -81,7 +81,7 @@
         try{ form.elements[k].value = v; }catch(e){}
       }
     }
-    document.querySelectorAll("[data-range]").forEach(r => { if(r._refresh) r._refresh(); });
+    document.querySelectorAll("[data-range]").forEach(r => { if(r._applyNums) r._applyNums(); else if(r._refresh) r._refresh(); });
   }
 
   function saleClass(value){
@@ -575,7 +575,6 @@
         ? (archived ? "лотов в архиве" : (payload.cached ? "лотов найдено · кэш" : "лотов найдено"))
         : `Показано ${state.items.length} лотов`;
       renderCards(false);
-      syncUrl();
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
@@ -592,6 +591,7 @@
       }
     }finally{
       state.loading = false;
+      syncUrl();
     }
   }
 
@@ -1039,6 +1039,7 @@
       if(numLo) numLo.addEventListener("input", fromNum);
       if(numHi) numHi.addEventListener("input", fromNum);
       range._refresh = fromSlider;
+      range._applyNums = fromNum; // sync slider position from the number inputs (used on URL restore)
       paint();
     });
   }

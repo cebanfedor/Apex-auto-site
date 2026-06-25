@@ -142,7 +142,9 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const statusName = safeName(lot?.status || item?.status);
   const statusId = (lot?.status && lot.status.id) || (item?.status && item.status.id) || null;
   const sale = saleStatusInfo(lot, item);
-  const rawHistory = Array.isArray(lot?.prices) ? lot.prices : Array.isArray(item?.prices) ? item.prices : [];
+  const rawHistory = (Array.isArray(lot?.prices) && lot.prices.length) ? lot.prices
+    : (Array.isArray(item?.prices) && item.prices.length) ? item.prices
+    : (Array.isArray(item?.lots) ? (item.lots.find(l => Array.isArray(l?.prices) && l.prices.length)?.prices || []) : []);
   const priceHistory = rawHistory.map(p => ({
     bid:safeNumber(p?.bid || p?.final_bid),
     buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
