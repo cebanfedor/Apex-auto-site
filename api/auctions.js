@@ -217,20 +217,32 @@ function findItems(payload){
 }
 
 // Pull every page of a paginated /usa/* dictionary (small lists; capped).
+// Stops when a page repeats (some endpoints ignore ?page) or last_page is hit.
 async function fetchAllPages(path, cap = 12){
   const all = [];
+  let prevFirstId;
   for(let page = 1; page <= cap; page++){
     const sep = path.includes("?") ? "&" : "?";
     const payload = await fetchJson(`${AUCTIONS_API_BASE}${path}${sep}page=${page}`);
     const rows = findItems(payload);
     if(!rows.length) break;
+    const firstId = rows[0] && rows[0].id;
+    if(page > 1 && firstId != null && firstId === prevFirstId) break; // page param ignored → repeated page
+    prevFirstId = firstId;
     all.push(...rows);
     const meta = payload?.meta || payload?.data?.meta || payload;
     const lastPage = Number(meta?.last_page || meta?.lastPage || 0);
     if(lastPage && page >= lastPage) break;
     if(!lastPage && rows.length < 20) break;
   }
-  return all;
+  // de-duplicate by id (then by name) — some lists return overlapping rows
+  const seen = new Set();
+  return all.filter(r => {
+    const k = r && r.id != null ? `id:${r.id}` : `n:${safeName(r?.name || r?.title || r)}`;
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 }
 
 function buildSearchParams(query){
