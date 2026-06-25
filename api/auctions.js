@@ -277,6 +277,8 @@ function buildSearchParams(query){
     auctionDateFrom:"sale_date_from",
     auctionDateTo:"sale_date_to",
     daysAhead:"sale_date_in_days",
+    orderBy:"order_by",
+    orderDir:"order_direction",
     lotStatus:"status"
   };
   for(const [from, to] of Object.entries(map)){
