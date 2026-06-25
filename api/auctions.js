@@ -277,8 +277,6 @@ function buildSearchParams(query){
     auctionDateFrom:"sale_date_from",
     auctionDateTo:"sale_date_to",
     daysAhead:"sale_date_in_days",
-    orderBy:"order_by",
-    orderDir:"order_direction",
     lotStatus:"status"
   };
   for(const [from, to] of Object.entries(map)){
@@ -299,6 +297,15 @@ function buildSearchParams(query){
   // unreliable in this API, so use the status field (CSV is accepted).
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6,8");
+  }
+  // Default "Скоро торги" view: the API returns sale_date=null for unscheduled
+  // lots (so every card would show "Future"). sale_date_in_days makes it return
+  // lots that actually have an auction date (today/recent) — the cars on today.
+  const sort = query.get("sort") || "soon";
+  const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
+  const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days");
+  if(sort === "soon" && tabUpcoming && !hasDateFilter){
+    params.set("sale_date_in_days", "3");
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
@@ -432,9 +439,14 @@ function sortItems(items, sort){
   if(sort === "price_desc") return list.sort((a, b) => (b.currentBid || b.buyNow || 0) - (a.currentBid || a.buyNow || 0));
   if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
   if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 0) - (b.odometer || 0));
-  // "soon": lots with a real sale date first (soonest at top), undated lots last.
-  const ts = v => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? Infinity : t; };
-  return list.sort((a, b) => ts(a.auctionDate) - ts(b.auctionDate));
+  // "soon": lots with a real sale date first (today/freshest at top), undated last.
+  const ts = v => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
+  return list.sort((a, b) => {
+    const ta = ts(a.auctionDate), tb = ts(b.auctionDate);
+    if(ta === null) return tb === null ? 0 : 1;
+    if(tb === null) return -1;
+    return tb - ta;
+  });
 }
 
 async function handleLead(request, response){
