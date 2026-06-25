@@ -902,7 +902,7 @@
               ${dMain("Статус документов", tc(lot.document))}
               ${dMain("История торгов", lot.priceHistory?.length ? `${lot.priceHistory.length} ${plural(lot.priceHistory.length, "запись", "записи", "записей")}` : "Впервые на аукционе")}
               ${dPlain("Двигатель / привод", escapeHtml(driveLine))}
-              ${dPlain("Пробег", escapeHtml(dbOdo(lot.odometerText)))}
+              ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus ? ` <span class="${/actual|факт/i.test(lot.odometerStatus) ? "odoOkV1" : "odoWarnV1"}">${/actual|факт/i.test(lot.odometerStatus) ? "фактический" : escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`)}
               ${dMain("Основное повреждение", tc(primaryDmg))}
               ${dMain("Вторичное повреждение", tc(secondaryDmg))}
             </section>
@@ -922,6 +922,10 @@
               ${dPlain("Цвет кузова", escapeHtml(tc(lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(tc(lot.body)))}
               ${dPlain("Цилиндры", escapeHtml(lot.cylinders))}
+              ${dPlain("Ключи", escapeHtml(lot.keys))}
+              ${dPlain("Оценка до аварии", lot.preAccidentPrice ? money(lot.preAccidentPrice) : "")}
+              ${dPlain("Оптовая (clean)", lot.cleanWholesalePrice ? money(lot.cleanWholesalePrice) : "")}
+              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory)}
           </div>

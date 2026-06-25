@@ -78,6 +78,25 @@ function imageList(value){
     .filter((item, index, all) => all.indexOf(item) === index);
 }
 
+function keysLabel(lot, item){
+  const v = lot?.keys_available != null ? lot.keys_available
+    : item?.keys_available != null ? item.keys_available
+    : (lot?.keys != null ? lot.keys : item?.keys);
+  if(v === true) return "Да";
+  if(v === false) return "Нет";
+  return safeName(v);
+}
+
+function driveLabel(value){
+  const t = safeName(value).toLowerCase();
+  if(!t) return "";
+  if(/all|awd/.test(t)) return "AWD";
+  if(/front|fwd/.test(t)) return "FWD";
+  if(/rear|rwd/.test(t)) return "RWD";
+  if(/4|four/.test(t)) return "4×4";
+  return safeName(value);
+}
+
 function locationLabel(loc){
   if(!loc) return "";
   if(typeof loc === "string") return loc;
@@ -171,20 +190,25 @@ function normalizeLot(source, fallbackAuction = "copart"){
     odometer,
     odometerKm:safeNumber(lot?.odometer?.km),
     odometerText:odometer ? `${odometer.toLocaleString("en-US")} mi` : "",
+    odometerStatus:safeName(lot?.odometer?.status),
     primaryDamage,
     secondaryDamage,
     damage:[primaryDamage, secondaryDamage].filter(Boolean).join(" / "),
     document:safeName(lot?.detailed_title || lot?.title || lot?.document || item?.document),
+    titleStatus:safeName(lot?.title || lot?.detailed_title),
     fuel:safeName(item?.fuel || lot?.fuel),
     engine:safeName(item?.engine || lot?.engine),
     transmission:safeName(item?.transmission || lot?.transmission),
-    drive:safeName(item?.drive || item?.drive_type || lot?.drive),
+    drive:driveLabel(item?.drive_wheel || lot?.drive_wheel || item?.drive || item?.drive_type || lot?.drive),
     body:safeName(item?.body_type || item?.vehicle_type || lot?.body_type),
     cylinders:safeName(item?.cylinders || lot?.cylinders),
     color:safeName(item?.color || lot?.color),
-    keys:safeName(item?.keys || lot?.keys),
-    estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || item?.estimated_retail_value || item?.acv),
-    seller:safeName(lot?.seller || item?.seller),
+    keys:keysLabel(lot, item),
+    video:(lot?.images?.video) || (item?.images?.video) || "",
+    estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || lot?.pre_accident_price || lot?.clean_wholesale_price || item?.estimated_retail_value || item?.acv),
+    preAccidentPrice:safeNumber(lot?.pre_accident_price),
+    cleanWholesalePrice:safeNumber(lot?.clean_wholesale_price),
+    seller:safeName(lot?.seller || item?.seller || lot?.seller_type),
     condition:safeName(lot?.condition || item?.condition),
     priceHistory,
     photoCount:images.length,

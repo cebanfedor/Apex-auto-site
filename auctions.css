@@ -175,6 +175,10 @@
 .aucMark--iaai { background:#e8780c; }
 /* Detail copy value */
 .dCopyValV1 { display:inline-flex; align-items:center; gap:5px; font-variant-numeric:tabular-nums; }
+/* Odometer status badge */
+.odoOkV1, .odoWarnV1 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; padding:1px 7px; border-radius:999px; margin-left:6px; }
+.odoOkV1 { background:#e7f6ec; color:#1d9b53; }
+.odoWarnV1 { background:#fdeceb; color:#d33a2c; }
 .dbNew { background:#eaf1ff; color:#1f6bff; font-weight:700; font-size:10.5px; padding:2px 8px; border-radius:6px; }
 .dbIco { width:15px; height:15px; flex:none; }
 
