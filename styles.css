@@ -340,6 +340,18 @@ details[open] > summary::before { content: "– "; }
 .extra { margin-top: 10px; }
 #calcForm button[type="submit"] { margin-top: 4px; width: 100%; }
 
+/* compact calculator — tighter spacing without touching other cards */
+#calcForm.formCard { gap: 9px; padding: 18px; }
+#calcForm .formRow { gap: 3px; }
+#calcForm .formRow > label { font-size: 12px; }
+#calcForm .grid { gap: 10px; }
+#calcForm input, #calcForm select { height: 42px; font-size: 14px; }
+#calcForm .glassSelectButtonV152 { height: 42px; font-size: 14px; }
+#calcForm .offsiteCheck { padding: 9px 12px; }
+#calcForm .locationOffsiteRowV314 .offsiteCheck { height: 42px; font-size: 13px; }
+#calcForm .options { gap: 7px; }
+#calcForm .extra { margin-top: 6px; }
+
 /* hybrid guard */
 .hybridGuardV125 { grid-column: 1 / -1; background: rgba(255, 196, 0, 0.10); border: 1px solid rgba(255, 196, 0, 0.32); border-radius: 12px; padding: 14px 16px; }
 .hybridGuardV125 strong { color: #946800; }
