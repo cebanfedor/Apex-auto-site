@@ -457,6 +457,21 @@ async function fetchSearch(query){
     throw lastError || new Error("Auctions search failed");
   };
 
+  // For "all" tab: fire a parallel buy_now=1 fetch — Buy Now lots have no
+  // scheduled sale_date so sale_date_in_days excludes them from the main query.
+  const tabForBN = query.get("tab") || "all";
+  let buyNowPromise = null;
+  if(tabForBN === "all") {
+    const bnP = new URLSearchParams(params);
+    bnP.delete("sale_date_in_days");
+    bnP.set("buy_now", "1");
+    bnP.set("per_page", "50");
+    const bnUrl = isAll
+      ? `${AUCTIONS_API_BASE}/cars?${bnP}`
+      : `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(bnP), domain})}`;
+    buyNowPromise = fetchJson(bnUrl).catch(() => null);
+  }
+
   // Safety net: if our injected date filter yields nothing (e.g. the feed has no
   // recently-dated lots), retry once without it so the catalog is never empty.
   const userDate = query.get("daysAhead") || query.get("auctionDateFrom") || query.get("auctionDateTo") || query.get("nextHours");
@@ -465,9 +480,23 @@ async function fetchSearch(query){
   if(!result.items.length && injectedDate){
     params.delete("sale_date_in_days");
     result = await run();
-    // Mark fallback result so the caller can cache it with a shorter TTL
     result._fallback = true;
   }
+
+  // Merge buy_now lots into "all" tab result
+  if(buyNowPromise) {
+    const bnPayload = await buyNowPromise;
+    if(bnPayload) {
+      const bnItems = findItems(bnPayload)
+        .filter(item => !isAll || !isEncar(item))
+        .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
+        .filter(lot => String(lot.statusId) !== "6" && String(lot.statusId) !== "8");
+      const seen = new Set(result.items.map(l => l.id || l.lot));
+      const fresh = bnItems.filter(l => !seen.has(l.id || l.lot));
+      if(fresh.length) result.items = [...result.items, ...fresh];
+    }
+  }
+
   return result;
 }
 
@@ -558,8 +587,14 @@ function sortItems(items, sort){
     if(fa && fb) return ta - tb; // both today/future: soonest first
     if(fa) return -1;            // a is today/future, b is past: a first
     if(fb) return 1;             // b is today/future, a is past: b first
+    // Buy Now lots with no date: show before past-dated lots
+    const bna = ta === null && (a.buyNow || 0) > 0;
+    const bnb = tb === null && (b.buyNow || 0) > 0;
+    if(bna && bnb) return 0;
+    if(bna) return -1;
+    if(bnb) return 1;
     if(ta === null && tb === null) return 0;
-    if(ta === null) return 1;    // undated after past-dated
+    if(ta === null) return 1;    // undated (no buy_now) after past-dated
     if(tb === null) return -1;
     return tb - ta;              // both past: most recent first
   });
