@@ -184,7 +184,15 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const sale = saleStatusInfo(lot, item);
   const rawHistory = (Array.isArray(lot?.prices) && lot.prices.length) ? lot.prices
     : (Array.isArray(item?.prices) && item.prices.length) ? item.prices
-    : (Array.isArray(item?.lots) ? (item.lots.find(l => Array.isArray(l?.prices) && l.prices.length)?.prices || []) : []);
+    : (() => {
+        if(!Array.isArray(item?.lots)) return [];
+        // Prefer a nested prices array inside any lot
+        const withPrices = item.lots.find(l => Array.isArray(l?.prices) && l.prices.length);
+        if(withPrices) return withPrices.prices;
+        // Search results: item.lots[1+] are prior auction attempts for the same VIN
+        if(item.lots.length > 1) return item.lots.slice(1);
+        return [];
+      })();
   const priceHistory = rawHistory.map(p => ({
     bid:safeNumber(p?.bid || p?.final_bid),
     buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
