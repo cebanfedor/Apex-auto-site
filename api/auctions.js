@@ -433,9 +433,14 @@ async function fetchSearch(query){
       try{
         lastEndpoint = url;
         const payload = await fetchJson(url);
+        const tab = query.get("tab") || "all";
+        const wantsPast = tab === "archived" || tab === "sold";
         const items = findItems(payload)
           .filter(item => !isAll || !isEncar(item))
-          .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction));
+          .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
+          // For live tabs (Все/Открытые/buy_now), strip lots that already sold/expired —
+          // exclude_expired_auctions=1 misses yesterday's lots on the feed.
+          .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"));
         const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
         return {
           items, total, shown:items.length,
@@ -537,13 +542,19 @@ function sortItems(items, sort){
   if(sort === "price_desc") return list.sort((a, b) => (b.currentBid || b.buyNow || 0) - (a.currentBid || a.buyNow || 0));
   if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
   if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 0) - (b.odometer || 0));
-  // "soon": lots with a real sale date first (today/freshest at top), undated last.
+  // "soon": upcoming lots (future date) nearest first, then undated, then past lots last
+  const now = Date.now();
   const ts = v => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
   return list.sort((a, b) => {
     const ta = ts(a.auctionDate), tb = ts(b.auctionDate);
-    if(ta === null) return tb === null ? 0 : 1;
+    const fa = ta !== null && ta >= now, fb = tb !== null && tb >= now;
+    if(fa && fb) return ta - tb; // both future: soonest first
+    if(fa) return -1;            // a future, b not: a first
+    if(fb) return 1;             // b future, a not: b first
+    if(ta === null && tb === null) return 0;
+    if(ta === null) return 1;    // undated after past-dated
     if(tb === null) return -1;
-    return tb - ta;
+    return tb - ta;              // both past: most recent first
   });
 }
 
