@@ -438,9 +438,18 @@ async function fetchSearch(query){
         const items = findItems(payload)
           .filter(item => !isAll || !isEncar(item))
           .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
-          // For live tabs (Все/Открытые/buy_now), strip lots that already sold/expired —
-          // exclude_expired_auctions=1 misses yesterday's lots on the feed.
-          .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"));
+          // For live tabs (Все/Открытые/buy_now), strip lots that already sold/expired.
+          // exclude_expired_auctions=1 misses recently-ended lots whose status hasn't
+          // updated yet in the feed — so we also drop lots with past auction dates.
+          .filter(lot => {
+            if(wantsPast) return true;
+            if(String(lot.statusId) === "6" || String(lot.statusId) === "8") return false;
+            if(lot.auctionDate){
+              const t = new Date(lot.auctionDate).getTime();
+              if(!isNaN(t) && t < Date.now()) return false;
+            }
+            return true;
+          });
         const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
         return {
           items, total, shown:items.length,
