@@ -351,6 +351,10 @@ details[open] > summary::before { content: "– "; }
 .dangerTagV312::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
   background: #ffb400; box-shadow: 0 0 0 3px rgba(255, 180, 0, 0.18); }
 
+/* container loading preview under vehicleType select */
+.containerPreviewV1 { margin-top: 2px; line-height: 0; }
+.containerPreviewV1 svg { display: block; width: 100%; height: auto; }
+
 /* hide duplicate calc fields (shown in result panel) + hidden bid advisor */
 .formRow:has(#auctionFeeView) { display: none !important; }
 .grid:has(#lotPrice) { grid-template-columns: 1fr !important; }

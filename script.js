@@ -1110,3 +1110,73 @@ document.addEventListener("DOMContentLoaded", () => {
   if(form) form.addEventListener("submit", () => setTimeout(applyVatNoteV80, 80), true);
   setTimeout(applyVatNoteV80, 300);
 });
+
+// Container loading preview — shows N car silhouettes inside a container box
+// Updates when #vehicleType changes
+(function(){
+  // Per-type: n = cars per container, body = SVG path in 0 0 80 42 viewBox,
+  // wx = wheel center X positions, wr = wheel radius, wcy = wheel center Y
+  var VEH = {
+    sedan:          {n:4, body:"M4,28 L9,20 L14,14 L20,10 L52,10 L60,14 L66,18 L74,23 L77,28 Z", wx:[16,64], wr:7, wcy:35},
+    crossover:      {n:3, body:"M4,28 L7,18 L12,11 L20,7 L56,7 L65,12 L71,18 L77,28 Z",          wx:[16,64], wr:7, wcy:35},
+    suv:            {n:3, body:"M3,28 L3,12 L7,7 L20,4 L60,4 L70,8 L76,14 L77,28 Z",             wx:[18,62], wr:7, wcy:35},
+    suvLarge:       {n:3, body:"M3,28 L3,12 L7,7 L20,4 L60,4 L70,8 L76,14 L77,28 Z",             wx:[18,62], wr:7, wcy:35},
+    pickup:         {n:3, body:"M3,28 L5,17 L10,12 L18,9 L40,9 L40,28 Z M40,21 L78,21 L78,28 L40,28 Z", wx:[16,64], wr:7, wcy:35},
+    pickupLarge:    {n:2, body:"M3,28 L5,17 L10,12 L18,9 L40,9 L40,28 Z M40,21 L78,21 L78,28 L40,28 Z", wx:[16,64], wr:7, wcy:35},
+    pickupOversized:{n:2, body:"M3,28 L5,17 L10,12 L18,9 L40,9 L40,28 Z M40,21 L78,21 L78,28 L40,28 Z", wx:[16,64], wr:7, wcy:35},
+    vanLarge:       {n:2, body:"M3,28 L3,6 L7,3 L65,3 L72,8 L76,17 L76,28 Z",                    wx:[15,61], wr:7, wcy:35},
+    moto:           {n:6, body:"M14,22 L22,12 L30,8 L50,8 L58,12 L66,22 Z",                       wx:[14,66], wr:10,wcy:32},
+    atv:            {n:4, body:"M10,26 L10,12 L18,7 L62,7 L70,12 L70,26 Z",                       wx:[14,66], wr:10,wcy:32},
+  };
+
+  function carContent(cfg) {
+    var wh = cfg.wx.map(function(cx){ return '<circle cx="'+cx+'" cy="'+cfg.wcy+'" r="'+cfg.wr+'"/>'; }).join('');
+    return '<path d="'+cfg.body+'"/>'+wh;
+  }
+
+  function render() {
+    var el = document.getElementById('containerPreviewV1');
+    if (!el) return;
+    var type = (document.getElementById('vehicleType') || {}).value || 'sedan';
+    var cfg = VEH[type] || VEH.sedan;
+    var n = cfg.n;
+
+    // Canvas
+    var VW = 280, VH = 82;
+    var cX = 3, cY = 4, cW = VW - 6, cH = 58;
+    // Car viewBox: 80 × 42; distribute N cars inside container with equal gaps
+    var avail = cW - 16;
+    var totalCar = avail * 0.84;
+    var cw = totalCar / n;
+    var scale = cw / 80;
+    var ch = 42 * scale;
+    var gap = (avail - totalCar) / (n + 1);
+    var carY = (cY + cH - 4 - ch).toFixed(1);
+
+    var cars = '';
+    for (var i = 0; i < n; i++) {
+      var carX = (cX + 8 + gap + i * (cw + gap)).toFixed(1);
+      cars += '<g transform="translate('+carX+','+carY+') scale('+scale.toFixed(4)+')" fill="#94a3b8">'+carContent(cfg)+'</g>';
+    }
+
+    var share = '1/'+n;
+    var label = n+' авто в контейнере · ваша доля '+share;
+
+    el.innerHTML = '<svg viewBox="0 0 '+VW+' '+VH+'" xmlns="http://www.w3.org/2000/svg">'
+      +'<rect x="'+cX+'" y="'+cY+'" width="'+cW+'" height="'+cH+'" rx="5" fill="none" stroke="#d1d5db" stroke-width="1.5"/>'
+      +cars
+      +'<text x="'+(VW/2)+'" y="'+(VH-3)+'" text-anchor="middle" font-size="10.5" fill="#94a3b8" font-family="Manrope,sans-serif">'+label+'</text>'
+      +'</svg>';
+  }
+
+  function init(){
+    var sel = document.getElementById('vehicleType');
+    if (sel) sel.addEventListener('change', render);
+    render();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
