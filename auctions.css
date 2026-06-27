@@ -152,10 +152,11 @@
 .dFavBtnV1.is-fav { background:#fffaf0; border-color:#e0a82e; color:#b7791f; }
 .dFavBtnV1.is-fav .dbIco { fill:#f0a500; stroke:#f0a500; }
 
-.dbBody { min-width:0; display:flex; flex-direction:column; gap:11px; }
+.dbBody { min-width:0; display:flex; flex-direction:column; gap:8px; }
 .dbTitle { display:block; font-size:16px; font-weight:700; letter-spacing:-.01em; color:var(--aInk); line-height:1.2; }
 .dbTitle:hover { color:var(--aRed); }
-.dbIds { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:5px; }
+.dbLeftCol { display:flex; flex-direction:column; gap:6px; }
+.dbIds { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .dbIds > span { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aMuted); }
 .dbVin { font-variant-numeric:tabular-nums; }
 .dbLotNo { color:var(--aInk2); }

@@ -459,17 +459,21 @@
     return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : tone === "bad" ? "warn" : "q")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
   }
   function dbCheckHistory(history, currentLot){
-    if(!Array.isArray(history) || !history.length) return "";
-    const count = history.length;
+    const count = Array.isArray(history) ? history.length : 0;
+    if(count === 0){
+      return `<li class="dbCheck good">${dbIco("check")}<span><b>История:</b> Ранее не продавалась</span></li>`;
+    }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
-    // Detect if the car was relisted under a different lot number
     const lotNumbers = new Set(history.map(h => h.lot).filter(Boolean));
     const relisted = currentLot && lotNumbers.size > 0 && (lotNumbers.size > 1 || (lotNumbers.size === 1 && !lotNumbers.has(String(currentLot))));
     const records = count === 1 ? "1 запись" : count < 5 ? `${count} записи` : `${count} записей`;
-    const isBad = wasSold || relisted;
-    const suffix = wasSold ? " • Был продан ранее!" : relisted ? " • Переставлялся!" : "";
-    const tone = isBad ? "bad" : "good";
-    return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : "warn")}<span><b>История:</b> ${escapeHtml(records + suffix)}</span></li>`;
+    if(wasSold){
+      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>История:</b> ${escapeHtml(records)} • Был продан ранее!</span></li>`;
+    }
+    if(relisted){
+      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>История:</b> ${escapeHtml(records)} • Переставлялся!</span></li>`;
+    }
+    return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>История:</b> ${escapeHtml(records)}</span></li>`;
   }
 
   function histStatusLabel(name){
@@ -532,21 +536,21 @@
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
       </a>
       <div class="dbBody">
-        <div class="dbHead">
-          <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
-          <div class="dbIds">
-            ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
-            ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
-          </div>
-        </div>
+        <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbCols">
-          <ul class="dbSpecs">
-            ${dbSpec("engine", escapeHtml(engineLine))}
-            ${dbSpec("odo", dbOdo(lot.odometerText))}
-            ${dbSpec("damage", escapeHtml(tc(lot.damage)))}
-            ${dbSpec("doc", escapeHtml(tc(lot.document)))}
-            ${dbSpec("pin", escapeHtml(tc(lot.location)))}
-          </ul>
+          <div class="dbLeftCol">
+            <div class="dbIds">
+              ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
+              ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
+            </div>
+            <ul class="dbSpecs">
+              ${dbSpec("engine", escapeHtml(engineLine))}
+              ${dbSpec("odo", dbOdo(lot.odometerText))}
+              ${dbSpec("damage", escapeHtml(tc(lot.damage)))}
+              ${dbSpec("doc", escapeHtml(tc(lot.document)))}
+              ${dbSpec("pin", escapeHtml(tc(lot.location)))}
+            </ul>
+          </div>
           <div class="dbChecksCol">
             <div class="dbLotRowV1">
               ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
