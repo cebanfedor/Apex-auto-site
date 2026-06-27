@@ -78,6 +78,18 @@ function imageList(value){
     .filter((item, index, all) => all.indexOf(item) === index);
 }
 
+// Seller: real name if the API has it, else the seller_type category
+// (IAAI exposes insurance / non_insurance even when the name is null; Copart has neither).
+function sellerLabel(lot, item){
+  const name = safeName(lot?.seller || item?.seller);
+  if(name) return name;
+  const t = safeName(lot?.seller_type || item?.seller_type).toLowerCase();
+  if(/non.?insurance|dealer|dealership|private/.test(t)) return "Дилер / частник";
+  if(/insurance/.test(t)) return "Страховая компания";
+  if(t) return t.replace(/_/g, " ");
+  return "";
+}
+
 function keysLabel(lot, item){
   const v = lot?.keys_available != null ? lot.keys_available
     : item?.keys_available != null ? item.keys_available
@@ -212,7 +224,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || lot?.pre_accident_price || lot?.clean_wholesale_price || item?.estimated_retail_value || item?.acv),
     preAccidentPrice:safeNumber(lot?.pre_accident_price),
     cleanWholesalePrice:safeNumber(lot?.clean_wholesale_price),
-    seller:safeName(lot?.seller || item?.seller || lot?.seller_type),
+    seller:sellerLabel(lot, item),
+    sellerType:safeName(lot?.seller_type || item?.seller_type),
     condition:safeName(lot?.condition || item?.condition),
     priceHistory,
     photoCount:images.length,
