@@ -192,7 +192,7 @@
     if(!value) return "";
     if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут/.test(text)) return "bad";
     if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown/.test(text)) return "warn";
-    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|есть|на ходу|live|available|no reserve|без резерва/.test(text)) return "good";
+    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
     return "";
   }
 
@@ -413,7 +413,7 @@
     if(/^used$|^б ?\/? ?у$|^used /.test(t))
       return {label:"Б/у", tone:"neutral", icon:"dot"};
     if(/enhanced|inop|non run|not run|stationary|не на ходу|не заводится/.test(t))
-      return {label:"Не на ходу", tone:"neutral", icon:"dot"};
+      return {label:"Не на ходу", tone:"neutral", icon:"q"};
     return {label: tc(raw), tone: statusTone(raw) || "neutral", icon:"q"};
   }
   // Auction brand badge — links straight to the lot on Copart/IAAI.
@@ -441,6 +441,22 @@
   function dbCondition(raw){
     const c = conditionInfo(raw);
     return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>Состояние:</b> ${escapeHtml(c.label)}</span></li>`;
+  }
+  function dbCheckSeller(raw){
+    if(!raw) return "";
+    const val = tc(raw);
+    const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(val);
+    const tone = isInsurance ? "good" : "neutral";
+    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "q")}<span><b>Продавец:</b> ${escapeHtml(val)}</span></li>`;
+  }
+  function dbCheckKey(raw){
+    if(!raw) return "";
+    const val = tc(raw);
+    const low = val.toLowerCase();
+    const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
+    const isNo = /^нет$|^no$|not present|not available/i.test(low);
+    const tone = isYes ? "good" : isNo ? "bad" : "neutral";
+    return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : tone === "bad" ? "warn" : "q")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
   }
 
   function histStatusLabel(name){
@@ -507,6 +523,8 @@
           <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
           <div class="dbIds">
             ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
+            ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
+            ${aucLinkBadge(lot)}
             ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
           </div>
         </div>
@@ -523,16 +541,12 @@
             ${dbCheck("Цвет", tc(lot.color))}
             ${dbCheck("Кузов", tc(lot.body))}
             ${dbCheck("Топливо", tc(lot.fuel))}
-            ${dbCheck("Продавец", tc(lot.seller))}
-            ${dbCheck("Ключ", tc(lot.keys))}
+            ${dbCheckSeller(lot.seller)}
+            ${dbCheckKey(lot.keys)}
           </ul>
         </div>
       </div>
       <aside class="dbAside">
-        <div class="dbLotRowV1">
-          ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
-          ${aucLinkBadge(lot)}
-        </div>
         <div class="dbWhen">
           <span>${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${liveLabel ? `<span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>` : ""}
