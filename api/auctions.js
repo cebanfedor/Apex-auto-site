@@ -457,7 +457,6 @@ async function fetchDetail(query){
   }
 
   const params = new URLSearchParams({prices_history:"1"});
-  if(auction === "iaai") params.set("search_by_id", "1");
   const domains = [auctionsApiDomain(auction), auction];
   let lastError;
   for(const domain of domains){
