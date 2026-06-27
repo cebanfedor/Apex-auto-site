@@ -361,7 +361,7 @@ function buildSearchParams(query){
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days") || params.get("next_hours_auction");
   if(tabUpcoming && !hasDateFilter){
-    params.set("sale_date_in_days", "14"); // dated lots from the last ~2 weeks
+    params.set("sale_date_in_days", "30"); // dated lots from the last ~4 weeks (wider, more stable count)
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
@@ -405,6 +405,12 @@ async function fetchSearch(query){
   // "all" → omit domain_id so Copart (3) + IAAI (1) come together (domain_id
   // does not accept a CSV). Encar/Korea (12) is filtered out below.
   if(!isAll) params.set("domain_id", auctionsApiDomainId(auction));
+  // When fetching all auctions, Encar lots are filtered after the API returns.
+  // Request extra items so the final page still shows ~50 after Encar removal.
+  if(isAll){
+    const base = safeNumber(params.get("per_page")) || 50;
+    params.set("per_page", String(Math.min(base + 20, 100)));
+  }
   const isEncar = it => { const d = it && it.domain; const id = d && d.id; const nm = String((d && d.name) || d || "").toLowerCase(); return id === 12 || nm.includes("encar") || nm.includes("korea"); };
   const perPage = safeNumber(query.get("per_page") || query.get("limit") || 50) || 50;
 

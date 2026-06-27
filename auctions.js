@@ -574,7 +574,7 @@
     const sale = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
     const items = sale ? state.items.filter(lot => matchSale(lot, sale)) : state.items;
     const html = items.map(renderCard).join("");
-    box.innerHTML = append ? box.innerHTML + html : html;
+    if(append){ box.insertAdjacentHTML("beforeend", html); } else { box.innerHTML = html; }
     $("#loadMoreLots").hidden = !state.hasMore;
     if(sale && !append){
       $("#auctionResultLabel").textContent = `показано ${items.length} (фильтр статуса продажи)`;
@@ -920,7 +920,7 @@
               </div>
             </div>
             <div class="detailThumbsV1">
-              ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}">`).join("")}
+              ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}"${i > 0 ? ' loading="lazy"' : ""}>`).join("")}
             </div>
           </div>
           <div class="lotDetailCenterV1">
