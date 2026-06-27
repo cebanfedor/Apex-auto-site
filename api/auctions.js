@@ -552,13 +552,8 @@ async function handleLead(request, response){
       return;
     }
 
-    const existing = await supabase.list("customers", {select:"*", phone:`eq.${phone}`, limit:1}).catch(() => []);
-    const customer = existing[0] || await supabase.create("customers", {
-      name,
-      phone,
-      status:"Новый",
-      source:"Аукционы"
-    });
+    // upsert by phone: creates new customer or returns existing one — no duplicate key errors
+    const customer = await supabase.upsert("customers", {name, phone, status:"Новый", source:"Аукционы"}, "phone");
 
     const lead = await supabase.create("leads", {
       customer_id:customer?.id || null,

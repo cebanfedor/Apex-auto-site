@@ -87,6 +87,17 @@ async function update(table, id, payload){
   return Array.isArray(data) ? data[0] : data;
 }
 
+async function upsert(table, payload, onConflict){
+  const params = onConflict ? {on_conflict:onConflict} : {};
+  const response = await fetch(buildUrl(table, params), {
+    method:"POST",
+    headers:headers({"prefer":"resolution=merge-duplicates,return=representation"}),
+    body:JSON.stringify(payload)
+  });
+  const data = await parseSupabaseResponse(response);
+  return Array.isArray(data) ? data[0] : data;
+}
+
 async function remove(table, id){
   const response = await fetch(buildUrl(table, {id:`eq.${id}`}), {
     method:"DELETE",
@@ -99,6 +110,7 @@ module.exports = {
   list,
   count,
   create,
+  upsert,
   update,
   remove
 };

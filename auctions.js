@@ -1,5 +1,8 @@
 (function(){
   const $ = selector => document.querySelector(selector);
+  function debounce(fn, ms){
+    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
   const state = {
     auction:"all",
     tab:"all",
@@ -1246,7 +1249,7 @@
         if(event.key === "Enter"){ event.preventDefault(); triggerSearch(); }
       });
     });
-    $("#auctionSort").addEventListener("change", () => { state.page = 1; loadLots(); });
+    $("#auctionSort").addEventListener("change", debounce(() => { state.page = 1; loadLots(); }, 150));
     document.querySelectorAll("[data-auction-switch]").forEach(button => {
       button.addEventListener("click", () => {
         document.querySelectorAll("[data-auction-switch]").forEach(item => item.classList.remove("active"));
