@@ -458,13 +458,17 @@
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
     return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : tone === "bad" ? "warn" : "q")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
   }
-  function dbCheckHistory(history){
+  function dbCheckHistory(history, currentLot){
     if(!Array.isArray(history) || !history.length) return "";
     const count = history.length;
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
+    // Detect if the car was relisted under a different lot number
+    const lotNumbers = new Set(history.map(h => h.lot).filter(Boolean));
+    const relisted = currentLot && lotNumbers.size > 0 && (lotNumbers.size > 1 || (lotNumbers.size === 1 && !lotNumbers.has(String(currentLot))));
     const records = count === 1 ? "1 запись" : count < 5 ? `${count} записи` : `${count} записей`;
-    const suffix = wasSold ? " • Был продан ранее!" : "";
-    const tone = wasSold ? "bad" : "good";
+    const isBad = wasSold || relisted;
+    const suffix = wasSold ? " • Был продан ранее!" : relisted ? " • Переставлялся!" : "";
+    const tone = isBad ? "bad" : "good";
     return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : "warn")}<span><b>История:</b> ${escapeHtml(records + suffix)}</span></li>`;
   }
 
@@ -553,7 +557,7 @@
               ${dbCheck("Топливо", tc(lot.fuel))}
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
-              ${dbCheckHistory(lot.priceHistory)}
+              ${dbCheckHistory(lot.priceHistory, lot.lot)}
             </ul>
           </div>
         </div>

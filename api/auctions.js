@@ -194,10 +194,11 @@ function normalizeLot(source, fallbackAuction = "copart"){
         return [];
       })();
   const priceHistory = rawHistory.map(p => ({
-    bid:safeNumber(p?.bid || p?.final_bid),
+    bid:safeNumber(p?.bid || p?.final_bid || p?.current_bid),
     buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
     date:p?.sale_date || p?.final_bid_updated_at || p?.date || "",
-    status:safeName(p?.status)
+    status:safeName(p?.status),
+    lot:String(p?.lot || p?.lot_number || p?.lotNumber || p?.external_id || "").replace(/~.*/, "")
   })).filter(p => p.bid || p.buyNow || p.date);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
 
@@ -381,6 +382,7 @@ function buildSearchParams(query){
   // We want those to still appear in the main view — our statusId filter handles
   // removing actually-sold lots (6/8) instead.
   params.set("exclude_expired_auctions", "0");
+  params.set("prices_history", "1");
   return params;
 }
 
