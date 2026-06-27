@@ -361,19 +361,18 @@ function buildSearchParams(query){
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days") || params.get("next_hours_auction");
   if(tabUpcoming && !hasDateFilter){
-    params.set("sale_date_in_days", "30"); // dated lots from the last ~4 weeks (wider, more stable count)
+    params.set("sale_date_in_days", "60"); // ±60-day window — wider net, more lots
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
   params.set("simple_paginate", "0");
   const status = params.get("status");
   const wantsPast = tab === "archived" || tab === "sold" || status === "6" || status === "8";
-  // exclude_expired_auctions=1 drops lots whose auction time has passed.
-  // When the user explicitly sets a date range (sale_date_from/to) we disable it —
-  // otherwise all lots from that range appear "expired" by the time they check
-  // (e.g. June 28 lots at 01:00 are expired by afternoon → 0 results).
-  const hasUserDateRange = params.get("sale_date_from") || params.get("sale_date_to");
-  params.set("exclude_expired_auctions", (wantsPast || hasUserDateRange) ? "0" : "1");
+  // exclude_expired_auctions=0 for all live tabs: the API's definition of "expired"
+  // excludes lots whose auction time passed today (e.g. 01:00 lots by afternoon).
+  // We want those to still appear in the main view — our statusId filter handles
+  // removing actually-sold lots (6/8) instead.
+  params.set("exclude_expired_auctions", "0");
   return params;
 }
 
@@ -547,15 +546,18 @@ function sortItems(items, sort){
   if(sort === "price_desc") return list.sort((a, b) => (b.currentBid || b.buyNow || 0) - (a.currentBid || a.buyNow || 0));
   if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
   if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 0) - (b.odometer || 0));
-  // "soon": upcoming lots (future date) nearest first, then undated, then past lots last
-  const now = Date.now();
+  // "soon": today's lots first (even if auction time passed), then future days,
+  // then past days (yesterday and earlier) last. Boundary = start of today (midnight),
+  // not current time — so a lot auctioned at 01:00 today still counts as "today".
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  const todayStart = d.getTime();
   const ts = v => { const t = v ? new Date(v).getTime() : NaN; return Number.isNaN(t) ? null : t; };
   return list.sort((a, b) => {
     const ta = ts(a.auctionDate), tb = ts(b.auctionDate);
-    const fa = ta !== null && ta >= now, fb = tb !== null && tb >= now;
-    if(fa && fb) return ta - tb; // both future: soonest first
-    if(fa) return -1;            // a future, b not: a first
-    if(fb) return 1;             // b future, a not: b first
+    const fa = ta !== null && ta >= todayStart, fb = tb !== null && tb >= todayStart;
+    if(fa && fb) return ta - tb; // both today/future: soonest first
+    if(fa) return -1;            // a is today/future, b is past: a first
+    if(fb) return 1;             // b is today/future, a is past: b first
     if(ta === null && tb === null) return 0;
     if(ta === null) return 1;    // undated after past-dated
     if(tb === null) return -1;
