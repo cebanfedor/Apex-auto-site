@@ -629,7 +629,7 @@
       state.items = append ? state.items.concat(nextItems) : nextItems;
       $("#auctionResultCount").textContent = (payload.total || state.items.length) || 0;
       $("#auctionResultLabel").textContent = payload.total
-        ? (archived ? "лотов в архиве" : (payload.cached ? "лотов найдено · кэш" : "лотов найдено"))
+        ? (archived ? "лотов в архиве" : "лотов найдено")
         : `Показано ${state.items.length} лотов`;
       renderCards(false);
       updateFavCount();
