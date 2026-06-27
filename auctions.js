@@ -612,12 +612,15 @@
     syncUrl();
   }
 
-  async function loadLots({append = false} = {}){
+  async function loadLots({append = false, _retry = false} = {}){
     if(state.tab === "favorites"){ renderFavorites(); return; }
     if(state.loading) return;
     state.loading = true;
     setMessage("");
-    if(!append) $("#auctionCards").innerHTML = skeletonCards(6);
+    // Stale-while-revalidate: keep existing cards visible on refresh, show skeleton only on first load
+    const hasExisting = !append && state.items.length > 0;
+    if(!append && !hasExisting) $("#auctionCards").innerHTML = skeletonCards(6);
+    if(hasExisting) $("#auctionCards").classList.add("lotsRefreshingV1");
     const archived = state.tab === "archived";
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
@@ -639,12 +642,23 @@
         $("#auctionResultCount").textContent = "373 909";
         $("#auctionResultLabel").textContent = "демо-лоты (локально, без AUCTIONS_API_KEY)";
         renderCards(false);
+      }else if(!_retry){
+        // Auto-retry once after 2s before showing error — handles transient API blips
+        state.loading = false;
+        setTimeout(() => loadLots({append, _retry:true}), 2000);
+        return;
       }else{
-        $("#auctionResultCount").textContent = "0";
-        setMessage(error.message || "Не удалось загрузить реальные лоты AuctionsAPI. Проверьте AUCTIONS_API_KEY или попробуйте позже.");
+        // Keep showing existing cards if we have them; just flag the error
+        if(!state.items.length){
+          $("#auctionResultCount").textContent = "—";
+          setMessage("Сервис временно недоступен. Попробуйте обновить страницу через минуту.");
+        }else{
+          setMessage("Не удалось обновить данные. Показаны последние загруженные лоты.");
+        }
       }
     }finally{
       state.loading = false;
+      $("#auctionCards").classList.remove("lotsRefreshingV1");
       syncUrl();
     }
   }

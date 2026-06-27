@@ -18,8 +18,8 @@ function getCached(key){
   return item.value;
 }
 
-function setCached(key, value){
-  cache.set(key, {value, expires:Date.now() + CACHE_TTL});
+function setCached(key, value, ttl){
+  cache.set(key, {value, expires:Date.now() + (ttl || CACHE_TTL)});
 }
 
 function safeName(value){
@@ -381,12 +381,19 @@ async function fetchJson(url){
     error.status = 500;
     throw error;
   }
-  const response = await fetch(url, {
-    headers:{
-      "x-api-key":key,
-      "accept":"application/json"
-    }
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  let response;
+  try{
+    response = await fetch(url, {
+      headers:{"x-api-key":key,"accept":"application/json"},
+      signal:controller.signal
+    });
+  }catch(e){
+    const error = new Error(e.name === "AbortError" ? "Сервис аукционов не отвечает (таймаут)" : "Ошибка соединения с AuctionsAPI");
+    error.status = 502;
+    throw error;
+  }finally{ clearTimeout(timer); }
   const payload = await response.json().catch(() => null);
   if(!response.ok || payload?.error){
     const error = new Error(payload?.message || payload?.error || "Auctions API request failed");
@@ -449,6 +456,8 @@ async function fetchSearch(query){
   if(!result.items.length && injectedDate){
     params.delete("sale_date_in_days");
     result = await run();
+    // Mark fallback result so the caller can cache it with a shorter TTL
+    result._fallback = true;
   }
   return result;
 }
@@ -707,7 +716,9 @@ module.exports = async function handler(request, response){
     if(action === "search"){
       const result = await fetchSearch(query);
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon")};
-      setCached(key, payload);
+      // Fallback results (safety-net without date filter) cached briefly so next
+      // request re-tries the date-filtered query once conditions may have changed.
+      setCached(key, payload, result._fallback ? 90 * 1000 : CACHE_TTL);
       sendJson(response, 200, payload);
       return;
     }

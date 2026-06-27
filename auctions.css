@@ -452,6 +452,9 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionDetailPanelV1 { padding:18px; }
 }
 
+/* Stale-while-revalidate: dim existing cards while new data loads */
+.lotsRefreshingV1 { opacity:.55; pointer-events:none; transition:opacity .15s; }
+
 /* respect the [hidden] attribute (modal / load-more / detail start hidden) */
 .auctionModalV1[hidden], .loadMoreLotsV1[hidden], .auctionDetailV1[hidden], .auctionMessageV1[hidden] { display: none !important; }
 
