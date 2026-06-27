@@ -78,13 +78,22 @@ function imageList(value){
     .filter((item, index, all) => all.indexOf(item) === index);
 }
 
-// Seller: real name if the API has it, else the seller_type category
-// (IAAI exposes insurance / non_insurance even when the name is null; Copart has neither).
+// Seller: real name + type badge. IAAI has seller_type; Copart detects from name.
 function sellerLabel(lot, item){
   const name = safeName(lot?.seller || item?.seller);
-  if(name) return name;
   const t = safeName(lot?.seller_type || item?.seller_type).toLowerCase();
-  if(/non.?insurance|dealer|dealership|private/.test(t)) return "Дилер / частник";
+  // Detect insurance from seller_type or from well-known insurer names
+  const nameUp = name.toUpperCase();
+  const insurerKeywords = /INSURANCE|GEICO|USAA|CSAA|PROGRESSIVE|ALLSTATE|NATIONWIDE|LIBERTY MUTUAL|STATE FARM|FARMERS|BRISTOL WEST|TRAVELERS|ERIE|MERCURY|ESURANCE|21ST CENTURY|AAA|METLIFE|KEMPER|AMERICAN FAMILY/;
+  const isInsurance = /insurance/.test(t) || (!t && insurerKeywords.test(nameUp));
+  const isDealer = /non.?insurance|dealer|dealership|private/.test(t);
+  if(name){
+    if(isInsurance) return name + " · Страховая";
+    if(isDealer) return name + " · Дилер";
+    return name;
+  }
+  // No name — show type category only
+  if(isDealer) return "Дилер / частник";
   if(/insurance/.test(t)) return "Страховая компания";
   if(t) return t.replace(/_/g, " ");
   return "";
