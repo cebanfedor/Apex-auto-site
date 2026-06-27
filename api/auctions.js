@@ -366,11 +366,14 @@ function buildSearchParams(query){
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
   params.set("simple_paginate", "0");
-  // exclude_expired_auctions keeps only future/no-date lots — but "past" statuses
-  // (sold=6, not_sold=8) and the archived/sold tabs need expired lots included.
   const status = params.get("status");
   const wantsPast = tab === "archived" || tab === "sold" || status === "6" || status === "8";
-  params.set("exclude_expired_auctions", wantsPast ? "0" : "1");
+  // exclude_expired_auctions=1 drops lots whose auction time has passed.
+  // When the user explicitly sets a date range (sale_date_from/to) we disable it —
+  // otherwise all lots from that range appear "expired" by the time they check
+  // (e.g. June 28 lots at 01:00 are expired by afternoon → 0 results).
+  const hasUserDateRange = params.get("sale_date_from") || params.get("sale_date_to");
+  params.set("exclude_expired_auctions", (wantsPast || hasUserDateRange) ? "0" : "1");
   return params;
 }
 
