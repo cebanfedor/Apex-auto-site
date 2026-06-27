@@ -443,11 +443,11 @@
     return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>Состояние:</b> ${escapeHtml(c.label)}</span></li>`;
   }
   function dbCheckSeller(raw){
-    if(!raw) return "";
-    const val = tc(raw);
-    const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(val);
+    const val = raw ? tc(raw) : "";
+    const display = val || "Неизвестен";
+    const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "q")}<span><b>Продавец:</b> ${escapeHtml(val)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "q")}<span><b>Продавец:</b> ${escapeHtml(display)}</span></li>`;
   }
   function dbCheckKey(raw){
     if(!raw) return "";
@@ -457,6 +457,15 @@
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
     return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : tone === "bad" ? "warn" : "q")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
+  }
+  function dbCheckHistory(history){
+    if(!Array.isArray(history) || !history.length) return "";
+    const count = history.length;
+    const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
+    const records = count === 1 ? "1 запись" : count < 5 ? `${count} записи` : `${count} записей`;
+    const suffix = wasSold ? " • Был продан ранее!" : "";
+    const tone = wasSold ? "bad" : "good";
+    return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : "warn")}<span><b>История:</b> ${escapeHtml(records + suffix)}</span></li>`;
   }
 
   function histStatusLabel(name){
@@ -523,8 +532,6 @@
           <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
           <div class="dbIds">
             ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
-            ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
-            ${aucLinkBadge(lot)}
             ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
           </div>
         </div>
@@ -536,14 +543,19 @@
             ${dbSpec("doc", escapeHtml(tc(lot.document)))}
             ${dbSpec("pin", escapeHtml(tc(lot.location)))}
           </ul>
-          <ul class="dbChecks">
-            ${dbCondition(lot.condition)}
-            ${dbCheck("Цвет", tc(lot.color))}
-            ${dbCheck("Кузов", tc(lot.body))}
-            ${dbCheck("Топливо", tc(lot.fuel))}
-            ${dbCheckSeller(lot.seller)}
-            ${dbCheckKey(lot.keys)}
-          </ul>
+          <div class="dbChecksCol">
+            <div class="dbLotRowV1">
+              ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
+              ${aucLinkBadge(lot)}
+            </div>
+            <ul class="dbChecks">
+              ${dbCondition(lot.condition)}
+              ${dbCheck("Топливо", tc(lot.fuel))}
+              ${dbCheckSeller(lot.seller)}
+              ${dbCheckKey(lot.keys)}
+              ${dbCheckHistory(lot.priceHistory)}
+            </ul>
+          </div>
         </div>
       </div>
       <aside class="dbAside">

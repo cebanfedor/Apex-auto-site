@@ -212,8 +212,8 @@
 .dbCheck b { font-weight:600; color:var(--aInk2); }
 
 .dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:12px; border-left:1px solid var(--aLine2); padding-left:16px; }
-/* Lot number + auction badge pinned above the right (price) block */
-.dbLotRowV1 { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+.dbChecksCol { display:flex; flex-direction:column; gap:8px; }
+.dbLotRowV1 { display:flex; align-items:center; justify-content:flex-start; gap:8px; flex-wrap:wrap; }
 .dbLotRowV1 .dbLotNo { font-size:12.5px; color:var(--aInk2); font-variant-numeric:tabular-nums; }
 .dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-end; text-align:right; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); white-space:nowrap; }
