@@ -186,11 +186,11 @@
 .dbSkelV1 .dbAside .skBoxV1 { width:100%; }
 @keyframes skShimmer { 0%{ background-position:100% 0; } 100%{ background-position:0 0; } }
 /* Market statistics block */
-.lotStatsBoxV1 .statGridV1 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px; }
+.lotStatsBoxV1 .statGridV1 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px; grid-column:1/-1; }
 .statCellV1 { background:var(--aSoft); border:1px solid var(--aLine); border-radius:11px; padding:11px 13px; }
 .statCellV1 span { display:block; font-size:11px; color:var(--aMuted); margin-bottom:3px; }
 .statCellV1 b { font-size:17px; font-weight:800; color:var(--aInk); }
-.statNoteV1 { font-size:11.5px; color:var(--aMuted); margin-top:9px; }
+.statNoteV1 { font-size:11.5px; color:var(--aMuted); margin-top:9px; grid-column:1/-1; }
 @media(max-width:600px){ .lotStatsBoxV1 .statGridV1 { grid-template-columns:1fr 1fr; } }
 /* Odometer status badge */
 .odoOkV1, .odoWarnV1 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; padding:1px 7px; border-radius:999px; margin-left:6px; }
@@ -263,7 +263,7 @@
 .priceHistoryV1 span { padding:6px 10px; border-radius:9px; background:var(--aSoft); font-size:13px; color:var(--aInk2); }
 /* Price history (detail) */
 .histCountV1 { font-weight:600; font-size:11px; color:var(--aMuted); text-transform:none; letter-spacing:0; }
-.histListV1 { display:flex; flex-direction:column; gap:6px; }
+.histListV1 { display:flex; flex-direction:column; gap:6px; grid-column:1/-1; }
 .histRowV1 { display:grid; grid-template-columns:130px 1fr auto auto; align-items:center; gap:10px; }
 .histDateV1 { font-size:11.5px; color:var(--aMuted); white-space:nowrap; }
 .histBarWrapV1 { height:7px; border-radius:999px; background:var(--aSoft); overflow:hidden; }
