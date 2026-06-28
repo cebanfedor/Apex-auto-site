@@ -1012,11 +1012,6 @@
               ${vinReport ? dPlain("Отчёт VIN", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Проверить историю →</a>`) : ""}
             </section>
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
-            ${renderPriceHistory(lot.priceHistory)}
-            <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
-          </div>
-          <div class="dRightColV2">
-            ${renderLotCalculator(lot)}
             <section class="dSec">
               <div class="dSecHead">Аукцион</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
@@ -1028,20 +1023,21 @@
               ${dPlain("Локация", escapeHtml(tc(lot.location)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
             </section>
+            <section class="dSec">
+              <div class="dSecHead">Описание</div>
+              ${dPlain("Тип топлива", escapeHtml(tc(lot.fuel)))}
+              ${dPlain("Цвет кузова", escapeHtml(tc(lot.color)))}
+              ${dPlain("Тип кузова", escapeHtml(tc(lot.body)))}
+              ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
+              ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
+              ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
+              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
+            </section>
+            ${renderPriceHistory(lot.priceHistory)}
+            <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
           </div>
+          ${renderLotCalculator(lot)}
         </div>
-        <section class="dSec dDescSecV2">
-          <div class="dSecHead">Описание</div>
-          <div class="dDescGridV2">
-            ${dPlain("Тип топлива", escapeHtml(tc(lot.fuel)))}
-            ${dPlain("Цвет кузова", escapeHtml(tc(lot.color)))}
-            ${dPlain("Тип кузова", escapeHtml(tc(lot.body)))}
-            ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
-            ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
-            ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
-            ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
-          </div>
-        </section>
         <section class="simSecV1" id="similarActiveSection" hidden>
           <h2>Похожие текущие аукционы</h2>
           <div class="simGridV1" id="similarActiveLots"></div>
