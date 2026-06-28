@@ -365,6 +365,19 @@
 .calcCtasV2 .dbBtnPrimary, .calcCtasV2 .dbBtnGhost { width:100%; height:44px; }
 .calcNoteV2 { font-size:11.5px; color:var(--aMuted); line-height:1.4; }
 
+/* Right sidebar wrapper (calculator + auction info) */
+.dRightColV2 { display:flex; flex-direction:column; gap:16px; }
+.dRightColV2 > .lotCalcV2 { position:sticky; top:90px; }
+/* Neutral seller type tag */
+.dAucMiniNeutral { background:#f0f4f8; color:#6b7382; font-weight:700; font-size:10.5px; padding:2px 7px; border-radius:5px; }
+/* Description section below grid */
+.dDescSecV2 { margin-top:20px; }
+.dDescGridV2 { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+.dDescGridV2 .dRowV2 { padding:8px 12px; }
+.dDescGridV2 .dRowV2:nth-child(odd) { background:var(--aSoft); border-radius:0; }
+/* Archived similar bid badge */
+.simBidSoldV1 { background:rgba(29,155,91,.82) !important; }
+
 /* Similar lots */
 .simSecV1 { margin-top:30px; padding-top:24px; border-top:1px solid var(--aLine); }
 .simSecV1[hidden] { display:none !important; }
@@ -442,7 +455,8 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbWhen { align-items:flex-start; text-align:left; order:-1; }
   .dbPriceWrap { min-width:220px; }
   .lotDetailGridV1 { grid-template-columns:1fr; }
-  .detailGalleryV1, .lotCalcCardV1, .lotStickyV1, .lotCalcV2 { position:static; }
+  .detailGalleryV1, .lotCalcCardV1, .lotStickyV1, .lotCalcV2, .dRightColV2 > .lotCalcV2 { position:static; }
+  .dDescGridV2 { grid-template-columns:1fr; }
 }
 @media (max-width:640px) {
   .auctionsShellV1 { padding:18px 16px 60px; }

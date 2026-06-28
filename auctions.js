@@ -190,9 +190,9 @@
   function statusTone(value){
     const text = String(value || "").toLowerCase();
     if(!value) return "";
-    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут/.test(text)) return "bad";
+    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут|продан ранее|переставлялся/.test(text)) return "bad";
     if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown/.test(text)) return "warn";
-    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
+    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|не продавалась|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
     return "";
   }
 
@@ -906,8 +906,10 @@
     const title = lotTitle(lot);
     const specLine = [tc(lot.engine), upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" • ");
     const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
+    const isSold = lot.statusId === 6 || /sold/i.test(lot.statusName || lot.lotStatus || "");
+    const bid = isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow || lot.finalBid);
     return `<a class="simCardV1" href="${detailHref(lot)}">
-      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<span class="simBidV1">${money(lot.currentBid || lot.buyNow)}</span></div>
+      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<span class="simBidV1${isSold ? " simBidSoldV1" : ""}">${money(bid)}</span></div>
       <h4>${escapeHtml(title)}</h4>
       <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
@@ -915,9 +917,9 @@
     </a>`;
   }
 
-  async function loadSimilar(lot){
-    const box = document.getElementById("similarLots");
-    const sec = document.getElementById("similarSection");
+  async function loadSimilarActive(lot){
+    const box = document.getElementById("similarActiveLots");
+    const sec = document.getElementById("similarActiveSection");
     if(!box || !sec) return;
     let items = [];
     try{
@@ -926,11 +928,25 @@
       const payload = await api(`/api/auctions?${params}`);
       items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
     }catch(error){
-      if(isLocalHost()) items = demoLots().filter(x => String(x.id) !== String(lot.id));
+      if(isLocalHost()) items = demoLots().filter(x => String(x.id) !== String(lot.id)).slice(0, 6);
     }
     if(!items.length) return;
     box.innerHTML = items.map(renderSimilarCard).join("");
     sec.hidden = false;
+  }
+
+  async function loadSimilarArchived(lot){
+    const box = document.getElementById("similarArchivedLots");
+    const sec = document.getElementById("similarArchivedSection");
+    if(!box || !sec) return;
+    try{
+      const params = new URLSearchParams({action:"search", auction:lot.auction || "copart", make:lot.make || "", model:lot.model || "", per_page:"12", tab:"archived"});
+      const payload = await api(`/api/auctions?${params}`);
+      const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
+      if(!items.length) return;
+      box.innerHTML = items.map(renderSimilarCard).join("");
+      sec.hidden = false;
+    }catch(e){ /* archived similar is optional */ }
   }
 
   function renderDetail(lot){
@@ -942,6 +958,13 @@
     const driveLine = [tc(lot.engine), lot.cylinders && `${lot.cylinders} цил`, upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" · ");
     const specLine = [tc(lot.engine), lot.cylinders && `${lot.cylinders} цил`, upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
+    // History summary for Главное section
+    const histCount = Array.isArray(lot.priceHistory) ? lot.priceHistory.length : 0;
+    const wasSoldBefore = histCount > 0 && lot.priceHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
+    const histStr = histCount === 0 ? "Ранее не продавалась" : wasSoldBefore ? "Был продан ранее" : `${histCount} ${plural(histCount, "запись", "записи", "записей")}`;
+    // Seller type detection
+    const isIns = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm/i.test(String(lot.seller || ""));
+    const sellerTypeHtml = isIns ? `<span class="dAucMini">Страховая</span>` : `<span class="dAucMiniNeutral">Дилер / банк</span>`;
     $("#auctionCatalog").hidden = true;
     const detail = $("#auctionDetail");
     detail.hidden = false;
@@ -981,41 +1004,51 @@
               ${dMain("Продавец", tc(lot.seller))}
               ${dMain("Ключ доступен", tc(lot.keys))}
               ${dMain("Статус документов", tc(lot.document))}
-              ${dMain("История торгов", lot.priceHistory?.length ? `${lot.priceHistory.length} ${plural(lot.priceHistory.length, "запись", "записи", "записей")}` : "Впервые на аукционе")}
+              ${dMain("История", histStr)}
               ${dPlain("Двигатель / привод", escapeHtml(driveLine))}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus ? ` <span class="${/actual|факт/i.test(lot.odometerStatus) ? "odoOkV1" : "odoWarnV1"}">${/actual|факт/i.test(lot.odometerStatus) ? "фактический" : escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`)}
-              ${dMain("Основное повреждение", tc(primaryDmg))}
-              ${dMain("Вторичное повреждение", tc(secondaryDmg))}
+              ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg)) : ""}
+              ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg)) : ""}
+              ${vinReport ? dPlain("Отчёт VIN", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Проверить историю →</a>`) : ""}
             </section>
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
+            ${renderPriceHistory(lot.priceHistory)}
+            <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
+          </div>
+          <div class="dRightColV2">
+            ${renderLotCalculator(lot)}
             <section class="dSec">
               <div class="dSecHead">Аукцион</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
-              ${dPlain("Статус продажи", escapeHtml(lot.saleStatus))}
+              ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus)) : ""}
+              ${lot.seller ? dPlain("Тип продавца", sellerTypeHtml) : ""}
+              ${dPlain("Продавец", escapeHtml(tc(lot.seller)))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate)))}
               ${dPlain("Локация", escapeHtml(tc(lot.location)))}
-              ${dPlain("Оценка (ACV)", lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "")}
+              ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
             </section>
-            <section class="dSec">
-              <div class="dSecHead">Описание</div>
-              ${dPlain("Тип топлива", escapeHtml(tc(lot.fuel)))}
-              ${dPlain("Цвет кузова", escapeHtml(tc(lot.color)))}
-              ${dPlain("Тип кузова", escapeHtml(tc(lot.body)))}
-              ${dPlain("Цилиндры", escapeHtml(lot.cylinders))}
-              ${dPlain("Ключи", escapeHtml(lot.keys))}
-              ${dPlain("Оценка до аварии", lot.preAccidentPrice ? money(lot.preAccidentPrice) : "")}
-              ${dPlain("Оптовая (clean)", lot.cleanWholesalePrice ? money(lot.cleanWholesalePrice) : "")}
-              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
-            </section>
-            ${renderPriceHistory(lot.priceHistory)}
-            <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
           </div>
-          ${renderLotCalculator(lot)}
         </div>
-        <section class="simSecV1" id="similarSection" hidden>
-          <h2>Похожие лоты</h2>
-          <div class="simGridV1" id="similarLots"></div>
+        <section class="dSec dDescSecV2">
+          <div class="dSecHead">Описание</div>
+          <div class="dDescGridV2">
+            ${dPlain("Тип топлива", escapeHtml(tc(lot.fuel)))}
+            ${dPlain("Цвет кузова", escapeHtml(tc(lot.color)))}
+            ${dPlain("Тип кузова", escapeHtml(tc(lot.body)))}
+            ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
+            ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
+            ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
+            ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
+          </div>
+        </section>
+        <section class="simSecV1" id="similarActiveSection" hidden>
+          <h2>Похожие текущие аукционы</h2>
+          <div class="simGridV1" id="similarActiveLots"></div>
+        </section>
+        <section class="simSecV1" id="similarArchivedSection" hidden>
+          <h2>Похожие архивные аукционы</h2>
+          <div class="simGridV1" id="similarArchivedLots"></div>
         </section>
       </section>
     `;
@@ -1024,7 +1057,8 @@
     state.detailIndex = 0;
     setSeo(lot);
     updateLotCalculator();
-    loadSimilar(lot);
+    loadSimilarActive(lot);
+    loadSimilarArchived(lot);
     loadStats(lot);
   }
 
