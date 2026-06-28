@@ -363,17 +363,20 @@ function buildSearchParams(query){
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6,8");
   }
-  // sale_date_in_days is the only reliable date filter in this API — sale_date_from/to
-  // are unreliable (the API often ignores or returns 0). So we ALWAYS set
-  // sale_date_in_days: default 60 days, or enough days to cover the user's chosen dates.
-  // Client-side date filtering (renderCards) provides exact-match guarantee.
+  // sale_date_in_days is the only reliable date filter in this API.
+  // sale_date_from/to are NOT sent to the API — they confuse it and return 0 results.
+  // We use sale_date_in_days to get a broad window, then matchDateRange() on the client
+  // provides exact-match guarantee.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasExplicitDays = params.get("sale_date_in_days") || params.get("next_hours_auction");
+  // Always delete sale_date_from/to — never send to API (they break results).
+  const userDateFrom = params.get("sale_date_from");
+  const userDateTo   = params.get("sale_date_to");
+  params.delete("sale_date_from");
+  params.delete("sale_date_to");
   if(tabUpcoming && !hasExplicitDays){
-    const userDateFrom = params.get("sale_date_from");
-    const userDateTo   = params.get("sale_date_to");
     if(userDateFrom || userDateTo){
-      // Calculate days-ahead needed to cover the chosen "To" date (or "From" if no "To")
+      // Compute how many days ahead we need to cover the chosen date + 7 days buffer.
       const farStr = userDateTo || userDateFrom;
       const today = new Date(); today.setHours(0,0,0,0);
       const far   = new Date(farStr + "T00:00:00");
@@ -383,9 +386,9 @@ function buildSearchParams(query){
       params.set("sale_date_in_days", "60"); // default: no user date selected
     }
   }
-  // Pass sort preference to the API so it sorts ALL lots before returning page 1.
-  // Without this, the API returns lots in default order (soonest auction) and
-  // client-side sortItems only reorders those 50 — wrong when user asks for "newest year".
+  // Sort: try common API param names. The API may support sort_by + order,
+  // or may ignore them — client-side sortItems() is the guaranteed fallback.
+  const sortVal = query.get("sort") || "soon";
   const sortApiMap = {
     year_desc:   {sort_by:"year",      order:"desc"},
     price_asc:   {sort_by:"price",     order:"asc"},
@@ -393,7 +396,7 @@ function buildSearchParams(query){
     mileage_asc: {sort_by:"odometer",  order:"asc"},
     soon:        {sort_by:"sale_date", order:"asc"},
   };
-  const apiSort = sortApiMap[query.get("sort") || "soon"];
+  const apiSort = sortApiMap[sortVal];
   if(apiSort){
     params.set("sort_by", apiSort.sort_by);
     params.set("order",   apiSort.order);
