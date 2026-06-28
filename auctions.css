@@ -312,7 +312,7 @@
    правый (значения) начинается с единой точки для всех строк секции */
 /* .dSec — общий grid: столбец меток по min-content (ширина самого длинного слова),
    значения всегда начинаются с одной точки независимо от длины метки */
-.dSec { background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; padding:14px 18px; display:grid; grid-template-columns:min-content 1fr; column-gap:8px; }
+.dSec { background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; padding:14px 18px; display:grid; grid-template-columns:fit-content(150px) 1fr; column-gap:16px; }
 .dSecHead { grid-column:1/-1; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--aInk); padding-bottom:9px; border-bottom:1px solid var(--aLine2); }
 .dRowV2 { display:contents; }
 .dRowLbl { font-size:13px; color:var(--aInk2); padding:8px 0; border-bottom:1px solid var(--aLine2); align-self:center; }
@@ -473,6 +473,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbAside { flex-direction:column; }
   .dbWhen { align-items:flex-start; }
   .auctionDetailPanelV1 { padding:18px; }
+  .dSec { grid-template-columns:fit-content(110px) 1fr; column-gap:10px; }
 }
 
 /* Stale-while-revalidate: dim existing cards while new data loads */
