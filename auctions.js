@@ -924,7 +924,9 @@
     let items = [];
     try{
       if(isLocalHost()) throw new Error("local-demo");
-      const params = new URLSearchParams({action:"search", auction:lot.auction || "copart", make:lot.make || "", model:lot.model || "", per_page:"12", sort:"soon"});
+      const params = new URLSearchParams({action:"search", per_page:"12", sort:"soon"});
+      if(lot.makeId) params.set("make", String(lot.makeId));
+      if(lot.modelId) params.set("model", String(lot.modelId));
       const payload = await api(`/api/auctions?${params}`);
       items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
     }catch(error){
@@ -940,7 +942,9 @@
     const sec = document.getElementById("similarArchivedSection");
     if(!box || !sec) return;
     try{
-      const params = new URLSearchParams({action:"search", auction:lot.auction || "copart", make:lot.make || "", model:lot.model || "", per_page:"12", tab:"archived"});
+      const params = new URLSearchParams({action:"search", per_page:"12", tab:"archived"});
+      if(lot.makeId) params.set("make", String(lot.makeId));
+      if(lot.modelId) params.set("model", String(lot.modelId));
       const payload = await api(`/api/auctions?${params}`);
       const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
       if(!items.length) return;
