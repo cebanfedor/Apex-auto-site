@@ -308,18 +308,26 @@
 .dGalChipV2 { left:10px; bottom:10px; }
 .dGalCountV2 { position:absolute; right:10px; bottom:10px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.7); color:#fff; font-size:12px; }
 .lotDetailCenterV1 { gap:16px; }
-.dSec { background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; padding:14px 18px; }
-.dSecHead { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); padding-bottom:9px; border-bottom:1px solid var(--aLine2); }
-.dRowV2 { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:8px 0; font-size:14px; }
-.dRowV2 + .dRowV2 { border-top:1px solid var(--aLine2); }
-.dRowLbl { color:var(--aInk2); flex:none; }
-.dRowVal { display:inline-flex; align-items:center; gap:7px; color:var(--aInk); font-weight:600; text-align:right; justify-content:flex-end; }
-.dRowVal .dbIco { width:16px; height:16px; flex:none; }
+/* .dSec — общая grid-сетка: левый столбец авто-подстраивается под самую длинную метку,
+   правый (значения) начинается с единой точки для всех строк секции */
+/* .dSec — общий grid: столбец меток по min-content (ширина самого длинного слова),
+   значения всегда начинаются с одной точки независимо от длины метки */
+.dSec { background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; padding:14px 18px; display:grid; grid-template-columns:min-content 1fr; column-gap:8px; }
+.dSecHead { grid-column:1/-1; font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--aInk); padding-bottom:9px; border-bottom:1px solid var(--aLine2); }
+.dRowV2 { display:contents; }
+.dRowLbl { font-size:13px; color:var(--aInk2); padding:8px 0; border-bottom:1px solid var(--aLine2); align-self:center; }
+.dRowVal { display:block; font-size:14px; color:var(--aInk); font-weight:600; padding:8px 0; border-bottom:1px solid var(--aLine2); min-width:0; word-break:break-word; }
+/* dValUnit — иконка + текст текут как inline, не разрываются при переносе */
+.dValUnit { display:block; }
+.dValUnit .dbIco, .dRowVal > .dbIco { display:inline-block; vertical-align:middle; width:16px; height:16px; margin-right:6px; position:relative; top:-1px; }
+.dValUnit > span { vertical-align:middle; }
+.dSec .dRowV2:last-child .dRowLbl,
+.dSec .dRowV2:last-child .dRowVal { border-bottom:none; }
 .dTone-good .dbIco { color:#1b9c5b; }
 .dTone-warn .dbIco { color:#e8a000; }
 .dTone-bad .dbIco { color:var(--aRed); }
 .dTone-neutral .dbIco { color:var(--aMuted); }
-.dAucMini { background:#fff1f1; color:var(--aRed); font-weight:700; font-size:10.5px; padding:2px 7px; border-radius:5px; margin-left:6px; }
+.dAucMini { background:#e7f6ec; color:#1b9c5b; font-weight:700; font-size:10.5px; padding:2px 7px; border-radius:5px; margin-left:6px; }
 .dLink { color:#1f6bff; font-weight:600; }
 .dRecoV2 { display:flex; gap:12px; background:#eefaf2; border:1px solid #cdeed9; border-radius:14px; padding:14px 16px; }
 .dRecoV2 > .dbIco { color:#1b9c5b; width:22px; height:22px; flex:none; margin-top:1px; }

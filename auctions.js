@@ -358,7 +358,8 @@
     excl:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.2M12 16v.4"/>',
     dot:'<circle cx="12" cy="12" r="7.5"/><path d="M8.5 12h7"/>',
     ext:'<path d="M14 5h5v5M19 5l-7 7M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/>',
-    copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>'
+    copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+    gem:'<path d="M5 9L12 2l7 7M5 9l7 13 7-13H5z"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -590,6 +591,15 @@
     return lot.saleStatusKey === sale;
   }
 
+  function matchDateRange(lot, dateFrom, dateTo){
+    if(!dateFrom && !dateTo) return true;
+    if(!lot.auctionDate) return !dateFrom; // undated lots: show only when no "from" is set
+    const lotDay = String(lot.auctionDate).slice(0, 10); // "YYYY-MM-DD"
+    if(dateFrom && lotDay < dateFrom) return false;
+    if(dateTo   && lotDay > dateTo)   return false;
+    return true;
+  }
+
   function skeletonCards(n = 6){
     const one = `<article class="dbCard dbSkelV1">
       <div class="dbPhoto skBoxV1"></div>
@@ -608,8 +618,10 @@
 
   function renderCards(append = false){
     const box = $("#auctionCards");
-    const sale = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
-    const items = sale ? state.items.filter(lot => matchSale(lot, sale)) : state.items;
+    const sale     = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
+    const dateFrom = document.querySelector('input[name="auctionDateFrom"]')?.value || "";
+    const dateTo   = document.querySelector('input[name="auctionDateTo"]')?.value || "";
+    const items = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo));
     const html = items.map(renderCard).join("");
     if(append){ box.insertAdjacentHTML("beforeend", html); } else { box.innerHTML = html; }
     $("#loadMoreLots").hidden = !state.hasMore;
@@ -838,7 +850,7 @@
     if(value == null || value === "") return "";
     const t = statusTone(value) || "neutral";
     const ic = t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q";
-    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal dTone-${t}">${dbIco(ic)}<span>${escapeHtml(value)}</span></span></div>`;
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal dTone-${t}"><span class="dValUnit">${dbIco(ic)}<span>${escapeHtml(value)}</span></span></span></div>`;
   }
   function dPlain(label, valueHtml){
     if(valueHtml == null || valueHtml === "") return "";
@@ -1008,12 +1020,14 @@
               ${dMain("Продавец", tc(lot.seller))}
               ${dMain("Ключ доступен", tc(lot.keys))}
               ${dMain("Статус документов", tc(lot.document))}
+              ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus)) : ""}
               ${dMain("История", histStr)}
-              ${dPlain("Двигатель / привод", escapeHtml(driveLine))}
+              ${dPlain("Привод", escapeHtml(driveLine))}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus ? ` <span class="${/actual|факт/i.test(lot.odometerStatus) ? "odoOkV1" : "odoWarnV1"}">${/actual|факт/i.test(lot.odometerStatus) ? "фактический" : escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`)}
               ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg)) : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg)) : ""}
-              ${vinReport ? dPlain("Отчёт VIN", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Проверить историю →</a>`) : ""}
+              ${lot.saleType ? dMain("Тип ущерба", tc(lot.saleType)) : ""}
+              ${vinReport ? dPlain("Экстра", `${dbIco("gem")}<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчет VIN</a>`) : ""}
             </section>
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
             <section class="dSec">
@@ -1310,18 +1324,29 @@
       manufacturers = (data.makes || []).map(n => ({id:null, name:n}));
     });
 
-    // Damage list (standard descriptions; sent as text — confirmed filterable)
-    setupCombo("filterDamageV2", "damageMenuV2", () => data.damages || []);
+    // Damage, color, state: mutable arrays — filled from API on load
+    let damages = [];
+    let colors  = [];
+    let states  = [];
 
-    // Color → color id
-    const colorId = document.getElementById("filterColorIdV2");
-    setupCombo("filterColorV2", "colorMenuV2", () => data.colors || [], (opt) => { if(colorId) colorId.value = opt.id != null ? opt.id : ""; });
-    document.getElementById("filterColorV2")?.addEventListener("input", () => { if(colorId) colorId.value = ""; });
+    // Damage: sent as text (confirmed filterable by API)
+    setupCombo("filterDamageV2", "damageMenuV2", () => damages);
 
-    // State → state_code
+    // Color: no hidden id — text value goes directly to API
+    setupCombo("filterColorV2", "colorMenuV2", () => colors);
+
+    // State: store state_code (e.g. "CA"), NOT numeric id
     const stateId = document.getElementById("filterStateIdV2");
-    setupCombo("filterStateV2", "stateMenuV2", () => data.states || [], (opt) => { if(stateId) stateId.value = opt.id != null ? opt.id : ""; });
+    setupCombo("filterStateV2", "stateMenuV2", () => states, (opt) => {
+      if(stateId) stateId.value = opt.code || String(opt.id || "");
+    });
     document.getElementById("filterStateV2")?.addEventListener("input", () => { if(stateId) stateId.value = ""; });
+
+    // Fetch dict options — silent fail; combos populate once data arrives
+    const country = document.querySelector('input[name="country"]:checked')?.value || "US";
+    api("/api/auctions?action=usadict&dict=damages").then(r => { damages = r.items || []; }).catch(() => {});
+    api("/api/auctions?action=usadict&dict=colors").then(r => { colors = r.items || []; }).catch(() => {});
+    api(`/api/auctions?action=usadict&dict=states&country=${country}`).then(r => { states = r.items || []; }).catch(() => {});
   }
 
   function bindEvents(){

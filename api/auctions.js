@@ -228,8 +228,9 @@ function normalizeLot(source, fallbackAuction = "copart"){
     primaryDamage,
     secondaryDamage,
     damage:[primaryDamage, secondaryDamage].filter(Boolean).join(" / "),
-    document:safeName(lot?.detailed_title || lot?.title || lot?.document || item?.document),
-    titleStatus:safeName(lot?.title || lot?.detailed_title),
+    document:safeName(lot?.document || item?.document || lot?.detailed_title || lot?.title),
+    titleStatus:safeName(lot?.detailed_title || lot?.title || item?.title),
+    saleType:safeName(lot?.loss_type || lot?.casualty_type || lot?.damage_type || item?.loss_type || item?.casualty_type),
     fuel:safeName(item?.fuel || lot?.fuel),
     engine:safeName(item?.engine || lot?.engine),
     transmission:safeName(item?.transmission || lot?.transmission),
@@ -362,15 +363,40 @@ function buildSearchParams(query){
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6,8");
   }
-  // Show only lots that actually have an auction date. The API returns
-  // sale_date=null for unscheduled lots; sale_date_in_days returns the dated
-  // (scheduled/recent) ones. next_hours_auction would be ideal for *future*
-  // auctions, but the feed's sale dates are recent-past, so it returns 0 —
-  // sale_date_in_days is the reliable choice. Applied to the live tabs.
+  // sale_date_in_days is the only reliable date filter in this API — sale_date_from/to
+  // are unreliable (the API often ignores or returns 0). So we ALWAYS set
+  // sale_date_in_days: default 60 days, or enough days to cover the user's chosen dates.
+  // Client-side date filtering (renderCards) provides exact-match guarantee.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
-  const hasDateFilter = params.get("sale_date_from") || params.get("sale_date_to") || params.get("sale_date_in_days") || params.get("next_hours_auction");
-  if(tabUpcoming && !hasDateFilter){
-    params.set("sale_date_in_days", "60"); // ±60-day window — wider net, more lots
+  const hasExplicitDays = params.get("sale_date_in_days") || params.get("next_hours_auction");
+  if(tabUpcoming && !hasExplicitDays){
+    const userDateFrom = params.get("sale_date_from");
+    const userDateTo   = params.get("sale_date_to");
+    if(userDateFrom || userDateTo){
+      // Calculate days-ahead needed to cover the chosen "To" date (or "From" if no "To")
+      const farStr = userDateTo || userDateFrom;
+      const today = new Date(); today.setHours(0,0,0,0);
+      const far   = new Date(farStr + "T00:00:00");
+      const days  = Number.isNaN(far.getTime()) ? 90 : Math.max(14, Math.ceil((far - today) / 86400000) + 7);
+      params.set("sale_date_in_days", String(Math.min(days, 180)));
+    } else {
+      params.set("sale_date_in_days", "60"); // default: no user date selected
+    }
+  }
+  // Pass sort preference to the API so it sorts ALL lots before returning page 1.
+  // Without this, the API returns lots in default order (soonest auction) and
+  // client-side sortItems only reorders those 50 — wrong when user asks for "newest year".
+  const sortApiMap = {
+    year_desc:   {sort_by:"year",      order:"desc"},
+    price_asc:   {sort_by:"price",     order:"asc"},
+    price_desc:  {sort_by:"price",     order:"desc"},
+    mileage_asc: {sort_by:"odometer",  order:"asc"},
+    soon:        {sort_by:"sale_date", order:"asc"},
+  };
+  const apiSort = sortApiMap[query.get("sort") || "soon"];
+  if(apiSort){
+    params.set("sort_by", apiSort.sort_by);
+    params.set("order",   apiSort.order);
   }
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
@@ -717,6 +743,7 @@ module.exports = async function handler(request, response){
       const paths = {
         damages:"/usa/damages",
         states:`/usa/states?country=${country}`,
+        colors:"/usa/colors",
         titles:"/usa/titles",
         branches:`/usa/branches?domain_id=${domainId}`,
         cities:stateId ? `/usa/cities/${stateId}` : ""
