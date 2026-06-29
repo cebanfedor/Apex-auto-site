@@ -50,9 +50,9 @@ function auctionsApiDomainId(auction){
 }
 
 function iaaiSuffix(lot){
-  if(/^ICB_/i.test(lot)) return "~";    // Canadian CBE lots — no country code
-  if(/^Imp_/i.test(lot)) return "~CA";  // Canadian import lots
-  return "~US";
+  if(/^ICB_/i.test(lot)) return "~";   // Canadian CBE — no country code
+  if(/^\d+$/.test(lot))  return "~US"; // Pure numeric = US lot
+  return "~CA";                         // Any other prefix (Imp_, C_, etc.) = Canadian
 }
 
 function auctionUrl(auction, lot){
