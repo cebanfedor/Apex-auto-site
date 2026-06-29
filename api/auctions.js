@@ -465,7 +465,7 @@ async function fetchSearch(query){
   // Request extra items so the final page still shows ~50 after Encar removal.
   if(isAll){
     const base = safeNumber(params.get("per_page")) || 50;
-    params.set("per_page", String(Math.min(base + 20, 100)));
+    params.set("per_page", String(Math.min(base + 50, 300)));
   }
   const isEncar = it => { const d = it && it.domain; const id = d && d.id; const nm = String((d && d.name) || d || "").toLowerCase(); return id === 12 || nm.includes("encar") || nm.includes("korea"); };
   const perPage = safeNumber(query.get("per_page") || query.get("limit") || 50) || 50;

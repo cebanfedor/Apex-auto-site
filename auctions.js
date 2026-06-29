@@ -7,7 +7,10 @@
     auction:"all",
     tab:"all",
     page:1,
-    perPage:30,
+    perPage:200,
+    displayPage:1,
+    displayPageSize:30,
+    filteredCount:0,
     total:0,
     hasMore:false,
     loading:false,
@@ -623,10 +626,13 @@
     const sale     = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
     const dateFrom = document.querySelector('input[name="auctionDateFrom"]')?.value || "";
     const dateTo   = document.querySelector('input[name="auctionDateTo"]')?.value || "";
-    const items = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo));
-    box.innerHTML = items.map(renderCard).join("");
+    const filtered = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo));
+    state.filteredCount = filtered.length;
+    const start = (state.displayPage - 1) * state.displayPageSize;
+    const pageItems = filtered.slice(start, start + state.displayPageSize);
+    box.innerHTML = pageItems.map(renderCard).join("");
     if(sale){
-      $("#auctionResultLabel").textContent = `показано ${items.length} (фильтр статуса продажи)`;
+      $("#auctionResultLabel").textContent = `показано ${filtered.length} (фильтр статуса продажи)`;
     }
     renderPagination();
   }
@@ -634,12 +640,10 @@
   function renderPagination(){
     const box = document.getElementById("paginationV1");
     if(!box) return;
-    const totalPages = state.total > 0
-      ? Math.ceil(state.total / state.perPage)
-      : (state.hasMore ? state.page + 1 : state.page);
+    const totalPages = Math.ceil(state.filteredCount / state.displayPageSize);
     if(totalPages <= 1){ box.hidden = true; return; }
     box.hidden = false;
-    const p = state.page;
+    const p = state.displayPage;
     const vis = new Set([1, totalPages]);
     for(let i = Math.max(1, p - 2); i <= Math.min(totalPages, p + 2); i++) vis.add(i);
     const pages = [...vis].sort((a, b) => a - b);
@@ -697,6 +701,7 @@
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
       state.items = nextItems;
+      state.displayPage = 1;
       $("#auctionResultCount").textContent = state.total || state.items.length || 0;
       $("#auctionResultLabel").textContent = state.total
         ? (archived ? "лотов в архиве" : "лотов найдено")
@@ -1181,7 +1186,7 @@
     const others = [$("#auctionMakeSearch")?.value, $("#auctionModelSearch")?.value, $("#auctionLotSearch")?.value].some(v => String(v || "").trim());
     // A complete VIN on its own → open the VIN report instead of filtering the list.
     if(vin.length >= 11 && !others){ openVinReport(vin); return; }
-    state.page = 1;
+    state.page = 1; state.displayPage = 1;
     loadLots();
   }
 
@@ -1380,13 +1385,13 @@
         if(event.key === "Enter"){ event.preventDefault(); triggerSearch(); }
       });
     });
-    $("#auctionSort").addEventListener("change", debounce(() => { state.page = 1; loadLots(); }, 150));
+    $("#auctionSort").addEventListener("change", debounce(() => { state.page = 1; state.displayPage = 1; loadLots(); }, 150));
     document.querySelectorAll("[data-auction-switch]").forEach(button => {
       button.addEventListener("click", () => {
         document.querySelectorAll("[data-auction-switch]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
         state.auction = button.dataset.auctionSwitch;
-        state.page = 1;
+        state.page = 1; state.displayPage = 1;
         loadLots();
       });
     });
@@ -1395,13 +1400,13 @@
         document.querySelectorAll("[data-tab]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
         state.tab = button.dataset.tab || "all";
-        state.page = 1;
+        state.page = 1; state.displayPage = 1;
         loadLots();
       });
     });
     $("#auctionFiltersForm").addEventListener("submit", event => {
       event.preventDefault();
-      state.page = 1;
+      state.page = 1; state.displayPage = 1;
       document.body.classList.remove("filtersOpenV1");
       loadLots();
     });
@@ -1413,7 +1418,7 @@
       });
       document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active"));
       document.querySelectorAll("[data-range]").forEach(range => { if(range._refresh) range._refresh(); });
-      state.page = 1;
+      state.page = 1; state.displayPage = 1;
       loadLots();
     });
     document.getElementById("paginationV1")?.addEventListener("click", e => {
@@ -1421,10 +1426,10 @@
       if(!btn || btn.disabled || btn.classList.contains("pgActiveV1")) return;
       const page = parseInt(btn.dataset.page);
       if(!page || page < 1) return;
-      state.page = page;
+      state.displayPage = page;
       const cardsTop = document.getElementById("auctionCards")?.offsetTop ?? 0;
       window.scrollTo({top: Math.max(0, cardsTop - 80), behavior:"smooth"});
-      loadLots();
+      renderCards();
     });
     $("#openFiltersBtn").addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
     $("#searchSettingsBtn")?.addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
