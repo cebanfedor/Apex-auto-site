@@ -37,8 +37,11 @@ function calculateAuctionFeeFor(price, auction){
     if(price<=5000)total=820;
     else if(price<=15000)total=1070;
     else if(price<=30000)total=1100;
-    else if(price<=50000)total=1150;
-    else total=1300;
+    else if(price<=35000)total=1250;
+    else if(price<=40000)total=1350;
+    else if(price<=45000)total=1500;
+    else if(price<=50000)total=1700;
+    else total=2000;
   }
   return{total,detail:""};
 }
