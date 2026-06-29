@@ -98,6 +98,7 @@ module.exports = async function(req, res){
   let ogImage = "https://apexauto.md/assets/hot/bmw-530e.jpg";
 
   const match = slug.match(/^(iaai|copart)-(.+)$/i);
+  let debugError = null;
   if(match && process.env.AUCTIONS_API_KEY){
     try{
       const auction = match[1].toLowerCase();
@@ -116,8 +117,16 @@ module.exports = async function(req, res){
         if(lot.images && lot.images.length > 0) ogImage = lot.images[0];
       }
     }catch(e){
-      // fallback to generic OG tags — page still renders fine client-side
+      debugError = e.message;
     }
+  }else{
+    debugError = match ? "no AUCTIONS_API_KEY" : "slug did not match";
+  }
+
+  if(req.query.debug === "1"){
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).send(JSON.stringify({slug, match:!!match, hasKey:!!process.env.AUCTIONS_API_KEY, ogTitle, ogImage, error:debugError}));
+    return;
   }
 
   let html;
