@@ -7,7 +7,7 @@
     auction:"all",
     tab:"all",
     page:1,
-    perPage:200,
+    perPage:100,
     displayPage:1,
     displayPageSize:30,
     filteredCount:0,
