@@ -171,6 +171,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const model = safeName(item?.model);
   const year = safeNumber(item?.year);
   const lotNumber = String(lot?.lot || lot?.lot_number || lot?.lotNumber || lot?.external_id || item?.lot || item?.lot_number || item?.lotNumber || "").replace(/~.*/, "");
+  // For IAAI: external_id is the stock number used in the URL (lot.lot is the internal API id).
+  const iaaiExternalId = auction === "iaai" ? String(lot?.external_id || lotNumber).replace(/~.*/, "") : "";
   const title = item?.title || [year, make, model].filter(Boolean).join(" ") || "Автомобиль";
   const location = locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location);
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
@@ -215,7 +217,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     engineId:(item?.engine && item.engine.id) || null,
     vin:item?.vin || lot?.vin || "",
     lot:lotNumber,
-    url:auctionUrl(auction, lotNumber),
+    url:auctionUrl(auction, iaaiExternalId || lotNumber),
     location,
     auctionDate:lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "",
     currentBid,
