@@ -66,12 +66,19 @@ function extractLotData(source, fallbackAuction){
 
 async function fetchJson(url){
   const key = process.env.AUCTIONS_API_KEY;
-  const resp = await fetch(url, {
-    headers: key ? {"X-Api-Key": key, "Authorization": `Bearer ${key}`} : {},
-    signal: AbortSignal.timeout(8000)
-  });
-  if(!resp.ok) throw new Error(`API ${resp.status}`);
-  return resp.json();
+  if(!key) throw new Error("AUCTIONS_API_KEY not configured");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  let response;
+  try{
+    response = await fetch(url, {
+      headers:{"x-api-key":key, "accept":"application/json"},
+      signal:controller.signal
+    });
+  }finally{ clearTimeout(timer); }
+  const payload = await response.json().catch(() => null);
+  if(!response.ok) throw new Error(`API ${response.status}`);
+  return payload;
 }
 
 function escapeAttr(str){
