@@ -7,6 +7,8 @@
     auction:"all",
     tab:"all",
     page:1,
+    perPage:30,
+    total:0,
     hasMore:false,
     loading:false,
     items:[],
@@ -163,7 +165,7 @@
     params.set("tab", state.tab);
     params.set("sort", $("#auctionSort").value);
     params.set("page", state.page);
-    params.set("per_page", "50");
+    params.set("per_page", String(state.perPage));
     Array.from(params.entries()).forEach(([key, value]) => {
       if(!value) params.delete(key);
     });
@@ -616,18 +618,40 @@
     return one.repeat(n);
   }
 
-  function renderCards(append = false){
+  function renderCards(){
     const box = $("#auctionCards");
     const sale     = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
     const dateFrom = document.querySelector('input[name="auctionDateFrom"]')?.value || "";
     const dateTo   = document.querySelector('input[name="auctionDateTo"]')?.value || "";
     const items = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo));
-    const html = items.map(renderCard).join("");
-    if(append){ box.insertAdjacentHTML("beforeend", html); } else { box.innerHTML = html; }
-    $("#loadMoreLots").hidden = !state.hasMore;
-    if(sale && !append){
+    box.innerHTML = items.map(renderCard).join("");
+    if(sale){
       $("#auctionResultLabel").textContent = `показано ${items.length} (фильтр статуса продажи)`;
     }
+    renderPagination();
+  }
+
+  function renderPagination(){
+    const box = document.getElementById("paginationV1");
+    if(!box) return;
+    const totalPages = state.total > 0
+      ? Math.ceil(state.total / state.perPage)
+      : (state.hasMore ? state.page + 1 : state.page);
+    if(totalPages <= 1){ box.hidden = true; return; }
+    box.hidden = false;
+    const p = state.page;
+    const vis = new Set([1, totalPages]);
+    for(let i = Math.max(1, p - 2); i <= Math.min(totalPages, p + 2); i++) vis.add(i);
+    const pages = [...vis].sort((a, b) => a - b);
+    let html = `<button class="pgBtnV1 pgNavV1"${p === 1 ? " disabled" : ""} data-page="${p - 1}">&#8249;</button>`;
+    let prev = 0;
+    for(const num of pages){
+      if(num - prev > 1) html += `<span class="pgEllipsisV1">…</span>`;
+      html += `<button class="pgBtnV1${num === p ? " pgActiveV1" : ""}" data-page="${num}">${num}</button>`;
+      prev = num;
+    }
+    html += `<button class="pgBtnV1 pgNavV1"${p === totalPages ? " disabled" : ""} data-page="${p + 1}">&#8250;</button>`;
+    box.innerHTML = html;
   }
 
   // Demo lots so the catalog is reviewable on localhost without AUCTIONS_API_KEY.
@@ -650,7 +674,7 @@
     state.items = favList();
     state.hasMore = false;
     $("#auctionCards").innerHTML = "";
-    $("#loadMoreLots").hidden = true;
+    const pg = document.getElementById("paginationV1"); if(pg) pg.hidden = true;
     $("#auctionResultCount").textContent = state.items.length;
     $("#auctionResultLabel").textContent = "в избранном";
     renderCards(false);
@@ -658,40 +682,40 @@
     syncUrl();
   }
 
-  async function loadLots({append = false, _retry = false} = {}){
+  async function loadLots({_retry = false} = {}){
     if(state.tab === "favorites"){ renderFavorites(); return; }
     if(state.loading) return;
     state.loading = true;
     setMessage("");
-    // Stale-while-revalidate: keep existing cards visible on refresh, show skeleton only on first load
-    const hasExisting = !append && state.items.length > 0;
-    if(!append && !hasExisting) $("#auctionCards").innerHTML = skeletonCards(6);
-    if(hasExisting) $("#auctionCards").classList.add("lotsRefreshingV1");
+    // Stale-while-revalidate: dim existing cards on page change, skeleton on first load
+    if(state.items.length === 0) $("#auctionCards").innerHTML = skeletonCards(6);
+    else $("#auctionCards").classList.add("lotsRefreshingV1");
     const archived = state.tab === "archived";
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
       const nextItems = payload.items || [];
       state.hasMore = Boolean(payload.hasMore);
-      state.items = append ? state.items.concat(nextItems) : nextItems;
-      $("#auctionResultCount").textContent = (payload.total || state.items.length) || 0;
-      $("#auctionResultLabel").textContent = payload.total
+      state.total = payload.total || 0;
+      state.items = nextItems;
+      $("#auctionResultCount").textContent = state.total || state.items.length || 0;
+      $("#auctionResultLabel").textContent = state.total
         ? (archived ? "лотов в архиве" : "лотов найдено")
         : `Показано ${state.items.length} лотов`;
-      renderCards(false);
+      renderCards();
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
       state.hasMore = false;
-      $("#loadMoreLots").hidden = true;
       if(isLocalHost()){
         state.items = demoLots();
+        state.total = state.items.length;
         $("#auctionResultCount").textContent = "373 909";
         $("#auctionResultLabel").textContent = "демо-лоты (локально, без AUCTIONS_API_KEY)";
-        renderCards(false);
+        renderCards();
       }else if(!_retry){
         // Auto-retry once after 2s before showing error — handles transient API blips
         state.loading = false;
-        setTimeout(() => loadLots({append, _retry:true}), 2000);
+        setTimeout(() => loadLots({_retry:true}), 2000);
         return;
       }else{
         // Keep showing existing cards if we have them; just flag the error
@@ -1392,9 +1416,15 @@
       state.page = 1;
       loadLots();
     });
-    $("#loadMoreLots").addEventListener("click", () => {
-      state.page += 1;
-      loadLots({append:true});
+    document.getElementById("paginationV1")?.addEventListener("click", e => {
+      const btn = e.target.closest(".pgBtnV1");
+      if(!btn || btn.disabled || btn.classList.contains("pgActiveV1")) return;
+      const page = parseInt(btn.dataset.page);
+      if(!page || page < 1) return;
+      state.page = page;
+      const cardsTop = document.getElementById("auctionCards")?.offsetTop ?? 0;
+      window.scrollTo({top: Math.max(0, cardsTop - 80), behavior:"smooth"});
+      loadLots();
     });
     $("#openFiltersBtn").addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
     $("#searchSettingsBtn")?.addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
