@@ -49,10 +49,16 @@ function auctionsApiDomainId(auction){
   return auction === "iaai" ? "1" : "3";
 }
 
+function iaaiSuffix(lot){
+  if(/^ICB_/i.test(lot)) return "~";    // Canadian CBE lots — no country code
+  if(/^Imp_/i.test(lot)) return "~CA";  // Canadian import lots
+  return "~US";
+}
+
 function auctionUrl(auction, lot){
   if(!lot) return "";
   return auction === "iaai"
-    ? `https://www.iaai.com/VehicleDetail/${encodeURIComponent(lot)}~US`
+    ? `https://www.iaai.com/VehicleDetail/${encodeURIComponent(lot)}${iaaiSuffix(lot)}`
     : `https://www.copart.com/lot/${encodeURIComponent(lot)}`;
 }
 
