@@ -10,7 +10,7 @@
     },
     {
       "source": "/auctions/:slug",
-      "destination": "/auctions.html?slug=:slug"
+      "destination": "/api/lot-page?slug=:slug"
     }
   ]
 }
