@@ -36,8 +36,9 @@ function calculateAuctionFeeFor(price, auction){
   if(auction==="manheim"){
     if(price<=5000)total=820;
     else if(price<=15000)total=1070;
-    else if(price<=30000)total=1570;
-    else total=Math.max(1570,Math.ceil(price*.08/10)*10+370);
+    else if(price<=30000)total=1100;
+    else if(price<=50000)total=1150;
+    else total=1300;
   }
   return{total,detail:""};
 }
