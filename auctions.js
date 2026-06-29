@@ -1385,7 +1385,33 @@
         if(event.key === "Enter"){ event.preventDefault(); triggerSearch(); }
       });
     });
-    $("#auctionSort").addEventListener("change", debounce(() => { state.page = 1; state.displayPage = 1; loadLots(); }, 150));
+    (function initSortDrop(){
+      const drop = document.getElementById("sortDropV1");
+      const trig = document.getElementById("sortDropTrigV1");
+      const menu = document.getElementById("sortDropMenuV1");
+      const lbl  = document.getElementById("sortDropLabelV1");
+      const inp  = document.getElementById("auctionSort");
+      if(!drop) return;
+      function setSort(val, silent){
+        const opt = menu.querySelector(`[data-sort="${val}"]`);
+        if(!opt) return;
+        menu.querySelectorAll(".sortOptV1").forEach(el => el.classList.remove("sortOptActiveV1"));
+        opt.classList.add("sortOptActiveV1");
+        lbl.textContent = opt.textContent.trim();
+        inp.value = val;
+        if(!silent){ state.page = 1; state.displayPage = 1; loadLots(); }
+      }
+      const urlSort = new URLSearchParams(location.search).get("sort");
+      if(urlSort) setSort(urlSort, true);
+      trig.addEventListener("click", e => { e.stopPropagation(); drop.classList.toggle("openV1"); menu.hidden = !menu.hidden; });
+      document.addEventListener("click", e => { if(!drop.contains(e.target)){ drop.classList.remove("openV1"); menu.hidden = true; } });
+      menu.addEventListener("click", e => {
+        const opt = e.target.closest(".sortOptV1");
+        if(!opt || opt.classList.contains("sortOptActiveV1")) return;
+        setSort(opt.dataset.sort);
+        drop.classList.remove("openV1"); menu.hidden = true;
+      });
+    }());
     document.querySelectorAll("[data-auction-switch]").forEach(button => {
       button.addEventListener("click", () => {
         document.querySelectorAll("[data-auction-switch]").forEach(item => item.classList.remove("active"));

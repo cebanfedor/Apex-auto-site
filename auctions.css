@@ -27,7 +27,17 @@
 .auctionSwitchV1 { display:inline-flex; border:1px solid var(--aLine); border-radius:10px; overflow:hidden; }
 .auctionSwitchV1 button { height:38px; padding:0 16px; border:none; background:var(--aSurf); font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:.18s; }
 .auctionSwitchV1 button.active { background:var(--aRed); color:#fff; }
-#auctionSort { height:38px; min-width:170px; padding:0 12px; border:1px solid #ccd2db; border-radius:10px; background:var(--aSoft); font-size:13px; color:var(--aInk); }
+.sortDropV1 { position:relative; }
+.sortDropTrigV1 { display:flex; align-items:center; gap:7px; height:38px; padding:0 12px; border:1px solid var(--aLine); border-radius:10px; background:var(--aSurf); font-size:13px; font-weight:500; color:var(--aInk); cursor:pointer; white-space:nowrap; transition:border-color .15s; }
+.sortDropTrigV1:hover { border-color:var(--aMuted); }
+.sortDropV1.openV1 .sortDropTrigV1 { border-color:var(--red); }
+.sortDropV1.openV1 .sortDropChevV1 { transform:rotate(180deg); }
+.sortDropChevV1 { transition:transform .2s; flex-shrink:0; }
+.sortDropMenuV1 { position:absolute; top:calc(100% + 6px); left:0; min-width:220px; background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.12); padding:6px; z-index:200; list-style:none; margin:0; }
+.sortOptV1 { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:9px; font-size:13px; color:var(--aInk); cursor:pointer; transition:background .12s; }
+.sortOptV1:hover { background:var(--aSoft); }
+.sortOptV1.sortOptActiveV1 { color:var(--red); font-weight:600; }
+.sortOptV1.sortOptActiveV1::after { content:"✓"; font-size:13px; }
 
 /* Search row */
 .auctionSearchRowV2 { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }

@@ -398,11 +398,17 @@ function buildSearchParams(query){
   // or may ignore them — client-side sortItems() is the guaranteed fallback.
   const sortVal = query.get("sort") || "soon";
   const sortApiMap = {
-    year_desc:   {sort_by:"year",      order:"desc"},
-    price_asc:   {sort_by:"price",     order:"asc"},
-    price_desc:  {sort_by:"price",     order:"desc"},
-    mileage_asc: {sort_by:"odometer",  order:"asc"},
-    soon:        {sort_by:"sale_date", order:"asc"},
+    soon:         {sort_by:"sale_date", order:"asc"},
+    date_asc:     {sort_by:"sale_date", order:"asc"},
+    date_desc:    {sort_by:"sale_date", order:"desc"},
+    year_asc:     {sort_by:"year",      order:"asc"},
+    year_desc:    {sort_by:"year",      order:"desc"},
+    mileage_asc:  {sort_by:"odometer",  order:"asc"},
+    mileage_desc: {sort_by:"odometer",  order:"desc"},
+    price_asc:    {sort_by:"price",     order:"asc"},
+    price_desc:   {sort_by:"price",     order:"desc"},
+    buy_now_asc:  {sort_by:"buy_now",   order:"asc"},
+    buy_now_desc: {sort_by:"buy_now",   order:"desc"},
   };
   const apiSort = sortApiMap[sortVal];
   if(apiSort){
@@ -618,10 +624,16 @@ async function handleDebug(query, response){
 
 function sortItems(items, sort){
   const list = [...items];
-  if(sort === "price_asc") return list.sort((a, b) => (a.currentBid || a.buyNow || 0) - (b.currentBid || b.buyNow || 0));
-  if(sort === "price_desc") return list.sort((a, b) => (b.currentBid || b.buyNow || 0) - (a.currentBid || a.buyNow || 0));
-  if(sort === "year_desc") return list.sort((a, b) => (b.year || 0) - (a.year || 0));
-  if(sort === "mileage_asc") return list.sort((a, b) => (a.odometer || 0) - (b.odometer || 0));
+  if(sort === "date_asc")     return list.sort((a, b) => (a.auctionDate || "") < (b.auctionDate || "") ? -1 : 1);
+  if(sort === "date_desc")    return list.sort((a, b) => (a.auctionDate || "") > (b.auctionDate || "") ? -1 : 1);
+  if(sort === "year_asc")     return list.sort((a, b) => (a.year || 0) - (b.year || 0));
+  if(sort === "year_desc")    return list.sort((a, b) => (b.year || 0) - (a.year || 0));
+  if(sort === "mileage_asc")  return list.sort((a, b) => (a.odometer || 0) - (b.odometer || 0));
+  if(sort === "mileage_desc") return list.sort((a, b) => (b.odometer || 0) - (a.odometer || 0));
+  if(sort === "price_asc")    return list.sort((a, b) => (a.currentBid || a.buyNow || 0) - (b.currentBid || b.buyNow || 0));
+  if(sort === "price_desc")   return list.sort((a, b) => (b.currentBid || b.buyNow || 0) - (a.currentBid || a.buyNow || 0));
+  if(sort === "buy_now_asc")  return list.sort((a, b) => (a.buyNow || 0) - (b.buyNow || 0));
+  if(sort === "buy_now_desc") return list.sort((a, b) => (b.buyNow || 0) - (a.buyNow || 0));
   // "soon": today's lots first (even if auction time passed), then future days,
   // then past days (yesterday and earlier) last. Boundary = start of today (midnight),
   // not current time — so a lot auctioned at 01:00 today still counts as "today".

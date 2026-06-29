@@ -18,7 +18,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v320">
-  <link rel="stylesheet" href="/auctions.css?v=v360">
+  <link rel="stylesheet" href="/auctions.css?v=v361">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -67,13 +67,25 @@
             <button type="button" data-auction-switch="copart">Copart</button>
             <button type="button" data-auction-switch="iaai">IAAI</button>
           </div>
-          <select id="auctionSort">
-            <option value="soon">Скоро торги</option>
-            <option value="price_asc">Цена по возрастанию</option>
-            <option value="price_desc">Цена по убыванию</option>
-            <option value="year_desc">Самые новые по году</option>
-            <option value="mileage_asc">Наименьший пробег</option>
-          </select>
+          <div class="sortDropV1" id="sortDropV1">
+            <button class="sortDropTrigV1" id="sortDropTrigV1" type="button">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M4 7h6M6 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <span id="sortDropLabelV1">Скоро торги</span>
+              <svg class="sortDropChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <ul class="sortDropMenuV1" id="sortDropMenuV1" hidden>
+              <li class="sortOptV1 sortOptActiveV1" data-sort="soon">Скоро торги</li>
+              <li class="sortOptV1" data-sort="date_asc">Дата аукциона 1-9</li>
+              <li class="sortOptV1" data-sort="date_desc">Дата аукциона 9-1</li>
+              <li class="sortOptV1" data-sort="year_asc">Год 1-9</li>
+              <li class="sortOptV1" data-sort="year_desc">Год 9-1</li>
+              <li class="sortOptV1" data-sort="mileage_asc">Пробег 1-9</li>
+              <li class="sortOptV1" data-sort="mileage_desc">Пробег 9-1</li>
+              <li class="sortOptV1" data-sort="buy_now_asc">Цена «Купить сейчас» 1-9</li>
+              <li class="sortOptV1" data-sort="buy_now_desc">Цена «Купить сейчас» 9-1</li>
+            </ul>
+            <input type="hidden" id="auctionSort" value="soon">
+          </div>
           <button id="openFiltersBtn" class="filterDrawerBtnV1" type="button">Фильтры</button>
         </div>
       </div>
