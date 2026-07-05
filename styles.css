@@ -781,6 +781,9 @@ details[open] > summary::before { content: "– "; }
   .apexProcessV205 { padding: 16px 0; }
   .apexStepV205 { padding: 14px; }
 
+  /* --- Горячие предложения: скрыть ------------------------------------ */
+  .hotSectionIntroV89, .hotLots { display: none; }
+
   /* --- Отзывы: убрать лишнее ------------------------------------------ */
   .reviewsLeadV305 { display: none; }
   .apexReviewsGridV212 { gap: 12px; }
