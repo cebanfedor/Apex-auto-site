@@ -792,8 +792,10 @@ details[open] > summary::before { content: "– "; }
   /* --- Чекбокс-строка: в одну строку ---------------------------------- */
   .check { font-size: 12.5px; gap: 8px; }
 
-  /* --- Всплывающие подсказки: центрировать над иконкой ---------------- */
+  /* --- Всплывающие подсказки: показывать НИЖЕ иконки ------------------ */
   .infoTipV65:hover::after, .infoTipV65:focus::after {
+    bottom: auto;
+    top: calc(100% + 8px);
     right: auto;
     left: 50%;
     transform: translateX(-50%);
