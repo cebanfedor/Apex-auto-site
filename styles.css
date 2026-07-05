@@ -764,7 +764,7 @@ details[open] > summary::before { content: "– "; }
   .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
   .heroMainV45 p { display: none; }
   .heroCtasV207 { margin-top: 14px; gap: 8px; }
-  .heroBtnPrimaryV207 { width: 100%; justify-content: center; }
+  .heroBtnPrimaryV207 { display: none; }
   .heroBtnGhostV207 { display: none; }
   .heroTrustV207 { display: none; }
   .heroWideStatsV302 { display: none; }
