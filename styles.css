@@ -759,7 +759,7 @@ details[open] > summary::before { content: "– "; }
 
   /* --- Hero: текст сверху, лицо справа -------------------------------- */
   .heroV45.heroWideV302 { min-height: 260px; }
-  .heroWideBgV302 { object-position: 98% 22%; }
+  .heroWideBgV302 { object-position: 60% center; }
   .heroWideOverlayV302 {
     background:
       linear-gradient(90deg, rgba(13,16,22,0.97) 0%, rgba(13,16,22,0.90) 38%, rgba(13,16,22,0.55) 65%, rgba(13,16,22,0.10) 100%),
