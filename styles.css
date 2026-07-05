@@ -781,8 +781,11 @@ details[open] > summary::before { content: "– "; }
   .apexProcessV205 { padding: 16px 0; }
   .apexStepV205 { padding: 14px; }
 
-  /* --- Горячие предложения: скрыть ------------------------------------ */
+  /* --- Скрыть тяжёлые секции ------------------------------------------ */
   .hotSectionIntroV89, .hotLots { display: none; }
+  .seaDeliveryV305 { display: none; }
+  .apexWhyV212 { display: none; }
+  .apexReviewsV212 { display: none; }
 
   /* --- Отзывы: убрать лишнее ------------------------------------------ */
   .reviewsLeadV305 { display: none; }
