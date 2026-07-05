@@ -777,9 +777,15 @@ details[open] > summary::before { content: "– "; }
   .calcInfoPlainV52 p { font-size: 13.5px; line-height: 1.5; }
   .calcInfoPlainV52 { padding-top: 20px; padding-bottom: 20px; }
 
-  /* --- Секция "Как работаем": убрать лишние отступы ------------------- */
+  /* --- Секция "Как работаем": 2 колонки, компактно -------------------- */
   .apexProcessV205 { padding: 16px 0; }
-  .apexStepV205 { padding: 14px; }
+  .apexProcessLeadV205 { display: none; }
+  .apexProcessGridV205 { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 16px; }
+  .apexStepV205 { padding: 12px 8px; }
+  .apexStepV205::before { width: 44px; height: 44px; border-radius: 13px; background-size: 20px; margin-bottom: 10px; box-shadow: none; }
+  .apexStepNumV205 { font-size: 11px; }
+  .apexStepV205 h3 { font-size: 13px; margin: 4px 0 4px; min-height: 0; }
+  .apexStepV205 p { font-size: 12px; min-height: 0; }
 
   /* --- Скрыть тяжёлые секции ------------------------------------------ */
   .hotSectionIntroV89, .hotLots { display: none; }
