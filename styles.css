@@ -757,10 +757,16 @@ details[open] > summary::before { content: "– "; }
   .apexBrandV201 small { display: none; }
   .headerPhoneV308 { padding: 0 10px; font-size: 12.5px; height: 34px; white-space: nowrap; }
 
-  /* --- Hero: текст внизу, лицо не перекрывается ----------------------- */
-  .heroV45.heroWideV302 { min-height: 260px; justify-content: flex-end; }
-  .heroWideBgV302 { object-position: 68% top; }
-  .heroWideContentV302 { padding: 0 18px 18px; }
+  /* --- Hero: текст сверху, лицо справа -------------------------------- */
+  .heroV45.heroWideV302 { min-height: 260px; }
+  .heroWideBgV302 { object-position: 84% center; }
+  .heroWideOverlayV302 {
+    background:
+      linear-gradient(90deg, rgba(13,16,22,0.97) 0%, rgba(13,16,22,0.90) 38%, rgba(13,16,22,0.55) 65%, rgba(13,16,22,0.10) 100%),
+      linear-gradient(180deg, rgba(13,16,22,0.40) 0%, rgba(13,16,22,0) 35%);
+  }
+  .heroWideContentV302 { padding: 16px 18px 0; }
+  .heroMainV45 h1 { font-size: 19px; line-height: 1.2; }
   .heroEyebrowV207 { display: none; }
   .heroMainV45 h1 { font-size: 22px; line-height: 1.25; }
   .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
