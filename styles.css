@@ -788,4 +788,18 @@ details[open] > summary::before { content: "– "; }
   /* --- Курсы валют в итоге: в строку ---------------------------------- */
   .currencyToggleV308 { flex-wrap: nowrap; gap: 6px; }
   .currencyToggleV308 button { padding: 0 10px; font-size: 13px; }
+
+  /* --- Калькулятор: компактные поля ----------------------------------- */
+  .formCard { gap: 10px; }
+  .card.formCard { padding: 16px; }
+  .formRow { gap: 4px; }
+  .formRow > label, .formCard > label { font-size: 12px; }
+  input[type="text"], input[type="number"], input[type="url"], input[type="date"],
+  input:not([type]), select { height: 40px; font-size: 14px; padding: 0 12px; }
+  select { background-position: right 10px center; padding-right: 32px; }
+  .glassSelectButtonV152 { height: 40px; font-size: 14px; padding: 0 12px; }
+  .locationOffsiteRowV314 .offsiteCheck { height: 40px; font-size: 13px; }
+  .lotImportV118 { padding: 12px 16px; }
+  .lotImportControlV118 input { height: 40px; }
+  .lotImportControlV118 #parseLotBtn { height: 40px; padding: 0 18px; font-size: 14px; }
 }
