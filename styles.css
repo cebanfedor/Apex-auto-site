@@ -786,8 +786,20 @@ details[open] > summary::before { content: "– "; }
   .apexReviewsGridV212 { gap: 12px; }
 
   /* --- Курсы валют в итоге: в строку ---------------------------------- */
-  .currencyToggleV308 { flex-wrap: nowrap; gap: 6px; }
-  .currencyToggleV308 button { padding: 0 10px; font-size: 13px; }
+  .currencyBox { flex-wrap: nowrap; gap: 5px; }
+  .currencyBox .currency { height: 34px; padding: 0 11px; font-size: 12.5px; }
+
+  /* --- Чекбокс-строка: в одну строку ---------------------------------- */
+  .check { font-size: 12.5px; gap: 8px; }
+
+  /* --- Всплывающие подсказки: центрировать над иконкой ---------------- */
+  .infoTipV65:hover::after, .infoTipV65:focus::after {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(220px, calc(100vw - 32px));
+    max-width: min(220px, calc(100vw - 32px));
+  }
 
   /* --- Калькулятор: компактные поля ----------------------------------- */
   .formCard { gap: 10px; }
