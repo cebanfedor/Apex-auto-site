@@ -80,9 +80,28 @@ export default async function handler(req, res) {
     etaChisinau = d.toISOString().slice(0, 10);
   }
 
-  // Photos from W8 RSC (static.w8shipping.com images)
-  const photoMatches = [...rsc.matchAll(/https:\/\/static\.w8shipping\.com\/images\/auto\/[^"'\s<>]+/g)];
-  const photos = [...new Set(photoMatches.map(m => m[0]))].slice(0, 12);
+  // Photos categorized from W8 RSC attachments
+  const PHOTO_LABELS = {
+    "item_photo":               "С аукциона",
+    "item_interior_photo":      "Салон",
+    "item_pickup_photo":        "Со склада",
+    "item_at_destination_photo":"С выгрузки",
+    "item_damaged_photo":       "Повреждения",
+    "item_keys_photo":          "Ключи",
+    "item_battery_photo":       "Аккумулятор",
+  };
+  const photoMap = Object.create(null);
+  const photoRe = /"attachment_type":"([^"]+)","url":"(https:\/\/static\.w8shipping\.com\/images\/auto\/[^"]+)"/g;
+  let pmt;
+  while ((pmt = photoRe.exec(rsc)) !== null) {
+    const type = pmt[1], url = pmt[2];
+    if (!photoMap[type]) photoMap[type] = [];
+    photoMap[type].push(url);
+  }
+  const photoCategories = Object.entries(photoMap)
+    .filter(([, arr]) => arr.length > 0)
+    .map(([type, photos]) => ({ type, label: PHOTO_LABELS[type] || type, photos }));
+  const photos = photoCategories.flatMap(c => c.photos).slice(0, 12);
 
   // NHTSA VIN decode (only if vehicle name not in RSC)
   let vehicleDecoded = vehicleName;
@@ -119,6 +138,7 @@ export default async function handler(req, res) {
     etaChisinau,
     stages,
     photos,
+    photoCategories,
     source: "w8shipping",
   };
 

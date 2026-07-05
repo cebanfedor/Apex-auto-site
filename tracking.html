@@ -239,6 +239,25 @@
     }
     .trackPhotosCardV401 .trackCardTitleV401 { display: flex; align-items: center; justify-content: space-between; }
     .trackPhotoCountV401 { font-size: 13px; font-weight: 400; color: var(--muted); }
+    /* category tabs */
+    .trackPhotoTabsV401 {
+      display: flex; gap: 6px; overflow-x: auto; margin: 12px 0 14px;
+      scrollbar-width: none;
+    }
+    .trackPhotoTabsV401::-webkit-scrollbar { display: none; }
+    .trackPhotoTabV401 {
+      flex: none; display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 13px; border-radius: 20px;
+      border: 1.5px solid var(--line); background: transparent;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      color: var(--muted); white-space: nowrap; transition: all 0.15s;
+    }
+    .trackPhotoTabV401 .tabCountV401 { font-weight: 400; opacity: 0.7; font-size: 12px; }
+    .trackPhotoTabV401.isActiveV401 {
+      border-color: var(--red); color: var(--red); background: rgba(237,0,18,0.05);
+    }
+    .trackPhotoTabV401.isActiveV401 .tabCountV401 { opacity: 1; }
+    .trackPhotoTabV401:not(.isActiveV401):hover { border-color: var(--dark); color: var(--dark); }
     .trackGalleryMainV401 {
       display: block; position: relative; border-radius: 12px; overflow: hidden;
       background: #111; margin-top: 14px;
@@ -339,8 +358,36 @@
     const btn   = document.getElementById('trackBtnV401');
     const area  = document.getElementById('trackResultAreaV401');
 
-    // Photo gallery: delegate thumb clicks on the result area
+    // Current photo categories (set after each render)
+    let _photoCats = [];
+
+    // Photo gallery: delegate tab + thumb clicks on the result area
     area.addEventListener('click', function(e) {
+      // Category tab click
+      const tab = e.target.closest('.trackPhotoTabV401');
+      if (tab) {
+        const catIdx = +tab.dataset.catIdx;
+        const cat = _photoCats[catIdx];
+        if (!cat) return;
+        // Update tab active state
+        area.querySelectorAll('.trackPhotoTabV401').forEach((t, i) => t.classList.toggle('isActiveV401', i === catIdx));
+        // Update counter
+        const counter = area.querySelector('.trackPhotoCountV401');
+        if (counter) counter.textContent = '1 / ' + cat.photos.length;
+        // Update main photo
+        const mainImg = document.getElementById('trackGalleryImgV401');
+        const mainLink = document.getElementById('trackGalleryLinkV401');
+        if (mainImg && cat.photos[0]) { mainImg.src = cat.photos[0]; mainLink.href = cat.photos[0]; }
+        // Rebuild thumbs
+        const thumbsDiv = area.querySelector('.trackGalleryThumbsV401');
+        if (thumbsDiv) {
+          thumbsDiv.innerHTML = cat.photos.map((url, i) =>
+            `<button class="trackThumbV401${i === 0 ? ' isActiveV401' : ''}" data-src="${url}" data-idx="${i}" data-total="${cat.photos.length}"><img src="${url}" alt="${i + 1}" loading="${i < 6 ? 'eager' : 'lazy'}"></button>`
+          ).join('');
+        }
+        return;
+      }
+      // Thumb click
       const thumb = e.target.closest('.trackThumbV401');
       if (!thumb) return;
       e.preventDefault();
@@ -475,9 +522,29 @@
           ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${d.vin}</b></div>` : ""}
         </div>
 
-          ${d.photos?.length ? `
+          ${d.photoCategories?.length ? (function(){
+            const cats = d.photoCategories;
+            const first = cats[0];
+            const total = first.photos.length;
+            const tabs = cats.map((c, i) =>
+              `<button class="trackPhotoTabV401${i === 0 ? " isActiveV401" : ""}" data-cat-idx="${i}">${c.label} <span class="tabCountV401">${c.photos.length}</span></button>`
+            ).join("");
+            const thumbs = first.photos.map((url, i) =>
+              `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${url}" data-idx="${i}" data-total="${total}"><img src="${url}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`
+            ).join("");
+            return `
         <div class="trackPhotosCardV401">
-          <div class="trackCardTitleV401">Фото с аукциона <span class="trackPhotoCountV401">1 / ${d.photos.length}</span></div>
+          <div class="trackCardTitleV401">Фото <span class="trackPhotoCountV401">1 / ${total}</span></div>
+          <div class="trackPhotoTabsV401">${tabs}</div>
+          <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${first.photos[0]}" target="_blank" rel="noopener">
+            <img id="trackGalleryImgV401" src="${first.photos[0]}" alt="Фото автомобиля">
+            <span class="trackGalleryExpandV401">↗ открыть</span>
+          </a>
+          <div class="trackGalleryThumbsV401">${thumbs}</div>
+        </div>`;
+          })() : d.photos?.length ? `
+        <div class="trackPhotosCardV401">
+          <div class="trackCardTitleV401">Фото <span class="trackPhotoCountV401">1 / ${d.photos.length}</span></div>
           <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${d.photos[0]}" target="_blank" rel="noopener">
             <img id="trackGalleryImgV401" src="${d.photos[0]}" alt="Фото автомобиля">
             <span class="trackGalleryExpandV401">↗ открыть</span>
@@ -565,6 +632,7 @@
           showError(data.message || "Автомобиль не найден в системе W8 Shipping. Проверьте VIN или номер лота.");
         } else {
           area.innerHTML = renderResult(data);
+          _photoCats = data.photoCategories || [];
         }
       } catch (e) {
         showError("Не удалось подключиться к сервису. Попробуйте позже.");

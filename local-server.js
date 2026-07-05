@@ -118,9 +118,28 @@ http.createServer((req, res) => {
           pd.setUTCDate(pd.getUTCDate() + days);
           etaChisinau = pd.toISOString().slice(0, 10);
         }
-        // Photos from W8 RSC
-        const photoMatches = [...rsc.matchAll(/https:\/\/static\.w8shipping\.com\/images\/auto\/[^"'\s<>]+/g)];
-        const photos = [...new Set(photoMatches.map(m => m[0]))].slice(0, 12);
+        // Photos categorized from W8 RSC attachments
+        const PHOTO_LABELS = {
+          "item_photo":                "С аукциона",
+          "item_interior_photo":       "Салон",
+          "item_pickup_photo":         "Со склада",
+          "item_at_destination_photo": "С выгрузки",
+          "item_damaged_photo":        "Повреждения",
+          "item_keys_photo":           "Ключи",
+          "item_battery_photo":        "Аккумулятор",
+        };
+        const photoMap2 = Object.create(null);
+        const photoRe2 = /"attachment_type":"([^"]+)","url":"(https:\/\/static\.w8shipping\.com\/images\/auto\/[^"]+)"/g;
+        let pmt2;
+        while((pmt2 = photoRe2.exec(rsc)) !== null) {
+          const type = pmt2[1], url = pmt2[2];
+          if(!photoMap2[type]) photoMap2[type] = [];
+          photoMap2[type].push(url);
+        }
+        const photoCategories = Object.entries(photoMap2)
+          .filter(([, arr]) => arr.length > 0)
+          .map(([type, phArr]) => ({ type, label: PHOTO_LABELS[type] || type, photos: phArr }));
+        const photos = photoCategories.flatMap(c => c.photos).slice(0, 12);
         // NHTSA VIN decode
         let vehicleDecoded = vehicleName;
         const doNhtsa = () => {
@@ -150,6 +169,7 @@ http.createServer((req, res) => {
             etaChisinau,
             stages,
             photos,
+            photoCategories,
             source: "w8shipping",
           };
           res.setHeader("Cache-Control","s-maxage=600, stale-while-revalidate=60");
