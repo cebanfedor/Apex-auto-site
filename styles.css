@@ -748,8 +748,9 @@ details[open] > summary::before { content: "– "; }
 /* ===== МОБИЛЬНАЯ ВЕРСИЯ (≤ 480px) ===================================== */
 @media (max-width: 480px) {
 
-  /* --- Шапка: один ряд ------------------------------------------------ */
+  /* --- Шапка: один ряд (когда закрыто), перенос когда меню открыто --- */
   .siteHeader.apexHdrV201 { flex-wrap: nowrap; padding: 0 14px; gap: 8px; min-height: 56px; }
+  .siteHeader.apexHdrV201:has(.navToggleV210:checked) { flex-wrap: wrap; }
   .apexBrandV201 { gap: 9px; }
   .apexBrandV201 img { width: 32px; height: 32px; border-radius: 9px; }
   .brandTextV77 { font-size: 16px; }
