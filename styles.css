@@ -792,15 +792,15 @@ details[open] > summary::before { content: "– "; }
   /* --- Чекбокс-строка: в одну строку ---------------------------------- */
   .check { font-size: 12.5px; gap: 8px; }
 
-  /* --- Всплывающие подсказки: показывать НИЖЕ иконки ------------------ */
+  /* --- Всплывающие подсказки: ниже иконки, выровнять по правому краю - */
   .infoTipV65:hover::after, .infoTipV65:focus::after {
     bottom: auto;
     top: calc(100% + 8px);
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(220px, calc(100vw - 32px));
-    max-width: min(220px, calc(100vw - 32px));
+    right: 0;
+    left: auto;
+    transform: none;
+    width: min(210px, calc(100vw - 32px));
+    max-width: min(210px, calc(100vw - 32px));
   }
 
   /* --- Калькулятор: компактные поля ----------------------------------- */
