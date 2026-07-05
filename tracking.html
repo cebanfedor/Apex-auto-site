@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Отслеживание груза — Apex Auto</title>
+  <meta name="description" content="Отследите доставку вашего автомобиля из США. Введите VIN или номер лота — покажем этапы доставки и ожидаемую дату прибытия.">
+  <link rel="canonical" href="https://apexauto.md/tracking">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Apex Auto">
+  <meta property="og:title" content="Отслеживание груза — Apex Auto">
+  <meta property="og:description" content="Введите VIN или номер лота — покажем этапы доставки.">
+  <meta property="og:url" content="https://apexauto.md/tracking">
+  <link rel="stylesheet" href="styles.css?v=v357">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <style>
+    /* ---- Tracking page styles ---- */
+    .trackPageV401 {
+      width: calc(100% - 48px); max-width: 860px;
+      margin: 0 auto; padding: 32px 0 64px;
+    }
+
+    /* search block */
+    .trackSearchV401 {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 24px 26px;
+      box-shadow: var(--shadow-sm); margin-bottom: 24px;
+    }
+    .trackSearchV401 > label {
+      display: block; font-size: 13px; font-weight: 600;
+      color: var(--ink-2); margin-bottom: 10px;
+    }
+    .trackSearchRowV401 { display: flex; gap: 10px; }
+    .trackSearchRowV401 input {
+      flex: 1; height: 50px; font-size: 15px; font-weight: 600;
+      letter-spacing: 0.03em; border-radius: 13px;
+    }
+    .trackSearchRowV401 button {
+      height: 50px; padding: 0 30px; border: none; border-radius: 13px;
+      background: var(--red); color: #fff; font-family: inherit;
+      font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      box-shadow: var(--shadow-red);
+      transition: background 0.18s, transform 0.18s, box-shadow 0.18s;
+    }
+    .trackSearchRowV401 button:hover { background: var(--red-600); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(237,0,18,0.32); }
+    .trackSearchHintV401 { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+    @media (max-width: 540px) {
+      .trackSearchRowV401 { flex-direction: column; }
+      .trackSearchRowV401 button { width: 100%; }
+    }
+
+    /* result area */
+    .trackResultV401 { display: none; }
+    .trackResultV401.isVisibleV401 {
+      display: block;
+      animation: trackFadeInV401 0.28s ease both;
+    }
+    @keyframes trackFadeInV401 { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .trackResultV401 { animation: none; } }
+
+    /* vehicle hero card */
+    .trackVehCardV401 {
+      background: linear-gradient(165deg, var(--dark), var(--dark-2));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-lg); padding: 24px 26px;
+      box-shadow: var(--shadow); margin-bottom: 16px;
+      position: relative; overflow: hidden;
+    }
+    .trackVehCardV401::before {
+      content: ""; position: absolute; top: -40%; right: -10%; width: 50%; height: 80%;
+      background: radial-gradient(circle, rgba(237,0,18,0.18), transparent 70%);
+      pointer-events: none;
+    }
+    .trackVehStatusV401 {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 4px 12px; border-radius: 999px;
+      background: rgba(237,0,18,0.18); border: 1px solid rgba(237,0,18,0.35);
+      font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 12px;
+    }
+    .trackVehStatusV401::before {
+      content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none;
+      background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.2);
+    }
+    .trackVehNameV401 {
+      font-size: 24px; font-weight: 800; color: #fff;
+      letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px;
+    }
+    .trackVehMetaV401 {
+      display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 14px;
+    }
+    .trackVehMetaV401 span { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; }
+    .trackVehMetaV401 strong { color: rgba(255,255,255,0.9); font-weight: 700; }
+    .trackVehVinV401 {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px;
+      border-radius: 9px; background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 13px; color: rgba(255,255,255,0.7);
+      font-variant-numeric: tabular-nums; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .trackVehVinV401 b { color: #fff; }
+
+    /* ETA */
+    .trackEtaV401 {
+      display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+      background: rgba(237,0,18,0.05); border: 1px solid rgba(237,0,18,0.18);
+      border-radius: var(--radius); margin-bottom: 16px;
+    }
+    .trackEtaIconV401 {
+      width: 44px; height: 44px; flex: none; border-radius: 13px;
+      background: var(--red); display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(237,0,18,0.28);
+    }
+    .trackEtaIconV401 svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .trackEtaLabelV401 { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--red); margin-bottom: 3px; }
+    .trackEtaValV401 { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+    .trackEtaNoteV401 { margin-left: auto; text-align: right; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+    .trackEtaNoteV401 strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+    @media (max-width: 500px) { .trackEtaNoteV401 { display: none; } }
+
+    /* stages */
+    .trackStagesCardV401 {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 22px 26px;
+      box-shadow: var(--shadow-sm); margin-bottom: 16px;
+    }
+    .trackCardTitleV401 {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.13em; color: var(--muted); margin-bottom: 22px;
+    }
+    .trackStagesV401 {
+      display: flex; align-items: flex-start; position: relative;
+    }
+    .trackStageV401 {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      text-align: center; position: relative;
+    }
+    .trackStageV401:not(:last-child)::after {
+      content: ""; position: absolute; top: 17px; left: 50%; right: -50%;
+      height: 2px; background: var(--line); z-index: 0; border-radius: 2px;
+    }
+    .trackStageV401.isDoneV401:not(:last-child)::after { background: var(--red); }
+    .trackStageV401.isCurrentV401:not(:last-child)::after {
+      background: linear-gradient(90deg, var(--red) 0%, var(--line) 100%);
+    }
+    .trackStageDotV401 {
+      width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line);
+      background: var(--surface); display: flex; align-items: center; justify-content: center;
+      position: relative; z-index: 1; margin-bottom: 10px; flex: none;
+    }
+    .trackStageDotV401 svg { width: 15px; height: 15px; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .trackStageV401.isDoneV401 .trackStageDotV401 {
+      background: var(--red); border-color: var(--red);
+      box-shadow: 0 4px 12px rgba(237,0,18,0.28);
+    }
+    .trackStageV401.isDoneV401 .trackStageDotV401 svg { stroke: #fff; }
+    .trackStageV401.isCurrentV401 .trackStageDotV401 {
+      border-color: var(--red); box-shadow: 0 0 0 4px rgba(237,0,18,0.14);
+    }
+    .trackStageV401.isCurrentV401 .trackStageDotV401 svg { stroke: var(--red); }
+    .trackStageV401.isTodoV401 .trackStageDotV401 svg { stroke: var(--muted); }
+    .trackStageNameV401 { font-size: 11px; font-weight: 700; color: var(--ink-2); line-height: 1.3; letter-spacing: -0.01em; }
+    .trackStageV401.isTodoV401 .trackStageNameV401 { color: var(--muted); }
+    .trackStageV401.isCurrentV401 .trackStageNameV401 { color: var(--red); }
+    .trackStageDateV401 { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+    .trackStageV401.isTodoV401 .trackStageDateV401 { color: var(--field-line); }
+
+    /* log */
+    .trackLogCardV401 {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 22px 26px;
+      box-shadow: var(--shadow-sm);
+    }
+    .trackLogV401 { display: flex; flex-direction: column; }
+    .trackLogItemV401 {
+      display: flex; gap: 14px; padding: 13px 0;
+      border-bottom: 1px solid var(--line-2); position: relative;
+    }
+    .trackLogItemV401:last-child { border-bottom: none; padding-bottom: 0; }
+    .trackLogLineV401 {
+      position: absolute; left: 16px; top: 36px; bottom: -13px;
+      width: 2px; background: var(--line-2);
+    }
+    .trackLogItemV401:last-child .trackLogLineV401 { display: none; }
+    .trackLogDotV401 {
+      width: 18px; height: 18px; flex: none; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; z-index: 1; margin-top: 3px;
+    }
+    .trackLogDotV401::after { content: ""; width: 8px; height: 8px; border-radius: 50%; }
+    .trackLogDotV401.isCompletedV401 { background: rgba(34,197,94,0.14); }
+    .trackLogDotV401.isCompletedV401::after { background: #22c55e; }
+    .trackLogDotV401.isCurrentV401 { background: rgba(59,130,246,0.14); }
+    .trackLogDotV401.isCurrentV401::after { background: #3b82f6; }
+    .trackLogDotV401.isPendingV401 { background: var(--field); }
+    .trackLogDotV401.isPendingV401::after { background: var(--muted); }
+    .trackLogBodyV401 { flex: 1; min-width: 0; }
+    .trackLogEventV401 { font-size: 14px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+    .trackLogDateV401 {
+      font-size: 12px; color: var(--muted); white-space: nowrap;
+      padding-top: 3px; font-variant-numeric: tabular-nums;
+    }
+
+    /* error / loading states */
+    .trackStateV401 {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; padding: 48px 24px; text-align: center;
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    }
+    .trackStateIconV401 { font-size: 32px; }
+    .trackStateV401 h3 { font-size: 18px; color: var(--ink); }
+    .trackStateV401 p { font-size: 14px; color: var(--muted); max-width: 38ch; }
+    .trackSpinnerV401 {
+      width: 36px; height: 36px; border: 3px solid var(--line);
+      border-top-color: var(--red); border-radius: 50%;
+      animation: trackSpinV401 0.75s linear infinite;
+    }
+    @keyframes trackSpinV401 { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .trackSpinnerV401 { animation: none; } }
+
+    /* contact CTA */
+    .trackCtaV401 {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; margin-top: 18px; height: 48px; border-radius: 13px;
+      background: linear-gradient(165deg, var(--dark), var(--dark-2));
+      color: #fff; font-size: 14.5px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: opacity 0.18s;
+    }
+    .trackCtaV401:hover { opacity: 0.88; }
+    .trackEtaHintV401 { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+    /* photo gallery */
+    .trackPhotosCardV401 {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 20px 22px 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .trackPhotosCardV401 .trackCardTitleV401 { display: flex; align-items: center; justify-content: space-between; }
+    .trackPhotoCountV401 { font-size: 13px; font-weight: 400; color: var(--muted); }
+    .trackGalleryMainV401 {
+      display: block; position: relative; border-radius: 12px; overflow: hidden;
+      background: #111; margin-top: 14px;
+      aspect-ratio: 16/9;
+    }
+    .trackGalleryMainV401 img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: opacity 0.18s;
+    }
+    .trackGalleryMainV401:hover img { opacity: 0.9; }
+    .trackGalleryExpandV401 {
+      position: absolute; bottom: 10px; right: 10px;
+      background: rgba(0,0,0,0.52); color: #fff; border-radius: 7px;
+      padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+      pointer-events: none; opacity: 0; transition: opacity 0.15s;
+    }
+    .trackGalleryMainV401:hover .trackGalleryExpandV401 { opacity: 1; }
+    .trackGalleryThumbsV401 {
+      display: flex; gap: 6px; overflow-x: auto; margin-top: 8px;
+      padding-bottom: 4px;
+      scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+    }
+    .trackGalleryThumbsV401::-webkit-scrollbar { height: 4px; }
+    .trackGalleryThumbsV401::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+    .trackThumbV401 {
+      flex: none; width: 76px; height: 57px; border-radius: 8px; overflow: hidden;
+      border: 2px solid transparent; padding: 0; background: #111; cursor: pointer;
+      transition: border-color 0.15s, opacity 0.15s;
+    }
+    .trackThumbV401.isActiveV401 { border-color: var(--red); opacity: 1; }
+    .trackThumbV401:not(.isActiveV401) { opacity: 0.52; }
+    .trackThumbV401:hover:not(.isActiveV401) { opacity: 0.82; }
+    .trackThumbV401 img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    @media (max-width: 480px) {
+      .trackPhotosCardV401 { padding: 16px 16px 14px; }
+      .trackGalleryMainV401 { border-radius: 10px; }
+      .trackThumbV401 { width: 64px; height: 48px; }
+    }
+    .trackCtaV401 svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    /* stage name label mapping */
+    .trackStagesWrapV401 { overflow-x: auto; }
+    @media (max-width: 560px) {
+      .trackStagesV401 { min-width: 540px; }
+      .trackStagesCardV401 { padding: 18px 16px; }
+    }
+    @media (max-width: 480px) {
+      .trackVehCardV401 { padding: 18px 20px; }
+      .trackVehNameV401 { font-size: 20px; }
+      .trackLogCardV401 { padding: 18px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="siteHeader apexHdrV201">
+    <a class="headerBrand apexBrandV201" href="/index.html" aria-label="Apex Auto — на главную">
+      <img src="/assets/apex-logo-glass-upload-v117.png" alt="Apex Auto">
+      <span class="apexBrandTextV201">
+        <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
+        <small>Доставка авто из США и Канады в Молдову</small>
+      </span>
+    </a>
+    <a class="headerPhoneV308" href="tel:068832032" aria-label="Позвонить 068-832-032">068-832-032</a>
+    <input type="checkbox" id="navToggleV210" class="navToggleV210">
+    <label for="navToggleV210" class="burgerV210" aria-label="Меню"><span></span><span></span><span></span></label>
+    <nav class="mainNavV82 apexNavV201">
+      <a href="/auctions">Аукционы</a>
+      <a href="hot.html">Горячие предложения</a>
+      <a href="tracking.html" class="active">Отследить</a>
+      <a href="about.html">Моя история</a>
+      <a href="contacts.html">Контакты</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="trackPageV401">
+      <span class="sectionKicker">Отследить автомобиль</span>
+      <h1 style="font-size:clamp(24px,3vw,36px);letter-spacing:-0.03em;color:var(--ink);margin-bottom:8px;">Отследить автомобиль</h1>
+      <p style="font-size:15px;color:var(--muted);margin-bottom:28px;">Введите VIN или номер лота — покажем, где сейчас ваш автомобиль.</p>
+
+      <div class="trackSearchV401">
+        <label for="trackInputV401">VIN или номер лота</label>
+        <div class="trackSearchRowV401">
+          <input type="text" id="trackInputV401" placeholder="Напр. 3VV3B7AX1LM040554 или 96694765" autocomplete="off" spellcheck="false">
+          <button id="trackBtnV401" type="button">Найти</button>
+        </div>
+        <p class="trackSearchHintV401">Обновляется каждые 10 минут</p>
+      </div>
+
+      <div id="trackResultAreaV401" class="trackResultV401"></div>
+    </section>
+  </main>
+
+  <script src="i18n.js?v=i18n-v12"></script>
+  <script>
+  (function(){
+    const input = document.getElementById('trackInputV401');
+    const btn   = document.getElementById('trackBtnV401');
+    const area  = document.getElementById('trackResultAreaV401');
+
+    // Photo gallery: delegate thumb clicks on the result area
+    area.addEventListener('click', function(e) {
+      const thumb = e.target.closest('.trackThumbV401');
+      if (!thumb) return;
+      e.preventDefault();
+      const src = thumb.dataset.src;
+      const idx = +thumb.dataset.idx;
+      const total = +thumb.dataset.total;
+      const mainImg = document.getElementById('trackGalleryImgV401');
+      const mainLink = document.getElementById('trackGalleryLinkV401');
+      if (mainImg) mainImg.src = src;
+      if (mainLink) mainLink.href = src;
+      area.querySelectorAll('.trackThumbV401').forEach(b => b.classList.remove('isActiveV401'));
+      thumb.classList.add('isActiveV401');
+      const counter = area.querySelector('.trackPhotoCountV401');
+      if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+      thumb.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
+
+    // Stage label map
+    const STAGE_LABELS = {
+      "Car won":                    "Куплен на аукционе",
+      "Left auction":               "Выехал с аукциона",
+      "Delivered to loading place": "Прибыл на склад / порт",
+      "Loading":                    "Погружен в контейнер",
+      "Arrival":                    "Порт Клайпеда",
+      "Chisinau":                   "Кишинёв",
+    };
+
+    // Stage icons (SVG paths)
+    const STAGE_ICONS = {
+      "Car won":                    '<path d="M20 6 9 17 4 12"/>',
+      "Left auction":               '<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+      "Delivered to loading place": '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      "Loading":                    '<path d="M12 22V12M12 12l-4 4M12 12l4 4"/><rect x="2" y="3" width="20" height="7" rx="1"/>',
+      "Arrival":                    '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+      "Chisinau":                   '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+    };
+
+    function fmtDate(iso) {
+      if (!iso) return "";
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+    }
+
+    function stageIcon(title, status) {
+      const path = STAGE_ICONS[title] || '<circle cx="12" cy="12" r="4"/>';
+      if (status === "completed") {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17 4 12"/></svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+    }
+
+    function stageClass(status) {
+      if (status === "completed") return "trackStageV401 isDoneV401";
+      if (status === "current")   return "trackStageV401 isCurrentV401";
+      return "trackStageV401 isTodoV401";
+    }
+
+    function logDotClass(status) {
+      if (status === "completed") return "trackLogDotV401 isCompletedV401";
+      if (status === "current")   return "trackLogDotV401 isCurrentV401";
+      return "trackLogDotV401 isPendingV401";
+    }
+
+    function renderResult(d) {
+      // Build augmented stages: add synthetic Кишинёв, fix Klaipeda status by date
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const stages = (d.stages || []).map(s => Object.assign({}, s));
+
+      if (d.etaChisinau) {
+        const portDate = d.container?.portArrival ? new Date(d.container.portArrival + "T00:00:00") : null;
+        const etaDate  = new Date(d.etaChisinau + "T00:00:00");
+
+        // If Klaipeda arrival date is past → mark it completed (W8 may still say "current")
+        if (portDate && today >= portDate) {
+          const kl = stages.find(s => s.title === "Arrival");
+          if (kl) kl.status = "completed";
+        }
+
+        // Chisinau stage status
+        let chisinauStatus = "todo";
+        if (today >= etaDate) chisinauStatus = "completed";
+        else if (portDate && today >= portDate) chisinauStatus = "current";
+
+        stages.push({ title: "Chisinau", date: d.etaChisinau, status: chisinauStatus });
+      }
+
+      const eta = d.etaChisinau || d.container?.portArrival;
+      const etaDisplay = eta ? fmtDate(eta) : null;
+      const isEstimate = !!d.etaChisinau;
+
+      // Badge: find current or last completed stage
+      const activeStage = stages.find(s => s.status === "current")
+        || [...stages].reverse().find(s => s.status === "completed");
+      let statusLabel = "В обработке";
+      if (activeStage) {
+        if (activeStage.title === "Chisinau" && activeStage.status === "completed") statusLabel = "Доставлен в Кишинёв";
+        else if (activeStage.title === "Chisinau") statusLabel = "В пути до Кишинёва";
+        else statusLabel = STAGE_LABELS[activeStage.title] || activeStage.title;
+      }
+
+      // Build stages HTML
+      const stagesHtml = stages.map(s => `
+        <div class="${stageClass(s.status)}">
+          <div class="trackStageDotV401">${stageIcon(s.title, s.status)}</div>
+          <div class="trackStageNameV401">${STAGE_LABELS[s.title] || s.title}</div>
+          <div class="trackStageDateV401">${s.date ? fmtDate(s.date) : "—"}</div>
+        </div>
+      `).join("");
+
+      // Build log HTML (reverse order — latest first, include current)
+      const completedStages = stages.filter(s => s.status === "completed" || s.status === "current").reverse();
+      const logHtml = completedStages.map(s => `
+        <div class="trackLogItemV401">
+          <div class="trackLogLineV401"></div>
+          <div class="${logDotClass(s.status)}"></div>
+          <div class="trackLogBodyV401">
+            <div class="trackLogEventV401">${STAGE_LABELS[s.title] || s.title}</div>
+          </div>
+          <div class="trackLogDateV401">${fmtDate(s.date)}</div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="trackVehCardV401">
+          <div class="trackVehStatusV401">${statusLabel}</div>
+          <div class="trackVehNameV401">${d.vehicle || "Автомобиль"}</div>
+          <div class="trackVehMetaV401">
+            ${d.lotNumber ? `<span>Лот: <strong>${d.lotNumber}</strong></span>` : ""}
+            ${d.auction   ? `<span>Аукцион: <strong>${d.auction.toUpperCase()}</strong></span>` : ""}
+            ${d.city      ? `<span>Локация: <strong>${d.city}</strong></span>` : ""}
+          </div>
+          ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${d.vin}</b></div>` : ""}
+        </div>
+
+          ${d.photos?.length ? `
+        <div class="trackPhotosCardV401">
+          <div class="trackCardTitleV401">Фото с аукциона <span class="trackPhotoCountV401">1 / ${d.photos.length}</span></div>
+          <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${d.photos[0]}" target="_blank" rel="noopener">
+            <img id="trackGalleryImgV401" src="${d.photos[0]}" alt="Фото автомобиля">
+            <span class="trackGalleryExpandV401">↗ открыть</span>
+          </a>
+          <div class="trackGalleryThumbsV401">
+            ${d.photos.map((url, i) => `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${url}" data-idx="${i}" data-total="${d.photos.length}"><img src="${url}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`).join("")}
+          </div>
+        </div>` : ""}
+
+      ${etaDisplay ? `
+        <div class="trackEtaV401">
+          <div class="trackEtaIconV401">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="trackEtaLabelV401">${isEstimate ? "Ориентировочное прибытие" : "Ожидаемое прибытие"}</div>
+            <div class="trackEtaValV401">${etaDisplay} · Кишинёв</div>
+            ${isEstimate ? '<div class="trackEtaHintV401">После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней</div>' : ""}
+          </div>
+          ${d.container?.number ? `
+          <div class="trackEtaNoteV401">
+            Контейнер<br><strong>${d.container.number}</strong>
+          </div>` : ""}
+        </div>` : ""}
+
+        <div class="trackStagesCardV401">
+          <div class="trackCardTitleV401">Маршрут доставки</div>
+          <div class="trackStagesWrapV401">
+            <div class="trackStagesV401">${stagesHtml}</div>
+          </div>
+        </div>
+
+        <div class="trackLogCardV401">
+          <div class="trackCardTitleV401">История событий</div>
+          <div class="trackLogV401">${logHtml || '<p style="color:var(--muted);font-size:14px;">Событий пока нет</p>'}</div>
+          <a class="trackCtaV401" href="https://t.me/fedukusa" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24"><path d="M21.2 2.8L2 10.4l6.6 2.2 2.2 6.6 4-4.8 5.4 4.2z"/></svg>
+            Вопросы по доставке — написать Федору
+          </a>
+        </div>
+      `;
+    }
+
+    function showLoading() {
+      area.innerHTML = `
+        <div class="trackStateV401">
+          <div class="trackSpinnerV401"></div>
+          <h3>Ищем информацию...</h3>
+          <p>Запрашиваем данные о вашем автомобиле</p>
+        </div>`;
+      area.classList.add("isVisibleV401");
+    }
+
+    function showError(msg) {
+      area.innerHTML = `
+        <div class="trackStateV401">
+          <div class="trackStateIconV401">🔍</div>
+          <h3>Не найдено</h3>
+          <p>${msg}</p>
+        </div>`;
+    }
+
+    async function search() {
+      const q = input.value.trim();
+      if (!q) {
+        input.focus();
+        input.style.borderColor = "var(--red)";
+        input.style.boxShadow = "0 0 0 3px rgba(237,0,18,0.18)";
+        setTimeout(() => { input.style.borderColor = ""; input.style.boxShadow = ""; }, 1200);
+        return;
+      }
+
+      showLoading();
+      btn.disabled = true;
+
+      // decide vin vs lot (VIN = 17 chars, lot = numeric)
+      const isLot = /^\d+$/.test(q);
+      const param = isLot ? "lot" : "vin";
+
+      try {
+        const res = await fetch(`/api/w8-tracking?${param}=${encodeURIComponent(q)}`);
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          showError(data.message || "Автомобиль не найден в системе W8 Shipping. Проверьте VIN или номер лота.");
+        } else {
+          area.innerHTML = renderResult(data);
+        }
+      } catch (e) {
+        showError("Не удалось подключиться к сервису. Попробуйте позже.");
+      } finally {
+        btn.disabled = false;
+      }
+
+      // Update URL without reload
+      const url = new URL(window.location);
+      url.searchParams.set(param, q);
+      history.replaceState({}, "", url);
+    }
+
+    btn.addEventListener("click", search);
+    input.addEventListener("keydown", e => { if (e.key === "Enter") search(); });
+
+    // Auto-search if vin/lot in URL
+    const params = new URLSearchParams(window.location.search);
+    const preVin = params.get("vin") || params.get("lot");
+    if (preVin) {
+      input.value = preVin;
+      search();
+    }
+  })();
+  </script>
+</body>
+</html>
