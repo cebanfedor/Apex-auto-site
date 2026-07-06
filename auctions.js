@@ -3,6 +3,10 @@
   function debounce(fn, ms){
     let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
+  // Discovery mode: fresh open with no URL params → default to run-and-drive + insurance shuffle
+  let discoveryMode = !location.search.length;
+  const INS_RE = /insurance|geico|progressive|allstate|usaa|state.?farm|farmers|nationwide|liberty.?mutual|travelers|erie|metlife|kemper|csaa/i;
+  function exitDiscovery(){ discoveryMode = false; }
   const state = {
     auction:"all",
     tab:"all",
@@ -706,7 +710,16 @@
     const archived = state.tab === "archived";
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
-      const nextItems = payload.items || [];
+      let nextItems = payload.items || [];
+      // Discovery mode: keep only insurance sellers (if enough), then shuffle for freshness
+      if(discoveryMode){
+        const ins = nextItems.filter(l => INS_RE.test(String(l.seller || "")));
+        if(ins.length >= 8) nextItems = ins;
+        for(let i = nextItems.length - 1; i > 0; i--){
+          const j = Math.floor(Math.random() * (i + 1));
+          [nextItems[i], nextItems[j]] = [nextItems[j], nextItems[i]];
+        }
+      }
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
       state.items = nextItems;
@@ -1388,7 +1401,7 @@
   }
 
   function bindEvents(){
-    $("#auctionSearchBtn").addEventListener("click", () => triggerSearch());
+    $("#auctionSearchBtn").addEventListener("click", () => { exitDiscovery(); triggerSearch(); });
     ["#auctionMakeSearch", "#auctionModelSearch", "#auctionVinSearch", "#auctionLotSearch"].forEach(selector => {
       $(selector)?.addEventListener("keydown", event => {
         if(event.key === "Enter"){ event.preventDefault(); triggerSearch(); }
@@ -1408,7 +1421,7 @@
         opt.classList.add("sortOptActiveV1");
         lbl.textContent = opt.textContent.trim();
         inp.value = val;
-        if(!silent){ state.page = 1; state.displayPage = 1; loadLots(); }
+        if(!silent){ exitDiscovery(); state.page = 1; state.displayPage = 1; loadLots(); }
       }
       const urlSort = new URLSearchParams(location.search).get("sort");
       if(urlSort) setSort(urlSort, true);
@@ -1426,7 +1439,7 @@
         document.querySelectorAll("[data-auction-switch]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
         state.auction = button.dataset.auctionSwitch;
-        state.page = 1; state.displayPage = 1;
+        exitDiscovery(); state.page = 1; state.displayPage = 1;
         loadLots();
       });
     });
@@ -1435,13 +1448,13 @@
         document.querySelectorAll("[data-tab]").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
         state.tab = button.dataset.tab || "all";
-        state.page = 1; state.displayPage = 1;
+        exitDiscovery(); state.page = 1; state.displayPage = 1;
         loadLots();
       });
     });
     $("#auctionFiltersForm").addEventListener("submit", event => {
       event.preventDefault();
-      state.page = 1; state.displayPage = 1;
+      exitDiscovery(); state.page = 1; state.displayPage = 1;
       document.body.classList.remove("filtersOpenV1");
       loadLots();
     });
@@ -1595,6 +1608,11 @@
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
       restoreFromUrl();
+      // Discovery mode: pre-select "Заводится и едет" when no URL params
+      if(discoveryMode){
+        const r = document.querySelector('input[name="condition"][value="0"]');
+        if(r) r.checked = true;
+      }
       loadLots();
     }
   }
