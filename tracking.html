@@ -326,6 +326,34 @@
       .trackVehNameV401 { font-size: 20px; }
       .trackLogCardV401 { padding: 18px 16px; }
     }
+    /* lightbox */
+    .trackLightboxV401 {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.9); z-index: 9999;
+      align-items: center; justify-content: center;
+      cursor: zoom-out;
+    }
+    .trackLightboxV401.isOpenV401 {
+      display: flex;
+      animation: lbFadeIn 0.18s ease;
+    }
+    @keyframes lbFadeIn { from { opacity:0 } to { opacity:1 } }
+    .trackLightboxImgV401 {
+      max-width: 94vw; max-height: 94vh;
+      object-fit: contain; border-radius: 10px;
+      cursor: default; user-select: none;
+      animation: lbZoomIn 0.18s ease;
+    }
+    @keyframes lbZoomIn { from { transform:scale(0.93); opacity:0 } to { transform:scale(1); opacity:1 } }
+    .trackLightboxCloseV401 {
+      position: absolute; top: 14px; right: 14px;
+      width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(255,255,255,0.14); border: none;
+      color: #fff; font-size: 24px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .trackLightboxCloseV401:hover { background: rgba(255,255,255,0.28); }
   </style>
 </head>
 <body>
@@ -703,6 +731,47 @@
       input.value = preVin;
       search();
     }
+  })();
+  </script>
+
+  <!-- Lightbox -->
+  <div class="trackLightboxV401" id="trackLightboxV401">
+    <button class="trackLightboxCloseV401" id="trackLightboxCloseV401" aria-label="Закрыть">&#215;</button>
+    <img class="trackLightboxImgV401" id="trackLightboxImgV401" src="" alt="Фото">
+  </div>
+  <script>
+  (function(){
+    const lb    = document.getElementById('trackLightboxV401');
+    const lbImg = document.getElementById('trackLightboxImgV401');
+    const lbClose = document.getElementById('trackLightboxCloseV401');
+
+    function openLightbox(src) {
+      lbImg.src = src;
+      lb.classList.add('isOpenV401');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      lb.classList.remove('isOpenV401');
+      document.body.style.overflow = '';
+    }
+
+    // Click on backdrop (not on img) closes
+    lb.addEventListener('click', function(e) {
+      if (e.target !== lbImg) closeLightbox();
+    });
+    lbClose.addEventListener('click', closeLightbox);
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // Intercept clicks on the main gallery photo — open lightbox instead
+    document.getElementById('trackResultAreaV401').addEventListener('click', function(e) {
+      const link = e.target.closest('.trackGalleryMainV401');
+      if (!link) return;
+      e.preventDefault();
+      const src = document.getElementById('trackGalleryImgV401')?.src;
+      if (src) openLightbox(src);
+    }, true); // capture phase so it fires before the <a> navigates
   })();
   </script>
 </body>
