@@ -354,6 +354,28 @@
       transition: background 0.15s;
     }
     .trackLightboxCloseV401:hover { background: rgba(255,255,255,0.28); }
+    .trackLightboxArrowV401 {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,255,255,0.14); border: none;
+      color: #fff; font-size: 26px; line-height: 1;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; z-index: 2;
+    }
+    .trackLightboxArrowV401:hover { background: rgba(255,255,255,0.28); }
+    .trackLightboxArrowV401:disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+    .trackLightboxArrowV401.isPrevV401 { left: 16px; }
+    .trackLightboxArrowV401.isNextV401 { right: 16px; }
+    .trackLbCounterV401 {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.5); color: #fff; border-radius: 20px;
+      padding: 4px 14px; font-size: 13px; font-weight: 600; pointer-events: none;
+    }
+    @media (max-width: 480px) {
+      .trackLightboxArrowV401 { width: 38px; height: 38px; font-size: 22px; }
+      .trackLightboxArrowV401.isPrevV401 { left: 8px; }
+      .trackLightboxArrowV401.isNextV401 { right: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -415,6 +437,8 @@
     }
 
     // Switch to thumb by index (shared by arrows + thumb clicks)
+    window._galleryGoTo = function(idx) { goToPhoto(idx); };
+
     function goToPhoto(idx) {
       const thumbs = [...area.querySelectorAll('.trackThumbV401')];
       if (!thumbs.length || idx < 0 || idx >= thumbs.length) return;
@@ -736,42 +760,83 @@
 
   <!-- Lightbox -->
   <div class="trackLightboxV401" id="trackLightboxV401">
-    <button class="trackLightboxCloseV401" id="trackLightboxCloseV401" aria-label="Закрыть">&#215;</button>
+    <button class="trackLightboxArrowV401 isPrevV401" id="lbPrevV401" aria-label="Предыдущее">&#8249;</button>
     <img class="trackLightboxImgV401" id="trackLightboxImgV401" src="" alt="Фото">
+    <button class="trackLightboxArrowV401 isNextV401" id="lbNextV401" aria-label="Следующее">&#8250;</button>
+    <button class="trackLightboxCloseV401" id="trackLightboxCloseV401" aria-label="Закрыть">&#215;</button>
+    <div class="trackLbCounterV401" id="lbCounterV401"></div>
   </div>
   <script>
   (function(){
-    const lb    = document.getElementById('trackLightboxV401');
-    const lbImg = document.getElementById('trackLightboxImgV401');
+    const lb      = document.getElementById('trackLightboxV401');
+    const lbImg   = document.getElementById('trackLightboxImgV401');
     const lbClose = document.getElementById('trackLightboxCloseV401');
+    const lbPrev  = document.getElementById('lbPrevV401');
+    const lbNext  = document.getElementById('lbNextV401');
+    const lbCount = document.getElementById('lbCounterV401');
+    const area    = document.getElementById('trackResultAreaV401');
+    let _lbIdx = 0;
 
-    function openLightbox(src) {
+    function getThumbs() {
+      return [...area.querySelectorAll('.trackThumbV401')];
+    }
+
+    function updateLbState(idx) {
+      const thumbs = getThumbs();
+      const total = thumbs.length;
+      _lbIdx = idx;
+      lbPrev.disabled = idx === 0;
+      lbNext.disabled = idx >= total - 1;
+      if (lbCount) lbCount.textContent = (idx + 1) + ' / ' + total;
+    }
+
+    function openLightbox(src, idx) {
       lbImg.src = src;
       lb.classList.add('isOpenV401');
       document.body.style.overflow = 'hidden';
+      updateLbState(idx || 0);
     }
+
     function closeLightbox() {
       lb.classList.remove('isOpenV401');
       document.body.style.overflow = '';
     }
 
-    // Click on backdrop (not on img) closes
+    function lbNavigate(dir) {
+      const thumbs = getThumbs();
+      const newIdx = _lbIdx + dir;
+      if (newIdx < 0 || newIdx >= thumbs.length) return;
+      const src = thumbs[newIdx].dataset.src;
+      lbImg.src = src;
+      if (window._galleryGoTo) window._galleryGoTo(newIdx);
+      updateLbState(newIdx);
+    }
+
+    // Backdrop click closes (not on img/buttons)
     lb.addEventListener('click', function(e) {
-      if (e.target !== lbImg) closeLightbox();
+      if (e.target === lb) closeLightbox();
     });
     lbClose.addEventListener('click', closeLightbox);
+    lbPrev.addEventListener('click', function(e) { e.stopPropagation(); lbNavigate(-1); });
+    lbNext.addEventListener('click', function(e) { e.stopPropagation(); lbNavigate(1); });
+
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeLightbox();
+      if (!lb.classList.contains('isOpenV401')) return;
+      if (e.key === 'Escape')     closeLightbox();
+      if (e.key === 'ArrowLeft')  lbNavigate(-1);
+      if (e.key === 'ArrowRight') lbNavigate(1);
     });
 
-    // Intercept clicks on the main gallery photo — open lightbox instead
-    document.getElementById('trackResultAreaV401').addEventListener('click', function(e) {
+    // Intercept clicks on the main gallery photo — open lightbox
+    area.addEventListener('click', function(e) {
       const link = e.target.closest('.trackGalleryMainV401');
       if (!link) return;
       e.preventDefault();
       const src = document.getElementById('trackGalleryImgV401')?.src;
-      if (src) openLightbox(src);
-    }, true); // capture phase so it fires before the <a> navigates
+      const activeThumb = area.querySelector('.trackThumbV401.isActiveV401');
+      const idx = activeThumb ? +activeThumb.dataset.idx : 0;
+      if (src) openLightbox(src, idx);
+    }, true);
   })();
   </script>
 </body>
