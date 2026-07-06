@@ -1481,9 +1481,12 @@
       window.scrollTo({top: Math.max(0, cardsTop - 80), behavior:"smooth"});
       renderCards();
     });
-    $("#openFiltersBtn").addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
-    $("#searchSettingsBtn")?.addEventListener("click", () => document.body.classList.add("filtersOpenV1"));
-    $("#closeFiltersBtn").addEventListener("click", () => document.body.classList.remove("filtersOpenV1"));
+    const sidebar = $("#auctionFilters");
+    function openFiltersDrawer(){ document.body.classList.add("filtersOpenV1"); if(sidebar) sidebar.style.left = ""; }
+    function closeFiltersDrawer(){ document.body.classList.remove("filtersOpenV1"); positionFilterSidebar(); }
+    $("#openFiltersBtn").addEventListener("click", openFiltersDrawer);
+    $("#searchSettingsBtn")?.addEventListener("click", openFiltersDrawer);
+    $("#closeFiltersBtn").addEventListener("click", closeFiltersDrawer);
     document.addEventListener("click", event => {
       const copyEl = event.target.closest("[data-copy]");
       if(copyEl){
@@ -1601,12 +1604,22 @@
     $("#auctionLeadForm").addEventListener("submit", submitLead);
   }
 
+  function positionFilterSidebar(){
+    const col = document.querySelector('.auctionFilterColV1');
+    const sidebar = document.querySelector('#auctionFilters');
+    if(!col || !sidebar || document.body.classList.contains('filtersOpenV1')) return;
+    sidebar.style.left = col.getBoundingClientRect().left + 'px';
+  }
+
   async function initAuctions(){
     closeLead();
     bindEvents();
     initRanges();
     initCarData();
     updateFavCount();
+    positionFilterSidebar();
+    window.addEventListener('resize', positionFilterSidebar);
+    window.addEventListener('scroll', positionFilterSidebar, {passive:true});
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
       restoreFromUrl();
