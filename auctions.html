@@ -2,6 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NYH24Z7PM0');
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Аукционы Copart и IAAI — каталог авто из США | Apex Auto</title>
   <meta name="description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
@@ -17,7 +25,7 @@
   <meta name="twitter:title" content="Аукционы Copart и IAAI — каталог авто из США | Apex Auto">
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
-  <link rel="stylesheet" href="/styles.css?v=v320">
+  <link rel="stylesheet" href="/styles.css?v=v352">
   <link rel="stylesheet" href="/auctions.css?v=v361">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
@@ -34,11 +42,11 @@
     <input type="checkbox" id="navToggleV210" class="navToggleV210">
     <label for="navToggleV210" class="burgerV210" aria-label="Меню"><span></span><span></span><span></span></label>
     <nav class="mainNavV82 apexNavV201">
-      <a href="/index.html">Главная</a>
       <a href="/auctions" class="active">Аукционы</a>
-      <a href="hot.html">Горячие предложения</a>
-      <a href="about.html">Моя история</a>
-      <a href="contacts.html">Контакты</a>
+      <a href="/hot.html">Горячие предложения</a>
+      <a href="/tracking.html">Отследить</a>
+      <a href="/about.html">Моя история</a>
+      <a href="/contacts.html">Контакты</a>
     </nav>
   </header>
 
@@ -285,6 +293,30 @@
     <section id="auctionDetail" class="auctionDetailV1" hidden></section>
   </main>
 
+  <footer class="siteFooter">
+    <div class="container footerInner">
+      <div class="footerBrand">
+        <strong>Apex <span>Auto</span></strong>
+        <p>Доставка авто из США и Канады в Молдову</p>
+        <div class="footerFedukV320">
+          <span class="footerFedukLabelV320">Меня вы можете знать как</span>
+          <img src="/assets/feduk-usa-dark.png?v=3" alt="Feduk USA" class="footerFedukImgV320" width="172" height="65" loading="lazy">
+        </div>
+      </div>
+      <div class="footerStats">
+        <div><b>С 2016 года</b><span>в автомобильном бизнесе</span></div>
+        <div><b>APEX AUTO — с 2026</b><span>новый бренд на базе накопленного опыта</span></div>
+        <div><b>2000+ авто</b><span>привезены клиентам</span></div>
+        <div><b>Под ключ</b><span>подбор, торги, документы и логистика</span></div>
+      </div>
+      <div class="footerContacts">
+        <a href="tel:068832032" class="contactBtn">Телефон: 068-832-032</a>
+        <a href="mailto:apexauto.import@gmail.com" class="contactBtn">Email: apexauto.import@gmail.com</a>
+        <a href="https://yandex.md/maps/-/CTQeRIZ~" target="_blank" rel="noopener" class="contactBtn footerAddrV308">Chișinău, Bucovina 9F</a>
+      </div>
+    </div>
+  </footer>
+
   <div id="leadModal" class="auctionModalV1" hidden>
     <form id="auctionLeadForm" class="auctionLeadFormV1">
       <button class="modalCloseV1" type="button" data-close-lead>×</button>
@@ -306,7 +338,7 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v1" defer></script>
   <script src="/car-data.js?v=cars-v4" defer></script>
-  <script src="/auctions.js?v=auctions-v37" defer></script>
+  <script src="/auctions.js?v=auctions-v40" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
 </body>
