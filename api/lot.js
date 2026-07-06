@@ -78,8 +78,30 @@ function looksLikePremiumPhev(car){
   return false;
 }
 
+function hasCombustionEngine(car){
+  const engineText = [
+    safeName(car?.engine),
+    car?.engine?.displacement ? String(car.engine.displacement) + "L" : "",
+    car?.engine?.cylinders ? String(car.engine.cylinders) + "cyl" : "",
+    car?.cylinders ? String(car.cylinders) + "cyl" : "",
+    car?.displacement ? String(car.displacement) + "L" : "",
+  ].filter(Boolean).join(" ").toLowerCase();
+  const titleText = [String(car?.title || ""), safeName(car?.model)].join(" ").toLowerCase();
+  const fullText = engineText + " " + titleText;
+
+  // "hybrid" in name — has combustion engine
+  if(/hybrid/i.test(fullText)) return true;
+  // Engine displacement present — pure EVs have no liter displacement
+  if(/\b[1-9]\.[0-9]\s*l\b/i.test(engineText)) return true;
+  // Cylinder count: "4cyl", "V6", "I4", "4 cyl", "L 4" (Copart "2.0L 4" format)
+  if(/\bv[2-9]\b|\bi[2-9]\b|\b[2-9]\s*-?\s*cyl|\b[2-9]\s*cylinder|\bl\s*[2-9]\b/i.test(engineText)) return true;
+  return false;
+}
+
 function normalizeFuelForBrand(fuel, car){
   if(looksLikePremiumPhev(car)) return "phev";
+  // If API says "electric" but car clearly has a combustion engine → hybrid
+  if(fuel === "electric" && hasCombustionEngine(car)) return "hybrid";
   return fuel;
 }
 
