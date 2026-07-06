@@ -451,6 +451,15 @@
 
     // Current photo categories (set after each render)
     let _photoCats = [];
+    let _lastData = null;
+
+    // Expose for i18n re-render on language switch
+    window._trackRerender = function() {
+      if (_lastData) {
+        area.innerHTML = renderResult(_lastData);
+        _photoCats = _lastData.photoCategories || [];
+      }
+    };
 
     // Update prev/next arrow disabled states
     function updateArrows(idx, total) {
@@ -543,7 +552,8 @@
     function fmtDate(iso) {
       if (!iso) return "";
       const d = new Date(iso + "T00:00:00");
-      return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+      const locale = { ru: "ru-RU", ro: "ro-RO", en: "en-US" }[window.APEX_LANG || "ru"] || "ru-RU";
+      return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
     }
 
     function stageIcon(title, status) {
@@ -684,7 +694,7 @@
           </div>
           <div>
             <div class="trackEtaLabelV401">${isEstimate ? "Ориентировочное прибытие" : "Ожидаемое прибытие"}</div>
-            <div class="trackEtaValV401">${etaDisplay} · Кишинёв</div>
+            <div class="trackEtaValV401">${etaDisplay} · <span>Кишинёв</span></div>
             ${isEstimate ? '<div class="trackEtaHintV401">После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней</div>' : ""}
           </div>
           ${d.container?.number ? `
@@ -754,6 +764,7 @@
         if (!res.ok || data.error) {
           showError(data.message || "Автомобиль не найден в системе W8 Shipping. Проверьте VIN или номер лота.");
         } else {
+          _lastData = data;
           area.innerHTML = renderResult(data);
           _photoCats = data.photoCategories || [];
         }

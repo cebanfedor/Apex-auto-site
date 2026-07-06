@@ -347,7 +347,41 @@
       "ежедневной работы с аукционами США":"lucru zilnic cu licitațiile din SUA",
       "20–50 авто":"20–50 mașini",
       "ежемесячно покупаю для клиентов":"cumpărate lunar pentru clienți",
-      "опыт работы со страховыми и дилерскими аукционами":"experiență cu licitații de asigurări și dealer"
+      "опыт работы со страховыми и дилерскими аукционами":"experiență cu licitații de asigurări și dealer",
+      "Отследить":"Urmărire",
+      "Отследить автомобиль":"Urmărire auto",
+      "Введите VIN или номер лота — покажем, где сейчас ваш автомобиль.":"Introduceți VIN-ul sau numărul lotului — vă arătăm unde se află mașina.",
+      "VIN или номер лота":"VIN sau număr lot",
+      "Найти":"Caută",
+      "Обновляется каждые 10 минут":"Se actualizează la fiecare 10 minute",
+      "Куплен на аукционе":"Cumpărat la licitație",
+      "Выехал с аукциона":"A plecat de la licitație",
+      "Прибыл на склад / порт":"Ajuns la depozit / port",
+      "Погружен в контейнер":"Încărcat în container",
+      "Порт Клайпеда":"Portul Klaipeda",
+      "Кишинёв":"Chișinău",
+      "В обработке":"În procesare",
+      "Доставлен в Кишинёв":"Livrat la Chișinău",
+      "В пути до Кишинёва":"În drum spre Chișinău",
+      "Лот:":"Lot:",
+      "Аукцион:":"Licitație:",
+      "Локация:":"Locație:",
+      "Фото":"Foto",
+      "↗ открыть":"↗ deschide",
+      "Ориентировочное прибытие":"Sosire estimată",
+      "Ожидаемое прибытие":"Sosire așteptată",
+      "После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней":"După descărcare în portul Klaipeda — livrare la Chișinău 10–15 zile",
+      "Контейнер":"Container",
+      "Маршрут доставки":"Ruta de livrare",
+      "История событий":"Istoricul evenimentelor",
+      "Событий пока нет":"Deocamdată nu sunt evenimente",
+      "Вопросы по доставке — написать Федору":"Întrebări despre livrare — scrieți lui Fedor",
+      "Ищем информацию...":"Căutăm informații...",
+      "Запрашиваем данные о вашем автомобиле":"Solicităm datele mașinii dvs.",
+      "Не найдено":"Negăsit",
+      "Автомобиль не найден в системе W8 Shipping. Проверьте VIN или номер лота.":"Mașina nu a fost găsită în sistemul W8 Shipping. Verificați VIN-ul sau numărul lotului.",
+      "Не удалось подключиться к сервису. Попробуйте позже.":"Nu s-a putut conecta la serviciu. Încercați mai târziu.",
+      "Автомобиль":"Mașină"
     },
     en:{
       "Меня вы можете знать как":"You may also know me as",
@@ -666,7 +700,41 @@
       "ежедневной работы с аукционами США":"daily work with US auctions",
       "20–50 авто":"20–50 cars",
       "ежемесячно покупаю для клиентов":"bought monthly for clients",
-      "опыт работы со страховыми и дилерскими аукционами":"experience with insurance and dealer auctions"
+      "опыт работы со страховыми и дилерскими аукционами":"experience with insurance and dealer auctions",
+      "Отследить":"Track",
+      "Отследить автомобиль":"Track your car",
+      "Введите VIN или номер лота — покажем, где сейчас ваш автомобиль.":"Enter the VIN or lot number — we'll show where your car is.",
+      "VIN или номер лота":"VIN or lot number",
+      "Найти":"Search",
+      "Обновляется каждые 10 минут":"Updated every 10 minutes",
+      "Куплен на аукционе":"Purchased at auction",
+      "Выехал с аукциона":"Left the auction",
+      "Прибыл на склад / порт":"Arrived at warehouse / port",
+      "Погружен в контейнер":"Loaded in container",
+      "Порт Клайпеда":"Port of Klaipeda",
+      "Кишинёв":"Chișinău",
+      "В обработке":"In processing",
+      "Доставлен в Кишинёв":"Delivered to Chișinău",
+      "В пути до Кишинёва":"En route to Chișinău",
+      "Лот:":"Lot:",
+      "Аукцион:":"Auction:",
+      "Локация:":"Location:",
+      "Фото":"Photos",
+      "↗ открыть":"↗ open",
+      "Ориентировочное прибытие":"Estimated arrival",
+      "Ожидаемое прибытие":"Expected arrival",
+      "После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней":"After unloading at Klaipeda port — delivery to Chișinău 10–15 days",
+      "Контейнер":"Container",
+      "Маршрут доставки":"Delivery route",
+      "История событий":"Event history",
+      "Событий пока нет":"No events yet",
+      "Вопросы по доставке — написать Федору":"Questions about delivery — message Fedor",
+      "Ищем информацию...":"Searching...",
+      "Запрашиваем данные о вашем автомобиле":"Fetching your car's data",
+      "Не найдено":"Not found",
+      "Автомобиль не найден в системе W8 Shipping. Проверьте VIN или номер лота.":"Car not found in W8 Shipping. Please check the VIN or lot number.",
+      "Не удалось подключиться к сервису. Попробуйте позже.":"Could not connect to the service. Please try again later.",
+      "Автомобиль":"Car"
     }
   };
 
@@ -688,7 +756,13 @@
       "Какой автомобиль ищете? Например: BMW X5, Tesla Model Y, Porsche Macan":"Ce mașină căutați? De exemplu: BMW X5, Tesla Model Y, Porsche Macan",
       "VIN, номер лота или ссылка на Copart / IAAI":"VIN, număr lot sau link Copart / IAAI",
       "Автомобиль или ссылка на лот":"Mașină sau link către lot",
-      "Коротко опишите задачу: расчет, подбор, проверка VIN, покупка под ключ":"Descrieți pe scurt: calcul, selecție, verificare VIN, cumpărare la cheie"
+      "Коротко опишите задачу: расчет, подбор, проверка VIN, покупка под ключ":"Descrieți pe scurt: calcul, selecție, verificare VIN, cumpărare la cheie",
+      "Напр. 3VV3B7AX1LM040554 или 96694765":"Ex. 3VV3B7AX1LM040554 sau 96694765",
+      "Предыдущее фото":"Fotografie anterioară",
+      "Следующее фото":"Fotografie următoare",
+      "Предыдущее":"Anterior",
+      "Следующее":"Următor",
+      "Закрыть":"Închide"
     },
     en:{
       "Имя":"Name",
@@ -707,7 +781,13 @@
       "Какой автомобиль ищете? Например: BMW X5, Tesla Model Y, Porsche Macan":"What car are you looking for? Example: BMW X5, Tesla Model Y, Porsche Macan",
       "VIN, номер лота или ссылка на Copart / IAAI":"VIN, lot number or Copart / IAAI link",
       "Автомобиль или ссылка на лот":"Car or lot link",
-      "Коротко опишите задачу: расчет, подбор, проверка VIN, покупка под ключ":"Briefly describe the task: estimate, selection, VIN check, turnkey purchase"
+      "Коротко опишите задачу: расчет, подбор, проверка VIN, покупка под ключ":"Briefly describe the task: estimate, selection, VIN check, turnkey purchase",
+      "Напр. 3VV3B7AX1LM040554 или 96694765":"E.g. 3VV3B7AX1LM040554 or 96694765",
+      "Предыдущее фото":"Previous photo",
+      "Следующее фото":"Next photo",
+      "Предыдущее":"Previous",
+      "Следующее":"Next",
+      "Закрыть":"Close"
     }
   };
 
@@ -771,13 +851,15 @@
         "APEX AUTO — просчет под ключ":"APEX AUTO — calcul la cheie",
         "Горячие предложения — Apex Auto":"Oferte recomandate — Apex Auto",
         "Моя история — Apex Auto":"Povestea mea — Apex Auto",
-        "Контакты — Apex Auto":"Contacte — Apex Auto"
+        "Контакты — Apex Auto":"Contacte — Apex Auto",
+        "Отслеживание груза — Apex Auto":"Urmărire marfă — Apex Auto"
       },
       en:{
         "APEX AUTO — просчет под ключ":"APEX AUTO — turnkey calculator",
         "Горячие предложения — Apex Auto":"Recommended lots — Apex Auto",
         "Моя история — Apex Auto":"My story — Apex Auto",
-        "Контакты — Apex Auto":"Contacts — Apex Auto"
+        "Контакты — Apex Auto":"Contacts — Apex Auto",
+        "Отслеживание груза — Apex Auto":"Cargo tracking — Apex Auto"
       }
     };
     if(!window.__i18nTitleSrc) window.__i18nTitleSrc = document.title;
@@ -826,6 +908,8 @@
     apply(lang);
     // re-render the calculator so its generated rows pick up the new language
     if(typeof window.calculate === "function"){ try { window.calculate(); apply(lang); } catch(e){} }
+    // re-render tracking results so dates and dynamic labels update
+    if(typeof window._trackRerender === "function"){ try { window._trackRerender(); apply(lang); } catch(e){} }
   }
 
   let currentLang = getLang();
