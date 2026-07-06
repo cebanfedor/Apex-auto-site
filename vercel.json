@@ -11,6 +11,10 @@
     {
       "source": "/auctions/:slug",
       "destination": "/api/lot-page?slug=:slug"
+    },
+    {
+      "source": "/tracking",
+      "destination": "/tracking.html"
     }
   ]
 }

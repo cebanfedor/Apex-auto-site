@@ -2,6 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-NYH24Z7PM0');
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Горячие предложения — выгодные авто под ключ | Apex Auto</title>
   <meta name="description" content="Популярные модели из США и Канады под ключ: BMW, Mercedes, Honda, Tesla. Ориентировочная цена под ключ и экономия против рынка Молдовы.">
@@ -17,7 +25,7 @@
   <meta name="twitter:title" content="Горячие предложения — выгодные авто под ключ | Apex Auto">
   <meta name="twitter:description" content="Популярные модели из США и Канады под ключ: BMW, Mercedes, Honda, Tesla. Ориентировочная цена под ключ и экономия против рынка Молдовы.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
-  <link rel="stylesheet" href="styles.css?v=v338">
+  <link rel="stylesheet" href="styles.css?v=v357">
   <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
@@ -33,9 +41,9 @@
     <input type="checkbox" id="navToggleV210" class="navToggleV210">
     <label for="navToggleV210" class="burgerV210" aria-label="Меню"><span></span><span></span><span></span></label>
     <nav class="mainNavV82 apexNavV201">
-      <a href="/index.html">Главная</a>
       <a href="/auctions">Аукционы</a>
       <a href="hot.html" class="active">Горячие предложения</a>
+      <a href="tracking.html">Отследить</a>
       <a href="about.html">Моя история</a>
       <a href="contacts.html">Контакты</a>
     </nav>
@@ -57,280 +65,23 @@
     </article>
   </section>
 
-  <div class="hotFilterV101">
-    <button class="active" type="button">Все авто</button>
-    <button type="button">Гибриды</button>
-    <button type="button">Электро</button>
-    <button type="button">BMW</button>
-    <button type="button">SUV</button>
-    <button type="button">Премиум</button>
-  </div>
+  <!-- Live lots from auction API -->
+  <section id="hotLiveSectionV349" class="hotLiveSectionV349" style="display:none">
+    <div class="hotLiveSectionTitleV349">
+      <span class="sectionKicker">ПРЯМО С АУКЦИОНА</span>
+      <h2>Горячие лоты</h2>
+      <p>Конкретные автомобили, которые сейчас на торгах. Цены — актуальные ставки на момент загрузки.</p>
+    </div>
+    <div id="hotLiveGridV349" class="hotLiveGridV349"></div>
+  </section>
 
-  <section class="hotGridV101">
-    
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2017</span>
-    <em>plug-in hybrid</em>
-  </div>
-  <h3>BMW 330e</h3>
-  <p>Компактная BMW с гибридной установкой. Хороший вариант, если нужен приятный расход и нормальная динамика.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $12,500</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $16,500</b></div>
-    <div><span>Экономия</span><b>от $4,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="BMW 330e">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по BMW 330e" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2018</span>
-    <em>plug-in hybrid</em>
-  </div>
-  <h3>BMW 530e</h3>
-  <p>Комфортный бизнес-класс с умеренной таможней. Часто можно найти живой страховой лот.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $16,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $21,000</b></div>
-    <div><span>Экономия</span><b>от $5,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="BMW 530e">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по BMW 530e" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2022</span>
-    <em>3.0 бензин</em>
-  </div>
-  <h3>BMW M3</h3>
-  <p>Спортивная M-серия, где особенно важна проверка истории, геометрии и качества повреждений.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $55,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $68,000</b></div>
-    <div><span>Экономия</span><b>от $13,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="BMW M3">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по BMW M3" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2020</span>
-    <em>plug-in hybrid</em>
-  </div>
-  <h3>BMW X5 45e</h3>
-  <p>Один из самых интересных премиальных SUV. Хорошая комплектация и выгодная таможня для PHEV.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $34,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $45,000</b></div>
-    <div><span>Экономия</span><b>от $11,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="BMW X5 45e">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по BMW X5 45e" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2023</span>
-    <em>hybrid</em>
-  </div>
-  <h3>Honda Accord Hybrid</h3>
-  <p>Свежий гибрид с надежной базой. Отлично подходит для ежедневной езды и дальнейшей продажи.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $18,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $25,000</b></div>
-    <div><span>Экономия</span><b>от $7,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Honda Accord Hybrid">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Honda Accord Hybrid" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2023</span>
-    <em>hybrid</em>
-  </div>
-  <h3>Honda CR-V Hybrid</h3>
-  <p>Практичный кроссовер с хорошей ликвидностью. Важно выбирать лот без сложных ударов по подвеске.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $23,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $31,000</b></div>
-    <div><span>Экономия</span><b>от $8,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Honda CR-V Hybrid">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Honda CR-V Hybrid" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2018</span>
-    <em>hybrid</em>
-  </div>
-  <h3>Ford Fusion Hybrid</h3>
-  <p>Бюджетный гибрид с доступными запчастями. Хороший вариант для спокойной ежедневной езды.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $10,500</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $14,500</b></div>
-    <div><span>Экономия</span><b>от $4,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Ford Fusion Hybrid">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Ford Fusion Hybrid" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2018</span>
-    <em>hybrid</em>
-  </div>
-  <h3>Lincoln MKZ Hybrid</h3>
-  <p>Комфортный седан на базе Fusion, но с более приятной отделкой и богатой комплектацией.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $11,500</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $16,000</b></div>
-    <div><span>Экономия</span><b>от $4,500</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Lincoln MKZ Hybrid">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Lincoln MKZ Hybrid" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2020</span>
-    <em>hybrid</em>
-  </div>
-  <h3>Toyota Prius</h3>
-  <p>Один из самых надежных гибридов. Часто интересен по расходу, ликвидности и стоимости владения.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $12,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $17,000</b></div>
-    <div><span>Экономия</span><b>от $5,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Toyota Prius">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Toyota Prius" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2021</span>
-    <em>electric</em>
-  </div>
-  <h3>Tesla Model Y</h3>
-  <p>Популярный электрокроссовер. Обязательно проверяем батарею, историю и характер повреждений.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $23,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $31,000</b></div>
-    <div><span>Экономия</span><b>от $8,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Tesla Model Y">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Tesla Model Y" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2022</span>
-    <em>electric</em>
-  </div>
-  <h3>Tesla Model X</h3>
-  <p>Премиальная Tesla с высокой ценой ремонта. Здесь особенно важна проверка батареи и кузова.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $28,000</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $45,000</b></div>
-    <div><span>Экономия</span><b>от $17,000</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="Tesla Model X">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по Tesla Model X" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
-
-<article class="hotOfferCardV101">
-  <div class="hotOfferTopV101">
-    <span>2022</span>
-    <em>2.0 бензин</em>
-  </div>
-  <h3>VW Tiguan</h3>
-  <p>Практичный семейный SUV. Хороший вариант, если нужен свежий год и понятный ремонт.</p>
-  <div class="hotOfferPriceV101">
-    <small>Ориентир под ключ</small>
-    <strong>от $18,500</strong>
-  </div>
-  <div class="hotOfferRowsV101">
-    <div><span>Цена в Молдове</span><b>от $25,000</b></div>
-    <div><span>Экономия</span><b>от $6,500</b></div>
-  </div>
-  <div class="hotOfferActionsV101">
-    <a class="examplesBtnV101" href="#" data-model="VW Tiguan">Посмотреть примеры</a>
-    <a class="requestBtnV101" href="https://t.me/fedukusa?text=Здравствуйте! Хочу получить расчет по VW Tiguan" target="_blank" rel="noopener">Отправить заявку</a>
-  </div>
-</article>
-
+  <section class="hotApiWrapV351">
+    <div class="hotApiHeadV351">
+      <span class="sectionKicker">АВТО С АУКЦИОНОВ США</span>
+      <h2>Электромобили и гибриды: выгодные лоты из США</h2>
+      <p>Популярные гибриды и электромобили с аукционов Copart и IAAI. Отбираем лоты с минимальными повреждениями — хорошая база для восстановления по доступной цене. Список обновляется при каждом открытии страницы.</p>
+    </div>
+    <div id="hotApiGridV351" class="hotApiGridV351"></div>
   </section>
 
   <section class="hotNoteV101">
@@ -344,7 +95,8 @@
 </section>
 </main>
   <script src="locations.js"></script>
-  <script src="script.js?v=calc-v153"></script>
+  <script src="script.js?v=calc-v159"></script>
+  <script src="hot.js?v=v11" defer></script>
   <script src="site-content.js?v=admin-v166" defer></script>
   <script src="i18n.js?v=multilang-v170" defer></script>
 
@@ -362,7 +114,7 @@
       <div class="footerStats">
         <div><b>С 2016 года</b><span>в автомобильном бизнесе</span></div>
         <div><b>APEX AUTO — с 2026</b><span>новый бренд на базе накопленного опыта</span></div>
-        <div><b>Сотни авто</b><span>привезены клиентам</span></div>
+        <div><b>2000+ авто</b><span>привезены клиентам</span></div>
         <div><b>Под ключ</b><span>подбор, торги, документы и логистика</span></div>
       </div>
 

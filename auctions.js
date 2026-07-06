@@ -254,7 +254,8 @@
 
   function customsFor(lot){
     const fuel = String(lot.fuel || "").toLowerCase();
-    if(fuel.includes("electric")) return 0;
+    /* Pure EV only — hybrids ("Electric And Gas Hybrid") still pay customs */
+    if(fuel.includes("electric") && !fuel.includes("hybrid")) return 0;
     const year = Number(lot.year || new Date().getFullYear());
     const age = Math.max(0, new Date().getFullYear() - year);
     const engineCc = Math.round(numberFromEngine(lot.engine) * 1000);
@@ -277,11 +278,19 @@
   function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
   function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
 
-  function mapFuel(raw, greenOverride){
+  function mapFuel(raw, greenOverride, lot){
     const f = String(raw || "").toLowerCase();
-    if(/electric|электро|tesla/.test(f)) return "electric";
     if(/plug|phev/.test(f)) return "phev";
     if(/hybrid|гибрид/.test(f)) return "hybrid";
+    if(/electric|электро|tesla/.test(f)){
+      /* Only reclassify as hybrid if there's real engine displacement (e.g. "2.0L").
+         Cylinders field is unreliable — VIN decode can return 4 for pure EVs like BMW i7. */
+      if(lot){
+        const hasDisplacement = lot.engine && /\d+\.\d/i.test(String(lot.engine));
+        if(hasDisplacement) return "hybrid";
+      }
+      return "electric";
+    }
     if(/diesel|дизель/.test(f)) return "diesel";
     return greenOverride ? "hybrid" : "gasoline";
   }
@@ -312,7 +321,7 @@
   function calcLotTotal(lot, options = {}){
     const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
     const kind = options.vehicleType || vehicleKind(lot);
-    const fuel = mapFuel(lot.fuel, !!options.green);
+    const fuel = mapFuel(lot.fuel, !!options.green, lot);
     const loc = findLotLocation(lot);
     const r = (window.ApexCalc && window.ApexCalc.compute) ? window.ApexCalc.compute({
       lotPrice:bid, auction:String(lot.auction || "copart").toLowerCase(),
