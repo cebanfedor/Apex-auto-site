@@ -53,9 +53,12 @@ function engineLitersFromCar(car){
 
 function fuelCode(value){
   const text = safeName(value).toLowerCase();
-  if(text.includes("electric")) return "electric";
   if(text.includes("plug")) return "phev";
+  // hybrid must come before electric: "Electric And Gas Hybrid" → hybrid, not electric
   if(text.includes("hybrid")) return "hybrid";
+  // "electric and gas" (Copart PHEV descriptor without "hybrid" word) → hybrid
+  if(text.includes("electric") && text.includes("gas")) return "hybrid";
+  if(text.includes("electric")) return "electric";
   if(text.includes("diesel")) return "diesel";
   if(text.includes("gasoline") || text.includes("petrol")) return "gasoline";
   return "";
