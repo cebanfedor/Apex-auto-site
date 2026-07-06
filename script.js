@@ -597,21 +597,20 @@ function mergeLotData(base, ...sources){
 
 function detectFuelFromText(value){
   const text = String(value || "").toLowerCase();
-  // "electric and gas fuel" (IAAI/Copart descriptor for PHEVs/hybrids) has both electric + gas.
-  // Cylinders in text also confirm a combustion engine is present.
   const hasGas = /\bgas\b|\bgasoline\b/i.test(text);
   const hasCylinders = /\b[2-9]\s*cyl/i.test(text);
+  const hasHybridMark = /hybrid|гибрид|hev/i.test(text);
   const hasElectricMark = /electric|электро|ev\b|tesla|leaf|ioniq|id4|id\.4|model\s+[3syx]/i.test(text);
-  // Only pure electric when NO gas mention and NO cylinder count
-  if(hasElectricMark && !hasGas && !hasCylinders) return "electric";
+  // Pure electric: electric keyword with no ICE signals (no gas, no cylinders, no "hybrid" in name)
+  if(hasElectricMark && !hasGas && !hasCylinders && !hasHybridMark) return "electric";
   if(/plug\s*in|plug-in|phev|prius\s+prime|плагин/i.test(text)) return "phev";
   if(/\bbmw\b/i.test(text) && /\b(225e|230e|330e|530e|545e|745e|x1\s*25e|x2\s*25e|x3\s*30e|x5\s*(40e|45e|50e))\b/i.test(text)) return "phev";
   if(/\baudi\b/i.test(text) && /\b(e-tron|tfsi\s*e|q5\s*e|q7\s*e|a6\s*e|a7\s*e|a8\s*e)\b/i.test(text)) return "phev";
   if(/\bmercedes(?:-benz)?\b/i.test(text) && /\b(350e|450e|580e|gle\s*550e|glc\s*350e|c\s*350e|s\s*580e|e\s*350e)\b/i.test(text)) return "phev";
   if(/\bvolvo\b/i.test(text) && /\b(t8|recharge)\b/i.test(text)) return "phev";
-  if(/hybrid|гибрид|hev/i.test(text) && /\b(bmw|audi|mercedes|mercedes-benz|volvo)\b/i.test(text)) return "phev";
-  if(/hybrid|гибрид|hev/i.test(text)) return "hybrid";
-  // "electric and gas" without explicit phev/hybrid marker → hybrid (has combustion engine)
+  if(hasHybridMark && /\b(bmw|audi|mercedes|mercedes-benz|volvo)\b/i.test(text)) return "phev";
+  if(hasHybridMark) return "hybrid";
+  // "electric and gas" without hybrid marker → hybrid (has combustion engine)
   if(hasElectricMark && (hasGas || hasCylinders)) return "hybrid";
   if(/diesel|дизель|tdi|cdi|crdi/i.test(text)) return "diesel";
   return "";
