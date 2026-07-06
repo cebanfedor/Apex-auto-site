@@ -711,8 +711,10 @@
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
       let nextItems = payload.items || [];
-      // Discovery mode: keep only insurance sellers (if enough), then shuffle for freshness
+      // Discovery mode: 2020+, insurance sellers (if enough), shuffle for freshness each visit
       if(discoveryMode){
+        const fresh = nextItems.filter(l => Number(l.year) >= 2020);
+        if(fresh.length >= 8) nextItems = fresh;
         const ins = nextItems.filter(l => INS_RE.test(String(l.seller || "")));
         if(ins.length >= 8) nextItems = ins;
         for(let i = nextItems.length - 1; i > 0; i--){
