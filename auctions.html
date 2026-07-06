@@ -26,7 +26,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/bmw-530e.jpg">
   <link rel="stylesheet" href="/styles.css?v=v352">
-  <link rel="stylesheet" href="/auctions.css?v=v361">
+  <link rel="stylesheet" href="/auctions.css?v=v362">
   <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
@@ -114,7 +114,7 @@
             <button id="closeFiltersBtn" type="button">×</button>
           </div>
           <form id="auctionFiltersForm">
-            <details open class="fSecV2"><summary>Поиск</summary>
+            <details class="fSecV2"><summary>Поиск</summary>
               <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
             <details open class="fSecV2"><summary>Марка</summary>
@@ -124,7 +124,7 @@
                 <div class="comboMenuV2" id="makeMenuV2" hidden></div>
               </div>
             </details>
-            <details open class="fSecV2"><summary>Модель</summary>
+            <details class="fSecV2"><summary>Модель</summary>
               <div class="comboV2">
                 <input id="filterModelV2" class="fInputV2" placeholder="Сначала выберите марку" autocomplete="off">
                 <input type="hidden" name="model" id="filterModelIdV2">
@@ -144,14 +144,14 @@
                 <div class="rangeNumsV2"><input name="yearFrom" type="number" inputmode="numeric" placeholder="1980"><input name="yearTo" type="number" inputmode="numeric" placeholder="2027"></div>
               </div>
             </details>
-            <details open class="fSecV2"><summary>Пробег</summary>
+            <details class="fSecV2"><summary>Пробег</summary>
               <div class="kmToggleV2"><button type="button" class="active" data-odo-unit="mi">миль</button><button type="button" data-odo-unit="km">км</button></div>
               <div class="rangeV2" data-range data-min="0" data-max="250000" data-step="1000">
                 <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="250000" step="1000" value="0"><input type="range" class="rHiV2" min="0" max="250000" step="1000" value="250000"></div>
                 <div class="rangeNumsV2"><input name="mileageFrom" type="number" inputmode="numeric" placeholder="0"><input name="mileageTo" type="number" inputmode="numeric" placeholder="250 000"></div>
               </div>
             </details>
-            <details class="fSecV2" open><summary>Цена (ставка)</summary>
+            <details class="fSecV2"><summary>Цена (ставка)</summary>
               <div class="rangeV2" data-range data-min="0" data-max="100000" data-step="500">
                 <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="100000" step="500" value="0"><input type="range" class="rHiV2" min="0" max="100000" step="500" value="100000"></div>
                 <div class="rangeNumsV2"><input name="bidFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="bidTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
@@ -163,7 +163,7 @@
                 <div class="rangeNumsV2"><input name="buyNowFrom" type="number" inputmode="numeric" placeholder="$ 0"><input name="buyNowTo" type="number" inputmode="numeric" placeholder="$ 100 000"></div>
               </div>
             </details>
-            <details class="fSecV2" open><summary>Тип топлива</summary>
+            <details class="fSecV2"><summary>Тип топлива</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="fuel" value="" checked><span>Любой</span></label>
                 <label class="optV2"><input type="radio" name="fuel" value="4"><span>Бензин</span></label>
@@ -220,7 +220,7 @@
                 <label class="optV2"><input type="radio" name="country" value="CA"><span>Канада</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Состояние</summary>
+            <details class="fSecV2" open><summary>Состояние</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="radio" name="condition" value="" checked><span>Любое</span></label>
                 <label class="optV2"><input type="radio" name="condition" value="0"><span>Заводится и едет</span></label>
