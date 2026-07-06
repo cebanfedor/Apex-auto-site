@@ -552,6 +552,7 @@
     function fmtDate(iso) {
       if (!iso) return "";
       const d = new Date(iso + "T00:00:00");
+      if (isNaN(d.getTime())) return "";
       const locale = { ru: "ru-RU", ro: "ro-RO", en: "en-US" }[window.APEX_LANG || "ru"] || "ru-RU";
       return d.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
     }
@@ -581,23 +582,23 @@
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const stages = (d.stages || []).map(s => Object.assign({}, s));
 
-      if (d.etaChisinau) {
-        const portDate = d.container?.portArrival ? new Date(d.container.portArrival + "T00:00:00") : null;
-        const etaDate  = new Date(d.etaChisinau + "T00:00:00");
+      const portDate = d.container?.portArrival ? new Date(d.container.portArrival + "T00:00:00") : null;
 
-        // If Klaipeda arrival date is past → mark it completed (W8 may still say "current")
-        if (portDate && today >= portDate) {
-          const kl = stages.find(s => s.title === "Arrival");
-          if (kl) kl.status = "completed";
-        }
+      // If Klaipeda arrival date is past → mark it completed (W8 may still say "current")
+      if (portDate && today >= portDate) {
+        const kl = stages.find(s => s.title === "Arrival");
+        if (kl) kl.status = "completed";
+      }
 
-        // Chisinau stage status
-        let chisinauStatus = "todo";
+      // Always add Chisinau as final destination
+      const chisinauDate = d.etaChisinau || null;
+      let chisinauStatus = "todo";
+      if (chisinauDate) {
+        const etaDate = new Date(chisinauDate + "T00:00:00");
         if (today >= etaDate) chisinauStatus = "completed";
         else if (portDate && today >= portDate) chisinauStatus = "current";
-
-        stages.push({ title: "Chisinau", date: d.etaChisinau, status: chisinauStatus });
       }
+      stages.push({ title: "Chisinau", date: chisinauDate, status: chisinauStatus });
 
       const eta = d.etaChisinau || d.container?.portArrival;
       const etaDisplay = eta ? fmtDate(eta) : null;
