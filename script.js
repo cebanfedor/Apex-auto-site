@@ -84,6 +84,13 @@ function refreshGlassSelect(select){
       event.preventDefault();
       closeGlassSelects(wrap);
       wrap.classList.toggle("isOpenV152");
+      if(wrap.classList.contains("isOpenV152")){
+        setTimeout(function(){
+          const menu = wrap.querySelector(".glassSelectMenuV152");
+          const sel = menu && menu.querySelector(".isSelectedV152");
+          if(sel && menu) menu.scrollTop = sel.offsetTop - menu.clientHeight / 2 + sel.clientHeight / 2;
+        }, 0);
+      }
     });
     wrap.querySelector(".glassSelectMenuV152").addEventListener("click", event => {
       const item = event.target.closest("[data-value]");
@@ -267,7 +274,7 @@ function buildSmartLotAdvice(totalUsd){
   const odometer = numberFromText(data.odometer);
   const acv = Number(data.actualCashValue || 0);
   const currentBid = Number(data.currentBid || num("lotPrice") || 0);
-  const isElectric = data.fuel === "electric" || /\belectric\b|электро|tesla|model\s+[3syx]/i.test(text);
+  const isElectric = data.fuel === "electric" || (!data.fuel && /\belectric\b|электро|tesla|model\s+[3syx]/i.test(text) && !/\bgas\b/i.test(text));
   const isPhev = data.fuel === "phev" || /phev|plug/i.test(text);
   const isRunDrive = /run\s*&?\s*drive|run and drive|starts|завод/i.test(text);
   const hasAirbagOrPyro = /airbag|airbags|deployed|restraint|srs|pyro|пиропатрон|подуш/i.test(text);
@@ -369,7 +376,7 @@ function estimateTotalUsdForBid(bid){
   const land = getLandShipping();
   const sea = getSeaShipping();
   const exportDocs = $("exportDocs")?.checked ? 400 : 0;
-  const insurance = $("insurance")?.checked ? (Number(bid || 0) + auctionFee) * 0.01 : 0;
+  const insurance = $("insurance")?.checked ? Math.max(100, (Number(bid || 0) + auctionFee) * 0.01) : 0;
   const company = companyFeeFor(Number(bid || 0), auctionFee);
   const customsBaseMdl = usdToMdl(Number(bid || 0) + auctionFee + sea);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
@@ -590,7 +597,13 @@ function mergeLotData(base, ...sources){
 
 function detectFuelFromText(value){
   const text = String(value || "").toLowerCase();
-  if(/electric|электро|ev\b|tesla|leaf|ioniq|id4|id\.4|model\s+[3syx]/i.test(text)) return "electric";
+  // "electric and gas fuel" (IAAI/Copart descriptor for PHEVs/hybrids) has both electric + gas.
+  // Cylinders in text also confirm a combustion engine is present.
+  const hasGas = /\bgas\b|\bgasoline\b/i.test(text);
+  const hasCylinders = /\b[2-9]\s*cyl/i.test(text);
+  const hasElectricMark = /electric|электро|ev\b|tesla|leaf|ioniq|id4|id\.4|model\s+[3syx]/i.test(text);
+  // Only pure electric when NO gas mention and NO cylinder count
+  if(hasElectricMark && !hasGas && !hasCylinders) return "electric";
   if(/plug\s*in|plug-in|phev|prius\s+prime|плагин/i.test(text)) return "phev";
   if(/\bbmw\b/i.test(text) && /\b(225e|230e|330e|530e|545e|745e|x1\s*25e|x2\s*25e|x3\s*30e|x5\s*(40e|45e|50e))\b/i.test(text)) return "phev";
   if(/\baudi\b/i.test(text) && /\b(e-tron|tfsi\s*e|q5\s*e|q7\s*e|a6\s*e|a7\s*e|a8\s*e)\b/i.test(text)) return "phev";
@@ -598,6 +611,8 @@ function detectFuelFromText(value){
   if(/\bvolvo\b/i.test(text) && /\b(t8|recharge)\b/i.test(text)) return "phev";
   if(/hybrid|гибрид|hev/i.test(text) && /\b(bmw|audi|mercedes|mercedes-benz|volvo)\b/i.test(text)) return "phev";
   if(/hybrid|гибрид|hev/i.test(text)) return "hybrid";
+  // "electric and gas" without explicit phev/hybrid marker → hybrid (has combustion engine)
+  if(hasElectricMark && (hasGas || hasCylinders)) return "hybrid";
   if(/diesel|дизель|tdi|cdi|crdi/i.test(text)) return "diesel";
   return "";
 }
@@ -752,7 +767,6 @@ function renderLotImportStatus(data, applied){
     return;
   }
 
-  setLotCheckButton(data);
   const found = [];
   const missing = [];
   if(data.auction) found.push(`Аукцион: ${data.auction.toUpperCase()}`); else missing.push("аукцион");
@@ -780,9 +794,28 @@ function renderLotImportStatus(data, applied){
     <strong>${escapeHtml(title)}</strong>
     <div class="lotImportChipsV118">
       ${found.map(item => `<span>${escapeHtml(item)}</span>`).join("")}
+      <button class="lotImportCheckBtnV120" id="sendLotCheckBtnInner">Отправить лот на проверку</button>
     </div>
     <p>${escapeHtml(apiNote || data.priceNote || (missing.length ? `Для точного расчета проверьте: ${missing.join(", ")}.` : "Данных достаточно для предварительного расчета."))}</p>
   `;
+  box.querySelector("#sendLotCheckBtnInner").onclick = () => {
+    openTelegramMessage([
+      "Проверка лота | APEX AUTO", "",
+      "Здравствуйте! Хочу проверить и просчитать лот.", "",
+      "Ссылка:", data.original,
+      data.auction ? `Аукцион: ${data.auction.toUpperCase()}` : "",
+      data.lotNumber ? `Лот: ${data.lotNumber}` : "",
+      data.vin ? `VIN: ${data.vin}` : "", "",
+      "Нужно проверить:",
+      "• данные автомобиля",
+      "• локацию и доставку",
+      "• документы и повреждения",
+      "• стоимость под ключ до Кишинева"
+    ].filter(Boolean).join("\n"));
+  };
+
+  /* hide legacy external button */
+  setLotCheckButton(null);
 }
 
 function fuelLabel(value){
@@ -855,7 +888,7 @@ function calculate(){
   const sea = getSeaShipping();
   const exportDocs = $("exportDocs").checked ? 400 : 0;
   const carfax = 0;
-  const insurance = $("insurance").checked ? (lot + auctionFee) * 0.01 : 0;
+  const insurance = $("insurance").checked ? Math.max(100, (lot + auctionFee) * 0.01) : 0;
   const company = companyFee(auctionFee);
 
   // Важно:
@@ -910,9 +943,58 @@ function calculate(){
   updateShare();
 }
 
-function textCalc(){if(!lastCalc)calculate();if(!lastCalc)return"";let lines=lastCalc.rows.filter(x=>x[1]>0||x[0].includes("Carfax")).map(x=>`• ${x[0]==="Сопровождение APEX AUTO"?"Сопровождение компании":x[0]} — ${x[3]==="mdl"?displayMdl(x[1]):displayUsd(x[1])}`);let lotLines=lastCalc.importedLot?.original?["",`Ссылка на лот: ${lastCalc.importedLot.original}`,lastCalc.importedLot.lotNumber?`Номер лота: ${lastCalc.importedLot.lotNumber}`:"",lastCalc.importedLot.vin?`VIN: ${lastCalc.importedLot.vin}`:""].filter(Boolean):[];let adviceLines=lastCalc.smartAdvice?["",`Оценка лота: ${lastCalc.smartAdvice.verdict} (${lastCalc.smartAdvice.score}/100)`,"Лимит ставки: после проверки рынка и ремонта"].filter(Boolean):[];let bidLines=lastCalc.bidAdvice?["",`Торговая рекомендация: ${lastCalc.bidAdvice.verdict}`,`Разумная ставка: ${moneyUsd(lastCalc.bidAdvice.bidLow)}–${moneyUsd(lastCalc.bidAdvice.bidHigh)}`,`После ремонта: ${moneyUsd(lastCalc.bidAdvice.afterRepairLow)}–${moneyUsd(lastCalc.bidAdvice.afterRepairHigh)}`,`Экономия к рынку: ${moneyUsd(lastCalc.bidAdvice.savingLow)}–${moneyUsd(lastCalc.bidAdvice.savingHigh)}`].filter(Boolean):[];return["APEX AUTO | Расчет под ключ","",`Аукцион: ${lastCalc.auction.toUpperCase()}`,`Локация: ${lastCalc.route}`,...lotLines,...adviceLines,...bidLines,"",...lines,"",`Итого: ${moneyUsd(lastCalc.totalUsd)}`,`${moneyMdl(lastCalc.totalMdl)} | ${moneyEur(mdlToEur(lastCalc.totalMdl))}`,"","Расчет предварительный."].join("\n")}
+function textCalc(){
+  if(!lastCalc) calculate();
+  if(!lastCalc) return "";
+  const lng = window.APEX_LANG || "ru";
+  const ro = lng === "ro", en = lng === "en";
+  const LBL = {
+    "Стоимость лота":          ro ? "Prețul lotului"        : en ? "Lot price"           : "Стоимость лота",
+    "Аукционный сбор":         ro ? "Taxa de licitație"     : en ? "Auction fee"          : "Аукционный сбор",
+    "Доставка по США":         ro ? "Transport în SUA"      : en ? "US delivery"          : "Доставка по США",
+    "Доставка в Кишинёв":      ro ? "Transport la Chișinău" : en ? "Delivery to Chișinău" : "Доставка в Кишинёв",
+    "Страховка":               ro ? "Asigurare"             : en ? "Insurance"            : "Страховка",
+    "Сопровождение APEX AUTO": ro ? "Asistența companiei"   : en ? "Company service"      : "Сопровождение компании",
+    "Экспортные документы":    ro ? "Acte de export"        : en ? "Export documents"     : "Экспортные документы",
+    "Таможенные платежи":      ro ? "Taxe vamale"           : en ? "Customs fees"         : "Таможенные платежи",
+  };
+  const header   = ro ? "APEX AUTO | Calcul la cheie"    : en ? "APEX AUTO | All-in Calculation" : "APEX AUTO | Расчет под ключ";
+  const aLbl     = ro ? "Licitație"   : en ? "Auction"    : "Аукцион";
+  const locLbl   = ro ? "Locație"     : en ? "Location"   : "Локация";
+  const linkLbl  = ro ? "Link lot"    : en ? "Lot link"   : "Ссылка на лот";
+  const numLbl   = ro ? "Nr. lot"     : en ? "Lot number" : "Номер лота";
+  const totalLbl = ro ? "Total"       : en ? "Total"      : "Итого";
+  const noteLbl  = ro ? "Calculul este orientativ." : en ? "Estimate only." : "Расчет предварительный.";
+  const lines = lastCalc.rows
+    .filter(x => x[1] > 0 || x[0].includes("Carfax"))
+    .map(x => `• ${LBL[x[0]] || x[0]} — ${x[3] === "mdl" ? displayMdl(x[1]) : displayUsd(x[1])}`);
+  const lotLines = lastCalc.importedLot?.original ? [
+    "", `${linkLbl}: ${lastCalc.importedLot.original}`,
+    lastCalc.importedLot.lotNumber ? `${numLbl}: ${lastCalc.importedLot.lotNumber}` : "",
+    lastCalc.importedLot.vin ? `VIN: ${lastCalc.importedLot.vin}` : ""
+  ].filter(Boolean) : [];
+  return [
+    header, "",
+    `${aLbl}: ${lastCalc.auction.toUpperCase()}`,
+    `${locLbl}: ${lastCalc.route}`,
+    ...lotLines, "",
+    ...lines, "",
+    `${totalLbl}: ${moneyUsd(lastCalc.totalUsd)}`,
+    `${moneyMdl(lastCalc.totalMdl)} | ${moneyEur(mdlToEur(lastCalc.totalMdl))}`,
+    "", noteLbl
+  ].join("\n");
+}
 function updateShare(){if($("tgBtn"))$("tgBtn").href=`https://t.me/share/url?url=&text=${encodeURIComponent(textCalc())}`}
-async function copyCalc(){try{await navigator.clipboard.writeText(textCalc());$("copyBtn").textContent="Скопировано";setTimeout(()=>$("copyBtn").textContent="Скопировать расчет",1200)}catch(e){alert(textCalc())}}
+async function copyCalc(){
+  try {
+    await navigator.clipboard.writeText(textCalc());
+    const btn = $("copyBtn");
+    const lng = window.APEX_LANG || "ru";
+    const orig = btn.textContent;
+    btn.textContent = lng === "ro" ? "Copiat" : lng === "en" ? "Copied" : "Скопировано";
+    setTimeout(() => btn.textContent = orig, 1200);
+  } catch(e) { alert(textCalc()); }
+}
 function downloadPng(){alert("PNG добавим следующим этапом. Сейчас расчет можно скопировать или отправить в Telegram.")}
 document.addEventListener("DOMContentLoaded",()=>{
   if(!$("calcForm")) return;
@@ -941,6 +1023,23 @@ window.addEventListener("load", () => {
 });
 
 
+document.addEventListener("DOMContentLoaded", () => {
+  const fab = document.getElementById("fabContact");
+  const btn = document.getElementById("fabBtn");
+  if (!fab || !btn) return;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = fab.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open);
+  });
+  document.addEventListener("click", (e) => {
+    if (!fab.contains(e.target)) {
+      fab.classList.remove("open");
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
+});
+
 function openTelegramMessage(text){
   const encoded = encodeURIComponent(text);
   window.open(`https://t.me/share/url?url=&text=${encoded}`, "_blank", "noopener");
@@ -961,6 +1060,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Авто: " + (document.getElementById("leadCar").value || "-")
       ].join("\n");
       openTelegramMessage(msg);
+      selectionForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>Telegram открывается!</strong>Отправьте сообщение — и мы свяжемся с вами в ближайшее время.</p></div>`;
     });
   }
 });
@@ -1077,6 +1177,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ].join("\n");
 
       openTelegramMessage(message);
+      checkForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>Telegram открывается!</strong>Отправьте сообщение — и мы бесплатно проверим автомобиль.</p></div>`;
       return false;
     }, true);
   }
