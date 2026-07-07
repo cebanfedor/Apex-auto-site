@@ -5,4 +5,5 @@
   <url><loc>https://apexauto.md/hot.html</loc><changefreq>weekly</changefreq></url>
   <url><loc>https://apexauto.md/about.html</loc><changefreq>weekly</changefreq></url>
   <url><loc>https://apexauto.md/contacts.html</loc><changefreq>weekly</changefreq></url>
+  <url><loc>https://apexauto.md/guide.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

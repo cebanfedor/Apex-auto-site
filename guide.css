@@ -1,0 +1,91 @@
+/* Guide page styles */
+.guideMain { background: #f1f4f8; min-height: 100vh; padding: 32px 0 80px; }
+.guideShell { width: 92%; max-width: 860px; margin: 0 auto; }
+
+.guideBreadcrumb { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #79828f; margin-bottom: 24px; }
+.guideBreadcrumb a { color: #79828f; text-decoration: none; }
+.guideBreadcrumb a:hover { color: #ed0012; }
+
+.guideArticle { background: #fff; border: 1px solid #e6e8ec; border-radius: 20px; box-shadow: 0 1px 2px rgba(16,20,28,.04), 0 14px 34px rgba(16,20,28,.08); overflow: hidden; }
+
+.guideHeader { padding: 40px 48px 32px; border-bottom: 1px solid #eef0f3; }
+.guideKicker { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ed0012; margin-bottom: 12px; }
+.guideHeader h1 { font-size: clamp(26px, 3.5vw, 38px); letter-spacing: -.025em; color: #14181f; line-height: 1.15; margin-bottom: 14px; }
+.guideLead { font-size: 17px; color: #5a6472; line-height: 1.6; margin-bottom: 24px; }
+.guideAuthor { display: flex; align-items: center; gap: 12px; }
+.guideAuthorPhoto { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #eef0f3; }
+.guideAuthor strong { display: block; font-size: 14px; color: #14181f; }
+.guideAuthor span { font-size: 12px; color: #79828f; }
+
+.guideBody { padding: 40px 48px; }
+.guideBody h2 { font-size: 22px; font-weight: 700; color: #14181f; letter-spacing: -.02em; margin: 36px 0 14px; }
+.guideBody h2:first-child { margin-top: 0; }
+.guideBody h3 { font-size: 16px; font-weight: 700; color: #14181f; margin: 0 0 6px; }
+.guideBody p { font-size: 15px; color: #3a4250; line-height: 1.7; margin: 0 0 14px; }
+.guideBody ul, .guideBody ol { font-size: 15px; color: #3a4250; line-height: 1.7; padding-left: 22px; margin: 0 0 16px; }
+.guideBody li { margin-bottom: 6px; }
+.guideBody a { color: #ed0012; }
+
+/* Summary box */
+.guideSummaryBox { background: #f8faff; border: 1px solid #d0daf5; border-radius: 14px; padding: 20px 24px; margin-bottom: 32px; }
+.guideSummaryTitle { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: #1f6bff; margin: 0 0 10px; }
+.guideSummaryBox ul { margin: 0; padding-left: 18px; }
+.guideSummaryBox li { font-size: 14px; color: #2a3650; margin-bottom: 5px; }
+
+/* Table */
+.guideTable { overflow-x: auto; margin: 16px 0 24px; border-radius: 12px; border: 1px solid #e6e8ec; }
+.guideTable table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.guideTable thead th { background: #f1f4f8; font-weight: 700; color: #14181f; padding: 11px 14px; text-align: left; border-bottom: 1px solid #e6e8ec; }
+.guideTable tbody td { padding: 10px 14px; color: #3a4250; border-bottom: 1px solid #eef0f3; vertical-align: top; }
+.guideTable tbody tr:last-child td { border-bottom: none; }
+
+/* Price box */
+.guidePriceBox { background: #14181f; color: #fff; border-radius: 16px; padding: 24px 28px; margin: 24px 0 32px; }
+.guidePriceBox h3 { font-size: 15px; color: rgba(255,255,255,.7); font-weight: 600; margin: 0 0 16px; }
+.guidePriceBox table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.guidePriceBox td { padding: 7px 0; color: rgba(255,255,255,.8); border-bottom: 1px solid rgba(255,255,255,.08); }
+.guidePriceBox td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.guidePriceBox tr:last-child td { border-bottom: none; }
+.guidePriceTotal td { color: #fff; font-size: 16px; padding-top: 14px; }
+.guidePriceNote { font-size: 12px; color: rgba(255,255,255,.5); margin: 12px 0 0; }
+.guidePriceNote a { color: rgba(255,255,255,.7); }
+
+/* Steps */
+.guideSteps { display: flex; flex-direction: column; gap: 0; margin: 16px 0 32px; }
+.guideStep { display: flex; gap: 20px; padding: 20px 0; border-bottom: 1px solid #eef0f3; }
+.guideStep:last-child { border-bottom: none; }
+.guideStepNum { width: 40px; height: 40px; border-radius: 50%; background: #ed0012; color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.guideStep h3 { margin: 4px 0 6px; }
+.guideStep p { margin: 0; font-size: 14px; }
+
+/* Glossary */
+.guideGlossary { display: flex; flex-direction: column; gap: 0; margin: 16px 0 32px; }
+.guideTerm { padding: 16px 0; border-bottom: 1px solid #eef0f3; }
+.guideTerm:last-child { border-bottom: none; }
+.guideTerm dt { font-size: 15px; font-weight: 700; color: #14181f; margin-bottom: 4px; }
+.guideTerm dd { font-size: 14px; color: #5a6472; line-height: 1.6; margin: 0; }
+
+/* FAQ */
+.guideFaq { display: flex; flex-direction: column; gap: 0; margin: 16px 0 32px; }
+.guideFaqItem { padding: 16px 0; border-bottom: 1px solid #eef0f3; }
+.guideFaqItem:last-child { border-bottom: none; }
+.guideFaqItem dt { font-size: 15px; font-weight: 700; color: #14181f; margin-bottom: 6px; }
+.guideFaqItem dd { font-size: 14px; color: #5a6472; line-height: 1.6; margin: 0; }
+
+/* CTA */
+.guideCta { background: linear-gradient(135deg, #ed0012, #c00010); border-radius: 16px; padding: 32px; text-align: center; margin-top: 40px; }
+.guideCta h2 { color: #fff; font-size: 22px; margin: 0 0 8px; }
+.guideCta p { color: rgba(255,255,255,.85); font-size: 15px; margin: 0 0 20px; }
+.guideCtaBtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.guideCtaPrimary { display: inline-flex; align-items: center; height: 46px; padding: 0 24px; background: #fff; color: #ed0012; border-radius: 12px; font-weight: 700; font-size: 15px; text-decoration: none; }
+.guideCtaPrimary:hover { background: #f8f8f8; }
+.guideCtaGhost { display: inline-flex; align-items: center; height: 46px; padding: 0 24px; background: rgba(255,255,255,.15); color: #fff; border-radius: 12px; font-weight: 600; font-size: 15px; text-decoration: none; border: 1px solid rgba(255,255,255,.3); }
+.guideCtaGhost:hover { background: rgba(255,255,255,.22); }
+
+@media (max-width: 640px) {
+  .guideHeader, .guideBody { padding: 24px 20px; }
+  .guideHeader h1 { font-size: 24px; }
+  .guideLead { font-size: 15px; }
+  .guideBody h2 { font-size: 19px; }
+  .guidePriceBox { padding: 20px; }
+}
