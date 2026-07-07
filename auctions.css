@@ -51,10 +51,9 @@
 
 /* Layout */
 .auctionLayoutV1 { display:grid; grid-template-columns:264px 1fr; gap:22px; align-items:start; }
-/* Wrapper holds the 264px grid column; the aside is fixed inside it */
-.auctionFilterColV1 { min-height:1px; }
-.auctionFiltersV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:14px; box-shadow:var(--aShadow); position:fixed; top:68px; bottom:16px; width:264px; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
-.auctionFiltersV1::-webkit-scrollbar { display:none; }
+/* Filter column: sticky, scrolls independently while lots scroll on the right */
+.auctionFilterColV1 { position:sticky; top:68px; height:calc(100vh - 84px); overflow-y:auto; }
+.auctionFiltersV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:14px; box-shadow:var(--aShadow); }
 .filterHeadV1 { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .filterHeadV1 h2 { font-size:18px; color:var(--aInk); }
 .filterHeadV1 button { display:none; border:none; background:none; font-size:22px; color:var(--aMuted); cursor:pointer; }

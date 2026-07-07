@@ -1482,8 +1482,8 @@
       renderCards();
     });
     const sidebar = $("#auctionFilters");
-    function openFiltersDrawer(){ document.body.classList.add("filtersOpenV1"); if(sidebar) sidebar.style.left = ""; }
-    function closeFiltersDrawer(){ document.body.classList.remove("filtersOpenV1"); positionFilterSidebar(); }
+    function openFiltersDrawer(){ document.body.classList.add("filtersOpenV1"); }
+    function closeFiltersDrawer(){ document.body.classList.remove("filtersOpenV1"); }
     $("#openFiltersBtn").addEventListener("click", openFiltersDrawer);
     $("#searchSettingsBtn")?.addEventListener("click", openFiltersDrawer);
     $("#closeFiltersBtn").addEventListener("click", closeFiltersDrawer);
@@ -1604,22 +1604,12 @@
     $("#auctionLeadForm").addEventListener("submit", submitLead);
   }
 
-  function positionFilterSidebar(){
-    const col = document.querySelector('.auctionFilterColV1');
-    const sidebar = document.querySelector('#auctionFilters');
-    if(!col || !sidebar || document.body.classList.contains('filtersOpenV1')) return;
-    sidebar.style.left = col.getBoundingClientRect().left + 'px';
-  }
-
   async function initAuctions(){
     closeLead();
     bindEvents();
     initRanges();
     initCarData();
     updateFavCount();
-    positionFilterSidebar();
-    window.addEventListener('resize', positionFilterSidebar);
-    window.addEventListener('scroll', positionFilterSidebar, {passive:true});
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
       restoreFromUrl();
