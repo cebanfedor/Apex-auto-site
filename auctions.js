@@ -325,19 +325,22 @@
   function calcLotTotal(lot, options = {}){
     const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
     const kind = options.vehicleType || vehicleKind(lot);
-    const fuel = mapFuel(lot.fuel, !!options.green, lot);
+    const fuel = options.fuel || mapFuel(lot.fuel, !!options.green, lot);
     const loc = findLotLocation(lot);
+    const engineLiters = options.engineLiters != null ? Number(options.engineLiters) : numberFromEngine(lot.engine);
+    const usdMdl = Number(options.usdMdl) > 0 ? Number(options.usdMdl) : 17.45;
+    const eurMdl = Number(options.eurMdl) > 0 ? Number(options.eurMdl) : 20.28;
     const r = (window.ApexCalc && window.ApexCalc.compute) ? window.ApexCalc.compute({
       lotPrice:bid, auction:String(lot.auction || "copart").toLowerCase(),
-      vehicleType:kind, fuel, engineLiters:numberFromEngine(lot.engine),
+      vehicleType:kind, fuel, engineLiters,
       year:Number(lot.year) || new Date().getFullYear(),
       insurance:options.insurance !== false, exportDocs:!!options.exportDocs, offsite:!!options.offsite,
-      location:loc, usdMdl:17.45, eurMdl:20.28
+      location:loc, usdMdl, eurMdl
     }) : null;
     if(!r){
       const auctionFee = auctionFeeFor(bid, lot.auction);
       return {bid, auctionFee, land:0, sea:0, insurance:0, exportDocs:0, service:300, customsUsd:0,
-        total:bid + auctionFee, totalMdl:0, totalEur:0, kind, green:false,
+        total:bid + auctionFee, totalMdl:0, totalEur:0, kind, green:false, usdMdl, eurMdl,
         landRoute:landRouteLabel(lot), seaRoute:seaRouteLabel(lot)};
     }
     return {
@@ -345,7 +348,7 @@
       insurance:Math.round(r.insurance), exportDocs:r.exportDocs, service:Math.round(r.company),
       customsUsd:Math.round(r.customsUsd), total:Math.round(r.totalUsd),
       totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
-      kind, green:["hybrid","phev","electric"].includes(fuel),
+      kind, green:["hybrid","phev","electric"].includes(fuel), usdMdl, eurMdl,
       landRoute: r.route || landRouteLabel(lot),
       seaRoute: r.port ? `${r.port} → Кишинёв` : seaRouteLabel(lot)
     };
@@ -810,9 +813,11 @@
   }
 
   function altCurrency(calc){
-    const mdl = Math.round(calc.totalMdl || calc.total * 17.45).toLocaleString("ru-RU");
-    const eur = Math.round(calc.totalEur || calc.total * 17.45 / 20.28).toLocaleString("ru-RU");
-    return `${mdl} MDL · €${eur}`;
+    const usd = calc.usdMdl || 17.45;
+    const eur = calc.eurMdl || 20.28;
+    const mdl = Math.round(calc.totalMdl || calc.total * usd).toLocaleString("ru-RU");
+    const eurV = Math.round(calc.totalEur || calc.total * usd / eur).toLocaleString("ru-RU");
+    return `${mdl} MDL · €${eurV}`;
   }
 
   function calcRow(label, value, sub){
@@ -844,8 +849,11 @@
     const initialBid = (isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow)) || 0;
     const bidLabel = isSold && lot.finalBid ? "Финальная цена" : "Текущая ставка";
     const kind = vehicleKind(lot);
-    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, vehicleType:kind});
+    const fuelVal = mapFuel(lot.fuel, false, lot);
+    const engL = numberFromEngine(lot.engine);
+    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, vehicleType:kind, fuel:fuelVal, engineLiters:engL});
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
+    const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     return `<aside class="lotCalcV2">
       <div class="calcTopV2">
         <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${money(initialBid)}</b></div>
@@ -861,9 +869,26 @@
       <div class="calcOptsV2">
         <label class="calcOptV2"><input type="checkbox" id="lotVehSuv" data-calc-input ${kind === "suv" || kind === "crossover" ? "checked" : ""}><span>SUV / кроссовер</span><i>+20% по США · +$300 море</i></label>
         <label class="calcOptV2"><input type="checkbox" id="lotVehPickup" data-calc-input ${kind === "pickup" || kind === "van" ? "checked" : ""}><span>Пикап / минивэн</span><i>+50% по США · +$500 море</i></label>
-        <label class="calcOptV2"><input type="checkbox" id="lotGreen" data-calc-input><span>Гибрид / электро</span><i>+$100 море</i></label>
+        <div class="calcOptRowV2">
+          <span>Топливо</span>
+          <select id="lotCalcFuel" data-calc-input class="calcSelectV2">
+            ${fOpt("gasoline")}Бензин</option>
+            ${fOpt("diesel")}Дизель</option>
+            ${fOpt("hybrid")}Гибрид</option>
+            ${fOpt("phev")}Plug-in гибрид</option>
+            ${fOpt("electric")}Электро</option>
+          </select>
+        </div>
+        <div class="calcOptRowV2">
+          <span>Объём двигателя</span>
+          <div class="calcEngineWrapV2"><input id="lotCalcEngine" data-calc-input type="number" class="calcEngineV2" min="0.5" max="9" step="0.1" value="${engL}"><span class="calcEngineUnitV2">л</span></div>
+        </div>
         <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
         <label class="calcOptV2"><input type="checkbox" id="lotCalcInsurance" data-calc-input checked><span>Страховка 1%</span><i>защита в пути</i></label>
+      </div>
+      <div class="calcRatesV2">
+        <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="17.45"></label>
+        <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="20.28"></label>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
       <div class="calcGrandV2">
@@ -883,12 +908,15 @@
   function updateLotCalculator(){
     if(!state.selectedLot || !$("#lotBidInput")) return;
     const veh = $("#lotVehPickup")?.checked ? "pickup" : $("#lotVehSuv")?.checked ? "suv" : "sedan";
+    const fuel = $("#lotCalcFuel")?.value || mapFuel(state.selectedLot.fuel, false, state.selectedLot);
+    const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
+    const usdMdl = Number($("#lotCalcUsdMdl")?.value) || 17.45;
+    const eurMdl = Number($("#lotCalcEurMdl")?.value) || 20.28;
     const calc = calcLotTotal(state.selectedLot, {
       bid:Number($("#lotBidInput").value || 0),
       insurance:$("#lotCalcInsurance")?.checked,
       exportDocs:$("#lotCalcExportDocs")?.checked,
-      green:$("#lotGreen")?.checked,
-      vehicleType:veh
+      vehicleType:veh, fuel, engineLiters, usdMdl, eurMdl
     });
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
