@@ -699,7 +699,7 @@
     syncUrl();
   }
 
-  async function loadLots({_retry = false} = {}){
+  async function loadLots({_retry = false, append = false} = {}){
     if(state.tab === "favorites"){ renderFavorites(); return; }
     if(state.loading) return;
     state.loading = true;
@@ -711,24 +711,26 @@
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
       let nextItems = payload.items || [];
-      // Discovery mode: 2020+, insurance sellers (if enough), shuffle for freshness each visit
+      // Discovery mode: 2020+, insurance sellers (if enough) — sorted by auction date
       if(discoveryMode){
         const fresh = nextItems.filter(l => Number(l.year) >= 2020);
         if(fresh.length >= 8) nextItems = fresh;
         const ins = nextItems.filter(l => INS_RE.test(String(l.seller || "")));
         if(ins.length >= 8) nextItems = ins;
-        for(let i = nextItems.length - 1; i > 0; i--){
-          const j = Math.floor(Math.random() * (i + 1));
-          [nextItems[i], nextItems[j]] = [nextItems[j], nextItems[i]];
-        }
       }
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
-      state.items = nextItems;
-      state.displayPage = 1;
-      $("#auctionResultCount").textContent = state.total || state.items.length || 0;
+      if(append){
+        state.items = [...state.items, ...nextItems];
+      } else {
+        state.items = nextItems;
+        state.displayPage = 1;
+      }
+      $("#auctionResultCount").textContent = state.total
+        ? state.total.toLocaleString("ru-RU")
+        : state.items.length;
       $("#auctionResultLabel").textContent = state.total
-        ? (archived ? "лотов в архиве" : "лотов найдено")
+        ? (discoveryMode ? "лотов доступно на аукционах" : archived ? "лотов в архиве" : "лотов найдено")
         : `Показано ${state.items.length} лотов`;
       renderCards();
       updateFavCount();
@@ -744,7 +746,7 @@
       }else if(!_retry){
         // Auto-retry once after 2s before showing error — handles transient API blips
         state.loading = false;
-        setTimeout(() => loadLots({_retry:true}), 2000);
+        setTimeout(() => loadLots({_retry:true, append}), 2000);
         return;
       }else{
         // Keep showing existing cards if we have them; just flag the error
@@ -1476,6 +1478,13 @@
       if(!btn || btn.disabled || btn.classList.contains("pgActiveV1")) return;
       const page = parseInt(btn.dataset.page);
       if(!page || page < 1) return;
+      const loadedPages = Math.ceil(state.items.length / state.displayPageSize);
+      if(page > loadedPages && state.hasMore){
+        state.page++;
+        state.displayPage = page;
+        loadLots({append: true});
+        return;
+      }
       state.displayPage = page;
       const cardsTop = document.getElementById("auctionCards")?.offsetTop ?? 0;
       window.scrollTo({top: Math.max(0, cardsTop - 80), behavior:"smooth"});

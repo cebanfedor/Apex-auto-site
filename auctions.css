@@ -463,7 +463,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Responsive */
 @media (max-width:1100px) {
   .auctionLayoutV1 { grid-template-columns:1fr; }
-  /* Filters drawer: hidden by default, slides in as fixed overlay when opened */
+  /* Filters drawer: collapse the sticky column wrapper to zero height so it takes no layout space,
+     but don't use display:none — position:fixed child must escape to viewport overlay */
+  .auctionFilterColV1 { height:0; overflow:visible; position:static; }
   .auctionFiltersV1 { display:none; }
   body.filtersOpenV1 .auctionFiltersV1 {
     display:block; position:fixed; inset:0; z-index:252;
