@@ -654,20 +654,27 @@
     const box = document.getElementById("paginationV1");
     if(!box) return;
     const totalPages = Math.ceil(state.filteredCount / state.displayPageSize);
-    if(totalPages <= 1){ box.hidden = true; return; }
+    const showPageNums = totalPages > 1;
+    if(!showPageNums && !state.hasMore){ box.hidden = true; return; }
     box.hidden = false;
-    const p = state.displayPage;
-    const vis = new Set([1, totalPages]);
-    for(let i = Math.max(1, p - 2); i <= Math.min(totalPages, p + 2); i++) vis.add(i);
-    const pages = [...vis].sort((a, b) => a - b);
-    let html = `<button class="pgBtnV1 pgNavV1"${p === 1 ? " disabled" : ""} data-page="${p - 1}">&#8249;</button>`;
-    let prev = 0;
-    for(const num of pages){
-      if(num - prev > 1) html += `<span class="pgEllipsisV1">…</span>`;
-      html += `<button class="pgBtnV1${num === p ? " pgActiveV1" : ""}" data-page="${num}">${num}</button>`;
-      prev = num;
+    let html = "";
+    if(showPageNums){
+      const p = state.displayPage;
+      const vis = new Set([1, totalPages]);
+      for(let i = Math.max(1, p - 2); i <= Math.min(totalPages, p + 2); i++) vis.add(i);
+      const pages = [...vis].sort((a, b) => a - b);
+      html += `<button class="pgBtnV1 pgNavV1"${p === 1 ? " disabled" : ""} data-page="${p - 1}">&#8249;</button>`;
+      let prev = 0;
+      for(const num of pages){
+        if(num - prev > 1) html += `<span class="pgEllipsisV1">…</span>`;
+        html += `<button class="pgBtnV1${num === p ? " pgActiveV1" : ""}" data-page="${num}">${num}</button>`;
+        prev = num;
+      }
+      html += `<button class="pgBtnV1 pgNavV1"${p === totalPages ? " disabled" : ""} data-page="${p + 1}">&#8250;</button>`;
     }
-    html += `<button class="pgBtnV1 pgNavV1"${p === totalPages ? " disabled" : ""} data-page="${p + 1}">&#8250;</button>`;
+    if(state.hasMore){
+      html += `<button class="pgLoadMoreBtnV1" id="pgLoadMoreBtn"${state.loading ? " disabled" : ""}>Показать ещё лоты</button>`;
+    }
     box.innerHTML = html;
   }
 
@@ -721,7 +728,9 @@
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
       if(append){
+        const prevCount = state.items.length;
         state.items = [...state.items, ...nextItems];
+        state.displayPage = Math.floor(prevCount / state.displayPageSize) + 1;
       } else {
         state.items = nextItems;
         state.displayPage = 1;
@@ -1474,6 +1483,12 @@
       loadLots();
     });
     document.getElementById("paginationV1")?.addEventListener("click", e => {
+      if(e.target.id === "pgLoadMoreBtn"){
+        if(state.loading || !state.hasMore) return;
+        state.page++;
+        loadLots({append: true});
+        return;
+      }
       const btn = e.target.closest(".pgBtnV1");
       if(!btn || btn.disabled || btn.classList.contains("pgActiveV1")) return;
       const page = parseInt(btn.dataset.page);
