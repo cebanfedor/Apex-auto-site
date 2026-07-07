@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 /* ============================================================================
    APEX AUTO — design system (v300, clean rewrite from scratch)
    Replaces the legacy v48–v105 stylesheet. Reproduces the modern look.
@@ -37,7 +37,8 @@
 
   --maxw: 1292px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --font: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
 }
 
 /* ---- Base -------------------------------------------------------------- */
@@ -57,7 +58,7 @@ body {
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
-h1, h2, h3, h4 { margin: 0; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: var(--ink); }
+h1, h2, h3, h4 { margin: 0; font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: var(--ink); }
 h1 { font-size: clamp(30px, 3.8vw, 48px); line-height: 1.06; }
 h2 { font-size: clamp(24px, 3vw, 34px); }
 h3 { font-size: 18px; letter-spacing: -0.01em; }
@@ -118,7 +119,7 @@ section { position: relative; }
 .mainNavV82 > a:hover { background: rgba(17, 20, 26, 0.05); color: var(--ink); }
 .mainNavV82 > a.active { color: var(--red); background: var(--red-soft); }
 
-.langSwitcherV165 { display: inline-flex; gap: 6px; margin-left: 8px; }
+.langSwitcherV165 { display: inline-flex; gap: 4px; margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--line); }
 .langSwitcherV165 button {
   min-width: 40px; height: 30px; padding: 0 10px; border: 1px solid var(--field-line);
   background: var(--field); border-radius: 9px; font-size: 12px; font-weight: 700; color: var(--ink-2); transition: all 0.18s;
@@ -479,6 +480,14 @@ details[open] > summary::before { content: "– "; }
 .miniGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .miniForm button { width: 100%; }
 .miniForm small { font-size: 12.5px; color: var(--muted); text-align: center; }
+.miniFormHeaderV365 { display: flex; flex-direction: column; gap: 3px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.miniFormHeaderV365 strong { font-size: 15px; font-weight: 700; color: var(--ink); }
+.miniFormHeaderV365 span { font-size: 13px; color: var(--muted); }
+.miniForm select { width: 100%; appearance: none; -webkit-appearance: none; background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2379828f' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center; padding: 0 38px 0 13px; height: 44px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; font-family: inherit; color: var(--ink); cursor: pointer; transition: border-color .15s; }
+.miniForm select:focus { outline: none; border-color: var(--red); }
+.miniForm select option[value=""] { color: var(--muted); }
+.miniFormTrustV365 { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.miniFormTrustV365 svg { flex-shrink: 0; opacity: .7; }
 
 /* ---- Check (free VIN) section ------------------------------------------ */
 .checkSection { padding: 24px 0; }
@@ -1006,6 +1015,10 @@ details[open] > summary::before { content: "– "; }
 .footerContacts { display: flex; flex-direction: column; gap: 10px; }
 .contactBtn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; color: #fff; font-weight: 600; font-size: 14px; transition: background 0.18s; }
 .contactBtn:hover { background: rgba(255, 255, 255, 0.13); }
+.footerPrivacyV365 { font-size: 12px; font-weight: 400; opacity: .55; padding: 7px 14px; }
+.calcDeliveryV366 { display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 8px; padding: 8px 13px; background: rgba(255,255,255,0.04); border-radius: 8px; }
+.calcDeliveryV366 strong { color: #fff; font-weight: 600; }
+.calcDeliveryV366 svg { flex-shrink: 0; opacity: .7; }
 
 /* ---- Responsive -------------------------------------------------------- */
 @media (max-width: 980px) {

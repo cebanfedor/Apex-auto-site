@@ -1,5 +1,6 @@
 
 const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
+function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
 const YEAR_NOW=new Date().getFullYear();
 const GASOLINE_RATES={"0-2":[9.56,12.23,18.90,31.14,55.60],"3-4":[10,12.67,19.34,31.68,56.04],"5-6":[10.23,12.90,19.57,31.81,56.27],"7":[11.25,14.19,21.53,34.99,61.90],"8":[12.38,15.61,23.68,38.49,68.09],"9":[13.62,17.17,26.05,42.34,74.90],"10":[16.34,20.60,31.26,50.81,89.87],"11":[21.24,26.79,40.63,66.05,116.84],"12":[26.24,31.79,45.79,71.05,121.84],"13":[31.24,36.79,50.63,76.05,126.84],"14":[36.24,41.79,55.63,81.05,131.84],"15":[41.24,46.79,60.63,86.05,136.84],"16":[46.24,51.79,65.63,91.05,141.84],"17":[51.24,56.79,70.63,96.05,146.84],"18":[56.24,61.79,75.63,101.05,151.84],"19":[61.24,66.79,80.63,106.05,156.84],"20+":[66.24,71.79,85.63,111.05,161.84]};
 const DIESEL_RATES={"0-2":[12.23,31.14,55.60],"3-4":[12.67,31.58,56.04],"5-6":[12.90,31.81,56.27],"7":[14.19,34.99,61.90],"8":[15.61,38.49,68.90],"9":[17.17,42.34,74.90],"10":[20.60,50.81,89.87],"11":[26.79,66.05,116.84],"12":[31.79,71.05,121.84],"13":[36.79,76.05,126.84],"14":[41.79,81.05,131.84],"15":[46.79,86.05,136.84],"16":[51.79,91.05,141.84],"17":[56.79,96.05,146.84],"18":[61.79,101.05,151.84],"19":[66.79,106.05,156.84],"20+":[71.79,111.05,161.84]};
@@ -906,6 +907,7 @@ function calculate(){
   $("total").textContent = currency === "mdl" ? moneyMdl(totalMdl) : currency === "eur" ? moneyEur(mdlToEur(totalMdl)) : moneyUsd(totalUsd);
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
   $("chosenRoute").textContent = route;
+  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = getDeliveryWeeks();
   if($("auctionBadge")) $("auctionBadge").textContent = $("auction").value.toUpperCase();
   if($("insuranceWarning")) $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
@@ -1053,8 +1055,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Заявка на подбор авто | APEX AUTO",
         "",
         "Имя: " + (document.getElementById("leadName").value || "-"),
-        "Телефон: " + (document.getElementById("leadPhone").value || "-"),
-        "Telegram: " + (document.getElementById("leadTelegram").value || "-"),
+        "Контакт: " + (document.getElementById("leadContact").value || "-"),
         "Бюджет: " + (document.getElementById("leadBudget").value || "-"),
         "Авто: " + (document.getElementById("leadCar").value || "-")
       ].join("\n");

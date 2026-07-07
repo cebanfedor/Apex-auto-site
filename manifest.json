@@ -1,0 +1,13 @@
+{
+  "name": "Apex Auto — авто из США в Молдову",
+  "short_name": "Apex Auto",
+  "description": "Доставка авто из США и Канады в Молдову под ключ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f4f8",
+  "theme_color": "#ed0012",
+  "lang": "ru",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
