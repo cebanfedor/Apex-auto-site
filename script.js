@@ -917,13 +917,14 @@ function calculate(){
   const offsiteOn = !!$("offsite")?.checked;
   const offsiteBadge = offsiteOn ? ` <span class="rowBadgeV374" data-type="offsite">Offsite</span>` : "";
   const dangerBadge = greenFuel ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
+  const exportDocsBadge = exportDocs ? ` <span class="rowBadgeV374" data-type="docs">✓ 30–45 дней</span>` : "";
 
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
     [landName, land, "", "usd", offsiteBadge],
     ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd", dangerBadge],
-    ["Экспортные документы", exportDocs, exportDocs ? "✓ 30–45 дней" : "", "usd"],
+    ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
     ["Таможенные платежи", customs.baseExcise, customs.text, "mdl"]

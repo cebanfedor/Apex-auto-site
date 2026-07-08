@@ -371,6 +371,7 @@ details[open] > summary::before { content: "– "; }
 .rowBadgeV374::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; }
 .rowBadgeV374[data-type="offsite"]::before { background: #7eb8f7; box-shadow: 0 0 0 2px rgba(126,184,247,0.2); }
 .rowBadgeV374[data-type="danger"]::before { background: #ffb400; box-shadow: 0 0 0 2px rgba(255,180,0,0.2); }
+.rowBadgeV374[data-type="docs"]::before { display: none; }
 
 /* hide duplicate calc fields (shown in result panel) + hidden bid advisor */
 .formRow:has(#auctionFeeView) { display: none !important; }
