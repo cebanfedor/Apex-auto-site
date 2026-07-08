@@ -407,7 +407,9 @@
     copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
     gem:'<path d="M5 9L12 2l7 7M5 9l7 13 7-13H5z"/>',
     key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12l8-8M16 4l2 2M14 6l2 2"/>',
-    drive:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>'
+    drive:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>',
+    fuel:'<path d="M4 22V7l5-5h6l5 5v15H4z"/><path d="M10 22V14h4v8"/><path d="M4 11h16"/>',
+    person:'<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -491,12 +493,19 @@
     const c = conditionInfo(raw);
     return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>Состояние:</b> ${escapeHtml(c.label)}</span></li>`;
   }
+  function dbCheckFuel(raw){
+    if(!raw) return "";
+    const val = tc(raw);
+    const low = String(raw).toLowerCase();
+    const tone = /electric|электро/.test(low) ? "good" : /hybrid|гибрид|phev|plug/.test(low) ? "good" : "neutral";
+    return `<li class="dbCheck ${tone}">${dbIco("fuel")}<span><b>Топливо:</b> ${escapeHtml(val)}</span></li>`;
+  }
   function dbCheckSeller(raw){
     const val = raw ? tc(raw) : "";
     const display = val || "Неизвестен";
     const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "q")}<span><b>Продавец:</b> ${escapeHtml(display)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>Продавец:</b> ${escapeHtml(display)}</span></li>`;
   }
   function dbCheckKey(raw){
     if(!raw) return "";
@@ -505,7 +514,7 @@
     const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(tone === "good" ? "check" : tone === "bad" ? "warn" : "q")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
   }
   function dbCheckHistory(history, currentLot){
     const count = Array.isArray(history) ? history.length : 0;
@@ -607,7 +616,7 @@
             </div>
             <ul class="dbChecks">
               ${dbCondition(lot.condition)}
-              ${dbCheck("Топливо", tc(lot.fuel))}
+              ${dbCheckFuel(lot.fuel)}
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot.lot)}
