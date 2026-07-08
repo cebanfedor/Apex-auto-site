@@ -27,7 +27,7 @@
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/og-cover.jpg">
   <link rel="preconnect" href="https://www.googletagmanager.com">
   <link rel="preconnect" href="https://www.google-analytics.com">
-  <link rel="stylesheet" href="styles.css?v=v373">
+  <link rel="stylesheet" href="styles.css?v=v374">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -204,25 +204,21 @@
             <span class="insuranceFixedIconV313" aria-hidden="true">✓</span>
             <span>Все автомобили страхуем при морской перевозке — <strong>1% от стоимости лота</strong>. Страховка включена в расчёт по умолчанию и защищает авто при повреждениях, воде и спорных ситуациях.</span>
           </div>
-          <label class="check"><input id="exportDocs" type="checkbox"> Экспортные документы +$400 <span class="exportInfoV65 infoTipV65" tabindex="0" aria-label="Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.">i</span></label>
+          <div class="exportCurrencyRowV374">
+            <label class="check"><input id="exportDocs" type="checkbox"> Экспортные документы +$400 <span class="exportInfoV65 infoTipV65" tabindex="0" aria-label="Bill of Sale / Parts Only / ACQ. Документы требуют дополнительного оформления перед экспортом автомобиля. Срок получения обычно составляет 30–45 дней.">i</span></label>
+            <div class="currencyMiniV374">
+              <button type="button" data-currency="usd" class="currency active">USD</button>
+              <button type="button" data-currency="mdl" class="currency">MDL</button>
+              <button type="button" data-currency="eur" class="currency">EUR</button>
+            </div>
+          </div>
         </div>
 
-        <div class="currencyBox">
-          <span>Показать итог:</span>
-          <button type="button" data-currency="usd" class="currency active">USD</button>
-          <button type="button" data-currency="mdl" class="currency">MDL</button>
-          <button type="button" data-currency="eur" class="currency">EUR</button>
-        </div>
-
-        <details>
+        <details class="ratesDetailsV374">
           <summary>Дополнительно</summary>
-          <div class="grid extra">
-            <div class="formRow"><label>Курс USD → MDL MAIB</label><input id="usdMdl" type="number" step="0.01" value="17.45"></div>
-            <div class="formRow"><label>Курс EUR → MDL MAIB</label><input id="eurMdl" type="number" step="0.01" value="20.28"></div>
-            
-            
-            
-            
+          <div class="ratesInlineV374">
+            <div class="rateFieldV374"><label for="usdMdl">USD → MDL</label><input id="usdMdl" type="number" step="0.01" value="17.45"></div>
+            <div class="rateFieldV374"><label for="eurMdl">EUR → MDL</label><input id="eurMdl" type="number" step="0.01" value="20.28"></div>
           </div>
         </details>
 
