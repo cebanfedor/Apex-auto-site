@@ -244,9 +244,9 @@ function companyFee(auctionFee = 0){
   return companyFeeFor(num("lotPrice"), auctionFee);
 }
 
-function row(name,value,detail,type="usd"){
+function row(name,value,detail,type="usd",badgeHtml=""){
   let shown = type === "mdl" ? displayMdl(value) : displayUsd(value);
-  return `<div class="row"><span>${escapeHtml(name)}${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</span><b>${escapeHtml(shown)}</b></div>`;
+  return `<div class="row"><span>${escapeHtml(name)}${badgeHtml}${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</span><b>${escapeHtml(shown)}</b></div>`;
 }
 
 function numberFromText(value){
@@ -912,14 +912,15 @@ function calculate(){
   if($("insuranceWarning")) $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
   const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
-  if($("dangerCargoTag")) $("dangerCargoTag").style.display = greenFuel ? "inline-flex" : "none";
-  if($("offsiteTag")) $("offsiteTag").style.display = $("offsite")?.checked ? "inline-flex" : "none";
+  const offsiteOn = !!$("offsite")?.checked;
+  const offsiteBadge = offsiteOn ? ` <span class="rowBadgeV374" data-type="offsite">Offsite</span>` : "";
+  const dangerBadge = greenFuel ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
 
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
-    ["Доставка по США", land, selectedLocation ? route : "выбери локацию", "usd"],
-    ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd"],
+    ["Доставка по США", land, selectedLocation ? route : "выбери локацию", "usd", offsiteBadge],
+    ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd", dangerBadge],
     ["Экспортные документы", exportDocs, exportDocs ? "включены" : "отключены", "usd"],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
