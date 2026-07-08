@@ -903,6 +903,8 @@ function calculate(){
   const totalMdl = usdToMdl(totalUsdPart) + customs.total;
   const totalUsd = mdlToUsd(totalMdl);
   const route = selectedLocation ? selectedLocation.displayName : "Локация не выбрана";
+  const portState = selectedLocation ? (SEA[selectedLocation.autoPort]?.label?.split(", ")[1] || "") : "";
+  const landName = portState ? `Доставка по США (${portState})` : "Доставка по США";
 
   $("total").textContent = currency === "mdl" ? moneyMdl(totalMdl) : currency === "eur" ? moneyEur(mdlToEur(totalMdl)) : moneyUsd(totalUsd);
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
@@ -919,9 +921,9 @@ function calculate(){
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
-    ["Доставка по США", land, selectedLocation ? route : "выбери локацию", "usd", offsiteBadge],
+    [landName, land, "", "usd", offsiteBadge],
     ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd", dangerBadge],
-    ["Экспортные документы", exportDocs, exportDocs ? "включены" : "отключены", "usd"],
+    ["Экспортные документы", exportDocs, exportDocs ? "✓ 30–45 дней" : "", "usd"],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
     ["Таможенные платежи", customs.baseExcise, customs.text, "mdl"]
