@@ -143,11 +143,18 @@
 .dbCard:last-child { border-bottom:none; }
 .dbCard:hover { background:#fafbfc; }
 
-.dbPhoto { position:relative; display:block; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:var(--aSoft); }
+.dbPhoto { position:relative; aspect-ratio:4/3; border-radius:12px; overflow:hidden; background:var(--aSoft); }
+.dbPhotoLink { position:absolute; inset:0; display:block; }
 .dbPhoto img { width:100%; height:100%; object-fit:cover; transition:transform .4s; }
 .dbPhoto:hover img { transform:scale(1.04); }
 .dbNoPhoto { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--aMuted); font-size:13px; }
-.dbAuc { position:absolute; left:8px; bottom:8px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.82); color:#fff; font-size:11px; font-weight:700; letter-spacing:.04em; }
+.dbAuc { position:absolute; left:8px; bottom:8px; padding:2px 7px; border-radius:6px; background:rgba(11,13,16,.82); color:#fff; font-size:9px; font-weight:700; letter-spacing:.04em; }
+.dbSlideBtn { position:absolute; top:50%; transform:translateY(-50%); width:26px; height:36px; background:rgba(0,0,0,.45); color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .18s; z-index:2; }
+.dbPhoto:hover .dbSlideBtn { opacity:1; }
+.dbSlidePrev { left:6px; }
+.dbSlideNext { right:6px; }
+.dbSlideBtn:hover { background:rgba(0,0,0,.72); }
+@media (hover:none) { .dbSlideBtn { opacity:.75; } }
 .dbPhotoCount { position:absolute; right:8px; bottom:8px; padding:3px 8px; border-radius:7px; background:rgba(11,13,16,.7); color:#fff; font-size:11px; }
 .dbFav { position:absolute; right:8px; top:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.92); color:var(--aInk2); cursor:pointer; transition:color .15s, transform .1s; }
 .dbFav:hover { color:#f0a500; }

@@ -587,12 +587,15 @@
     const price = money(priceVal);
     const photos = lot.photoCount || lot.images?.length || 1;
     return `<article class="dbCard">
-      <a class="dbPhoto" href="${detailHref(lot)}">
-        ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : `<span class="dbNoPhoto">Нет фото</span>`}
+      <div class="dbPhoto" data-lid="${escapeHtml(String(lot.id))}">
+        <a class="dbPhotoLink" href="${detailHref(lot)}">
+          ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" class="dbSlideImg">` : `<span class="dbNoPhoto">Нет фото</span>`}
+        </a>
         <span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>
-        <span class="dbPhotoCount">1/${escapeHtml(photos)}</span>
+        <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
-      </a>
+        ${photos > 1 ? `<button class="dbSlideBtn dbSlidePrev" type="button" aria-label="Предыдущее фото" data-dir="-1">‹</button><button class="dbSlideBtn dbSlideNext" type="button" aria-label="Следующее фото" data-dir="1">›</button>` : ""}
+      </div>
       <div class="dbBody">
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbCols">
@@ -1576,6 +1579,24 @@
     $("#searchSettingsBtn")?.addEventListener("click", openFiltersDrawer);
     $("#closeFiltersBtn").addEventListener("click", closeFiltersDrawer);
     document.addEventListener("click", event => {
+      const slideBtn = event.target.closest(".dbSlideBtn");
+      if(slideBtn){
+        event.preventDefault();
+        event.stopPropagation();
+        const card = slideBtn.closest(".dbPhoto");
+        if(!card) return;
+        const lid = card.dataset.lid;
+        const lot = state.items.find(l => String(l.id) === String(lid));
+        if(!lot || !lot.images?.length) return;
+        const img = card.querySelector(".dbSlideImg");
+        const counter = card.querySelector(".dbPhotoCount");
+        const dir = parseInt(slideBtn.dataset.dir) || 1;
+        let idx = parseInt(img?.dataset.slide || "0");
+        idx = (idx + dir + lot.images.length) % lot.images.length;
+        if(img){ img.src = lot.images[idx]; img.dataset.slide = idx; }
+        if(counter) counter.textContent = `${idx + 1}/${lot.images.length}`;
+        return;
+      }
       const copyEl = event.target.closest("[data-copy]");
       if(copyEl){
         event.preventDefault();
