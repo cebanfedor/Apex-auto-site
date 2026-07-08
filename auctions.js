@@ -390,7 +390,9 @@
     dot:'<circle cx="12" cy="12" r="7.5"/><path d="M8.5 12h7"/>',
     ext:'<path d="M14 5h5v5M19 5l-7 7M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/>',
     copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
-    gem:'<path d="M5 9L12 2l7 7M5 9l7 13 7-13H5z"/>'
+    gem:'<path d="M5 9L12 2l7 7M5 9l7 13 7-13H5z"/>',
+    key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12l8-8M16 4l2 2M14 6l2 2"/>',
+    drive:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -948,15 +950,16 @@
     navigator.clipboard?.writeText(text);
   }
 
-  function dMain(label, value){
+  function dMain(label, value, iconOverride){
     if(value == null || value === "") return "";
     const t = statusTone(value) || "neutral";
-    const ic = t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q";
+    const ic = iconOverride || (t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q");
     return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal dTone-${t}"><span class="dValUnit">${dbIco(ic)}<span>${escapeHtml(value)}</span></span></span></div>`;
   }
-  function dPlain(label, valueHtml){
+  function dPlain(label, valueHtml, iconName){
     if(valueHtml == null || valueHtml === "") return "";
-    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal">${valueHtml}</span></div>`;
+    const inner = iconName ? `<span class="dValUnit">${dbIco(iconName)}<span>${valueHtml}</span></span>` : valueHtml;
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal">${inner}</span></div>`;
   }
 
   const lb = {images:[], index:0};
@@ -1119,16 +1122,15 @@
             <section class="dSec">
               <div class="dSecHead">Главное</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
-              ${dMain("Продавец", tc(lot.seller))}
-              ${dMain("Ключ доступен", tc(lot.keys))}
-              ${dMain("Статус документов", tc(lot.document))}
-              ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus)) : ""}
+              ${dMain("Ключ доступен", tc(lot.keys), "key")}
+              ${dMain("Статус документов", tc(lot.document), "doc")}
+              ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus), "doc") : ""}
               ${dMain("История", histStr)}
-              ${dPlain("Привод", escapeHtml(driveLine))}
-              ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus ? ` <span class="${/actual|факт/i.test(lot.odometerStatus) ? "odoOkV1" : "odoWarnV1"}">${/actual|факт/i.test(lot.odometerStatus) ? "фактический" : escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`)}
-              ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg)) : ""}
-              ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg)) : ""}
-              ${lot.saleType ? dMain("Тип ущерба", tc(lot.saleType)) : ""}
+              ${dPlain("Привод", escapeHtml(driveLine), "drive")}
+              ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus ? ` <span class="${/actual|факт/i.test(lot.odometerStatus) ? "odoOkV1" : "odoWarnV1"}">${/actual|факт/i.test(lot.odometerStatus) ? "фактический" : escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
+              ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg), "damage") : ""}
+              ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg), "damage") : ""}
+              ${lot.saleType ? dMain("Тип ущерба", tc(lot.saleType), "damage") : ""}
               ${vinReport ? dPlain("Экстра", `${dbIco("gem")}<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчет VIN</a>`) : ""}
             </section>
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
