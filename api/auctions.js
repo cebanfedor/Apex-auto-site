@@ -63,10 +63,14 @@ function auctionUrl(auction, lot){
 }
 
 function imageList(value){
+  // images.normal and images.big are the same photos at two resolutions — pick one set only
+  const imgNormal = Array.isArray(value?.images?.normal) ? value.images.normal : [];
+  const imgBig    = Array.isArray(value?.images?.big)    ? value.images.big    : [];
+  const imgArr    = imgBig.length ? imgBig : imgNormal.length ? imgNormal
+    : Array.isArray(value?.images) ? value.images : [];
+
   const sources = [
-    value?.images?.normal,
-    value?.images?.big,
-    value?.images,
+    imgArr,
     value?.photos,
     value?.photo,
     value?.image,

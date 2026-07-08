@@ -314,12 +314,22 @@
     const tokens = src.split(",").map(s => s.trim()).filter(Boolean);
     const city = tokens[0] || "";
     const state = (tokens[1] || "").slice(0, 2);
+    // 1. Strict: city + state match
     let m = byAuction.find(l => {
       const lc = String(l.city || "").toLowerCase();
       const ls = String(l.state || "").toLowerCase();
       return city && (lc === city || lc.includes(city) || city.includes(lc)) && (!state || ls === state);
     });
-    if(!m && city) m = byAuction.find(l => String(l.displayName || l.location || "").toLowerCase().includes(city));
+    // 2. City-only match — API sometimes returns wrong state (e.g. "Acworth, Florida" for GA)
+    if(!m && city) m = byAuction.find(l => {
+      const lc = String(l.city || "").toLowerCase();
+      return lc === city || lc.includes(city) || city.includes(lc);
+    });
+    // 3. City string anywhere in location name, displayName, or city field
+    if(!m && city) m = byAuction.find(l => {
+      const hay = (String(l.displayName || "") + " " + String(l.location || "") + " " + String(l.city || "")).toLowerCase();
+      return hay.includes(city);
+    });
     return m || null;
   }
   function calcLotTotal(lot, options = {}){

@@ -30,6 +30,7 @@ async function login(request, response){
   try{
     const body = await readBody(request);
     if(!verifyPassword(body.password)){
+      await new Promise(r => setTimeout(r, 1500));
       sendJson(response, 401, {ok:false,error:"Неверный пароль"});
       return;
     }
