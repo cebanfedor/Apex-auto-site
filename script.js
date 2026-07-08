@@ -913,6 +913,7 @@ function calculate(){
 
   const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
   if($("dangerCargoTag")) $("dangerCargoTag").style.visibility = greenFuel ? "visible" : "hidden";
+  if($("offsiteTag")) $("offsiteTag").style.visibility = $("offsite")?.checked ? "visible" : "hidden";
 
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
