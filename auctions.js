@@ -40,6 +40,21 @@
     const t = String(text || "").trim();
     return t && t.length <= 4 ? t.toUpperCase() : tc(t);
   }
+  function cleanEngine(raw){
+    const s = String(raw || "");
+    const displ = s.match(/\b(\d+\.\d+)/);
+    const turbo = /\bturbo\b/i.test(s) ? "Turbo" : "";
+    const sc    = /supercharg/i.test(s)  ? "SC"    : "";
+    return [displ ? displ[1] : "", turbo || sc].filter(Boolean).join(" ");
+  }
+  function cleanTrans(raw){
+    const s = String(raw || "").toLowerCase();
+    if(!s) return "";
+    if(/cvt/.test(s)) return "CVT";
+    if(/auto|^at$/.test(s)) return "AT";
+    if(/manual|^mt$/.test(s)) return "MT";
+    return upAbbr(raw);
+  }
 
   function money(value){
     const number = Number(value || 0);
@@ -555,7 +570,7 @@
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
-    const engineLine = [tc(lot.engine), upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" • ");
+    const engineLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
     const isSold = lot.statusId === 6 || /sold/i.test(lot.statusName || lot.lotStatus || "");
     const priceVal = isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow);
@@ -1021,7 +1036,7 @@
 
   function renderSimilarCard(lot){
     const title = lotTitle(lot);
-    const specLine = [tc(lot.engine), upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" • ");
+    const specLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
     const isSold = lot.statusId === 6 || /sold/i.test(lot.statusName || lot.lotStatus || "");
     const bid = isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow || lot.finalBid);
@@ -1076,8 +1091,8 @@
     const dmgParts = String(lot.damage || "").split("/").map(s => s.trim()).filter(Boolean);
     const primaryDmg = lot.primaryDamage || dmgParts[0] || "";
     const secondaryDmg = lot.secondaryDamage || dmgParts[1] || "";
-    const driveLine = [tc(lot.engine), lot.cylinders && `${lot.cylinders} цил`, upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" · ");
-    const specLine = [tc(lot.engine), lot.cylinders && `${lot.cylinders} цил`, upAbbr(lot.drive), upAbbr(lot.transmission)].filter(Boolean).join(" • ");
+    const driveLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
+    const specLine  = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
     // History summary for Главное section
     const histCount = Array.isArray(lot.priceHistory) ? lot.priceHistory.length : 0;
