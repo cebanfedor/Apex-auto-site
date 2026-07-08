@@ -426,9 +426,9 @@
     if(!text) return "";
     const num = Number(String(text).replace(/[^\d.]/g, ""));
     if(!num) return escapeHtml(text);
-    const k = v => v >= 1000 ? Math.round(v / 1000) + "k" : String(Math.round(v));
-    if(/mi/i.test(text)) return `${k(num)} миль ≈ ${k(num * 1.609)} км`;
-    return `${k(num)} км`;
+    const fmt = v => Math.round(v).toLocaleString("ru-RU");
+    if(/mi/i.test(text)) return `${fmt(num)} миль ≈ ${fmt(num * 1.609)} км`;
+    return `${fmt(num)} км`;
   }
   // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){
@@ -1154,7 +1154,7 @@
               ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus), "doc") : ""}
               ${dMain("История", histStr)}
               ${dPlain("Привод", escapeHtml(driveLine), "drive")}
-              ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus ? ` <span class="${/actual|факт/i.test(lot.odometerStatus) ? "odoOkV1" : "odoWarnV1"}">${/actual|факт/i.test(lot.odometerStatus) ? "фактический" : escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
+              ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
               ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg), "damage") : ""}
               ${lot.saleType ? dMain("Тип ущерба", tc(lot.saleType), "damage") : ""}

@@ -196,9 +196,9 @@
 .copyChipV1.copiedV1 .dbIco:last-child { opacity:0; }
 .copyChipV1.copiedV1::after { content:"Скопировано"; position:absolute; left:50%; top:-26px; transform:translateX(-50%); background:#1d9b53; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; white-space:nowrap; z-index:5; }
 /* Auction brand badge — links to the lot on Copart/IAAI */
-.aucMark { display:inline-flex; align-items:center; gap:4px; height:19px; padding:0 8px; border-radius:5px; font-size:10.5px; font-weight:800; letter-spacing:.01em; color:#fff; text-decoration:none; }
+.aucMark { display:inline-flex; align-items:center; gap:3px; height:16px; padding:0 6px; border-radius:4px; font-size:9.5px; font-weight:800; letter-spacing:.01em; color:#fff; text-decoration:none; }
 .aucWordV1 { font-weight:800; }
-.aucMark .dbIco { width:11px; height:11px; opacity:.9; }
+.aucMark .dbIco { width:9px; height:9px; opacity:.9; }
 .aucMark:hover { filter:brightness(1.08); }
 .aucMark--copart { background:#0072ce; }   /* Copart blue */
 .aucMark--iaai { background:#ed1c24; }      /* IAAI red */
@@ -344,10 +344,10 @@
 .dRowV2 { display:contents; }
 .dRowLbl { font-size:12px; color:var(--aInk2); padding:6px 0; border-bottom:1px solid var(--aLine2); align-self:center; overflow-wrap:break-word; }
 .dRowVal { display:block; font-size:13px; color:var(--aInk); font-weight:500; padding:6px 0; border-bottom:1px solid var(--aLine2); min-width:0; word-break:break-word; align-self:center; }
-/* dValUnit — иконка + текст текут как inline, не разрываются при переносе */
-.dValUnit { display:block; }
-.dValUnit .dbIco, .dRowVal > .dbIco { display:inline-block; vertical-align:middle; width:16px; height:16px; margin-right:6px; position:relative; top:-1px; }
-.dValUnit > span { vertical-align:middle; }
+/* dValUnit — иконка строго по левому краю, текст рядом */
+.dValUnit { display:flex; align-items:center; gap:6px; }
+.dValUnit .dbIco, .dRowVal > .dbIco { flex:0 0 16px; width:16px; height:16px; }
+.dValUnit > span { min-width:0; }
 .dSec .dRowV2:last-child .dRowLbl,
 .dSec .dRowV2:last-child .dRowVal { border-bottom:none; }
 .dTone-good .dbIco { color:#1b9c5b; }
