@@ -408,7 +408,7 @@
     gem:'<path d="M5 9L12 2l7 7M5 9l7 13 7-13H5z"/>',
     key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12l8-8M16 4l2 2M14 6l2 2"/>',
     drive:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>',
-    fuel:'<path d="M4 22V7l5-5h6l5 5v15H4z"/><path d="M10 22V14h4v8"/><path d="M4 11h16"/>',
+    fuel:'<path d="M3 22V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"/><path d="M3 22h12"/><path d="M15 10h2a2 2 0 0 1 2 2v3a1 1 0 0 0 1 1h0a1 1 0 0 0 1-1V9l-3-3"/><path d="M3 14h12"/>',
     person:'<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>'
   };
   function dbIco(name){
