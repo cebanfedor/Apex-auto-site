@@ -345,13 +345,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .currency:hover { border-color: var(--muted); color: var(--ink); }
 .currency.active { background: var(--red); color: #fff; border-color: var(--red); }
 
-/* rates inline to the right of «Дополнительно» */
-.ratesDetailsV374 { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; }
-.ratesDetailsV374 > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--ink-2); padding: 6px 0; list-style: none; flex: none; }
-.ratesDetailsV374 > summary::-webkit-details-marker { display: none; }
-.ratesDetailsV374 > summary::before { content: "+ "; color: var(--red); font-weight: 700; }
-.ratesDetailsV374[open] > summary::before { content: "– "; }
-.ratesInlineV374 { display: flex; gap: 8px; flex: 1; min-width: 0; }
+/* курсы валют — компактная строка в верхней части формы */
+.ratesTopV375 { display: flex; gap: 10px; }
 .rateFieldV374 { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .rateFieldV374 label { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; flex: none; }
 .rateFieldV374 input { flex: 1; min-width: 0; height: 30px; padding: 0 8px; font-size: 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--ink); }
