@@ -912,8 +912,8 @@ function calculate(){
   if($("insuranceWarning")) $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
   const greenFuel = ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline");
-  if($("dangerCargoTag")) $("dangerCargoTag").style.visibility = greenFuel ? "visible" : "hidden";
-  if($("offsiteTag")) $("offsiteTag").style.visibility = $("offsite")?.checked ? "visible" : "hidden";
+  if($("dangerCargoTag")) $("dangerCargoTag").style.display = greenFuel ? "inline-flex" : "none";
+  if($("offsiteTag")) $("offsiteTag").style.display = $("offsite")?.checked ? "inline-flex" : "none";
 
   const rows = [
     ["Стоимость лота", lot, "", "usd"],
