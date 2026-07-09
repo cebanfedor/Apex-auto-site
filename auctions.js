@@ -1125,7 +1125,7 @@
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
-            <span class="auctionCrumbsV1">Главная / Аукционы / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
+            <span class="auctionCrumbsV1"><span>Главная</span> / <span>Аукционы</span> / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
             <h1>${escapeHtml(title)}</h1>
             <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}</p>
           </div>
