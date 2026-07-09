@@ -189,10 +189,13 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
   const odometer = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
   const currentBid = safeNumber(lot?.bid || lot?.current_bid || lot?.currentBid || item?.current_bid || item?.bid);
-  const finalBid = safeNumber(lot?.final_bid || lot?.finalBid);
+  const finalBid = safeNumber(lot?.final_bid || lot?.finalBid || lot?.winning_bid || lot?.sale_price);
   const buyNow = safeNumber(lot?.buy_now || lot?.buyNow || item?.buy_now || item?.buyNow);
   const statusName = safeName(lot?.status || item?.status);
-  const statusId = (lot?.status && lot.status.id) || (item?.status && item.status.id) || null;
+  const rawStatusId = (lot?.status ?? item?.status);
+  const statusId = typeof rawStatusId === "number" ? rawStatusId
+    : typeof rawStatusId === "string" && /^\d+$/.test(rawStatusId) ? Number(rawStatusId)
+    : (rawStatusId?.id != null ? Number(rawStatusId.id) : null);
   const sale = saleStatusInfo(lot, item);
   const rawHistory = (Array.isArray(lot?.prices) && lot.prices.length) ? lot.prices
     : (Array.isArray(item?.prices) && item.prices.length) ? item.prices
@@ -212,6 +215,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     status:safeName(p?.status),
     lot:String(p?.lot || p?.lot_number || p?.lotNumber || p?.external_id || "").replace(/~.*/, "")
   })).filter(p => p.bid || p.buyNow || p.date);
+  // For on-approval / sold lots where final_bid isn't explicitly set, infer from price history
+  const resolvedFinalBid = finalBid || (!currentBid && priceHistory.length ? (priceHistory[0].bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
 
   return {
@@ -231,7 +236,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     location,
     auctionDate:lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "",
     currentBid,
-    finalBid,
+    finalBid:resolvedFinalBid,
     buyNow,
     odometer,
     odometerKm:safeNumber(lot?.odometer?.km),

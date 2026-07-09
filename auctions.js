@@ -581,9 +581,10 @@
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
     const engineLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
-    const isSold = lot.statusId === 6 || /sold/i.test(lot.statusName || lot.lotStatus || "");
-    const priceVal = isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow);
-    const priceLabel = isSold && lot.finalBid ? "Финальная цена" : "Текущая цена";
+    const isSold = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
+    const effectiveFinalBid = lot.finalBid || (isSold ? (lot.priceHistory?.[0]?.bid || 0) : 0);
+    const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow);
+    const priceLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая цена";
     const price = money(priceVal);
     const photos = lot.photoCount || lot.images?.length || 1;
     return `<article class="dbCard">
@@ -884,9 +885,10 @@
   }
 
   function renderLotCalculator(lot){
-    const isSold = lot.statusId === 6 || /sold|not_sold/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
-    const initialBid = (isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow)) || 0;
-    const bidLabel = isSold && lot.finalBid ? "Финальная цена" : "Текущая ставка";
+    const isSold = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
+    const effectiveFinalBid = lot.finalBid || (isSold ? (lot.priceHistory?.[0]?.bid || 0) : 0);
+    const initialBid = (isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0;
+    const bidLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая ставка";
     const kind = vehicleKind(lot);
     const fuelVal = mapFuel(lot.fuel, false, lot);
     const engL = numberFromEngine(lot.engine);
@@ -894,12 +896,12 @@
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     return `<aside class="lotCalcV2">
-      ${isSold && lot.finalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${money(lot.finalBid)}</b></div>` : ""}
+      ${isSold && effectiveFinalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${money(effectiveFinalBid)}</b></div>` : ""}
       <div class="calcTopV2">
         <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${money(initialBid)}</b></div>
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>
-      ${isSold && !lot.finalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
+      ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-500" aria-label="Уменьшить ставку">−</button>
@@ -1051,8 +1053,9 @@
     const title = lotTitle(lot);
     const specLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
-    const isSold = lot.statusId === 6 || /sold/i.test(lot.statusName || lot.lotStatus || "");
-    const bid = isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow || lot.finalBid);
+    const isSold = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
+    const effectiveBid = lot.finalBid || (isSold ? (lot.priceHistory?.[0]?.bid || 0) : 0);
+    const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow || lot.finalBid);
     return `<a class="simCardV1" href="${detailHref(lot)}">
       <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<span class="simBidV1${isSold ? " simBidSoldV1" : ""}">${money(bid)}</span></div>
       <h4>${escapeHtml(title)}</h4>
