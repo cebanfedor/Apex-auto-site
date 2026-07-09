@@ -884,7 +884,7 @@
   }
 
   function renderLotCalculator(lot){
-    const isSold = lot.statusId === 6 || /sold|not_sold/i.test(lot.statusName || lot.lotStatus || "");
+    const isSold = lot.statusId === 6 || /sold|not_sold/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
     const initialBid = (isSold && lot.finalBid ? lot.finalBid : (lot.currentBid || lot.buyNow)) || 0;
     const bidLabel = isSold && lot.finalBid ? "Финальная цена" : "Текущая ставка";
     const kind = vehicleKind(lot);
@@ -894,12 +894,13 @@
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     return `<aside class="lotCalcV2">
+      ${isSold && lot.finalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${money(lot.finalBid)}</b></div>` : ""}
       <div class="calcTopV2">
         <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${money(initialBid)}</b></div>
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>
-      ${isSold ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
-      ${lot.saleStatus ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
+      ${isSold && !lot.finalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
+      ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-500" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="Ваша ставка, $">

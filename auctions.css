@@ -368,9 +368,11 @@
 .calcBidLabelV2 b { font-size:24px; font-weight:800; color:var(--aInk); }
 .calcEstV2 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aMuted); }
 .calcEstV2 .dbIco { width:15px; height:15px; }
+.calcSoldBannerV2 { background:rgba(237,0,18,.08); border:1.5px solid rgba(237,0,18,.22); color:#c00010; border-radius:10px; padding:9px 14px; font-size:13px; font-weight:600; margin-bottom:12px; }
+.calcSoldBannerV2 b { font-weight:800; font-size:15px; }
 .calcSaleV2 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#e8780c; }
 .calcSaleV2::before { content:"• "; }
-.calcSoldV2 b { color:#1d9b53; }
+.calcSoldV2 b { color:#c00010; }
 .calcDoneV2 { display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:12px; font-weight:700; color:#1d9b53; background:#e7f6ec; padding:5px 11px; border-radius:8px; }
 .calcDoneV2 .dbIco { width:15px; height:15px; }
 .calcStepperV2 { display:grid; grid-template-columns:44px 1fr 44px; gap:8px; }
