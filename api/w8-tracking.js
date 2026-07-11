@@ -82,9 +82,9 @@ export default async function handler(req, res) {
 
   // Photos categorized from W8 RSC attachments
   const PHOTO_LABELS = {
-    "item_photo":               "С аукциона",
+    "item_photo":               "Со склада",
     "item_interior_photo":      "Салон",
-    "item_pickup_photo":        "Со склада",
+    "item_pickup_photo":        "С аукциона",
     "item_at_destination_photo":"С выгрузки",
     "item_damaged_photo":       "Повреждения",
     "item_keys_photo":          "Ключи",
