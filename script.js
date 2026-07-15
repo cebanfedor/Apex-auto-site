@@ -1288,7 +1288,7 @@ function initCanadaLocations(){
   locs.forEach((loc, i) => {
     const o = document.createElement("option");
     o.value = String(i);
-    o.textContent = loc.name + " (" + loc.province + ")";
+    o.textContent = loc.name.replace(/^(Copart |IAA )/i, "") + " (" + loc.province + ")";
     select.appendChild(o);
   });
   if(locs.length) select.value = "0";
