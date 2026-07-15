@@ -27,7 +27,7 @@
   <meta name="twitter:image" content="https://apexauto.md/assets/hot/og-cover.jpg">
   <link rel="preconnect" href="https://www.googletagmanager.com">
   <link rel="preconnect" href="https://www.google-analytics.com">
-  <link rel="stylesheet" href="styles.css?v=v401">
+  <link rel="stylesheet" href="styles.css?v=v402">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -130,7 +130,7 @@
               <option value="">Выбери локацию</option>
             </select>
           </div>
-          <label class="check offsiteCheck" data-usa-only>
+          <label class="check offsiteCheck">
             <input id="offsite" type="checkbox">
             Offsite / Sublot <span class="offsiteInfoV65 infoTipV65" tabindex="0" aria-label="Машина находится не на основной локации аукциона. Доплата +$100.">i</span>
           </label>
@@ -227,12 +227,7 @@
           <div class="rateFieldV374"><label for="eurMdl">EUR → MDL</label><input id="eurMdl" type="number" step="0.01" value="20.28"></div>
         </div>
 
-        <div class="ratesTopV375 cadRateRowV401" style="display:none">
-          <div class="rateFieldV374" style="flex:1">
-            <label for="cadUsd">CAD → USD <span id="cadRateSourceV401" class="cadRateSourceV401"></span></label>
-            <input id="cadUsd" type="number" step="0.0001" value="0.6923">
-          </div>
-        </div>
+        <input id="cadUsd" type="hidden" value="0.6923">
 
         <button class="primary" type="submit">Обновить расчет</button>
       </form>
@@ -354,7 +349,7 @@
 </main>
   <script src="locations.js?v=calc-v400"></script>
   <script src="calc-core.js?v=core-v1"></script>
-  <script src="script.js?v=calc-v401"></script>
+  <script src="script.js?v=calc-v402"></script>
   <script src="site-content.js?v=admin-v166" defer></script>
   <script src="i18n.js?v=multilang-v401" defer></script>
 

@@ -1284,7 +1284,8 @@ function updateCanadaLocation(){
     else{
       const ip = isPickupType();
       const cad = ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad;
-      lvEl.value = Math.round(cad * 0.80).toString();
+      const offsite = $("offsite")?.checked ? 100 : 0;
+      lvEl.value = Math.round(cad * 0.80 + offsite).toString();
     }
   }
   updateBcWarning();
@@ -1345,8 +1346,10 @@ function calculateCanada(){
   const dispatchCad = selectedCanadaLocation
     ? (ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad)
     : 0;
-  const dispatch = Math.round(dispatchCad * 0.80);
-  const bankFee = dispatch > 0 ? CANADA_BANK_FEE : 0;
+  const dispatchBase = Math.round(dispatchCad * 0.80);
+  const offsiteFee = $("offsite")?.checked ? 100 : 0;
+  const dispatch = dispatchBase + offsiteFee;
+  const bankFee = dispatchBase > 0 ? CANADA_BANK_FEE : 0;
   const keeperFees = CANADA_KEEPER_FEE;
   const oceanBase = ip ? oceanRates.pickup : oceanRates.suv;
   const hazardFee = isGreen ? 150 : 0;
@@ -1380,10 +1383,11 @@ function calculateCanada(){
 
   const zoneLabel = isBcGreen ? "BC → Монреаль → Klaipeda" : zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
   const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
+  const offsiteBadge = offsiteFee > 0 ? ` <span class="rowBadgeV374" data-type="offsite">Offsite</span>` : "";
   const rows = [
     ["Стоимость лота",              lot,          "",                              "usd"],
     ["Аукционный сбор",             auctionFee,   afd.detail,                     "usd"],
-    ["Доставка по Канаде",          dispatch,     "",                              "usd"],
+    ["Доставка по Канаде",          dispatch,     "",                              "usd", offsiteBadge],
     ["Комиссия банка TD",           bankFee,      "+$100 за перевод CAD→USD",      "usd"],
     ["Складирование и погрузка",     keeperFees,   "",                              "usd"],
   ];
