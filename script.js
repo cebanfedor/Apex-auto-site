@@ -1346,14 +1346,20 @@ function calculateCanada(){
   const dispatchCad = selectedCanadaLocation
     ? (ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad)
     : 0;
-  const dispatchBase = Math.round(dispatchCad * 0.80);
   const offsiteFee = $("offsite")?.checked ? 100 : 0;
-  const dispatch = dispatchBase + offsiteFee;
-  const bankFee = dispatchBase > 0 ? CANADA_BANK_FEE : 0;
+  let dispatch, bankFee;
+  if(isBcGreen){
+    // BC + опасный груз: доставка = автовоз BC→Монреаль ($1500), нет CAD-платежа
+    dispatch = BC_TO_MONTREAL_LAND + offsiteFee;
+    bankFee = 0;
+  } else {
+    const dispatchBase = Math.round(dispatchCad * 0.80);
+    dispatch = dispatchBase + offsiteFee;
+    bankFee = dispatchBase > 0 ? CANADA_BANK_FEE : 0;
+  }
   const keeperFees = CANADA_KEEPER_FEE;
   const oceanBase = ip ? oceanRates.pickup : oceanRates.suv;
   const hazardFee = isGreen ? 150 : 0;
-  const bcLandFee = isBcGreen ? BC_TO_MONTREAL_LAND : 0;
   const roadKlaipeda = getRoadKlaipedaPrice();
   const insurance = Math.max(100, (lot + auctionFee) * 0.01);
   const company = companyFee(auctionFee);
@@ -1361,7 +1367,7 @@ function calculateCanada(){
   const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
 
-  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + bcLandFee + oceanBase + hazardFee + roadKlaipeda + insurance + company;
+  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total;
   const totalUsd = mdlToUsd(totalMdl);
 
@@ -1384,15 +1390,15 @@ function calculateCanada(){
   const zoneLabel = isBcGreen ? "BC → Монреаль → Klaipeda" : zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
   const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
   const offsiteBadge = offsiteFee > 0 ? ` <span class="rowBadgeV374" data-type="offsite">Offsite</span>` : "";
+  const dispatchDetail = isBcGreen ? "автовоз BC → Монреаль" : "";
   const rows = [
-    ["Стоимость лота",              lot,          "",                              "usd"],
-    ["Аукционный сбор",             auctionFee,   afd.detail,                     "usd"],
-    ["Доставка по Канаде",          dispatch,     "",                              "usd", offsiteBadge],
-    ["Комиссия банка TD",           bankFee,      "+$100 за перевод CAD→USD",      "usd"],
-    ["Складирование и погрузка",     keeperFees,   "",                              "usd"],
+    ["Стоимость лота",          lot,        "",             "usd"],
+    ["Аукционный сбор",         auctionFee, afd.detail,     "usd"],
+    ["Доставка по Канаде",      dispatch,   dispatchDetail, "usd", offsiteBadge],
   ];
-  if(isBcGreen) rows.push(["Транспорт BC → Монреаль",  bcLandFee, "автовоз по суше",        "usd"]);
-  rows.push(["Морская перевозка",           oceanBase,    zoneLabel,                       "usd", hazardBadge]);
+  if(bankFee > 0) rows.push(["Комиссия банка TD", bankFee, "", "usd"]);
+  rows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
+  rows.push(["Морская перевозка", oceanBase, zoneLabel, "usd", hazardBadge]);
   if(hazardFee > 0) rows.push(["Опасный груз", hazardFee, "electric hazard fee", "usd"]);
   rows.push(
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
