@@ -1230,7 +1230,14 @@ const CANADA_OCEAN = {
   east: { suv: 950,  pickup: 1170, hazard: 150 },
   bc:   { suv: 1890, pickup: 2050, hazard: 0   }
 };
-const ROAD_KLAIPEDA = { suv: 1300, pickup: 1500 };
+const ROAD_KLAIPEDA = { sedan: 1500, crossover: 1650, large: 1750 };
+
+function getRoadKlaipedaPrice(){
+  const t = $("vehicleType")?.value || "sedan";
+  if(t === "crossover") return ROAD_KLAIPEDA.crossover;
+  if(t === "sedan" || t === "moto" || t === "atv") return ROAD_KLAIPEDA.sedan;
+  return ROAD_KLAIPEDA.large; // suv, pickup, vanLarge
+}
 const CANADA_KEEPER_FEE = 300;
 const CANADA_BANK_FEE = 100; // TD Bank wire commission
 
@@ -1333,8 +1340,8 @@ function calculateCanada(){
   const bankFee = dispatch > 0 ? CANADA_BANK_FEE : 0;
   const keeperFees = CANADA_KEEPER_FEE;
   const oceanBase = ip ? zoneRates.pickup : zoneRates.suv;
-  const hazardFee = (isGreen && zone === "east") ? zoneRates.hazard : 0;
-  const roadKlaipeda = ip ? ROAD_KLAIPEDA.pickup : ROAD_KLAIPEDA.suv;
+  const hazardFee = (isGreen && zone === "east") ? 150 : 0;
+  const roadKlaipeda = getRoadKlaipedaPrice();
   const insurance = Math.max(100, (lot + auctionFee) * 0.01);
   const company = companyFee(auctionFee);
 
