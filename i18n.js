@@ -697,7 +697,9 @@
       "Дорога Клайпеда → Кишинёв":"Drum Klaipeda → Chișinău",
       "⚠ Из Британской Колумбии гибриды и электромобили не принимаются к отправке.":"⚠ Din Columbia Britanică hibridele și mașinile electrice nu sunt acceptate la expediere.",
       "8–10 недель":"8–10 săptămâni",
-      "10–13 недель":"10–13 săptămâni"
+      "10–13 недель":"10–13 săptămâni",
+      "Комиссия банка TD":"Comision bancă TD",
+      "+$100 за перевод CAD→USD":"+$100 pentru transfer CAD→USD"
     },
     en:{
       "Меня вы можете знать как":"You may also know me as",
@@ -1376,7 +1378,9 @@
       "Дорога Клайпеда → Кишинёв":"Road Klaipeda → Chișinău",
       "⚠ Из Британской Колумбии гибриды и электромобили не принимаются к отправке.":"⚠ Hybrids and electric vehicles from British Columbia are not accepted for shipment.",
       "8–10 недель":"8–10 weeks",
-      "10–13 недель":"10–13 weeks"
+      "10–13 недель":"10–13 weeks",
+      "Комиссия банка TD":"TD Bank commission",
+      "+$100 за перевод CAD→USD":"+$100 for CAD→USD wire transfer"
     }
   };
 

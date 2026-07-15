@@ -1232,6 +1232,9 @@ const CANADA_OCEAN = {
 };
 const ROAD_KLAIPEDA = { suv: 1300, pickup: 1500 };
 const CANADA_KEEPER_FEE = 300;
+const CANADA_BANK_FEE = 100; // TD Bank wire commission
+
+function getCadUsdRate(){ return Number($("cadUsd")?.value) || 0.6923; }
 
 function isPickupType(){
   const t = $("vehicleType")?.value || "sedan";
@@ -1268,7 +1271,9 @@ function updateCanadaLocation(){
     if(!selectedCanadaLocation){ lvEl.value = "0"; }
     else{
       const ip = isPickupType();
-      lvEl.value = (ip ? selectedCanadaLocation.dispatchPickup : selectedCanadaLocation.dispatchSuv).toString();
+      const cadRate = getCadUsdRate();
+      const cad = ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad;
+      lvEl.value = Math.round(cad * cadRate).toString();
     }
   }
   updateBcWarning();
@@ -1291,10 +1296,27 @@ function initCanadaLocations(){
   updateCanadaLocation();
 }
 
+async function fetchCadRate(){
+  const src = document.getElementById("cadRateSourceV401");
+  try {
+    const r = await fetch("/api/cad-rate");
+    if(!r.ok) throw new Error("fetch failed");
+    const data = await r.json();
+    if(data.rate && $("cadUsd")){
+      $("cadUsd").value = data.rate.toFixed(4);
+      if(src) src.textContent = "· TD Bank";
+    }
+  } catch(e){
+    if(src) src.textContent = "· fallback";
+  }
+  calculateCanada();
+}
+
 function calculateCanada(){
   if(!$("calcForm")) return;
   updateCanadaLocation();
 
+  const cadRate = getCadUsdRate();
   const lot = num("lotPrice");
   const afd = calculateAuctionFeeFor(lot, $("auction")?.value || "copart");
   const auctionFee = afd.total;
@@ -1305,9 +1327,11 @@ function calculateCanada(){
   const zone = selectedCanadaLocation?.zone || "east";
   const zoneRates = CANADA_OCEAN[zone];
 
-  const dispatch = selectedCanadaLocation
-    ? (ip ? selectedCanadaLocation.dispatchPickup : selectedCanadaLocation.dispatchSuv)
+  const dispatchCad = selectedCanadaLocation
+    ? (ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad)
     : 0;
+  const dispatch = Math.round(dispatchCad * cadRate);
+  const bankFee = dispatch > 0 ? CANADA_BANK_FEE : 0;
   const keeperFees = CANADA_KEEPER_FEE;
   const oceanBase = ip ? zoneRates.pickup : zoneRates.suv;
   const hazardFee = (isGreen && zone === "east") ? zoneRates.hazard : 0;
@@ -1318,7 +1342,7 @@ function calculateCanada(){
   const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
 
-  const totalUsdPart = lot + auctionFee + dispatch + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company;
+  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total;
   const totalUsd = mdlToUsd(totalMdl);
 
@@ -1334,11 +1358,13 @@ function calculateCanada(){
 
   const zoneLabel = zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
   const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
+  const cadNote = dispatchCad > 0 ? `${dispatchCad} CAD × ${cadRate.toFixed(4)}` : "";
 
   const rows = [
     ["Стоимость лота",              lot,          "",                              "usd"],
     ["Аукционный сбор",             auctionFee,   afd.detail,                     "usd"],
-    ["Доставка по Канаде",          dispatch,     selectedCanadaLocation?.name||"","usd"],
+    ["Доставка по Канаде",          dispatch,     cadNote,                         "usd"],
+    ["Комиссия банка TD",           bankFee,      "+$100 за перевод CAD→USD",      "usd"],
     ["Погрузочные (keeper fees)",   keeperFees,   "",                              "usd"],
     ["Морская перевозка",           oceanBase,    zoneLabel,                       "usd", hazardBadge],
   ];
@@ -1368,6 +1394,11 @@ function calculateCanada(){
   updateShare();
 }
 
+function setCadRateRowVisible(visible){
+  const el = document.querySelector(".cadRateRowV401");
+  if(el) el.style.display = visible ? "" : "none";
+}
+
 function switchCalcMode(mode){
   calcMode = mode;
   document.querySelectorAll(".countryBtn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
@@ -1385,8 +1416,9 @@ function switchCalcMode(mode){
     const ll = document.getElementById("landViewLabelV400");
     if(ll) ll.textContent = "Доставка по Канаде, $";
     if($("bcWarningV400")) $("bcWarningV400").hidden = true;
+    setCadRateRowVisible(true);
     initCanadaLocations();
-    calculateCanada();
+    fetchCadRate(); // async: подгружает курс TD Bank, затем пересчитывает
   } else {
     form.classList.remove("calcModeCanada");
     if(manheimOpt) manheimOpt.hidden = false;
@@ -1395,6 +1427,7 @@ function switchCalcMode(mode){
     const ll = document.getElementById("landViewLabelV400");
     if(ll) ll.textContent = "Доставка по суше, $";
     if($("bcWarningV400")) $("bcWarningV400").hidden = true;
+    setCadRateRowVisible(false);
     initLocations();
     calculate();
   }
@@ -1404,4 +1437,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".countryBtn").forEach(b =>
     b.addEventListener("click", () => switchCalcMode(b.dataset.mode))
   );
+  // пересчёт при ручном изменении курса CAD
+  if($("cadUsd")) $("cadUsd").addEventListener("input", () => { if(calcMode==="canada") calculateCanada(); });
 });
