@@ -1310,12 +1310,13 @@ function initCanadaLocations(){
 async function fetchCadRate(){
   const src = document.getElementById("cadRateSourceV401");
   try {
-    const r = await fetch("/api/cad-rate");
+    const r = await fetch("https://api.frankfurter.app/latest?from=CAD&to=USD");
     if(!r.ok) throw new Error("fetch failed");
     const data = await r.json();
-    if(data.rate && $("cadUsd")){
-      $("cadUsd").value = data.rate.toFixed(4);
-      if(src) src.textContent = "· TD Bank";
+    const rate = data?.rates?.USD;
+    if(rate && $("cadUsd")){
+      $("cadUsd").value = rate.toFixed(4);
+      if(src) src.textContent = "· live";
     }
   } catch(e){
     if(src) src.textContent = "· fallback";
