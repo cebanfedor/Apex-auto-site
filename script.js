@@ -1365,7 +1365,7 @@ function calculateCanada(){
     ["Аукционный сбор",             auctionFee,   afd.detail,                     "usd"],
     ["Доставка по Канаде",          dispatch,     cadNote,                         "usd"],
     ["Комиссия банка TD",           bankFee,      "+$100 за перевод CAD→USD",      "usd"],
-    ["Погрузочные (keeper fees)",   keeperFees,   "",                              "usd"],
+    ["Складирование и погрузка",     keeperFees,   "",                              "usd"],
     ["Морская перевозка",           oceanBase,    zoneLabel,                       "usd", hazardBadge],
   ];
   if(hazardFee > 0) rows.push(["Опасный груз", hazardFee, "electric hazard fee", "usd"]);
