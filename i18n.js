@@ -686,7 +686,18 @@
       "Telegram-канал Apex Auto":"Canalul Telegram Apex Auto",
       "Публикуем интересные лоты, реальные цены покупки и ориентировочную стоимость под ключ.":"Publicăm loturi interesante, prețuri reale de cumpărare și costul estimativ la cheie.",
       "Автомобили, которые выгодно привозить из США и Канады":"Mașini avantajoase de adus din SUA și Canada",
-      "Собрали модели, которые часто имеют хорошую разницу между стоимостью под ключ и рынком Молдовы. Цены указаны как ориентир: финальный расчет зависит от конкретного лота, документов, повреждений и даты покупки.":"Am selectat modele care au adesea o diferență bună între costul la cheie și piața din Moldova. Prețurile sunt orientative: calculul final depinde de lotul specific, acte, avarii și data achiziției."
+      "Собрали модели, которые часто имеют хорошую разницу между стоимостью под ключ и рынком Молдовы. Цены указаны как ориентир: финальный расчет зависит от конкретного лота, документов, повреждений и даты покупки.":"Am selectat modele care au adesea o diferență bună între costul la cheie și piața din Moldova. Prețurile sunt orientative: calculul final depinde de lotul specific, acte, avarii și data achiziției.",
+      "🇺🇸 США":"🇺🇸 SUA",
+      "🇨🇦 Канада":"🇨🇦 Canada",
+      "Океанский маршрут":"Rută maritimă",
+      "Доставка по Канаде, $":"Transport în Canada, $",
+      "Доставка по Канаде":"Transport în Canada",
+      "Погрузочные (keeper fees)":"Taxe de depozitare (keeper fees)",
+      "Морская перевозка":"Transport maritim",
+      "Дорога Клайпеда → Кишинёв":"Drum Klaipeda → Chișinău",
+      "⚠ Из Британской Колумбии гибриды и электромобили не принимаются к отправке.":"⚠ Din Columbia Britanică hibridele și mașinile electrice nu sunt acceptate la expediere.",
+      "8–10 недель":"8–10 săptămâni",
+      "10–13 недель":"10–13 săptămâni"
     },
     en:{
       "Меня вы можете знать как":"You may also know me as",
@@ -1354,7 +1365,18 @@
       "Telegram-канал Apex Auto":"Apex Auto Telegram channel",
       "Публикуем интересные лоты, реальные цены покупки и ориентировочную стоимость под ключ.":"We post interesting lots, real purchase prices, and estimated all-in costs.",
       "Автомобили, которые выгодно привозить из США и Канады":"Cars worth importing from the USA and Canada",
-      "Собрали модели, которые часто имеют хорошую разницу между стоимостью под ключ и рынком Молдовы. Цены указаны как ориентир: финальный расчет зависит от конкретного лота, документов, повреждений и даты покупки.":"We've gathered models that often have a good gap between the all-in cost and the Moldovan market price. Prices are indicative: the final calculation depends on the specific lot, documents, damage, and purchase date."
+      "Собрали модели, которые часто имеют хорошую разницу между стоимостью под ключ и рынком Молдовы. Цены указаны как ориентир: финальный расчет зависит от конкретного лота, документов, повреждений и даты покупки.":"We've gathered models that often have a good gap between the all-in cost and the Moldovan market price. Prices are indicative: the final calculation depends on the specific lot, documents, damage, and purchase date.",
+      "🇺🇸 США":"🇺🇸 USA",
+      "🇨🇦 Канада":"🇨🇦 Canada",
+      "Океанский маршрут":"Ocean route",
+      "Доставка по Канаде, $":"Canada delivery, $",
+      "Доставка по Канаде":"Canada delivery",
+      "Погрузочные (keeper fees)":"Storage fees (keeper fees)",
+      "Морская перевозка":"Ocean shipping",
+      "Дорога Клайпеда → Кишинёв":"Road Klaipeda → Chișinău",
+      "⚠ Из Британской Колумбии гибриды и электромобили не принимаются к отправке.":"⚠ Hybrids and electric vehicles from British Columbia are not accepted for shipment.",
+      "8–10 недель":"8–10 weeks",
+      "10–13 недель":"10–13 weeks"
     }
   };
 

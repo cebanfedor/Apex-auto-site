@@ -11680,3 +11680,43 @@ window.LOCATIONS = [
     "excludesIndianapolis": true
   }
 ];
+
+// Canada locations (Tyras Group rates 2025, dispatch in USD ≈ CAD×0.725)
+// zone: "east" = Montreal→Klaipeda, "bc" = British Columbia→Klaipeda
+window.CANADA_LOCATIONS = [
+  // ── COPART ──────────────────────────────────────────────────────────────
+  { auction:"copart", name:"Copart Montreal",              province:"QC", dispatchSuv:100,  dispatchPickup:125,  zone:"east" },
+  { auction:"copart", name:"Copart Ottawa",                province:"ON", dispatchSuv:220,  dispatchPickup:255,  zone:"east" },
+  { auction:"copart", name:"Copart Toronto",               province:"ON", dispatchSuv:290,  dispatchPickup:325,  zone:"east" },
+  { auction:"copart", name:"Copart London",                province:"ON", dispatchSuv:400,  dispatchPickup:435,  zone:"east" },
+  { auction:"copart", name:"Yard 212 Cookstown (Sublot)",  province:"ON", dispatchSuv:470,  dispatchPickup:510,  zone:"east" },
+  { auction:"copart", name:"YD 211 North Toronto (Tottenham)", province:"ON", dispatchSuv:470, dispatchPickup:510, zone:"east" },
+  { auction:"copart", name:"Copart Halifax",               province:"NS", dispatchSuv:470,  dispatchPickup:510,  zone:"east" },
+  { auction:"copart", name:"Copart Moncton",               province:"NB", dispatchSuv:400,  dispatchPickup:510,  zone:"east" },
+  { auction:"copart", name:"Copart Saskatoon",             province:"SK", dispatchSuv:940,  dispatchPickup:1015, zone:"east" },
+  { auction:"copart", name:"Copart Calgary",               province:"AB", dispatchSuv:1015, dispatchPickup:1125, zone:"east" },
+  { auction:"copart", name:"Copart Edmonton",              province:"AB", dispatchSuv:1015, dispatchPickup:1125, zone:"east" },
+  { auction:"copart", name:"A1 Automotive (St. John's)",   province:"NF", dispatchSuv:1015, dispatchPickup:1090, zone:"east" },
+  { auction:"copart", name:"ACHBC (Surrey, BC)",           province:"BC", dispatchSuv:1450, dispatchPickup:1525, zone:"bc"   },
+  { auction:"copart", name:"Jack2 Towing (Mission, BC)",   province:"BC", dispatchSuv:1415, dispatchPickup:1485, zone:"bc"   },
+  // ── IAA / IMPACT ────────────────────────────────────────────────────────
+  { auction:"iaai", name:"IAA Montreal / Laval",            province:"QC", dispatchSuv:100,  dispatchPickup:125,  zone:"east" },
+  { auction:"iaai", name:"IAA Adesa (Saint-Eustache)",      province:"QC", dispatchSuv:100,  dispatchPickup:125,  zone:"east" },
+  { auction:"iaai", name:"IAA Mascouche (Yves Quesnel)",    province:"QC", dispatchSuv:115,  dispatchPickup:130,  zone:"east" },
+  { auction:"iaai", name:"IAA Daudelin",                    province:"QC", dispatchSuv:180,  dispatchPickup:220,  zone:"east" },
+  { auction:"iaai", name:"IAA Quebec City",                 province:"QC", dispatchSuv:255,  dispatchPickup:290,  zone:"east" },
+  { auction:"iaai", name:"IAA Ottawa",                      province:"ON", dispatchSuv:220,  dispatchPickup:255,  zone:"east" },
+  { auction:"iaai", name:"IAA Oshawa Toronto",              province:"ON", dispatchSuv:290,  dispatchPickup:325,  zone:"east" },
+  { auction:"iaai", name:"IAA Stouffville (Toronto North)", province:"ON", dispatchSuv:310,  dispatchPickup:345,  zone:"east" },
+  { auction:"iaai", name:"IAA Hamilton",                    province:"ON", dispatchSuv:325,  dispatchPickup:365,  zone:"east" },
+  { auction:"iaai", name:"IAA Hamilton South",              province:"ON", dispatchSuv:345,  dispatchPickup:365,  zone:"east" },
+  { auction:"iaai", name:"IAA London",                      province:"ON", dispatchSuv:400,  dispatchPickup:435,  zone:"east" },
+  { auction:"iaai", name:"IAA Caledon East",                province:"ON", dispatchSuv:400,  dispatchPickup:435,  zone:"east" },
+  { auction:"iaai", name:"IAA Sudbury",                     province:"ON", dispatchSuv:470,  dispatchPickup:510,  zone:"east" },
+  { auction:"iaai", name:"IAA Halifax",                     province:"NS", dispatchSuv:470,  dispatchPickup:510,  zone:"east" },
+  { auction:"iaai", name:"IAA Moncton",                     province:"NB", dispatchSuv:400,  dispatchPickup:510,  zone:"east" },
+  { auction:"iaai", name:"IAA St. John's",                  province:"NF", dispatchSuv:1015, dispatchPickup:1090, zone:"east" },
+  { auction:"iaai", name:"IAA Vancouver",                   province:"BC", dispatchSuv:1415, dispatchPickup:1450, zone:"bc"   },
+  { auction:"iaai", name:"IAA Calgary",                     province:"AB", dispatchSuv:1015, dispatchPickup:1125, zone:"east" },
+  { auction:"iaai", name:"IAA Edmonton",                    province:"AB", dispatchSuv:1015, dispatchPickup:1125, zone:"east" },
+];

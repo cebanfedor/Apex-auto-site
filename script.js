@@ -875,6 +875,7 @@ function applyLotParamImport(){
 }
 
 function calculate(){
+  if(typeof calcMode !== "undefined" && calcMode === "canada") { calculateCanada(); return; }
   if(!$("calcForm")) return;
   updateLocation();
 
@@ -1008,7 +1009,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
   ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();calculate()}));
-  if($("auction"))$("auction").addEventListener("change",()=>{initLocations();calculate()});
+  if($("auction"))$("auction").addEventListener("change",()=>{if(calcMode==="canada"){initCanadaLocations();}else{initLocations();}calculate();});
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);
   if($("auctionUrl")){
     $("auctionUrl").addEventListener("paste",()=>setTimeout(applyAuctionImport,80));
@@ -1219,4 +1220,188 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("calcForm") || document.querySelector("form");
   if(form) form.addEventListener("submit", () => setTimeout(applyVatNoteV80, 80), true);
   setTimeout(applyVatNoteV80, 300);
+});
+
+// ═══════════════════════════════ CANADA CALCULATOR ════════════════════════════
+let calcMode = "usa";
+let selectedCanadaLocation = null;
+
+const CANADA_OCEAN = {
+  east: { suv: 950,  pickup: 1170, hazard: 150 },
+  bc:   { suv: 1890, pickup: 2050, hazard: 0   }
+};
+const ROAD_KLAIPEDA = { suv: 1300, pickup: 1500 };
+const CANADA_KEEPER_FEE = 300;
+
+function isPickupType(){
+  const t = $("vehicleType")?.value || "sedan";
+  return t === "pickup" || t === "pickupLarge" || t === "pickupOversized";
+}
+function isGreenFuel(){ return ["hybrid","phev","electric"].includes($("fuel")?.value || "gasoline"); }
+
+function getCanadaLocations(){
+  const auctionVal = $("auction")?.value || "copart";
+  return (window.CANADA_LOCATIONS || []).filter(l => l.auction === auctionVal);
+}
+
+function updateBcWarning(){
+  const warn = $("bcWarningV400");
+  if(!warn) return;
+  const isBC = selectedCanadaLocation?.zone === "bc";
+  warn.hidden = !(isBC && isGreenFuel());
+}
+
+function updateCanadaLocation(){
+  const select = $("location");
+  if(!select) return;
+  const idx = select.value;
+  const locs = getCanadaLocations();
+  selectedCanadaLocation = idx === "" ? null : (locs[Number(idx)] || null);
+
+  const pvEl = $("portView");
+  if(pvEl){
+    if(!selectedCanadaLocation) pvEl.value = "—";
+    else pvEl.value = selectedCanadaLocation.zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
+  }
+  const lvEl = $("landView");
+  if(lvEl){
+    if(!selectedCanadaLocation){ lvEl.value = "0"; }
+    else{
+      const ip = isPickupType();
+      lvEl.value = (ip ? selectedCanadaLocation.dispatchPickup : selectedCanadaLocation.dispatchSuv).toString();
+    }
+  }
+  updateBcWarning();
+}
+
+function initCanadaLocations(){
+  const auctionVal = $("auction")?.value || "copart";
+  const select = $("location");
+  if(!select) return;
+  const locs = (window.CANADA_LOCATIONS || []).filter(l => l.auction === auctionVal);
+  select.innerHTML = '<option value="">Выбери локацию</option>';
+  locs.forEach((loc, i) => {
+    const o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = loc.name + " (" + loc.province + ")";
+    select.appendChild(o);
+  });
+  if(locs.length) select.value = "0";
+  refreshGlassSelect(select);
+  updateCanadaLocation();
+}
+
+function calculateCanada(){
+  if(!$("calcForm")) return;
+  updateCanadaLocation();
+
+  const lot = num("lotPrice");
+  const afd = calculateAuctionFeeFor(lot, $("auction")?.value || "copart");
+  const auctionFee = afd.total;
+  $("auctionFeeView").value = Math.round(auctionFee).toString();
+
+  const ip = isPickupType();
+  const isGreen = isGreenFuel();
+  const zone = selectedCanadaLocation?.zone || "east";
+  const zoneRates = CANADA_OCEAN[zone];
+
+  const dispatch = selectedCanadaLocation
+    ? (ip ? selectedCanadaLocation.dispatchPickup : selectedCanadaLocation.dispatchSuv)
+    : 0;
+  const keeperFees = CANADA_KEEPER_FEE;
+  const oceanBase = ip ? zoneRates.pickup : zoneRates.suv;
+  const hazardFee = (isGreen && zone === "east") ? zoneRates.hazard : 0;
+  const roadKlaipeda = ip ? ROAD_KLAIPEDA.pickup : ROAD_KLAIPEDA.suv;
+  const insurance = Math.max(100, (lot + auctionFee) * 0.01);
+  const company = companyFee(auctionFee);
+
+  const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase);
+  const customs = customsMdl(customsBaseMdl, customsBaseMdl);
+
+  const totalUsdPart = lot + auctionFee + dispatch + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company;
+  const totalMdl = usdToMdl(totalUsdPart) + customs.total;
+  const totalUsd = mdlToUsd(totalMdl);
+
+  const route = selectedCanadaLocation
+    ? selectedCanadaLocation.name + " (" + selectedCanadaLocation.province + ")"
+    : "Локация не выбрана";
+
+  $("total").textContent = currency === "mdl" ? moneyMdl(totalMdl) : currency === "eur" ? moneyEur(mdlToEur(totalMdl)) : moneyUsd(totalUsd);
+  $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
+  $("chosenRoute").textContent = route;
+  if($("auctionBadge")) $("auctionBadge").textContent = ($("auction")?.value || "copart").toUpperCase();
+  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = zone === "bc" ? "10–13 недель" : "8–10 недель";
+
+  const zoneLabel = zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
+  const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
+
+  const rows = [
+    ["Стоимость лота",              lot,          "",                              "usd"],
+    ["Аукционный сбор",             auctionFee,   afd.detail,                     "usd"],
+    ["Доставка по Канаде",          dispatch,     selectedCanadaLocation?.name||"","usd"],
+    ["Погрузочные (keeper fees)",   keeperFees,   "",                              "usd"],
+    ["Морская перевозка",           oceanBase,    zoneLabel,                       "usd", hazardBadge],
+  ];
+  if(hazardFee > 0) rows.push(["Опасный груз", hazardFee, "electric hazard fee", "usd"]);
+  rows.push(
+    ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
+    ["Страховка",                   insurance,    "",                              "usd"],
+    ["Сопровождение APEX AUTO",     company,      "",                              "usd"],
+    ["Таможенные платежи",          customs.baseExcise, customs.text,             "mdl"]
+  );
+
+  const lng = window.APEX_LANG || "ru";
+  if(customs.luxury > 0){
+    const ro = lng==="ro", en = lng==="en";
+    const luxLabel = ro ? "Acciză suplimentară de lux" : en ? "Additional luxury excise" : "Доп. акциз люкс";
+    const luxBaseStr = Math.round(customs.luxuryBase).toLocaleString("ru-RU");
+    const luxNote = ro
+      ? `se calculează din lot + licitație + mare: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
+      : en
+      ? `calculated from lot + auction fee + sea: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
+      : `считается от лот + аукцион + море: ${luxBaseStr} MDL · ${customs.luxuryPct}%`;
+    rows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
+  }
+
+  $("breakdown").innerHTML = rows.map(r => row(...r)).join("");
+  lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
+  updateShare();
+}
+
+function switchCalcMode(mode){
+  calcMode = mode;
+  document.querySelectorAll(".countryBtn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+  const form = $("calcForm");
+  if(!form) return;
+
+  const manheimOpt = $("auction")?.querySelector('option[value="manheim"]');
+
+  if(mode === "canada"){
+    form.classList.add("calcModeCanada");
+    if(manheimOpt) manheimOpt.hidden = true;
+    if($("auction")?.value === "manheim"){ $("auction").value = "copart"; refreshGlassSelect($("auction")); }
+    const pl = document.getElementById("portViewLabelV400");
+    if(pl) pl.textContent = "Океанский маршрут";
+    const ll = document.getElementById("landViewLabelV400");
+    if(ll) ll.textContent = "Доставка по Канаде, $";
+    if($("bcWarningV400")) $("bcWarningV400").hidden = true;
+    initCanadaLocations();
+    calculateCanada();
+  } else {
+    form.classList.remove("calcModeCanada");
+    if(manheimOpt) manheimOpt.hidden = false;
+    const pl = document.getElementById("portViewLabelV400");
+    if(pl) pl.textContent = "Порт отправки";
+    const ll = document.getElementById("landViewLabelV400");
+    if(ll) ll.textContent = "Доставка по суше, $";
+    if($("bcWarningV400")) $("bcWarningV400").hidden = true;
+    initLocations();
+    calculate();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".countryBtn").forEach(b =>
+    b.addEventListener("click", () => switchCalcMode(b.dataset.mode))
+  );
 });

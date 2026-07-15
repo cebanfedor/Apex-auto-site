@@ -1269,3 +1269,11 @@ details[open] > summary::before { content: "– "; }
 .fabOptionV341:hover { transform: scale(1.1); }
 .fabTgV341 { background: #2AABEE; }
 .fabWaV341 { background: #25D366; }
+
+/* ---- Canada Calculator toggle (v400) --------------------------------- */
+.countryToggleV400 { display: flex; gap: 8px; margin-bottom: 16px; }
+.countryBtn { flex: 1; height: 44px; border: 2px solid var(--line); border-radius: 12px; background: transparent; font-size: 14px; font-weight: 600; color: var(--ink-2); cursor: pointer; transition: border-color 0.18s, background 0.18s, color 0.18s; }
+.countryBtn.active { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+.countryBtn:hover:not(.active) { border-color: var(--muted); }
+.bcWarningV400 { background: #fff8e1; border: 1px solid #f0b800; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; color: #7a5500; margin-top: 8px; }
+.calcModeCanada [data-usa-only] { display: none !important; }
