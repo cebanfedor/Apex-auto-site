@@ -1271,9 +1271,8 @@ function updateCanadaLocation(){
     if(!selectedCanadaLocation){ lvEl.value = "0"; }
     else{
       const ip = isPickupType();
-      const cadRate = getCadUsdRate();
       const cad = ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad;
-      lvEl.value = Math.round(cad * cadRate).toString();
+      lvEl.value = Math.round(cad * 0.80).toString();
     }
   }
   updateBcWarning();
@@ -1330,7 +1329,7 @@ function calculateCanada(){
   const dispatchCad = selectedCanadaLocation
     ? (ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad)
     : 0;
-  const dispatch = Math.round(dispatchCad * cadRate);
+  const dispatch = Math.round(dispatchCad * 0.80);
   const bankFee = dispatch > 0 ? CANADA_BANK_FEE : 0;
   const keeperFees = CANADA_KEEPER_FEE;
   const oceanBase = ip ? zoneRates.pickup : zoneRates.suv;
@@ -1358,12 +1357,10 @@ function calculateCanada(){
 
   const zoneLabel = zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
   const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
-  const cadNote = dispatchCad > 0 ? `${dispatchCad} CAD × ${cadRate.toFixed(4)}` : "";
-
   const rows = [
     ["Стоимость лота",              lot,          "",                              "usd"],
     ["Аукционный сбор",             auctionFee,   afd.detail,                     "usd"],
-    ["Доставка по Канаде",          dispatch,     cadNote,                         "usd"],
+    ["Доставка по Канаде",          dispatch,     "",                              "usd"],
     ["Комиссия банка TD",           bankFee,      "+$100 за перевод CAD→USD",      "usd"],
     ["Складирование и погрузка",     keeperFees,   "",                              "usd"],
     ["Морская перевозка",           oceanBase,    zoneLabel,                       "usd", hazardBadge],
