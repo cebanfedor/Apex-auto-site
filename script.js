@@ -1285,7 +1285,7 @@ function updateCanadaLocation(){
       const ip = isPickupType();
       const cad = ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad;
       const offsite = $("offsite")?.checked ? 100 : 0;
-      lvEl.value = Math.round(cad * 0.80 + offsite).toString();
+      lvEl.value = Math.round(cad * 0.90 + offsite).toString();
     }
   }
   updateBcWarning();
@@ -1353,7 +1353,7 @@ function calculateCanada(){
     dispatch = BC_TO_MONTREAL_LAND + offsiteFee;
     bankFee = 0;
   } else {
-    const dispatchBase = Math.round(dispatchCad * 0.80);
+    const dispatchBase = Math.round(dispatchCad * 0.90);
     dispatch = dispatchBase + offsiteFee;
     bankFee = dispatchBase > 0 ? CANADA_BANK_FEE : 0;
   }
