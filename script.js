@@ -150,11 +150,22 @@ function refreshGlassSelect(select){
   }
 
   wrap.dataset.signature = signature;
-  menu.innerHTML = options.map(option => `
-    <button class="${option.value === select.value ? "isSelectedV152" : ""}" type="button" data-value="${escapeHtml(option.value)}">
-      <span>${option.value === select.value ? "✓" : ""}</span>${escapeHtml(option.textContent)}
-    </button>
-  `).join("");
+  const children = Array.from(select.children);
+  if(children.some(c => c.tagName === "OPTGROUP")){
+    menu.innerHTML = children.map(child => {
+      if(child.tagName === "OPTGROUP"){
+        const opts = Array.from(child.children).map(opt => `<button class="glassOptV152${opt.value === select.value ? " isSelectedV152" : ""}" type="button" data-value="${escapeHtml(opt.value)}"><span>${opt.value === select.value ? "✓" : ""}</span>${escapeHtml(opt.textContent)}</button>`).join("");
+        return `<div class="glassOptGroupV152">${escapeHtml(child.label)}</div>${opts}`;
+      }
+      return `<button class="${child.value === select.value ? "isSelectedV152" : ""}" type="button" data-value="${escapeHtml(child.value)}"><span>${child.value === select.value ? "✓" : ""}</span>${escapeHtml(child.textContent)}</button>`;
+    }).join("");
+  } else {
+    menu.innerHTML = options.map(option => `
+      <button class="${option.value === select.value ? "isSelectedV152" : ""}" type="button" data-value="${escapeHtml(option.value)}">
+        <span>${option.value === select.value ? "✓" : ""}</span>${escapeHtml(option.textContent)}
+      </button>
+    `).join("");
+  }
 
 }
 
@@ -1297,11 +1308,25 @@ function initCanadaLocations(){
   if(!select) return;
   const locs = (window.CANADA_LOCATIONS || []).filter(l => l.auction === auctionVal);
   select.innerHTML = '<option value="">Выбери локацию</option>';
+  const PROVINCE_NAMES = {
+    BC:"British Columbia", AB:"Alberta", SK:"Saskatchewan", MB:"Manitoba",
+    ON:"Ontario", QC:"Québec", NS:"Nova Scotia", NB:"New Brunswick", NF:"Newfoundland & Labrador"
+  };
+  const groups = {};
   locs.forEach((loc, i) => {
-    const o = document.createElement("option");
-    o.value = String(i);
-    o.textContent = loc.name.replace(/^(Copart |IAA )/i, "") + " (" + loc.province + ")";
-    select.appendChild(o);
+    if(!groups[loc.province]) groups[loc.province] = [];
+    groups[loc.province].push({loc, i});
+  });
+  Object.entries(groups).forEach(([prov, items]) => {
+    const grp = document.createElement("optgroup");
+    grp.label = (PROVINCE_NAMES[prov] || prov) + " (" + prov + ")";
+    items.forEach(({loc, i}) => {
+      const o = document.createElement("option");
+      o.value = String(i);
+      o.textContent = loc.name.replace(/^(Copart |IAA )/i, "");
+      grp.appendChild(o);
+    });
+    select.appendChild(grp);
   });
   if(locs.length) select.value = "0";
   refreshGlassSelect(select);
