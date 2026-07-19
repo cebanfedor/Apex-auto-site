@@ -5,6 +5,32 @@ const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
 const CACHE_TTL = 7 * 60 * 1000;
 const cache = new Map();
 
+// Rate limiting: max 3 lead submissions per IP per 10 minutes
+const LEAD_RATE_LIMIT = 3;
+const LEAD_RATE_WINDOW = 10 * 60 * 1000;
+const leadRateMap = new Map();
+
+function getClientIp(request){
+  const forwarded = request.headers["x-forwarded-for"] || "";
+  return forwarded.split(",")[0].trim() || request.socket?.remoteAddress || "unknown";
+}
+
+function checkLeadRate(ip){
+  const now = Date.now();
+  // Purge stale entries every ~100 calls to prevent unbounded growth
+  if(leadRateMap.size > 500){
+    for(const [k, v] of leadRateMap) if(now - v.start > LEAD_RATE_WINDOW) leadRateMap.delete(k);
+  }
+  const entry = leadRateMap.get(ip);
+  if(!entry || now - entry.start > LEAD_RATE_WINDOW){
+    leadRateMap.set(ip, {count:1, start:now});
+    return true;
+  }
+  if(entry.count >= LEAD_RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 function cacheKey(action, params){
   return `${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
@@ -672,26 +698,42 @@ async function handleLead(request, response){
     methodNotAllowed(response, ["POST"]);
     return;
   }
+
+  const ip = getClientIp(request);
+  if(!checkLeadRate(ip)){
+    sendJson(response, 429, {ok:false,error:"Слишком много заявок. Подождите несколько минут и попробуйте снова."});
+    return;
+  }
+
   try{
     const body = await readBody(request);
-    const name = String(body.name || "").trim();
-    const phone = String(body.phone || "").trim();
+    const name = String(body.name || "").trim().slice(0, 120);
+    const phone = String(body.phone || "").trim().slice(0, 30);
     if(!name || !phone){
       sendJson(response, 400, {ok:false,error:"Введите имя и телефон"});
+      return;
+    }
+    if(phone.length < 5){
+      sendJson(response, 400, {ok:false,error:"Введите корректный номер телефона"});
       return;
     }
 
     // upsert by phone: creates new customer or returns existing one — no duplicate key errors
     const customer = await supabase.upsert("customers", {name, phone, status:"Новый", source:"Аукционы"}, "phone");
 
+    const comment = String(body.comment || "").trim().slice(0, 1000);
+    const vin = String(body.vin || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 17);
+    const lot = String(body.lot || "").replace(/[^A-Za-z0-9_~-]/g, "").slice(0, 30);
+    const auction = String(body.auction || "").replace(/[^a-zA-Z]/g, "").toLowerCase().slice(0, 10);
+
     const lead = await supabase.create("leads", {
       customer_id:customer?.id || null,
-      title:`Заявка по лоту ${body.auction || ""} ${body.lot || ""}`.trim(),
+      title:`Заявка по лоту ${auction} ${lot}`.trim(),
       message:[
-        body.comment,
-        body.vin ? `VIN: ${body.vin}` : "",
-        body.lot ? `LOT: ${body.lot}` : "",
-        body.auction ? `Аукцион: ${String(body.auction).toUpperCase()}` : ""
+        comment,
+        vin ? `VIN: ${vin}` : "",
+        lot ? `LOT: ${lot}` : "",
+        auction ? `Аукцион: ${auction.toUpperCase()}` : ""
       ].filter(Boolean).join("\n"),
       status:"Новый",
       source:"Аукционы"
