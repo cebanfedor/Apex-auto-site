@@ -1,5 +1,7 @@
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+module.exports = async function handler(req, res) {
+  const origin = req.headers.origin || "";
+  const allowedOrigins = ["https://apexauto.md", "http://localhost:8081"];
+  if(allowedOrigins.includes(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
   const { vin, lot } = req.query;
   const query = vin || lot;
   if (!query) return res.status(400).json({ error: "vin or lot required" });

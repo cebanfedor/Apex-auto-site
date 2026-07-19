@@ -4,7 +4,9 @@ const COOKIE_NAME = "apex_admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 
 function getSecret(){
-  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "apex-dev-session-secret";
+  const secret = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD;
+  if(!secret) throw new Error("ADMIN_SESSION_SECRET or ADMIN_PASSWORD env var is required");
+  return secret;
 }
 
 function sign(value){

@@ -124,6 +124,11 @@ module.exports = async function(req, res){
   }
 
   if(req.query.debug === "1"){
+    const {isAuthenticated} = require("../server/auth");
+    if(!isAuthenticated(req)){
+      res.status(401).json({ok:false,error:"Unauthorized"});
+      return;
+    }
     res.setHeader("Content-Type", "application/json");
     res.status(200).send(JSON.stringify({slug, match:!!match, hasKey:!!process.env.AUCTIONS_API_KEY, ogTitle, ogImage, error:debugError}));
     return;

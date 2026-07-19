@@ -272,8 +272,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     saleStatusKey:sale.key,
     timed:sale.timed,
     images,
-    image:images[0] || "",
-    source:item
+    image:images[0] || ""
   };
 }
 
@@ -723,6 +722,8 @@ module.exports = async function handler(request, response){
 
   try{
     if(action === "debug"){
+      const {requireAdmin} = require("../server/auth");
+      if(!requireAdmin(request, response)) return;
       await handleDebug(query, response);
       return;
     }
