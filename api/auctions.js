@@ -707,6 +707,10 @@ async function handleLead(request, response){
 
   try{
     const body = await readBody(request);
+    if(String(body.hp_website || "")){
+      sendJson(response, 200, {ok:true});
+      return;
+    }
     const name = String(body.name || "").trim().slice(0, 120);
     const phone = String(body.phone || "").trim().slice(0, 30);
     if(!name || !phone){
