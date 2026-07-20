@@ -103,13 +103,13 @@ section { position: relative; }
   border-bottom: 1px solid rgba(17, 20, 26, 0.08);
   box-shadow: 0 6px 22px rgba(16, 20, 28, 0.08);
 }
-.apexBrandV201 { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; margin-right: auto; }
-.apexBrandV201 img { width: 38px; height: 38px; border-radius: 11px; object-fit: contain; box-shadow: 0 6px 18px rgba(17, 20, 26, 0.14); }
-.apexBrandTextV201 { display: block; }
+.apexBrandV201 { display: flex; align-items: center; gap: 0; flex: 0 0 auto; margin-right: auto; }
+.apexBrandV201 img { width: auto; height: 52px; border-radius: 10px; object-fit: contain; box-shadow: 0 4px 14px rgba(17, 20, 26, 0.12); }
+.apexBrandTextV201 { display: none; }
 .brandTextV77 { display: block; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
 .brandApexV77 { color: var(--ink); }
 .brandAutoV77 { color: var(--red); }
-.apexBrandV201 small { display: block; margin-top: 2px; font-size: 11.5px; color: var(--muted); font-weight: 500; }
+.apexBrandV201 small { display: none; }
 
 .mainNavV82.apexNavV201 { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-left: auto; }
 .mainNavV82 > a {
@@ -1075,10 +1075,7 @@ details[open] > summary::before { content: "– "; }
   /* --- Шапка: один ряд (когда закрыто), перенос когда меню открыто --- */
   .siteHeader.apexHdrV201 { flex-wrap: nowrap; padding: 0 14px; gap: 8px; min-height: 56px; }
   .siteHeader.apexHdrV201:has(.navToggleV210:checked) { flex-wrap: wrap; }
-  .apexBrandV201 { gap: 9px; }
-  .apexBrandV201 img { width: 32px; height: 32px; border-radius: 9px; }
-  .brandTextV77 { font-size: 16px; }
-  .apexBrandV201 small { display: none; }
+  .apexBrandV201 img { height: 40px; border-radius: 8px; }
   .headerPhoneV308 { padding: 0 10px; font-size: 12.5px; height: 34px; white-space: nowrap; }
 
   /* --- Hero: текст сверху, лицо справа -------------------------------- */

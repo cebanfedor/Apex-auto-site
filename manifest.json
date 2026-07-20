@@ -4,10 +4,11 @@
   "description": "Доставка авто из США и Канады в Молдову под ключ",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f1f4f8",
+  "background_color": "#000000",
   "theme_color": "#ed0012",
   "lang": "ru",
   "icons": [
-    { "src": "/favicon.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/apex-logo-dark.png", "sizes": "600x600", "type": "image/png", "purpose": "maskable" }
   ]
 }
