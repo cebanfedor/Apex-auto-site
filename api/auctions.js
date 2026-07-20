@@ -31,6 +31,28 @@ function checkLeadRate(ip){
   return true;
 }
 
+async function notifyTelegram(data){
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if(!token || !chatId) return;
+  const lines = [
+    "🚗 *Новая заявка — Apex Auto*",
+    `👤 *Имя:* ${data.name || "—"}`,
+    `📞 *Телефон:* ${data.phone || "—"}`,
+  ];
+  if(data.comment) lines.push(`💬 *Комментарий:* ${data.comment}`);
+  if(data.lot) lines.push(`📋 *Лот:* ${data.lot}`);
+  if(data.vin) lines.push(`🔑 *VIN:* ${data.vin}`);
+  if(data.auction) lines.push(`🏷 *Аукцион:* ${data.auction.toUpperCase()}`);
+  try{
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:chatId, text:lines.join("\n"), parse_mode:"Markdown"})
+    });
+  }catch(_){}
+}
+
 function cacheKey(action, params){
   return `${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
@@ -743,6 +765,7 @@ async function handleLead(request, response){
       source:"Аукционы"
     });
 
+    notifyTelegram({name, phone, comment, lot, vin, auction}).catch(() => {});
     sendJson(response, 200, {ok:true,customer,lead});
   }catch(error){
     sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
