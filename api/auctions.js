@@ -57,6 +57,27 @@ function cacheKey(action, params){
   return `${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
+// DB_TTL in seconds: search=6h, detail=24h, vin=7d, dict/lists=12h
+const DB_TTL = {search:21600, detail:86400, vin:604800, _default:43200};
+
+async function getDbCache(key){
+  try{
+    const now = new Date().toISOString();
+    const rows = await supabase.list("api_cache", {
+      cache_key:`eq.${key}`, expires_at:`gt.${now}`, select:"data", limit:1
+    });
+    return rows && rows[0] ? rows[0].data : null;
+  }catch(_){ return null; }
+}
+
+async function setDbCache(key, data, action){
+  try{
+    const ttl = DB_TTL[action] || DB_TTL._default;
+    const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
+    await supabase.upsert("api_cache", {cache_key:key, data, expires_at:expiresAt}, "cache_key");
+  }catch(_){}
+}
+
 function getCached(key){
   const item = cache.get(key);
   if(!item || item.expires < Date.now()){
@@ -789,6 +810,18 @@ module.exports = async function handler(request, response){
     return;
   }
 
+  // Supabase persistent cache — shared across all serverless instances.
+  // Checked only for actions that consume the auctionsapi.com quota.
+  const dbCacheActions = new Set(["search","detail","vin","archived","manufacturers","models","generations","usadict","statistics"]);
+  if(dbCacheActions.has(action)){
+    const dbHit = await getDbCache(key);
+    if(dbHit){
+      setCached(key, dbHit);
+      sendJson(response, 200, {...dbHit, cached:true});
+      return;
+    }
+  }
+
   try{
     if(action === "debug"){
       const {requireAdmin} = require("../server/auth");
@@ -880,6 +913,7 @@ module.exports = async function handler(request, response){
       const lot = await fetchDetail(query);
       const payload = {ok:true,lot};
       setCached(key, payload);
+      setDbCache(key, payload, "detail");
       sendJson(response, 200, payload);
       return;
     }
@@ -888,6 +922,7 @@ module.exports = async function handler(request, response){
       const lot = await fetchVin(query);
       const payload = {ok:true,lot};
       setCached(key, payload);
+      setDbCache(key, payload, "vin");
       sendJson(response, 200, payload);
       return;
     }
@@ -908,9 +943,9 @@ module.exports = async function handler(request, response){
     if(action === "search"){
       const result = await fetchSearch(query);
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon")};
-      // Fallback results (safety-net without date filter) cached briefly so next
-      // request re-tries the date-filtered query once conditions may have changed.
+      // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : CACHE_TTL);
+      if(!result._fallback) setDbCache(key, payload, "search");
       sendJson(response, 200, payload);
       return;
     }
