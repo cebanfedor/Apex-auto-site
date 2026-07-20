@@ -321,6 +321,31 @@
     }
     .trackCtaV401 svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
+    /* documents row: title + keys */
+    .trackDocsV401 {
+      display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px;
+    }
+    .trackDocBadgeV401 {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 9px;
+      font-size: 12.5px; font-weight: 700; line-height: 1;
+    }
+    .trackDocBadgeV401 svg {
+      width: 13px; height: 13px; stroke: currentColor; fill: none;
+      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; flex: none;
+    }
+    .trackDocBadgeV401.isOkV401 {
+      background: rgba(34,197,94,0.13); border: 1px solid rgba(34,197,94,0.28);
+      color: #4ade80;
+    }
+    .trackDocBadgeV401.isPendingV401 {
+      background: rgba(251,191,36,0.13); border: 1px solid rgba(251,191,36,0.26);
+      color: #fbbf24;
+    }
+    .trackDocBadgeV401 small {
+      font-size: 10.5px; font-weight: 500; opacity: 0.72; margin-left: 2px;
+    }
+
     /* stage name label mapping */
     .trackStagesWrapV401 { overflow-x: auto; }
     @media (max-width: 560px) {
@@ -814,6 +839,30 @@
             ${d.city      ? `<span>Локация: <strong>${d.city}</strong></span>` : ""}
           </div>
           ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${d.vin}</b></div>` : ""}
+          ${(d.titleStatus || d.keys) ? `
+          <div class="trackDocsV401">
+            ${d.titleStatus === "yes" ? `
+              <div class="trackDocBadgeV401 isOkV401">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+                Тайтл получен
+                ${d.titleReceived ? `<small>${d.titleReceived.slice(0,10)}</small>` : ""}
+              </div>` : ""}
+            ${d.titleStatus === "no" ? `
+              <div class="trackDocBadgeV401 isPendingV401">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="15"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Тайтл в обработке
+              </div>` : ""}
+            ${d.keys === "yes" ? `
+              <div class="trackDocBadgeV401 isOkV401">
+                <svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                Ключи есть
+              </div>` : ""}
+            ${d.keys === "no" ? `
+              <div class="trackDocBadgeV401 isPendingV401">
+                <svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                Ключи отсутствуют
+              </div>` : ""}
+          </div>` : ""}
         </div>
 
           ${d.photoCategories?.length ? (function(){

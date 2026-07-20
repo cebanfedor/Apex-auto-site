@@ -123,13 +123,19 @@ module.exports = async function handler(req, res) {
     } catch (_) {}
   }
 
+  const titleStatus   = extractLabel("Title status");    // "Yes" / "No"
+  const titleReceived = extractLabel("Title status received"); // e.g. "2026-07-15 08:51 Txcars"
+  const keysVal       = extractLabel("Keys");             // "Yes" / "No"
+
   const data = {
     vehicle: vehicleDecoded,
     vin: vinCode,
     auction: extractLabel("Auction"),
     city: extractLabel("City"),
     lotNumber: extractLabel("Lot number"),
-    keys: rsc.includes('"Yes"') ? "yes" : rsc.includes('"No"') ? "no" : null,
+    keys: keysVal ? (keysVal.toLowerCase() === "yes" ? "yes" : "no") : null,
+    titleStatus: titleStatus ? (titleStatus.toLowerCase() === "yes" ? "yes" : "no") : null,
+    titleReceived,
     container: {
       number: extractLabel("Container number"),
       booking: extractLabel("Booking number"),
