@@ -382,6 +382,96 @@
       .trackLightboxArrowV401.isPrevV401 { left: 8px; }
       .trackLightboxArrowV401.isNextV401 { right: 8px; }
     }
+    /* ── Этапы доставки ── */
+    .trackHowV401 {
+      margin-top: 52px;
+      padding-top: 44px;
+      border-top: 1px solid var(--line);
+    }
+    .trackHowHeadV401 { margin-bottom: 32px; }
+    .trackHowHeadV401 h2 {
+      font-size: clamp(18px, 2.2vw, 24px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin: 6px 0 8px;
+      text-wrap: balance;
+    }
+    .trackHowHeadV401 p { font-size: 14px; color: var(--muted); line-height: 1.55; max-width: 500px; }
+
+    .trackStepsGridV401 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      position: relative;
+    }
+    /* дашированная линия между кружками */
+    .trackStepsGridV401::before {
+      content: "";
+      position: absolute;
+      top: 26px;
+      left: calc(12.5% + 22px);
+      right: calc(12.5% + 22px);
+      height: 2px;
+      background: repeating-linear-gradient(90deg, rgba(237,0,18,.22) 0, rgba(237,0,18,.22) 7px, transparent 7px, transparent 16px);
+      pointer-events: none;
+    }
+    .trackStepItemV401 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 10px;
+    }
+    .trackStepCircleV401 {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: rgba(237,0,18,.07);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      z-index: 1;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .trackStepCircleV401 svg { width: 21px; height: 21px; stroke: var(--red); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .trackStepNumV401 {
+      position: absolute;
+      top: -2px; right: -2px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--red);
+      color: #fff;
+      font-size: 9px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--surface);
+    }
+    .trackStepBodyV401 { display: flex; flex-direction: column; flex: 1; width: 100%; }
+    .trackStepTitleV401 { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
+    .trackStepDescV401 { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-bottom: 10px; flex: 1; }
+    .trackStepBadgeV401 {
+      background: rgba(237,0,18,.05);
+      border: 1px solid rgba(237,0,18,.14);
+      border-radius: 8px;
+      padding: 7px 10px;
+      text-align: left;
+    }
+    .trackStepBadgeV401 b {
+      display: block;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--red);
+      margin-bottom: 3px;
+    }
+    .trackStepBadgeV401 span { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; font-weight: 500; }
+
+    @media (max-width: 700px) {
+      .trackStepsGridV401 { grid-template-columns: 1fr; gap: 20px; }
+      .trackStepsGridV401::before { display: none; }
+      .trackStepItemV401 { flex-direction: row; text-align: left; align-items: flex-start; gap: 14px; padding: 0; }
+      .trackStepCircleV401 { margin-bottom: 0; }
+      .trackStepBadgeV401 { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -422,6 +512,77 @@
       </div>
 
       <div id="trackResultAreaV401" class="trackResultV401"></div>
+
+      <div class="trackHowV401">
+        <div class="trackHowHeadV401">
+          <span class="sectionKicker">КАК ЭТО РАБОТАЕТ</span>
+          <h2>Что происходит с вашим автомобилем на каждом этапе</h2>
+          <p>Трекер обновляется автоматически — информация и фото появляются по мере движения машины</p>
+        </div>
+        <div class="trackStepsGridV401">
+
+          <div class="trackStepItemV401">
+            <div class="trackStepCircleV401">
+              <span class="trackStepNumV401">1</span>
+              <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            </div>
+            <div class="trackStepBodyV401">
+              <div class="trackStepTitleV401">Забор с аукциона</div>
+              <p class="trackStepDescV401">После подтверждения оплаты наш водитель выезжает на аукционную площадку. Автомобиль снимается с лота и доставляется на наш склад в США.</p>
+              <div class="trackStepBadgeV401">
+                <b>В трекере</b>
+                <span>Данные аукциона · VIN · Номер лота</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="trackStepItemV401">
+            <div class="trackStepCircleV401">
+              <span class="trackStepNumV401">2</span>
+              <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <div class="trackStepBodyV401">
+              <div class="trackStepTitleV401">Авто на складе</div>
+              <p class="trackStepDescV401">Машина прибыла. Проводим приёмку и детальную фотосъёмку: экстерьер, салон, ключи, повреждения. Все фото появятся в трекере сразу после загрузки.</p>
+              <div class="trackStepBadgeV401">
+                <b>В трекере</b>
+                <span>Фото со склада · Состояние · Ключи</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="trackStepItemV401">
+            <div class="trackStepCircleV401">
+              <span class="trackStepNumV401">3</span>
+              <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <div class="trackStepBodyV401">
+              <div class="trackStepTitleV401">Погрузка в контейнер</div>
+              <p class="trackStepDescV401">Автомобиль помещается в морской контейнер и отправляется в путь. С этого момента в трекере появляется вся информация о рейсе и сроках доставки.</p>
+              <div class="trackStepBadgeV401">
+                <b>В трекере</b>
+                <span>№ контейнера · Порт · Дата убытия · Дата прибытия</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="trackStepItemV401">
+            <div class="trackStepCircleV401">
+              <span class="trackStepNumV401">4</span>
+              <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="trackStepBodyV401">
+              <div class="trackStepTitleV401">Прибытие и выдача</div>
+              <p class="trackStepDescV401">После прохождения порта и таможни автомобиль готов к выдаче. Как только машина прибудет в Кишинёв — статус обновится и мы свяжемся с вами.</p>
+              <div class="trackStepBadgeV401">
+                <b>В трекере</b>
+                <span>Статус «Прибыл» · Дата выдачи</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </section>
   </main>
 
