@@ -917,6 +917,13 @@ module.exports = async function handler(request, response){
 
     sendJson(response, 404, {ok:false,error:"Unknown auctions action"});
   }catch(error){
+    // 429 rate-limit: return 200 so Vercel CDN caches the response and stops hammering auctionsapi.com.
+    // Other errors return their status so CDN doesn't cache them.
+    if(error.status === 429){
+      sendJson(response, 200, {ok:false, rateLimited:true, items:[], total:0,
+        error:"Превышен лимит запросов к AuctionsAPI. Данные обновятся через несколько минут."});
+      return;
+    }
     sendJson(response, error.status || 502, {
       ok:false,
       error:error.status === 500
