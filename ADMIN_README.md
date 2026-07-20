@@ -39,6 +39,17 @@ BLOB_STORE_ID=your-blob-store-id
 BLOB_WEBHOOK_PUBLIC_KEY=your-blob-webhook-public-key
 ```
 
+Опциональные (для Telegram-уведомлений о новых лидах):
+
+```txt
+TELEGRAM_BOT_TOKEN=1234567890:AAxxxxxxxxxxxxxxxxxxxxxx
+TELEGRAM_CHAT_ID=123456789
+```
+
+> Как получить: создай бота через @BotFather → скопируй токен. Chat ID — запусти бота,
+> открой `https://api.telegram.org/bot<TOKEN>/getUpdates`, найди `"chat":{"id":...}`.
+> Без этих переменных лиды сохраняются в Supabase, но push-уведомлений не будет.
+
 Рекомендуемые:
 
 ```txt
