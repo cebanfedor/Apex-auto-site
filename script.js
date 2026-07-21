@@ -1016,7 +1016,7 @@ async function copyCalc(){
 function downloadPng(){alert("PNG добавим следующим этапом. Сейчас расчет можно скопировать или отправить в Telegram.")}
 document.addEventListener("DOMContentLoaded",()=>{
   if(!$("calcForm")) return;
-  initYears();initLiters();initLocations();refreshGlassSelects();calculate();
+  initYears();initLiters();initLocations();refreshGlassSelects();calculate();fetchMdlRates();
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
   ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();calculate()}));
@@ -1331,6 +1331,24 @@ function initCanadaLocations(){
   if(locs.length) select.value = "0";
   refreshGlassSelect(select);
   updateCanadaLocation();
+}
+
+async function fetchMdlRates(){
+  const src = document.getElementById("mdlRateSourceV404");
+  try {
+    const r = await fetch("https://open.er-api.com/v6/latest/USD");
+    if(!r.ok) throw new Error("fetch failed");
+    const data = await r.json();
+    const usdMdl = data?.rates?.MDL;
+    const eurUsd = data?.rates?.EUR; // EUR per 1 USD
+    const eurMdl = (usdMdl && eurUsd) ? usdMdl / eurUsd : null;
+    if(usdMdl && $("usdMdl")){ $("usdMdl").value = usdMdl.toFixed(2); }
+    if(eurMdl && $("eurMdl")){ $("eurMdl").value = eurMdl.toFixed(2); }
+    if(src) src.textContent = "· live";
+    if(usdMdl || eurMdl) calculate();
+  } catch(e){
+    if(src) src.textContent = "";
+  }
 }
 
 async function fetchCadRate(){
