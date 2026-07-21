@@ -34,7 +34,7 @@
 <body>
     <header class="siteHeader apexHdrV201">
     <a class="headerBrand apexBrandV201" href="/index.html" aria-label="Apex Auto — на главную">
-      <img src="/assets/apex-logo-dark.png" alt="Apex Auto">
+      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto">
       <span class="apexBrandTextV201">
         <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
         <small>Доставка авто из США и Канады в Молдову</small>
@@ -49,6 +49,7 @@
       <a href="/hot">Горячие</a>
       <a href="/tracking">Отследить</a>
       <a href="/about">Моя история</a>
+      <a href="/guide">Гид</a>
       <a href="/contacts">Контакты</a>
     </nav>
   </header>
@@ -347,5 +348,62 @@
   <script src="/auctions.js?v=auctions-v44" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
   <script src="/i18n.js?v=multilang-v170" defer></script>
+
+<!-- Exit-intent popup -->
+<div id="exitPopupV401" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);">
+  <div style="background:var(--surface,#fff);border:1px solid var(--line,#e5e7eb);border-radius:20px;max-width:420px;width:100%;padding:32px 28px 28px;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.18);animation:epFadeUp .25s ease both;">
+    <button onclick="exitPopupClose()" aria-label="Закрыть" style="position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;background:var(--field,#f3f4f6);border-radius:50%;font-size:18px;line-height:1;cursor:pointer;color:var(--muted,#9ca3af);display:flex;align-items:center;justify-content:center;">&#215;</button>
+    <div style="font-size:28px;margin-bottom:12px;">🚗</div>
+    <h2 style="font-size:19px;font-weight:800;color:var(--ink,#11141a);margin:0 0 8px;letter-spacing:-0.02em;line-height:1.25;">Нашли интересный лот?</h2>
+    <p style="font-size:14px;color:var(--muted,#6b7280);line-height:1.55;margin:0 0 22px;">Пришлите ссылку в Telegram — рассчитаем точную стоимость под ключ бесплатно: аукцион, доставка, растаможка.</p>
+    <a href="https://t.me/fedukusa" target="_blank" rel="noopener" onclick="exitPopupClose()" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:14px;background:#ed0012;color:#fff;font-size:15px;font-weight:700;text-decoration:none;box-shadow:0 8px 20px rgba(237,0,18,0.28);margin-bottom:10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21.2 2.8L2 10.4l6.6 2.2 2.2 6.6 4-4.8 5.4 4.2z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      Написать Федору в Telegram
+    </a>
+    <button onclick="exitPopupClose()" style="display:block;width:100%;height:40px;border:none;background:transparent;color:var(--muted,#9ca3af);font-size:14px;cursor:pointer;">Продолжить просмотр</button>
+  </div>
+</div>
+<style>@keyframes epFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}</style>
+<script>
+(function(){
+  var KEY = 'apexExitPopupShown';
+  var shown = false;
+
+  function show(){
+    if(shown || sessionStorage.getItem(KEY)) return;
+    shown = true;
+    sessionStorage.setItem(KEY,'1');
+    var el = document.getElementById('exitPopupV401');
+    el.style.display = 'flex';
+  }
+
+  window.exitPopupClose = function(){
+    document.getElementById('exitPopupV401').style.display = 'none';
+  };
+
+  // Desktop: mouse leaves viewport through the top
+  document.addEventListener('mouseleave', function(e){
+    if(e.clientY < 10) show();
+  });
+
+  // Mobile / no mouse: show after 50 seconds of browsing
+  var mobileTimer = setTimeout(function(){
+    if(!shown && !sessionStorage.getItem(KEY)) show();
+  }, 50000);
+
+  // Cancel mobile timer if user already saw the popup on desktop
+  document.addEventListener('mouseleave', function(){ clearTimeout(mobileTimer); }, {once:true});
+
+  // Close on backdrop click
+  document.getElementById('exitPopupV401').addEventListener('click', function(e){
+    if(e.target === this) exitPopupClose();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') exitPopupClose();
+  });
+})();
+</script>
 </body>
 </html>
