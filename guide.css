@@ -79,8 +79,8 @@
 .guideCtaBtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .guideCtaPrimary { display: inline-flex; align-items: center; height: 46px; padding: 0 24px; background: #fff; color: #ed0012; border-radius: 12px; font-weight: 700; font-size: 15px; text-decoration: none; }
 .guideCtaPrimary:hover { background: #f8f8f8; }
-.guideCtaGhost { display: inline-flex; align-items: center; height: 46px; padding: 0 24px; background: rgba(255,255,255,.18); color: #fff; border-radius: 12px; font-weight: 700; font-size: 15px; text-decoration: none; border: 1.5px solid #fff; }
-.guideCtaGhost:hover { background: rgba(255,255,255,.28); }
+.guideCtaBtns .guideCtaGhost { display: inline-flex; align-items: center; height: 46px; padding: 0 24px; background: rgba(255,255,255,.18); color: #fff; border-radius: 12px; font-weight: 700; font-size: 15px; text-decoration: none; border: 1.5px solid #fff; }
+.guideCtaBtns .guideCtaGhost:hover { background: rgba(255,255,255,.28); }
 
 @media (max-width: 640px) {
   .guideHeader, .guideBody { padding: 24px 20px; }
