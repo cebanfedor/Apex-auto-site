@@ -1343,8 +1343,7 @@ async function fetchMdlRates(){
     const eurMdl = data?.eurMdl;
     if(usdMdl && $("usdMdl")){ $("usdMdl").value = usdMdl.toFixed(2); }
     if(eurMdl && $("eurMdl")){ $("eurMdl").value = eurMdl.toFixed(2); }
-    if(src) src.textContent = "· live";
-    if(usdMdl || eurMdl) calculate();
+    if(usdMdl || eurMdl){ if(src) src.textContent = "· live"; calculate(); }
   } catch(e){
     if(src) src.textContent = "";
   }

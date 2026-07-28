@@ -19,8 +19,51 @@ const DEFAULT_CONTENT = {
   ]
 };
 
-const RATES_CACHE_KEY = "fxrates_usd_mdl";
+const RATES_CACHE_KEY = "mdl_sell_rates_v2";
 const RATES_TTL = 3600;
+// Типовая маржа молдавских банков: курс продажи ≈ курс НБМ + 1.2%
+const BANK_SELL_MARGIN = 1.012;
+
+async function fetchBnmRates() {
+  const r = await fetch("https://bnm.md/ro", {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" },
+  });
+  if (!r.ok) throw new Error(`BNM fetch ${r.status}`);
+  const html = await r.text();
+
+  // БНМ встраивает курсы в JS-конфиг: "840":{"code":"840","amount":"1","rate":17.6254}
+  // Код 840 = USD, 978 = EUR. Берём последнее вхождение (самая свежая дата).
+  const usdMatches = [...html.matchAll(/"840":\{"code":"840","amount":"1","rate":(\d+\.\d+)\}/g)];
+  const eurMatches = [...html.matchAll(/"978":\{"code":"978","amount":"1","rate":(\d+\.\d+)\}/g)];
+  if (!usdMatches.length || !eurMatches.length) throw new Error("BNM parse failed");
+
+  const usdBnm = parseFloat(usdMatches[usdMatches.length - 1][1]);
+  const eurBnm = parseFloat(eurMatches[eurMatches.length - 1][1]);
+
+  return {
+    usdMdl: +(usdBnm * BANK_SELL_MARGIN).toFixed(2),
+    eurMdl: +(eurBnm * BANK_SELL_MARGIN).toFixed(2),
+    source: "bnm",
+    date: new Date().toISOString(),
+  };
+}
+
+async function fetchFallbackRates() {
+  const apiKey = process.env.FXRATES_API_KEY;
+  const url = `https://api.fxratesapi.com/latest?currencies=MDL,EUR&base=USD${apiKey ? `&api_key=${apiKey}` : ""}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`fxrates ${r.status}`);
+  const data = await r.json();
+  if (!data.success) throw new Error("fxrates error");
+  const usdMdl = data.rates?.MDL;
+  const eurUsd = data.rates?.EUR;
+  return {
+    usdMdl: usdMdl ? +(usdMdl * BANK_SELL_MARGIN).toFixed(2) : null,
+    eurMdl: (usdMdl && eurUsd) ? +((usdMdl / eurUsd) * BANK_SELL_MARGIN).toFixed(2) : null,
+    source: "fxrates",
+    date: data.date,
+  };
+}
 
 async function fetchRates() {
   // Проверяем кэш
@@ -33,21 +76,13 @@ async function fetchRates() {
     if (cached?.[0]?.data) return cached[0].data;
   } catch {}
 
-  // Запрашиваем свежий курс
-  const apiKey = process.env.FXRATES_API_KEY;
-  const url = `https://api.fxratesapi.com/latest?currencies=MDL,EUR&base=USD${apiKey ? `&api_key=${apiKey}` : ""}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`fxrates ${r.status}`);
-  const data = await r.json();
-  if (!data.success) throw new Error("fxrates error");
-
-  const usdMdl = data.rates?.MDL;
-  const eurUsd = data.rates?.EUR;
-  const payload = {
-    usdMdl: usdMdl ? +usdMdl.toFixed(2) : null,
-    eurMdl: (usdMdl && eurUsd) ? +(usdMdl / eurUsd).toFixed(2) : null,
-    date: data.date,
-  };
+  // Пробуем БНМ, затем fxratesapi как резерв
+  let payload;
+  try {
+    payload = await fetchBnmRates();
+  } catch {
+    payload = await fetchFallbackRates();
+  }
 
   // Кэшируем
   try {
