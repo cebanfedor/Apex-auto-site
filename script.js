@@ -969,7 +969,12 @@ function textCalc(){
   const LBL = {
     "Стоимость лота":          ro ? "Prețul lotului"        : en ? "Lot price"           : "Стоимость лота",
     "Аукционный сбор":         ro ? "Taxa de licitație"     : en ? "Auction fee"          : "Аукционный сбор",
-    "Доставка по США":         ro ? "Transport în SUA"      : en ? "US delivery"          : "Доставка по США",
+    "Доставка по США":         ro ? "Transport în SUA"      : en ? "Inland US shipping"   : "Доставка по США",
+    "Доставка по США (CA)":   ro ? "Transport în SUA (CA)" : en ? "Inland US shipping (CA)" : "Доставка по США (CA)",
+    "Доставка по США (NJ)":   ro ? "Transport în SUA (NJ)" : en ? "Inland US shipping (NJ)" : "Доставка по США (NJ)",
+    "Доставка по США (TX)":   ro ? "Transport în SUA (TX)" : en ? "Inland US shipping (TX)" : "Доставка по США (TX)",
+    "Доставка по США (IN)":   ro ? "Transport în SUA (IN)" : en ? "Inland US shipping (IN)" : "Доставка по США (IN)",
+    "Доставка по США (GA)":   ro ? "Transport în SUA (GA)" : en ? "Inland US shipping (GA)" : "Доставка по США (GA)",
     "Доставка в Кишинёв":      ro ? "Transport la Chișinău" : en ? "Delivery to Chișinău" : "Доставка в Кишинёв",
     "Страховка":               ro ? "Asigurare"             : en ? "Insurance"            : "Страховка",
     "Сопровождение APEX AUTO": ro ? "Asistența companiei"   : en ? "Company service"      : "Сопровождение компании",
@@ -1077,7 +1082,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "Авто: " + (document.getElementById("leadCar").value || "-")
       ].join("\n");
       openTelegramMessage(msg);
-      selectionForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>Telegram открывается!</strong>Отправьте сообщение — и мы свяжемся с вами в ближайшее время.</p></div>`;
+      const _lngSF = window.APEX_LANG || "ru";
+      const _titleSF = _lngSF === "ro" ? "Telegram se deschide!" : _lngSF === "en" ? "Telegram is opening!" : "Telegram открывается!";
+      const _textSF = _lngSF === "ro" ? "Trimiteți mesajul — și vă vom contacta în cel mai scurt timp." : _lngSF === "en" ? "Send the message — and we'll get back to you shortly." : "Отправьте сообщение — и мы свяжемся с вами в ближайшее время.";
+      selectionForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>${_titleSF}</strong>${_textSF}</p></div>`;
     });
   }
 });
@@ -1171,7 +1179,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!value) {
         checkInput.classList.add("inputErrorV57");
         checkInput.focus();
-        checkInput.placeholder = "Введите VIN, номер лота или ссылку";
+        const _lngV = window.APEX_LANG || "ru";
+        checkInput.placeholder = _lngV === "ro" ? "Introduceți VIN, numărul lotului sau linkul" : _lngV === "en" ? "Enter VIN, lot number or link" : "Введите VIN, номер лота или ссылку";
         return false;
       }
 
@@ -1194,7 +1203,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ].join("\n");
 
       openTelegramMessage(message);
-      checkForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>Telegram открывается!</strong>Отправьте сообщение — и мы бесплатно проверим автомобиль.</p></div>`;
+      const _lngCF = window.APEX_LANG || "ru";
+      const _titleCF = _lngCF === "ro" ? "Telegram se deschide!" : _lngCF === "en" ? "Telegram is opening!" : "Telegram открывается!";
+      const _textCF = _lngCF === "ro" ? "Trimiteți mesajul — și vom verifica mașina gratuit." : _lngCF === "en" ? "Send the message — and we'll check the car for free." : "Отправьте сообщение — и мы бесплатно проверим автомобиль.";
+      checkForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>${_titleCF}</strong>${_textCF}</p></div>`;
       return false;
     }, true);
   }
@@ -1420,18 +1432,31 @@ function calculateCanada(){
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
   $("chosenRoute").textContent = route;
   if($("auctionBadge")) $("auctionBadge").textContent = ($("auction")?.value || "copart").toUpperCase();
-  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = isBcGreen ? "12–15 недель" : zone === "bc" ? "10–13 недель" : "8–10 недель";
+  const _lngCA = window.APEX_LANG || "ru";
+  const _roCA = _lngCA === "ro", _enCA = _lngCA === "en";
+  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = isBcGreen
+    ? (_roCA ? "12–15 săptămâni" : _enCA ? "12–15 weeks" : "12–15 недель")
+    : zone === "bc" ? (_roCA ? "10–13 săptămâni" : _enCA ? "10–13 weeks" : "10–13 недель")
+    : (_roCA ? "8–10 săptămâni" : _enCA ? "8–10 weeks" : "8–10 недель");
 
   // update portView to reflect actual ocean route
   const pvEl = $("portView");
   if(pvEl && selectedCanadaLocation){
-    pvEl.value = isBcGreen ? "BC → Монреаль → Klaipeda" : zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
+    pvEl.value = isBcGreen
+      ? (_roCA ? "BC → Montreal → Klaipeda" : _enCA ? "BC → Montreal → Klaipeda" : "BC → Монреаль → Klaipeda")
+      : zone === "bc" ? "BC → Klaipeda"
+      : "Montreal → Klaipeda";
   }
 
-  const zoneLabel = isBcGreen ? "BC → Монреаль → Klaipeda" : zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
+  const zoneLabel = isBcGreen
+    ? (_roCA ? "BC → Montreal → Klaipeda" : _enCA ? "BC → Montreal → Klaipeda" : "BC → Монреаль → Klaipeda")
+    : zone === "bc" ? "BC → Klaipeda"
+    : "Montreal → Klaipeda";
   const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
   const offsiteBadge = offsiteFee > 0 ? ` <span class="rowBadgeV374" data-type="offsite">Offsite</span>` : "";
-  const dispatchDetail = isBcGreen ? "автовоз BC → Монреаль" : "";
+  const dispatchDetail = isBcGreen
+    ? (_roCA ? "auto-carrier BC → Montreal" : _enCA ? "auto carrier BC → Montreal" : "автовоз BC → Монреаль")
+    : "";
   const rows = [
     ["Стоимость лота",          lot,        "",             "usd"],
     ["Аукционный сбор",         auctionFee, afd.detail,     "usd"],

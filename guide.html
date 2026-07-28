@@ -44,6 +44,19 @@
     </nav>
   </header>
 
+  <div id="guideLangBannerV405" style="display:none;background:#fff3cd;border-bottom:2px solid #ffc107;padding:12px 20px;text-align:center;font-size:14px;"></div>
+  <script>
+  (function(){
+    var lng = localStorage.getItem("apexAutoLang") || (navigator.languages && navigator.languages[0] || navigator.language || "ru");
+    var l = (lng+"").toLowerCase();
+    var b = document.getElementById("guideLangBannerV405");
+    if(b && !l.startsWith("ru")){
+      b.style.display = "block";
+      if(l.startsWith("ro")) b.innerHTML = "Acest ghid este disponibil momentan doar în <strong>limba rusă</strong>. Versiunea în română urmează în curând.";
+      else b.innerHTML = "This guide is currently available in <strong>Russian only</strong>. The English version is coming soon.";
+    }
+  })();
+  </script>
   <main class="guideMain">
     <div class="guideShell">
 
