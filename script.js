@@ -1336,11 +1336,12 @@ function initCanadaLocations(){
 async function fetchMdlRates(){
   const src = document.getElementById("mdlRateSourceV404");
   try {
-    const r = await fetch("/api/rates");
+    const r = await fetch("https://api.fxratesapi.com/latest?currencies=MDL,EUR&base=USD");
     if(!r.ok) throw new Error("fetch failed");
     const data = await r.json();
-    const usdMdl = data?.usdMdl;
-    const eurMdl = data?.eurMdl;
+    const usdMdl = data?.rates?.MDL;
+    const eurUsd = data?.rates?.EUR;
+    const eurMdl = (usdMdl && eurUsd) ? usdMdl / eurUsd : null;
     if(usdMdl && $("usdMdl")){ $("usdMdl").value = usdMdl.toFixed(2); }
     if(eurMdl && $("eurMdl")){ $("eurMdl").value = eurMdl.toFixed(2); }
     if(src) src.textContent = "· live";
