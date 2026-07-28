@@ -1336,12 +1336,11 @@ function initCanadaLocations(){
 async function fetchMdlRates(){
   const src = document.getElementById("mdlRateSourceV404");
   try {
-    const r = await fetch("https://open.er-api.com/v6/latest/USD");
+    const r = await fetch("/api/rates");
     if(!r.ok) throw new Error("fetch failed");
     const data = await r.json();
-    const usdMdl = data?.rates?.MDL;
-    const eurUsd = data?.rates?.EUR; // EUR per 1 USD
-    const eurMdl = (usdMdl && eurUsd) ? usdMdl / eurUsd : null;
+    const usdMdl = data?.usdMdl;
+    const eurMdl = data?.eurMdl;
     if(usdMdl && $("usdMdl")){ $("usdMdl").value = usdMdl.toFixed(2); }
     if(eurMdl && $("eurMdl")){ $("eurMdl").value = eurMdl.toFixed(2); }
     if(src) src.textContent = "· live";
