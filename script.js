@@ -1345,6 +1345,13 @@ function initCanadaLocations(){
   updateCanadaLocation();
 }
 
+function showRateFields(){
+  const u = document.getElementById("rateUsdWrapV405");
+  const e = document.getElementById("rateEurWrapV405");
+  if(u) u.style.opacity = "1";
+  if(e) e.style.opacity = "1";
+}
+
 async function fetchMdlRates(){
   const src = document.getElementById("mdlRateSourceV404");
   try {
@@ -1355,9 +1362,12 @@ async function fetchMdlRates(){
     const eurMdl = data?.eurMdl;
     if(usdMdl && $("usdMdl")){ $("usdMdl").value = usdMdl.toFixed(2); }
     if(eurMdl && $("eurMdl")){ $("eurMdl").value = eurMdl.toFixed(2); }
+    showRateFields();
     if(usdMdl || eurMdl){ if(src) src.textContent = "· live"; calculate(); }
+    else showRateFields();
   } catch(e){
     if(src) src.textContent = "";
+    showRateFields();
   }
 }
 
