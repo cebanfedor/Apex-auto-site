@@ -241,6 +241,88 @@
     .customsSectionHeadV420 h2 { font-size: clamp(20px,2.6vw,28px); font-weight: 900; color: var(--ink); letter-spacing: -0.03em; margin-bottom: 6px; }
     .customsSectionHeadV420 p { font-size: 14.5px; color: var(--muted); line-height: 1.6; }
 
+    /* Таблицы акциза */
+    .customsAccizV420 { margin-bottom: 40px; }
+    .accizDetailsV420 {
+      border: 1px solid var(--line); border-radius: var(--radius-lg);
+      background: var(--surface); box-shadow: var(--shadow-sm);
+      margin-bottom: 10px; overflow: hidden;
+    }
+    .accizDetailsV420 summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px 22px; cursor: pointer; list-style: none; user-select: none;
+      font-size: 15px; font-weight: 700; color: var(--ink);
+    }
+    .accizDetailsV420 summary::-webkit-details-marker { display: none; }
+    .accizDetailsV420 summary::after {
+      content: "+"; flex: none; width: 26px; height: 26px; border-radius: 8px;
+      background: var(--field); color: var(--muted);
+      font-size: 18px; font-weight: 400; line-height: 26px; text-align: center;
+    }
+    .accizDetailsV420[open] summary::after { content: "−"; background: rgba(237,0,18,0.08); color: var(--red); }
+    .accizDetailsV420 .accizNote { font-size: 12.5px; color: var(--muted); padding: 10px 22px 0; font-style: italic; }
+    .accizTableScrollV420 { overflow-x: auto; padding: 0 22px 18px; -webkit-overflow-scrolling: touch; }
+    .accizTableV420 {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    .accizTableV420 th {
+      background: var(--field); color: var(--muted); font-weight: 700; font-size: 11.5px;
+      text-align: center; padding: 8px 10px; border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .accizTableV420 th:first-child { text-align: left; }
+    .accizTableV420 td {
+      text-align: center; padding: 7px 10px;
+      border-bottom: 1px solid var(--line-2); color: var(--ink);
+    }
+    .accizTableV420 td:first-child { text-align: left; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    .accizTableV420 tr:hover td { background: var(--field); }
+    .accizTableV420 tr:last-child td { border-bottom: none; }
+
+    /* Льготы */
+    .customsExemptsV420 {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 26px 28px;
+      box-shadow: var(--shadow-sm); margin-bottom: 40px;
+    }
+    .exemptGridV420 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 18px; }
+    .exemptCardV420 {
+      border-radius: var(--radius); padding: 14px 15px;
+      border: 1px solid var(--line-2);
+    }
+    .exemptCardV420.ev { background: rgba(34,197,94,0.07); border-color: rgba(34,197,94,0.28); }
+    .exemptCardV420.plugin { background: rgba(59,130,246,0.07); border-color: rgba(59,130,246,0.25); }
+    .exemptCardV420.hybrid { background: rgba(234,179,8,0.07); border-color: rgba(234,179,8,0.3); }
+    .exemptCardV420.mild { background: var(--field); }
+    .exemptCardV420 .exemptBadgeV420 {
+      display: inline-block; font-size: 18px; font-weight: 900; margin-bottom: 6px;
+    }
+    .exemptCardV420.ev .exemptBadgeV420 { color: #22c55e; }
+    .exemptCardV420.plugin .exemptBadgeV420 { color: #3b82f6; }
+    .exemptCardV420.hybrid .exemptBadgeV420 { color: #ca8a04; }
+    .exemptCardV420.mild .exemptBadgeV420 { color: var(--muted); }
+    .exemptCardV420 strong { display: block; font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 3px; }
+    .exemptCardV420 span { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    @media (max-width: 640px) { .exemptGridV420 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 380px) { .exemptGridV420 { grid-template-columns: 1fr; } }
+
+    /* Ретро + люкс */
+    .customsRetroLuxV420 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 40px; }
+    .retroCardV420, .luxCardV420 {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius-lg); padding: 22px 24px; box-shadow: var(--shadow-sm);
+    }
+    .retroCardV420 h3, .luxCardV420 h3 { font-size: 15px; font-weight: 800; color: var(--ink); margin-bottom: 12px; }
+    .retroRowV420, .luxRowV420 {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--line-2); font-size: 13.5px;
+    }
+    .retroRowV420:last-child, .luxRowV420:last-child { border-bottom: none; }
+    .retroRowV420 span:first-child, .luxRowV420 span:first-child { color: var(--muted); }
+    .retroRowV420 b, .luxRowV420 b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+    @media (max-width: 580px) { .customsRetroLuxV420 { grid-template-columns: 1fr; } }
+
     /* Breadcrumb */
     .customsBreadV420 {
       display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
@@ -342,6 +424,143 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           Открыть калькулятор
         </a>
+      </div>
+
+      <!-- Таблицы акциза -->
+      <div class="customsSectionHeadV420">
+        <h2>Ставки акциза 2026 — полная таблица</h2>
+        <p>Формула: <strong>акциз = ставка (лей/cm³) × объём двигателя</strong>. Ставка зависит от типа топлива, объёма двигателя и возраста авто. Источник: Налоговый кодекс Республики Молдова.</p>
+      </div>
+      <div class="customsAccizV420">
+
+        <details class="accizDetailsV420" open>
+          <summary>Бензиновый двигатель — ставки акциза (лей/cm³)</summary>
+          <p class="accizNote">Включает бензин, газ (LPG/CNG). Для гибридов — см. льготы ниже.</p>
+          <div class="accizTableScrollV420">
+            <table class="accizTableV420">
+              <thead>
+                <tr>
+                  <th>Возраст авто</th>
+                  <th>≤1000 cm³</th>
+                  <th>1001–1500 cm³</th>
+                  <th>1501–2000 cm³</th>
+                  <th>2001–3000 cm³</th>
+                  <th>&gt;3000 cm³</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>0–2 года</td><td>9,56</td><td>12,23</td><td>18,90</td><td>31,14</td><td>55,60</td></tr>
+                <tr><td>3–4 года</td><td>10,00</td><td>12,67</td><td>19,34</td><td>31,68</td><td>56,04</td></tr>
+                <tr><td>5–6 лет</td><td>10,23</td><td>12,90</td><td>19,57</td><td>31,81</td><td>56,27</td></tr>
+                <tr><td>7 лет</td><td>11,25</td><td>14,19</td><td>21,53</td><td>34,99</td><td>61,90</td></tr>
+                <tr><td>8 лет</td><td>12,38</td><td>15,61</td><td>23,68</td><td>38,49</td><td>68,09</td></tr>
+                <tr><td>9 лет</td><td>13,62</td><td>17,17</td><td>26,05</td><td>42,34</td><td>74,90</td></tr>
+                <tr><td>10 лет</td><td>16,34</td><td>20,60</td><td>31,26</td><td>50,81</td><td>89,87</td></tr>
+                <tr><td>11 лет</td><td>21,24</td><td>26,79</td><td>40,63</td><td>66,05</td><td>116,84</td></tr>
+                <tr><td>12 лет</td><td>26,24</td><td>31,79</td><td>45,79</td><td>71,05</td><td>121,84</td></tr>
+                <tr><td>13 лет</td><td>31,24</td><td>36,79</td><td>50,63</td><td>76,05</td><td>126,84</td></tr>
+                <tr><td>14 лет</td><td>36,24</td><td>41,79</td><td>55,63</td><td>81,05</td><td>131,84</td></tr>
+                <tr><td>15 лет</td><td>41,24</td><td>46,79</td><td>60,63</td><td>86,05</td><td>136,84</td></tr>
+                <tr><td>16 лет</td><td>46,24</td><td>51,79</td><td>65,63</td><td>91,05</td><td>141,84</td></tr>
+                <tr><td>17 лет</td><td>51,24</td><td>56,79</td><td>70,63</td><td>96,05</td><td>146,84</td></tr>
+                <tr><td>18 лет</td><td>56,24</td><td>61,79</td><td>75,63</td><td>101,05</td><td>151,84</td></tr>
+                <tr><td>19 лет</td><td>61,24</td><td>66,79</td><td>80,63</td><td>106,05</td><td>156,84</td></tr>
+                <tr><td>20+ лет</td><td>66,24</td><td>71,79</td><td>85,63</td><td>111,05</td><td>161,84</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="accizDetailsV420">
+          <summary>Дизельный двигатель — ставки акциза (лей/cm³)</summary>
+          <p class="accizNote">Применяется для дизельных двигателей. Три диапазона объёма вместо пяти.</p>
+          <div class="accizTableScrollV420">
+            <table class="accizTableV420">
+              <thead>
+                <tr>
+                  <th>Возраст авто</th>
+                  <th>≤1500 cm³</th>
+                  <th>1501–2500 cm³</th>
+                  <th>&gt;2500 cm³</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>0–2 года</td><td>12,23</td><td>31,14</td><td>55,60</td></tr>
+                <tr><td>3–4 года</td><td>12,67</td><td>31,58</td><td>56,04</td></tr>
+                <tr><td>5–6 лет</td><td>12,90</td><td>31,81</td><td>56,27</td></tr>
+                <tr><td>7 лет</td><td>14,19</td><td>34,99</td><td>61,90</td></tr>
+                <tr><td>8 лет</td><td>15,61</td><td>38,49</td><td>68,90</td></tr>
+                <tr><td>9 лет</td><td>17,17</td><td>42,34</td><td>74,90</td></tr>
+                <tr><td>10 лет</td><td>20,60</td><td>50,81</td><td>89,87</td></tr>
+                <tr><td>11 лет</td><td>26,79</td><td>66,05</td><td>116,84</td></tr>
+                <tr><td>12 лет</td><td>31,79</td><td>71,05</td><td>121,84</td></tr>
+                <tr><td>13 лет</td><td>36,79</td><td>76,05</td><td>126,84</td></tr>
+                <tr><td>14 лет</td><td>41,79</td><td>81,05</td><td>131,84</td></tr>
+                <tr><td>15 лет</td><td>46,79</td><td>86,05</td><td>136,84</td></tr>
+                <tr><td>16 лет</td><td>51,79</td><td>91,05</td><td>141,84</td></tr>
+                <tr><td>17 лет</td><td>56,79</td><td>96,05</td><td>146,84</td></tr>
+                <tr><td>18 лет</td><td>61,79</td><td>101,05</td><td>151,84</td></tr>
+                <tr><td>19 лет</td><td>66,79</td><td>106,05</td><td>156,84</td></tr>
+                <tr><td>20+ лет</td><td>71,79</td><td>111,05</td><td>161,84</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+      </div>
+
+      <!-- Льготы и исключения -->
+      <div class="customsExemptsV420">
+        <div class="customsSectionHeadV420" style="margin-bottom:0">
+          <h2>Льготы по акцизу</h2>
+          <p>Тип силовой установки напрямую влияет на размер акциза. Электромобили освобождены полностью.</p>
+        </div>
+        <div class="exemptGridV420">
+          <div class="exemptCardV420 ev">
+            <div class="exemptBadgeV420">0%</div>
+            <strong>Электромобиль (EV)</strong>
+            <span>Акциз не уплачивается. Tesla, Rivian, Chevy Bolt и др.</span>
+          </div>
+          <div class="exemptCardV420 plugin">
+            <div class="exemptBadgeV420">−50%</div>
+            <strong>Plug-in Hybrid</strong>
+            <span>Заряжается от внешней розетки. Ставка снижается на 50%.</span>
+          </div>
+          <div class="exemptCardV420 hybrid">
+            <div class="exemptBadgeV420">−25%</div>
+            <strong>Hybrid (полный)</strong>
+            <span>Самозаряжающийся гибрид — Toyota Prius и аналоги. Скидка 25%.</span>
+          </div>
+          <div class="exemptCardV420 mild">
+            <div class="exemptBadgeV420">—</div>
+            <strong>Micro / Mild Hybrid</strong>
+            <span>48V belt-starter и аналоги. Льготы не предусмотрены.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ретро + Класс люкс -->
+      <div class="customsRetroLuxV420">
+        <div class="retroCardV420">
+          <h3>Ретроавтомобили (старше 30 лет)</h3>
+          <div class="retroRowV420"><span>30–39 лет</span><b>40 000 лей</b></div>
+          <div class="retroRowV420"><span>40–49 лет</span><b>30 000 лей</b></div>
+          <div class="retroRowV420"><span>50 лет и старше</span><b>20 000 лей</b></div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5">Ретроавтомобиль должен быть признан культурным наследием компетентным государственным органом.</p>
+        </div>
+        <div class="luxCardV420">
+          <h3>Автомобили класса люкс (от 600 000 лей)</h3>
+          <div class="luxRowV420"><span>600 000 – 700 000 лей</span><b>+2%</b></div>
+          <div class="luxRowV420"><span>700 001 – 800 000 лей</span><b>+3%</b></div>
+          <div class="luxRowV420"><span>800 001 – 900 000 лей</span><b>+4%</b></div>
+          <div class="luxRowV420"><span>900 001 – 1 000 000 лей</span><b>+5%</b></div>
+          <div class="luxRowV420"><span>1 000 001 – 1 200 000 лей</span><b>+6%</b></div>
+          <div class="luxRowV420"><span>1 200 001 – 1 400 000 лей</span><b>+7%</b></div>
+          <div class="luxRowV420"><span>1 400 001 – 1 600 000 лей</span><b>+8%</b></div>
+          <div class="luxRowV420"><span>1 600 001 – 1 800 000 лей</span><b>+9%</b></div>
+          <div class="luxRowV420"><span>Свыше 1 800 000 лей</span><b>+10%</b></div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5">Дополнительный акциз начисляется сверх базового при превышении порога таможенной стоимости.</p>
+        </div>
       </div>
 
       <!-- Документы -->
