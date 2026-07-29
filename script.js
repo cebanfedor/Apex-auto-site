@@ -1474,8 +1474,7 @@ function calculateCanada(){
   ];
   if(bankFee > 0) rows.push(["Комиссия банка TD", bankFee, "", "usd"]);
   rows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
-  rows.push(["Морская перевозка", oceanBase, zoneLabel, "usd", hazardBadge]);
-  if(hazardFee > 0) rows.push(["Опасный груз", hazardFee, "electric hazard fee", "usd"]);
+  rows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
   rows.push(
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
