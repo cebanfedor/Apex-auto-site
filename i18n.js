@@ -1646,3 +1646,26 @@
     observer.observe(document.body, {subtree:true, childList:true});
   });
 })();
+
+// Nav dropdown toggle
+(function(){
+  function initDropdowns(){
+    document.querySelectorAll(".navDropV420").forEach(function(drop){
+      var btn = drop.querySelector(".navDropBtnV420");
+      if(!btn || btn._dropInit) return;
+      btn._dropInit = true;
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        drop.classList.toggle("open");
+      });
+    });
+  }
+  document.addEventListener("click", function(){
+    document.querySelectorAll(".navDropV420.open").forEach(function(d){ d.classList.remove("open"); });
+  });
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", initDropdowns);
+  } else {
+    initDropdowns();
+  }
+})();
