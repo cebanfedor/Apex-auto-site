@@ -1649,14 +1649,23 @@
 
 // Nav dropdown toggle
 (function(){
+  function isMobile(){ return window.matchMedia("(max-width: 820px)").matches; }
   function initDropdowns(){
     document.querySelectorAll(".navDropV420").forEach(function(drop){
       var btn = drop.querySelector(".navDropBtnV420");
       if(!btn || btn._dropInit) return;
       btn._dropInit = true;
+      // hover — desktop
+      drop.addEventListener("mouseenter", function(){
+        if(!isMobile()) drop.classList.add("open");
+      });
+      drop.addEventListener("mouseleave", function(){
+        if(!isMobile()) drop.classList.remove("open");
+      });
+      // click — mobile
       btn.addEventListener("click", function(e){
         e.stopPropagation();
-        drop.classList.toggle("open");
+        if(isMobile()) drop.classList.toggle("open");
       });
     });
   }
