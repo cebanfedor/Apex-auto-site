@@ -134,10 +134,10 @@ section { position: relative; }
 .navDropBtnV420 svg { transition: transform 0.2s; flex-shrink: 0; }
 .navDropV420.open .navDropBtnV420 svg { transform: rotate(180deg); }
 .navDropMenuV420 {
-  display: none; position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   background: #fff; border: 1px solid var(--line); border-radius: 14px;
   box-shadow: 0 8px 32px rgba(16,20,28,0.12); min-width: 180px;
-  padding: 6px; z-index: 200; flex-direction: column; gap: 2px;
+  padding: 10px 6px 6px; z-index: 200; flex-direction: column; gap: 2px;
 }
 .navDropV420:hover .navDropMenuV420,
 .navDropV420.open .navDropMenuV420 { display: flex; }

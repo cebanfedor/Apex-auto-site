@@ -1656,11 +1656,13 @@
       if(!btn || btn._dropInit) return;
       btn._dropInit = true;
       // hover — desktop
+      var closeTimer;
       drop.addEventListener("mouseenter", function(){
+        clearTimeout(closeTimer);
         if(!isMobile()) drop.classList.add("open");
       });
       drop.addEventListener("mouseleave", function(){
-        if(!isMobile()) drop.classList.remove("open");
+        if(!isMobile()) closeTimer = setTimeout(function(){ drop.classList.remove("open"); }, 150);
       });
       // click — mobile
       btn.addEventListener("click", function(e){
