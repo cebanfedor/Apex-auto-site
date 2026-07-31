@@ -4,5 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@vercel/blob": "^2.4.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.4.0"
   }
 }

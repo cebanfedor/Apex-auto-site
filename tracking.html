@@ -13,6 +13,13 @@
   <meta property="og:title" content="Отслеживание груза — Apex Auto">
   <meta property="og:description" content="Введите VIN или номер лота — покажем этапы доставки.">
   <meta property="og:url" content="https://apexauto.md/tracking">
+  <meta property="og:image" content="https://apexauto.md/assets/og/tracking.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Отслеживание груза — Apex Auto">
+  <meta name="twitter:description" content="Введите VIN или номер лота — покажем этапы доставки.">
+  <meta name="twitter:image" content="https://apexauto.md/assets/og/tracking.png">
   <link rel="stylesheet" href="styles.css?v=v413">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -427,26 +434,33 @@
     .trackStepsGridV401 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
+      gap: 12px;
       position: relative;
+      align-items: stretch;
     }
     /* дашированная линия между кружками */
     .trackStepsGridV401::before {
       content: "";
       position: absolute;
-      top: 26px;
-      left: calc(12.5% + 22px);
-      right: calc(12.5% + 22px);
+      top: 36px;
+      left: calc(12.5% + 26px);
+      right: calc(12.5% + 26px);
       height: 2px;
       background: repeating-linear-gradient(90deg, rgba(237,0,18,.22) 0, rgba(237,0,18,.22) 7px, transparent 7px, transparent 16px);
       pointer-events: none;
+      z-index: 0;
     }
     .trackStepItemV401 {
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      padding: 0 10px;
+      padding: 20px 14px 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      height: 100%;
+      box-sizing: border-box;
     }
     .trackStepCircleV401 {
       width: 52px; height: 52px;
@@ -477,8 +491,9 @@
       background: rgba(237,0,18,.05);
       border: 1px solid rgba(237,0,18,.14);
       border-radius: 8px;
-      padding: 7px 10px;
+      padding: 8px 10px;
       text-align: left;
+      width: 100%;
     }
     .trackStepBadgeV401 b {
       display: block;
@@ -491,9 +506,9 @@
     .trackStepBadgeV401 span { font-size: 11.5px; color: var(--ink-2); line-height: 1.5; font-weight: 500; }
 
     @media (max-width: 700px) {
-      .trackStepsGridV401 { grid-template-columns: 1fr; gap: 20px; }
+      .trackStepsGridV401 { grid-template-columns: 1fr; gap: 10px; }
       .trackStepsGridV401::before { display: none; }
-      .trackStepItemV401 { flex-direction: row; text-align: left; align-items: flex-start; gap: 14px; padding: 0; }
+      .trackStepItemV401 { flex-direction: row; text-align: left; align-items: flex-start; gap: 14px; padding: 16px; }
       .trackStepCircleV401 { margin-bottom: 0; }
       .trackStepBadgeV401 { width: 100%; }
     }

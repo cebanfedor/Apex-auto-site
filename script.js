@@ -1253,7 +1253,7 @@ const CANADA_OCEAN = {
   east: { suv: 950,  pickup: 1170, hazard: 150 },
   bc:   { suv: 1890, pickup: 2050, hazard: 0   }
 };
-const ROAD_KLAIPEDA = { sedan: 1500, crossover: 1650, large: 1750 };
+const ROAD_KLAIPEDA = { sedan: 1600, crossover: 1750, large: 1900 };
 
 function getRoadKlaipedaPrice(){
   const t = $("vehicleType")?.value || "sedan";
@@ -1263,7 +1263,7 @@ function getRoadKlaipedaPrice(){
 }
 const CANADA_KEEPER_FEE = 300;
 const CANADA_BANK_FEE = 100; // TD Bank wire commission
-const BC_TO_MONTREAL_LAND = 1500; // land transport BC→Montreal for dangerous goods
+const BC_TO_MONTREAL_LAND = 1700; // land transport BC→Montreal (truck, all vehicles)
 
 function getCadUsdRate(){ return Number($("cadUsd")?.value) || 0.6923; }
 
@@ -1280,13 +1280,7 @@ function getCanadaLocations(){
 
 function updateBcWarning(){
   const warn = $("bcWarningV400");
-  if(!warn) return;
-  const isBcGreen = selectedCanadaLocation?.zone === "bc" && isGreenFuel();
-  warn.hidden = !isBcGreen;
-  if(isBcGreen){
-    warn.className = "bcWarningV400 bcInfoV400";
-    warn.textContent = "ℹ Опасный груз из BC доставляется автовозом до Монреаля, затем грузится на корабль. Срок +2–3 недели.";
-  }
+  if(warn) warn.hidden = true;
 }
 
 function updateCanadaLocation(){
@@ -1299,7 +1293,7 @@ function updateCanadaLocation(){
   const pvEl = $("portView");
   if(pvEl){
     if(!selectedCanadaLocation) pvEl.value = "—";
-    else pvEl.value = selectedCanadaLocation.zone === "bc" ? "BC → Klaipeda" : "Montreal → Klaipeda";
+    else { const _lp = window.APEX_LANG||"ru"; const _kl = (_lp==="ru") ? "Клайпеда" : "Klaipeda"; const _mon = (_lp==="ru") ? "Монреаль" : "Montreal"; pvEl.value = selectedCanadaLocation.zone === "bc" ? `BC → ${_mon} → ${_kl}` : `${_mon} → ${_kl}`; }
   }
   const lvEl = $("landView");
   if(lvEl){
@@ -1402,17 +1396,16 @@ function calculateCanada(){
   const isGreen = isGreenFuel();
   const zone = selectedCanadaLocation?.zone || "east";
 
-  // BC + green/electric: route via Montreal by land, then east ocean
+  // BC cars always go by truck to Montreal, then ship east — use east ocean rates for all BC
   const isBcGreen = zone === "bc" && isGreen;
-  const oceanRates = isBcGreen ? CANADA_OCEAN.east : CANADA_OCEAN[zone];
+  const oceanRates = zone === "bc" ? CANADA_OCEAN.east : CANADA_OCEAN[zone];
 
   const dispatchCad = selectedCanadaLocation
     ? (ip ? selectedCanadaLocation.dispatchPickupCad : selectedCanadaLocation.dispatchSuvCad)
     : 0;
   const offsiteFee = $("offsite")?.checked ? 100 : 0;
   let dispatch, bankFee;
-  if(isBcGreen){
-    // BC + опасный груз: доставка = автовоз BC→Монреаль ($1500), нет CAD-платежа
+  if(zone === "bc"){
     dispatch = BC_TO_MONTREAL_LAND + offsiteFee;
     bankFee = 0;
   } else {
@@ -1444,27 +1437,24 @@ function calculateCanada(){
   if($("auctionBadge")) $("auctionBadge").textContent = ($("auction")?.value || "copart").toUpperCase();
   const _lngCA = window.APEX_LANG || "ru";
   const _roCA = _lngCA === "ro", _enCA = _lngCA === "en";
-  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = isBcGreen
-    ? (_roCA ? "12–15 săptămâni" : _enCA ? "12–15 weeks" : "12–15 недель")
-    : zone === "bc" ? (_roCA ? "10–13 săptămâni" : _enCA ? "10–13 weeks" : "10–13 недель")
+  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = zone === "bc"
+    ? (_roCA ? "9–12 săptămâni" : _enCA ? "9–12 weeks" : "9–12 недель")
     : (_roCA ? "8–10 săptămâni" : _enCA ? "8–10 weeks" : "8–10 недель");
 
   // update portView to reflect actual ocean route
   const pvEl = $("portView");
   if(pvEl && selectedCanadaLocation){
-    pvEl.value = isBcGreen
-      ? (_roCA ? "BC → Montreal → Klaipeda" : _enCA ? "BC → Montreal → Klaipeda" : "BC → Монреаль → Klaipeda")
-      : zone === "bc" ? "BC → Klaipeda"
-      : "Montreal → Klaipeda";
+    pvEl.value = zone === "bc"
+      ? (_roCA ? "BC → Montreal → Klaipeda" : _enCA ? "BC → Montreal → Klaipeda" : "BC → Монреаль → Клайпеда")
+      : (_roCA ? "Montreal → Klaipeda" : _enCA ? "Montreal → Klaipeda" : "Монреаль → Клайпеда");
   }
 
-  const zoneLabel = isBcGreen
-    ? (_roCA ? "BC → Montreal → Klaipeda" : _enCA ? "BC → Montreal → Klaipeda" : "BC → Монреаль → Klaipeda")
-    : zone === "bc" ? "BC → Klaipeda"
-    : "Montreal → Klaipeda";
+  const zoneLabel = zone === "bc"
+    ? (_roCA ? "BC → Montreal → Klaipeda" : _enCA ? "BC → Montreal → Klaipeda" : "BC → Монреаль → Клайпеда")
+    : (_roCA ? "Montreal → Klaipeda" : _enCA ? "Montreal → Klaipeda" : "Монреаль → Клайпеда");
   const hazardBadge = hazardFee > 0 ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
   const offsiteBadge = offsiteFee > 0 ? ` <span class="rowBadgeV374" data-type="offsite">Offsite</span>` : "";
-  const dispatchDetail = isBcGreen
+  const dispatchDetail = zone === "bc"
     ? (_roCA ? "auto-carrier BC → Montreal" : _enCA ? "auto carrier BC → Montreal" : "автовоз BC → Монреаль")
     : "";
   const rows = [
