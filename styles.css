@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 /* ============================================================================
    APEX AUTO — design system (v300, clean rewrite from scratch)
    Replaces the legacy v48–v105 stylesheet. Reproduces the modern look.
@@ -38,7 +38,7 @@
   --maxw: 1292px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-display: "Onest", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
 }
 
 /* ---- Base -------------------------------------------------------------- */
