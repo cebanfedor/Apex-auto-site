@@ -1377,3 +1377,4 @@ details[open] > summary::before { content: "– "; }
 .bcWarningV400 { border-radius: 10px; padding: 10px 14px; font-size: 13.5px; margin-top: 8px; background: #fff8e1; border: 1px solid #f0b800; color: #7a5500; }
 .bcWarningV400.bcInfoV400 { background: #e8f4ff; border-color: #4a9edd; color: #1a4f7a; }
 .calcModeCanada [data-usa-only] { display: none !important; }
+.calcModeCanada .exportCurrencyRowV374 { justify-content: flex-end; }
