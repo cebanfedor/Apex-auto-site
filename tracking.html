@@ -300,10 +300,16 @@
     .trackGalleryExpandV401 {
       position: absolute; bottom: 10px; right: 10px;
       background: rgba(0,0,0,0.52); color: #fff; border-radius: 7px;
-      padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+      padding: 5px 10px 5px 8px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 5px;
       pointer-events: none; opacity: 0; transition: opacity 0.15s;
     }
+    .trackGalleryExpandV401 svg { flex-shrink: 0; }
+    .trackGalleryMainV401 { cursor: zoom-in; }
     .trackGalleryMainV401:hover .trackGalleryExpandV401 { opacity: 1; }
+    @media (max-width: 640px) {
+      .trackGalleryExpandV401 { opacity: 1; }
+    }
     .trackGalleryArrowV401 {
       position: absolute; top: 50%; transform: translateY(-50%);
       width: 38px; height: 38px; border-radius: 50%;
@@ -926,7 +932,7 @@
             <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
             <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${first.photos[0]}" target="_blank" rel="noopener">
               <img id="trackGalleryImgV401" src="${first.photos[0]}" alt="Фото автомобиля">
-              <span class="trackGalleryExpandV401">↗ открыть</span>
+              <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
             </a>
             <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${total <= 1 ? " disabled" : ""}>&#8250;</button>
           </div>
@@ -939,7 +945,7 @@
             <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
             <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${d.photos[0]}" target="_blank" rel="noopener">
               <img id="trackGalleryImgV401" src="${d.photos[0]}" alt="Фото автомобиля">
-              <span class="trackGalleryExpandV401">↗ открыть</span>
+              <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
             </a>
             <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${d.photos.length <= 1 ? " disabled" : ""}>&#8250;</button>
           </div>
@@ -1133,6 +1139,29 @@
       const idx = activeThumb ? +activeThumb.dataset.idx : 0;
       if (src) openLightbox(src, idx);
     }, true);
+
+    // Swipe to navigate in lightbox
+    let _lbSwipeX = 0;
+    lb.addEventListener('touchstart', e => { _lbSwipeX = e.touches[0].clientX; }, { passive: true });
+    lb.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - _lbSwipeX;
+      if (Math.abs(dx) > 40) lbNavigate(dx < 0 ? 1 : -1);
+    });
+
+    // Swipe to navigate in main gallery
+    let _galSwipeX = 0;
+    area.addEventListener('touchstart', e => {
+      if (e.target.closest('.trackGalleryWrapV401')) _galSwipeX = e.touches[0].clientX;
+    }, { passive: true });
+    area.addEventListener('touchend', e => {
+      if (!e.target.closest('.trackGalleryWrapV401')) return;
+      const dx = e.changedTouches[0].clientX - _galSwipeX;
+      if (Math.abs(dx) > 40) {
+        const active = area.querySelector('.trackThumbV401.isActiveV401');
+        const idx = active ? +active.dataset.idx : 0;
+        if (window._galleryGoTo) window._galleryGoTo(idx + (dx < 0 ? 1 : -1));
+      }
+    });
   })();
   </script>
 </body>
