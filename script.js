@@ -852,6 +852,7 @@ async function applyAuctionImport(){
     renderLotImportStatus(null, {});
     return;
   }
+  const priceBeforeFetch = $("lotPrice")?.value ?? "";
   const liveData = await fetchLiveLotData(data.original);
   data = mergeLotData(data, liveData || (getKnownLotData(data) || {}), {original:data.original});
 
@@ -864,7 +865,9 @@ async function applyAuctionImport(){
   if(data.fuel && $("fuel")) $("fuel").value = data.fuel;
   if(data.vehicleType && $("vehicleType")) $("vehicleType").value = data.vehicleType;
   if(data.engineLiters && $("engineLiters")) $("engineLiters").value = String(data.engineLiters);
-  if(data.currentBid && $("lotPrice")) $("lotPrice").value = String(Math.round(data.currentBid));
+  // Only overwrite lotPrice if the user hasn't changed it while the API call was in flight
+  if(data.currentBid && $("lotPrice") && $("lotPrice").value === priceBeforeFetch)
+    $("lotPrice").value = String(Math.round(data.currentBid));
   if($("exportDocs")) $("exportDocs").checked = needsExportDocuments(data);
   updateHybridGuard(data);
 
