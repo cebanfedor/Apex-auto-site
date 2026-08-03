@@ -1589,18 +1589,24 @@
 
   function injectSwitcher(lang){
     const nav = document.querySelector(".mainNavV82");
-    if(!nav || document.querySelector(".langSwitcherV165")) return;
-    const wrap = document.createElement("div");
-    wrap.className = "langSwitcherV165";
-    wrap.setAttribute("aria-label", "Language");
-    wrap.setAttribute("data-no-i18n", "true");
-    wrap.innerHTML = SUPPORTED.map(code => `<button type="button" data-lang="${code}" class="${code === lang ? "active" : ""}">${code.toUpperCase()}</button>`).join("");
-    wrap.addEventListener("click", event => {
+    if(!nav) return;
+    let wrap = document.querySelector(".langSwitcherV165");
+    if(!wrap){
+      wrap = document.createElement("div");
+      wrap.className = "langSwitcherV165";
+      wrap.setAttribute("aria-label", "Language");
+      wrap.setAttribute("data-no-i18n", "true");
+      wrap.innerHTML = SUPPORTED.map(code => `<button type="button" data-lang="${code}" class="${code === lang ? "active" : ""}">${code.toUpperCase()}</button>`).join("");
+      nav.appendChild(wrap);
+    }
+    // Bind click — replace any prior listener by cloning the node
+    const fresh = wrap.cloneNode(true);
+    wrap.parentNode.replaceChild(fresh, wrap);
+    fresh.addEventListener("click", event => {
       const button = event.target.closest("[data-lang]");
       if(!button) return;
       switchLang(button.dataset.lang);
     });
-    nav.appendChild(wrap);
   }
 
   function apply(lang){
