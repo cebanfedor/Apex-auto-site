@@ -1023,6 +1023,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(!$("calcForm")) return;
   initYears();initLiters();initLocations();refreshGlassSelects();calculate();fetchMdlRates();
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
+  // Prevent mouse wheel from changing number inputs while they're focused
+  $("calcForm").addEventListener("wheel",()=>{if(document.activeElement?.type==="number")document.activeElement.blur();},{passive:true});
   ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();calculate()}));
   if($("auction"))$("auction").addEventListener("change",()=>{if(calcMode==="canada"){initCanadaLocations();}else{initLocations();}calculate();});
