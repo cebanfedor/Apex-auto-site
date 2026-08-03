@@ -390,7 +390,7 @@
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.9); z-index: 9999;
       align-items: center; justify-content: center;
-      cursor: zoom-out;
+      cursor: zoom-out; overflow: hidden;
     }
     .trackLightboxV401.isOpenV401 {
       display: flex;
@@ -1078,7 +1078,7 @@
     <button class="trackLightboxArrowV401 isNextV401" id="lbNextV401" aria-label="Следующее">&#8250;</button>
     <button class="trackLightboxCloseV401" id="trackLightboxCloseV401" aria-label="Закрыть">&#215;</button>
     <div class="trackLbCounterV401" id="lbCounterV401"></div>
-    <span class="trackLbZoomTipV401">Прокрутите колесо или зажмите 2 пальца для увеличения</span>
+    <span class="trackLbZoomTipV401">Двойной клик · колесо мыши · 2 пальца — увеличение фото</span>
   </div>
   <script>
   (function(){
@@ -1168,6 +1168,20 @@
       const idx = activeThumb ? +activeThumb.dataset.idx : 0;
       if (src) openLightbox(src, idx);
     }, true);
+
+    // ── Desktop: double-click to zoom / reset ────────────
+    // On lb (not lbImg) so it fires even when the scaled image hits the backdrop area.
+    // 150ms debounce prevents two synthetic dblclick events (browser automation quirk)
+    // while being imperceptible to real users.
+    let _dblClickAt = 0;
+    lb.addEventListener('dblclick', function(e) {
+      if (e.target === lbClose || e.target === lbPrev || e.target === lbNext) return;
+      const now = Date.now();
+      if (now - _dblClickAt < 150) return;
+      _dblClickAt = now;
+      e.preventDefault();
+      if (_zoom > 1) { resetZoom(); } else { _zoom = 2.5; _panX = 0; _panY = 0; applyZoom(); }
+    });
 
     // ── Desktop: scroll to zoom ───────────────────────────
     lb.addEventListener('wheel', function(e) {
