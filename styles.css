@@ -469,14 +469,7 @@ details[open] > summary::before { content: "– "; }
 /* result card */
 .resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 18px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
 .resultCard .actions { margin-top: auto; }
-.ratesResultV414 { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.1); margin-top: 4px; }
-.ratesResultV414 .currencyMiniV374 { display: flex; gap: 5px; }
-.ratesResultV414 .currency { height: 28px; padding: 0 11px; font-size: 12.5px; border-radius: 8px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.15); cursor: pointer; font-weight: 600; transition: background .15s, color .15s; }
-.ratesResultV414 .currency.active { background: var(--red); color: #fff; border-color: var(--red); }
-.ratesResultV414 .ratesTopV375 { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.ratesResultV414 .rateFieldV374 label { color: rgba(255,255,255,.55); font-size: 12px; font-weight: 600; white-space: nowrap; flex: none; }
-.ratesResultV414 .rateFieldV374 input { background: rgba(255,255,255,.08); color: #e8eaee; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; height: 28px; padding: 0 8px; font-size: 13px; flex: 1; min-width: 0; }
-.ratesResultV414 .rateHintV404 { color: rgba(255,255,255,.35); font-size: 11px; margin: 0; width: 100%; }
+.ratesFormRowV414 { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; padding: 10px 0 2px; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
 .auctionBadge { padding: 4px 10px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
