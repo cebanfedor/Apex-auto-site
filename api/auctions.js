@@ -587,21 +587,6 @@ async function fetchSearch(query){
     throw lastError || new Error("Auctions search failed");
   };
 
-  // For "all" tab: fire a parallel buy_now=1 fetch — Buy Now lots have no
-  // scheduled sale_date so sale_date_in_days excludes them from the main query.
-  const tabForBN = query.get("tab") || "all";
-  let buyNowPromise = null;
-  if(tabForBN === "all") {
-    const bnP = new URLSearchParams(params);
-    bnP.delete("sale_date_in_days");
-    bnP.set("buy_now", "1");
-    bnP.set("per_page", "50");
-    const bnUrl = isAll
-      ? `${AUCTIONS_API_BASE}/cars?${bnP}`
-      : `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(bnP), domain})}`;
-    buyNowPromise = fetchJson(bnUrl).catch(() => null);
-  }
-
   // Safety net: if our injected date filter yields nothing (e.g. the feed has no
   // recently-dated lots), retry once without it so the catalog is never empty.
   const userDate = query.get("daysAhead") || query.get("auctionDateFrom") || query.get("auctionDateTo") || query.get("nextHours");
@@ -611,20 +596,6 @@ async function fetchSearch(query){
     params.delete("sale_date_in_days");
     result = await run();
     result._fallback = true;
-  }
-
-  // Merge buy_now lots into "all" tab result
-  if(buyNowPromise) {
-    const bnPayload = await buyNowPromise;
-    if(bnPayload) {
-      const bnItems = findItems(bnPayload)
-        .filter(item => !isAll || !isEncar(item))
-        .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
-        .filter(lot => String(lot.statusId) !== "6" && String(lot.statusId) !== "8");
-      const seen = new Set(result.items.map(l => l.id || l.lot));
-      const fresh = bnItems.filter(l => !seen.has(l.id || l.lot));
-      if(fresh.length) result.items = [...result.items, ...fresh];
-    }
   }
 
   return result;
