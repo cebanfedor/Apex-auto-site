@@ -400,10 +400,21 @@
     .trackLightboxImgV401 {
       max-width: 94vw; max-height: 94vh;
       object-fit: contain; border-radius: 10px;
-      cursor: default; user-select: none;
+      cursor: default; user-select: none; -webkit-user-select: none;
+      touch-action: none; will-change: transform;
       animation: lbZoomIn 0.18s ease;
     }
     @keyframes lbZoomIn { from { transform:scale(0.93); opacity:0 } to { transform:scale(1); opacity:1 } }
+    .trackLbZoomTipV401 {
+      position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.88);
+      font-size: 12px; padding: 5px 14px; border-radius: 20px;
+      pointer-events: none; white-space: nowrap; opacity: 0;
+    }
+    .trackLightboxV401.isOpenV401 .trackLbZoomTipV401 {
+      animation: lbTipFade 3.5s ease 0.5s forwards;
+    }
+    @keyframes lbTipFade { 0%{opacity:0} 20%{opacity:1} 65%{opacity:1} 100%{opacity:0} }
     .trackLightboxCloseV401 {
       position: absolute; top: 14px; right: 14px;
       width: 42px; height: 42px; border-radius: 50%;
@@ -1067,6 +1078,7 @@
     <button class="trackLightboxArrowV401 isNextV401" id="lbNextV401" aria-label="Следующее">&#8250;</button>
     <button class="trackLightboxCloseV401" id="trackLightboxCloseV401" aria-label="Закрыть">&#215;</button>
     <div class="trackLbCounterV401" id="lbCounterV401"></div>
+    <span class="trackLbZoomTipV401">Прокрутите колесо или зажмите 2 пальца для увеличения</span>
   </div>
   <script>
   (function(){
@@ -1079,6 +1091,21 @@
     const area    = document.getElementById('trackResultAreaV401');
     let _lbIdx = 0;
 
+    // ── Zoom / pan state ──────────────────────────────────
+    let _zoom = 1, _panX = 0, _panY = 0;
+
+    function applyZoom() {
+      lbImg.style.transform = `translate(${_panX}px,${_panY}px) scale(${_zoom})`;
+      lbImg.style.cursor = _zoom > 1 ? 'grab' : '';
+    }
+
+    function resetZoom() {
+      _zoom = 1; _panX = 0; _panY = 0;
+      lbImg.style.transform = '';
+      lbImg.style.cursor = '';
+    }
+
+    // ── Gallery helpers ───────────────────────────────────
     function getThumbs() {
       return [...area.querySelectorAll('.trackThumbV401')];
     }
@@ -1097,11 +1124,13 @@
       lb.classList.add('isOpenV401');
       document.body.style.overflow = 'hidden';
       updateLbState(idx || 0);
+      resetZoom();
     }
 
     function closeLightbox() {
       lb.classList.remove('isOpenV401');
       document.body.style.overflow = '';
+      resetZoom();
     }
 
     function lbNavigate(dir) {
@@ -1112,11 +1141,12 @@
       lbImg.src = src;
       if (window._galleryGoTo) window._galleryGoTo(newIdx);
       updateLbState(newIdx);
+      resetZoom();
     }
 
-    // Backdrop click closes (not on img/buttons)
+    // ── Standard controls ─────────────────────────────────
     lb.addEventListener('click', function(e) {
-      if (e.target === lb) closeLightbox();
+      if (e.target === lb && _zoom === 1) closeLightbox();
     });
     lbClose.addEventListener('click', closeLightbox);
     lbPrev.addEventListener('click', function(e) { e.stopPropagation(); lbNavigate(-1); });
@@ -1129,7 +1159,6 @@
       if (e.key === 'ArrowRight') lbNavigate(1);
     });
 
-    // Intercept clicks on the main gallery photo — open lightbox
     area.addEventListener('click', function(e) {
       const link = e.target.closest('.trackGalleryMainV401');
       if (!link) return;
@@ -1140,15 +1169,87 @@
       if (src) openLightbox(src, idx);
     }, true);
 
-    // Swipe to navigate in lightbox
-    let _lbSwipeX = 0;
-    lb.addEventListener('touchstart', e => { _lbSwipeX = e.touches[0].clientX; }, { passive: true });
-    lb.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - _lbSwipeX;
-      if (Math.abs(dx) > 40) lbNavigate(dx < 0 ? 1 : -1);
+    // ── Desktop: scroll to zoom ───────────────────────────
+    lb.addEventListener('wheel', function(e) {
+      if (!lb.classList.contains('isOpenV401')) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.15 : 0.87;
+      _zoom = Math.max(1, Math.min(6, _zoom * factor));
+      if (_zoom === 1) { _panX = 0; _panY = 0; }
+      applyZoom();
+    }, { passive: false });
+
+    // ── Mobile: pinch-to-zoom + pan + double-tap ──────────
+    let _pinchDist0 = 0, _pinchZoom0 = 1, _isPinching = false, _pinchEndAt = 0;
+    let _dragX0 = 0, _dragY0 = 0, _panX0 = 0, _panY0 = 0;
+    let _swipeStartX = 0, _tapLast = 0;
+
+    lb.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2) {
+        _isPinching = true;
+        _pinchDist0 = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        _pinchZoom0 = _zoom;
+        e.preventDefault();
+      } else if (e.touches.length === 1 && !_isPinching) {
+        const t = e.touches[0];
+        _swipeStartX = t.clientX;
+        if (_zoom > 1) {
+          _dragX0 = t.clientX; _dragY0 = t.clientY;
+          _panX0 = _panX; _panY0 = _panY;
+        }
+      }
+    }, { passive: false });
+
+    lb.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 2 && _isPinching) {
+        e.preventDefault();
+        const d = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        _zoom = Math.max(1, Math.min(6, _pinchZoom0 * (d / _pinchDist0)));
+        if (_zoom === 1) { _panX = 0; _panY = 0; }
+        applyZoom();
+      } else if (e.touches.length === 1 && _zoom > 1) {
+        e.preventDefault();
+        _panX = _panX0 + (e.touches[0].clientX - _dragX0);
+        _panY = _panY0 + (e.touches[0].clientY - _dragY0);
+        applyZoom();
+      }
+    }, { passive: false });
+
+    lb.addEventListener('touchend', function(e) {
+      if (_isPinching) {
+        if (e.touches.length < 2) { _isPinching = false; _pinchEndAt = Date.now(); }
+        return;
+      }
+      if (Date.now() - _pinchEndAt < 250) return; // ignore tap right after pinch
+      if (_zoom > 1) return; // when zoomed: no swipe/tap actions
+
+      const now = Date.now();
+      if (_tapLast && now - _tapLast < 300) {
+        // Double-tap → zoom in
+        _zoom = 2.5; _panX = 0; _panY = 0;
+        applyZoom();
+        _tapLast = 0;
+        return;
+      }
+      _tapLast = now;
+
+      // Single-finger swipe to navigate (only when not zoomed)
+      if (e.changedTouches.length > 0) {
+        const dx = e.changedTouches[0].clientX - _swipeStartX;
+        if (Math.abs(dx) > 44) {
+          lbNavigate(dx < 0 ? 1 : -1);
+          _tapLast = 0;
+        }
+      }
     });
 
-    // Swipe to navigate in main gallery
+    // ── Main gallery swipe ────────────────────────────────
     let _galSwipeX = 0;
     area.addEventListener('touchstart', e => {
       if (e.target.closest('.trackGalleryWrapV401')) _galSwipeX = e.touches[0].clientX;
