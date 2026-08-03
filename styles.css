@@ -467,8 +467,8 @@ details[open] > summary::before { content: "– "; }
 .bidAdvisorV138, .bidAdvisorWideV156, .smartLotAdviceV129 { display: none !important; }
 
 /* result card */
-.resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 18px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
-.resultCard .actions { margin-top: auto; }
+.resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 18px 18px 12px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
+.resultCard .actions { margin-top: 12px; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
 .auctionBadge { padding: 4px 10px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
@@ -1370,7 +1370,7 @@ details[open] > summary::before { content: "– "; }
 .fabWaV341 { background: #25D366; }
 
 /* ---- Canada Calculator toggle (v400) --------------------------------- */
-.countryToggleV400 { display: flex; gap: 8px; margin-bottom: 16px; }
+.countryToggleV400 { display: flex; gap: 8px; margin-bottom: 6px; }
 .countryBtn { flex: 1; height: 44px; border: 2px solid var(--line); border-radius: 12px; background: transparent; font-size: 14px; font-weight: 600; color: var(--ink-2); cursor: pointer; transition: border-color 0.18s, background 0.18s, color 0.18s; }
 .countryBtn.active { border-color: var(--red); background: var(--red-soft); color: var(--red); }
 .countryBtn:hover:not(.active) { border-color: var(--muted); }
