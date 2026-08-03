@@ -1178,19 +1178,21 @@ details > summary::-webkit-details-marker { display: none; }
   .headerPhoneV308 { padding: 0 10px; font-size: 12.5px; height: 34px; white-space: nowrap; }
 
   /* --- Hero: текст сверху, лицо справа -------------------------------- */
-  .heroV45.heroWideV302 { min-height: 260px; }
+  .heroV45.heroWideV302 { min-height: 310px; }
   .heroWideBgV302 { object-position: 60% center; }
   .heroWideOverlayV302 {
     background:
       linear-gradient(90deg, rgba(13,16,22,0.97) 0%, rgba(13,16,22,0.90) 38%, rgba(13,16,22,0.55) 65%, rgba(13,16,22,0.10) 100%),
       linear-gradient(180deg, rgba(13,16,22,0.40) 0%, rgba(13,16,22,0) 35%);
   }
-  .heroWideContentV302 { padding: 16px 18px 0; }
+  .heroWideContentV302 { padding: 16px 18px 20px; display: flex; flex-direction: column; flex: 1; }
+  .heroV45.heroWideV302 .heroMainV45 { display: flex; flex-direction: column; flex: 1; }
   .heroMainV45 h1 { font-size: 18px; line-height: 1.2; }
   .heroEyebrowV207 { display: none; }
   .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
   .heroMainV45 p { display: none; }
-  .heroCtasV207 { margin-top: 14px; gap: 8px; }
+  .heroCtasV207 { margin-top: auto; padding-top: 16px; gap: 8px; }
+  .heroBtnPrimaryV207 { height: 40px; padding: 0 20px; font-size: 14px; align-self: flex-start; }
   .heroBtnGhostV207 { display: none; }
   .heroTrustV207 { display: none; }
   .heroWideStatsV302 { display: none; }
