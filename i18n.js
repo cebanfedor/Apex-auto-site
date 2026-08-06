@@ -1609,15 +1609,19 @@
     });
   }
 
-  function apply(lang){
-    document.documentElement.lang = lang;
-    document.documentElement.dataset.lang = lang;
-    injectSwitcher(lang);
+  function applyTranslations(lang){
     walkText(document.body, lang);
     translateAttrs(lang);
     document.querySelectorAll(".langSwitcherV165 button").forEach(button => {
       button.classList.toggle("active", button.dataset.lang === lang);
     });
+  }
+
+  function apply(lang){
+    document.documentElement.lang = lang;
+    document.documentElement.dataset.lang = lang;
+    injectSwitcher(lang);
+    applyTranslations(lang);
   }
 
   // Switch language in place — no page reload (avoids the header/photo flicker).
@@ -1648,7 +1652,7 @@
     const observer = new MutationObserver(() => {
       if(currentLang === "ru") return;
       clearTimeout(timer);
-      timer = setTimeout(() => apply(currentLang), 60);
+      timer = setTimeout(() => applyTranslations(currentLang), 60);
     });
     observer.observe(document.body, {subtree:true, childList:true});
   });
