@@ -1643,6 +1643,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     apply(currentLang);
+    document.documentElement.classList.remove("i18n-pending");
     let timer = 0;
     const observer = new MutationObserver(() => {
       if(currentLang === "ru") return;
