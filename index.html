@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <script>(function(){var k="apex_lang",q=new URLSearchParams(location.search).get("lang")||"",s=localStorage.getItem(k)||"",raw=(q||s).toLowerCase(),l=raw.startsWith("ro")||raw.startsWith("mo")?"ro":raw.startsWith("en")?"en":"ru";if(l!=="ru")document.documentElement.classList.add("i18n-pending");})();</script>
+  <link rel="preconnect" href="https://www.googletagmanager.com">
+  <link rel="preconnect" href="https://www.google-analytics.com">
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
   <script>
@@ -28,6 +30,7 @@
   <meta name="twitter:image" content="https://apexauto.md/assets/og/index.png">
   <link rel="preconnect" href="https://www.googletagmanager.com">
   <link rel="preconnect" href="https://www.google-analytics.com">
+  <link rel="preload" as="image" href="/assets/hot/founder-auction.jpg" fetchpriority="high">
   <link rel="stylesheet" href="styles.css?v=v420">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="/manifest.json">
@@ -434,7 +437,7 @@
         </div>
         <div class="miniGrid">
           <input id="leadName" placeholder="Имя" autocomplete="given-name" required>
-          <input id="leadContact" inputmode="tel" placeholder="Телефон или Telegram" autocomplete="tel" required>
+          <input id="leadContact" inputmode="tel" placeholder="Телефон или @username в Telegram" autocomplete="tel" required>
         </div>
         <select id="leadBudget">
           <option value="">Бюджет (необязательно)</option>
