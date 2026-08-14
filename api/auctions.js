@@ -800,6 +800,15 @@ async function fetchSearch(query){
   // recently-dated lots), retry once without it so the catalog is never empty.
   const userDate = query.get("daysAhead") || query.get("auctionDateFrom") || query.get("auctionDateTo") || query.get("nextHours");
   const injectedDate = !userDate && params.get("sale_date_in_days");
+
+  // Eridan: Copart-only supplement. Start in parallel with primary for live tabs.
+  const tab = query.get("tab") || "all";
+  const canUseEridan = Boolean(process.env.ERIDAN_USERNAME && process.env.ERIDAN_PASSWORD)
+    && tab !== "sold" && tab !== "archived";
+  const eridanPromise = canUseEridan
+    ? fetchEridanSearch(query).catch(() => null)
+    : Promise.resolve(null);
+
   let result;
   try {
     result = await run();
@@ -809,14 +818,19 @@ async function fetchSearch(query){
       result._fallback = true;
     }
   } catch(primaryErr) {
-    if(process.env.ERIDAN_USERNAME && process.env.ERIDAN_PASSWORD){
-      try {
-        result = await fetchEridanSearch(query);
-      } catch(_) {
-        throw primaryErr;
-      }
-    } else {
-      throw primaryErr;
+    // Primary failed — use Eridan as sole source if available
+    const eridanResult = await eridanPromise;
+    if(eridanResult){ return eridanResult; }
+    throw primaryErr;
+  }
+
+  // Primary succeeded — merge unique Eridan lots (dedupe by id)
+  if(canUseEridan){
+    const eridanResult = await eridanPromise;
+    if(eridanResult && eridanResult.items && eridanResult.items.length){
+      const seen = new Set(result.items.map(l => l.id));
+      const fresh = eridanResult.items.filter(l => !seen.has(l.id));
+      if(fresh.length) result.items = [...result.items, ...fresh];
     }
   }
 
