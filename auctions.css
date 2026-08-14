@@ -46,7 +46,7 @@
 .auctionSearchRowV2 #auctionSearchBtn { height:38px; padding:0 22px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; }
 .auctionSearchRowV2 #auctionSearchBtn:hover { background:var(--aRed600); }
 
-.auctionCountV1 { font-size:13px; color:var(--aMuted); white-space:nowrap; }
+.auctionCountV1 { font-size:13px; color:var(--aMuted); white-space:normal; overflow-wrap:anywhere; max-width:100%; }
 .auctionCountV1 b { color:var(--aInk); font-size:16px; }
 
 /* Layout */
