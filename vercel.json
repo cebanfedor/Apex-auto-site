@@ -17,7 +17,13 @@
     { "source": "/shipping", "destination": "/shipping.html" },
     { "source": "/tesla-model-3", "destination": "/tesla-model-3.html" },
     { "source": "/ro/vamuirea-auto", "destination": "/ro-vamuirea-auto.html" },
-    { "source": "/ro/ghid-auto-sua", "destination": "/ro-ghid-auto-sua.html" }
+    { "source": "/ro/ghid-auto-sua", "destination": "/ro-ghid-auto-sua.html" },
+    { "source": "/ro/blog", "destination": "/ro-blog.html" },
+    { "source": "/ro/taxele-licitatiilor", "destination": "/ro-taxele-licitatiilor.html" },
+    { "source": "/ro/verificare-vin", "destination": "/ro-verificare-vin.html" },
+    { "source": "/ro/daune-auto", "destination": "/ro-daune-auto.html" },
+    { "source": "/ro/transport-maritim", "destination": "/ro-transport-maritim.html" },
+    { "source": "/ro/tesla-model-3", "destination": "/ro-tesla-model-3.html" }
   ],
   "headers": [
     {
