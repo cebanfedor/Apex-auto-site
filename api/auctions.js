@@ -754,12 +754,11 @@ async function fetchSearch(query){
   // "all" → omit domain_id so Copart (3) + IAAI (1) come together (domain_id
   // does not accept a CSV). Encar/Korea (12) is filtered out below.
   if(!isAll) params.set("domain_id", auctionsApiDomainId(auction));
-  // When fetching all auctions, Encar lots are filtered after the API returns.
-  // Request extra items so the final page still shows ~50 after Encar removal.
-  if(isAll){
-    const base = safeNumber(params.get("per_page")) || 50;
-    params.set("per_page", String(Math.min(base + 50, 300)));
-  }
+  // Demo-mode limit: max per_page=50. Clamp to avoid 400 errors.
+  // Remove this cap if the auctionsapi.com plan is upgraded to paid.
+  const API_MAX_PER_PAGE = 50;
+  const requestedPerPage = safeNumber(params.get("per_page")) || 50;
+  params.set("per_page", String(Math.min(requestedPerPage, API_MAX_PER_PAGE)));
   const isEncar = it => { const d = it && it.domain; const id = d && d.id; const nm = String((d && d.name) || d || "").toLowerCase(); return id === 12 || nm.includes("encar") || nm.includes("korea"); };
   const perPage = safeNumber(query.get("per_page") || query.get("limit") || 50) || 50;
 
@@ -1158,7 +1157,6 @@ module.exports = async function handler(request, response){
       error:error.status === 500
         ? "Не удалось загрузить реальные лоты AuctionsAPI. Проверьте AUCTIONS_API_KEY или попробуйте позже."
         : "Не удалось загрузить реальные лоты AuctionsAPI. Попробуйте позже.",
-      _debug: error.message, _url: error.apiUrl
     });
   }
 };
