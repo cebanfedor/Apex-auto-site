@@ -530,10 +530,220 @@ async function fetchJson(url){
   if(!response.ok || payload?.error){
     const error = new Error(payload?.message || payload?.error || "Auctions API request failed");
     error.status = response.status;
+    error.apiUrl = url.replace(key, "***");
     throw error;
   }
   return payload;
 }
+
+// ── Eridan API (Copart fallback) ─────────────────────────────────────────
+// Env vars required: ERIDAN_USERNAME, ERIDAN_PASSWORD
+// Covers only Copart lots. Used when auctionsapi.com is unavailable.
+const ERIDAN_BASE = "https://eridan-catalog.com/api";
+let eridanMem = {token:null, expiry:0};
+
+async function getEridanToken(){
+  if(eridanMem.token && Date.now() < eridanMem.expiry) return eridanMem.token;
+  try{
+    const cached = await getDbCache("eridan:token");
+    if(cached && cached.token && new Date(cached.expiry) > new Date()){
+      eridanMem = {token:cached.token, expiry:new Date(cached.expiry).getTime()};
+      return eridanMem.token;
+    }
+  }catch(_){}
+  const user = process.env.ERIDAN_USERNAME;
+  const pass = process.env.ERIDAN_PASSWORD;
+  if(!user || !pass){
+    const err = new Error("ERIDAN_USERNAME / ERIDAN_PASSWORD not configured");
+    err.status = 500;
+    throw err;
+  }
+  const res = await fetch(`${ERIDAN_BASE}/auth/login/`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({username:user, password:pass})
+  });
+  const data = await res.json().catch(() => null);
+  if(!res.ok || !data?.token){
+    const err = new Error(data?.detail || "Eridan auth failed");
+    err.status = 502;
+    throw err;
+  }
+  const expiry = new Date(Date.now() + 23 * 60 * 60 * 1000);
+  eridanMem = {token:data.token, expiry:expiry.getTime()};
+  setDbCache("eridan:token", {token:data.token, expiry:expiry.toISOString()}, "_default").catch(() => {});
+  return data.token;
+}
+
+async function eridanFetch(path, token){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  let res;
+  try{
+    res = await fetch(`${ERIDAN_BASE}${path}`, {
+      headers:{"Authorization":`Token ${token}`, "Accept":"application/json"},
+      signal:controller.signal
+    });
+  }catch(e){
+    const err = new Error(e.name === "AbortError" ? "Eridan timeout" : "Eridan connection error");
+    err.status = 502;
+    throw err;
+  }finally{ clearTimeout(timer); }
+  if(res.status === 401){
+    eridanMem = {token:null, expiry:0};
+    const err = new Error("Eridan token expired");
+    err.status = 401;
+    throw err;
+  }
+  const json = await res.json().catch(() => null);
+  if(!res.ok){
+    const err = new Error(json?.detail || "Eridan API error");
+    err.status = res.status;
+    throw err;
+  }
+  return json;
+}
+
+function normalizeEridanLot(item){
+  const lotId = String(item.lot_id || item.id || "");
+  const make = item.make?.name || "";
+  const model = item.model?.name || "";
+  const year = Number(item.year) || 0;
+  const title = item.name || [year, make, model].filter(Boolean).join(" ") || "Автомобиль";
+  const city = item.city?.name || "";
+  const state = item.state?.code || item.state?.name || "";
+  const location = [city, state].filter(Boolean).join(", ");
+  const odometer = Math.round(Number(item.odometer) || 0);
+  const primaryDamage = item.primary_damage?.name || "";
+  const secondaryDamage = item.secondary_damage?.name || "";
+  const currentBid = Math.round(Number(item.current_bid) || 0);
+  const buyNow = Math.round(Number(item.buy_now_price) || 0);
+  const engineSize = Number(item.engine_type?.size) || 0;
+  const engineDisplay = item.engine_type?.display_name || (engineSize > 0 ? `${engineSize.toFixed(1)}L` : "");
+  const cylinders = Number(item.engine_type?.cylinders) > 0 ? String(item.engine_type.cylinders) : "";
+  const hasKeys = item.has_keys;
+  const keysStr = hasKeys === "YES" || hasKeys === true ? "Да"
+    : hasKeys === "NO" || hasKeys === false ? "Нет"
+    : String(hasKeys || "");
+  const images = [
+    ...(item.high_res_images || []),
+    ...(item.full_images    || []),
+    ...(item.thumbnail_images || [])
+  ].filter((v, i, a) => v && typeof v === "string" && a.indexOf(v) === i);
+
+  return {
+    id:`copart-${lotId}`,
+    auction:"copart",
+    title,
+    year,
+    make,
+    model,
+    makeId:item.make?.id || null,
+    modelId:item.model?.id || null,
+    generationId:null,
+    engineId:null,
+    vin:item.vin || "",
+    lot:lotId,
+    url:item.url || (lotId ? `https://www.copart.com/lot/${lotId}` : ""),
+    location,
+    auctionDate:item.sale_date || "",
+    currentBid,
+    finalBid:item.is_sold ? currentBid : 0,
+    buyNow,
+    odometer,
+    odometerKm:0,
+    odometerText:odometer ? `${odometer.toLocaleString("en-US")} mi` : "",
+    odometerStatus:item.odometer_status?.name || "",
+    primaryDamage,
+    secondaryDamage,
+    damage:[primaryDamage, secondaryDamage].filter(Boolean).join(" / "),
+    document:item.document?.title || "",
+    titleStatus:item.document?.title || "",
+    saleType:"",
+    fuel:item.fuel_type?.name || "",
+    engine:engineDisplay,
+    transmission:item.transmission_type?.name || "",
+    drive:driveLabel(item.drive_type?.name),
+    body:item.body_style?.name || item.vehicle_type?.name || "",
+    cylinders,
+    color:item.color?.name || "",
+    keys:keysStr,
+    video:"",
+    estimatedRetailValue:Math.round(Number(item.est_retail_value) || 0),
+    preAccidentPrice:0,
+    cleanWholesalePrice:0,
+    seller:"",
+    sellerType:"",
+    condition:item.highlight?.title || "",
+    priceHistory:[],
+    photoCount:images.length,
+    lotStatus:item.is_sold ? "sold" : "live",
+    statusName:item.is_sold ? "Sold" : "Live",
+    statusId:item.is_sold ? 6 : null,
+    saleStatus:"",
+    saleStatusKey:"",
+    timed:false,
+    images,
+    image:images[0] || item.thumb || ""
+  };
+}
+
+async function fetchEridanSearch(query){
+  let token = await getEridanToken();
+
+  const buildEridanParams = () => {
+    const p = new URLSearchParams();
+    const make = query.get("make");
+    if(make && !/^\d/.test(make)) p.set("make__name", make);
+    const model = query.get("model");
+    if(model && !/^\d/.test(model)) p.set("model__name", model);
+    const yearFrom = query.get("yearFrom"); if(yearFrom) p.set("year_from", yearFrom);
+    const yearTo   = query.get("yearTo");   if(yearTo)   p.set("year_to",   yearTo);
+    const mileFrom = query.get("mileageFrom"); if(mileFrom) p.set("odometer_from", mileFrom);
+    const mileTo   = query.get("mileageTo");   if(mileTo)   p.set("odometer_to",   mileTo);
+    const fuel     = query.get("fuel");        if(fuel)     p.set("fuel_type__name", fuel);
+    p.set("page", query.get("page") || "1");
+    const sortMap = {
+      soon:"sale_date", date_asc:"sale_date", date_desc:"-sale_date",
+      year_asc:"year",  year_desc:"-year",
+      mileage_asc:"odometer", mileage_desc:"-odometer"
+    };
+    const ordering = sortMap[query.get("sort") || "soon"];
+    if(ordering) p.set("ordering", ordering);
+    return p;
+  };
+
+  const doSearch = async (tok) => {
+    const data = await eridanFetch(`/copart/lots/?${buildEridanParams()}`, tok);
+    const tab = query.get("tab") || "all";
+    const wantsPast = tab === "sold" || tab === "archived";
+    const results = Array.isArray(data.results) ? data.results : [];
+    const items = results
+      .map(normalizeEridanLot)
+      .filter(lot => wantsPast ? String(lot.statusId) === "6" : String(lot.statusId) !== "6");
+    return {
+      items,
+      total:data.count || items.length,
+      shown:items.length,
+      page:Number(query.get("page") || 1),
+      perPage:50,
+      hasMore:Boolean(data.next),
+      _source:"eridan"
+    };
+  };
+
+  try{
+    return await doSearch(token);
+  }catch(e){
+    if(e.status === 401){
+      eridanMem = {token:null, expiry:0};
+      token = await getEridanToken();
+      return await doSearch(token);
+    }
+    throw e;
+  }
+}
+// ── end Eridan ────────────────────────────────────────────────────────────
 
 async function fetchSearch(query){
   const rawAuction = String(query.get("auction") || "").toLowerCase();
@@ -591,11 +801,24 @@ async function fetchSearch(query){
   // recently-dated lots), retry once without it so the catalog is never empty.
   const userDate = query.get("daysAhead") || query.get("auctionDateFrom") || query.get("auctionDateTo") || query.get("nextHours");
   const injectedDate = !userDate && params.get("sale_date_in_days");
-  let result = await run();
-  if(!result.items.length && injectedDate){
-    params.delete("sale_date_in_days");
+  let result;
+  try {
     result = await run();
-    result._fallback = true;
+    if(!result.items.length && injectedDate){
+      params.delete("sale_date_in_days");
+      result = await run();
+      result._fallback = true;
+    }
+  } catch(primaryErr) {
+    if(process.env.ERIDAN_USERNAME && process.env.ERIDAN_PASSWORD){
+      try {
+        result = await fetchEridanSearch(query);
+      } catch(_) {
+        throw primaryErr;
+      }
+    } else {
+      throw primaryErr;
+    }
   }
 
   return result;
@@ -934,7 +1157,8 @@ module.exports = async function handler(request, response){
       ok:false,
       error:error.status === 500
         ? "Не удалось загрузить реальные лоты AuctionsAPI. Проверьте AUCTIONS_API_KEY или попробуйте позже."
-        : "Не удалось загрузить реальные лоты AuctionsAPI. Попробуйте позже."
+        : "Не удалось загрузить реальные лоты AuctionsAPI. Попробуйте позже.",
+      _debug: error.message, _url: error.apiUrl
     });
   }
 };
