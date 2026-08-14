@@ -23,7 +23,9 @@
     { "source": "/ro/verificare-vin", "destination": "/ro-verificare-vin.html" },
     { "source": "/ro/daune-auto", "destination": "/ro-daune-auto.html" },
     { "source": "/ro/transport-maritim", "destination": "/ro-transport-maritim.html" },
-    { "source": "/ro/tesla-model-3", "destination": "/ro-tesla-model-3.html" }
+    { "source": "/ro/tesla-model-3", "destination": "/ro-tesla-model-3.html" },
+    { "source": "/ship-my-car", "destination": "/ship-my-car.html" },
+    { "source": "/ro/transport-masina-personala", "destination": "/ro-transport-masina-personala.html" }
   ],
   "headers": [
     {
