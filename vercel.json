@@ -15,7 +15,9 @@
     { "source": "/blog", "destination": "/blog.html" },
     { "source": "/damages", "destination": "/damages.html" },
     { "source": "/shipping", "destination": "/shipping.html" },
-    { "source": "/tesla-model-3", "destination": "/tesla-model-3.html" }
+    { "source": "/tesla-model-3", "destination": "/tesla-model-3.html" },
+    { "source": "/ro/vamuirea-auto", "destination": "/ro-vamuirea-auto.html" },
+    { "source": "/ro/ghid-auto-sua", "destination": "/ro-ghid-auto-sua.html" }
   ],
   "headers": [
     {
