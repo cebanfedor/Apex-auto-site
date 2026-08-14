@@ -536,13 +536,19 @@ async function fetchJson(url){
   return payload;
 }
 
-// ── Eridan API (Copart fallback) ─────────────────────────────────────────
-// Env vars required: ERIDAN_USERNAME, ERIDAN_PASSWORD
-// Covers only Copart lots. Used when auctionsapi.com is unavailable.
+// ── Eridan API (Copart supplement) ───────────────────────────────────────
+// Auth: ERIDAN_TOKEN (static API token, preferred) OR ERIDAN_USERNAME +
+// ERIDAN_PASSWORD (token is then obtained via /auth/login/ and cached).
+// Covers only Copart lots.
 const ERIDAN_BASE = "https://eridan-catalog.com/api";
 let eridanMem = {token:null, expiry:0};
 
+function eridanConfigured(){
+  return Boolean(process.env.ERIDAN_TOKEN || (process.env.ERIDAN_USERNAME && process.env.ERIDAN_PASSWORD));
+}
+
 async function getEridanToken(){
+  if(process.env.ERIDAN_TOKEN) return process.env.ERIDAN_TOKEN;
   if(eridanMem.token && Date.now() < eridanMem.expiry) return eridanMem.token;
   try{
     const cached = await getDbCache("eridan:token");
@@ -554,7 +560,7 @@ async function getEridanToken(){
   const user = process.env.ERIDAN_USERNAME;
   const pass = process.env.ERIDAN_PASSWORD;
   if(!user || !pass){
-    const err = new Error("ERIDAN_USERNAME / ERIDAN_PASSWORD not configured");
+    const err = new Error("Eridan auth is not configured (ERIDAN_TOKEN or ERIDAN_USERNAME/ERIDAN_PASSWORD)");
     err.status = 500;
     throw err;
   }
@@ -576,19 +582,24 @@ async function getEridanToken(){
 }
 
 async function eridanFetch(path, token){
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
+  // The API schema declares bearer auth, but Django-style backends usually
+  // expect the "Token" prefix — try Token first, then Bearer on 401.
   let res;
-  try{
-    res = await fetch(`${ERIDAN_BASE}${path}`, {
-      headers:{"Authorization":`Token ${token}`, "Accept":"application/json"},
-      signal:controller.signal
-    });
-  }catch(e){
-    const err = new Error(e.name === "AbortError" ? "Eridan timeout" : "Eridan connection error");
-    err.status = 502;
-    throw err;
-  }finally{ clearTimeout(timer); }
+  for(const prefix of ["Token", "Bearer"]){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try{
+      res = await fetch(`${ERIDAN_BASE}${path}`, {
+        headers:{"Authorization":`${prefix} ${token}`, "Accept":"application/json"},
+        signal:controller.signal
+      });
+    }catch(e){
+      const err = new Error(e.name === "AbortError" ? "Eridan timeout" : "Eridan connection error");
+      err.status = 502;
+      throw err;
+    }finally{ clearTimeout(timer); }
+    if(res.status !== 401) break;
+  }
   if(res.status === 401){
     eridanMem = {token:null, expiry:0};
     const err = new Error("Eridan token expired");
@@ -803,8 +814,7 @@ async function fetchSearch(query){
 
   // Eridan: Copart-only supplement. Start in parallel with primary for live tabs.
   const tab = query.get("tab") || "all";
-  const canUseEridan = Boolean(process.env.ERIDAN_USERNAME && process.env.ERIDAN_PASSWORD)
-    && tab !== "sold" && tab !== "archived";
+  const canUseEridan = eridanConfigured() && tab !== "sold" && tab !== "archived";
   const eridanPromise = canUseEridan
     ? fetchEridanSearch(query).catch(() => null)
     : Promise.resolve(null);
