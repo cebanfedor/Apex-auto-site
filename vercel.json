@@ -10,7 +10,8 @@
     { "source": "/hot", "destination": "/hot.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
-    { "source": "/auction-fees", "destination": "/auction-fees.html" }
+    { "source": "/auction-fees", "destination": "/auction-fees.html" },
+    { "source": "/vin-check", "destination": "/vin-check.html" }
   ],
   "headers": [
     {
