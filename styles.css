@@ -667,6 +667,20 @@ details > summary::-webkit-details-marker { display: none; }
   box-shadow: var(--shadow-red); transition: background .18s, transform .18s; }
 .reviewsCtaV305:hover { background: var(--red-600); transform: translateY(-1px); }
 
+/* ---- Google reviews badge + CTA row (v430) --------------------------- */
+.gRatingBadgeV430 { display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
+  padding: 10px 18px; background: #fff; border: 1px solid var(--line); border-radius: 999px;
+  box-shadow: var(--shadow-sm); text-decoration: none; transition: box-shadow .18s, transform .18s; }
+.gRatingBadgeV430:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.gRatingBadgeV430 b { font-size: 17px; font-weight: 800; color: var(--ink); }
+.gRatingStarsV430 { color: #ffb400; font-size: 15px; letter-spacing: 2px; }
+.gRatingCountV430 { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.reviewsCtaRowV430 { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; }
+.reviewsCtaGhostV430 { display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 26px; margin-top: 26px;
+  border-radius: 12px; background: #fff; border: 1px solid var(--line); color: var(--ink); font-weight: 700; font-size: 15px;
+  box-shadow: var(--shadow-sm); transition: box-shadow .18s, transform .18s; }
+.reviewsCtaGhostV430:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
 /* ---- Sea delivery band (v305) --------------------------------------- */
 .seaDeliveryV305 { position: relative; overflow: hidden; isolation: isolate;
   border-radius: var(--radius-lg); margin: 52px auto; min-height: 364px;
