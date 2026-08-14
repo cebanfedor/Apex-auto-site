@@ -514,6 +514,10 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbWhen { align-items:flex-start; }
   .auctionDetailPanelV1 { padding:18px; }
   .dSec { grid-template-columns:fit-content(110px) 1fr; column-gap:10px; }
+  /* Lot detail header: stack title and action buttons vertically */
+  .detailHeaderV1 { flex-direction:column; align-items:stretch; gap:14px; }
+  .dHeadActionsV1 { width:100%; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { flex:1 1 45%; justify-content:center; height:42px; padding:0 10px; }
 }
 
 /* Stale-while-revalidate: dim existing cards while new data loads */
