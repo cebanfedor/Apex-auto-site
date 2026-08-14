@@ -9,7 +9,8 @@
     { "source": "/contacts", "destination": "/contacts.html" },
     { "source": "/hot", "destination": "/hot.html" },
     { "source": "/guide", "destination": "/guide.html" },
-    { "source": "/customs", "destination": "/customs.html" }
+    { "source": "/customs", "destination": "/customs.html" },
+    { "source": "/auction-fees", "destination": "/auction-fees.html" }
   ],
   "headers": [
     {
