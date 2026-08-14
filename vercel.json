@@ -14,7 +14,8 @@
     { "source": "/vin-check", "destination": "/vin-check.html" },
     { "source": "/blog", "destination": "/blog.html" },
     { "source": "/damages", "destination": "/damages.html" },
-    { "source": "/shipping", "destination": "/shipping.html" }
+    { "source": "/shipping", "destination": "/shipping.html" },
+    { "source": "/tesla-model-3", "destination": "/tesla-model-3.html" }
   ],
   "headers": [
     {
