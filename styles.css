@@ -1139,6 +1139,13 @@ details > summary::-webkit-details-marker { display: none; }
 .footerStats div b { display: block; color: #fff; font-size: 16px; }
 .footerStats div span { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
 .footerContacts { display: flex; flex-direction: column; gap: 10px; }
+.footerSocialV432 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  margin-top: 10px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.12); }
+.footerSocialV432 b { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
+.footerSocialV432 a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16); color: rgba(255,255,255,0.85); font-size: 13.5px; font-weight: 600;
+  text-decoration: none; transition: background .18s, border-color .18s; }
+.footerSocialV432 a:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.3); }
 .contactBtn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; color: #fff; font-weight: 600; font-size: 14px; transition: background 0.18s; }
 .contactBtn:hover { background: rgba(255, 255, 255, 0.13); }
 .footerPrivacyV365 { font-size: 12px; font-weight: 400; opacity: .55; padding: 7px 14px; }
