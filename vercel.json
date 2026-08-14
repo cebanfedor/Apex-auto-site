@@ -12,7 +12,8 @@
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },
     { "source": "/vin-check", "destination": "/vin-check.html" },
-    { "source": "/blog", "destination": "/blog.html" }
+    { "source": "/blog", "destination": "/blog.html" },
+    { "source": "/damages", "destination": "/damages.html" }
   ],
   "headers": [
     {
