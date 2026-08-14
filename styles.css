@@ -86,7 +86,7 @@ input, select, textarea { font-family: inherit; }
 .container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
 .homeMainV201 { display: block; width: 100%; }
 .heroV45, #calculator.layout, .calcInfoPlainV52, .apexProcessV205, .apexWhyV212,
-.apexReviewsV212, .apexFaqV205, .hotSectionIntroV89, .hotLots, .seaDeliveryV305,
+.apexReviewsV212, .apexFaqV205, .apexSeoV431, .hotSectionIntroV89, .hotLots, .seaDeliveryV305,
 .leadSection, .checkSection,
 .pageHeroV82, .aboutPageV82, .hotPageV101, .contactsHeroV110, .contactsPageV110 {
   width: calc(100% - 48px); max-width: var(--maxw); margin-left: auto; margin-right: auto;
@@ -680,6 +680,16 @@ details > summary::-webkit-details-marker { display: none; }
   border-radius: 12px; background: #fff; border: 1px solid var(--line); color: var(--ink); font-weight: 700; font-size: 15px;
   box-shadow: var(--shadow-sm); transition: box-shadow .18s, transform .18s; }
 .reviewsCtaGhostV430:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
+/* ---- SEO text section (v431) ----------------------------------------- */
+.apexSeoV431 { padding: 40px 0 56px; }
+.apexSeoV431 h2 { margin-top: 6px; }
+.apexSeoGridV431 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px 32px; margin-top: 26px; }
+.apexSeoGridV431 h3 { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 8px; }
+.apexSeoGridV431 p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-2); }
+.apexSeoGridV431 a { color: var(--red); font-weight: 600; text-decoration: none; }
+.apexSeoGridV431 a:hover { text-decoration: underline; }
+@media (max-width: 860px){ .apexSeoGridV431 { grid-template-columns: 1fr; gap: 20px; } }
 
 /* ---- Sea delivery band (v305) --------------------------------------- */
 .seaDeliveryV305 { position: relative; overflow: hidden; isolation: isolate;
