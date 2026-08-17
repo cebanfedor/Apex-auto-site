@@ -17,6 +17,10 @@
 - [Проверка VIN](https://apexauto.md/vin-check): Carfax, AutoCheck, EpicVIN, красные флаги в истории авто
 - [Опасные и безопасные повреждения](https://apexauto.md/damages): какие лоты выгодны, почему град — ловушка, а Flood/Burn бывают лучше битых
 - [Маршруты доставки](https://apexauto.md/shipping): сравнение портов Клайпеда, Констанца, Бремерхафен, Роттердам
+- [Tesla Model 3 из США](https://apexauto.md/tesla-model-3): модельный расчёт под ключ с реальными ценами торгов
+- [США vs Европа](https://apexauto.md/usa-vs-europe): честное сравнение двух путей импорта для Молдовы
+- [Отправка личного авто из США](https://apexauto.md/ship-my-car): для молдаван, работающих в Америке — забор от дома или склад, доставка до Кишинёва
+- [Versiunea în română](https://apexauto.md/ro/blog): ghiduri complete în limba română — vămuirea, licitațiile, VIN, logistica
 
 ## Контакты
 
