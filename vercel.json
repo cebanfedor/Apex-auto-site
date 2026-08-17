@@ -26,7 +26,8 @@
     { "source": "/ro/tesla-model-3", "destination": "/ro-tesla-model-3.html" },
     { "source": "/ship-my-car", "destination": "/ship-my-car.html" },
     { "source": "/ro/transport-masina-personala", "destination": "/ro-transport-masina-personala.html" },
-    { "source": "/usa-vs-europe", "destination": "/usa-vs-europe.html" }
+    { "source": "/usa-vs-europe", "destination": "/usa-vs-europe.html" },
+    { "source": "/toyota-rav4", "destination": "/toyota-rav4.html" }
   ],
   "headers": [
     {
