@@ -70,6 +70,16 @@ async function getDbCache(key){
   }catch(_){ return null; }
 }
 
+// Stale read: same row, but ignores expires_at — used when the upstream API is down/rate-limited.
+async function getDbCacheStale(key){
+  try{
+    const rows = await supabase.list("api_cache", {
+      cache_key:`eq.${key}`, select:"data", limit:1
+    });
+    return rows && rows[0] ? rows[0].data : null;
+  }catch(_){ return null; }
+}
+
 async function setDbCache(key, data, action){
   try{
     const ttl = DB_TTL[action] || DB_TTL._default;
@@ -1169,6 +1179,16 @@ module.exports = async function handler(request, response){
 
     sendJson(response, 404, {ok:false,error:"Unknown auctions action"});
   }catch(error){
+    // Upstream failed (rate limit or outage): serve stale Supabase cache if we have it —
+    // slightly old lots beat an empty catalog.
+    if(action === "search" || action === "detail" || action === "vin"){
+      const stale = await getDbCacheStale(key);
+      if(stale && stale.ok){
+        setCached(key, stale, 120 * 1000);
+        sendJson(response, 200, {...stale, stale:true});
+        return;
+      }
+    }
     // 429 rate-limit: return 200 so Vercel CDN caches the response and stops hammering auctionsapi.com.
     // Other errors return their status so CDN doesn't cache them.
     if(error.status === 429){
