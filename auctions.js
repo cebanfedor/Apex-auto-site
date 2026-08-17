@@ -1102,6 +1102,14 @@
   }
 
   function renderDetail(lot){
+    // Keep the address bar shareable: VIN/lot search renders the detail in place,
+    // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
+    try{
+      if(lot && lot.auction && lot.lot){
+        const href = detailHref(lot);
+        if(location.pathname !== href) history.pushState({apexLot:1}, "", href);
+      }
+    }catch(e){}
     const images = lot.images?.length ? lot.images : [lot.image].filter(Boolean);
     const title = lotTitle(lot);
     const dmgParts = String(lot.damage || "").split("/").map(s => s.trim()).filter(Boolean);
@@ -1286,6 +1294,8 @@
         </div>`;
     }
   }
+
+  window.addEventListener("popstate", () => { location.reload(); });
 
   function triggerSearch(){
     const vin = String($("#auctionVinSearch")?.value || "").replace(/[^A-Za-z0-9]/g, "");
