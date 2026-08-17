@@ -111,9 +111,8 @@
     if(p.get("tab")){ state.tab = p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); }
     if(p.get("auction")){ state.auction = p.get("auction"); setActive("[data-auction-switch]", "data-auction-switch", state.auction); }
     if(p.get("sort") && $("#auctionSort")) $("#auctionSort").value = p.get("sort");
-    if(p.get("name") && $("#auctionMakeSearch")) $("#auctionMakeSearch").value = p.get("name");
-    if(p.get("vin") && $("#auctionVinSearch")) $("#auctionVinSearch").value = p.get("vin");
-    if(p.get("q") && $("#auctionLotSearch")) $("#auctionLotSearch").value = p.get("q");
+    const smartPrefill = p.get("vin") || p.get("q") || p.get("name") || p.get("make");
+    if(smartPrefill && $("#auctionSmartSearch")) $("#auctionSmartSearch").value = smartPrefill;
     const form = $("#auctionFiltersForm");
     if(form) for(const [k, v] of p.entries()){
       const radios = form.querySelectorAll(`[name="${k}"]`);
@@ -173,16 +172,25 @@
     return payload;
   }
 
+  // One smart search box: VIN (11+ alnum with letters+digits) → vin,
+  // pure 6-10 digit number → lot, anything else → make/model title search.
+  function parseSmartSearch(raw){
+    const value = String(raw || "").trim();
+    if(!value) return {};
+    const compact = value.replace(/[^A-Za-z0-9]/g, "");
+    if(compact.length >= 11 && /[A-Za-z]/.test(compact) && /\d/.test(compact) && !/\s/.test(value)) return {vin:compact};
+    if(/^\d{6,10}$/.test(compact) && /^[\d\s-]+$/.test(value)) return {lot:compact};
+    return {name:value};
+  }
+
   function formParams(){
     const form = $("#auctionFiltersForm");
     const params = new URLSearchParams(new FormData(form));
-    // Top search bar: make/model text → "name" (title search), VIN → vin, LOT → search_query.
-    const nameText = [$("#auctionMakeSearch")?.value.trim(), $("#auctionModelSearch")?.value.trim()].filter(Boolean).join(" ");
-    const vin = $("#auctionVinSearch")?.value.trim();
-    const lot = $("#auctionLotSearch")?.value.trim();
-    if(nameText) params.set("name", nameText);
-    if(vin) params.set("vin", vin);
-    if(lot) params.set("q", lot);
+    // Top smart search: VIN → vin, lot number → search_query, text → "name" (title search).
+    const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
+    if(smart.vin) params.set("vin", smart.vin);
+    else if(smart.lot) params.set("q", smart.lot);
+    else if(smart.name) params.set("name", smart.name);
     params.set("auction", state.auction);
     params.set("tab", state.tab);
     params.set("sort", $("#auctionSort").value);
@@ -1298,10 +1306,9 @@
   window.addEventListener("popstate", () => { location.reload(); });
 
   function triggerSearch(){
-    const vin = String($("#auctionVinSearch")?.value || "").replace(/[^A-Za-z0-9]/g, "");
-    const others = [$("#auctionMakeSearch")?.value, $("#auctionModelSearch")?.value, $("#auctionLotSearch")?.value].some(v => String(v || "").trim());
-    // A complete VIN on its own → open the VIN report instead of filtering the list.
-    if(vin.length >= 11 && !others){ openVinReport(vin); return; }
+    const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
+    // A complete VIN → open the VIN report instead of filtering the list.
+    if(smart.vin){ openVinReport(smart.vin); return; }
     state.page = 1; state.displayPage = 1;
     loadLots();
   }
@@ -1496,7 +1503,7 @@
 
   function bindEvents(){
     $("#auctionSearchBtn").addEventListener("click", () => { exitDiscovery(); triggerSearch(); });
-    ["#auctionMakeSearch", "#auctionModelSearch", "#auctionVinSearch", "#auctionLotSearch"].forEach(selector => {
+    ["#auctionSmartSearch"].forEach(selector => {
       $(selector)?.addEventListener("keydown", event => {
         if(event.key === "Enter"){ event.preventDefault(); triggerSearch(); }
       });
@@ -1554,7 +1561,7 @@
     });
     $("#resetFiltersBtn").addEventListener("click", () => {
       $("#auctionFiltersForm").reset();
-      ["#auctionMakeSearch", "#auctionModelSearch", "#auctionVinSearch", "#auctionLotSearch"].forEach(selector => {
+      ["#auctionSmartSearch"].forEach(selector => {
         const input = $(selector);
         if(input) input.value = "";
       });
