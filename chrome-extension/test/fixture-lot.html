@@ -61,7 +61,6 @@
   <script src="../src/common/util.js"></script>
   <script src="../src/common/dictionary.js"></script>
   <script src="../src/common/extract-core.js"></script>
-  <script src="../src/common/locations.js"></script>
   <script src="../src/common/calc.js"></script>
   <script src="../src/common/settings.js"></script>
   <script src="../src/common/templates.js"></script>
@@ -77,11 +76,13 @@
       lot.auction = "copart";
       lot.auctionLabel = "Copart";
       lot.url = "https://www.copart.com/lot/42923654";
-      const est = A.calc.estimate(lot, { bid: lot.currentBid, usdMdl: 17.45, eurMdl: 20.28 });
+      // тариф площадки в бою приходит с сайта (/api/calc) — здесь подставляем вручную
+      const demoLocation = { displayName: "демо-площадка → Los Angeles, CA", landPrice: 220, autoPort: "la" };
+      const est = A.calc.estimate(lot, { bid: lot.currentBid, usdMdl: 17.45, eurMdl: 20.28, location: demoLocation });
       const post = A.templates.build("telegram", lot, est, A.settings.DEFAULTS);
       document.getElementById("out").textContent = [
         "ПОЛЯ: " + JSON.stringify(lot, null, 1),
-        "ЛОКАЦИЯ: " + (est.location ? est.location.displayName : "не найдена"),
+        "ЛОКАЦИЯ (подставлена вручную): " + (est.location ? est.location.displayName : "нет"),
         "ИТОГО: $" + Math.round(est.totalUsd) + " / " + Math.round(est.totalMdl) + " MDL",
         "ПОСТ:\n" + post
       ].join("\n\n");

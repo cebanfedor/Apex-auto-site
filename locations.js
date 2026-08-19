@@ -1,4 +1,15 @@
-window.LOCATIONS = [
+/* locations.js — база площадок аукционов и тарифов наземной доставки.
+   Единый источник для сайта и для сервера: в браузере отдаёт window.LOCATIONS,
+   в Node — module.exports {LOCATIONS, CANADA_LOCATIONS}. */
+(function (root, factory) {
+  const data = factory();
+  if (typeof module === "object" && module.exports) module.exports = data;
+  if (root) {
+    root.LOCATIONS = data.LOCATIONS;
+    root.CANADA_LOCATIONS = data.CANADA_LOCATIONS;
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+const LOCATIONS = [
   {
     "location": "Abilene 79601",
     "auction": "IAAI",
@@ -11684,7 +11695,7 @@ window.LOCATIONS = [
 // Canada locations (Tyras Group rates 2025, dispatch prices in CAD)
 // zone: "east" = Montreal→Klaipeda, "bc" = British Columbia→Klaipeda
 // dispatchSuvCad / dispatchPickupCad — converted to USD in script.js using live TD Bank rate
-window.CANADA_LOCATIONS = [
+const CANADA_LOCATIONS = [
   // ── COPART ──────────────────────────────────────────────────────────────
   { auction:"copart", name:"Copart Montreal",              province:"QC", dispatchSuvCad:140,  dispatchPickupCad:175,  zone:"east" },
   { auction:"copart", name:"Copart Ottawa",                province:"ON", dispatchSuvCad:300,  dispatchPickupCad:350,  zone:"east" },
@@ -11751,3 +11762,6 @@ window.CANADA_LOCATIONS = [
   { auction:"iaai", name:"Nanaimo (BC)",                        province:"BC", dispatchSuvCad:2600, dispatchPickupCad:2800, zone:"bc" },
   { auction:"iaai", name:"Vernon (BC)",                         province:"BC", dispatchSuvCad:2500, dispatchPickupCad:2600, zone:"bc" },
 ];
+
+  return { LOCATIONS, CANADA_LOCATIONS };
+});
