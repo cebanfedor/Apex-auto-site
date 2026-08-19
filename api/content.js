@@ -134,3 +134,6 @@ module.exports = async function handler(request, response){
     sendJson(response, error.status || 500, {ok:false,error:error.message,details:error.details || null});
   }
 };
+
+// курс нужен и калькулятору (/api/calc) — источник должен быть один
+module.exports.fetchRates = fetchRates;

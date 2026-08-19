@@ -1,0 +1,204 @@
+/* templates.js — подстановка данных лота в шаблон поста.
+   Строка шаблона, в которой хотя бы одна подстановка пустая, выбрасывается целиком:
+   так пост не пестрит «Пробег: —». */
+(function (global) {
+  "use strict";
+  const ApexX = (global.ApexX = global.ApexX || {});
+  const U = ApexX.util;
+  const D = ApexX.dict;
+
+  /** «41,000 mi» → «41 000 миль (66 000 км)» — клиенту в Молдове важны километры */
+  function odometerText(lot, lang) {
+    const raw = String(lot.odometer || "");
+    if (!raw) return "";
+    const value = Number(lot.odometerValue || U.num(raw));
+    if (!value) return raw;
+    const isKm = /km/i.test(raw);
+    const miles = isKm ? Math.round(value / 1.609) : value;
+    const km = isKm ? value : Math.round((value * 1.609) / 100) * 100;
+    const fmt = (n) => n.toLocaleString("ru-RU").replace(/ /g, " ");
+    return lang === "ro" ? `${fmt(miles)} mile (${fmt(km)} km)` : `${fmt(miles)} миль (${fmt(km)} км)`;
+  }
+
+  function damageText(lot, lang) {
+    const parts = [D.translate("primaryDamage", lot.primaryDamage, lang), D.translate("secondaryDamage", lot.secondaryDamage, lang)];
+    return U.uniq(parts.filter(Boolean)).join(" + ");
+  }
+
+  /** Двигатель без дубля с топливом: у электрички «ELECTRIC • Электро» — это одно и то же */
+  function engineText(lot) {
+    const engine = U.clean(lot.engine || "");
+    if (!engine) return "";
+    const fuel = U.clean(lot.fuel || "");
+    if (fuel && U.norm(engine) === U.norm(fuel)) return "";
+    if (/^(electric|gas|gasoline|diesel|hybrid)$/i.test(engine)) return "";
+    // «2.0L 4» → «2.0L», «5.0L V8 Supercharged» → «5.0L V8»
+    const litres = engine.match(/(\d[.,]\d)\s*L/i);
+    if (litres) {
+      const layout = (engine.match(/\bV\s?(6|8|10|12)\b/i) || [])[0] || "";
+      return (litres[1].replace(",", ".") + "L" + (layout ? " " + layout.toUpperCase().replace(/\s/g, "") : "")).trim();
+    }
+    return engine;
+  }
+
+  /** «2.0L • Бензин • Полный (AWD) • Автомат» — одной строкой, пустые части отпадают */
+  function specsText(lot, lang) {
+    return U.uniq([
+      engineText(lot),
+      D.translate("fuel", lot.fuel, lang),
+      D.translate("drive", lot.drive, lang),
+      D.translate("transmission", lot.transmission, lang)
+    ].filter(Boolean)).join(" • ");
+  }
+
+
+  /* ---------- хэштеги под конкретную машину ---------- */
+
+  /* «Land Rover» → landrover, «E-Tron Sportback» → etronsportback */
+  function tagSlug(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 24);
+  }
+
+  const FUEL_TAGS = {
+    ru: { hybrid: "#гибрид", phev: "#гибрид", electric: "#электромобиль", diesel: "#дизель" },
+    ro: { hybrid: "#hibrid", phev: "#hibrid", electric: "#electric", diesel: "#diesel" }
+  };
+  const BODY_TAGS = {
+    ru: { sedan: "#седан", crossover: "#кроссовер", suv: "#внедорожник", suvLarge: "#внедорожник",
+          pickup: "#пикап", vanLarge: "#фургон", moto: "#мотоцикл", atv: "#квадроцикл" },
+    ro: { sedan: "#sedan", crossover: "#crossover", suv: "#suv", suvLarge: "#suv",
+          pickup: "#pickup", vanLarge: "#van", moto: "#motocicleta", atv: "#atv" }
+  };
+
+  /**
+   * Теги, которые расширение подбирает само: марка, марка+модель, год, топливо,
+   * тип кузова, аукцион. Дубликаты с постоянными хэштегами отбрасываются.
+   */
+  function autoTags(lot, lang, existing) {
+    const code = lang === "ro" ? "ro" : "ru";
+    const calc = ApexX.calc || {};
+    const make = tagSlug(lot.make);
+    const model = tagSlug(lot.model);
+    const year = String(lot.year || "").match(/(19|20)\d{2}/);
+    const fuel = calc.fuelCode ? calc.fuelCode(lot.fuel || lot.engine, lot) : "";
+    const body = calc.vehicleTypeCode ? calc.vehicleTypeCode(lot) : "";
+
+    const tags = [];
+    if (make) tags.push("#" + make);
+    if (make && model) tags.push("#" + make + model);
+    if (year) tags.push("#" + year[0]);
+    if (FUEL_TAGS[code][fuel]) tags.push(FUEL_TAGS[code][fuel]);
+    if (BODY_TAGS[code][body]) tags.push(BODY_TAGS[code][body]);
+    if (lot.auction) tags.push("#" + tagSlug(lot.auction));
+
+    const used = new Set(String(existing || "").toLowerCase().split(/\s+/));
+    return U.uniq(tags.filter((tag) => tag.length > 2 && !used.has(tag.toLowerCase()))).join(" ");
+  }
+
+  /** Все доступные подстановки: {{ключ}} */
+  function vars(lot, estimate, settings, lang) {
+    const s = settings || {};
+    const post = s.post || {};
+    const money = (v) => U.money(v);
+    const est = estimate || null;
+
+    const base = {
+      title: lot.title || lot.titleRaw || "",
+      year: lot.year || "",
+      make: lot.make || "",
+      model: lot.model || "",
+      trim: lot.trim || "",
+      bodyStyle: lot.bodyStyle || "",
+      auction: lot.auction || "",
+      auctionLabel: lot.auctionLabel || (lot.auction === "iaai" ? "IAAI" : "Copart"),
+      lot: lot.lot || "",
+      vin: lot.vin || "",
+      url: lot.url || lot.pageUrl || "",
+      location: lot.location || "",
+      saleDate: lot.saleDate || "",
+      saleStatus: lot.saleStatus || "",
+      odometer: odometerText(lot, lang),
+      damage: damageText(lot, lang),
+      primaryDamage: D.translate("primaryDamage", lot.primaryDamage, lang),
+      secondaryDamage: D.translate("secondaryDamage", lot.secondaryDamage, lang),
+      lossType: D.translate("lossType", lot.lossType, lang),
+      titleDoc: D.translate("titleDoc", lot.titleDoc, lang),
+      titleState: lot.titleState || "",
+      engine: engineText(lot),
+      specs: specsText(lot, lang),
+      cylinders: lot.cylinders || "",
+      fuel: D.translate("fuel", lot.fuel, lang),
+      transmission: D.translate("transmission", lot.transmission, lang),
+      drive: D.translate("drive", lot.drive, lang),
+      colorExt: lot.colorExt || "",
+      colorInt: lot.colorInt || "",
+      keys: D.translate("keys", lot.keys, lang),
+      startCode: D.translate("startCode", lot.startCode, lang),
+      airbags: D.translate("airbags", lot.airbags, lang),
+      highlights: lot.highlights || "",
+      seller: lot.seller || "",
+      currentBid: money(lot.currentBid),
+      buyNow: money(lot.buyNow),
+      estRetail: money(lot.estRetail),
+      estRepair: money(lot.estRepair),
+      contact: post.contact || "",
+      whatsapp: post.whatsapp || "",
+      address: post.address || "",
+      site: post.site || "",
+      hashtags: post.hashtags || "",
+      hashtagsRo: post.hashtagsRo || post.hashtags || ""
+    };
+
+    base.autotags = autoTags(lot, lang, lang === "ro" ? base.hashtagsRo : base.hashtags);
+
+    if (est) {
+      base.bid = money(est.input.lotPrice);
+      base.totalUsd = money(Math.round(est.totalUsd));
+      base.totalEur = "€" + Math.round(est.totalEur).toLocaleString("ru-RU").replace(/ /g, " ");
+      base.totalMdl = U.money(Math.round(est.totalMdl), "MDL");
+      base.auctionFee = money(Math.round(est.auctionFee));
+      base.land = money(Math.round(est.land));
+      base.sea = money(Math.round(est.sea));
+      base.customs = money(Math.round(est.customsUsd));
+      base.port = est.port || "";
+      base.route = est.route || "";
+    }
+    return base;
+  }
+
+  function render(template, values) {
+    const lines = String(template || "").split("\n");
+    const kept = lines.filter((line) => {
+      const used = line.match(/\{\{\s*([\w.]+)\s*\}\}/g);
+      if (!used) return true;
+      return used.every((token) => {
+        const key = token.replace(/[{}\s]/g, "");
+        return String(values[key] ?? "").trim() !== "";
+      });
+    });
+    return kept
+      .map((line) => line.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => String(values[key] ?? "")))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  /** Итоговый текст поста для сети network: telegram | facebook | instagram */
+  function build(network, lot, estimate, settings, lang) {
+    const s = settings || {};
+    const templates = (s.post && s.post.templates) || {};
+    // для румынского берём отдельный шаблон, при его отсутствии — русский
+    const key = lang === "ro" ? network + "Ro" : network;
+    const template = templates[key] || templates[network] || "";
+    const values = vars(lot, estimate, s, lang);
+    const text = render(template, values);
+    // *звёздочки* — пометка жирного: в Telegram она станет <b>, в остальных сетях просто снимается
+    if (network === "telegram") return text;
+    return text.replace(/<\/?(b|i|code|pre|u|s|a)[^>]*>/gi, "").replace(/\*([^*\n]+)\*/g, "$1");
+  }
+
+  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags };
+})(typeof window !== "undefined" ? window : self);

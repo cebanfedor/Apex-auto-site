@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apex Auto — лот в пост</title>
+  <link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="dot"></span> Apex Auto</div>
+    <div class="barActions">
+      <button id="btnWindow" class="icon" type="button" title="Открыть в боковой панели Chrome">⤢</button>
+      <button id="btnReload" class="icon" type="button" title="Собрать заново">⟳</button>
+      <button id="btnOptions" class="icon" type="button" title="Настройки">⚙</button>
+      <button id="btnClose" class="icon" type="button" title="Закрыть">✕</button>
+    </div>
+  </header>
+
+  <div id="status" class="status">Собираю данные лота…</div>
+
+  <main class="layout hidden" id="main">
+    <!-- ЛОТ -->
+    <section class="card cardLot">
+      <h1 id="lotTitle">—</h1>
+      <div class="chips">
+        <span id="lotBadge" class="badge">—</span>
+        <span id="lotDate" class="chip chipDate hidden"></span>
+        <span id="lotDamage" class="chip chipDanger hidden"></span>
+        <span id="lotStatus" class="chip hidden"></span>
+        <a id="lotLink" class="link" href="#" target="_blank" rel="noreferrer">открыть лот ↗</a>
+      </div>
+    </section>
+
+    <!-- РАСЧЁТ -->
+    <section class="card cardCalc">
+      <h2>Расчёт под ключ до Кишинёва</h2>
+
+      <div class="bidRow">
+        <label class="bidField">
+          <span>Ваша ставка</span>
+          <div class="bidInput"><i>$</i><input id="calcBid" type="number" min="0" step="50" /></div>
+        </label>
+        <button id="btnBidCurrent" class="ghost" type="button" title="Подставить текущую ставку лота">
+          текущая: <b id="bidCurrentValue">—</b>
+        </button>
+      </div>
+
+      <div class="grid2">
+        <label class="field">
+          <span>Тип кузова</span>
+          <select id="calcType">
+            <option value="sedan">Седан / хэтчбек</option>
+            <option value="crossover">Кроссовер</option>
+            <option value="suv">Внедорожник</option>
+            <option value="suvLarge">Большой внедорожник</option>
+            <option value="pickup">Пикап</option>
+            <option value="vanLarge">Большой фургон</option>
+            <option value="moto">Мотоцикл</option>
+            <option value="atv">Квадроцикл</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Топливо</span>
+          <select id="calcFuel">
+            <option value="gasoline">Бензин</option>
+            <option value="diesel">Дизель</option>
+            <option value="hybrid">Гибрид</option>
+            <option value="phev">Plug-in гибрид</option>
+            <option value="electric">Электро</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field">
+        <span>Площадка аукциона <button id="btnLocAuto" class="linkBtn" type="button">определить автоматически</button></span>
+        <div class="combo">
+          <input id="calcLocation" type="text" placeholder="город, штат или индекс" autocomplete="off" />
+          <button id="btnLocOpen" class="comboToggle" type="button" title="Показать список площадок">▾</button>
+          <div id="locList" class="comboList hidden"></div>
+        </div>
+      </div>
+      <p id="locNote" class="note"></p>
+
+      <div class="checks checksMain">
+        <label><input id="calcOffsite" type="checkbox" /> Off-site / саблот <b>+$100</b></label>
+        <label><input id="calcExport" type="checkbox" /> Экспортные документы <b>+$400</b></label>
+      </div>
+
+      <details class="calcParams">
+        <summary>Ещё параметры: объём двигателя и порт</summary>
+        <div class="grid2">
+          <label class="field">
+            <span>Объём, л</span>
+            <input id="calcEngine" type="number" min="0" max="8" step="0.1" />
+          </label>
+          <label class="field">
+            <span>Порт отправки</span>
+            <select id="calcPort">
+              <option value="nj">Elizabeth, NJ</option>
+              <option value="savannah">Savannah, GA</option>
+              <option value="houston">Houston, TX</option>
+              <option value="indianapolis">Indianapolis, IN</option>
+              <option value="la">Los Angeles, CA</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <details class="totalBox">
+        <summary>
+          <div class="totalMain"><span>Итого под ключ</span><b id="totalUsd">—</b></div>
+          <div class="totalAlt" id="totalAlt"></div>
+          <div class="totalHint">показать, из чего сложилось</div>
+        </summary>
+        <ul id="calcRows" class="breakdown"></ul>
+        <div class="totalNote" id="totalNote"></div>
+      </details>
+    </section>
+
+    <!-- ФОТО -->
+    <section class="card cardPhotos">
+      <h2>Фото <span id="photoCount" class="muted"></span></h2>
+      <div class="row">
+        <button id="btnPickFirst" class="ghost" type="button">Первые 10</button>
+        <button id="btnPickNone" class="ghost" type="button">Снять выбор</button>
+        <button id="btnDownload" class="ghost" type="button">Скачать выбранные</button>
+      </div>
+      <div id="photos" class="photos"></div>
+    </section>
+
+    <!-- ПОСТ -->
+    <section class="card cardPost">
+      <h2>Текст поста</h2>
+      <div class="postHead">
+        <div class="networks">
+          <button class="net active" data-net="telegram" type="button">Telegram</button>
+          <button class="net" data-net="facebook" type="button">Facebook</button>
+          <button class="net" data-net="instagram" type="button">Instagram</button>
+        </div>
+        <div class="langSwitch" title="Язык поста">
+          <button class="lang active" data-lang="ru" type="button">RU</button>
+          <button class="lang" data-lang="ro" type="button">RO</button>
+        </div>
+      </div>
+      <textarea id="postText" rows="14" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="btnRebuild" class="ghost" type="button">Пересобрать по шаблону</button>
+        <button id="btnCopy" class="ghost" type="button">Копировать текст</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="actionBar hidden" id="actionBar">
+    <div class="actionMeta">
+      <span id="actionPhotos">—</span>
+      <span id="actionTotal"></span>
+    </div>
+    <button id="btnPublish" class="primary" type="button">Опубликовать в Telegram</button>
+    <p id="publishNote" class="note"></p>
+  </footer>
+
+  <script src="../common/util.js"></script>
+  <script src="../common/dictionary.js"></script>
+  <script src="../common/extract-core.js"></script>
+  <script src="../common/settings.js"></script>
+  <script src="../common/locations.js"></script>
+  <script src="../common/calc.js"></script>
+  <script src="../common/templates.js"></script>
+  <script src="panel.js"></script>
+</body>
+</html>

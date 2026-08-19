@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Apex Auto — лоты Copart/IAAI → пост",
+  "version": "1.0.0",
+  "description": "Собирает все данные лота с Copart и IAAI и в один клик готовит пост для Telegram, Facebook и Instagram.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Apex Auto — собрать лот",
+    "default_popup": "src/ui/panel.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "src/ui/options.html",
+  "permissions": ["storage", "tabs", "scripting", "downloads", "clipboardWrite", "sidePanel"],
+  "side_panel": { "default_path": "src/ui/panel.html" },
+  "host_permissions": [
+    "*://*.copart.com/*",
+    "*://*.iaai.com/*",
+    "https://api.telegram.org/*",
+    "https://graph.facebook.com/*",
+    "https://auctionsapi.com/*",
+    "https://apexauto.md/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.copart.com/*", "*://*.iaai.com/*"],
+      "js": [
+        "src/common/util.js",
+        "src/common/dictionary.js",
+        "src/common/extract-core.js",
+        "src/content/copart.js",
+        "src/content/iaai.js",
+        "src/content/content.js"
+      ],
+      "css": ["src/content/inject.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/ui/*", "src/common/*", "icons/*"],
+      "matches": ["*://*.copart.com/*", "*://*.iaai.com/*"]
+    }
+  ]
+}
