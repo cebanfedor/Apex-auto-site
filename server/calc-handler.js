@@ -1,4 +1,6 @@
-/* /api/calc — расчёт «под ключ» тем же модулем, что и калькулятор на сайте.
+/* calc-handler — расчёт «под ключ» тем же модулем, что и калькулятор на сайте.
+   Живёт вне api/, чтобы не занимать лимит serverless-функций: снаружи доступен
+   как /api/calc (rewrite в vercel.json), внутри его вызывает api/content.js.
    Нужен, чтобы внешние клиенты (расширение Chrome, менеджеры, партнёры) получали
    ровно те же цифры, что видит клиент на apexauto.md, без второй копии формул.
 
@@ -10,7 +12,7 @@
    - location: {landPrice, autoPort, displayName, portLabel}.
 */
 const ApexCalc = require("../calc-core.js");
-const { fetchRates } = require("./content.js");
+const { fetchRates } = require("../api/content.js");
 
 const FALLBACK_RATES = { usdMdl: 17.45, eurMdl: 20.28, source: "fallback" };
 

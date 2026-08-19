@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/calc", "destination": "/api/content?calc=1" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/auctions", "destination": "/auctions.html" },
     { "source": "/auctions/:slug", "destination": "/api/lot-page?slug=:slug" },
