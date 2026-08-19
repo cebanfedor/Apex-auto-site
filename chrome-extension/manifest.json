@@ -18,7 +18,7 @@
     }
   },
   "options_page": "src/ui/options.html",
-  "permissions": ["storage", "tabs", "scripting", "downloads", "clipboardWrite", "sidePanel"],
+  "permissions": ["storage", "tabs", "scripting", "downloads", "clipboardWrite", "sidePanel", "alarms", "notifications"],
   "side_panel": { "default_path": "src/ui/panel.html" },
   "host_permissions": [
     "*://*.copart.com/*",

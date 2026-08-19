@@ -30,6 +30,8 @@
     locActive: -1,
     calcError: "",
     rates: { usdMdl: 0, eurMdl: 0, source: "" },
+    saleAt: 0,
+    draftRestored: false,
     calcSeq: 0,
     calcFrom: "",
     network: "telegram",
@@ -69,10 +71,16 @@
 
   /* Демо-лот: panel.html?demo=1 открывается в обычной вкладке без аукциона —
      так можно проверять вёрстку и расчёт, не заходя на Copart. */
+  function demoSaleDate() {
+    const d = new Date(Date.now() + 864e5); // завтра
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} 17:00`;
+  }
+
   const DEMO_LOT = {
     auction: "copart", auctionLabel: "Copart", lot: "61881256", title: "2021 BMW X1 xDrive28i",
     year: "2021", make: "BMW", model: "X1", trim: "xDrive28i", bodyStyle: "Automobile",
-    vin: "WBXJG9C0XM5T68911", location: "NJ - TRENTON", saleDate: "19.08.2026 17:00 EEST",
+    vin: "WBXJG9C0XM5T68911", location: "NJ - TRENTON", saleDate: demoSaleDate(),
     saleStatus: "MINIMUM_BID", odometer: "35,389 mi", odometerValue: 35389,
     primaryDamage: "Water/Flood", titleDoc: "NJ - Cert Of Title-salvage Flood",
     engine: "2.0L 4", cylinders: "4", fuel: "Gas", transmission: "Automatic",
@@ -94,6 +102,7 @@
       renderPhotos();
       fillCalcInputs();
       recompute();
+      await Promise.all([showPublishHistory(), showReminder(), restoreDraft()]);
       return status("Демо-режим: данные подставлены вручную", "ok");
     }
     status("Собираю данные лота…");
@@ -115,10 +124,12 @@
     renderPhotos();
     fillCalcInputs();
     recompute();
+    await Promise.all([showPublishHistory(), showReminder(), restoreDraft()]);
 
     const dup = state.lot.imagesDuplicates ? `, дублей и повторных кадров убрано ${state.lot.imagesDuplicates}` : "";
     status(
-      `Готово. Фото: ${state.lot.images.length}${dup}.` +
+      (state.draftRestored ? "Восстановлен ваш черновик текста. " : "") +
+        `Готово. Фото: ${state.lot.images.length}${dup}.` +
         (state.lot.vinMasked ? " VIN аукцион показывает частично — полный приходит из API." : "") +
         (state.apiError ? ` API: ${state.apiError}` : ""),
       "ok"
@@ -150,6 +161,18 @@
     if (days === 0) return { text: `сегодня, ${label}`, when: "today" };
     if (days === 1) return { text: `завтра, ${label}`, when: "tomorrow" };
     return { text: label, when: "later" };
+  }
+
+  /** «21.08.2026, 17:00» → время в миллисекундах (в часовом поясе, указанном аукционом). */
+  function saleTimestamp(value) {
+    const parts = String(value || "").match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?\s*(AM|PM)?/i);
+    if (!parts) return 0;
+    let hour = Number(parts[4] || 0);
+    const ampm = (parts[6] || "").toUpperCase();
+    if (ampm === "PM" && hour < 12) hour += 12;
+    if (ampm === "AM" && hour === 12) hour = 0;
+    const date = new Date(Number(parts[3]), Number(parts[2]) - 1, Number(parts[1]), hour, Number(parts[5] || 0));
+    return date.getTime() || 0;
   }
 
   function renderLot() {
@@ -556,6 +579,99 @@
     $("actionPhotos").textContent = count ? `выбрано фото: ${count}` : "фото не выбраны";
   }
 
+  /* ---------- журнал, черновик, напоминание ---------- */
+
+  const DATE_FMT = { day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" };
+  const NETWORK_NAMES = { telegram: "Telegram", facebook: "Facebook", instagram: "Instagram" };
+
+  async function showPublishHistory() {
+    const chip = $("lotPublished");
+    const history = await ApexX.journal.publicationsFor(state.lot);
+    if (!history.length) {
+      chip.classList.add("hidden");
+      return;
+    }
+    const last = history[0];
+    const where = ApexX.util.uniq(history.map((item) => NETWORK_NAMES[item.network] || item.network)).join(", ");
+    chip.textContent = `✓ Уже публиковали ${new Date(last.at).toLocaleString("ru-RU", DATE_FMT)} · ${where}`;
+    chip.title = `Публикаций: ${history.length}`;
+    chip.classList.remove("hidden");
+  }
+
+  async function showReminder() {
+    const button = $("btnRemind");
+    state.saleAt = saleTimestamp(state.lot.saleDate);
+    if (!state.saleAt || state.saleAt < Date.now()) {
+      button.classList.add("hidden");
+      return;
+    }
+    const existing = await ApexX.journal.reminderFor(state.lot);
+    button.classList.remove("hidden");
+    if (existing && existing.at > Date.now()) {
+      button.classList.add("active");
+      button.textContent = `🔔 Напомню ${new Date(existing.at).toLocaleString("ru-RU", DATE_FMT)}`;
+      button.dataset.on = "1";
+    } else {
+      button.classList.remove("active");
+      const minutes = state.saleAt - Date.now() > 3600000 ? 60 : 10;
+      button.textContent = `🔔 Напомнить за ${minutes} мин`;
+      button.dataset.on = "";
+    }
+  }
+
+  async function toggleReminder() {
+    const button = $("btnRemind");
+    if (button.dataset.on) {
+      if (demoMode) await ApexX.journal.dropReminder(state.lot);
+      else await send({ type: "apex:reminderCancel", lot: state.lot });
+      await showReminder();
+      return status("Напоминание отменено", "ok");
+    }
+    const minutesBefore = state.saleAt - Date.now() > 3600000 ? 60 : 10;
+    const whenMs = state.saleAt - minutesBefore * 60000;
+    // в демо будильник ставить некому — просто сохраняем запись, чтобы проверить интерфейс
+    const response = demoMode
+      ? { ok: true, reminder: await ApexX.journal.saveReminder(state.lot, whenMs, minutesBefore) }
+      : await send({ type: "apex:reminder", lot: state.lot, whenMs, minutesBefore });
+    if (!response.ok) return status(response.error || "Не удалось поставить напоминание", "error");
+    await showReminder();
+    status(`Напомню за ${minutesBefore} мин до торгов`, "ok");
+  }
+
+  /** Черновик: правки текста и ставка переживают закрытие панели. */
+  async function restoreDraft() {
+    const draft = await ApexX.journal.loadDraft(state.lot);
+    if (!draft || !draft.text) return;
+    if (draft.bid) $("calcBid").value = draft.bid;
+    if (draft.lang) {
+      state.lang = draft.lang;
+      document.querySelectorAll(".lang").forEach((b) => b.classList.toggle("active", b.dataset.lang === draft.lang));
+    }
+    if (draft.network) {
+      state.network = draft.network;
+      document.querySelectorAll(".net").forEach((b) => b.classList.toggle("active", b.dataset.net === draft.network));
+      $("btnPublish").textContent = "Опубликовать в " + (NETWORK_NAMES[draft.network] || draft.network);
+    }
+    recompute();
+    $("postText").value = draft.text;
+    state.textDirty = true;
+    state.draftRestored = true;
+    status(`Восстановлен черновик от ${new Date(draft.at).toLocaleString("ru-RU", DATE_FMT)}`, "ok");
+  }
+
+  function saveDraftSoon() {
+    clearTimeout(saveDraftSoon.timer);
+    saveDraftSoon.timer = setTimeout(() => {
+      if (!state.lot) return;
+      ApexX.journal.saveDraft(state.lot, {
+        text: $("postText").value,
+        lang: state.lang,
+        network: state.network,
+        bid: Number($("calcBid").value || 0)
+      });
+    }, 600);
+  }
+
   /* ---------- пост ---------- */
 
   function buildText() {
@@ -668,10 +784,15 @@
       status(response.ok ? `Скачано файлов: ${response.count}` : response.error, response.ok ? "ok" : "error");
     });
 
-    $("postText").addEventListener("input", () => (state.textDirty = true));
+    $("btnRemind").addEventListener("click", toggleReminder);
+    $("postText").addEventListener("input", () => {
+      state.textDirty = true;
+      saveDraftSoon();
+    });
     $("btnRebuild").addEventListener("click", () => {
       state.textDirty = false;
       buildText();
+      ApexX.journal.dropDraft(state.lot); // черновик больше не нужен — вернулись к шаблону
       status("Текст пересобран по шаблону", "ok");
     });
     $("btnCopy").addEventListener("click", async () => {
@@ -687,6 +808,8 @@
       const response = await send({
         type: "apex:publish",
         network: state.network,
+        lang: state.lang,
+        lot: state.lot,
         text,
         images,
         link: state.lot.url || state.lot.pageUrl || ""
@@ -695,6 +818,8 @@
       if (response.ok) {
         status("Опубликовано ✓" + (response.note ? " · " + response.note : ""), "ok");
         $("publishNote").textContent = response.postId ? "ID поста: " + response.postId : "";
+        await ApexX.journal.dropDraft(state.lot);
+        await showPublishHistory();
       } else {
         status("Ошибка публикации: " + response.error, "error");
         $("publishNote").textContent = "Проверьте токены и права доступа в настройках расширения.";

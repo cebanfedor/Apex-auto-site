@@ -5,6 +5,7 @@ importScripts(
   "../common/dictionary.js",
   "../common/extract-core.js",
   "../common/settings.js",
+  "../common/journal.js",
   "../common/api-client.js",
   "../common/image-dedupe.js",
   "../common/publish.js"
@@ -160,8 +161,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (network === "instagram") return ApexX.publish.instagram(settings.instagram, message.text, images);
         return { ok: false, error: "Неизвестная сеть: " + network };
       })
+      .then(async (result) => {
+        // публикация записывается в журнал: панель предупредит, если лот уже уходил в канал
+        if (result && result.ok && message.lot) {
+          try {
+            await ApexX.journal.addPublication(message.lot, {
+              network: message.network,
+              lang: message.lang,
+              postId: result.postId || result.messageId || ""
+            });
+          } catch (e) {}
+        }
+        sendResponse(result);
+      })
+      .catch((error) => sendResponse({ ok: false, error: String((error && error.message) || error) }));
+    return true;
+  }
+
+  if (type === "apex:reminder") {
+    setReminder(message.lot, message.whenMs, message.minutesBefore)
       .then(sendResponse)
       .catch((error) => sendResponse({ ok: false, error: String((error && error.message) || error) }));
+    return true;
+  }
+
+  if (type === "apex:reminderCancel") {
+    const key = ApexX.journal.lotKey(message.lot);
+    chrome.alarms.clear(ApexX.journal.alarmName(message.lot));
+    ApexX.journal.dropReminder(key).then(() => sendResponse({ ok: true }));
     return true;
   }
 
@@ -179,6 +206,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   return false;
+});
+
+/* ---------- напоминания о торгах ---------- */
+
+async function setReminder(lot, whenMs, minutesBefore) {
+  const when = Number(whenMs);
+  if (!when || when <= Date.now() + 30000) {
+    return { ok: false, error: "Время напоминания уже прошло" };
+  }
+  const saved = await ApexX.journal.saveReminder(lot, when, Number(minutesBefore) || 60);
+  chrome.alarms.create(ApexX.journal.alarmName(lot), { when });
+  return { ok: true, reminder: saved };
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (!alarm.name.startsWith("apex-sale:")) return;
+  const key = alarm.name.replace("apex-sale:", "");
+  const all = await ApexX.journal.listReminders();
+  const item = all[key];
+  if (!item) return;
+
+  const minutes = Math.max(1, Math.round((item.saleAt - Date.now()) / 60000));
+  chrome.notifications.create("apex-sale-" + key, {
+    type: "basic",
+    iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+    title: `Торги через ${minutes} мин`,
+    message: `${item.title || "Лот"} · ${item.auctionLabel || item.auction} ${item.lot}`,
+    contextMessage: "Apex Auto",
+    priority: 2,
+    requireInteraction: true
+  });
+  await ApexX.journal.dropReminder(key);
+});
+
+chrome.notifications.onClicked.addListener(async (notificationId) => {
+  if (!notificationId.startsWith("apex-sale-")) return;
+  const key = notificationId.replace("apex-sale-", "");
+  const all = await ApexX.journal.listReminders();
+  const url = (all[key] && all[key].url) || "";
+  if (url) chrome.tabs.create({ url });
+  chrome.notifications.clear(notificationId);
 });
 
 chrome.runtime.onInstalled.addListener((details) => {
