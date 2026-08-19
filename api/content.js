@@ -94,6 +94,12 @@ async function fetchRates() {
 }
 
 module.exports = async function handler(request, response){
+  // /api/calc приходит сюда через rewrite: расчёт открыт всем и не требует админ-доступа
+  const requestUrl = new URL(request.url, "http://localhost");
+  if(requestUrl.searchParams.get("calc") === "1" || /^\/api\/calc\b/.test(requestUrl.pathname)){
+    return require("../server/calc-handler")(request, response);
+  }
+
   if(request.method !== "GET" && !requireAdmin(request, response)) return;
 
   try{
@@ -134,3 +140,6 @@ module.exports = async function handler(request, response){
     sendJson(response, error.status || 500, {ok:false,error:error.message,details:error.details || null});
   }
 };
+
+// курс нужен и калькулятору (/api/calc) — источник должен быть один
+module.exports.fetchRates = fetchRates;

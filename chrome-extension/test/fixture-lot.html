@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Fixture: страница лота (проверка парсера)</title>
+  <style>
+    body { font: 14px/1.5 system-ui, sans-serif; margin: 24px; max-width: 1000px; }
+    pre { background: #f4f5f7; padding: 12px; border-radius: 8px; overflow: auto; }
+    .lot-details-info { display: flex; gap: 12px; }
+    .lot-details-info .label { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>2019 LAND ROVER RANGE ROVER SPORT SE</h1>
+
+  <!-- вариант вёрстки Copart: label + span рядом -->
+  <div class="lot-details">
+    <div class="lot-details-info"><span class="label">Lot #</span><span class="value">42923654</span></div>
+    <div class="lot-details-info"><span class="label">VIN:</span><span class="value">SALWR2RE8KA828197</span></div>
+    <div class="lot-details-info"><span class="label">Title Code:</span><span class="value">CA - SALVAGE CERTIFICATE</span></div>
+    <div class="lot-details-info"><span class="label">Odometer:</span><span class="value">78,412 mi (ACTUAL)</span></div>
+    <div class="lot-details-info"><span class="label">Primary Damage:</span><span class="value">FRONT END</span></div>
+    <div class="lot-details-info"><span class="label">Secondary Damage:</span><span class="value">MINOR DENT/SCRATCHES</span></div>
+    <div class="lot-details-info"><span class="label">Estimated Retail Value:</span><span class="value">$26,000.00</span></div>
+    <div class="lot-details-info"><span class="label">Seller:</span><span class="value">Progressive Insurance</span></div>
+  </div>
+
+  <!-- вариант вёрстки IAAI: dl/dt/dd -->
+  <dl>
+    <dt>Vehicle Location</dt><dd>Los Angeles, CA 90248</dd>
+    <dt>Auction Date and Time</dt><dd>08/25/2026 10:00 AM PDT</dd>
+    <dt>Engine</dt><dd>5.0L V8 Supercharged</dd>
+    <dt>Cylinder</dt><dd>8</dd>
+    <dt>Fuel Type</dt><dd>Gasoline</dd>
+    <dt>Transmission</dt><dd>Automatic</dd>
+    <dt>Drive Line Type</dt><dd>4x4 w/Front Wheel Drive</dd>
+    <dt>Body Style</dt><dd>SPORT UTILITY 4D</dd>
+    <dt>Exterior/Interior</dt><dd>Black / Black</dd>
+    <dt>Key</dt><dd>Present</dd>
+    <dt>Start Code</dt><dd>Run &amp; Drive</dd>
+    <dt>Airbags</dt><dd>Intact</dd>
+    <dt>Loss</dt><dd>Collision</dd>
+    <dt>Some Brand New Field</dt><dd>значение, которого нет в словаре</dd>
+  </dl>
+
+  <!-- таблица со ставками -->
+  <table>
+    <tr><td>Current Bid</td><td>$15,100</td></tr>
+    <tr><td>Buy It Now</td><td>$18,900</td></tr>
+    <tr><td>Estimated Repair Cost</td><td>$12,300</td></tr>
+  </table>
+
+  <!-- фото -->
+  <img src="https://cs.copart.com/v1/AUTH_demo/lot/42923654_1_ful.jpg" alt="">
+  <img src="https://cs.copart.com/v1/AUTH_demo/lot/42923654_2_ful.jpg" alt="">
+  <img src="https://example.com/logo.svg" alt="лого — должно отфильтроваться">
+
+  <h2>Что распознал парсер</h2>
+  <pre id="out">…</pre>
+
+  <script src="../src/common/util.js"></script>
+  <script src="../src/common/dictionary.js"></script>
+  <script src="../src/common/extract-core.js"></script>
+  <script src="../src/common/locations.js"></script>
+  <script src="../src/common/calc.js"></script>
+  <script src="../src/common/settings.js"></script>
+  <script src="../src/common/templates.js"></script>
+  <script>
+    (function () {
+      const A = window.ApexX;
+      const scope = document.querySelector("body");
+      const mapped = A.core.mapPairs(A.core.harvestDom(scope));
+      // так же, как это делают copart.js / iaai.js: заголовок страницы → год/марка/модель
+      mapped.fields.titleRaw = mapped.fields.titleRaw || document.querySelector("h1").textContent.trim();
+      const images = A.core.harvestDomImages(scope, /cs\.copart\.com/i);
+      const lot = A.core.merge([{ name: "fixture-dom", fields: mapped.fields, extra: mapped.extra, images }]);
+      lot.auction = "copart";
+      lot.auctionLabel = "Copart";
+      lot.url = "https://www.copart.com/lot/42923654";
+      const est = A.calc.estimate(lot, { bid: lot.currentBid, usdMdl: 17.45, eurMdl: 20.28 });
+      const post = A.templates.build("telegram", lot, est, A.settings.DEFAULTS);
+      document.getElementById("out").textContent = [
+        "ПОЛЯ: " + JSON.stringify(lot, null, 1),
+        "ЛОКАЦИЯ: " + (est.location ? est.location.displayName : "не найдена"),
+        "ИТОГО: $" + Math.round(est.totalUsd) + " / " + Math.round(est.totalMdl) + " MDL",
+        "ПОСТ:\n" + post
+      ].join("\n\n");
+    })();
+  </script>
+</body>
+</html>

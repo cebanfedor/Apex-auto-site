@@ -31,20 +31,10 @@ function usdToMdl(v){return v*num("usdMdl")}function mdlToUsd(v){return v/num("u
 function displayUsd(usd){if(currency==="mdl")return moneyMdl(usdToMdl(usd));if(currency==="eur")return moneyEur(usdToMdl(usd)/num("eurMdl"));return moneyUsd(usd)}
 function displayMdl(mdl){if(currency==="mdl")return moneyMdl(mdl);if(currency==="eur")return moneyEur(mdlToEur(mdl));return moneyUsd(mdlToUsd(mdl))}
 function interpolateFee(price){if(price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
+/* Ядро расчёта живёт в calc-core.js — его же использует /api/calc и расширение Chrome.
+   Здесь остаются только чтение формы и оформление вывода, чтобы формулы не расходились. */
 function calculateAuctionFeeFor(price, auction){
-  let total=interpolateFee(price);
-  if(auction==="iaai")total+=50;
-  if(auction==="manheim"){
-    if(price<=5000)total=820;
-    else if(price<=15000)total=1070;
-    else if(price<=30000)total=1100;
-    else if(price<=35000)total=1250;
-    else if(price<=40000)total=1350;
-    else if(price<=45000)total=1500;
-    else if(price<=50000)total=1700;
-    else total=2000;
-  }
-  return{total,detail:""};
+  return ApexCalc.auctionFeeFor(price, auction);
 }
 function calculateAuctionFee(){return calculateAuctionFeeFor(num("lotPrice"), $("auction")?.value||"copart")}
 function initYears(){const y=$("year");if(!y)return;y.innerHTML="";for(let year=YEAR_NOW;year>=1980;year--){let o=document.createElement("option");o.value=year;o.textContent=year;if(year===YEAR_NOW)o.selected=true;y.appendChild(o)}refreshGlassSelect(y)}
@@ -54,8 +44,8 @@ function getFilteredLocations(){return (window.LOCATIONS||[]).filter(matchesAuct
 function initLocations(){let select=$("location");if(!select)return;select.innerHTML='<option value="">Выбери локацию</option>';const locs=getFilteredLocations();locs.forEach((item,i)=>{let o=document.createElement("option");o.value=String(i);o.textContent=item.displayName||"Локация";select.appendChild(o)});if(locs.length)select.value="0";refreshGlassSelect(select);updateLocation();}
 function updateLocation(){let locationEl=$("location");if(!locationEl)return;let idx=locationEl.value;selectedLocation=idx===""?null:getFilteredLocations()[Number(idx)];if(!selectedLocation){if($("portView"))$("portView").value="—";if($("landView"))$("landView").value="0";return}if($("portView"))$("portView").value=selectedLocation.portLabel||SEA[selectedLocation.autoPort]?.label||"—";if($("landView"))$("landView").value=getLandShipping().toFixed(0)}
 function getLandMultiplier(){let t=$("vehicleType")?.value||"sedan";if(t==="pickup"||t==="pickupLarge"||t==="vanLarge"||t==="pickupOversized")return 1.5;return 1}
-function getLandShipping(){if(!selectedLocation)return 0;const t=$("vehicleType")?.value||"sedan";const base=Number(selectedLocation.landPrice||selectedLocation.autoLand||0)*getLandMultiplier();const suvExtra=(t==="suv"||t==="suvLarge")?100:0;const apexSurcharge=50;const offsite=$("offsite")&&$("offsite").checked?100:0;return Math.ceil(base+suvExtra+apexSurcharge+offsite)}
-function getSeaShipping(){let type=$("vehicleType")?.value||"sedan",fuel=$("fuel")?.value||"gasoline";if(type==="moto")return 900;if(type==="atv")return 1200;let port=selectedLocation?.autoPort||"nj",price=SEA[port]?.price||2400,green=["hybrid","phev","electric"].includes(fuel);if(type==="crossover")price+=100;else if(type==="suv"||type==="suvLarge")price+=300;else if(type==="pickup"||type==="pickupLarge"||type==="pickupOversized"||type==="vanLarge")price+=500;if(green)price+=100;return price}
+function getLandShipping(){return ApexCalc.landShippingFor(selectedLocation, $("vehicleType")?.value||"sedan", !!($("offsite")&&$("offsite").checked))}
+function getSeaShipping(){return ApexCalc.seaShippingFor($("vehicleType")?.value||"sedan", $("fuel")?.value||"gasoline", selectedLocation?.autoPort||"nj")}
 function ageKey(){let age=Math.max(0,YEAR_NOW-num("year"));if(age<=2)return"0-2";if(age<=4)return"3-4";if(age<=6)return"5-6";if(age>=20)return"20+";return String(age)}
 function gasolineColumn(cc){if(cc<=1000)return 0;if(cc<=1500)return 1;if(cc<=2000)return 2;if(cc<=3000)return 3;return 4}function dieselColumn(cc){if(cc<=1500)return 0;if(cc<=2500)return 1;return 2}
 function fuelDiscount(){let f=$("fuel")?.value||"gasoline";if(f==="phev")return .5;if(f==="hybrid")return .75;return 1}function luxuryPct(mdl){let r=LUXURY_RATES.find(x=>mdl>=x.min&&mdl<=x.max);return r?r.pct:0}
@@ -190,65 +180,34 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
     hybrid: lang === "ro" ? "hibrid -25%" : lang === "en" ? "hybrid -25%" : "гибрид -25%"
   };
 
-  // Мото, пикапы и Van Large:
-  // НДС 20% считается от: стоимость лота + аукционный сбор + доставка морем.
-  // Доставка по США, страховка и прочие расходы в базу не входят.
-  // Для пикапа и van large правило одинаковое, даже если он электрический.
-  if(type === "moto" || type === "pickup" || type === "vanLarge"){
-    const vat = customsBaseMdl * 0.20;
-    return {
-      total: vat,
-      baseExcise: vat,
-      luxury: 0,
-      luxuryPct: 0,
-      luxuryBase: luxuryBaseMdl,
-      text: L.vat
-    };
+  // Числа считает calc-core.js — тот же модуль, что у /api/calc и расширения.
+  // Здесь только подпись под строкой «Таможенные платежи».
+  const result = ApexCalc.customsMdl(customsBaseMdl, luxuryBaseMdl, {
+    vehicleType: type,
+    fuel,
+    engineLiters: num("engineLiters"),
+    year: num("year")
+  });
+
+  if(result.vat){
+    return Object.assign({}, result, { text: L.vat });
   }
-
-  const luxuryBase = Number(luxuryBaseMdl || 0);
-  const pct = luxuryPct(luxuryBase);
-  const luxury = luxuryBase >= 600000 ? luxuryBase * pct / 100 : 0;
-
   if(fuel === "electric"){
-    return {
-      total: luxury,
-      baseExcise: 0,
-      luxury,
-      luxuryPct: pct,
-      luxuryBase,
-      text: luxury > 0
-        ? `${L.electric} · ${L.lux} ${pct}% ${L.from} ${(Math.round(luxuryBase)).toLocaleString("ru-RU")} MDL`
+    return Object.assign({}, result, {
+      text: result.luxury > 0
+        ? `${L.electric} · ${L.lux} ${result.luxuryPct}% ${L.from} ${(Math.round(result.luxuryBase)).toLocaleString("ru-RU")} MDL`
         : `${L.electric} · ${L.lux} 0%`
-    };
+    });
   }
-
-  const cc = Math.round(num("engineLiters") * 1000);
-  const key = ageKey();
-  const rate = fuel === "diesel"
-    ? DIESEL_RATES[key][dieselColumn(cc)]
-    : GASOLINE_RATES[key][gasolineColumn(cc)];
-
-  const baseExcise = cc * rate * fuelDiscount();
   const discount = fuel === "hybrid" ? ` · ${L.hybrid}` : fuel === "phev" ? " · plug-in -50%" : "";
-
-  return {
-    total: baseExcise + luxury,
-    baseExcise,
-    luxury,
-    luxuryPct: pct,
-    luxuryBase,
-    text: `${cc} ${L.cc} × ${rate} MDL/${L.cc}${discount} · ${L.lux} ${luxury > 0 ? pct : 0}%`
-  };
+  return Object.assign({}, result, {
+    text: `${result.cc} ${L.cc} × ${result.rate} MDL/${L.cc}${discount} · ${L.lux} ${result.luxury > 0 ? result.luxuryPct : 0}%`
+  });
 }
 
 
 function companyFeeFor(lotPrice, auctionFee = 0){
-  const base = Number(lotPrice || 0) + Number(auctionFee || 0);
-  if(base > 40000){
-    return base * 0.01;
-  }
-  return 300;
+  return ApexCalc.companyFeeFor(lotPrice, auctionFee);
 }
 
 function companyFee(auctionFee = 0){
@@ -388,7 +347,7 @@ function estimateTotalUsdForBid(bid){
   const land = getLandShipping();
   const sea = getSeaShipping();
   const exportDocs = $("exportDocs")?.checked ? 400 : 0;
-  const insurance = $("insurance")?.checked ? Math.max(100, (Number(bid || 0) + auctionFee) * 0.01) : 0;
+  const insurance = $("insurance")?.checked ? ApexCalc.insuranceFor(Number(bid || 0), auctionFee) : 0;
   const company = companyFeeFor(Number(bid || 0), auctionFee);
   const customsBaseMdl = usdToMdl(Number(bid || 0) + auctionFee + sea);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
@@ -903,7 +862,7 @@ function calculate(){
   const sea = getSeaShipping();
   const exportDocs = $("exportDocs").checked ? 400 : 0;
   const carfax = 0;
-  const insurance = $("insurance").checked ? Math.max(100, (lot + auctionFee) * 0.01) : 0;
+  const insurance = $("insurance").checked ? ApexCalc.insuranceFor(lot, auctionFee) : 0;
   const company = companyFee(auctionFee);
 
   // Важно:
@@ -942,7 +901,7 @@ function calculate(){
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
-    ["Таможенные платежи", customs.baseExcise, customs.text, "mdl"]
+    ["Таможенные платежи", customs.total, customs.text, "mdl"]
   ];
 
   if(customs.luxury > 0){
@@ -1474,7 +1433,7 @@ function calculateCanada(){
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Сопровождение APEX AUTO",     company,      "",                              "usd"],
-    ["Таможенные платежи",          customs.baseExcise, customs.text,             "mdl"]
+    ["Таможенные платежи",          customs.total,      customs.text,             "mdl"]
   );
 
   const lng = window.APEX_LANG || "ru";

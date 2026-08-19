@@ -1,0 +1,20 @@
+/* options.css — страница настроек шире панели, поэтому переопределяем ширину body. */
+.optionsBody { width: auto; max-width: none; min-height: 100vh; }
+.options { max-width: 820px; margin: 0 auto; padding: 16px 16px 64px; }
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.card h2 { margin: 0 0 6px; font-size: 16px; }
+.card .note { margin: 0 0 12px; }
+.card code {
+  background: #f1f2f5;
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 12px;
+}
+.optionsBody .bar { position: sticky; top: 0; }
+.optionsBody textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }

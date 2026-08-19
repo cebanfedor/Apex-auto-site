@@ -12,6 +12,7 @@ const apiRoutes = {
   "/api/customers":"./api/customers.js",
   "/api/leads":"./api/leads.js",
   "/api/content":"./api/content.js",
+  "/api/calc":"./server/calc-handler.js",
   "/api/uploads":"./api/uploads.js"
 };
 

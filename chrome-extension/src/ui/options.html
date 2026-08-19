@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apex Auto — настройки расширения</title>
+  <link rel="stylesheet" href="panel.css" />
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body class="optionsBody">
+  <header class="bar">
+    <div class="brand"><span class="dot"></span> Apex Auto — настройки</div>
+    <div class="barActions">
+      <button id="btnSave" class="primary" type="button">Сохранить</button>
+      <button id="btnReset" class="ghost" type="button">Сбросить</button>
+    </div>
+  </header>
+
+  <div id="status" class="status hidden"></div>
+
+  <main class="options">
+    <section class="card">
+      <h2>Telegram-канал</h2>
+      <p class="note">
+        Создайте бота у @BotFather, добавьте его администратором в канал с правом «Публиковать сообщения».
+        Чат — это <code>@имя_канала</code> или числовой id вида <code>-1001234567890</code>.
+      </p>
+      <label class="field"><span>Токен бота</span><input id="tgToken" type="text" placeholder="123456:AA..." /></label>
+      <label class="field"><span>Канал или чат</span><input id="tgChat" type="text" placeholder="@apexauto_md" /></label>
+      <div class="grid2">
+        <label class="field"><span>Максимум фото в посте</span><input id="tgMaxPhotos" type="number" min="1" max="10" /></label>
+        <div class="checks">
+          <label><input id="tgSendPhotos" type="checkbox" /> Публиковать с фото</label>
+          <label><input id="tgSilent" type="checkbox" /> Без звука уведомления</label>
+        </div>
+      </div>
+      <button id="btnTestTg" class="ghost" type="button">Проверить подключение</button>
+    </section>
+
+    <section class="card">
+      <h2>API аукционов</h2>
+      <p class="note">
+        Расширение забирает данные со страницы лота и дополняет их через API. «Через сайт» — запрос идёт на
+        <code>/api/lot</code> apexauto.md, ключ остаётся на сервере. «Напрямую» — расширение само ходит в auctionsapi.com
+        с ключом ниже (ключ хранится только в этом браузере).
+      </p>
+      <label class="field">
+        <span>Режим</span>
+        <select id="apiMode">
+          <option value="site">Через сайт apexauto.md (рекомендуется)</option>
+          <option value="direct">Напрямую в auctionsapi.com</option>
+          <option value="off">Не использовать API (только страница)</option>
+        </select>
+      </label>
+      <label class="field"><span>Адрес эндпоинта сайта</span><input id="apiEndpoint" type="text" /></label>
+      <label class="field"><span>Ключ auctionsapi.com</span><input id="apiKey" type="password" placeholder="x-api-key" /></label>
+      <button id="btnTestApi" class="ghost" type="button">Проверить API на тестовом лоте</button>
+    </section>
+
+    <section class="card">
+      <h2>Facebook (страница)</h2>
+      <p class="note">
+        Нужен Page ID и Page Access Token с правами <code>pages_manage_posts</code>, <code>pages_read_engagement</code>.
+        Токен берётся в Meta for Developers → Graph API Explorer, лучше долгоживущий.
+      </p>
+      <div class="grid2">
+        <label class="field"><span>Page ID</span><input id="fbPage" type="text" /></label>
+        <label class="field"><span>Page Access Token</span><input id="fbToken" type="password" /></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Instagram (бизнес-аккаунт)</h2>
+      <p class="note">
+        Instagram публикует только по публичным ссылкам на фото и требует бизнес-аккаунт, привязанный к странице Facebook.
+        Нужен IG User ID и токен с правами <code>instagram_content_publish</code>.
+      </p>
+      <div class="grid2">
+        <label class="field"><span>IG User ID</span><input id="igUser" type="text" /></label>
+        <label class="field"><span>Access Token</span><input id="igToken" type="password" /></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Расчёт «под ключ»</h2>
+      <p class="note">
+        Цифры берутся у калькулятора apexauto.md — чтобы расширение, сайт и менеджеры считали одинаково.
+        Локальный режим нужен только когда сайт недоступен: формулы те же, но обновляются вместе с расширением.
+      </p>
+      <div class="grid2">
+        <label class="field">
+          <span>Источник расчёта</span>
+          <select id="calcSource">
+            <option value="site">Калькулятор apexauto.md (рекомендуется)</option>
+            <option value="local">Локальный (офлайн-копия формул)</option>
+          </select>
+        </label>
+        <label class="field"><span>Эндпоинт расчёта</span><input id="calcEndpoint" type="text" /></label>
+      </div>
+      <div class="grid2">
+        <label class="field">
+          <span>Курс валют</span>
+          <select id="ratesMode">
+            <option value="auto">Автоматически (БНМ, как на сайте)</option>
+            <option value="manual">Вручную — значения ниже</option>
+          </select>
+        </label>
+        <label class="field"><span>Курс USD → MDL</span><input id="usdMdl" type="number" step="0.01" /></label>
+        <label class="field"><span>Курс EUR → MDL</span><input id="eurMdl" type="number" step="0.01" /></label>
+        <label class="field"><span>Своя наценка, $</span><input id="marginUsd" type="number" step="50" /></label>
+        <label class="field">
+          <span>Порт по умолчанию</span>
+          <select id="defaultPort">
+            <option value="nj">Elizabeth, NJ</option>
+            <option value="savannah">Savannah, GA</option>
+            <option value="houston">Houston, TX</option>
+            <option value="indianapolis">Indianapolis, IN</option>
+            <option value="la">Los Angeles, CA</option>
+          </select>
+        </label>
+      </div>
+      <div class="checks">
+        <label><input id="calcExport" type="checkbox" /> По умолчанию считать с экспортными документами</label>
+        <label><input id="calcOffsite" type="checkbox" /> По умолчанию off-site локация</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Шаблоны постов</h2>
+      <p class="note">
+        Подстановки: <code id="placeholders"></code>.
+        Строка, в которой хотя бы одна подстановка пустая, в пост не попадает.
+      </p>
+      <div class="grid2">
+        <label class="field"><span>Сайт</span><input id="postSite" type="text" /></label>
+        <label class="field"><span>Telegram для связи</span><input id="postContact" type="text" placeholder="@fedukusa" /></label>
+        <label class="field"><span>WhatsApp</span><input id="postWhatsapp" type="text" placeholder="068-832-032" /></label>
+        <label class="field"><span>Адрес офиса</span><input id="postAddress" type="text" placeholder="Chisinau, Bucovinei 9F" /></label>
+      </div>
+      <label class="field"><span>Хэштеги (RU)</span><input id="postHashtags" type="text" /></label>
+      <label class="field"><span>Хэштеги (RO)</span><input id="postHashtagsRo" type="text" /></label>
+      <button id="btnResetTemplates" class="ghost" type="button">Вернуть стандартные шаблоны</button>
+      <label class="field"><span>Telegram (обычный текст; при желании можно добавить &lt;b&gt;, &lt;i&gt;, &lt;code&gt; — разметка включится сама)</span><textarea id="tplTelegram" rows="16"></textarea></label>
+      <label class="field"><span>Facebook</span><textarea id="tplFacebook" rows="12"></textarea></label>
+      <label class="field"><span>Instagram</span><textarea id="tplInstagram" rows="10"></textarea></label>
+
+      <p class="note">Румынские версии — кнопка <code>RO</code> в панели.</p>
+      <label class="field"><span>Telegram (RO)</span><textarea id="tplTelegramRo" rows="16"></textarea></label>
+      <label class="field"><span>Facebook (RO)</span><textarea id="tplFacebookRo" rows="12"></textarea></label>
+      <label class="field"><span>Instagram (RO)</span><textarea id="tplInstagramRo" rows="10"></textarea></label>
+    </section>
+  </main>
+
+  <script src="../common/util.js"></script>
+  <script src="../common/dictionary.js"></script>
+  <script src="../common/settings.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
