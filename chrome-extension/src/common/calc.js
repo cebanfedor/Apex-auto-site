@@ -173,7 +173,7 @@
       vehicleType: opts.vehicleType || vehicleTypeCode(lot),
       fuel: opts.fuel || fuelCode(lot.fuel || lot.engine, lot),
       engineLiters: opts.engineLiters || engineLiters(lot),
-      year: Number(lot.year || 0) || YEAR_NOW - 5,
+      year: Number(opts.year || lot.year || 0) || YEAR_NOW - 5, // год мог быть правлен вручную
       insurance: opts.insurance === undefined ? true : !!opts.insurance, // страховка включена всегда
       exportDocs: !!opts.exportDocs,
       offsite: !!opts.offsite,
