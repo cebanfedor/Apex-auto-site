@@ -204,6 +204,23 @@
 
   /* ---------- расчёт ---------- */
 
+  /** Список годов: от следующего до 1990. Год из лота выбирается по умолчанию. */
+  function fillYearOptions(selected) {
+    const now = new Date().getFullYear();
+    const options = [];
+    for (let year = now + 1; year >= 1990; year--) options.push(year);
+    $("calcYear").innerHTML = options.map((year) => `<option value="${year}">${year}</option>`).join("");
+    $("calcYear").value = String(selected || now - 5);
+    markYearEdited();
+  }
+
+  /* По документам год бывает иным, чем по VIN, — от него зависит акциз,
+     поэтому правку года подсвечиваем. */
+  function markYearEdited() {
+    const fromLot = String(state.lot && state.lot.year ? state.lot.year : "");
+    $("calcYear").classList.toggle("edited", !!fromLot && $("calcYear").value !== fromLot);
+  }
+
   function fillCalcInputs() {
     const lot = state.lot;
     const calc = state.settings.calc;
@@ -213,6 +230,7 @@
     $("calcType").value = ApexX.calc.vehicleTypeCode(lot);
     $("calcFuel").value = ApexX.calc.fuelCode(lot.fuel || lot.engine, lot);
     $("calcEngine").value = ApexX.calc.engineLiters(lot);
+    fillYearOptions(Number(lot.year || 0) || undefined);
     $("calcExport").checked = !!calc.exportDocs;
     $("calcOffsite").checked = !!calc.offsite;
     // название площадки берём со страницы лота, тариф найдёт сайт
@@ -342,6 +360,7 @@
       vehicleType: $("calcType").value,
       fuel: $("calcFuel").value,
       engineLiters: Number($("calcEngine").value || 2),
+      year: Number($("calcYear").value || 0) || undefined,
       insurance: true,
       exportDocs: $("calcExport").checked,
       offsite: $("calcOffsite").checked,
@@ -366,7 +385,7 @@
       vehicleType: params.vehicleType,
       fuel: params.fuel,
       engineLiters: params.engineLiters,
-      year: Number(state.lot.year || 0) || undefined,
+      year: params.year,
       insurance: true,
       exportDocs: params.exportDocs,
       offsite: params.offsite,
@@ -442,6 +461,7 @@
       vehicleType: $("calcType").value,
       fuel: $("calcFuel").value,
       engineLiters: Number($("calcEngine").value || 2),
+      year: Number($("calcYear").value || 0) || undefined,
       insurance: true, // страховка груза включена всегда
       exportDocs: $("calcExport").checked,
       offsite: $("calcOffsite").checked,
@@ -695,12 +715,13 @@
   /* ---------- события ---------- */
 
   function bind() {
-    ["calcBid", "calcType", "calcFuel", "calcEngine", "calcPort", "calcExport", "calcOffsite"].forEach(
+    ["calcBid", "calcType", "calcFuel", "calcEngine", "calcYear", "calcPort", "calcExport", "calcOffsite"].forEach(
       (id) => {
         $(id).addEventListener("input", recompute);
         $(id).addEventListener("change", recompute);
       }
     );
+    $("calcYear").addEventListener("change", markYearEdited);
     $("calcLocation").addEventListener("input", (event) => {
       openLocationList(event.target.value);
       state.locationManual = locationFromInput();
