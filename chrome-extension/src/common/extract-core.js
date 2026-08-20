@@ -159,16 +159,16 @@
     saleStatus: [/^sale_?status$/i, /^status$/i, /^lot_?status$/i, /^auctiontype$/i],
     currentBid: [/^bid$/i, /^current_?bid$/i, /^high_?bid$/i, /^hb$/i, /^prebid$/i, /^currentbidamount$/i, /^final_?bid$/i],
     buyNow: [/^buy_?now$/i, /^buyitnow(price)?$/i, /^bnp$/i, /^bnup$/i],
-    estRetail: [/^actual_?cash_?value$/i, /^acv$/i, /^est(imated)?_?retail_?value$/i, /^retail(value)?$/i],
-    estRepair: [/^est(imated)?_?repair_?cost$/i, /^repaircost$/i],
+    estRetail: [/^actual_?cash_?value$/i, /^acv$/i, /^est(imated)?_?retail_?value$/i, /^retail(value)?$/i, /^pre_?accident_?price$/i],
+    estRepair: [/^est(imated)?_?repair_?cost$/i, /^repaircost$/i, /^estimate_?repair_?price$/i],
     engine: [/^engine$/i, /^egn$/i, /^enginetype$/i, /^displacement$/i, /^engine_?size$/i, /engine\.name$/i],
     cylinders: [/^cylinders?$/i, /^cy$/i, /^cylindercount$/i],
     fuel: [/^fuel$/i, /^ft$/i, /^fuel_?type$/i, /^ftd$/i, /fuel\.name$/i],
     transmission: [/^transmission$/i, /^tmtp$/i, /^transmissiontype$/i],
-    drive: [/^drive$/i, /^drv$/i, /^drivetrain$/i, /^drive_?line_?type$/i, /^driveline$/i],
+    drive: [/^drive$/i, /^drv$/i, /^drivetrain$/i, /^drive_?line_?type$/i, /^driveline$/i, /^drive_?wheel$/i],
     colorExt: [/^color$/i, /^clr$/i, /^exterior_?color$/i, /^extcolor$/i, /^colorext$/i],
     colorInt: [/^interior_?color$/i, /^intcolor$/i, /^colorint$/i],
-    keys: [/^keys?$/i, /^hk$/i, /^haskeys$/i, /^keystatus$/i],
+    keys: [/^keys?$/i, /^hk$/i, /^haskeys$/i, /^keystatus$/i, /^keys_?available$/i],
     startCode: [/^start_?code$/i, /^condition$/i, /^runsanddrives?$/i, /^runanddrive$/i, /^enginestartcode$/i],
     airbags: [/^airbags?$/i, /^airbagstatus$/i],
     highlights: [/^highlights?$/i, /^specialnote$/i, /^lotdescription$/i],
@@ -230,6 +230,8 @@
       if (!/\.(jpe?g|png|webp)(\?|$)|resizer|imagekeys|image/i.test(value)) return;
       if (hostPattern && !hostPattern.test(value)) return;
       if (/logo|sprite|icon|placeholder/i.test(value)) return;
+      // в ответе API рядом с фото лота лежит логотип продавца
+      if (/\/sellers?[./]|seller_logo/i.test(value)) return;
       out.push(value);
     });
     return U.uniq(out);
