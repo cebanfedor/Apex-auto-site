@@ -82,11 +82,17 @@ async function collect(tabId) {
   const lot = response.lot;
   const apiResult = await ApexX.api.enrich(lot, settings);
   if (apiResult.source) {
-    // Страница главнее: API дополняет пустые поля и добавляет фото
+    // API главнее страницы: без него VIN и часть полей видны только залогиненному
+    // пользователю аукциона, а менеджеры работают без входа в Copart/IAAI.
     const merged = ApexX.core.merge([
-      { name: "page", fields: lot, extra: lot.extra, images: lot.images },
-      apiResult.source
+      apiResult.source,
+      { name: "page", fields: lot, extra: lot.extra, images: lot.images }
     ]);
+
+    // Цена и статус торгов меняются в реальном времени — здесь страница точнее API
+    ["currentBid", "buyNow", "saleStatus", "saleDate"].forEach((key) => {
+      if (lot[key] !== undefined && lot[key] !== "") merged[key] = lot[key];
+    });
     merged.auction = lot.auction;
     merged.auctionLabel = lot.auctionLabel;
     merged.url = lot.url;

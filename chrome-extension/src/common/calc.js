@@ -148,6 +148,9 @@
   }
 
   function engineLiters(lot){
+    // API отдаёт объём отдельным полем — берём его, если оно есть
+    const direct = Number(String(lot.engineLiters || "").replace(",", "."));
+    if(direct > 0 && direct < 9) return direct;
     const text = [lot.engine, lot.titleRaw, lot.model, lot.trim].filter(Boolean).join(" ");
     const m = String(text).match(/\b([0-6](?:[.,]\d)?)\s*[lL]\b/) || String(text).match(/\b([0-6][.,]\d)\b/);
     if(m) return Number(String(m[1]).replace(",", "."));
