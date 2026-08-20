@@ -158,10 +158,12 @@
       contact: "@fedukusa",
       whatsapp: "068-832-032",
       address: "Chisinau, Bucovinei 9F",
-      hashtags: "#apexauto #apexautoimport #автоизсша #авто #молдова #кишинёв #автоподзаказ",
-      hashtagsRo: "#apexauto #apexautoimport #autodinsua #masini #moldova #chisinau #autolacomanda",
+      hashtags: "#fedukusa #apexauto #apexautoimport #автоизсша",
+      hashtagsRo: "#fedukusa #apexauto #apexautoimport #autodinsua",
       // Поднимите число, если меняете шаблоны по умолчанию — тогда они обновятся у всех
       templatesVersion: 10,
+      // То же самое для постоянных хэштегов
+      hashtagsVersion: 2,
       templates: {
         telegram: TELEGRAM_TEMPLATE,
         facebook: FACEBOOK_TEMPLATE,
@@ -194,11 +196,20 @@
         // Версию берём из сохранённых данных, а не из слитых: у старых настроек поля нет вовсе,
         // и после слияния оно подтягивалось из DEFAULTS — миграция молча не срабатывала.
         const savedVersion = saved.post && saved.post.templatesVersion;
+        const savedTags = saved.post && saved.post.hashtagsVersion;
+        let changed = false;
         if (savedVersion !== DEFAULTS.post.templatesVersion) {
           settings.post.templates = Object.assign({}, DEFAULTS.post.templates);
           settings.post.templatesVersion = DEFAULTS.post.templatesVersion;
-          chrome.storage.local.set({ settings });
+          changed = true;
         }
+        if (savedTags !== DEFAULTS.post.hashtagsVersion) {
+          settings.post.hashtags = DEFAULTS.post.hashtags;
+          settings.post.hashtagsRo = DEFAULTS.post.hashtagsRo;
+          settings.post.hashtagsVersion = DEFAULTS.post.hashtagsVersion;
+          changed = true;
+        }
+        if (changed) chrome.storage.local.set({ settings });
         resolve(settings);
       });
     });
