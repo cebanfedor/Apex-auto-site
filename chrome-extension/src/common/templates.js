@@ -41,14 +41,19 @@
     return engine;
   }
 
+  /* «Другое» вместо типа топлива ничего не сообщает — такие значения в пост не идут */
+  const EMPTY_VALUES = /^(другое|altul|не указано|nespecificat|unknown|other|n\/?a)$/i;
+
   /** «2.0L • Бензин • Полный (AWD) • Автомат» — одной строкой, пустые части отпадают */
   function specsText(lot, lang) {
-    return U.uniq([
-      engineText(lot),
-      D.translate("fuel", lot.fuel, lang),
-      D.translate("drive", lot.drive, lang),
-      D.translate("transmission", lot.transmission, lang)
-    ].filter(Boolean)).join(" • ");
+    return U.uniq(
+      [
+        engineText(lot),
+        D.translate("fuel", lot.fuel, lang),
+        D.translate("drive", lot.drive, lang),
+        D.translate("transmission", lot.transmission, lang)
+      ].filter((part) => part && !EMPTY_VALUES.test(part))
+    ).join(" • ");
   }
 
 

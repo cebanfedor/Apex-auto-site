@@ -164,7 +164,11 @@
     starts: "Заводится",
     stationary: "Не на ходу",
     "does not start": "Не заводится",
-    "enhanced vehicles": "Enhanced Vehicle",
+    // IAAI Enhanced Vehicles: двигатель не запускали, причина не указана —
+    // часто это севший аккумулятор или отсутствие ключа, а не поломка
+    "enhanced vehicles": "Запуск не проверялся — уточним по запросу",
+    "enhanced vehicle": "Запуск не проверялся — уточним по запросу",
+    enhanced: "Запуск не проверялся — уточним по запросу",
     yes: "Да",
     no: "Нет",
     present: "Есть",
@@ -304,7 +308,11 @@
     "run drive": "Pornește și merge", "runs drives": "Pornește și merge", "runs and drive": "Pornește și merge",
     "engine start program": "Pornește (Engine Start Program)", starts: "Pornește",
     stationary: "Nu se deplasează", "does not start": "Nu pornește",
-    "enhanced vehicles": "Enhanced Vehicle", yes: "Da", no: "Nu",
+    // IAAI Enhanced Vehicles: двигатель не запускали, причина не указана —
+    // часто это севший аккумулятор или отсутствие ключа, а не поломка
+    "enhanced vehicles": "Pornirea nu a fost verificată",
+    "enhanced vehicle": "Pornirea nu a fost verificată",
+    enhanced: "Pornirea nu a fost verificată", yes: "Da", no: "Nu",
     present: "Există", "not present": "Lipsește", unknown: "Nespecificat"
   };
 
