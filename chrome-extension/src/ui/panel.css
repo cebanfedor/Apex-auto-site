@@ -97,31 +97,30 @@ h1, h2 { margin: 0; }
 .link:hover { text-decoration: underline; }
 
 /* ---------- расчёт ---------- */
-.bidRow { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: end; margin-bottom: 10px; }
-.yearField > span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
-.yearField select {
-  height: 44px;
-  width: 92px;
-  border-radius: 12px;
-  padding: 0 8px;
-  font-weight: 700;
-  font-size: 14px;
+.bidRow { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: end; margin-bottom: 8px; }
+
+/* три поля в ряд: подпись сверху, само поле — одной высоты */
+.bidField > span,
+.yearField > span,
+.bidCurrentField > span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
-.yearField select:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(237, 0, 18, 0.12); }
-/* год не совпал с годом из данных лота — подсвечиваем, что цифра правлена вручную */
-.yearField select.edited { border-color: var(--red); color: var(--red); }
-.bidField > span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
 .bidInput {
   display: flex;
   align-items: center;
-  height: 44px;
+  height: 36px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .bidInput:focus-within { border-color: var(--red); box-shadow: 0 0 0 3px rgba(237, 0, 18, 0.12); }
-.bidInput i { font-style: normal; font-weight: 700; color: var(--muted); padding: 0 2px 0 12px; font-size: 15px; }
+.bidInput i { font-style: normal; font-weight: 700; color: var(--muted); padding: 0 2px 0 10px; font-size: 14px; }
 /* селектор с типом — иначе общий стиль полей ниже вернёт полю собственную рамку */
 .bidInput input[type="number"] {
   border: 0;
@@ -129,8 +128,8 @@ h1, h2 { margin: 0; }
   outline: none;
   width: 100%;
   height: 100%;
-  padding: 0 12px 0 4px;
-  font: 800 20px/1 inherit;
+  padding: 0 10px 0 4px;
+  font: 800 17px/1 inherit;
   letter-spacing: -0.3px;
   background: transparent;
   box-shadow: none;
@@ -141,20 +140,31 @@ h1, h2 { margin: 0; }
 .bidInput input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .bidInput input[type="number"] { -moz-appearance: textfield; }
 
+.yearField select {
+  height: 36px;
+  width: 86px;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.yearField select:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(237, 0, 18, 0.12); }
+/* год не совпал с годом из данных лота — подсвечиваем, что цифра правлена вручную */
+.yearField select.edited { border-color: var(--red); color: var(--red); }
+
 #btnBidCurrent {
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
   border: 1px solid var(--line);
   background: #f6f7f9;
-  color: var(--ink2);
-  font-size: 11.5px;
-  line-height: 1.25;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 800;
   white-space: nowrap;
-  text-align: left;
 }
 #btnBidCurrent:hover:not(:disabled) { background: #eef0f4; border-color: #d9dce3; }
-#btnBidCurrent b { display: block; font-weight: 800; font-size: 13px; color: var(--ink); }
+#btnBidCurrent b { font-weight: 800; }
 
 .breakdown { list-style: none; margin: 10px 0 0; padding: 0; }
 .breakdown li {
