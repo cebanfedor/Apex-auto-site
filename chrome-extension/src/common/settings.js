@@ -158,12 +158,12 @@
       contact: "@fedukusa",
       whatsapp: "068-832-032",
       address: "Chisinau, Bucovinei 9F",
-      hashtags: "#fedukusa #apexauto #apexautoimport #автоизсша",
-      hashtagsRo: "#fedukusa #apexauto #apexautoimport #autodinsua",
+      hashtags: "#fedukusa #apexauto",
+      hashtagsRo: "#fedukusa #apexauto",
       // Поднимите число, если меняете шаблоны по умолчанию — тогда они обновятся у всех
       templatesVersion: 10,
       // То же самое для постоянных хэштегов
-      hashtagsVersion: 2,
+      hashtagsVersion: 3,
       templates: {
         telegram: TELEGRAM_TEMPLATE,
         facebook: FACEBOOK_TEMPLATE,
