@@ -193,6 +193,9 @@
   };
 
   const DRIVE_RU = {
+    all: "Полный (AWD)",
+    front: "Передний",
+    rear: "Задний",
     fwd: "Передний",
     "front wheel drive": "Передний",
     rwd: "Задний",
@@ -324,6 +327,9 @@
   };
 
   const DRIVE_RO = {
+    all: "Integral (AWD)",
+    front: "Față",
+    rear: "Spate",
     fwd: "Față", "front wheel drive": "Față", rwd: "Spate", "rear wheel drive": "Spate",
     awd: "Integral (AWD)", "all wheel drive": "Integral (AWD)",
     "4wd": "Integral (4×4)", "4x4": "Integral (4×4)", "four wheel drive": "Integral (4×4)"
@@ -410,7 +416,25 @@
       if (/\bawd|all wheel\b/i.test(raw)) return map.awd;
     }
 
-    // Документ приходит со штатом: «CA - Salvage Certificate» или «ORIGINAL (Texas)»
+    // Документ приходит со штатом: «CA - Salvage Certificate» или «ORIGINAL (Texas)».
+    // Порядок проверки важен: «Cert Of Title-Salvage Flood» — это salvage, а не чистый тайтл.
+    if (fieldKey === "titleDoc") {
+      const stateTag = (raw.match(/^\s*([A-Za-z]{2})\s*[-–•]/) || [])[1] || (raw.match(/\(([^)]{2,20})\)\s*$/) || [])[1] || "";
+      const withState = (label) => (stateTag ? `${tc(stateTag)} • ${label}` : label);
+      const RULES = [
+        [/non[- ]?repairable|certificate of destruction|junk|parts only/i, "Non-repairable (не восстанавливать)", "Nereparabil"],
+        [/rebuilt|reconstruct/i, "Rebuilt (восстановлен)", "Rebuilt (reconstruit)"],
+        [/salvage.*(flood|water)|(flood|water).*salvage/i, "Salvage после воды", "Salvage după inundație"],
+        [/salvage/i, "Salvage (тотал)", "Salvage (daună totală)"],
+        [/flood|water damage/i, "Отметка о воде в документе", "Mențiune de inundație în act"],
+        [/bill of sale/i, "Bill of Sale", "Contract de vânzare"],
+        [/export only/i, "Только на экспорт", "Doar pentru export"]
+      ];
+      for (const [test, ruText, roText] of RULES) {
+        if (test.test(raw)) return withState(ro ? roText : ruText);
+      }
+    }
+
     if (fieldKey === "titleDoc") {
       const state = (raw.match(/^\s*([A-Z]{2})\s*[-–•]/) || [])[1] || (raw.match(/\(([^)]{2,20})\)\s*$/) || [])[1] || "";
       const body = raw.replace(/^\s*[A-Z]{2}\s*[-–•]\s*/, "").replace(/\s*\([^)]*\)\s*$/, "");

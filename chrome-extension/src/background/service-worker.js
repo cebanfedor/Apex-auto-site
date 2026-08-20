@@ -89,8 +89,9 @@ async function collect(tabId) {
       { name: "page", fields: lot, extra: lot.extra, images: lot.images }
     ]);
 
-    // Цена и статус торгов меняются в реальном времени — здесь страница точнее API
-    ["currentBid", "buyNow", "saleStatus", "saleDate"].forEach((key) => {
+    // Цена и статус торгов меняются в реальном времени — здесь страница точнее API.
+    // Заголовок со страницы тоже приятнее: API отдаёт его капсом («X1 XDRIVE28I»).
+    ["currentBid", "buyNow", "saleStatus", "saleDate", "title", "titleRaw"].forEach((key) => {
       if (lot[key] !== undefined && lot[key] !== "") merged[key] = lot[key];
     });
     merged.auction = lot.auction;

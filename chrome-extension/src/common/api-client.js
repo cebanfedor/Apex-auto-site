@@ -44,15 +44,20 @@
     const payload = await getJson(url);
     if (!payload || payload.ok === false) throw new Error((payload && payload.error) || "Сайт не вернул лот");
     const lot = payload.lot || payload;
-    const normalized = C.sourceFromJson("apex-site", lot, null);
-    const raw = lot.raw ? C.sourceFromJson("auction-raw", lot.raw, null) : null;
+    // сырой ответ разбираем отдельно, иначе его фотографии попадут в нормализованный список
+    const rawData = lot.raw;
+    const flat = Object.assign({}, lot);
+    delete flat.raw;
+    const normalized = C.sourceFromJson("apex-site", flat, null);
+    const raw = rawData ? C.sourceFromJson("auction-raw", rawData, null) : null;
     if (!normalized && !raw) return null;
     // нормализованные поля точнее (уже приведены к нашему виду), сырые — дополняют пустое
     return {
       name: "apex-site",
       fields: Object.assign({}, raw && raw.fields, normalized && normalized.fields),
       extra: Object.assign({}, raw && raw.extra, normalized && normalized.extra),
-      images: U.uniq([].concat((normalized && normalized.images) || [], (raw && raw.images) || [])),
+      // список фото берём нормализованный: в сыром ответе тот же кадр лежит в нескольких размерах
+      images: (normalized && normalized.images && normalized.images.length ? normalized.images : (raw && raw.images) || []),
       raw: lot
     };
   }
