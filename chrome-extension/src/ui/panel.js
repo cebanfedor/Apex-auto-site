@@ -26,6 +26,7 @@
     estimate: null,
     selected: new Set(),
     locationManual: null,
+    locationFromSite: null,
     locOptions: [],
     locActive: -1,
     calcError: "",
@@ -207,15 +208,16 @@
     const lot = state.lot;
     const calc = state.settings.calc;
     state.locationManual = null;
+    state.locationFromSite = null;
     $("calcBid").value = Number(lot.currentBid || lot.buyNow || 0) || "";
     $("calcType").value = ApexX.calc.vehicleTypeCode(lot);
     $("calcFuel").value = ApexX.calc.fuelCode(lot.fuel || lot.engine, lot);
     $("calcEngine").value = ApexX.calc.engineLiters(lot);
     $("calcExport").checked = !!calc.exportDocs;
     $("calcOffsite").checked = !!calc.offsite;
-    const location = ApexX.calc.findLocation(lot);
-    $("calcLocation").value = location ? locationLabel(location) : U.clean(lot.location || "");
-    $("calcPort").value = (location && location.autoPort) || calc.defaultPort || "nj";
+    // название площадки берём со страницы лота, тариф найдёт сайт
+    $("calcLocation").value = U.clean(lot.location || "");
+    $("calcPort").value = calc.defaultPort || "nj";
   }
 
   /* ---------- выбор площадки вручную ---------- */
@@ -224,36 +226,34 @@
     return item.displayName || item.location || [item.city, item.state].filter(Boolean).join(", ");
   }
 
-  /** Список площадок под полем: фильтр по городу, штату или индексу. */
-  function locationMatches(query) {
-    const list = window.LOCATIONS || [];
-    const q = U.norm(query);
-    const auction = String(state.lot.auction || "").toLowerCase();
-    const lotState = U.norm(String(state.lot.state || state.lot.location || "").match(/\b[A-Za-z]{2}\b/) || "");
-    const scored = [];
-
-    for (const item of list) {
-      const label = locationLabel(item);
-      const haystack = U.norm([item.location, item.city, item.state, item.zip].filter(Boolean).join(" "));
-      let score;
-      if (!q) {
-        // без запроса показываем площадки штата лота — обычно нужна соседняя
-        if (!lotState || U.norm(item.state) !== lotState) continue;
-        score = 0;
-      } else if (haystack.startsWith(q)) score = 0;
-      else if (haystack.includes(q)) score = 1;
-      else continue;
-
-      if (String(item.auction || "").toLowerCase() !== auction) score += 0.5;
-      scored.push({ item, label, score });
-      if (scored.length > 400) break;
-    }
-
-    return scored.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label)).slice(0, 80);
+  /** Штат лота — чтобы список без запроса показывал соседние площадки, а не весь алфавит. */
+  function lotState() {
+    const raw = U.clean(state.lot.state || state.lot.location || "");
+    const dashed = raw.match(/^\s*([A-Za-z]{2})\s*[-–]/);
+    if (dashed) return dashed[1];
+    const tail = raw.match(/,\s*([A-Za-z]{2})\b/) || raw.match(/\(([A-Za-z]{2})\)/);
+    return tail ? tail[1] : "";
   }
 
-  function renderLocationList(query) {
-    state.locOptions = locationMatches(query);
+  /** Список площадок отдаёт сайт: база локаций и тарифы живут только там. */
+  async function locationMatches(query) {
+    const endpoint = String(state.settings.calc.endpoint || "").replace(/\/calc\b.*$/, "/locations");
+    if (!endpoint) return [];
+    const url =
+      `${endpoint}${endpoint.includes("?") ? "&" : "?"}q=${encodeURIComponent(query || lotState())}` +
+      `&auction=${encodeURIComponent(state.lot.auction || "")}&limit=60`;
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      if (!data || !data.ok) return [];
+      return data.locations.map((item) => ({ item, label: item.label }));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function renderLocationList(query) {
+    state.locOptions = await locationMatches(query);
     state.locActive = -1;
     const box = $("locList");
     if (!state.locOptions.length) {
@@ -272,8 +272,9 @@
   }
 
   function openLocationList(query) {
-    renderLocationList(query !== undefined ? query : $("calcLocation").value);
+    $("locList").innerHTML = '<div class="comboEmpty">Ищу площадки…</div>';
     $("locList").classList.remove("hidden");
+    renderLocationList(query !== undefined ? query : $("calcLocation").value);
   }
 
   function closeLocationList() {
@@ -299,21 +300,17 @@
     if (active) active.scrollIntoView({ block: "nearest" });
   }
 
-  /** Точное совпадение введённой строки с площадкой из базы. */
+  /** Точное совпадение введённой строки с одной из подсказок сайта. */
   function locationFromInput() {
     const value = U.clean($("calcLocation").value);
     if (!value) return null;
-    const list = window.LOCATIONS || [];
     const norm = U.norm(value);
-    const hit =
-      list.find((item) => U.norm(locationLabel(item)) === norm) ||
-      list.find((item) => U.norm(item.location) === norm);
-    return hit ? Object.assign({}, hit, { matchLevel: "manual" }) : null;
+    const hit = (state.locOptions || []).find((option) => U.norm(option.label) === norm);
+    return hit ? Object.assign({}, hit.item, { matchLevel: "manual" }) : null;
   }
 
   function currentLocation() {
-    if (state.locationManual) return state.locationManual;
-    return ApexX.calc.findLocation(state.lot);
+    return state.locationManual || state.locationFromSite || null;
   }
 
   function renderLocationNote(location) {
@@ -325,12 +322,14 @@
       return;
     }
     const level = location.matchLevel;
+    const label = location.displayName || location.label || "";
+    const price = Number(location.landPrice || location.autoLand || 0);
     note.textContent =
       level === "manual"
-        ? `Выбрано вручную · ${location.displayName || ""} · доставка $${location.landPrice || location.autoLand || 0}`
+        ? `Выбрано вручную · ${label} · доставка $${price}`
         : level === "state"
-        ? "Точной площадки нет в базе — взята ближайшая в штате, проверьте."
-        : `Определено автоматически · ${location.displayName || ""}`;
+        ? `Точной площадки нет в базе — взята ближайшая в штате (${label}), проверьте.`
+        : `Определено автоматически · ${label}`;
   }
 
   /** Параметры расчёта — одинаковые для сайта и для локального запаса. */
@@ -376,8 +375,8 @@
       usdMdl: calc.ratesMode === "manual" ? Number(calc.usdMdl) : "auto",
       eurMdl: calc.ratesMode === "manual" ? Number(calc.eurMdl) : "auto",
       port: (location && location.autoPort) || params.port,
-      landPrice: location ? Number(location.landPrice || location.autoLand || 0) : 0,
-      locationName: (location && location.displayName) || "",
+      landPrice: location ? Number(location.landPrice || location.autoLand || 0) : undefined,
+      locationName: (location && (location.displayName || location.label)) || U.clean($("calcLocation").value),
       portLabel: (location && location.portLabel) || ""
     };
 
@@ -464,6 +463,19 @@
             eurMdl: Number(data.rates.eurMdl),
             source: data.rates.source || ""
           };
+        }
+        if (data.location && !state.locationManual) {
+          state.locationFromSite = {
+            label: data.location.label,
+            displayName: data.location.label,
+            landPrice: data.location.landPrice,
+            autoLand: data.location.landPrice,
+            autoPort: data.location.autoPort,
+            portLabel: data.location.portLabel,
+            matchLevel: data.location.matchLevel
+          };
+          renderLocationNote(state.locationFromSite);
+          if (!$("calcLocation").value.trim()) $("calcLocation").value = data.location.label;
         }
         state.estimate = estimateFromSite(data, params);
         state.calcFrom = "site";
@@ -728,8 +740,8 @@
     });
     $("btnLocAuto").addEventListener("click", () => {
       state.locationManual = null;
-      const auto = ApexX.calc.findLocation(state.lot);
-      $("calcLocation").value = auto ? locationLabel(auto) : U.clean(state.lot.location || "");
+      state.locationFromSite = null;
+      $("calcLocation").value = U.clean(state.lot.location || "");
       closeLocationList();
       recompute();
     });

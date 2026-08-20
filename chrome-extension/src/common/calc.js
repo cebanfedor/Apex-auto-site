@@ -156,50 +156,11 @@
     return 2;
   }
 
-  /* Поиск локации в базе сайта (window.LOCATIONS из locations.js). */
-  function findLocation(lot){
-    const list = global.LOCATIONS || [];
-    if(!list.length) return null;
-    const auction = String(lot.auction || "").toLowerCase();
-    const raw = String(lot.location || "").toLowerCase();
-    if(!raw) return null;
-    const zip = (String(lot.zip || raw).match(/\b\d{5}\b/) || [])[0] || "";
-    // Copart пишет «NJ - TRENTON», IAAI — «Dallas, TX 75172»
-    const dashed = raw.match(/^\s*([a-z]{2})\s*[-–]\s*(.+)$/i);
-    const cityGuess = dashed
-      ? dashed[2].replace(/\b\d{5}\b/, "").trim()
-      : raw.split(/[,(]/)[0].replace(/\b\d{5}\b/, "").trim();
-    const stateGuess = dashed
-      ? dashed[1]
-      : (raw.match(/\b([A-Za-z]{2})\b(?!.*\b[A-Za-z]{2}\b)/) || [])[1] || String(lot.state || "");
-
-    const sameAuction = (item) => !item.auction || item.auction.toLowerCase() === auction;
-    const norm = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-
-    // matchLevel показывается в расчёте: точное совпадение или «взяли ближайшую в штате»
-    const tag = (item, level) => (item ? Object.assign({}, item, {matchLevel: level}) : null);
-
-    let match = list.find((item) => sameAuction(item) && norm(item.location) === norm(raw));
-    if(match) return tag(match, "exact");
-    if(zip){
-      match = list.find((item) => sameAuction(item) && String(item.zip) === zip);
-      if(match) return tag(match, "zip");
-    }
-    if(cityGuess) {
-      match = list.find((item) => sameAuction(item) && norm(item.city) === norm(cityGuess) &&
-        (!stateGuess || norm(item.state) === norm(stateGuess)));
-      if(match) return tag(match, "city");
-      match = list.find((item) => norm(item.location).includes(norm(cityGuess)) && norm(cityGuess).length > 3);
-      if(match) return tag(match, "city");
-    }
-    if(stateGuess) {
-      const inState = list.filter((item) => sameAuction(item) && norm(item.state) === norm(stateGuess));
-      if(inState.length) {
-        const cheapest = inState.sort((a, b) => Number(a.landPrice || 0) - Number(b.landPrice || 0))[0];
-        return tag(cheapest, "state");
-      }
-    }
-    return null;
+  /* Базы площадок в расширении больше нет: тариф и порт присылает сервер
+     (/api/calc и /api/locations). Здесь остаётся только то, что уже известно
+     о выбранной площадке — для офлайн-пересчёта, когда сайт недоступен. */
+  function findLocation(lot, known){
+    return known || (lot && lot.locationInfo) || null;
   }
 
   /** Полный расчёт по лоту: сам подбирает тип кузова, топливо, объём и локацию. */
