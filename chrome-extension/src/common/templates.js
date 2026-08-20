@@ -67,23 +67,14 @@
       .slice(0, 24);
   }
 
-  /** «Tesla» + «Model Y» → TeslaModelY, «BMW» + «X3» → BMWX3 */
-  function modelTag(make, model) {
-    const words = `${make || ""} ${model || ""}`.split(/[^A-Za-z0-9]+/).filter(Boolean);
-    const tag = words
-      .map((word) => (/^[A-Z0-9]+$/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)))
-      .join("");
-    return tag.slice(0, 32);
-  }
-
   /**
-   * Теги под конкретную машину: марка с моделью одним словом и аукцион.
-   * Всё остальное (постоянные теги) задаётся в настройках.
+   * Теги под конкретную машину: марка и аукцион.
+   * Постоянные теги задаются в настройках, повторы отбрасываются.
    */
   function autoTags(lot, lang, existing) {
     const tags = [];
-    const model = modelTag(lot.make, lot.model);
-    if (model.length > 2) tags.push("#" + model);
+    const make = tagSlug(lot.make);
+    if (make.length > 1) tags.push("#" + make);
     if (lot.auction) tags.push("#" + tagSlug(lot.auction));
 
     const used = new Set(String(existing || "").toLowerCase().split(/\s+/));
@@ -192,5 +183,5 @@
     return text.replace(/<\/?(b|i|code|pre|u|s|a)[^>]*>/gi, "").replace(/\*([^*\n]+)\*/g, "$1");
   }
 
-  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags, modelTag };
+  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags };
 })(typeof window !== "undefined" ? window : self);
