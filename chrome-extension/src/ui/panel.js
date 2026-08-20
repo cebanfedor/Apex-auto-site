@@ -139,29 +139,9 @@
 
   /* ---------- карточка лота ---------- */
 
-  const MONTHS = [
-    "января", "февраля", "марта", "апреля", "мая", "июня",
-    "июля", "августа", "сентября", "октября", "ноября", "декабря"
-  ];
-
-  /** «26.08.2026 16:30 EEST» → {text: «26 августа, 16:30», when: today | tomorrow | later}. */
+  /** Дата торгов для чипа: формат тот же, что в тексте поста. */
   function saleDateChip(value) {
-    const raw = U.clean(value);
-    if (!raw) return null;
-    const parts = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{1,2}:\d{2}))?/);
-    if (!parts) return { text: raw, when: "later" };
-    const day = Number(parts[1]);
-    const month = Number(parts[2]) - 1;
-    const year = Number(parts[3]);
-    const time = parts[4] ? ", " + parts[4] : "";
-    const label = `${day} ${MONTHS[month] || ""}${time}`.trim();
-
-    const sale = new Date(year, month, day);
-    const today = new Date();
-    const days = Math.round((sale - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5);
-    if (days === 0) return { text: `сегодня, ${label}`, when: "today" };
-    if (days === 1) return { text: `завтра, ${label}`, when: "tomorrow" };
-    return { text: label, when: "later" };
+    return T.saleDateParts(value, "ru");
   }
 
   /** «21.08.2026, 17:00» → время в миллисекундах (в часовом поясе, указанном аукционом). */
@@ -185,7 +165,7 @@
     // сегодня — зелёный, завтра — оранжевый, дальше — синий
     const saleDate = saleDateChip(lot.saleDate);
     const dateChip = $("lotDate");
-    dateChip.textContent = saleDate ? "🗓 Торги " + saleDate.text : "";
+    dateChip.textContent = saleDate ? "🗓 Торги: " + saleDate.text.toLowerCase() : "";
     dateChip.classList.toggle("hidden", !saleDate);
     dateChip.classList.toggle("chipToday", !!saleDate && saleDate.when === "today");
     dateChip.classList.toggle("chipTomorrow", !!saleDate && saleDate.when === "tomorrow");

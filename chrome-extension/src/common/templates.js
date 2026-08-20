@@ -20,6 +20,45 @@
     return lang === "ro" ? `${fmt(miles)} mile (${fmt(km)} km)` : `${fmt(miles)} миль (${fmt(km)} км)`;
   }
 
+  /* ---------- дата торгов ---------- */
+
+  const MONTHS = {
+    ru: ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],
+    ro: ["ianuarie","februarie","martie","aprilie","mai","iunie","iulie","august","septembrie","octombrie","noiembrie","decembrie"]
+  };
+  const TODAY = { ru: "Сегодня", ro: "Astăzi" };
+  const TOMORROW = { ru: "Завтра", ro: "Mâine" };
+
+  /**
+   * «26.08.2026 16:30 EEST» → {text: «26 августа, 16:30», when: today|tomorrow|later}.
+   * Для сегодняшних и завтрашних торгов дата начинается со слова — так виднее срочность.
+   */
+  function saleDateParts(value, lang) {
+    const raw = U.clean(value);
+    if (!raw) return null;
+    const parts = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?/);
+    if (!parts) return { text: raw, when: "later" };
+
+    const code = lang === "ro" ? "ro" : "ru";
+    const day = Number(parts[1]);
+    const month = Number(parts[2]) - 1;
+    const year = Number(parts[3]);
+    const time = parts[4] ? `, ${parts[4]}:${parts[5]}` : "";
+    const label = `${day} ${MONTHS[code][month] || ""}${time}`.trim();
+
+    const today = new Date();
+    const sale = new Date(year, month, day);
+    const days = Math.round((sale - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5);
+    if (days === 0) return { text: `${TODAY[code]}, ${label}`, when: "today" };
+    if (days === 1) return { text: `${TOMORROW[code]}, ${label}`, when: "tomorrow" };
+    return { text: label, when: "later" };
+  }
+
+  function saleDateText(value, lang) {
+    const parts = saleDateParts(value, lang);
+    return parts ? parts.text : "";
+  }
+
   function damageText(lot, lang) {
     const parts = [D.translate("primaryDamage", lot.primaryDamage, lang), D.translate("secondaryDamage", lot.secondaryDamage, lang)];
     return U.uniq(parts.filter(Boolean)).join(" + ");
@@ -101,7 +140,7 @@
       vin: lot.vin || "",
       url: lot.url || lot.pageUrl || "",
       location: lot.location || "",
-      saleDate: lot.saleDate || "",
+      saleDate: saleDateText(lot.saleDate, lang),
       saleStatus: lot.saleStatus || "",
       odometer: odometerText(lot, lang),
       damage: damageText(lot, lang),
@@ -183,5 +222,5 @@
     return text.replace(/<\/?(b|i|code|pre|u|s|a)[^>]*>/gi, "").replace(/\*([^*\n]+)\*/g, "$1");
   }
 
-  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags };
+  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags, saleDateParts, saleDateText };
 })(typeof window !== "undefined" ? window : self);
