@@ -74,7 +74,7 @@
   };
 
   /**
-   * Теги, которые расширение подбирает само: марка, марка+модель, год, топливо,
+   * Теги, которые расширение подбирает само: марка, марка+модель, топливо,
    * тип кузова, аукцион. Дубликаты с постоянными хэштегами отбрасываются.
    */
   function autoTags(lot, lang, existing) {
@@ -82,14 +82,12 @@
     const calc = ApexX.calc || {};
     const make = tagSlug(lot.make);
     const model = tagSlug(lot.model);
-    const year = String(lot.year || "").match(/(19|20)\d{2}/);
     const fuel = calc.fuelCode ? calc.fuelCode(lot.fuel || lot.engine, lot) : "";
     const body = calc.vehicleTypeCode ? calc.vehicleTypeCode(lot) : "";
 
     const tags = [];
     if (make) tags.push("#" + make);
     if (make && model) tags.push("#" + make + model);
-    if (year) tags.push("#" + year[0]);
     if (FUEL_TAGS[code][fuel]) tags.push(FUEL_TAGS[code][fuel]);
     if (BODY_TAGS[code][body]) tags.push(BODY_TAGS[code][body]);
     if (lot.auction) tags.push("#" + tagSlug(lot.auction));
