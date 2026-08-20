@@ -131,6 +131,20 @@ function displayLotNumber(lot, auction){
   return lot?.lot || lot?.external_id || "";
 }
 
+/* Все фотографии лота: аукцион кладёт их в разные ветки ответа. */
+function imageList(lot){
+  const sources = [lot?.images?.big, lot?.images?.normal, lot?.images?.small, lot?.images];
+  const list = [];
+  for(const source of sources){
+    if(Array.isArray(source)) list.push(...source);
+  }
+  return list
+    .map(item => typeof item === "string" ? item : item?.url || item?.src || "")
+    .filter(Boolean)
+    .filter((item, i, all) => all.indexOf(item) === i)
+    .slice(0, 40);
+}
+
 function normalizeAuctionApiCar(payload, sourceUrl, auction){
   const car = payload?.data || payload;
   const lots = Array.isArray(car?.lots) ? car.lots : [];
@@ -160,13 +174,28 @@ function normalizeAuctionApiCar(payload, sourceUrl, auction){
     seller:safeName(lot.seller),
     condition:safeName(lot.condition),
     image:Array.isArray(lot.images?.normal) ? lot.images.normal[0] || "" : "",
+    images:imageList(lot),
+    keys:safeName(lot.keys) || (typeof lot.keys === "boolean" ? (lot.keys ? "Yes" : "No") : ""),
+    colorExt:safeName(car?.color),
+    colorInt:safeName(car?.interior_color),
+    secondaryDamage:safeName(lot.damage?.second),
+    lossType:safeName(lot.damage?.type) || safeName(lot.loss),
+    buyNow:lot.buy_now || null,
+    estimatedRepairCost:lot.estimated_repair_price || lot.repair_cost || null,
+    saleStatus:safeName(lot.status) || safeName(lot.sale_status),
+    transmission:safeName(car?.transmission),
+    drive:safeName(car?.drive),
+    cylinders:car?.cylinders || "",
+    bodyStyle:safeName(car?.body_type) || safeName(car?.vehicle_type),
+    engine:safeName(car?.engine),
+    titleState:safeName(lot.title?.state) || "",
     priceNote:bid
       ? `Текущая цена лота: ${moneyText(bid)}. Проверьте ставку перед участием в торгах.`
       : "Мы нашли данные лота, но текущая ставка не указана. Для точного итога введите свою максимальную ставку в поле стоимости лота."
   };
 }
 
-async function fetchAuctionApiLot(lotUrl){
+async function fetchAuctionApiLot(lotUrl, withRaw){
   const key = process.env.AUCTIONS_API_KEY;
   if(!key) return null;
 
@@ -187,12 +216,17 @@ async function fetchAuctionApiLot(lotUrl){
   });
   const payload = await upstream.json().catch(() => null);
   if(!upstream.ok || payload?.error) return null;
-  return normalizeAuctionApiCar(payload, lotUrl, auction);
+  const normalized = normalizeAuctionApiCar(payload, lotUrl, auction);
+  if(withRaw) normalized.raw = payload?.data || payload;
+  return normalized;
 }
 
 module.exports = async function handler(request, response){
   const url = new URL(request.url, "http://localhost");
   const lotUrl = url.searchParams.get("url") || "";
+  // raw=1 — отдать и сырой ответ аукциона: расширение разберёт его своими правилами
+  // и покажет поля, которых нет в нормализованном наборе
+  const withRaw = url.searchParams.get("raw") === "1";
 
   if(!/^https:\/\/(www\.)?(iaai|copart|manheim)\.com\//i.test(lotUrl)){
     response.status(400).json({ok:false,error:"Unsupported auction URL"});
@@ -200,7 +234,7 @@ module.exports = async function handler(request, response){
   }
 
   try{
-    const lot = await fetchAuctionApiLot(lotUrl);
+    const lot = await fetchAuctionApiLot(lotUrl, withRaw);
     if(!lot){
       response.status(502).json({
         ok:false,

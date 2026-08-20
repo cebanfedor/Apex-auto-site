@@ -35,15 +35,26 @@
     return source;
   }
 
-  /** apexauto.md/api/lot?url=… — уже нормализованный ответ сайта */
+  /** apexauto.md/api/lot?url=… — нормализованный ответ сайта плюс сырые данные аукциона */
   async function fromSite(endpoint, lotUrl) {
     if (!endpoint || !lotUrl) return null;
-    const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}url=${encodeURIComponent(lotUrl)}`;
+    // raw=1: сырой ответ аукциона разбираем своими правилами — так в карточку попадают
+    // поля, которых нет в нормализованном наборе (ключи, цвет, вторичное повреждение)
+    const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}url=${encodeURIComponent(lotUrl)}&raw=1`;
     const payload = await getJson(url);
     if (!payload || payload.ok === false) throw new Error((payload && payload.error) || "Сайт не вернул лот");
-    const source = C.sourceFromJson("apex-site", payload.lot || payload, null);
-    if (source) source.raw = payload.lot || payload;
-    return source;
+    const lot = payload.lot || payload;
+    const normalized = C.sourceFromJson("apex-site", lot, null);
+    const raw = lot.raw ? C.sourceFromJson("auction-raw", lot.raw, null) : null;
+    if (!normalized && !raw) return null;
+    // нормализованные поля точнее (уже приведены к нашему виду), сырые — дополняют пустое
+    return {
+      name: "apex-site",
+      fields: Object.assign({}, raw && raw.fields, normalized && normalized.fields),
+      extra: Object.assign({}, raw && raw.extra, normalized && normalized.extra),
+      images: U.uniq([].concat((normalized && normalized.images) || [], (raw && raw.images) || [])),
+      raw: lot
+    };
   }
 
   /**
