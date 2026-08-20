@@ -62,38 +62,27 @@
       .slice(0, 24);
   }
 
-  const FUEL_TAGS = {
-    ru: { hybrid: "#гибрид", phev: "#гибрид", electric: "#электромобиль", diesel: "#дизель" },
-    ro: { hybrid: "#hibrid", phev: "#hibrid", electric: "#electric", diesel: "#diesel" }
-  };
-  const BODY_TAGS = {
-    ru: { sedan: "#седан", crossover: "#кроссовер", suv: "#внедорожник", suvLarge: "#внедорожник",
-          pickup: "#пикап", vanLarge: "#фургон", moto: "#мотоцикл", atv: "#квадроцикл" },
-    ro: { sedan: "#sedan", crossover: "#crossover", suv: "#suv", suvLarge: "#suv",
-          pickup: "#pickup", vanLarge: "#van", moto: "#motocicleta", atv: "#atv" }
-  };
+  /** «Tesla» + «Model Y» → TeslaModelY, «BMW» + «X3» → BMWX3 */
+  function modelTag(make, model) {
+    const words = `${make || ""} ${model || ""}`.split(/[^A-Za-z0-9]+/).filter(Boolean);
+    const tag = words
+      .map((word) => (/^[A-Z0-9]+$/.test(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)))
+      .join("");
+    return tag.slice(0, 32);
+  }
 
   /**
-   * Теги, которые расширение подбирает само: марка, марка+модель, топливо,
-   * тип кузова, аукцион. Дубликаты с постоянными хэштегами отбрасываются.
+   * Теги под конкретную машину: марка с моделью одним словом и аукцион.
+   * Всё остальное (постоянные теги) задаётся в настройках.
    */
   function autoTags(lot, lang, existing) {
-    const code = lang === "ro" ? "ro" : "ru";
-    const calc = ApexX.calc || {};
-    const make = tagSlug(lot.make);
-    const model = tagSlug(lot.model);
-    const fuel = calc.fuelCode ? calc.fuelCode(lot.fuel || lot.engine, lot) : "";
-    const body = calc.vehicleTypeCode ? calc.vehicleTypeCode(lot) : "";
-
     const tags = [];
-    if (make) tags.push("#" + make);
-    if (make && model) tags.push("#" + make + model);
-    if (FUEL_TAGS[code][fuel]) tags.push(FUEL_TAGS[code][fuel]);
-    if (BODY_TAGS[code][body]) tags.push(BODY_TAGS[code][body]);
+    const model = modelTag(lot.make, lot.model);
+    if (model.length > 2) tags.push("#" + model);
     if (lot.auction) tags.push("#" + tagSlug(lot.auction));
 
     const used = new Set(String(existing || "").toLowerCase().split(/\s+/));
-    return U.uniq(tags.filter((tag) => tag.length > 2 && !used.has(tag.toLowerCase()))).join(" ");
+    return U.uniq(tags.filter((tag) => !used.has(tag.toLowerCase()))).join(" ");
   }
 
   /** Все доступные подстановки: {{ключ}} */
@@ -198,5 +187,5 @@
     return text.replace(/<\/?(b|i|code|pre|u|s|a)[^>]*>/gi, "").replace(/\*([^*\n]+)\*/g, "$1");
   }
 
-  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags };
+  ApexX.templates = { build, render, vars, damageText, odometerText, specsText, engineText, autoTags, modelTag };
 })(typeof window !== "undefined" ? window : self);
