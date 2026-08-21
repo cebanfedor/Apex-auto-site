@@ -103,14 +103,33 @@
 
   /* ---------- вывод параметров машины из данных лота ---------- */
 
+  /* ---------- определение plug-in гибрида ----------
+     Аукцион пишет «Hybrid» или «Electric And Gas Hybrid» и для обычных гибридов,
+     и для plug-in — разницы в поле нет, а для акциза она вдвое (0.75 против 0.5).
+     Различаем по марке и названию. */
+
+  // Немецкие премиум-марки и Volvo обычных гибридов почти не выпускали:
+  // если аукцион пишет «гибрид» — это plug-in.
+  const PHEV_BRANDS = /\b(bmw|audi|mercedes|mercedes-benz|porsche|volvo|land ?rover|range ?rover|jaguar|mini)\b/i;
+
+  // Явные маркеры plug-in в названии — работают для любой марки
+  const PHEV_NAME = /\bphev\b|plug[- ]?in|\bprime\b|\benergi\b|\b4xe\b|recharge|\bt8\b|e-?hybrid|\bgte\b|\bgrand touring\b|\b\d{3}e\b|\b(25e|30e|40e|45e|50e|55e|60e)\b|\bp400e\b|\btfsi\s*e\b/i;
+
+  // Исключения: у этих моделей гибрид без розетки, хотя марка премиальная
+  const FULL_HYBRID_NAME = /active\s?hybrid|\bml450\b|\bs400\b|\be400\s*hybrid\b|\bq5\s*hybrid\b|\bcayenne\s*s\s*hybrid\b/i;
+
   function fuelCode(value, lot){
-    // название модели важнее поля «Fuel Type»: у PHEV аукцион часто пишет «Other»
-    const name = lot ? [lot.titleRaw, lot.model, lot.trim].filter(Boolean).join(" ").toLowerCase() : "";
-    if(/\bphev\b|plug[- ]?in/.test(name)) return "phev";
+    const name = lot ? [lot.titleRaw, lot.title, lot.model, lot.trim].filter(Boolean).join(" ") : "";
     const t = String(value || "").toLowerCase();
+    const looksHybrid = t.includes("hybrid") || (t.includes("electric") && t.includes("gas"));
+
+    if(PHEV_NAME.test(name) && !FULL_HYBRID_NAME.test(name)) return "phev";
     if(t.includes("plug")) return "phev";
-    if(t.includes("hybrid")) return "hybrid";
-    if(t.includes("electric") && t.includes("gas")) return "hybrid";
+    if(looksHybrid){
+      // «RAV4 Prime», «Fusion Energi» уже отсеклись выше — здесь решает марка
+      if(FULL_HYBRID_NAME.test(name)) return "hybrid";
+      return PHEV_BRANDS.test(name) ? "phev" : "hybrid";
+    }
     if(t.includes("electric")) return "electric";
     if(t.includes("diesel")) return "diesel";
     if(t.includes("gas") || t.includes("petrol") || t.includes("flex")) return "gasoline";
