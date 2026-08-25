@@ -1221,7 +1221,7 @@
               ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg), "damage") : ""}
               ${lot.saleType ? dMain("Тип ущерба", tc(lot.saleType), "damage") : ""}
-              ${vinReport ? dPlain("Экстра", `${dbIco("gem")}<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчет VIN</a>`) : ""}
+              ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчет VIN</a>`, "gem") : ""}
             </section>
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
             <section class="dSec">
@@ -1243,7 +1243,7 @@
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
-              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">${dbIco("play")} Смотреть видео</a>`) : ""}
+              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">Смотреть видео</a>`, "play") : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory)}
             <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
