@@ -1049,6 +1049,8 @@ async function searchFromDb(query){
   const p = new URLSearchParams();
   p.set("select", "payload");
   const ands = [];
+  // Страховка от Encar/Кореи, попавшей в базу до доменного фильтра синка
+  ands.push("or(country.neq.kr,country.is.null)");
 
   const tab = query.get("tab") || "all";
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); }
@@ -1313,11 +1315,6 @@ async function handleSyncLots(response){
   const result = {ok:true, phase:state.phase || "full", imported:0, archivedMarked:0};
   const SYNC_DOMAINS = ["3", "1"]; // Copart, затем IAAI (Encar не качаем)
   try{
-    // Одноразовая чистка: ранние прогоны качали общий фид и записали Encar/Корею.
-    if(!state.cleaned_kr){
-      await syncSbFetch(`/api_lots?country=eq.kr`, {method:"DELETE", headers:{prefer:"return=minimal"}});
-      state.cleaned_kr = true;
-    }
     if(state.phase !== "incr"){
       // -------- Полный импорт по доменам: SYNC_PAGES_PER_RUN страниц за вызов --------
       if(!state.domain_mode){ state.domain_mode = true; state.domain_idx = 0; state.next_page = 1; }
@@ -1361,6 +1358,24 @@ async function handleSyncLots(response){
       }
       state.last_incr_at = new Date().toISOString();
       result.continue = false;
+    }
+    // Одноразовая чистка Encar/Кореи (ранние прогоны качали общий фид):
+    // массовый DELETE упирается в statement timeout — удаляем PK-батчами
+    // остатком бюджета этого прогона.
+    if(!state.cleaned_kr){
+      let cleaned = 0;
+      while(Date.now() - started < SYNC_RUN_BUDGET_MS){
+        const rows = await syncSbFetch(`/api_lots?country=eq.kr&select=id&limit=2000`);
+        if(!rows || !rows.length){ state.cleaned_kr = true; break; }
+        for(let i = 0; i < rows.length; i += 500){
+          const ids = rows.slice(i, i + 500).map(r => r.id).join(",");
+          await syncSbFetch(`/api_lots?id=in.(${ids})`, {method:"DELETE", headers:{prefer:"return=minimal"}});
+        }
+        cleaned += rows.length;
+        if(rows.length < 2000){ state.cleaned_kr = true; break; }
+      }
+      result.cleanedKr = cleaned;
+      if(!state.cleaned_kr) result.continue = true; // workflow продолжает, пока не дочистим
     }
   }catch(e){
     result.ok = false;
