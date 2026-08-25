@@ -508,6 +508,13 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 @media (max-width:640px) {
   .auctionsShellV1 { padding:18px 16px 60px; }
+  /* Компактная карточка: фото с ценой, тайтл, ключевые строки; остальное — по «Развернуть» */
+  .dbPhoto .dbPhotoPrice { display:inline-flex; }
+  .dbCard .dbExpandV1 { display:block; }
+  .dbPhoto .dbPhotoCount { top:8px; left:8px; right:auto; bottom:auto; }
+  .dbCard:not(.dbOpenV1) .dbSpecs li:nth-child(n+3) { display:none; }
+  .dbCard:not(.dbOpenV1) .dbChecks li:nth-child(n+2) { display:none; }
+  .dbCard:not(.dbOpenV1) .dbAside { display:none; }
   /* Compact tab row: keep «Все» и «Архивные», rest duplicated in filters */
   .auctionTabsV1 button[data-tab="open"],
   .auctionTabsV1 button[data-tab="sold"],
@@ -526,6 +533,16 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dHeadActionsV1 { width:100%; }
   .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { flex:1 1 45%; justify-content:center; height:42px; padding:0 10px; }
 }
+
+/* ---- Countdown до торгов + цена на фото + мобильный collapse (DreamBid-style) ---- */
+.dbCountdownV1 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; color:#1a7f45; }
+.dbCountdownV1 .dbIco { width:14px; height:14px; }
+.dbCountdownSoonV1 { color:#c05621; }
+.dbPhotoPrice { display:none; position:absolute; right:8px; bottom:8px; padding:5px 12px; border-radius:9px;
+  background:var(--aRed); color:#fff; font-weight:800; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.28); }
+.dbPhotoPriceSold { background:#20242c; }
+.dbExpandV1 { display:none; width:100%; margin-top:10px; height:38px; border:1px solid var(--aLine);
+  border-radius:10px; background:var(--aSoft) !important; color:var(--aInk2) !important; font-weight:600; font-size:13px; cursor:pointer; box-shadow:none !important; }
 
 /* Stale-while-revalidate: dim existing cards while new data loads */
 .lotsRefreshingV1 { opacity:.55; pointer-events:none; transition:opacity .15s; }

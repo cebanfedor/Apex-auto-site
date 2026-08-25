@@ -604,6 +604,18 @@
     return many;
   }
 
+  // Обратный отсчёт до торгов, как у крупных каталогов: "5h 33m" при < 72ч.
+  function timeLeftLabel(auctionDate){
+    if(!auctionDate) return "";
+    const t = new Date(auctionDate).getTime();
+    if(Number.isNaN(t)) return "";
+    const diff = t - Date.now();
+    if(diff <= 0 || diff > 72 * 3600e3) return "";
+    const h = Math.floor(diff / 3600e3);
+    const m = Math.floor((diff % 3600e3) / 60e3);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
   function renderCard(lot){
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
@@ -623,6 +635,7 @@
         </a>
         <span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
+        <span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
         ${photos > 1 ? `<button class="dbSlideBtn dbSlidePrev" type="button" aria-label="Предыдущее фото" data-dir="-1">‹</button><button class="dbSlideBtn dbSlideNext" type="button" aria-label="Следующее фото" data-dir="1">›</button>` : ""}
       </div>
@@ -656,10 +669,12 @@
             </ul>
           </div>
         </div>
+        <button class="dbExpandV1" type="button">Развернуть</button>
       </div>
       <aside class="dbAside">
         <div class="dbWhen">
           <span>${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
+          ${(() => { const tl = isSold ? "" : timeLeftLabel(lot.auctionDate); return tl ? `<span class="dbCountdownV1${new Date(lot.auctionDate).getTime() - Date.now() < 6*3600e3 ? " dbCountdownSoonV1" : ""}">${dbIco("clock")}${tl}</span>` : ""; })()}
           ${liveLabel ? `<span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>` : ""}
         </div>
         <div class="dbPriceWrap">
@@ -1661,6 +1676,14 @@
           const ta = document.createElement("textarea"); ta.value = val; document.body.appendChild(ta); ta.select();
           try{ document.execCommand("copy"); }catch(e){} ta.remove(); done();
         }
+        return;
+      }
+      const expBtn = event.target.closest(".dbExpandV1");
+      if(expBtn){
+        event.preventDefault();
+        const card = expBtn.closest(".dbCard");
+        const open = card.classList.toggle("dbOpenV1");
+        expBtn.textContent = open ? "Свернуть" : "Развернуть";
         return;
       }
       const favBtn = event.target.closest("[data-fav]");
