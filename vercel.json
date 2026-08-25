@@ -59,7 +59,7 @@
     {
       "source": "/api/auctions",
       "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=300" }
+        { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=300" }
       ]
     }
   ]

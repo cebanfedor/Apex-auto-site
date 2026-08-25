@@ -57,8 +57,9 @@ function cacheKey(action, params){
   return `${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
-// DB_TTL in seconds: search=6h, detail=24h, vin=7d, dict/lists=12h
-const DB_TTL = {search:21600, detail:86400, vin:604800, _default:43200};
+// DB_TTL in seconds: search=6h, detail=30мин (аукционы переносят даты — 24h кеш
+// показывал устаревшую дату торгов), vin=7d, dict/lists=12h
+const DB_TTL = {search:21600, detail:1800, vin:604800, _default:43200};
 
 async function getDbCache(key){
   try{
@@ -1365,9 +1366,19 @@ module.exports = async function handler(request, response){
     return;
   }
 
+  // Кеш детали протух по смыслу: дата торгов уже прошла, а лот не завершён —
+  // аукционы часто переносят даты, показывать старую дату нельзя, перезапрашиваем.
+  const detailCacheStale = payload => {
+    if(action !== "detail" || !payload || !payload.lot) return false;
+    const lot = payload.lot;
+    const t = Date.parse(lot.auctionDate || "");
+    const done = lot.statusId === 6 || lot.statusId === 8 || /sold|not_sold/i.test(lot.statusName || "");
+    return Number.isFinite(t) && t < Date.now() && !done;
+  };
+
   const key = cacheKey(action, query);
   const cached = getCached(key);
-  if(cached){
+  if(cached && !detailCacheStale(cached)){
     sendJson(response, 200, {...cached, cached:true});
     return;
   }
@@ -1377,7 +1388,7 @@ module.exports = async function handler(request, response){
   const dbCacheActions = new Set(["search","detail","vin","archived","manufacturers","models","generations","usadict","statistics"]);
   if(dbCacheActions.has(action)){
     const dbHit = await getDbCache(key);
-    if(dbHit){
+    if(dbHit && !detailCacheStale(dbHit)){
       setCached(key, dbHit);
       sendJson(response, 200, {...dbHit, cached:true});
       return;
