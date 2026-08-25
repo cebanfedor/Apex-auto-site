@@ -956,7 +956,9 @@
         </div>
         <div class="calcOptRowV2">
           <span>Объём двигателя</span>
-          <div class="calcEngineWrapV2"><input id="lotCalcEngine" data-calc-input type="number" class="calcEngineV2" min="0.5" max="9" step="0.1" value="${engL}"><span class="calcEngineUnitV2">л</span></div>
+          <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
+            ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} л</option>`).join("")}
+          </select>
         </div>
         <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
         <label class="calcOptV2"><input type="checkbox" id="lotCalcInsurance" data-calc-input checked><span>Страховка 1%</span><i>защита в пути</i></label>
