@@ -287,13 +287,24 @@ function normalizeLot(source, fallbackAuction = "copart"){
         if(item.lots.length > 1) return item.lots.slice(1);
         return [];
       })();
-  const priceHistory = rawHistory.map(p => ({
+  // История цены = только реальные прошлые аукционы (по sale_date).
+  // final_bid_updated_at — это время обновления записи в API, не дата торгов:
+  // с ним снапшоты ставок выглядели как «2 аукциона за ночь с разницей 7 минут».
+  const priceHistoryRaw = rawHistory.map(p => ({
     bid:safeNumber(p?.bid || p?.final_bid || p?.current_bid),
     buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
-    date:p?.sale_date || p?.final_bid_updated_at || p?.date || "",
+    date:p?.sale_date || "",
     status:safeName(p?.status),
     lot:String(p?.lot || p?.lot_number || p?.lotNumber || p?.external_id || "").replace(/~.*/, "")
-  })).filter(p => p.bid || p.buyNow || p.date);
+  })).filter(p => (p.bid || p.buyNow) && p.date && new Date(p.date).getTime() < Date.now());
+  // Один аукцион — одна запись: дедуп по дню торгов, оставляем максимальную ставку.
+  const byDay = new Map();
+  for(const p of priceHistoryRaw){
+    const day = String(p.date).slice(0, 10);
+    const prev = byDay.get(day);
+    if(!prev || (p.bid || 0) > (prev.bid || 0)) byDay.set(day, p);
+  }
+  const priceHistory = Array.from(byDay.values()).sort((a, b) => a.date < b.date ? 1 : -1);
   // For on-approval / sold lots where final_bid isn't explicitly set, infer from price history
   const resolvedFinalBid = finalBid || (!currentBid && priceHistory.length ? (priceHistory[0].bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
@@ -481,27 +492,9 @@ function buildSearchParams(query){
       params.set("sale_date_in_days", "60"); // default: no user date selected
     }
   }
-  // Sort: try common API param names. The API may support sort_by + order,
-  // or may ignore them — client-side sortItems() is the guaranteed fallback.
-  const sortVal = query.get("sort") || "soon";
-  const sortApiMap = {
-    soon:         {sort_by:"sale_date", order:"asc"},
-    date_asc:     {sort_by:"sale_date", order:"asc"},
-    date_desc:    {sort_by:"sale_date", order:"desc"},
-    year_asc:     {sort_by:"year",      order:"asc"},
-    year_desc:    {sort_by:"year",      order:"desc"},
-    mileage_asc:  {sort_by:"odometer",  order:"asc"},
-    mileage_desc: {sort_by:"odometer",  order:"desc"},
-    price_asc:    {sort_by:"price",     order:"asc"},
-    price_desc:   {sort_by:"price",     order:"desc"},
-    buy_now_asc:  {sort_by:"buy_now",   order:"asc"},
-    buy_now_desc: {sort_by:"buy_now",   order:"desc"},
-  };
-  const apiSort = sortApiMap[sortVal];
-  if(apiSort){
-    params.set("sort_by", apiSort.sort_by);
-    params.set("order",   apiSort.order);
-  }
+  // Сортировку API /cars не поддерживает (подтверждено докой) — глобальная
+  // сортировка выполняется поиском по локальной базе (searchFromDb); в live-
+  // фоллбеке страницу сортирует клиентский sortItems().
   params.set("page", query.get("page") || "1");
   params.set("per_page", query.get("per_page") || query.get("limit") || "50");
   params.set("simple_paginate", "0");
@@ -1020,6 +1013,142 @@ async function handleLead(request, response){
   }
 }
 
+// ================= Поиск по локальной базе (Supabase api_lots) =================
+// DreamBid-модель: каталог синхронизирован в Supabase (см. api/sync-lots.js),
+// фильтры/сортировка/пагинация выполняются по SQL на ВСЁМ каталоге — в отличие
+// от live-запросов к /cars, где API не поддерживает сортировку вовсе.
+
+let dbReadyCache = {value:null, at:0};
+async function lotsDbReady(){
+  if(Date.now() - dbReadyCache.at < 60e3) return dbReadyCache.value;
+  try{
+    const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+    if(!url || !key) throw new Error("no supabase env");
+    const r = await fetch(`${url}/rest/v1/api_sync_state?k=eq.main&select=v`, {
+      headers:{apikey:key, authorization:`Bearer ${key}`}
+    });
+    const rows = r.ok ? await r.json() : null;
+    dbReadyCache = {value:!!(rows && rows[0] && rows[0].v && rows[0].v.phase === "incr"), at:Date.now()};
+  }catch(e){
+    dbReadyCache = {value:false, at:Date.now()};
+  }
+  return dbReadyCache.value;
+}
+
+function pgEscape(value){
+  // Значение для PostgREST-фильтра: убираем спецсимволы синтаксиса запросов.
+  return String(value).replace(/[(),*%\\]/g, " ").trim();
+}
+
+async function searchFromDb(query){
+  if(!(await lotsDbReady())) return null;
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const p = new URLSearchParams();
+  p.set("select", "payload");
+  const ands = [];
+
+  const tab = query.get("tab") || "all";
+  if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); }
+  else if(tab === "archived"){ p.set("archived", "eq.true"); }
+  else if(tab === "buy_now"){ p.set("archived", "eq.false"); p.set("buy_now", "gt.0"); }
+  else{
+    p.set("archived", "eq.false");
+    // Показываем будущие торги, лоты без даты и прошедшие менее суток назад
+    const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
+    ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
+  }
+
+  const auction = query.get("auction");
+  if(auction && auction !== "all") p.set("auction", `eq.${pgEscape(auction).toLowerCase()}`);
+
+  const make = query.get("make");
+  if(make && /^[\d,]+$/.test(make)) p.set("make_id", make.includes(",") ? `in.(${make})` : `eq.${make}`);
+  const model = query.get("model");
+  if(model && /^\d+$/.test(model)) p.set("model_id", `eq.${model}`);
+  const generation = query.get("generation");
+  if(generation && /^\d+$/.test(generation)) p.set("generation_id", `eq.${generation}`);
+
+  const numFilters = [
+    ["yearFrom", "year", "gte"], ["yearTo", "year", "lte"],
+    ["bidFrom", "current_bid", "gte"], ["bidTo", "current_bid", "lte"],
+    ["buyNowFrom", "buy_now", "gte"], ["buyNowTo", "buy_now", "lte"],
+    ["mileageFrom", "odometer_mi", "gte"], ["mileageTo", "odometer_mi", "lte"]
+  ];
+  for(const [from, col, op] of numFilters){
+    const v = query.get(from);
+    if(v && /^\d+$/.test(v)) ands.push(`${col}.${op}.${v}`);
+  }
+  const kmFrom = query.get("mileageFromKm"), kmTo = query.get("mileageToKm");
+  if(kmFrom && /^\d+$/.test(kmFrom)) ands.push(`odometer_mi.gte.${Math.round(Number(kmFrom) * 0.621371)}`);
+  if(kmTo && /^\d+$/.test(kmTo)) ands.push(`odometer_mi.lte.${Math.round(Number(kmTo) * 0.621371)}`);
+
+  const enumFilters = [["fuel","fuel_id"],["body","body_id"],["transmission","transmission_id"],["drive","drive_id"],["condition","condition_id"],["color","color_id"],["cylinders","cylinders"],["vehicleType","vehicle_type_id"]];
+  for(const [from, col] of enumFilters){
+    const v = query.get(from);
+    if(v && /^\d+$/.test(v)) p.set(col, `eq.${v}`);
+  }
+
+  const damage = query.get("damage");
+  if(damage) p.set("damage", `ilike.*${pgEscape(damage)}*`);
+  const doc = query.get("document");
+  if(doc) p.set("document", `ilike.*${pgEscape(doc)}*`);
+  const state = query.get("state");
+  if(state) p.set("state_code", `eq.${pgEscape(state).toLowerCase()}`);
+  const country = query.get("country");
+  if(country) p.set("country", `eq.${pgEscape(country).toLowerCase()}`);
+
+  const q = query.get("q");
+  const vin = query.get("vin");
+  const name = query.get("name");
+  if(q && /^\d{6,10}$/.test(q)) p.set("lot", `eq.${q}`);
+  else if(q) ands.push(`or(vin.ilike.*${pgEscape(q)}*,title.ilike.*${pgEscape(q)}*)`);
+  if(vin) p.set("vin", `ilike.*${pgEscape(vin).replace(/_/g, "")}*`);
+  if(name) p.set("title", `ilike.*${pgEscape(name)}*`);
+
+  const dateFrom = query.get("auctionDateFrom");
+  const dateTo = query.get("auctionDateTo");
+  if(dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) ands.push(`sale_date.gte.${dateFrom}T00:00:00Z`);
+  if(dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) ands.push(`sale_date.lte.${dateTo}T23:59:59Z`);
+  if(query.get("withoutSaleDate") === "1") p.set("sale_date", "is.null");
+
+  if(ands.length) p.set("and", `(${ands.join(",")})`);
+
+  const sortMap = {
+    soon:"sale_date.asc.nullslast", date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
+    year_asc:"year.asc.nullslast", year_desc:"year.desc.nullslast",
+    mileage_asc:"odometer_mi.asc.nullslast", mileage_desc:"odometer_mi.desc.nullslast",
+    price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc.nullslast",
+    buy_now_asc:"buy_now.asc.nullslast", buy_now_desc:"buy_now.desc.nullslast"
+  };
+  p.set("order", `${sortMap[query.get("sort") || "soon"] || sortMap.soon},id.asc`);
+
+  const perPage = Math.min(100, Math.max(1, Number(query.get("per_page") || query.get("limit") || 50) || 50));
+  const page = Math.max(1, Number(query.get("page") || 1) || 1);
+  const offset = (page - 1) * perPage;
+
+  const response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
+    headers:{
+      apikey:key,
+      authorization:`Bearer ${key}`,
+      prefer:"count=exact",
+      range:`${offset}-${offset + perPage - 1}`,
+      "range-unit":"items"
+    }
+  });
+  if(!response.ok) throw new Error(`lots db search failed: ${response.status}`);
+  const rows = await response.json();
+  const total = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length;
+  return {
+    items:rows.map(r => r.payload).filter(Boolean),
+    total,
+    page,
+    perPage,
+    _source:"db"
+  };
+}
+
 module.exports = async function handler(request, response){
   const query = getQuery(request);
   const action = query.get("action") || "search";
@@ -1168,11 +1297,15 @@ module.exports = async function handler(request, response){
     }
 
     if(action === "search"){
-      const result = await fetchSearch(query);
+      // Локальная база (DreamBid-модель) — честная сортировка/фильтры по всему
+      // каталогу; live-запрос к API остаётся фоллбеком, пока база не готова.
+      let result = null;
+      try{ result = await searchFromDb(query); }catch(e){ result = null; }
+      if(!result) result = await fetchSearch(query);
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon")};
       // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : CACHE_TTL);
-      if(!result._fallback) setDbCache(key, payload, "search");
+      if(!result._fallback && !result._source) setDbCache(key, payload, "search");
       sendJson(response, 200, payload);
       return;
     }
@@ -1204,3 +1337,10 @@ module.exports = async function handler(request, response){
     });
   }
 };
+
+// Переиспользуются в api/sync-lots.js (синхронизация каталога в Supabase).
+module.exports.normalizeLot = normalizeLot;
+module.exports.normalizeAuction = normalizeAuction;
+module.exports.findItems = findItems;
+module.exports.fetchJson = fetchJson;
+module.exports.AUCTIONS_API_BASE = AUCTIONS_API_BASE;

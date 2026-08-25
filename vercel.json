@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/sync-lots.js": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/sync-lots", "schedule": "0 5 * * *" }
+  ],
   "rewrites": [
     { "source": "/api/calc", "destination": "/api/content?calc=1" },
     { "source": "/api/locations", "destination": "/api/content?calc=1&locations=" },

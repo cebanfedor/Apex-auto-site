@@ -1,0 +1,24 @@
+# Ежечасная синхронизация каталога аукционов в Supabase (см. api/sync-lots.js).
+# Пока идёт первичный полный импорт, endpoint возвращает continue:true —
+# цикл прокачивает страницы подряд; после этого один вызов в час обновляет
+# изменённые лоты и помечает проданные. Секретов не требует: endpoint публичный,
+# защищён внутренним локом.
+name: Sync auction lots
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Pump sync endpoint
+        run: |
+          for i in $(seq 1 60); do
+            out=$(curl -s --max-time 120 "https://apexauto.md/api/sync-lots?source=gha" || echo '{"ok":false}')
+            echo "[$i] $out"
+            echo "$out" | grep -q '"continue":true' || break
+            sleep 2
+          done

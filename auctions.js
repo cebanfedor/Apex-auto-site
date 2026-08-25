@@ -1939,12 +1939,25 @@
     $("#auctionLeadForm").addEventListener("submit", submitLead);
   }
 
+  // Fire-and-forget пинг синхронизации каталога: сайт сам поддерживает базу
+  // лотов свежей от трафика (endpoint защищён локом, чаще раза в ~5 мин не сработает).
+  function pingLotsSync(){
+    try{
+      const KEY = "apexLotsSyncPing";
+      const last = Number(localStorage.getItem(KEY) || 0);
+      if(Date.now() - last < 15 * 60e3) return;
+      localStorage.setItem(KEY, String(Date.now()));
+      fetch("/api/sync-lots?source=web").catch(() => {});
+    }catch(e){}
+  }
+
   async function initAuctions(){
     closeLead();
     bindEvents();
     initRanges();
     initCarData();
     updateFavCount();
+    pingLotsSync();
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
       restoreFromUrl();
