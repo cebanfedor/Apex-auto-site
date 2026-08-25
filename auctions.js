@@ -1053,7 +1053,7 @@
           </select>
         </div>
         <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
-        <label class="calcOptV2"><input type="checkbox" id="lotCalcInsurance" data-calc-input checked><span>Страховка 1%</span><i>защита в пути</i></label>
+        <div class="calcOptV2 calcOptFixedV1">${dbIco("check")}<span>Страховка 1%</span><i>всегда включена · защита в пути</i></div>
       </div>
       <div class="calcRatesV2">
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
@@ -1094,7 +1094,7 @@
     const eurMdl = Number($("#lotCalcEurMdl")?.value) || liveRates.eurMdl;
     const calc = calcLotTotal(state.selectedLot, {
       bid:Number($("#lotBidInput").value || 0),
-      insurance:$("#lotCalcInsurance")?.checked,
+      insurance:true, // страховка обязательна — в стоимости всегда
       exportDocs:$("#lotCalcExportDocs")?.checked,
       vehicleType:veh, fuel, engineLiters, usdMdl, eurMdl
     });

@@ -391,6 +391,9 @@
 .calcOptV2 input { width:18px; height:18px; accent-color:var(--aRed); flex:none; }
 .calcOptV2 span { flex:1; }
 .calcOptV2 i { font-style:normal; font-size:11px; color:var(--aMuted); text-align:right; }
+/* Обязательная опция (страховка): без чекбокса, зелёная галочка, не кликается */
+.calcOptFixedV1 { cursor:default; }
+.calcOptFixedV1 .dbIco { width:18px; height:18px; flex:none; color:#1b9c5b; }
 .calcOptRowV2 { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--aLine2); font-size:13px; color:var(--aInk); gap:10px; }
 .calcSelectV2 { height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:12.5px; padding:0 6px; cursor:pointer; max-width:140px; }
 .calcEngineWrapV2 { display:flex; align-items:center; gap:5px; }
