@@ -462,7 +462,9 @@
   // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){
     const s = String(lot.statusName || lot.lotStatus || "").toLowerCase();
-    if(/sold|завер|not_sold/.test(s)) return ["Торги завершены", "done"];
+    const dd = lot.auctionDate ? new Date(lot.auctionDate) : null;
+    const upcoming = dd && !Number.isNaN(dd.getTime()) && dd.getTime() > Date.now();
+    if(!upcoming && /sold|завер|not_sold/.test(s)) return ["Торги завершены", "done"];
     if(/buy/.test(s)) return ["Купить сейчас", "buy"];
     const d = lot.auctionDate ? new Date(lot.auctionDate) : null;
     if(d && !Number.isNaN(d.getTime())){
@@ -616,14 +618,24 @@
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   }
 
+  // Перевыставленный лот хранит finalBid прошлых торгов: если дата аукциона в будущем,
+  // лот снова активен — finalBid остаётся только в истории цены, показываем current bid.
+  function lotSaleState(lot){
+    const t = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
+    const upcoming = Number.isFinite(t) && t > Date.now();
+    const soldLike = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
+    const isSold = soldLike && !upcoming;
+    const finalBid = isSold ? (lot.finalBid || lot.priceHistory?.[0]?.bid || 0) : 0;
+    return {isSold, finalBid};
+  }
+
   function renderCard(lot){
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
     const engineLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
-    const isSold = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
-    const effectiveFinalBid = lot.finalBid || (isSold ? (lot.priceHistory?.[0]?.bid || 0) : 0);
+    const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow);
     const priceLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая цена";
     const price = money(priceVal);
@@ -930,8 +942,7 @@
   }
 
   function renderLotCalculator(lot){
-    const isSold = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
-    const effectiveFinalBid = lot.finalBid || (isSold ? (lot.priceHistory?.[0]?.bid || 0) : 0);
+    const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     const initialBid = (isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0;
     const bidLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая ставка";
     const kind = vehicleKind(lot);
@@ -1104,9 +1115,8 @@
     const title = lotTitle(lot);
     const specLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
-    const isSold = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
-    const effectiveBid = lot.finalBid || (isSold ? (lot.priceHistory?.[0]?.bid || 0) : 0);
-    const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow || lot.finalBid);
+    const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
+    const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
     return `<a class="simCardV1" href="${detailHref(lot)}">
       <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<span class="simBidV1${isSold ? " simBidSoldV1" : ""}">${money(bid)}</span></div>
       <h4>${escapeHtml(title)}</h4>
