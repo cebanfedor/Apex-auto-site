@@ -416,6 +416,31 @@
 .calcCtasV2 .dbBtnPrimary, .calcCtasV2 .dbBtnGhost { width:100%; height:44px; }
 .calcNoteV2 { font-size:11.5px; color:var(--aMuted); line-height:1.4; }
 
+/* ---- DreamBid-style: таймер, CTA сверху, рынок, выдача, сворачиваемые секции ---- */
+.calcCountdownV1 { display:flex; align-items:center; gap:8px; background:var(--aSoft); border:1px solid var(--aLine); border-radius:11px; padding:10px 12px; font-size:13px; color:var(--aInk2); }
+.calcCountdownV1 .dbIco { flex:0 0 16px; width:16px; height:16px; color:var(--aRed); }
+.calcCountdownV1 b { color:var(--aInk); font-variant-numeric:tabular-nums; }
+.calcTopCtaV1 { width:100%; height:46px; }
+.calcMarketV1 { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aMuted); }
+.calcMarketV1 .dbIco { width:14px; height:14px; }
+.calcMarketV1[hidden] { display:none; }
+.calcEtaV1 { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--aInk2); }
+.calcEtaV1 .dbIco { flex:0 0 15px; width:15px; height:15px; color:var(--aMuted); }
+.calcEtaV1 b { color:var(--aInk); }
+.calcSecHeadV2 { cursor:pointer; user-select:none; }
+.calcSecHeadV2 > span { display:inline-flex; align-items:center; gap:6px; }
+.calcChevV1 { transition:transform .15s; }
+.calcClosedV1 .calcChevV1 { transform:rotate(-90deg); }
+.calcClosedV1 .calcRowV2 { display:none; }
+/* Заголовок лота: h1 + «Поделиться» в одну строку */
+.dTitleRowV1 { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.dShareBtnV1 { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 11px; border:1px solid var(--aLine); border-radius:9px; background:var(--aSoft); color:var(--aInk2); font-weight:600; font-size:12px; cursor:pointer; }
+.dShareBtnV1 .dbIco { width:13px; height:13px; }
+.dShareBtnV1:hover { border-color:var(--aMuted); color:var(--aInk); }
+/* Хлебные крошки-ссылки */
+.auctionCrumbsV1 a { color:inherit; text-decoration:none; }
+.auctionCrumbsV1 a:hover { color:var(--aInk); text-decoration:underline; }
+
 /* Right sidebar wrapper (calculator + auction info) */
 .dRightColV2 { display:flex; flex-direction:column; gap:16px; }
 .dRightColV2 > .lotCalcV2 { position:sticky; top:90px; }

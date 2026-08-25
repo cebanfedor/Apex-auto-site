@@ -61,6 +61,58 @@
     return number ? `$${Math.round(number).toLocaleString("en-US")}` : "—";
   }
 
+  // ---- Русские значения enum-полей API (повреждения, топливо, цвет, кузов) ----
+  const RU_DAMAGE = {
+    "front end":"Спереди","rear end":"Сзади","left front":"Слева спереди","right front":"Справа спереди",
+    "left rear":"Слева сзади","right rear":"Справа сзади","left side":"Левая сторона","right side":"Правая сторона",
+    "side":"Сбоку","all over":"По всему кузову","top/roof":"Крыша","roof":"Крыша",
+    "undercarriage":"Днище / подвеска","mechanical":"Механическое","engine damage":"Двигатель",
+    "transmission":"Трансмиссия","electrical":"Электрика","interior":"Салон",
+    "minor dent/scratches":"Мелкие вмятины / царапины","minor dents/scratches":"Мелкие вмятины / царапины",
+    "normal wear":"Естественный износ","wear and tear":"Естественный износ",
+    "hail":"Град","water/flood":"Затопление","flood":"Затопление","water":"Затопление",
+    "burn":"Огонь","burn - engine":"Огонь · двигатель","burn - interior":"Огонь · салон",
+    "rollover":"Переворот","vandalism":"Вандализм","theft":"После угона","stripped":"Разукомплектован",
+    "frame damage":"Повреждение рамы","suspension":"Подвеска","biohazard/chemical":"Био / химия",
+    "bio chemical":"Био / химия","biohazard chemical":"Био / химия",
+    "partial repair":"Частичный ремонт","repossession":"Изъятие (repo)","storm damage":"Шторм",
+    "rejected repair":"Отказ от ремонта","missing/altered vin":"Проблема с VIN","replaced vin":"Заменён VIN",
+    "unknown":"Не указано","none":"Без повреждений"
+  };
+  const RU_FUEL = {
+    gasoline:"Бензин",gas:"Бензин",petrol:"Бензин",diesel:"Дизель",hybrid:"Гибрид",
+    "plug-in hybrid":"Plug-in гибрид","hybrid electric":"Гибрид",phev:"Plug-in гибрид",
+    electric:"Электро",flexible:"Флекс (бензин/этанол)","flexible fuel":"Флекс (бензин/этанол)",
+    flex:"Флекс (бензин/этанол)",cng:"Газ (CNG)",lpg:"Газ (LPG)",hydrogen:"Водород",other:"Другое"
+  };
+  const RU_COLOR = {
+    white:"Белый",black:"Чёрный",silver:"Серебристый",gray:"Серый",grey:"Серый",blue:"Синий",
+    red:"Красный",green:"Зелёный",brown:"Коричневый",beige:"Бежевый",tan:"Бежевый",gold:"Золотистый",
+    orange:"Оранжевый",yellow:"Жёлтый",purple:"Фиолетовый",burgundy:"Бордовый",maroon:"Бордовый",
+    charcoal:"Графитовый",cream:"Кремовый",turquoise:"Бирюзовый",teal:"Бирюзовый",pink:"Розовый",
+    "two tone":"Двухцветный","two-tone":"Двухцветный"
+  };
+  const RU_BODY = {
+    sedan:"Седан",suv:"Внедорожник","sport utility vehicle":"Внедорожник",crossover:"Кроссовер",
+    coupe:"Купе",convertible:"Кабриолет",hatchback:"Хэтчбек",wagon:"Универсал",liftback:"Лифтбек",
+    fastback:"Фастбек",roadster:"Родстер",pickup:"Пикап","pickup truck":"Пикап",van:"Минивен / Бус",
+    minivan:"Минивэн","cargo van":"Грузовой бус",truck:"Грузовик",motorcycle:"Мотоцикл",
+    atv:"Квадроцикл",bus:"Автобус",limousine:"Лимузин","chassis cab":"Шасси-кабина"
+  };
+  function ruEnum(map, raw){
+    if(raw == null || raw === "") return raw;
+    const k = String(raw).toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    return map[k] || map[k.replace(/ /g, "-")] || tc(raw);
+  }
+  // "Front End / Right Rear" → каждая часть переводится отдельно;
+  // цельные ключи с "/" (Minor Dent/Scratches) ловятся до разбиения
+  function ruDamage(raw){
+    if(raw == null || raw === "") return raw;
+    const whole = String(raw).toLowerCase().replace(/\s+/g, " ").trim();
+    if(RU_DAMAGE[whole]) return RU_DAMAGE[whole];
+    return String(raw).split("/").map(p => ruEnum(RU_DAMAGE, p)).join(" / ");
+  }
+
   function dateText(value){
     if(!value) return "—";
     const date = new Date(value);
@@ -443,13 +495,15 @@
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
   }
-  function dbDate(value){
+  function dbDate(value, withYear){
     if(!value) return "Future";
     const d = new Date(value);
     if(Number.isNaN(d.getTime())) return String(value).slice(0, 16);
     const lang = window.APEX_LANG || "ru";
     const loc = lang === "ro" ? "ro-RO" : lang === "en" ? "en-US" : "ru-RU";
-    return d.toLocaleString(loc, {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
+    const opts = {weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"};
+    if(withYear) opts.year = "numeric";
+    return d.toLocaleString(loc, opts);
   }
   function dbOdo(text){
     if(!text) return "";
@@ -526,7 +580,7 @@
   }
   function dbCheckFuel(raw){
     if(!raw) return "";
-    const val = tc(raw);
+    const val = ruEnum(RU_FUEL, raw);
     const low = String(raw).toLowerCase();
     const tone = /electric|электро/.test(low) ? "good" : /hybrid|гибрид|phev|plug/.test(low) ? "good" : "neutral";
     return `<li class="dbCheck ${tone}">${dbIco("fuel")}<span><b>Топливо:</b> ${escapeHtml(val)}</span></li>`;
@@ -662,7 +716,7 @@
             <ul class="dbSpecs">
               ${dbSpec("engine", escapeHtml(engineLine))}
               ${dbSpec("odo", dbOdo(lot.odometerText))}
-              ${dbSpec("damage", escapeHtml(tc(lot.damage)))}
+              ${dbSpec("damage", escapeHtml(ruDamage(lot.damage)))}
               ${dbSpec("doc", escapeHtml(tc(lot.document)))}
               ${dbSpec("pin", escapeHtml(tc(lot.location)))}
             </ul>
@@ -921,24 +975,31 @@
     return `<div class="calcRowV2"><span>${escapeHtml(label)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span><b>${money(value)}</b></div>`;
   }
 
+  // Свёрнутые секции калькулятора переживают перерисовку при изменении инпутов
+  const calcClosedSecs = new Set();
+  function calcSec(key, title, subtotal, rowsHtml){
+    const closed = calcClosedSecs.has(key);
+    return `
+      <section class="calcSecV2${closed ? " calcClosedV1" : ""}" data-calc-sec="${key}">
+        <div class="calcSecHeadV2" role="button" tabindex="0" data-calc-toggle="${key}">
+          <span><svg class="calcChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg>${title}</span><b>${money(subtotal)}</b>
+        </div>
+        ${rowsHtml}
+      </section>`;
+  }
   function renderCalcRows(calc){
     const shippingSub = calc.bid + calc.auctionFee + calc.land + calc.sea;
     const clearingSub = calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
-    return `
-      <section class="calcSecV2">
-        <div class="calcSecHeadV2"><span>Калькулятор стоимости</span><b>${money(shippingSub)}</b></div>
+    return calcSec("ship", "Калькулятор стоимости", shippingSub, `
         ${calcRow("Ставка", calc.bid)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calcRow("Доставка по США", calc.land, calc.landRoute)}
-        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}
-      </section>
-      <section class="calcSecV2">
-        <div class="calcSecHeadV2"><span>Таможня и оформление</span><b>${money(clearingSub)}</b></div>
+        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}`)
+      + calcSec("clear", "Таможня и оформление", clearingSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Сопровождение Apex Auto", calc.service)}
-      </section>`;
+        ${calcRow("Сопровождение Apex Auto", calc.service)}`);
   }
 
   function renderLotCalculator(lot){
@@ -951,12 +1012,16 @@
     const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, vehicleType:kind, fuel:fuelVal, engineLiters:engL});
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
+    const countdown = isSold ? "" : timeLeftLabel(lot.auctionDate);
     return `<aside class="lotCalcV2">
       ${isSold && effectiveFinalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${money(effectiveFinalBid)}</b></div>` : ""}
       <div class="calcTopV2">
         <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${money(initialBid)}</b></div>
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>
+      <div id="lotMarketLineV1" class="calcMarketV1" hidden></div>
+      ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>Осталось <b id="lotCalcCountdown">${countdown}</b> до начала торгов</span></div>` : ""}
+      ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>` : ""}
       ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
       <div class="calcStepperV2">
@@ -1000,13 +1065,24 @@
         <b id="lotCalcTotal">${money(calc.total)}</b>
         <small id="lotCalcTotalAlt">${altCurrency(calc)}</small>
       </div>
+      <div class="calcEtaV1">${dbIco("calendar")}<span>Ориентировочная выдача в Кишинёве: <b>${deliveryWindow(lot)}</b></span></div>
       <div class="calcCtasV2">
         <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
         <button class="dbBtnGhost" type="button" data-copy-calc>Скопировать расчёт</button>
         <a class="dbBtnGhost" href="${calcHref(lot)}">Открыть в полном калькуляторе</a>
       </div>
-      <p class="calcNoteV2">Расчёт предварительный, для ориентира. Итоговую сумму подтверждаем перед покупкой.</p>
+      <p class="calcNoteV2">Расчёт предварительный, для ориентира. Итоговую сумму подтверждаем перед покупкой. Курсы валют — по данным НБМ (bnm.md).</p>
     </aside>`;
+  }
+
+  // Ориентир выдачи: дата торгов (или сегодня, если торги прошли) + 6–12 недель доставки
+  function deliveryWindow(lot){
+    const t = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
+    const base = Math.max(Number.isFinite(t) ? t : 0, Date.now());
+    const lang = window.APEX_LANG || "ru";
+    const loc = lang === "ro" ? "ro-RO" : lang === "en" ? "en-US" : "ru-RU";
+    const f = ms => new Date(ms).toLocaleDateString(loc, {day:"numeric", month:"short"});
+    return `${f(base + 42 * 864e5)} – ${f(base + 84 * 864e5)}`;
   }
 
   function updateLotCalculator(){
@@ -1194,8 +1270,11 @@
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
-            <span class="auctionCrumbsV1"><span>Главная</span> / <span>Аукционы</span> / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
-            <h1>${escapeHtml(title)}</h1>
+            <span class="auctionCrumbsV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a>${lot.make ? ` / <a href="/auctions?name=${encodeURIComponent(lot.make)}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <a href="/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}">${escapeHtml(lot.model)}</a>` : ""} / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
+            <div class="dTitleRowV1">
+              <h1>${escapeHtml(title)}</h1>
+              <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
+            </div>
             <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}</p>
           </div>
           <div class="dHeadActionsV1">
@@ -1222,15 +1301,16 @@
             <section class="dSec">
               <div class="dSecHead">Главное</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
+              ${lot.seller ? dPlain("Продавец", `${sellerTypeHtml} ${escapeHtml(tc(lot.seller))}`) : ""}
               ${dMain("Ключ доступен", tc(lot.keys), "key")}
               ${dMain("Статус документов", tc(lot.document), "doc")}
               ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus), "doc") : ""}
               ${dMain("История", histStr)}
               ${dPlain("Привод", escapeHtml(driveLine), "drive")}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
-              ${primaryDmg ? dMain("Основное повреждение", tc(primaryDmg), "damage") : ""}
-              ${secondaryDmg ? dMain("Вторичное повреждение", tc(secondaryDmg), "damage") : ""}
-              ${lot.saleType ? dMain("Тип ущерба", tc(lot.saleType), "damage") : ""}
+              ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
+              ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
+              ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчет VIN</a>`, "gem") : ""}
             </section>
             <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
@@ -1241,15 +1321,15 @@
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeHtml) : ""}
               ${dPlain("Продавец", escapeHtml(tc(lot.seller)))}
-              ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate)))}
+              ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
               ${dPlain("Локация", escapeHtml(tc(lot.location)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
             </section>
             <section class="dSec">
               <div class="dSecHead">Описание</div>
-              ${dPlain("Тип топлива", escapeHtml(tc(lot.fuel)))}
-              ${dPlain("Цвет кузова", escapeHtml(tc(lot.color)))}
-              ${dPlain("Тип кузова", escapeHtml(tc(lot.body)))}
+              ${dPlain("Тип топлива", escapeHtml(ruEnum(RU_FUEL, lot.fuel)))}
+              ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
+              ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
@@ -1278,7 +1358,24 @@
     loadSimilarActive(lot);
     loadSimilarArchived(lot);
     loadStats(lot);
-      fetchLiveRates();
+    fetchLiveRates();
+    startLotCountdown(lot);
+  }
+
+  // Живой отсчёт до торгов в сайдбаре (обновление раз в 30 сек)
+  let lotCdTimer = null;
+  function startLotCountdown(lot){
+    if(lotCdTimer){ clearInterval(lotCdTimer); lotCdTimer = null; }
+    if(!document.getElementById("lotCalcCountdown")) return;
+    lotCdTimer = setInterval(() => {
+      const node = document.getElementById("lotCalcCountdown");
+      if(!node){ clearInterval(lotCdTimer); lotCdTimer = null; return; }
+      const tl = timeLeftLabel(lot.auctionDate);
+      if(tl){ node.textContent = tl; return; }
+      const box = node.closest(".calcCountdownV1");
+      if(box) box.innerHTML = `${dbIco("clock")}<span>Торги начались</span>`;
+      clearInterval(lotCdTimer); lotCdTimer = null;
+    }, 30e3);
   }
 
   // Market statistics for this make/model (avg sale price, range, sample size).
@@ -1314,6 +1411,12 @@
         </div>
         <p class="statNoteV1">По данным проданных лотов Copart и IAAI${yr ? ` за ${yr} год` : ""}. Помогает оценить адекватную ставку.</p>`;
       box.hidden = false;
+      // Короткая строка рынка в сайдбаре калькулятора — как «оценочная стоимость» у DreamBid
+      const marketLine = document.getElementById("lotMarketLineV1");
+      if(marketLine){
+        marketLine.innerHTML = `${dbIco("chart")}<span>Рынок: средняя ${money(avg)} · ${cnt} ${plural(cnt, "продажа", "продажи", "продаж")}</span>`;
+        marketLine.hidden = false;
+      }
     }catch(e){ /* stats optional — ignore */ }
   }
 
@@ -1780,6 +1883,25 @@
         updateLotCalculator();
       }
       if(event.target.closest("[data-copy-calc]")) copyCalculation();
+      const calcToggle = event.target.closest("[data-calc-toggle]");
+      if(calcToggle){
+        const key = calcToggle.dataset.calcToggle;
+        const sec = calcToggle.closest("[data-calc-sec]");
+        if(calcClosedSecs.has(key)) calcClosedSecs.delete(key); else calcClosedSecs.add(key);
+        sec?.classList.toggle("calcClosedV1", calcClosedSecs.has(key));
+      }
+      const shareBtn = event.target.closest("[data-share-page]");
+      if(shareBtn){
+        (async () => {
+          const url = location.href;
+          try{
+            if(navigator.share){ await navigator.share({title:document.title, url}); return; }
+            await navigator.clipboard.writeText(url);
+            const label = shareBtn.querySelector("span");
+            if(label){ const old = label.textContent; label.textContent = "Скопировано"; setTimeout(() => { label.textContent = old; }, 1600); }
+          }catch(e){}
+        })();
+      }
       const thumb = event.target.closest("[data-detail-image]");
       if(thumb){
         if($("#detailMainImage")) $("#detailMainImage").src = thumb.dataset.detailImage;
