@@ -1301,7 +1301,7 @@
             <section class="dSec">
               <div class="dSecHead">Главное</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
-              ${lot.seller ? dPlain("Продавец", `${sellerTypeHtml} ${escapeHtml(tc(lot.seller))}`) : ""}
+              ${lot.seller ? dPlain("Продавец", `${sellerTypeHtml} ${escapeHtml(tc(lot.seller).replace(/\s*·\s*Страховая\s*$/i, ""))}`) : ""}
               ${dMain("Ключ доступен", tc(lot.keys), "key")}
               ${dMain("Статус документов", tc(lot.document), "doc")}
               ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus), "doc") : ""}
