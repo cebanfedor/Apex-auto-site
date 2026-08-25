@@ -27,7 +27,7 @@
   <meta name="twitter:description" content="Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.">
   <meta name="twitter:image" content="https://apexauto.md/assets/og/auctions.png">
   <link rel="stylesheet" href="/styles.css?v=v424">
-  <link rel="stylesheet" href="/auctions.css?v=v388">
+  <link rel="stylesheet" href="/auctions.css?v=v389">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -84,12 +84,13 @@
 
   <main class="auctionsShellV1">
     <section id="auctionCatalog" class="auctionsCatalogV1">
+      <nav class="auctionsCrumbV3" aria-label="Навигация"><a href="/">Apex Auto</a><span>•</span><span>Текущие аукционы</span></nav>
       <div class="auctionsHeadV2">
         <div class="auctionsHeadLeftV2">
-          <span class="auctionsKickerV1">COPART / IAAI</span>
-          <h1>Авто с аукционов Copart и IAAI из США и Канады в Молдову</h1>
+          <h1 class="auctionsH1V3">Текущие аукционы <b id="auctionResultCount" class="h1CountV3">0</b></h1>
+          <p class="auctionsSubV3">Авто с аукционов Copart и IAAI из США и Канады — под ключ в Молдову · <span id="auctionResultLabel">лотов найдено</span></p>
         </div>
-        <div class="auctionCountV1"><b id="auctionResultCount">0</b><span id="auctionResultLabel">лотов найдено</span></div>
+        <button id="shareCatalogBtn" class="shareChipV3" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/></svg><span>Поделиться</span></button>
       </div>
 
       <div class="auctionToolbarV2">
@@ -130,6 +131,12 @@
         </div>
       </div>
 
+      <div class="auctionInfoV3" id="auctionInfoBanner" hidden>
+        <span class="infoIcoV3">i</span>
+        <p>Полный каталог аукционов США и Канады: тысячи автомобилей Copart и IAAI с фотографиями, описанием повреждений и историей VIN. Выберите автомобиль — привезём его под ключ в Кишинёв.</p>
+        <button type="button" id="infoCloseBtn" aria-label="Скрыть">×</button>
+      </div>
+
       <div class="auctionSearchRowV2">
         <input id="auctionSmartSearch" placeholder="Поиск: VIN, номер лота, марка или модель" autocomplete="off">
         <button id="auctionSearchBtn" type="button">Найти</button>
@@ -139,6 +146,11 @@
       <section class="auctionLayoutV1">
         <div class="auctionFilterColV1">
         <aside id="auctionFilters" class="auctionFiltersV1">
+          <div class="pickPromoV3">
+            <b>Подбор машины</b>
+            <p>Скажите бюджет и цели — пришлём 3–5 лотов с ценой под ключ. Бесплатно.</p>
+            <a href="https://t.me/fedukusa" target="_blank" rel="noopener">Начать в Telegram</a>
+          </div>
           <div class="filterHeadV1">
             <h2>Фильтры</h2>
             <button id="closeFiltersBtn" type="button">×</button>
@@ -382,9 +394,9 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v2" defer></script>
   <script src="/car-data.js?v=cars-v4" defer></script>
-  <script src="/auctions.js?v=auctions-v50" defer></script>
+  <script src="/auctions.js?v=auctions-v51" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
-  <script src="/i18n.js?v=multilang-v174" defer></script>
+  <script src="/i18n.js?v=multilang-v175" defer></script>
 
 <!-- Exit-intent popup -->
 <div id="exitPopupV401" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);">

@@ -633,7 +633,7 @@
         <a class="dbPhotoLink" href="${detailHref(lot)}">
           ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" class="dbSlideImg">` : `<span class="dbNoPhoto">Нет фото</span>`}
         </a>
-        <span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>
+        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ Видео</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         <span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
@@ -666,6 +666,7 @@
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot.lot)}
+              ${lot.vin ? `<li class="dbVinRepV3">${dbIco("gem")}<a href="${detailHref(lot)}">Отчёт VIN</a></li>` : ""}
             </ul>
           </div>
         </div>
@@ -1545,6 +1546,27 @@
   }
 
   function bindEvents(){
+    // «Поделиться» — системный share на мобильном, буфер обмена на десктопе
+    $("#shareCatalogBtn")?.addEventListener("click", async () => {
+      const btn = $("#shareCatalogBtn");
+      const url = location.href;
+      try{
+        if(navigator.share){ await navigator.share({title:document.title, url}); return; }
+        await navigator.clipboard.writeText(url);
+        const label = btn.querySelector("span");
+        if(label){ const t = label.textContent; label.textContent = "Скопировано"; setTimeout(() => { label.textContent = t; }, 1400); }
+      }catch(_){}
+    });
+    // Инфо-баннер: показываем, пока пользователь не закрыл
+    (function(){
+      const banner = $("#auctionInfoBanner");
+      if(!banner) return;
+      try{ if(!localStorage.getItem("apexAucInfoHidden")) banner.hidden = false; }catch(_){ banner.hidden = false; }
+      $("#infoCloseBtn")?.addEventListener("click", () => {
+        banner.hidden = true;
+        try{ localStorage.setItem("apexAucInfoHidden", "1"); }catch(_){}
+      });
+    })();
     $("#auctionSearchBtn").addEventListener("click", () => { exitDiscovery(); triggerSearch(); });
     ["#auctionSmartSearch"].forEach(selector => {
       $(selector)?.addEventListener("keydown", event => {

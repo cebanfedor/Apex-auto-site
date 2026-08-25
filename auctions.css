@@ -508,6 +508,11 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 @media (max-width:640px) {
   .auctionsShellV1 { padding:18px 16px 60px; }
+  .auctionsH1V3 { gap:8px; }
+  .shareChipV3 { height:32px; padding:0 11px; font-size:12.5px; }
+  .auctionInfoV3 p { font-size:13px; }
+  .auctionTabsV1 button.archiveTabV2 { margin-left:0; }
+  .dbCard:not(.dbOpenV1) .dbVinRepV3 { display:none; }
   /* Компактная карточка: фото с ценой, тайтл, ключевые строки; остальное — по «Развернуть» */
   .dbPhoto .dbPhotoPrice { display:inline-flex; }
   .dbCard .dbExpandV1 { display:block; }
@@ -533,6 +538,42 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dHeadActionsV1 { width:100%; }
   .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { flex:1 1 45%; justify-content:center; height:42px; padding:0 10px; }
 }
+
+/* ---- DreamBid-style: крошки, H1 со счётчиком, Поделиться, инфо-баннер, промо ---- */
+.auctionsCrumbV3 { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--aMuted); margin-bottom:6px; }
+.auctionsCrumbV3 a { color:var(--aMuted); text-decoration:none; }
+.auctionsCrumbV3 a:hover { color:var(--aInk); }
+.auctionsH1V3 { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; font-size:clamp(24px,2.6vw,34px); letter-spacing:-.02em; color:var(--aInk); }
+.h1CountV3 { font-size:clamp(22px,2.4vw,30px); font-weight:800; color:#aab2bd; letter-spacing:-.01em; }
+.auctionsSubV3 { margin-top:4px; font-size:13.5px; color:var(--aMuted); }
+.shareChipV3 { display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 14px; border:1px solid var(--aLine);
+  border-radius:10px; background:var(--aSurf) !important; color:var(--aInk2) !important; font-weight:600; font-size:13px; cursor:pointer;
+  box-shadow:none !important; transition:border-color .15s; align-self:flex-start; }
+.shareChipV3:hover { border-color:var(--aMuted); }
+.auctionInfoV3 { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; padding:13px 16px;
+  border:1px solid var(--aLine); border-radius:14px; background:var(--aSurf); box-shadow:var(--aShadow); }
+.auctionInfoV3[hidden] { display:none; }
+.infoIcoV3 { flex:none; width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+  border-radius:50%; background:rgba(237,0,18,.09); color:var(--aRed); font-weight:800; font-size:13px; font-style:italic; }
+.auctionInfoV3 p { margin:0; font-size:13.5px; line-height:1.55; color:var(--aInk2); }
+.auctionInfoV3 button { flex:none; border:none; background:none !important; box-shadow:none !important; font-size:20px; line-height:1;
+  color:var(--aMuted) !important; cursor:pointer; padding:0 2px; }
+.pickPromoV3 { margin-bottom:12px; padding:14px 15px; border-radius:14px; background:#0b0d10; color:#fff; }
+.pickPromoV3 b { display:block; font-size:14.5px; font-weight:800; }
+.pickPromoV3 p { margin:6px 0 10px; font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.75); }
+.pickPromoV3 a { display:inline-flex; align-items:center; height:34px; padding:0 14px; border-radius:9px;
+  background:var(--aRed); color:#fff; font-weight:700; font-size:13px; text-decoration:none; }
+.pickPromoV3 a:hover { background:var(--aRed600); }
+.dbBadgesRowV3 { position:absolute; left:8px; bottom:8px; display:flex; gap:6px; align-items:center; }
+.dbBadgesRowV3 .dbAuc { position:static; }
+.dbVideoBadgeV3 { padding:2px 8px; border-radius:6px; background:rgba(237,0,18,.92); color:#fff; font-size:9.5px; font-weight:700; letter-spacing:.03em; }
+.dbVinRepV3 { display:flex; align-items:center; gap:7px; }
+.dbVinRepV3 .dbIco { width:15px; height:15px; color:var(--aRed); }
+.dbVinRepV3 a { color:var(--aRed); font-weight:600; font-size:13px; text-decoration:none; }
+.dbVinRepV3 a:hover { text-decoration:underline; }
+/* Архивные — отдельно справа, красный оттенок (как у референса) */
+.auctionTabsV1 button.archiveTabV2 { margin-left:auto; background:rgba(237,0,18,.07); border-color:rgba(237,0,18,.25); color:var(--aRed); }
+.auctionTabsV1 button.archiveTabV2.active { background:var(--aRed); color:#fff; border-color:var(--aRed); }
 
 /* ---- Countdown до торгов + цена на фото + мобильный collapse (DreamBid-style) ---- */
 .dbCountdownV1 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; color:#1a7f45; }
