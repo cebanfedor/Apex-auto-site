@@ -1149,11 +1149,217 @@ async function searchFromDb(query){
   };
 }
 
+// ================= Синхронизация каталога в Supabase (action=synclots) =================
+// Официальная схема интеграции auctionsapi.com: фаза "full" — первичный импорт
+// /cars постранично (per_page=1000), фаза "incr" — /cars?minutes=NN + /archived-lots.
+// Живёт внутри этой функции из-за лимита Vercel Hobby (12 serverless-функций);
+// снаружи доступна как /api/sync-lots (rewrite). Защищена локом ~5 мин.
+
+const SYNC_PER_PAGE = 1000;
+const SYNC_PAGES_PER_RUN = 8;
+const SYNC_LOCK_MINUTES = 5;
+const SYNC_RUN_BUDGET_MS = 45000;
+
+function syncSb(){
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if(!url || !key) throw new Error("Supabase env is not configured");
+  return {url, key};
+}
+
+async function syncSbFetch(path, options = {}){
+  const {url, key} = syncSb();
+  const res = await fetch(`${url}/rest/v1${path}`, {
+    ...options,
+    headers:{apikey:key, authorization:`Bearer ${key}`, "content-type":"application/json", ...(options.headers || {})}
+  });
+  const text = await res.text();
+  const payload = text ? JSON.parse(text) : null;
+  if(!res.ok){
+    const error = new Error(payload?.message || `Supabase ${res.status}`);
+    error.status = res.status;
+    throw error;
+  }
+  return payload;
+}
+
+async function syncGetState(){
+  const rows = await syncSbFetch(`/api_sync_state?k=eq.main&select=v`);
+  return (rows && rows[0] && rows[0].v) || {};
+}
+
+async function syncSetState(v){
+  await syncSbFetch(`/api_sync_state?on_conflict=k`, {
+    method:"POST",
+    headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify({k:"main", v, updated_at:new Date().toISOString()})
+  });
+}
+
+// Свой фетч с таймаутом 30с: страницы по 1000 лотов тяжелее обычных запросов.
+async function syncApiFetch(url){
+  const key = process.env.AUCTIONS_API_KEY;
+  if(!key) throw new Error("AUCTIONS_API_KEY is not configured");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try{
+    const res = await fetch(url, {headers:{"x-api-key":key, accept:"application/json"}, signal:controller.signal});
+    const payload = await res.json().catch(() => null);
+    if(!res.ok || payload?.error){
+      const error = new Error(payload?.message || payload?.error || `AuctionsAPI ${res.status}`);
+      error.status = res.status;
+      throw error;
+    }
+    return payload;
+  }finally{ clearTimeout(timer); }
+}
+
+// item (сырой ответ API) → строка таблицы api_lots.
+// payload — нормализованный лот в том же виде, что отдаёт action=search.
+function syncRowFromItem(item, {archived = false} = {}){
+  const lot = (Array.isArray(item?.lots) && item.lots[0]) || item?.lot || item || {};
+  const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || "copart");
+  const normalized = normalizeLot(item, auction);
+  if(!normalized.lot) return null;
+  // Обложка + до 4 фото: карточке каталога хватает, детальная всегда live.
+  if(Array.isArray(normalized.images) && normalized.images.length > 4){
+    normalized.images = normalized.images.slice(0, 4);
+  }
+  const num = v => { const n = Number(v); return Number.isFinite(n) ? Math.round(n) : null; };
+  const enumId = v => (v && typeof v === "object" && v.id != null) ? Number(v.id) : (typeof v === "number" ? v : null);
+  const saleDateRaw = lot?.sale_date || lot?.auction_date || null;
+  const saleDate = saleDateRaw && !Number.isNaN(new Date(saleDateRaw).getTime()) ? new Date(saleDateRaw).toISOString() : null;
+  const statusId = normalized.statusId != null ? normalized.statusId : enumId(lot?.status);
+  return {
+    id:normalized.id,
+    auction,
+    lot:String(normalized.lot),
+    vin:normalized.vin || null,
+    title:normalized.title || null,
+    year:num(normalized.year),
+    make_id:enumId(item?.manufacturer),
+    model_id:enumId(item?.model),
+    generation_id:enumId(item?.generation),
+    vehicle_type_id:enumId(item?.vehicle_type),
+    body_id:enumId(item?.body_type),
+    color_id:enumId(item?.color),
+    fuel_id:enumId(item?.fuel),
+    transmission_id:enumId(item?.transmission),
+    drive_id:enumId(item?.drive_wheel),
+    condition_id:enumId(lot?.condition),
+    cylinders:num(item?.cylinders),
+    damage:normalized.damage || null,
+    document:normalized.document || null,
+    state_code:(lot?.location?.state?.code || "").toLowerCase() || null,
+    country:(lot?.location?.country?.iso || "").toLowerCase() || null,
+    odometer_mi:num(normalized.odometer),
+    current_bid:num(normalized.currentBid) || 0,
+    buy_now:num(normalized.buyNow) || 0,
+    final_bid:num(normalized.finalBid) || 0,
+    sale_date:saleDate,
+    status_id:statusId != null && Number.isFinite(Number(statusId)) ? Number(statusId) : null,
+    archived:archived || statusId === 6 || statusId === 8 || lot?.archived === true,
+    payload:normalized,
+    synced_at:new Date().toISOString()
+  };
+}
+
+async function syncUpsertRows(rows){
+  if(!rows.length) return;
+  await syncSbFetch(`/api_lots?on_conflict=id`, {
+    method:"POST",
+    headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify(rows)
+  });
+}
+
+async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}){
+  const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
+  const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`);
+  const items = findItems(payload) || [];
+  const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
+  await syncUpsertRows(rows);
+  return items.length;
+}
+
+async function handleSyncLots(response){
+  response.setHeader("cache-control", "no-store");
+  const started = Date.now();
+  let state;
+  try{
+    state = await syncGetState();
+  }catch(e){
+    response.statusCode = 200;
+    response.end(JSON.stringify({ok:false, error:"sync tables missing — run supabase/migrations/20260825_api_lots.sql", detail:e.message}));
+    return;
+  }
+  const lockAt = state.lock_at ? new Date(state.lock_at).getTime() : 0;
+  if(Date.now() - lockAt < SYNC_LOCK_MINUTES * 60e3){
+    response.statusCode = 200;
+    response.end(JSON.stringify({ok:true, locked:true, continue:false}));
+    return;
+  }
+  state.lock_at = new Date().toISOString();
+  await syncSetState(state);
+
+  const result = {ok:true, phase:state.phase || "full", imported:0, archivedMarked:0};
+  try{
+    if(state.phase !== "incr"){
+      // -------- Полный импорт: SYNC_PAGES_PER_RUN страниц за вызов --------
+      let page = Number(state.next_page) || 1;
+      for(let i = 0; i < SYNC_PAGES_PER_RUN; i++){
+        if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
+        const got = await syncImportPage("/cars", page);
+        result.imported += got;
+        page += 1;
+        if(got < SYNC_PER_PAGE){
+          state.phase = "incr";
+          state.full_done_at = new Date().toISOString();
+          state.last_incr_at = new Date().toISOString();
+          break;
+        }
+      }
+      state.next_page = page;
+      result.next_page = page;
+      result.phase = state.phase || "full";
+      result.continue = state.phase !== "incr"; // GitHub Actions качает дальше, пока фаза full
+    }else{
+      // -------- Инкремент: обновлённые + архивные за окно с прошлого запуска --------
+      const last = state.last_incr_at ? new Date(state.last_incr_at).getTime() : Date.now() - 3600e3;
+      const minutes = Math.min(4320, Math.max(30, Math.ceil((Date.now() - last) / 60e3) + 15));
+      for(let page = 1; page <= 6; page++){
+        if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
+        const got = await syncImportPage("/cars", page, {minutes:String(minutes)});
+        result.imported += got;
+        if(got < SYNC_PER_PAGE) break;
+      }
+      for(let page = 1; page <= 3; page++){
+        if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
+        const got = await syncImportPage("/archived-lots", page, {minutes:String(minutes)}, {archived:true});
+        result.archivedMarked += got;
+        if(got < SYNC_PER_PAGE) break;
+      }
+      state.last_incr_at = new Date().toISOString();
+      result.continue = false;
+    }
+  }catch(e){
+    result.ok = false;
+    result.error = e.message;
+    result.continue = false;
+  }
+  state.lock_at = null; // шаг завершён — следующий вызов может стартовать сразу
+  state.last_run = {at:new Date().toISOString(), ...result};
+  try{ await syncSetState(state); }catch(e){ /* прогресс потеряем на один шаг — не критично */ }
+  response.statusCode = 200;
+  response.end(JSON.stringify(result));
+}
+
 module.exports = async function handler(request, response){
   const query = getQuery(request);
   const action = query.get("action") || "search";
 
   if(action === "lead") return handleLead(request, response);
+  if(action === "synclots") return handleSyncLots(response);
   if(request.method !== "GET"){
     methodNotAllowed(response, ["GET","POST"]);
     return;
@@ -1337,10 +1543,3 @@ module.exports = async function handler(request, response){
     });
   }
 };
-
-// Переиспользуются в api/sync-lots.js (синхронизация каталога в Supabase).
-module.exports.normalizeLot = normalizeLot;
-module.exports.normalizeAuction = normalizeAuction;
-module.exports.findItems = findItems;
-module.exports.fetchJson = fetchJson;
-module.exports.AUCTIONS_API_BASE = AUCTIONS_API_BASE;
