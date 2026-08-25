@@ -296,12 +296,10 @@
     const b = String(lot.body || lot.bodyStyle || "").toLowerCase();
     const t = (String(lot.model || "") + " " + String(lot.make || "")).toLowerCase();
     if(/pickup|truck|silverado|sierra|ram|f-150|f150|tundra|tacoma/.test(b + t)) return "pickup";
-    if(/van|cargo|sprinter|transit|minivan/.test(b + t)) return "van";
+    if(/van|cargo|sprinter|transit|minivan/.test(b + t)) return "vanLarge";
     if(/suv|utility|cuv|crossover/.test(b)) return "suv";
     return "sedan";
   }
-  function landMultFor(kind){ return kind === "suv" ? 1.2 : kind === "crossover" ? 1.1 : (kind === "pickup" || kind === "van") ? 1.5 : 1; }
-  function seaSurchargeFor(kind){ return kind === "suv" ? 300 : kind === "crossover" ? 200 : (kind === "pickup" || kind === "van") ? 500 : 0; }
   function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
   function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
 
@@ -355,14 +353,31 @@
     });
     return m || null;
   }
+  // Живые курсы MDL — тот же источник, что у калькулятора на главной (/api/content?rates=1),
+  // чтобы итоги на странице лота и на главной совпадали до копейки.
+  const liveRates = {usdMdl:17.45, eurMdl:20.28};
+  async function fetchLiveRates(){
+    try{
+      const r = await fetch("/api/content?rates=1");
+      if(!r.ok) return;
+      const data = await r.json();
+      if(Number(data?.usdMdl) > 0) liveRates.usdMdl = Number(data.usdMdl);
+      if(Number(data?.eurMdl) > 0) liveRates.eurMdl = Number(data.eurMdl);
+      const u = $("#lotCalcUsdMdl"), e = $("#lotCalcEurMdl");
+      if(u) u.value = liveRates.usdMdl.toFixed(2);
+      if(e) e.value = liveRates.eurMdl.toFixed(2);
+      if(u || e) updateLotCalculator();
+    }catch(_){}
+  }
+
   function calcLotTotal(lot, options = {}){
     const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
     const kind = options.vehicleType || vehicleKind(lot);
     const fuel = options.fuel || mapFuel(lot.fuel, !!options.green, lot);
     const loc = findLotLocation(lot);
     const engineLiters = options.engineLiters != null ? Number(options.engineLiters) : numberFromEngine(lot.engine);
-    const usdMdl = Number(options.usdMdl) > 0 ? Number(options.usdMdl) : 17.45;
-    const eurMdl = Number(options.eurMdl) > 0 ? Number(options.eurMdl) : 20.28;
+    const usdMdl = Number(options.usdMdl) > 0 ? Number(options.usdMdl) : liveRates.usdMdl;
+    const eurMdl = Number(options.eurMdl) > 0 ? Number(options.eurMdl) : liveRates.eurMdl;
     const r = (window.ApexCalc && window.ApexCalc.compute) ? window.ApexCalc.compute({
       lotPrice:bid, auction:String(lot.auction || "copart").toLowerCase(),
       vehicleType:kind, fuel, engineLiters,
@@ -861,7 +876,7 @@
   }
 
   function altCurrency(calc){
-    const usd = calc.usdMdl || 17.45;
+    const usd = calc.usdMdl || liveRates.usdMdl;
     const eur = calc.eurMdl || 20.28;
     const mdl = Math.round(calc.totalMdl || calc.total * usd).toLocaleString("ru-RU");
     const eurV = Math.round(calc.totalEur || calc.total * usd / eur).toLocaleString("ru-RU");
@@ -917,8 +932,12 @@
         <button type="button" data-bid-step="500" aria-label="Увеличить ставку">+</button>
       </div>
       <div class="calcOptsV2">
-        <label class="calcOptV2"><input type="checkbox" id="lotVehSuv" data-calc-input ${kind === "suv" || kind === "crossover" ? "checked" : ""}><span>SUV / кроссовер</span><i>+20% по США · +$300 море</i></label>
-        <label class="calcOptV2"><input type="checkbox" id="lotVehPickup" data-calc-input ${kind === "pickup" || kind === "van" ? "checked" : ""}><span>Пикап / минивэн</span><i>+50% по США · +$500 море</i></label>
+        <div class="calcOptRowV2">
+          <span>Тип кузова</span>
+          <select id="lotCalcVehType" data-calc-input class="calcSelectV2">
+            ${["sedan","crossover","suv","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",pickup:"Пикап",vanLarge:"Минивен / Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
+          </select>
+        </div>
         <div class="calcOptRowV2">
           <span>Топливо</span>
           <select id="lotCalcFuel" data-calc-input class="calcSelectV2">
@@ -937,8 +956,8 @@
         <label class="calcOptV2"><input type="checkbox" id="lotCalcInsurance" data-calc-input checked><span>Страховка 1%</span><i>защита в пути</i></label>
       </div>
       <div class="calcRatesV2">
-        <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="17.45"></label>
-        <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="20.28"></label>
+        <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
+        <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
       <div class="calcGrandV2">
@@ -957,11 +976,11 @@
 
   function updateLotCalculator(){
     if(!state.selectedLot || !$("#lotBidInput")) return;
-    const veh = $("#lotVehPickup")?.checked ? "pickup" : $("#lotVehSuv")?.checked ? "suv" : "sedan";
+    const veh = $("#lotCalcVehType")?.value || vehicleKind(state.selectedLot);
     const fuel = $("#lotCalcFuel")?.value || mapFuel(state.selectedLot.fuel, false, state.selectedLot);
     const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
-    const usdMdl = Number($("#lotCalcUsdMdl")?.value) || 17.45;
-    const eurMdl = Number($("#lotCalcEurMdl")?.value) || 20.28;
+    const usdMdl = Number($("#lotCalcUsdMdl")?.value) || liveRates.usdMdl;
+    const eurMdl = Number($("#lotCalcEurMdl")?.value) || liveRates.eurMdl;
     const calc = calcLotTotal(state.selectedLot, {
       bid:Number($("#lotBidInput").value || 0),
       insurance:$("#lotCalcInsurance")?.checked,
@@ -1753,7 +1772,7 @@
   }
 
   if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", initAuctions);
+    document.addEventListener("DOMContentLoaded", () => { initAuctions(); fetchLiveRates(); });
   }else{
     initAuctions();
   }
