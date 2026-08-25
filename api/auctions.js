@@ -1219,6 +1219,13 @@ async function syncApiFetch(url){
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
 function syncRowFromItem(item, {archived = false} = {}){
   const lot = (Array.isArray(item?.lots) && item.lots[0]) || item?.lot || item || {};
+  // Только Copart (3) и IAAI (1): Encar/Корея (12) не наш рынок, и normalizeAuction
+  // ошибочно записывал бы такие лоты как «copart».
+  const rawDomain = lot?.domain || item?.domain;
+  const domainId = rawDomain && typeof rawDomain === "object" ? Number(rawDomain.id) : null;
+  const domainName = String((rawDomain && rawDomain.name) || rawDomain || "").toLowerCase();
+  if(domainId === 12 || domainName.includes("encar")) return null;
+  if(domainId != null && domainId !== 1 && domainId !== 3) return null;
   const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || "copart");
   const normalized = normalizeLot(item, auction);
   if(!normalized.lot) return null;
@@ -1304,35 +1311,47 @@ async function handleSyncLots(response){
   await syncSetState(state);
 
   const result = {ok:true, phase:state.phase || "full", imported:0, archivedMarked:0};
+  const SYNC_DOMAINS = ["3", "1"]; // Copart, затем IAAI (Encar не качаем)
   try{
+    // Одноразовая чистка: ранние прогоны качали общий фид и записали Encar/Корею.
+    if(!state.cleaned_kr){
+      await syncSbFetch(`/api_lots?country=eq.kr`, {method:"DELETE", headers:{prefer:"return=minimal"}});
+      state.cleaned_kr = true;
+    }
     if(state.phase !== "incr"){
-      // -------- Полный импорт: SYNC_PAGES_PER_RUN страниц за вызов --------
+      // -------- Полный импорт по доменам: SYNC_PAGES_PER_RUN страниц за вызов --------
+      if(!state.domain_mode){ state.domain_mode = true; state.domain_idx = 0; state.next_page = 1; }
+      let di = Number(state.domain_idx) || 0;
       let page = Number(state.next_page) || 1;
-      for(let i = 0; i < SYNC_PAGES_PER_RUN; i++){
+      for(let i = 0; i < SYNC_PAGES_PER_RUN && di < SYNC_DOMAINS.length; i++){
         if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-        const got = await syncImportPage("/cars", page);
+        const got = await syncImportPage("/cars", page, {domain_id:SYNC_DOMAINS[di]});
         result.imported += got;
         page += 1;
-        if(got < SYNC_PER_PAGE){
-          state.phase = "incr";
-          state.full_done_at = new Date().toISOString();
-          state.last_incr_at = new Date().toISOString();
-          break;
-        }
+        if(got < SYNC_PER_PAGE){ di += 1; page = 1; }
       }
+      if(di >= SYNC_DOMAINS.length){
+        state.phase = "incr";
+        state.full_done_at = new Date().toISOString();
+        state.last_incr_at = new Date().toISOString();
+      }
+      state.domain_idx = di;
       state.next_page = page;
       result.next_page = page;
+      result.domain = SYNC_DOMAINS[di] || "done";
       result.phase = state.phase || "full";
       result.continue = state.phase !== "incr"; // GitHub Actions качает дальше, пока фаза full
     }else{
       // -------- Инкремент: обновлённые + архивные за окно с прошлого запуска --------
       const last = state.last_incr_at ? new Date(state.last_incr_at).getTime() : Date.now() - 3600e3;
       const minutes = Math.min(4320, Math.max(30, Math.ceil((Date.now() - last) / 60e3) + 15));
-      for(let page = 1; page <= 6; page++){
-        if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-        const got = await syncImportPage("/cars", page, {minutes:String(minutes)});
-        result.imported += got;
-        if(got < SYNC_PER_PAGE) break;
+      for(const domain of SYNC_DOMAINS){
+        for(let page = 1; page <= 5; page++){
+          if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
+          const got = await syncImportPage("/cars", page, {minutes:String(minutes), domain_id:domain});
+          result.imported += got;
+          if(got < SYNC_PER_PAGE) break;
+        }
       }
       for(let page = 1; page <= 3; page++){
         if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
