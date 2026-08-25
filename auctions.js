@@ -356,17 +356,23 @@
   // Живые курсы MDL — тот же источник, что у калькулятора на главной (/api/content?rates=1),
   // чтобы итоги на странице лота и на главной совпадали до копейки.
   const liveRates = {usdMdl:17.45, eurMdl:20.28};
+  let ratesFetched = false;
+  function applyLiveRatesToInputs(){
+    const u = $("#lotCalcUsdMdl"), e = $("#lotCalcEurMdl");
+    if(u) u.value = liveRates.usdMdl.toFixed(2);
+    if(e) e.value = liveRates.eurMdl.toFixed(2);
+    if(u || e){ try{ updateLotCalculator(); }catch(_){} }
+  }
   async function fetchLiveRates(){
+    if(ratesFetched){ applyLiveRatesToInputs(); return; }
     try{
       const r = await fetch("/api/content?rates=1");
       if(!r.ok) return;
       const data = await r.json();
       if(Number(data?.usdMdl) > 0) liveRates.usdMdl = Number(data.usdMdl);
       if(Number(data?.eurMdl) > 0) liveRates.eurMdl = Number(data.eurMdl);
-      const u = $("#lotCalcUsdMdl"), e = $("#lotCalcEurMdl");
-      if(u) u.value = liveRates.usdMdl.toFixed(2);
-      if(e) e.value = liveRates.eurMdl.toFixed(2);
-      if(u || e) updateLotCalculator();
+      ratesFetched = true;
+      applyLiveRatesToInputs();
     }catch(_){}
   }
 
@@ -1244,6 +1250,7 @@
     loadSimilarActive(lot);
     loadSimilarArchived(lot);
     loadStats(lot);
+      fetchLiveRates();
   }
 
   // Market statistics for this make/model (avg sale price, range, sample size).
@@ -1775,5 +1782,6 @@
     document.addEventListener("DOMContentLoaded", () => { initAuctions(); fetchLiveRates(); });
   }else{
     initAuctions();
+    fetchLiveRates();
   }
 })();
