@@ -189,19 +189,17 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
     year: num("year")
   });
 
+  // Люкс-акциз в подпись не включаем: он показывается отдельной строкой
+  // «Доп. акциз люкс», а «Таможенные платежи» — только базовый акциз/НДС.
   if(result.vat){
     return Object.assign({}, result, { text: L.vat });
   }
   if(fuel === "electric"){
-    return Object.assign({}, result, {
-      text: result.luxury > 0
-        ? `${L.electric} · ${L.lux} ${result.luxuryPct}% ${L.from} ${(Math.round(result.luxuryBase)).toLocaleString("ru-RU")} MDL`
-        : `${L.electric} · ${L.lux} 0%`
-    });
+    return Object.assign({}, result, { text: L.electric });
   }
   const discount = fuel === "hybrid" ? ` · ${L.hybrid}` : fuel === "phev" ? " · plug-in -50%" : "";
   return Object.assign({}, result, {
-    text: `${result.cc} ${L.cc} × ${result.rate} MDL/${L.cc}${discount} · ${L.lux} ${result.luxury > 0 ? result.luxuryPct : 0}%`
+    text: `${result.cc} ${L.cc} × ${result.rate} MDL/${L.cc}${discount}`
   });
 }
 
@@ -901,7 +899,7 @@ function calculate(){
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
     ["Сопровождение APEX AUTO", company, "", "usd"],
-    ["Таможенные платежи", customs.total, customs.text, "mdl"]
+    ["Таможенные платежи", customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
 
   if(customs.luxury > 0){
@@ -1433,7 +1431,7 @@ function calculateCanada(){
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Сопровождение APEX AUTO",     company,      "",                              "usd"],
-    ["Таможенные платежи",          customs.total,      customs.text,             "mdl"]
+    ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
   );
 
   const lng = window.APEX_LANG || "ru";
