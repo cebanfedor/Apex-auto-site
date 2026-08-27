@@ -305,7 +305,14 @@ function normalizeLot(source, fallbackAuction = "copart"){
     const prev = byDay.get(day);
     if(!prev || (p.bid || 0) > (prev.bid || 0)) byDay.set(day, p);
   }
-  const priceHistory = Array.from(byDay.values()).sort((a, b) => a.date < b.date ? 1 : -1);
+  // «Не продан за $200» — это перенос лота без реальных ставок (пребид-заглушка),
+  // а не финальная ставка торгов. DreamBid такие записи не показывает — мы тоже:
+  // скрываем not_sold с копеечной ставкой (< $300 или < 2% от оценки авто).
+  const ervForNoise = safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || item?.estimated_retail_value || 0);
+  const noiseCap = Math.max(300, ervForNoise * 0.02);
+  const priceHistory = Array.from(byDay.values())
+    .filter(p => !(/not_sold/i.test(p.status) && (p.bid || 0) > 0 && (p.bid || 0) < noiseCap && !p.buyNow))
+    .sort((a, b) => a.date < b.date ? 1 : -1);
   // For on-approval / sold lots where final_bid isn't explicitly set, infer from price history
   const resolvedFinalBid = finalBid || (!currentBid && priceHistory.length ? (priceHistory[0].bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
