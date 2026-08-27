@@ -1193,7 +1193,7 @@
           </label>
         </div>
         <div class="calcPairRowV1">
-          <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
+          <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span></label>
           <div class="calcOptV2 calcOptFixedV1">${dbIco("check")}<span>Страховка 1%</span><i>включена</i></div>
         </div>
       </div>
