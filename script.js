@@ -1381,11 +1381,14 @@ function calculateCanada(){
   const roadKlaipeda = getRoadKlaipedaPrice();
   const insurance = Math.max(100, (lot + auctionFee) * 0.01);
   const company = companyFee(auctionFee);
+  // Комиссия канадской компании (Tyras): минимум $300, для лотов дороже
+  // $15,000 — 2% от цены лота.
+  const canadaFee = Math.max(300, lot * 0.02);
 
   const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
 
-  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company;
+  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company + canadaFee;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total;
   const totalUsd = mdlToUsd(totalMdl);
 
@@ -1425,6 +1428,7 @@ function calculateCanada(){
     ["Доставка по Канаде",      dispatch,   dispatchDetail, "usd", offsiteBadge],
   ];
   if(bankFee > 0) rows.push(["Комиссия банка TD", bankFee, "", "usd"]);
+  rows.push(["Услуги канадской компании", canadaFee, lot > 15000 ? "2% от цены лота" : "", "usd"]);
   rows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
   rows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
   rows.push(
