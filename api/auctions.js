@@ -153,6 +153,17 @@ function auctionUrl(auction, lot){
     : `https://www.copart.com/lot/${encodeURIComponent(lot)}`;
 }
 
+// vis.iaai.com/deepzoom — полноразмерные тайлы по ~700KB: 18 фото кладут
+// страницу в ~12MB и IAAI обрывает часть запросов (битые картинки у канадских
+// лотов). Переписываем на их же resizer: 1280px ≈ 230KB, качества хватает
+// и карточкам, и лайтбоксу.
+function normalizeImageUrl(url){
+  const m = String(url || "").match(/^https?:\/\/vis\.iaai\.com\/deepzoom\?.*?imageKey=([^&]+)/i);
+  if(!m) return url;
+  const key = decodeURIComponent(m[1]).replace(/~RW.*$/i, "");
+  return `https://vis.iaai.com/resizer?imageKeys=${encodeURIComponent(key)}&width=1280&height=960`;
+}
+
 function imageList(value){
   // images.normal and images.big are the same photos at two resolutions — pick one set only
   const imgNormal = Array.isArray(value?.images?.normal) ? value.images.normal : [];
@@ -176,6 +187,7 @@ function imageList(value){
   return list
     .map(item => typeof item === "string" ? item : item?.url || item?.src || "")
     .filter(Boolean)
+    .map(normalizeImageUrl)
     .filter((item, index, all) => all.indexOf(item) === index);
 }
 
