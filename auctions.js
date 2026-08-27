@@ -1112,15 +1112,15 @@
           <div class="calcOptV2 calcOptFixedV1">${dbIco("check")}<span>Страховка 1%</span><i>включена</i></div>
         </div>
       </div>
-      <div class="calcRatesV2">
-        <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
-        <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
-      </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
       <div class="calcGrandV2">
         <span>Итого под ключ до Кишинёва</span>
         <b id="lotCalcTotal">${money(calc.total)}</b>
         <small id="lotCalcTotalAlt">${altCurrency(calc)}</small>
+      </div>
+      <div class="calcRatesV2">
+        <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
+        <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
       </div>
       <div class="calcEtaV1">${dbIco("calendar")}<span>Ориентировочная выдача в Кишинёве: <b>${deliveryWindow(lot)}</b></span></div>
       <div class="calcCtasV2">
