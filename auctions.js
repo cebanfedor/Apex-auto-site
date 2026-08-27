@@ -105,12 +105,15 @@
     return map[k] || map[k.replace(/ /g, "-")] || tc(raw);
   }
   // ---- Документы: сырую строку API («Nm - Cert Of Title-Salvage») приводим
-  // к виду DreamBid/BidCars: вердикт «Хорошие/Проблемные» + «NM · Salvage» ----
+  // к виду «вердикт + NM · Salvage». Для Молдовы плохих документов нет:
+  // Bill of Sale / ACQ / Parts Only / Junk / COD оформляются, но требуют
+  // переделки (~30–40 дней) — без неё авто нельзя экспортировать.
   const DOC_TYPES = [
-    [/certificate of destruction|cert of destruction|\bcod\b|destruction/, "Certificate of Destruction", "bad"],
-    [/non.?repair/, "Non-Repairable", "bad"],
-    [/junk|parts only|dismantl/, "Junk / Parts Only", "bad"],
-    [/bill of sale/, "Bill of Sale", "bad"],
+    [/certificate of destruction|cert of destruction|\bcod\b|destruction/, "Certificate of Destruction", "rework"],
+    [/non.?repair/, "Non-Repairable", "rework"],
+    [/junk|parts only|dismantl/, "Junk / Parts Only", "rework"],
+    [/bill of sale/, "Bill of Sale", "rework"],
+    [/\bacq\b|acquisition/, "ACQ (Bill of Sale)", "rework"],
     [/reconstructed|r=reconstr/, "Reconstructed", "good"],
     [/rebuil/, "Rebuilt", "good"],
     [/salvage histor|salv histor/, "Salvage History", "good"],
@@ -305,8 +308,8 @@
   function statusTone(value){
     const text = String(value || "").toLowerCase();
     if(!value) return "";
-    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут|продан ранее|переставлялся|проблемн/.test(text)) return "bad";
-    if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown/.test(text)) return "warn";
+    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут|продан ранее|переставлялся/.test(text)) return "bad";
+    if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown|переделк/.test(text)) return "warn";
     if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|не продавалась|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
     return "";
   }
@@ -1343,8 +1346,8 @@
               ${(() => {
                 const doc = parseDocTitle(lot.document || lot.titleStatus);
                 if(!doc) return "";
-                const verdict = doc.tone === "bad" ? "Проблемные" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
-                const icon = doc.tone === "bad" ? "warn" : "doc";
+                const verdict = doc.tone === "rework" ? "Требуется переделка · 30–40 дней" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
+                const icon = doc.tone === "rework" ? "excl" : "doc";
                 return dMain("Статус документов", verdict, icon)
                   + dPlain("Тип документа", escapeHtml(docShort(lot.document || lot.titleStatus)));
               })()}
