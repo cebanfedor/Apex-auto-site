@@ -1336,6 +1336,9 @@
             <div class="dGalMainV2" data-lb-open role="button" tabindex="0" aria-label="Открыть фото в HD">
               <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
+              ${images.length > 1 ? `
+              <button class="dGalNavV1 dGalPrevV1" type="button" data-gal-step="-1" aria-label="Предыдущее фото">‹</button>
+              <button class="dGalNavV1 dGalNextV1" type="button" data-gal-step="1" aria-label="Следующее фото">›</button>` : ""}
               <div class="dGalBadgesV2">
                 ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} Видео</span>` : ""}
                 ${lot.has360 || lot.spin ? `<span class="dGalTagV2">360°</span>` : ""}
@@ -1982,6 +1985,18 @@
       if(event.target.closest("[data-lb-next]")){ lbMove(1); return; }
       if(event.target.closest("[data-lb-close]")){ closeLightbox(); return; }
       if(event.target.id === "lotLightbox"){ closeLightbox(); return; }
+      const galStep = event.target.closest("[data-gal-step]");
+      if(galStep){
+        // Листание главного фото стрелками — без открытия лайтбокса
+        const imgs = state.detailImages || [];
+        if(imgs.length > 1){
+          state.detailIndex = ((state.detailIndex || 0) + Number(galStep.dataset.galStep) + imgs.length) % imgs.length;
+          const main = $("#detailMainImage");
+          if(main) main.src = imgs[state.detailIndex];
+          document.querySelectorAll(".detailThumbsV1 .dThumbV2").forEach(t => t.classList.toggle("isActiveThumbV2", Number(t.dataset.detailIndex) === state.detailIndex));
+        }
+        return;
+      }
       if(event.target.closest("[data-open-video]")){
         const media = state.detailMedia || [];
         const vi = media.findIndex(m => m.type === "video");
