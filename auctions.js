@@ -1083,30 +1083,34 @@
         <button type="button" data-bid-step="500" aria-label="Увеличить ставку">+</button>
       </div>
       <div class="calcOptsV2">
-        <div class="calcOptRowV2">
-          <span>Тип кузова</span>
-          <select id="lotCalcVehType" data-calc-input class="calcSelectV2">
-            ${["sedan","crossover","suv","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",pickup:"Пикап",vanLarge:"Минивен / Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
-          </select>
+        <div class="calcPairV1">
+          <label class="calcOptColV1">
+            <span>Тип кузова</span>
+            <select id="lotCalcVehType" data-calc-input class="calcSelectV2">
+              ${["sedan","crossover","suv","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",pickup:"Пикап",vanLarge:"Минивен / Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
+            </select>
+          </label>
+          <label class="calcOptColV1">
+            <span>Топливо</span>
+            <select id="lotCalcFuel" data-calc-input class="calcSelectV2">
+              ${fOpt("gasoline")}Бензин</option>
+              ${fOpt("diesel")}Дизель</option>
+              ${fOpt("hybrid")}Гибрид</option>
+              ${fOpt("phev")}Plug-in гибрид</option>
+              ${fOpt("electric")}Электро</option>
+            </select>
+          </label>
+          <label class="calcOptColV1">
+            <span>Объём двигателя</span>
+            <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
+              ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} л</option>`).join("")}
+            </select>
+          </label>
         </div>
-        <div class="calcOptRowV2">
-          <span>Топливо</span>
-          <select id="lotCalcFuel" data-calc-input class="calcSelectV2">
-            ${fOpt("gasoline")}Бензин</option>
-            ${fOpt("diesel")}Дизель</option>
-            ${fOpt("hybrid")}Гибрид</option>
-            ${fOpt("phev")}Plug-in гибрид</option>
-            ${fOpt("electric")}Электро</option>
-          </select>
+        <div class="calcPairRowV1">
+          <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
+          <div class="calcOptV2 calcOptFixedV1">${dbIco("check")}<span>Страховка 1%</span><i>включена</i></div>
         </div>
-        <div class="calcOptRowV2">
-          <span>Объём двигателя</span>
-          <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
-            ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} л</option>`).join("")}
-          </select>
-        </div>
-        <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span><i>+$400</i></label>
-        <div class="calcOptV2 calcOptFixedV1">${dbIco("check")}<span>Страховка 1%</span><i>всегда включена · защита в пути</i></div>
       </div>
       <div class="calcRatesV2">
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
