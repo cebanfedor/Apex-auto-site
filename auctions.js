@@ -1183,14 +1183,22 @@
         </div>
       </div>
       <button class="lbNavV1 lbPrevV1" type="button" data-lb-prev aria-label="Предыдущее фото">‹</button>
-      <img id="lbImg" class="lbImgV1" alt="">
+      <div id="lbStage" class="lbStageV1"></div>
       <button class="lbNavV1 lbNextV1" type="button" data-lb-next aria-label="Следующее фото">›</button>`;
     document.body.appendChild(el);
     return el;
   }
   function renderLightbox(){
-    const img = document.getElementById("lbImg");
-    if(img) img.src = lb.images[lb.index] || "";
+    const stage = document.getElementById("lbStage");
+    const item = lb.images[lb.index];
+    if(stage && item){
+      // Перерисовка innerHTML заодно останавливает видео при листании
+      if(item.type === "video"){
+        stage.innerHTML = `<video class="lbImgV1" src="${escapeHtml(item.src)}" controls autoplay playsinline${item.poster ? ` poster="${escapeHtml(item.poster)}"` : ""}></video>`;
+      }else{
+        stage.innerHTML = `<img class="lbImgV1" src="${escapeHtml(item.src)}" alt="">`;
+      }
+    }
     const c = document.getElementById("lbCount");
     if(c) c.textContent = `${lb.index + 1} / ${lb.images.length}`;
     const multi = lb.images.length > 1;
@@ -1198,7 +1206,8 @@
   }
   function openLightbox(images, index){
     if(!images || !images.length) return;
-    lb.images = images;
+    // Принимаем и строки-URL (старые вызовы), и медиа-объекты {type, src, poster}
+    lb.images = images.map(m => typeof m === "string" ? {type:"image", src:m} : m);
     lb.index = Math.max(0, Math.min(index || 0, images.length - 1));
     const el = ensureLightbox();
     el.hidden = false;
@@ -1216,7 +1225,7 @@
     renderLightbox();
   }
   function lbCopyLink(){
-    const url = lb.images[lb.index];
+    const url = lb.images[lb.index] && lb.images[lb.index].src;
     if(!url) return;
     navigator.clipboard?.writeText(url);
     const btn = document.querySelector("[data-lb-copy]");
@@ -1328,13 +1337,14 @@
               <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
               <div class="dGalBadgesV2">
-                ${lot.video ? `<span class="dGalTagV2">${dbIco("play")} Видео</span>` : ""}
+                ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} Видео</span>` : ""}
                 ${lot.has360 || lot.spin ? `<span class="dGalTagV2">360°</span>` : ""}
                 <span class="dGalTagV2">${dbIco("zoom")} HD · ${escapeHtml(images.length || 1)} фото</span>
               </div>
             </div>
             <div class="detailThumbsV1">
               ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}"${i > 0 ? ' loading="lazy"' : ""}>`).join("")}
+              ${lot.video ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="Видео осмотра"><img src="${escapeHtml(images[0] || "")}" alt="Видео осмотра" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
             </div>
           </div>
           <div class="lotDetailCenterV1">
@@ -1387,7 +1397,7 @@
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
-              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">Смотреть видео</a>`) : ""}
+              ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>Смотреть видео</button>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory)}
             <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
@@ -1406,6 +1416,9 @@
     `;
     state.selectedLot = lot;
     state.detailImages = images;
+    // Единый медиа-набор для лайтбокса: фото + видео осмотра последней плиткой
+    state.detailMedia = images.map(src => ({type:"image", src}));
+    if(lot.video) state.detailMedia.push({type:"video", src:lot.video, poster:images[0] || ""});
     state.detailIndex = 0;
     setSeo(lot);
     updateLotCalculator();
@@ -1969,8 +1982,14 @@
       if(event.target.closest("[data-lb-next]")){ lbMove(1); return; }
       if(event.target.closest("[data-lb-close]")){ closeLightbox(); return; }
       if(event.target.id === "lotLightbox"){ closeLightbox(); return; }
+      if(event.target.closest("[data-open-video]")){
+        const media = state.detailMedia || [];
+        const vi = media.findIndex(m => m.type === "video");
+        if(vi >= 0) openLightbox(media, vi);
+        return;
+      }
       if(event.target.closest("[data-lb-open]")){
-        openLightbox(state.detailImages || [], state.detailIndex || 0);
+        openLightbox(state.detailMedia || state.detailImages || [], state.detailIndex || 0);
         return;
       }
       if(event.target.closest("[data-close-lead]") || event.target.id === "leadModal") closeLead();
