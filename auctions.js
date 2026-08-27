@@ -1855,6 +1855,14 @@
   }
 
   function bindEvents(){
+    // Колесо мыши/тачпад над числовым полем в фокусе меняло значение (ставку,
+    // курс) — легко ошибиться. Снимаем фокус: значение не трогается, страница
+    // скроллится как обычно.
+    document.addEventListener("wheel", event => {
+      const t = event.target;
+      if(t && t.tagName === "INPUT" && t.type === "number" && document.activeElement === t) t.blur();
+    }, {passive:true});
+
     // Поиск со страницы лота: VIN → фильтр по VIN, номер лота → поиск лота,
     // текст → поиск по названию; уводим в каталог с готовым запросом
     document.addEventListener("submit", event => {
