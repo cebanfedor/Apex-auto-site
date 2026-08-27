@@ -321,8 +321,18 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // скрываем not_sold с копеечной ставкой (< $300 или < 2% от оценки авто).
   const ervForNoise = safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || item?.estimated_retail_value || 0);
   const noiseCap = Math.max(300, ervForNoise * 0.02);
+  // Перенос даты торгов (Copart Future → новая дата) создаёт запись not_sold
+  // с промежуточным пребидом — это не прошлые торги. Признак: лот активен
+  // с будущей датой, а его пребид-цикл непрерывен (текущая ставка выше
+  // «финала» недавней записи). При честной непродаже ставка обнуляется,
+  // так что реальные relist-записи под правило не попадают.
+  const saleTs = Date.parse(lot?.sale_date || lot?.auction_date || "");
+  const saleUpcoming = Number.isFinite(saleTs) && saleTs > Date.now();
   const priceHistory = Array.from(byDay.values())
     .filter(p => !(/not_sold/i.test(p.status) && (p.bid || 0) > 0 && (p.bid || 0) < noiseCap && !p.buyNow))
+    .filter(p => !(saleUpcoming && currentBid > 0 && /not_sold/i.test(p.status)
+      && (p.bid || 0) > 0 && (p.bid || 0) < currentBid
+      && Date.parse(p.date) > Date.now() - 30 * 864e5))
     .sort((a, b) => a.date < b.date ? 1 : -1);
   // Запись с датой текущих торгов — это финал ЭТОГО аукциона, а не прошлая
   // продажа: машина, впервые вышедшая на торги, не должна выглядеть как
