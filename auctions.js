@@ -220,8 +220,25 @@
     return "";
   }
 
+  // Полное имя с версией/тримом из API — как у DreamBid: «BMW 4 Series 430i»,
+  // а не «BMW 4er». year+make+model — только фоллбек.
   function lotTitle(lot){
-    return [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title || "Автомобиль";
+    const raw = String(lot.title || "").trim();
+    if(raw){
+      return raw
+        .replace(/\b([sx])drive\s*(\d+)\s*i\b/gi, (m, p, d) => `${p.toLowerCase()}Drive${d}i`)
+        .replace(/\b(\d{3})\s*I\b/g, "$1i")
+        .replace(/\b(\d{3})E\b/g, "$1e")
+        .replace(/\b(M\d{2,3})I\b/g, "$1i");
+    }
+    return [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ") || "Автомобиль";
+  }
+
+  // «4er/5er» из справочника API → человеческое «4 Series/5 Series» (крошки, фоллбеки)
+  function displayModel(model){
+    const m = String(model || "");
+    const ser = m.match(/^(\d)er$/i);
+    return ser ? `${ser[1]} Series` : m;
   }
 
   function detailHref(lot){
@@ -1322,7 +1339,7 @@
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
-            <span class="auctionCrumbsV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a>${lot.make ? ` / <a href="/auctions?name=${encodeURIComponent(lot.make)}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <a href="/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}">${escapeHtml(lot.model)}</a>` : ""} / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
+            <span class="auctionCrumbsV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a>${lot.make ? ` / <a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>` : ""} / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
             <div class="dTitleRowV1">
               <h1>${escapeHtml(title)}</h1>
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
