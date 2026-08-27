@@ -1772,7 +1772,9 @@
       if(!form) return;
       event.preventDefault();
       const smart = parseSmartSearch(form.querySelector("input")?.value);
-      if(smart.vin) location.href = `/auctions?vin=${encodeURIComponent(smart.vin)}`;
+      // VIN — сразу VIN-отчёт (ищет и в архиве), как смарт-поиск каталога;
+      // фильтр каталога по VIN показал бы пусто для проданных машин
+      if(smart.vin){ try{ history.pushState({apexVin:1}, "", `/auctions?vin=${encodeURIComponent(smart.vin)}`); }catch(e){} openVinReport(smart.vin); }
       else if(smart.lot) location.href = `/auctions?q=${encodeURIComponent(smart.lot)}`;
       else if(smart.name) location.href = `/auctions?name=${encodeURIComponent(smart.name)}`;
     });
@@ -2095,6 +2097,13 @@
     pingLotsSync();
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
+      // Вход по ссылке /auctions?vin=… — сразу VIN-отчёт (ищет и в архиве),
+      // а не фильтр каталога, который пуст для проданных машин
+      const vinParam = new URLSearchParams(location.search).get("vin");
+      if(vinParam && parseSmartSearch(vinParam).vin){
+        openVinReport(vinParam);
+        return;
+      }
       restoreFromUrl();
       // Discovery mode: pre-select "Заводится и едет" when no URL params
       if(discoveryMode){
