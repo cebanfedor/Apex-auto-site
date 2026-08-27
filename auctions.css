@@ -459,7 +459,8 @@
 .dDescGridV2 .dRowV2 { padding:8px 12px; }
 .dDescGridV2 .dRowV2:nth-child(odd) { background:var(--aSoft); border-radius:0; }
 /* Archived similar bid badge */
-.simBidSoldV1 { background:rgba(29,155,91,.82) !important; }
+/* Бейдж цены в «Похожих» — единый тёмный для активных и архивных (зелёный
+   и пустой «—» выглядели разнобоем); без цены бейдж не показывается вовсе */
 
 /* Similar lots */
 .simSecV1 { margin-top:30px; padding-top:24px; border-top:1px solid var(--aLine); }
