@@ -1385,7 +1385,8 @@ function calculateCanada(){
   // $15,000 — 2% от цены лота.
   const canadaFee = Math.max(300, lot * 0.02);
 
-  const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase);
+  // Таможенная база для Канады — цена лота + аукционный сбор (подтверждено Федором)
+  const customsBaseMdl = usdToMdl(lot + auctionFee);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
 
   const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company + canadaFee;
