@@ -601,8 +601,10 @@
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
     return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
   }
-  function dbCheckHistory(history, currentLot){
-    const count = Array.isArray(history) ? history.length : 0;
+  function dbCheckHistory(rawHistory, currentLot){
+    // Запись текущих торгов (h.current) — не история продаж
+    const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
+    const count = history.length;
     if(count === 0){
       return `<li class="dbCheck good">${dbIco("check")}<span><b>История:</b> Ранее не продавалась</span></li>`;
     }
@@ -1256,8 +1258,11 @@
     const specLine  = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
     // History summary for Главное section
-    const histCount = Array.isArray(lot.priceHistory) ? lot.priceHistory.length : 0;
-    const wasSoldBefore = histCount > 0 && lot.priceHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
+    // Запись текущих торгов (h.current) — не история: впервые выставленная
+    // машина не должна выглядеть как «продавалась ранее»
+    const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : []).filter(h => !h.current);
+    const histCount = pastHistory.length;
+    const wasSoldBefore = histCount > 0 && pastHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const histStr = histCount === 0 ? "Ранее не продавалась" : wasSoldBefore ? "Был продан ранее" : `${histCount} ${plural(histCount, "запись", "записи", "записей")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы

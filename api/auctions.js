@@ -313,6 +313,13 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const priceHistory = Array.from(byDay.values())
     .filter(p => !(/not_sold/i.test(p.status) && (p.bid || 0) > 0 && (p.bid || 0) < noiseCap && !p.buyNow))
     .sort((a, b) => a.date < b.date ? 1 : -1);
+  // Запись с датой текущих торгов — это финал ЭТОГО аукциона, а не прошлая
+  // продажа: машина, впервые вышедшая на торги, не должна выглядеть как
+  // «продавалась ранее». Помечаем — фронт не считает её историей.
+  const currentSaleDay = String(lot?.sale_date || lot?.auction_date || "").slice(0, 10);
+  if(currentSaleDay){
+    priceHistory.forEach(p => { if(String(p.date).slice(0, 10) === currentSaleDay) p.current = true; });
+  }
   // For on-approval / sold lots where final_bid isn't explicitly set, infer from price history
   const resolvedFinalBid = finalBid || (!currentBid && priceHistory.length ? (priceHistory[0].bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
