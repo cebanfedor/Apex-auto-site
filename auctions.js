@@ -1259,9 +1259,10 @@
     const histCount = Array.isArray(lot.priceHistory) ? lot.priceHistory.length : 0;
     const wasSoldBefore = histCount > 0 && lot.priceHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const histStr = histCount === 0 ? "Ранее не продавалась" : wasSoldBefore ? "Был продан ранее" : `${histCount} ${plural(histCount, "запись", "записи", "записей")}`;
-    // Seller type detection
+    // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
+    // текст «Страховая · Имя», без цветных плашек внутри таблицы
     const isIns = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm/i.test(String(lot.seller || ""));
-    const sellerTypeHtml = isIns ? `<span class="dAucMini">Страховая</span>` : `<span class="dAucMiniNeutral">Дилер / банк</span>`;
+    const sellerName = tc(String(lot.seller || "")).replace(/\s*·\s*Страховая\s*$/i, "");
     $("#auctionCatalog").hidden = true;
     const detail = $("#auctionDetail");
     detail.hidden = false;
@@ -1301,7 +1302,7 @@
             <section class="dSec">
               <div class="dSecHead">Главное</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
-              ${lot.seller ? dPlain("Продавец", `${sellerTypeHtml} ${escapeHtml(tc(lot.seller).replace(/\s*·\s*Страховая\s*$/i, ""))}`) : ""}
+              ${lot.seller ? dMain("Продавец", isIns ? `Страховая · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
               ${dMain("Ключ доступен", tc(lot.keys), "key")}
               ${dMain("Статус документов", tc(lot.document), "doc")}
               ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus), "doc") : ""}
@@ -1319,8 +1320,8 @@
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus)) : ""}
-              ${lot.seller ? dPlain("Тип продавца", sellerTypeHtml) : ""}
-              ${dPlain("Продавец", escapeHtml(tc(lot.seller)))}
+              ${lot.seller ? dMain("Тип продавца", isIns ? "Страховая" : "Дилер / банк", isIns ? "check" : "person") : ""}
+              ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
               ${dPlain("Локация", escapeHtml(tc(lot.location)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
