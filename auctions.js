@@ -104,6 +104,37 @@
     const k = String(raw).toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
     return map[k] || map[k.replace(/ /g, "-")] || tc(raw);
   }
+  // ---- Документы: сырую строку API («Nm - Cert Of Title-Salvage») приводим
+  // к виду DreamBid/BidCars: вердикт «Хорошие/Проблемные» + «NM · Salvage» ----
+  const DOC_TYPES = [
+    [/certificate of destruction|cert of destruction|\bcod\b|destruction/, "Certificate of Destruction", "bad"],
+    [/non.?repair/, "Non-Repairable", "bad"],
+    [/junk|parts only|dismantl/, "Junk / Parts Only", "bad"],
+    [/bill of sale/, "Bill of Sale", "bad"],
+    [/reconstructed|r=reconstr/, "Reconstructed", "good"],
+    [/rebuil/, "Rebuilt", "good"],
+    [/salvage histor|salv histor/, "Salvage History", "good"],
+    [/salvage|\bsalv\b/, "Salvage", "good"],
+    [/clean|clear/, "Clean", "good"],
+    [/^cert(ificate)?\s+of\s+title\s*$/, "Clean", "good"]
+  ];
+  function parseDocTitle(raw){
+    const s = String(raw || "").trim();
+    if(!s) return null;
+    const m = s.match(/^\s*([A-Za-z]{2})\s*[-–·•]\s*(.*)$/);
+    const state = m ? m[1].toUpperCase() : "";
+    const rest = (m ? m[2] : s).toLowerCase();
+    for(const [re, label, tone] of DOC_TYPES){
+      if(re.test(rest)) return {state, label, tone};
+    }
+    return {state, label:tc(m ? m[2] : s), tone:"neutral"};
+  }
+  function docShort(raw){
+    const d = parseDocTitle(raw);
+    if(!d) return "";
+    return d.state ? `${d.state} · ${d.label}` : d.label;
+  }
+
   // "Front End / Right Rear" → каждая часть переводится отдельно;
   // цельные ключи с "/" (Minor Dent/Scratches) ловятся до разбиения
   function ruDamage(raw){
@@ -274,7 +305,7 @@
   function statusTone(value){
     const text = String(value || "").toLowerCase();
     if(!value) return "";
-    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут|продан ранее|переставлялся/.test(text)) return "bad";
+    if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут|продан ранее|переставлялся|проблемн/.test(text)) return "bad";
     if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown/.test(text)) return "warn";
     if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|не продавалась|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
     return "";
@@ -719,7 +750,7 @@
               ${dbSpec("engine", escapeHtml(engineLine))}
               ${dbSpec("odo", dbOdo(lot.odometerText))}
               ${dbSpec("damage", escapeHtml(ruDamage(lot.damage)))}
-              ${dbSpec("doc", escapeHtml(tc(lot.document)))}
+              ${dbSpec("doc", escapeHtml(docShort(lot.document)))}
               ${dbSpec("pin", escapeHtml(tc(lot.location)))}
             </ul>
           </div>
@@ -1309,8 +1340,14 @@
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
               ${lot.seller ? dMain("Продавец", isIns ? `Страховая · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
               ${dMain("Ключ доступен", tc(lot.keys), "key")}
-              ${dMain("Статус документов", tc(lot.document), "doc")}
-              ${lot.titleStatus && lot.titleStatus !== lot.document ? dMain("Тип документа", tc(lot.titleStatus), "doc") : ""}
+              ${(() => {
+                const doc = parseDocTitle(lot.document || lot.titleStatus);
+                if(!doc) return "";
+                const verdict = doc.tone === "bad" ? "Проблемные" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
+                const icon = doc.tone === "bad" ? "warn" : "doc";
+                return dMain("Статус документов", verdict, icon)
+                  + dPlain("Тип документа", escapeHtml(docShort(lot.document || lot.titleStatus)));
+              })()}
               ${dMain("История", histStr)}
               ${dPlain("Привод", escapeHtml(driveLine), "drive")}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
