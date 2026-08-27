@@ -213,9 +213,11 @@
     fillYearOptions(Number(lot.year || 0) || undefined);
     $("calcExport").checked = !!calc.exportDocs;
     $("calcOffsite").checked = !!calc.offsite;
-    // название площадки берём со страницы лота, тариф найдёт сайт
+    // название площадки берём со страницы лота; тариф сразу ищем в локальной
+    // базе (мгновенно), ответ сайта потом уточнит
     $("calcLocation").value = U.clean(lot.location || "");
     $("calcPort").value = calc.defaultPort || "nj";
+    state.locationFromSite = findLocationLocal(lot.location, lot.auction);
   }
 
   /* ---------- выбор площадки вручную ---------- */
@@ -233,9 +235,110 @@
     return tail ? tail[1] : "";
   }
 
-  /** Список площадок отдаёт сайт: база локаций и тарифы живут только там. */
+  /* ---------- локальная база площадок ----------
+     Полный список локаций с тарифами кешируется на сутки: доставка до порта
+     считается мгновенно и не зависит от скорости/доступности /api/calc.
+     Ответ сайта, когда придёт, уточняет результат. */
+  const LOC_DB_KEY = "apexLocDbV1";
+  let locDb = null;
+
+  function locEndpoint() {
+    return String(state.settings.calc.endpoint || "").replace(/\/calc\b.*$/, "/locations");
+  }
+
+  async function loadLocationsDb() {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+        const stored = await chrome.storage.local.get(LOC_DB_KEY);
+        const rec = stored && stored[LOC_DB_KEY];
+        if (rec && Array.isArray(rec.list) && rec.list.length) {
+          locDb = rec.list;
+          if (Date.now() - (rec.ts || 0) < 24 * 3600e3) return; // свежий кеш
+        }
+      }
+    } catch (e) {}
+    try {
+      const endpoint = locEndpoint();
+      if (!endpoint) return;
+      const response = await fetch(`${endpoint}${endpoint.includes("?") ? "&" : "?"}q=&limit=1000`);
+      const data = await response.json();
+      if (data && data.ok && Array.isArray(data.locations) && data.locations.length) {
+        locDb = data.locations;
+        try {
+          if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.set({ [LOC_DB_KEY]: { ts: Date.now(), list: locDb } });
+          }
+        } catch (e) {}
+      }
+    } catch (e) { /* остаёмся на старом кеше, если он был */ }
+  }
+
+  /** Локальный матч площадки — та же логика, что findLocation() на сервере. */
+  function findLocationLocal(rawName, auction) {
+    if (!locDb || !locDb.length) return null;
+    const raw = U.clean(rawName || "");
+    if (!raw) return null;
+    const N = U.norm;
+    const auc = String(auction || "").toLowerCase();
+    const same = (item) => { const a = String(item.auction || "").toLowerCase(); return !auc || !a || a.includes(auc); };
+    const zip = (raw.match(/\b\d{5}\b/) || [])[0] || "";
+    const dashed = raw.match(/^\s*([a-z]{2})\s*[-–]\s*(.+)$/i);
+    const city = dashed ? dashed[2].replace(/\b\d{5}\b/, "").trim() : raw.split(/[,(]/)[0].replace(/\b\d{5}\b/, "").trim();
+    const st = dashed ? dashed[1] : (raw.match(/\b([A-Za-z]{2})\b(?!.*\b[A-Za-z]{2}\b)/) || [])[1] || "";
+    const tag = (item, level) => (item ? Object.assign({}, item, { autoLand: Number(item.landPrice || 0), matchLevel: level }) : null);
+    let hit = locDb.find((i) => same(i) && (N(i.label) === N(raw) || N(i.displayName) === N(raw)));
+    if (hit) return tag(hit, "exact");
+    if (zip) {
+      hit = locDb.find((i) => same(i) && String(i.zip) === zip);
+      if (hit) return tag(hit, "zip");
+    }
+    if (city) {
+      hit = locDb.find((i) => same(i) && N(i.city) === N(city) && (!st || N(i.state) === N(st)));
+      if (hit) return tag(hit, "city");
+      hit = locDb.find((i) => N(city).length > 3 && N(i.label).includes(N(city)));
+      if (hit) return tag(hit, "city");
+    }
+    if (st) {
+      const inState = locDb.filter((i) => same(i) && N(i.state) === N(st));
+      if (inState.length) {
+        return tag(inState.slice().sort((a, b) => Number(a.landPrice || 0) - Number(b.landPrice || 0))[0], "state");
+      }
+    }
+    return null;
+  }
+
+  /** После загрузки базы доматчиваем текущий лот, если суша ещё не определена. */
+  function rematchLocalLocation() {
+    if (!state.lot || state.locationManual || state.locationFromSite) return;
+    const local = findLocationLocal(state.lot.location, state.lot.auction);
+    if (local) {
+      state.locationFromSite = local;
+      recalc();
+    }
+  }
+
+  /** Подсказки: сначала локальная база (мгновенно), сайт — фоллбек. */
   async function locationMatches(query) {
-    const endpoint = String(state.settings.calc.endpoint || "").replace(/\/calc\b.*$/, "/locations");
+    const q = U.norm(query || lotState());
+    if (locDb && locDb.length) {
+      const auc = String(state.lot.auction || "").toLowerCase();
+      const scored = [];
+      for (const item of locDb) {
+        const haystack = U.norm([item.label, item.city, item.state, item.zip].filter(Boolean).join(" "));
+        let score;
+        if (!q) score = 0;
+        else if (haystack.startsWith(q)) score = 0;
+        else if (haystack.includes(q)) score = 1;
+        else continue;
+        const a = String(item.auction || "").toLowerCase();
+        if (auc && a && !a.includes(auc)) score += 0.5;
+        scored.push({ item, score, label: item.label });
+      }
+      if (scored.length) {
+        return scored.sort((a, b) => a.score - b.score || a.label.localeCompare(b.label)).slice(0, 60);
+      }
+    }
+    const endpoint = locEndpoint();
     if (!endpoint) return [];
     const url =
       `${endpoint}${endpoint.includes("?") ? "&" : "?"}q=${encodeURIComponent(query || lotState())}` +
@@ -379,11 +482,23 @@
       portLabel: (location && location.portLabel) || ""
     };
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+    // Таймаут 7с + один повтор: без него запрос к «уснувшему» serverless
+    // висел бесконечно и панель ждала сушу по 5–10 секунд
+    const post = async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 7000);
+      try {
+        return await fetch(endpoint, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+      } finally { clearTimeout(timer); }
+    };
+    let response;
+    try { response = await post(); }
+    catch (e) { response = await post(); }
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok === false) {
       throw new Error((data && data.error) || `HTTP ${response.status}`);
@@ -416,7 +531,9 @@
       totalEur: data.total.eur,
       route: data.route,
       port: data.portLabel,
-      location: params.location,
+      // к этому моменту state.locationFromSite уже обновлён ответом сайта —
+      // берём актуальную локацию, а не ту, что была на момент запроса
+      location: currentLocation() || params.location,
       input: {
         lotPrice: b.lot,
         vehicleType: params.vehicleType,
@@ -866,6 +983,8 @@
       state.settings.calc.endpoint = location.origin + "/api/calc";
     }
     bind();
+    // База площадок грузится параллельно; когда придёт — доматчит сушу текущего лота
+    loadLocationsDb().then(rematchLocalLocation).catch(() => {});
     await collect();
   }
 
