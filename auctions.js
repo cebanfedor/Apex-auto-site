@@ -1320,7 +1320,7 @@
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus)) : ""}
-              ${lot.seller ? dMain("Тип продавца", isIns ? "Страховая" : "Дилер / банк", isIns ? "check" : "person") : ""}
+              ${lot.seller ? dPlain("Тип продавца", isIns ? "Страховая" : "Дилер / банк") : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
               ${dPlain("Локация", escapeHtml(tc(lot.location)))}
@@ -1334,7 +1334,7 @@
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
-              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">Смотреть видео</a>`, "play") : ""}
+              ${lot.video ? dPlain("Видео осмотра", `<a class="dLink" href="${escapeHtml(lot.video)}" target="_blank" rel="noopener">Смотреть видео</a>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory)}
             <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
