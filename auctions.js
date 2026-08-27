@@ -496,7 +496,10 @@
       if(m && CA_PROV_CODES.includes(m[1].toUpperCase())) prov = m[1].toUpperCase();
     }
     if(!prov) return null; // не канадский лот
-    const city = (raw.split(",")[0] || "").replace(/[^a-z ]/g, "").trim();
+    let city = (raw.split(",")[0] || "").replace(/[^a-z ]/g, "").trim();
+    // Города-сателлиты канадских ярдов → имя площадки в базе
+    const CA_CITY_ALIASES = {"stoney creek":"hamilton", "laval":"montreal", "saint eustache":"eustache", "north york":"toronto", "innisfil":"toronto"};
+    city = CA_CITY_ALIASES[city] || city;
     const auc = String(lot.auction || "").toLowerCase().includes("iaai") ? "iaai" : "copart";
     const byA = locs.filter(l => String(l.auction || "").toLowerCase() === auc);
     let hit = byA.find(l => city && String(l.name).toLowerCase().includes(city));
