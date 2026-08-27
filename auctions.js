@@ -1339,7 +1339,13 @@
     const detail = $("#auctionDetail");
     detail.hidden = false;
     detail.innerHTML = `
-      <a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a>
+      <div class="detailTopRowV1">
+        <a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a>
+        <form class="detailSearchV1" data-detail-search>
+          <input type="search" placeholder="VIN, номер лота или марка/модель" aria-label="Поиск по аукционам" autocomplete="off">
+          <button type="submit">Найти</button>
+        </form>
+      </div>
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
@@ -1759,6 +1765,17 @@
   }
 
   function bindEvents(){
+    // Поиск со страницы лота: VIN → фильтр по VIN, номер лота → поиск лота,
+    // текст → поиск по названию; уводим в каталог с готовым запросом
+    document.addEventListener("submit", event => {
+      const form = event.target.closest("[data-detail-search]");
+      if(!form) return;
+      event.preventDefault();
+      const smart = parseSmartSearch(form.querySelector("input")?.value);
+      if(smart.vin) location.href = `/auctions?vin=${encodeURIComponent(smart.vin)}`;
+      else if(smart.lot) location.href = `/auctions?q=${encodeURIComponent(smart.lot)}`;
+      else if(smart.name) location.href = `/auctions?name=${encodeURIComponent(smart.name)}`;
+    });
     // «Поделиться» — системный share на мобильном, буфер обмена на десктопе
     $("#shareCatalogBtn")?.addEventListener("click", async () => {
       const btn = $("#shareCatalogBtn");
