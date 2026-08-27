@@ -61,12 +61,23 @@ function cacheKey(action, params){
 // показывал устаревшую дату торгов), vin=7d, dict/lists=12h
 const DB_TTL = {search:21600, detail:1800, vin:604800, _default:43200};
 
+// Supabase может лечь/тормозить (переполнение, пауза проекта) — его никогда
+// не ждём дольше 3с: иначе каждый запрос каталога висел до 60с таймаута
+// функции вместо мгновенного перехода на живой API.
+const SB_WAIT_MS = 3000;
+function withTimeout(promise, ms, fallback){
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+  ]);
+}
+
 async function getDbCache(key){
   try{
     const now = new Date().toISOString();
-    const rows = await supabase.list("api_cache", {
+    const rows = await withTimeout(supabase.list("api_cache", {
       cache_key:`eq.${key}`, expires_at:`gt.${now}`, select:"data", limit:1
-    });
+    }), SB_WAIT_MS, null);
     return rows && rows[0] ? rows[0].data : null;
   }catch(_){ return null; }
 }
@@ -74,9 +85,9 @@ async function getDbCache(key){
 // Stale read: same row, but ignores expires_at — used when the upstream API is down/rate-limited.
 async function getDbCacheStale(key){
   try{
-    const rows = await supabase.list("api_cache", {
+    const rows = await withTimeout(supabase.list("api_cache", {
       cache_key:`eq.${key}`, select:"data", limit:1
-    });
+    }), SB_WAIT_MS, null);
     return rows && rows[0] ? rows[0].data : null;
   }catch(_){ return null; }
 }
@@ -1040,9 +1051,15 @@ async function lotsDbReady(){
     const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
     if(!url || !key) throw new Error("no supabase env");
-    const r = await fetch(`${url}/rest/v1/api_sync_state?k=eq.main&select=v`, {
-      headers:{apikey:key, authorization:`Bearer ${key}`}
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), SB_WAIT_MS);
+    let r;
+    try{
+      r = await fetch(`${url}/rest/v1/api_sync_state?k=eq.main&select=v`, {
+        headers:{apikey:key, authorization:`Bearer ${key}`},
+        signal:controller.signal
+      });
+    }finally{ clearTimeout(timer); }
     const rows = r.ok ? await r.json() : null;
     dbReadyCache = {value:!!(rows && rows[0] && rows[0].v && rows[0].v.phase === "incr"), at:Date.now()};
   }catch(e){
@@ -1145,15 +1162,21 @@ async function searchFromDb(query){
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const offset = (page - 1) * perPage;
 
-  const response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
-    headers:{
-      apikey:key,
-      authorization:`Bearer ${key}`,
-      prefer:"count=exact",
-      range:`${offset}-${offset + perPage - 1}`,
-      "range-unit":"items"
-    }
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  let response;
+  try{
+    response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
+      headers:{
+        apikey:key,
+        authorization:`Bearer ${key}`,
+        prefer:"count=exact",
+        range:`${offset}-${offset + perPage - 1}`,
+        "range-unit":"items"
+      },
+      signal:controller.signal
+    });
+  }finally{ clearTimeout(timer); }
   if(!response.ok) throw new Error(`lots db search failed: ${response.status}`);
   const rows = await response.json();
   const total = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length;
