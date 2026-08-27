@@ -479,7 +479,71 @@
     }catch(_){}
   }
 
+  // ---- Канадские лоты: свой расчёт (зеркало канадской ветки главного
+  // калькулятора: диспатч Tyras ×0.90, банк TD, погрузка, море Монреаль→
+  // Клайпеда, дорога до Кишинёва, комиссия канадской компании) ----
+  const CA_PROV_CODES = ["ON","QC","BC","AB","SK","MB","NS","NB","NF"];
+  const CA_PROV_NAMES = {ontario:"ON", quebec:"QC", "québec":"QC", "british columbia":"BC", alberta:"AB",
+    saskatchewan:"SK", manitoba:"MB", "nova scotia":"NS", "new brunswick":"NB", newfoundland:"NF"};
+  function findCanadaLocation(lot){
+    const locs = window.CANADA_LOCATIONS || [];
+    const raw = String(lot.location || "").toLowerCase();
+    if(!raw) return null;
+    let prov = "";
+    for(const [name, code] of Object.entries(CA_PROV_NAMES)){ if(raw.includes(name)){ prov = code; break; } }
+    if(!prov){
+      const m = raw.match(/,\s*([a-z]{2})\b\s*$/);
+      if(m && CA_PROV_CODES.includes(m[1].toUpperCase())) prov = m[1].toUpperCase();
+    }
+    if(!prov) return null; // не канадский лот
+    const city = (raw.split(",")[0] || "").replace(/[^a-z ]/g, "").trim();
+    const auc = String(lot.auction || "").toLowerCase().includes("iaai") ? "iaai" : "copart";
+    const byA = locs.filter(l => String(l.auction || "").toLowerCase() === auc);
+    let hit = byA.find(l => city && String(l.name).toLowerCase().includes(city));
+    if(!hit) hit = byA.filter(l => l.province === prov).sort((a, b) => (a.dispatchSuvCad || 0) - (b.dispatchSuvCad || 0))[0];
+    if(!hit) hit = (window.CANADA_LOCATIONS || []).find(l => l.province === prov);
+    return hit ? Object.assign({}, hit) : {name:`Канада (${prov})`, province:prov, zone:prov === "BC" ? "bc" : "east", dispatchSuvCad:0, dispatchPickupCad:0};
+  }
+
+  function calcCanadaLotTotal(lot, options, caLoc){
+    const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
+    const kind = options.vehicleType || vehicleKind(lot);
+    const fuel = options.fuel || mapFuel(lot.fuel, false, lot);
+    const engineLiters = options.engineLiters != null ? Number(options.engineLiters) : numberFromEngine(lot.engine);
+    const usdMdl = Number(options.usdMdl) > 0 ? Number(options.usdMdl) : liveRates.usdMdl;
+    const eurMdl = Number(options.eurMdl) > 0 ? Number(options.eurMdl) : liveRates.eurMdl;
+    const auctionFee = auctionFeeFor(bid, lot.auction);
+    const ip = kind === "pickup" || kind === "vanLarge";
+    const green = ["hybrid","phev","electric"].includes(fuel);
+    const zone = caLoc.zone || "east";
+    const dispatch = zone === "bc" ? 1700 : Math.round((ip ? caLoc.dispatchPickupCad : caLoc.dispatchSuvCad) * 0.90);
+    const bankFee = zone === "bc" || !dispatch ? 0 : 100;
+    const keeper = 300;
+    const ocean = (ip ? 1170 : 950) + (green ? 150 : 0);
+    const road = kind === "crossover" ? 1750 : (kind === "sedan" || kind === "moto" || kind === "atv") ? 1600 : 1900;
+    const insurance = Math.max(100, (bid + auctionFee) * 0.01);
+    const service = (window.ApexCalc ? Math.round(window.ApexCalc.companyFeeFor(bid, auctionFee)) : 300);
+    const canadaFee = Math.max(300, bid * 0.02);
+    const exportDocs = options.exportDocs ? 400 : 0;
+    const customsBaseMdl = (bid + auctionFee + ocean) * usdMdl;
+    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year:Number(lot.year) || new Date().getFullYear()}) : {total:0};
+    const customsUsd = Math.round(c.total / usdMdl);
+    const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs;
+    const totalMdl = usdPart * usdMdl + c.total;
+    const total = Math.round(totalMdl / usdMdl);
+    return {
+      canada:true, bid, auctionFee, dispatch, bankFee, keeper, ocean, road,
+      canadaFee:Math.round(canadaFee), insurance:Math.round(insurance), service, exportDocs,
+      customsUsd, total, totalMdl:Math.round(totalMdl), totalEur:Math.round(totalMdl / eurMdl),
+      kind, green, usdMdl, eurMdl,
+      dispatchRoute:`${caLoc.name ? String(caLoc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") : "Канада"} → Монреаль`,
+      seaRoute:"Монреаль → Клайпеда → Кишинёв"
+    };
+  }
+
   function calcLotTotal(lot, options = {}){
+    const caLoc = findCanadaLocation(lot);
+    if(caLoc) return calcCanadaLotTotal(lot, options, caLoc);
     const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
     const kind = options.vehicleType || vehicleKind(lot);
     const fuel = options.fuel || mapFuel(lot.fuel, !!options.green, lot);
@@ -1041,6 +1105,24 @@
       </section>`;
   }
   function renderCalcRows(calc){
+    if(calc.canada){
+      const shipSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.road + calc.canadaFee;
+      const clearSub = calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
+      return calcSec("ship", "Калькулятор стоимости", shipSub, `
+        ${calcRow("Ставка", calc.bid)}
+        ${calcRow("Аукционный сбор", calc.auctionFee)}
+        ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
+        ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
+        ${calcRow("Услуги канадской компании", calc.canadaFee, calc.bid > 15000 ? "2% от цены лота" : "")}
+        ${calcRow("Складирование и погрузка", calc.keeper)}
+        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
+        ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}`)
+        + calcSec("clear", "Таможня и оформление", clearSub, `
+        ${calcRow("Таможенные платежи", calc.customsUsd)}
+        ${calcRow("Страховка", calc.insurance)}
+        ${calcRow("Экспортные документы", calc.exportDocs)}
+        ${calcRow("Сопровождение Apex Auto", calc.service)}`);
+    }
     const shippingSub = calc.bid + calc.auctionFee + calc.land + calc.sea;
     const clearingSub = calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
     return calcSec("ship", "Калькулятор стоимости", shippingSub, `
@@ -1122,7 +1204,7 @@
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
         <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
       </div>
-      <div class="calcEtaV1">${dbIco("calendar")}<span>Ориентировочная выдача в Кишинёве: <b>${deliveryWindow(lot)}</b></span></div>
+      ${(() => { const dw = deliveryWindow(lot); return `<div class="calcEtaV1">${dbIco("calendar")}<span>Доставка <b>${dw.days}</b> дней · выдача в Кишинёве: <b>${dw.label}</b></span></div>`; })()}
       <div class="calcCtasV2">
         <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
         <button class="dbBtnGhost" type="button" data-copy-calc>Скопировать расчёт</button>
@@ -1133,13 +1215,18 @@
   }
 
   // Ориентир выдачи: дата торгов (или сегодня, если торги прошли) + 6–12 недель доставки
+  // Сроки доставки по портам (в днях), отсчёт от даты торгов лота:
+  // NJ/NY/GA — 60–75, TX — 60–90, Калифорния — 90–120, Канада — 60–75.
+  const PORT_DAYS = {nj:[60,75], savannah:[60,75], houston:[60,90], la:[90,120], canada:[60,75]};
   function deliveryWindow(lot){
+    const port = findCanadaLocation(lot) ? "canada" : (findLotLocation(lot)?.autoPort || "");
+    const [d1, d2] = PORT_DAYS[port] || [60, 90];
     const t = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
-    const base = Math.max(Number.isFinite(t) ? t : 0, Date.now());
+    const base = Number.isFinite(t) ? t : Date.now(); // от даты торгов, даже прошедшей
     const lang = window.APEX_LANG || "ru";
     const loc = lang === "ro" ? "ro-RO" : lang === "en" ? "en-US" : "ru-RU";
     const f = ms => new Date(ms).toLocaleDateString(loc, {day:"numeric", month:"short"});
-    return `${f(base + 42 * 864e5)} – ${f(base + 84 * 864e5)}`;
+    return {days:`${d1}–${d2}`, label:`${f(base + d1 * 864e5)} – ${f(base + d2 * 864e5)}`};
   }
 
   function updateLotCalculator(){
