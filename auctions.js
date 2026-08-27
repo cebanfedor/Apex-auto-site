@@ -1160,10 +1160,10 @@
     const ic = iconOverride || (t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q");
     return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal dTone-${t}"><span class="dValUnit">${dbIco(ic)}<span>${escapeHtml(value)}</span></span></span></div>`;
   }
-  function dPlain(label, valueHtml, iconName){
+  function dPlain(label, valueHtml, iconName, tone){
     if(valueHtml == null || valueHtml === "") return "";
     const inner = iconName ? `<span class="dValUnit">${dbIco(iconName)}<span>${valueHtml}</span></span>` : valueHtml;
-    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal">${inner}</span></div>`;
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal${tone ? ` dTone-${tone}` : ""}">${inner}</span></div>`;
   }
 
   const lb = {images:[], index:0};
@@ -1342,14 +1342,22 @@
               <div class="dSecHead">Главное</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
               ${lot.seller ? dMain("Продавец", isIns ? `Страховая · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
-              ${dMain("Ключ доступен", tc(lot.keys), "key")}
+              ${(() => {
+                const k = String(lot.keys || "").trim();
+                if(!k) return "";
+                const yes = /^(yes|да|present|available)/i.test(k);
+                const no = /^(no|нет|not )/i.test(k);
+                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор)
+                return dPlain("Ключ доступен", escapeHtml(tc(k)), "key", yes ? "good" : no ? "warn" : "neutral");
+              })()}
               ${(() => {
                 const doc = parseDocTitle(lot.document || lot.titleStatus);
                 if(!doc) return "";
                 const verdict = doc.tone === "rework" ? "Требуется переделка · 30–40 дней" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
                 const icon = doc.tone === "rework" ? "excl" : "doc";
+                const docTone = doc.tone === "rework" ? "warn" : doc.tone === "good" ? "good" : "neutral";
                 return dMain("Статус документов", verdict, icon)
-                  + dPlain("Тип документа", escapeHtml(docShort(lot.document || lot.titleStatus)));
+                  + dPlain("Тип документа", escapeHtml(docShort(lot.document || lot.titleStatus)), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
               ${dPlain("Привод", escapeHtml(driveLine), "drive")}
