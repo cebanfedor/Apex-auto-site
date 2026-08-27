@@ -1217,6 +1217,9 @@
   function closeLightbox(){
     const el = document.getElementById("lotLightbox");
     if(el) el.hidden = true;
+    // Убираем содержимое сцены — иначе скрытое видео продолжает играть звуком
+    const stage = document.getElementById("lbStage");
+    if(stage) stage.innerHTML = "";
     document.body.classList.remove("lbOpenV1");
   }
   function lbMove(step){
