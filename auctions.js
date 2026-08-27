@@ -1413,7 +1413,13 @@
               ${lot.seller ? dPlain("Тип продавца", isIns ? "Страховая" : "Дилер / банк") : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
-              ${dPlain("Локация", escapeHtml(tc(lot.location)))}
+              ${(() => {
+                // Локация — официальная площадка из нашей базы (та же, что в
+                // калькуляторе); сырое значение API — только фоллбек
+                const matched = findLotLocation(lot);
+                const label = matched ? String(matched.displayName || matched.location || "").split("→")[0].trim() : "";
+                return dPlain("Локация", escapeHtml(label || tc(lot.location)));
+              })()}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
             </section>
             <section class="dSec">
