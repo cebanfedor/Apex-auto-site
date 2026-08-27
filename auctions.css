@@ -436,7 +436,9 @@
 .calcClosedV1 .calcChevV1 { transform:rotate(-90deg); }
 .calcClosedV1 .calcRowV2 { display:none; }
 /* Заголовок лота: h1 + «Поделиться» в одну строку */
-.dTitleRowV1 { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.dTitleRowV1 { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:6px; }
+/* margin у h1 ломал вертикальное центрирование кнопки «Поделиться» в flex-строке */
+.dTitleRowV1 h1 { margin:0; }
 .dShareBtnV1 { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 11px; border:1px solid var(--aLine); border-radius:9px; background:var(--aSoft); color:var(--aInk2); font-weight:600; font-size:12px; cursor:pointer; }
 .dShareBtnV1 .dbIco { width:13px; height:13px; }
 .dShareBtnV1:hover { border-color:var(--aMuted); color:var(--aInk); }
