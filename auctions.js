@@ -245,7 +245,9 @@
         .replace(/\b([sx])drive\s*(\d+)\s*i\b/gi, (m, p, d) => `${p.toLowerCase()}Drive${d}i`)
         .replace(/\b(\d{3})\s*I\b/g, "$1i")
         .replace(/\b(\d{3})E\b/g, "$1e")
-        .replace(/\b(M\d{2,3})I\b/g, "$1i");
+        .replace(/\b(M\d{2,3})I\b/g, "$1i")
+        // API дублирует модель в триме: «M340i M340i xDrive» → «M340i xDrive»
+        .replace(/\b([A-Za-z]*\d\w*)\s+\1\b/gi, "$1");
     }
     return [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ") || "Автомобиль";
   }
