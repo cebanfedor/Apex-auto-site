@@ -1006,6 +1006,8 @@ function lotQualityScore(l, todayStart){
   else if(/minor|dent|scratch|normal wear|hail/.test(dmg)) s += 8;
   if(/run/.test(String(l.condition || "").toLowerCase())) s += 6;
   if(!l.photoCount) s -= 10;
+  // Спецтехника/лодки/прицепы идут без полного VIN — в рекомендациях не нужны
+  if(String(l.vin || "").length < 17) s -= 25;
   // Прошедшие торги без Buy Now в рекомендациях не нужны
   const t = l.auctionDate ? new Date(l.auctionDate).getTime() : NaN;
   if(!Number.isNaN(t) && t < todayStart && !(l.buyNow > 0)) s -= 60;
