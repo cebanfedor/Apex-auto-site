@@ -590,7 +590,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dDescGridV2 { grid-template-columns:1fr; }
 }
 @media (max-width:640px) {
-  .auctionsShellV1 { padding:18px 16px 60px; }
+  .auctionsShellV1 { padding:16px 10px 60px; }
   .auctionsH1V3 { gap:8px; }
   .shareChipV3 { height:32px; padding:0 11px; font-size:12.5px; }
   .auctionInfoV3 p { font-size:13px; }
@@ -614,7 +614,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbCols { grid-template-columns:1fr; gap:9px; }
   .dbAside { flex-direction:column; }
   .dbWhen { align-items:flex-start; }
-  .auctionDetailPanelV1 { padding:18px; }
+  .auctionDetailPanelV1 { padding:14px 10px; }
   .dSec { grid-template-columns:110px 1fr; column-gap:10px; }
   /* Lot detail header: stack title and action buttons vertically */
   .detailHeaderV1 { flex-direction:column; align-items:stretch; gap:14px; }
