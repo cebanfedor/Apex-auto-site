@@ -788,8 +788,11 @@
     return [name ? name.replace(/_/g, " ") : "", "histPend"];
   }
 
-  function renderPriceHistory(history, isCad){
-    if(!Array.isArray(history) || !history.length) return "";
+  function renderPriceHistory(rawHistory, isCad){
+    // Запись текущих торгов (h.current) — не история продаж: снапшоты
+    // незавершённого аукциона не должны выглядеть как прошлые торги
+    const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
+    if(!history.length) return "";
     const fmt = isCad ? moneyCad : money;
     const bids = history.map(h => Number(h.bid || h.buyNow || 0)).filter(Boolean);
     const max = Math.max(1, ...bids);
