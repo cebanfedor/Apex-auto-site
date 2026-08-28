@@ -466,6 +466,16 @@
   // чтобы итоги на странице лота и на главной совпадали до копейки.
   const liveRates = {usdMdl:17.45, eurMdl:20.28, cadUsd:0.6923};
   let ratesFetched = false;
+  // Последние живые курсы храним в браузере: при следующем заходе рендерим
+  // сразу правильную цифру, без «прыжка» после ответа сервера
+  try{
+    const saved = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "null");
+    if(saved){
+      if(Number(saved.usdMdl) > 0) liveRates.usdMdl = Number(saved.usdMdl);
+      if(Number(saved.eurMdl) > 0) liveRates.eurMdl = Number(saved.eurMdl);
+      if(Number(saved.cadUsd) > 0) liveRates.cadUsd = Number(saved.cadUsd);
+    }
+  }catch(_){}
   function applyLiveRatesToInputs(){
     const u = $("#lotCalcUsdMdl"), e = $("#lotCalcEurMdl");
     if(u) u.value = liveRates.usdMdl.toFixed(2);
@@ -490,6 +500,7 @@
       if(Number(data?.eurMdl) > 0) liveRates.eurMdl = Number(data.eurMdl);
       if(Number(data?.cadUsd) > 0) liveRates.cadUsd = Number(data.cadUsd);
       ratesFetched = true;
+      try{ localStorage.setItem("apexLiveRatesV1", JSON.stringify(liveRates)); }catch(_){}
       applyLiveRatesToInputs();
     }catch(_){
       if(!ratesRetried){
@@ -1185,7 +1196,7 @@
     // ставки + пересчёт в USD по курсу TD; сам расчёт всегда в USD
     const isCa = !!calc.canada;
     const fmtBid = v => isCa ? moneyCad(v) : money(v);
-    const usdHint = v => isCa && v ? `<i class="calcBidUsdV1">≈ ${money(Math.round(v * calc.cadUsd))}</i>` : "";
+    const usdHint = v => isCa && v ? `<i class="calcBidUsdV1" id="bidUsdHintV1">≈ ${money(Math.round(v * calc.cadUsd))}</i>` : "";
     return `<aside class="lotCalcV2">
       ${isSold && effectiveFinalBid ? `
       <div class="calcSoldCardV1">
@@ -1291,11 +1302,18 @@
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
-    // ≈USD в карточке «Продано» пересчитываем живым курсом TD
-    const soldHint = document.getElementById("soldUsdHintV1");
-    if(soldHint && calc.canada){
-      const {finalBid} = lotSaleState(state.selectedLot);
-      if(finalBid) soldHint.textContent = `≈ ${money(Math.round(finalBid * calc.cadUsd))}`;
+    // ≈USD (карточка «Продано» и текущая ставка) пересчитываем живым курсом TD
+    if(calc.canada){
+      const soldHint = document.getElementById("soldUsdHintV1");
+      if(soldHint){
+        const {finalBid} = lotSaleState(state.selectedLot);
+        if(finalBid) soldHint.textContent = `≈ ${money(Math.round(finalBid * calc.cadUsd))}`;
+      }
+      const bidHint = document.getElementById("bidUsdHintV1");
+      if(bidHint){
+        const cur = Number(state.selectedLot.currentBid || state.selectedLot.buyNow || 0);
+        if(cur) bidHint.textContent = `≈ ${money(Math.round(cur * calc.cadUsd))}`;
+      }
     }
     return calc;
   }
