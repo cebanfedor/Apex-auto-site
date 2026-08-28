@@ -472,18 +472,31 @@
     if(e) e.value = liveRates.eurMdl.toFixed(2);
     if(u || e){ try{ updateLotCalculator(); }catch(_){} }
   }
+  let ratesRetried = false;
   async function fetchLiveRates(){
     if(ratesFetched){ applyLiveRatesToInputs(); return; }
     try{
-      const r = await fetch("/api/content?rates=1");
-      if(!r.ok) return;
+      // Таймаут 8с + один повтор: если сервер курсов затупил, не остаёмся
+      // навсегда на дефолтных значениях
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let r;
+      try{
+        r = await fetch("/api/content?rates=1", {signal:controller.signal});
+      }finally{ clearTimeout(timer); }
+      if(!r.ok) throw new Error(`rates ${r.status}`);
       const data = await r.json();
       if(Number(data?.usdMdl) > 0) liveRates.usdMdl = Number(data.usdMdl);
       if(Number(data?.eurMdl) > 0) liveRates.eurMdl = Number(data.eurMdl);
       if(Number(data?.cadUsd) > 0) liveRates.cadUsd = Number(data.cadUsd);
       ratesFetched = true;
       applyLiveRatesToInputs();
-    }catch(_){}
+    }catch(_){
+      if(!ratesRetried){
+        ratesRetried = true;
+        setTimeout(fetchLiveRates, 8000);
+      }
+    }
   }
 
   // ---- Канадские лоты: свой расчёт (зеркало канадской ветки главного

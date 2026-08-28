@@ -88,14 +88,23 @@ async function fetchFallbackRates() {
   };
 }
 
+// Supabase может тормозить — кеш курсов никогда не ждём дольше 3с,
+// иначе весь /api/content?rates=1 висит и фронт остаётся на дефолтных курсах.
+function sbTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 async function fetchRates() {
   // Проверяем кэш
   try {
-    const cached = await supabase.list("api_cache", {
+    const cached = await sbTimeout(supabase.list("api_cache", {
       cache_key: `eq.${RATES_CACHE_KEY}`,
       expires_at: `gt.${new Date().toISOString()}`,
       select: "data", limit: 1,
-    });
+    }), 3000, null);
     if (cached?.[0]?.data) return cached[0].data;
   } catch {}
 
@@ -112,7 +121,7 @@ async function fetchRates() {
   // Кэшируем
   try {
     const expires = new Date(Date.now() + RATES_TTL * 1000).toISOString();
-    await supabase.upsert("api_cache", { cache_key: RATES_CACHE_KEY, data: payload, expires_at: expires }, "cache_key");
+    await sbTimeout(supabase.upsert("api_cache", { cache_key: RATES_CACHE_KEY, data: payload, expires_at: expires }, "cache_key"), 3000, null);
   } catch {}
 
   return payload;
