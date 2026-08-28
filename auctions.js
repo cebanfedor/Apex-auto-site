@@ -1173,8 +1173,8 @@
     return calcSec("ship", "Калькулятор стоимости", shippingSub, `
         ${calcRow("Ставка", calc.bid)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
-        ${calcRow("Доставка по США", calc.land, calc.landRoute)}
-        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}`)
+        ${calcRow("Доставка по США", calc.land)}
+        ${calcRow("Доставка морем", calc.sea)}`)
       + calcSec("clear", "Таможня и оформление", clearingSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка", calc.insurance)}
