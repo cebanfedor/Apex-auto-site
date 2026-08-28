@@ -123,6 +123,15 @@
 
     const images = await fetchImages(stock);
     const lot = C.merge([fromDom(), inline, page, { name: "iaai-images", fields: {}, extra: {}, images }]);
+    // Фото строго ЭТОГО лота: в imageKey vis.iaai.com зашит сток-номер —
+    // чужие фото из каруселей «похожие машины» на странице отбрасываем.
+    if (stock) {
+      const own = (lot.images || []).filter((u) => String(u).includes(stock));
+      if (own.length) lot.images = own;
+      // API-набор по стоку — самый полный и точный, при наличии он главный
+      const ownApi = images.filter((u) => String(u).includes(stock));
+      if (ownApi.length >= 3) lot.images = ownApi;
+    }
     lot.auction = "iaai";
     lot.auctionLabel = "IAAI";
     lot.lot = lot.lot || stock;
