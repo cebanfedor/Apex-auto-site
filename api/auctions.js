@@ -53,8 +53,11 @@ async function notifyTelegram(data){
   }catch(_){}
 }
 
+// CACHE_VER бампается при изменении нормализации/сортировки: кеш хранит уже
+// обработанные ответы, и без этого старая выдача живёт до 6 часов.
+const CACHE_VER = "n2";
 function cacheKey(action, params){
-  return `${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
+  return `${CACHE_VER}:${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
 // DB_TTL in seconds: search=6h, detail=30мин (аукционы переносят даты — 24h кеш
