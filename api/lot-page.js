@@ -1,84 +1,25 @@
 const fs = require("fs");
 const path = require("path");
 
-const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
+// SSR-обёртка страницы лота: OG-теги для шаринга + данные лота, вшитые
+// в HTML (window.__ssrLot) — фронт рендерит мгновенно, без второго запроса.
+// Данные берём через СВОЙ /api/auctions (общий CDN/Supabase-кеш и полная
+// нормализация), а не напрямую из auctionsapi: при прогретом кеше это
+// миллисекунды. Ждём не дольше 4с — иначе отдаём HTML без данных, и фронт
+// подгрузит их сам, как раньше.
+const SSR_FETCH_MS = 4000;
 
-function safeName(value){
-  return value && typeof value === "object" ? value.name || value.title || value.value || "" : String(value || "");
-}
-
-function safeNumber(value){
-  if(value && typeof value === "object"){
-    return safeNumber(value.value || value.amount || value.usd || value.price || value.bid);
-  }
-  const n = Number(String(value || "").replace(/[^\d.]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function normalizeAuction(value){
-  const text = (value && typeof value === "object" ? (value.name || value.title || "") : String(value || "")).toLowerCase();
-  if(text.includes("iaai") || text === "1" || value === 1) return "iaai";
-  return "copart";
-}
-
-function auctionsApiDomain(auction){
-  return auction === "iaai" ? "iaai_com" : "copart_com";
-}
-
-function imageList(value){
-  const sources = [
-    value?.images?.normal, value?.images?.big, value?.images,
-    value?.photos, value?.photo, value?.image, value?.image_url, value?.thumbnail
-  ];
-  const list = [];
-  for(const s of sources){
-    if(Array.isArray(s)) list.push(...s);
-    else if(s) list.push(s);
-  }
-  return list
-    .map(item => typeof item === "string" ? item : item?.url || item?.src || "")
-    .filter(Boolean)
-    .filter((item, i, all) => all.indexOf(item) === i);
-}
-
-function extractLotData(source, fallbackAuction){
-  const item = source?.data && !Array.isArray(source.data) ? source.data : source;
-  const lots = Array.isArray(item?.lots) ? item.lots : [];
-  const lot = lots[0] || item?.lot || item;
-  const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || fallbackAuction);
-  const year = safeNumber(item?.year);
-  const make = safeName(item?.manufacturer || item?.make || item?.brand);
-  const model = safeName(item?.model);
-  const title = item?.title || [year, make, model].filter(Boolean).join(" ") || "";
-  const odometer = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
-  const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || item?.primary_damage || item?.damage);
-  const location = (() => {
-    const loc = lot?.location || item?.location;
-    if(!loc) return safeName(lot?.branch || lot?.selling_branch);
-    if(typeof loc === "string") return loc;
-    const city = safeName(loc.city || loc.name);
-    const state = safeName(loc.state || loc.state_code);
-    return [city, state].filter(Boolean).join(", ");
-  })();
-  const images = imageList(lot).length ? imageList(lot) : imageList(item);
-  return {title, year, make, model, odometer, damage: primaryDamage, location, images, auction};
-}
-
-async function fetchJson(url){
-  const key = process.env.AUCTIONS_API_KEY;
-  if(!key) throw new Error("AUCTIONS_API_KEY not configured");
+async function fetchOwnDetail(req, auction, lotId){
+  const host = req.headers["x-forwarded-host"] || req.headers.host || "apexauto.md";
+  const proto = req.headers["x-forwarded-proto"] || "https";
+  const url = `${proto}://${host}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}`;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
-  let response;
+  const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{
-    response = await fetch(url, {
-      headers:{"x-api-key":key, "accept":"application/json"},
-      signal:controller.signal
-    });
+    const r = await fetch(url, {headers:{accept:"application/json"}, signal:controller.signal});
+    const payload = await r.json().catch(() => null);
+    return r.ok && payload && payload.ok !== false ? payload.lot : null;
   }finally{ clearTimeout(timer); }
-  const payload = await response.json().catch(() => null);
-  if(!response.ok) throw new Error(`API ${response.status}`);
-  return payload;
 }
 
 function escapeAttr(str){
@@ -98,29 +39,26 @@ module.exports = async function(req, res){
   let ogImage = "https://apexauto.md/assets/hot/bmw-530e.jpg";
 
   const match = slug.match(/^(iaai|copart)-(.+)$/i);
+  let lot = null;
   let debugError = null;
-  if(match && process.env.AUCTIONS_API_KEY){
+  if(match){
     try{
-      const auction = match[1].toLowerCase();
-      const lotId = match[2];
-      const domain = auctionsApiDomain(auction);
-      const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lotId)}/${domain}?prices_history=1`);
-      const lot = extractLotData(payload, auction);
-
-      if(lot.title){
-        ogTitle = `${lot.title} | Apex Auto`;
+      lot = await fetchOwnDetail(req, match[1].toLowerCase(), match[2]);
+      if(lot && lot.title){
+        const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title;
+        ogTitle = `${title} | Apex Auto`;
         const parts = [];
-        if(lot.odometer) parts.push(`${lot.odometer.toLocaleString("en-US")} mi`);
-        if(lot.damage) parts.push(lot.damage);
+        if(lot.odometerText) parts.push(lot.odometerText);
+        if(lot.primaryDamage) parts.push(lot.primaryDamage);
         if(lot.location) parts.push(lot.location);
-        ogDesc = `${lot.title}${parts.length ? ". " + parts.join(" · ") : ""}. Доставка под ключ до Кишинёва от Apex Auto.`;
-        if(lot.images && lot.images.length > 0) ogImage = lot.images[0];
+        ogDesc = `${title}${parts.length ? ". " + parts.join(" · ") : ""}. Доставка под ключ до Кишинёва от Apex Auto.`;
+        if(lot.image) ogImage = lot.image;
       }
     }catch(e){
       debugError = e.message;
     }
   }else{
-    debugError = match ? "no AUCTIONS_API_KEY" : "slug did not match";
+    debugError = "slug did not match";
   }
 
   if(req.query.debug === "1"){
@@ -130,7 +68,7 @@ module.exports = async function(req, res){
       return;
     }
     res.setHeader("Content-Type", "application/json");
-    res.status(200).send(JSON.stringify({slug, match:!!match, hasKey:!!process.env.AUCTIONS_API_KEY, ogTitle, ogImage, error:debugError}));
+    res.status(200).send(JSON.stringify({slug, match:!!match, hasLot:!!lot, ogTitle, ogImage, error:debugError}));
     return;
   }
 
@@ -153,7 +91,14 @@ module.exports = async function(req, res){
     .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeAttr(ogDesc)}">`)
     .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${escapeAttr(ogImage)}">`);
 
+  // Вшиваем нормализованный лот: фронт рендерит без второго запроса к API.
+  // </script> внутри JSON экранируем, чтобы не разорвать тег.
+  if(lot){
+    const json = JSON.stringify(lot).replace(/</g, "\\u003c");
+    html = html.replace("</head>", `<script>window.__ssrLot=${json};</script>\n</head>`);
+  }
+
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=300");
+  res.setHeader("Cache-Control", "public, s-maxage=900, max-age=120, stale-while-revalidate=3600");
   res.status(200).send(html);
 };

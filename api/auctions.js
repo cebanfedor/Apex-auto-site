@@ -65,41 +65,53 @@ function cacheKey(action, params){
 const DB_TTL = {search:21600, detail:1800, vin:604800, _default:43200};
 
 // Supabase может лечь/тормозить (переполнение, пауза проекта) — его никогда
-// не ждём дольше 3с: иначе каждый запрос каталога висел до 60с таймаута
-// функции вместо мгновенного перехода на живой API.
-const SB_WAIT_MS = 3000;
-function withTimeout(promise, ms, fallback){
-  return Promise.race([
-    promise.catch(() => fallback),
-    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
-  ]);
+// не ждём дольше 1.5с (живая база отвечает <300мс), а после двух подряд
+// таймаутов/ошибок пропускаем его целиком на 3 минуты (circuit breaker):
+// иначе каждый MISS-запрос детальной/каталога терял секунды на мёртвой базе.
+const SB_WAIT_MS = 1500;
+let sbFails = 0, sbDownUntil = 0;
+function sbUp(){ return Date.now() > sbDownUntil; }
+const SB_TIMEOUT = Symbol("sbTimeout");
+async function sbGuard(promise, ms){
+  if(!sbUp()) return null;
+  try{
+    const res = await Promise.race([
+      promise,
+      new Promise(resolve => setTimeout(() => resolve(SB_TIMEOUT), ms || SB_WAIT_MS))
+    ]);
+    if(res === SB_TIMEOUT){
+      if(++sbFails >= 2){ sbDownUntil = Date.now() + 180e3; sbFails = 0; }
+      return null;
+    }
+    sbFails = 0;
+    return res;
+  }catch(_){
+    if(++sbFails >= 2){ sbDownUntil = Date.now() + 180e3; sbFails = 0; }
+    return null;
+  }
 }
 
 async function getDbCache(key){
-  try{
-    const now = new Date().toISOString();
-    const rows = await withTimeout(supabase.list("api_cache", {
-      cache_key:`eq.${key}`, expires_at:`gt.${now}`, select:"data", limit:1
-    }), SB_WAIT_MS, null);
-    return rows && rows[0] ? rows[0].data : null;
-  }catch(_){ return null; }
+  const now = new Date().toISOString();
+  const rows = await sbGuard(supabase.list("api_cache", {
+    cache_key:`eq.${key}`, expires_at:`gt.${now}`, select:"data", limit:1
+  }));
+  return rows && rows[0] ? rows[0].data : null;
 }
 
 // Stale read: same row, but ignores expires_at — used when the upstream API is down/rate-limited.
 async function getDbCacheStale(key){
-  try{
-    const rows = await withTimeout(supabase.list("api_cache", {
-      cache_key:`eq.${key}`, select:"data", limit:1
-    }), SB_WAIT_MS, null);
-    return rows && rows[0] ? rows[0].data : null;
-  }catch(_){ return null; }
+  const rows = await sbGuard(supabase.list("api_cache", {
+    cache_key:`eq.${key}`, select:"data", limit:1
+  }));
+  return rows && rows[0] ? rows[0].data : null;
 }
 
 async function setDbCache(key, data, action){
   try{
     const ttl = DB_TTL[action] || DB_TTL._default;
     const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
-    await supabase.upsert("api_cache", {cache_key:key, data, expires_at:expiresAt}, "cache_key");
+    await sbGuard(supabase.upsert("api_cache", {cache_key:key, data, expires_at:expiresAt}, "cache_key"), 4000);
   }catch(_){}
 }
 
@@ -1129,6 +1141,7 @@ async function handleLead(request, response){
 let dbReadyCache = {value:null, at:0};
 async function lotsDbReady(){
   if(Date.now() - dbReadyCache.at < 60e3) return dbReadyCache.value;
+  if(!sbUp()) return false; // Supabase в отключке — сразу на живой API
   try{
     const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;

@@ -1706,11 +1706,56 @@
     }catch(e){ /* stats optional — ignore */ }
   }
 
+  // Фоновая дотяжка полного лота после мгновенного рендера каталожной версии.
+  // Перерисовываем только если полная версия реально отличается (не сбиваем
+  // введённую ставку/скролл зря).
+  function detailFingerprint(l){
+    return [l.images?.length || 0, (l.priceHistory || []).length, l.currentBid, l.buyNow,
+      l.auctionDate, l.seller, l.sellerType, l.body, l.color, l.cylinders, l.video, l.saleStatus].join("|");
+  }
+  async function refreshDetailInBackground(slug){
+    try{
+      const payload = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(slug.auction)}&lot=${encodeURIComponent(slug.lot)}`);
+      const lot = payload.lot;
+      const cur = parseSlug(currentSlug());
+      if(!lot || !cur || String(cur.lot) !== String(slug.lot)) return; // уже ушли со страницы
+      if(detailFingerprint(lot) !== detailFingerprint(state.selectedLot || {})){
+        const y = window.scrollY;
+        renderDetail(lot);
+        window.scrollTo(0, y);
+      }
+    }catch(e){ /* фоновое обновление — не критично */ }
+  }
+
+  // Переход из каталога на лот без перезагрузки: данные карточки уже есть
+  // в state — рендерим мгновенно, полную версию дотягиваем в фоне.
+  document.addEventListener("click", event => {
+    const link = event.target.closest('a[href^="/auctions/"]');
+    if(!link || event.defaultPrevented) return;
+    if(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    const slug = parseSlug(decodeURIComponent(link.getAttribute("href").replace(/^\/auctions\//, "").split(/[?#]/)[0]));
+    if(!slug) return;
+    const known = (state.items || []).find(l => String(l.lot) === String(slug.lot) && l.auction === slug.auction);
+    if(!known) return; // нет данных под рукой — обычная навигация через SSR
+    event.preventDefault();
+    try{ history.pushState({apexLot:1}, "", link.getAttribute("href")); }catch(_){ location.href = link.href; return; }
+    window.scrollTo(0, 0);
+    renderDetail(known);
+    refreshDetailInBackground(slug);
+  });
+
   async function loadDetailFromUrl(){
     const slug = parseSlug(currentSlug());
     if(!slug) return false;
     $("#auctionCatalog").hidden = true;
     $("#auctionDetail").hidden = false;
+    // SSR: лот уже вшит в HTML сервером (lot-page) — рендерим без запроса
+    const ssr = window.__ssrLot;
+    if(ssr && String(ssr.lot) === String(slug.lot) && ssr.auction === slug.auction){
+      window.__ssrLot = null;
+      renderDetail(ssr);
+      return true;
+    }
     $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Загружаем данные лота...</div>';
     try{
       const payload = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(slug.auction)}&lot=${encodeURIComponent(slug.lot)}`);
