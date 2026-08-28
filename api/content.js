@@ -48,6 +48,27 @@ async function fetchBnmRates() {
   };
 }
 
+// CAD→USD по Non-Cash курсу TD Bank (тот же, что на ix0.apps.td.com/en/fxcal):
+// им оплачиваются канадские аукционы. Fallback — frankfurter (ECB), затем 0.6923.
+async function fetchCadUsdRate() {
+  try {
+    const r = await fetch("https://ix0.apps.td.com/api/fxcal/non-cash-gfx-rates/en", {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" },
+    });
+    const data = await r.json();
+    const usd = (data?.conversionTableFXCAL || []).find((row) => row.currencyCode === "USD");
+    const pay = Number(usd?.currencyRatePay); // сколько CAD стоит 1 USD
+    if (pay > 0) return +(1 / pay).toFixed(4);
+  } catch {}
+  try {
+    const r = await fetch("https://api.frankfurter.app/latest?from=CAD&to=USD");
+    const data = await r.json();
+    const rate = Number(data?.rates?.USD);
+    if (rate > 0) return +rate.toFixed(4);
+  } catch {}
+  return 0.6923;
+}
+
 async function fetchFallbackRates() {
   const apiKey = process.env.FXRATES_API_KEY;
   const url = `https://api.fxratesapi.com/latest?currencies=MDL,EUR&base=USD${apiKey ? `&api_key=${apiKey}` : ""}`;
@@ -76,13 +97,15 @@ async function fetchRates() {
     if (cached?.[0]?.data) return cached[0].data;
   } catch {}
 
-  // Пробуем БНМ, затем fxratesapi как резерв
+  // Пробуем БНМ, затем fxratesapi как резерв; CAD→USD (TD Bank) — параллельно
   let payload;
+  const cadUsdPromise = fetchCadUsdRate();
   try {
     payload = await fetchBnmRates();
   } catch {
     payload = await fetchFallbackRates();
   }
+  payload.cadUsd = await cadUsdPromise;
 
   // Кэшируем
   try {

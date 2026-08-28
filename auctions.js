@@ -61,6 +61,12 @@
     return number ? `$${Math.round(number).toLocaleString("en-US")}` : "—";
   }
 
+  // Ставки канадских аукционов — в канадских долларах
+  function moneyCad(value){
+    const number = Number(value || 0);
+    return number ? `${Math.round(number).toLocaleString("en-US")} CAD` : "—";
+  }
+
   // ---- Русские значения enum-полей API (повреждения, топливо, цвет, кузов) ----
   const RU_DAMAGE = {
     "front end":"Спереди","rear end":"Сзади","left front":"Слева спереди","right front":"Справа спереди",
@@ -458,7 +464,7 @@
   }
   // Живые курсы MDL — тот же источник, что у калькулятора на главной (/api/content?rates=1),
   // чтобы итоги на странице лота и на главной совпадали до копейки.
-  const liveRates = {usdMdl:17.45, eurMdl:20.28};
+  const liveRates = {usdMdl:17.45, eurMdl:20.28, cadUsd:0.6923};
   let ratesFetched = false;
   function applyLiveRatesToInputs(){
     const u = $("#lotCalcUsdMdl"), e = $("#lotCalcEurMdl");
@@ -474,6 +480,7 @@
       const data = await r.json();
       if(Number(data?.usdMdl) > 0) liveRates.usdMdl = Number(data.usdMdl);
       if(Number(data?.eurMdl) > 0) liveRates.eurMdl = Number(data.eurMdl);
+      if(Number(data?.cadUsd) > 0) liveRates.cadUsd = Number(data.cadUsd);
       ratesFetched = true;
       applyLiveRatesToInputs();
     }catch(_){}
@@ -509,7 +516,11 @@
   }
 
   function calcCanadaLotTotal(lot, options, caLoc){
-    const bid = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
+    // Ставка канадских аукционов — в CAD; весь расчёт ведём в USD по Non-Cash
+    // курсу TD Bank (тот же, что на ix0.apps.td.com/en/fxcal)
+    const bidCad = Number(options.bid != null ? options.bid : (lot.currentBid || lot.buyNow || 0));
+    const cadUsd = Number(liveRates.cadUsd) > 0 ? Number(liveRates.cadUsd) : 0.6923;
+    const bid = Math.round(bidCad * cadUsd);
     const kind = options.vehicleType || vehicleKind(lot);
     const fuel = options.fuel || mapFuel(lot.fuel, false, lot);
     const engineLiters = options.engineLiters != null ? Number(options.engineLiters) : numberFromEngine(lot.engine);
@@ -535,7 +546,7 @@
     const totalMdl = usdPart * usdMdl + c.total;
     const total = Math.round(totalMdl / usdMdl);
     return {
-      canada:true, bid, auctionFee, dispatch, bankFee, keeper, ocean, road,
+      canada:true, bidCad, cadUsd, bid, auctionFee, dispatch, bankFee, keeper, ocean, road,
       canadaFee:Math.round(canadaFee), insurance:Math.round(insurance), service, exportDocs,
       customsUsd, total, totalMdl:Math.round(totalMdl), totalEur:Math.round(totalMdl / eurMdl),
       kind, green, usdMdl, eurMdl,
@@ -749,8 +760,9 @@
     return [name ? name.replace(/_/g, " ") : "", "histPend"];
   }
 
-  function renderPriceHistory(history){
+  function renderPriceHistory(history, isCad){
     if(!Array.isArray(history) || !history.length) return "";
+    const fmt = isCad ? moneyCad : money;
     const bids = history.map(h => Number(h.bid || h.buyNow || 0)).filter(Boolean);
     const max = Math.max(1, ...bids);
     const min = bids.length ? Math.min(...bids) : 0;
@@ -763,10 +775,10 @@
         <span class="histDateV1">${escapeHtml(dbDate(h.date))}</span>
         <span class="histBarWrapV1"><span class="histBarV1" style="width:${pct}%"></span></span>
         <span class="histStatusV1 ${cls}">${escapeHtml(label)}</span>
-        <b class="histBidV1">${escapeHtml(money(val))}</b>
+        <b class="histBidV1">${escapeHtml(fmt(val))}</b>
       </div>`;
     }).join("");
-    const range = bids.length ? `${money(min)} – ${money(hi)}` : "";
+    const range = bids.length ? `${fmt(min)} – ${fmt(hi)}` : "";
     return `<section class="dSec">
       <div class="dSecHead">История цены <span class="histCountV1">${history.length} ${plural(history.length, "запись", "записи", "записей")}${range ? ` · ${escapeHtml(range)}` : ""}</span></div>
       <div class="histListV1">${rows}</div>
@@ -812,7 +824,8 @@
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow);
     const priceLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая цена";
-    const price = money(priceVal);
+    // Канадские площадки торгуют в CAD
+    const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
     const photos = lot.photoCount || lot.images?.length || 1;
     return `<article class="dbCard">
       <div class="dbPhoto" data-lid="${escapeHtml(String(lot.id))}">
@@ -1112,7 +1125,7 @@
       const shipSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.road + calc.canadaFee;
       const clearSub = calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
       return calcSec("ship", "Калькулятор стоимости", shipSub, `
-        ${calcRow("Ставка", calc.bid)}
+        ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
@@ -1151,10 +1164,15 @@
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     const countdown = isSold ? "" : timeLeftLabel(lot.auctionDate);
+    // Канадские аукционы торгуют в CAD: показываем CAD как основную валюту
+    // ставки + пересчёт в USD по курсу TD; сам расчёт всегда в USD
+    const isCa = !!calc.canada;
+    const fmtBid = v => isCa ? moneyCad(v) : money(v);
+    const usdHint = v => isCa && v ? `<i class="calcBidUsdV1">≈ ${money(Math.round(v * calc.cadUsd))}</i>` : "";
     return `<aside class="lotCalcV2">
-      ${isSold && effectiveFinalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${money(effectiveFinalBid)}</b></div>` : ""}
+      ${isSold && effectiveFinalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${fmtBid(effectiveFinalBid)}</b></div>` : ""}
       <div class="calcTopV2">
-        <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${money(initialBid)}</b></div>
+        <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${fmtBid(initialBid)}</b>${usdHint(initialBid)}</div>
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>
       <div id="lotMarketLineV1" class="calcMarketV1" hidden></div>
@@ -1164,7 +1182,7 @@
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-500" aria-label="Уменьшить ставку">−</button>
-        <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="Ваша ставка, $">
+        <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
         <button type="button" data-bid-step="500" aria-label="Увеличить ставку">+</button>
       </div>
       <div class="calcOptsV2">
@@ -1355,7 +1373,7 @@
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
     return `<a class="simCardV1" href="${detailHref(lot)}">
-      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${Number(bid) > 0 ? `<span class="simBidV1">${money(bid)}</span>` : ""}</div>
+      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
       <h4>${escapeHtml(title)}</h4>
       <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
@@ -1530,7 +1548,7 @@
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>Смотреть видео</button>`) : ""}
             </section>
-            ${renderPriceHistory(lot.priceHistory)}
+            ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot))}
             <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
           </div>
           ${renderLotCalculator(lot)}

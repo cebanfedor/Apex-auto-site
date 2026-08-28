@@ -380,6 +380,7 @@
 .lotCalcV2 { position:static; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:18px; box-shadow:var(--aShadow); display:flex; flex-direction:column; gap:14px; }
 .calcTopV2 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
 .calcBidLabelV2 span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); }
+.calcBidUsdV1 { display:block; font-style:normal; font-size:13px; color:var(--aMuted); margin-top:2px; }
 .calcBidLabelV2 b { font-size:24px; font-weight:800; color:var(--aInk); }
 .calcEstV2 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aMuted); }
 .calcEstV2 .dbIco { width:15px; height:15px; }
