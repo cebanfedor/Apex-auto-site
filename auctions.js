@@ -1193,12 +1193,12 @@
         <b>${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
       </div>
-      ${est ? `<div class="calcEstV2 calcEstCenterV1">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}` : `
+` : `
       <div class="calcTopV2">
         <div class="calcBidLabelV2"><span>${bidLabel}</span><b>${fmtBid(initialBid)}</b>${usdHint(initialBid)}</div>
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>`}
-      <div id="lotMarketLineV1" class="calcMarketV1" hidden></div>
+      <div id="lotMarketLineV1" class="calcMarketV1"></div>
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>Осталось <b id="lotCalcCountdown">${countdown}</b> до начала торгов</span></div>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>` : ""}
       ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
@@ -1660,7 +1660,6 @@
       const marketLine = document.getElementById("lotMarketLineV1");
       if(marketLine){
         marketLine.innerHTML = `${dbIco("chart")}<span>Рынок: средняя ${money(avg)} · ${cnt} ${plural(cnt, "продажа", "продажи", "продаж")}</span>`;
-        marketLine.hidden = false;
       }
     }catch(e){ /* stats optional — ignore */ }
   }
