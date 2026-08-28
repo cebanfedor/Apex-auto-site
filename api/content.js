@@ -104,7 +104,7 @@ async function fetchRates() {
       cache_key: `eq.${RATES_CACHE_KEY}`,
       expires_at: `gt.${new Date().toISOString()}`,
       select: "data", limit: 1,
-    }), 3000, null);
+    }), 1500, null);
     if (cached?.[0]?.data) return cached[0].data;
   } catch {}
 
@@ -121,7 +121,7 @@ async function fetchRates() {
   // Кэшируем
   try {
     const expires = new Date(Date.now() + RATES_TTL * 1000).toISOString();
-    await sbTimeout(supabase.upsert("api_cache", { cache_key: RATES_CACHE_KEY, data: payload, expires_at: expires }, "cache_key"), 3000, null);
+    await sbTimeout(supabase.upsert("api_cache", { cache_key: RATES_CACHE_KEY, data: payload, expires_at: expires }, "cache_key"), 1500, null);
   } catch {}
 
   return payload;
@@ -149,8 +149,10 @@ module.exports = async function handler(request, response){
         return;
       }
 
-      const rows = await supabase.list("site_content", {select:"*", key:`eq.${CONTENT_KEY}`, limit:1});
-      sendJson(response, 200, {ok:true,content:rows[0]?.content || DEFAULT_CONTENT});
+      // Supabase недоступен → дефолтный контент, а не 5xx: сайт не должен
+      // зависеть от живости базы ради статичных текстов
+      const rows = await sbTimeout(supabase.list("site_content", {select:"*", key:`eq.${CONTENT_KEY}`, limit:1}), 1500, null);
+      sendJson(response, 200, {ok:true,content:rows?.[0]?.content || DEFAULT_CONTENT, ...(rows ? {} : {mode:"fallback"})});
       return;
     }
 
@@ -167,7 +169,8 @@ module.exports = async function handler(request, response){
 
     methodNotAllowed(response, ["GET","POST","PUT"]);
   }catch(error){
-    if(request.method === "GET" && /Missing SUPABASE/i.test(error.message || "")){
+    if(request.method === "GET"){
+      // Любая ошибка чтения → рабочий дефолт вместо 5xx
       sendJson(response, 200, {ok:true,content:DEFAULT_CONTENT,mode:"fallback"});
       return;
     }

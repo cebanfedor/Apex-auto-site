@@ -1426,6 +1426,12 @@ async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}){
 
 async function handleSyncLots(response){
   response.setHeader("cache-control", "no-store");
+  // База в отключке (circuit breaker) — не держим соединение впустую
+  if(!sbUp()){
+    response.statusCode = 200;
+    response.end(JSON.stringify({ok:false, skipped:"db down", continue:false}));
+    return;
+  }
   const started = Date.now();
   let state;
   try{
@@ -1617,7 +1623,7 @@ module.exports = async function handler(request, response){
       const paths = {
         damages:"/usa/damages",
         states:`/usa/states?country=${country}`,
-        colors:"/usa/colors",
+        // colors: у auctionsapi нет /usa/colors (404) — отдаём пустой список ниже
         titles:"/usa/titles",
         branches:`/usa/branches?domain_id=${domainId}`,
         cities:stateId ? `/usa/cities/${stateId}` : ""
