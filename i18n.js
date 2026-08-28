@@ -1916,18 +1916,21 @@
   }
 
   function translateAttrs(lang){
+    // Атрибуты ищем сначала в attrDict, затем в основном словаре —
+    // placeholder'ы вроде «Поиск: VIN…» лежат именно там
     const map = attrDict[lang] || {};
+    const main = dict[lang] || {};
     document.querySelectorAll("[placeholder]").forEach(el => {
       let src = el.__i18nPh;
       if(src === undefined){ src = el.getAttribute("placeholder") || ""; el.__i18nPh = src; }
-      const val = lang === "ru" ? src : (map[src] || src);
+      const val = lang === "ru" ? src : (map[src] || main[src] || src);
       if(el.getAttribute("placeholder") !== val) el.setAttribute("placeholder", val);
     });
     document.querySelectorAll("[aria-label]").forEach(el => {
       if(el.closest("[data-no-i18n]")) return;
       let src = el.__i18nAria;
       if(src === undefined){ src = el.getAttribute("aria-label") || ""; el.__i18nAria = src; }
-      const val = lang === "ru" ? src : (map[src] || src);
+      const val = lang === "ru" ? src : (map[src] || main[src] || src);
       if(el.getAttribute("aria-label") !== val) el.setAttribute("aria-label", val);
     });
     const titleMap = {

@@ -595,15 +595,22 @@ function detectVehicleTypeFromText(value){
   return "";
 }
 
+const US_STATE_ABBR = {alabama:"al",alaska:"ak",arizona:"az",arkansas:"ar",california:"ca",colorado:"co",connecticut:"ct",delaware:"de",florida:"fl",georgia:"ga",hawaii:"hi",idaho:"id",illinois:"il",indiana:"in",iowa:"ia",kansas:"ks",kentucky:"ky",louisiana:"la",maine:"me",maryland:"md",massachusetts:"ma",michigan:"mi",minnesota:"mn",mississippi:"ms",missouri:"mo",montana:"mt",nebraska:"ne",nevada:"nv","new hampshire":"nh","new jersey":"nj","new mexico":"nm","new york":"ny","north carolina":"nc","north dakota":"nd",ohio:"oh",oklahoma:"ok",oregon:"or",pennsylvania:"pa","rhode island":"ri","south carolina":"sc","south dakota":"sd",tennessee:"tn",texas:"tx",utah:"ut",vermont:"vt",virginia:"va",washington:"wa","west virginia":"wv",wisconsin:"wi",wyoming:"wy"};
+
 function detectLocationFromText(value){
-  const source = lotImportText(value).toLowerCase();
-  const locations = getFilteredLocations();
   const normalizePlace = (value) => String(value || "")
     .toLowerCase()
     .replace(/\b\d{5}\b/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  // Источник тоже нормализуем (пунктуация ломала матчи типа «salem, new hampshire»),
+  // а полные названия штатов дублируем аббревиатурой — база хранит «NH», а не «New Hampshire»
+  let source = normalizePlace(lotImportText(value));
+  for(const [full, abbr] of Object.entries(US_STATE_ABBR)){
+    if(source.includes(full)) source += ` ${abbr}`;
+  }
+  const locations = getFilteredLocations();
   const sourceWords = new Set(source.split(" ").filter(Boolean));
 
   let best = null;
@@ -623,6 +630,8 @@ function detectLocationFromText(value){
     if(displayName && source.includes(displayName)) score += 100;
     if(zip && sourceWords.has(zip)) score += 80;
     if(cityName && stateName && source.includes(`${cityName} ${stateName}`)) score += 55;
+    // Город и штат присутствуют, но не подряд («salem new hampshire nh»)
+    if(cityName && stateName && source.includes(cityName) && sourceWords.has(stateName)) score += 50;
     if(locationName && stateName && locationName.split(" ").some(word => word.length > 3 && sourceWords.has(word)) && sourceWords.has(stateName)) score += 45;
     if(cityName && cityName.length > 4 && sourceWords.has(cityName)) score += 8;
 

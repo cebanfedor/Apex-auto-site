@@ -203,7 +203,9 @@
     if(p.get("tab")){ state.tab = p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); }
     if(p.get("auction")){ state.auction = p.get("auction"); setActive("[data-auction-switch]", "data-auction-switch", state.auction); }
     if(p.get("sort") && $("#auctionSort")) $("#auctionSort").value = p.get("sort");
-    const smartPrefill = p.get("vin") || p.get("q") || p.get("name") || p.get("make");
+    // make из URL — это ID марки для фильтра, в текстовый поиск его нельзя:
+    // «?make=16» превращался в поиск name=16 и убивал выдачу
+    const smartPrefill = p.get("vin") || p.get("q") || p.get("name");
     if(smartPrefill && $("#auctionSmartSearch")) $("#auctionSmartSearch").value = smartPrefill;
     const form = $("#auctionFiltersForm");
     if(form) for(const [k, v] of p.entries()){
@@ -1029,7 +1031,10 @@
 
   async function loadLots({_retry = false, append = false} = {}){
     if(state.tab === "favorites"){ renderFavorites(); return; }
-    if(state.loading) return;
+    // Не блокируем повторный вызов, а перебиваем предыдущий: клик по сортировке
+    // или вкладке во время загрузки должен выигрывать, не игнорироваться,
+    // и устаревший ответ не должен перетирать свежий (race).
+    const reqId = state.loadSeq = (state.loadSeq || 0) + 1;
     state.loading = true;
     setMessage("");
     // Stale-while-revalidate: dim existing cards on page change, skeleton on first load
@@ -1038,6 +1043,7 @@
     const archived = state.tab === "archived";
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
+      if(reqId !== state.loadSeq) return; // уже запрошено что-то новее
       let nextItems = payload.items || [];
       // Discovery mode: 2020+, insurance sellers (if enough) — sorted by auction date
       if(discoveryMode){
@@ -1066,6 +1072,7 @@
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
+      if(reqId !== state.loadSeq) return; // устаревший запрос — молча выходим
       state.hasMore = false;
       if(isLocalHost()){
         state.items = demoLots();
@@ -1088,9 +1095,11 @@
         }
       }
     }finally{
-      state.loading = false;
-      $("#auctionCards").classList.remove("lotsRefreshingV1");
-      syncUrl();
+      if(reqId === state.loadSeq){
+        state.loading = false;
+        $("#auctionCards").classList.remove("lotsRefreshingV1");
+        syncUrl();
+      }
     }
   }
 
@@ -1793,10 +1802,27 @@
 
   window.addEventListener("popstate", () => { location.reload(); });
 
+  // Номер лота ищем напрямую через detail (search_query API по лотам не ищет):
+  // сначала Copart, затем IAAI.
+  async function openLotByNumber(lotNo){
+    $("#auctionCatalog").hidden = true;
+    $("#auctionDetail").hidden = false;
+    $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Ищем лот…</div>';
+    window.scrollTo(0, 0);
+    for(const auc of ["copart", "iaai"]){
+      try{
+        const payload = await api(`/api/auctions?action=detail&auction=${auc}&lot=${encodeURIComponent(lotNo)}`);
+        if(payload.lot && payload.lot.lot){ renderDetail(payload.lot); return; }
+      }catch(e){ /* пробуем следующий аукцион */ }
+    }
+    $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">Лот ${escapeHtml(lotNo)} не найден на Copart и IAAI.</div>`;
+  }
+
   function triggerSearch(){
     const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
     // A complete VIN → open the VIN report instead of filtering the list.
     if(smart.vin){ openVinReport(smart.vin); return; }
+    if(smart.lot){ openLotByNumber(smart.lot); return; }
     state.page = 1; state.displayPage = 1;
     loadLots();
   }
@@ -2335,6 +2361,14 @@
       const vinParam = new URLSearchParams(location.search).get("vin");
       if(vinParam && parseSmartSearch(vinParam).vin){
         openVinReport(vinParam);
+        return;
+      }
+      // Вход по ссылке /auctions?q=<номер лота> — сразу страница лота
+      const qParam = new URLSearchParams(location.search).get("q");
+      if(qParam && parseSmartSearch(qParam).lot){
+        const inp = $("#auctionSmartSearch");
+        if(inp) inp.value = qParam;
+        openLotByNumber(parseSmartSearch(qParam).lot);
         return;
       }
       restoreFromUrl();
