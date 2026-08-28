@@ -1207,7 +1207,7 @@
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
         <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
       </div>
-      ${(() => { const dw = deliveryWindow(lot); return `<div class="calcEtaV1">${dbIco("calendar")}<span>Доставка <b>${dw.days}</b> дней · выдача в Кишинёве: <b>${dw.label}</b></span></div>`; })()}
+      ${(() => { const dw = deliveryWindow(lot); return `<div class="calcEtaV1">${dbIco("calendar")}<span class="calcEtaLinesV1"><span>Доставка <b>${dw.days}</b> дней</span><span>Выдача в Кишинёве: <b>${dw.label}</b></span></span></div>`; })()}
       <div class="calcCtasV2">
         <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
         <button class="dbBtnGhost" type="button" data-copy-calc>Скопировать расчёт</button>
@@ -1219,10 +1219,12 @@
 
   // Ориентир выдачи: дата торгов (или сегодня, если торги прошли) + 6–12 недель доставки
   // Сроки доставки по портам (в днях), отсчёт от даты торгов лота:
-  // NJ/NY/GA — 60–75, TX — 60–90, Калифорния — 90–120, Канада — 60–75.
-  const PORT_DAYS = {nj:[60,75], savannah:[60,75], houston:[60,90], la:[90,120], canada:[60,75]};
+  // NJ/NY/GA — 60–75, TX — 60–90, Калифорния — 90–120,
+  // Канада — 50–60, Британская Колумбия (Ванкувер) — 70–90.
+  const PORT_DAYS = {nj:[60,75], savannah:[60,75], houston:[60,90], la:[90,120], canada:[50,60], canada_bc:[70,90]};
   function deliveryWindow(lot){
-    const port = findCanadaLocation(lot) ? "canada" : (findLotLocation(lot)?.autoPort || "");
+    const caLoc = findCanadaLocation(lot);
+    const port = caLoc ? (caLoc.zone === "bc" ? "canada_bc" : "canada") : (findLotLocation(lot)?.autoPort || "");
     const [d1, d2] = PORT_DAYS[port] || [60, 90];
     const t = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
     const base = Number.isFinite(t) ? t : Date.now(); // от даты торгов, даже прошедшей
