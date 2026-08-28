@@ -1501,8 +1501,16 @@
     const wasSoldBefore = histCount > 0 && pastHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const histStr = histCount === 0 ? "Ранее не продавалась" : wasSoldBefore ? "Был продан ранее" : `${histCount} ${plural(histCount, "запись", "записи", "записей")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
-    // текст «Страховая · Имя», без цветных плашек внутри таблицы
-    const isIns = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm/i.test(String(lot.seller || ""));
+    // текст «Страховая · Имя», без цветных плашек внутри таблицы.
+    // Первичен seller_type из API (mapfre и др. по имени не распознать).
+    const sellerTypeRaw = String(lot.sellerType || "").toLowerCase();
+    const isIns = /insurance/.test(sellerTypeRaw)
+      || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
+    const sellerTypeLabel = isIns ? "Страховая"
+      : /financ|credit|bank/.test(sellerTypeRaw) ? "Банк / кредитная"
+      : /fleet|lease|rental/.test(sellerTypeRaw) ? "Автопарк / лизинг"
+      : /dealer/.test(sellerTypeRaw) ? "Дилер"
+      : "Дилер / банк";
     const sellerName = tc(String(lot.seller || "")).replace(/\s*·\s*Страховая\s*$/i, "");
     $("#auctionCatalog").hidden = true;
     const detail = $("#auctionDetail");
@@ -1585,7 +1593,7 @@
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus)) : ""}
-              ${lot.seller ? dPlain("Тип продавца", isIns ? "Страховая" : "Дилер / банк") : ""}
+              ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
               ${(() => {
