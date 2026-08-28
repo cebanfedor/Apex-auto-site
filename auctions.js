@@ -851,7 +851,8 @@
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow);
-    const priceLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая цена";
+    const priceLabel = isSold && effectiveFinalBid ? "Финальная цена"
+      : (!Number(lot.currentBid) && Number(lot.buyNow) ? "Купить сейчас" : "Текущая цена");
     // Канадские площадки торгуют в CAD
     const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
     const photos = lot.photoCount || lot.images?.length || 1;
@@ -1197,6 +1198,11 @@
     const isCa = !!calc.canada;
     const fmtBid = v => isCa ? moneyCad(v) : money(v);
     const usdHint = v => isCa && v ? `<i class="calcBidUsdV1" id="bidUsdHintV1">≈ ${money(Math.round(v * calc.cadUsd))}</i>` : "";
+    // Buy Now лоты: фикс-цена выкупа показывается отдельной кнопкой,
+    // а «Текущая ставка» — только реальная ставка торгов
+    const buyNowPrice = !isSold ? Number(lot.buyNow || 0) : 0;
+    const currOnly = Number(lot.currentBid || 0);
+    const topBidValue = isSold ? initialBid : currOnly;
     return `<aside class="lotCalcV2">
       ${isSold && effectiveFinalBid ? `
       <div class="calcSoldCardV1">
@@ -1206,11 +1212,12 @@
       </div>
 ` : `
       <div class="calcTopV2">
-        <div class="calcBidLabelV2"><span>${bidLabel}</span><b>${fmtBid(initialBid)}</b>${usdHint(initialBid)}</div>
+        <div class="calcBidLabelV2"><span>${bidLabel}</span><b>${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1"></div>
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>Осталось <b id="lotCalcCountdown">${countdown}</b> до начала торгов</span></div>` : ""}
+      ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>Купить сейчас</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>` : ""}
       ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}

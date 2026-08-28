@@ -450,6 +450,11 @@
 .calcCountdownV1 .dbIco { flex:0 0 16px; width:16px; height:16px; color:var(--aRed); }
 .calcCountdownV1 b { color:var(--aInk); font-variant-numeric:tabular-nums; }
 .calcTopCtaV1 { width:100%; height:46px; }
+/* Кнопка «Купить сейчас» — фикс-цена выкупа, отличима от красной заявки */
+.calcBuyNowV1 { width:100%; height:46px; border:0; border-radius:11px; background:#14181f; color:#fff;
+  display:flex; align-items:center; justify-content:center; gap:10px; font-weight:700; font-size:13.5px; cursor:pointer; transition:.18s; }
+.calcBuyNowV1 b { font-size:15px; }
+.calcBuyNowV1:hover { filter:brightness(1.25); }
 .calcMarketV1 { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aMuted); min-height:18px; }
 .calcMarketV1 .dbIco { width:14px; height:14px; }
 .calcMarketV1[hidden] { display:none; }
