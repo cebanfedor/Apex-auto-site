@@ -933,9 +933,89 @@
             <b>${price}</b>
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
+          <div class="dbForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
         </div>
       </aside>
     </article>`;
+  }
+
+  // ---- Прогноз финальной ставки (вилка, как у DreamBid/BidCars) ----
+  // Считаем из нашей рыночной статистики проданных лотов: тот же год модели,
+  // при известном двигателе — точная строка по двигателю. Кеш на сессию.
+  const statsCache = {};
+  function statsRowsFor(makeId, modelId){
+    const key = `${makeId}:${modelId}`;
+    if(!statsCache[key]){
+      statsCache[key] = api(`/api/auctions?action=statistics&manufacturer_id=${encodeURIComponent(makeId)}&model_id=${encodeURIComponent(modelId)}`)
+        .then(r => Array.isArray(r.stats) ? r.stats : [])
+        .catch(() => { delete statsCache[key]; return []; });
+    }
+    return statsCache[key];
+  }
+  function forecastFromRows(rows, lot){
+    const yr = Number(lot.year) || 0;
+    let scope = yr ? rows.filter(x => Number(x.year) === yr) : rows;
+    if(!scope.length) return null;
+    const byEngine = lot.engineId ? scope.filter(x => x.engine && Number(x.engine.id) === Number(lot.engineId)) : [];
+    if(byEngine.length) scope = byEngine;
+    let sumW = 0, cnt = 0;
+    scope.forEach(x => {
+      const c = Number(x.lot_count) || 0, avg = Number(x.avg_final_bid) || 0;
+      if(avg > 0 && c > 0){ sumW += avg * c; cnt += c; }
+    });
+    if(cnt < 2) return null;
+    const avg = sumW / cnt;
+    return {lo:Math.round(avg * 0.8 / 50) * 50, hi:Math.round(avg * 1.15 / 50) * 50, cnt};
+  }
+  async function updateCardForecasts(){
+    const nodes = [...document.querySelectorAll("[data-forecast]")];
+    if(!nodes.length) return;
+    const byId = new Map(state.items.map(l => [String(l.id), l]));
+    const pairs = new Map(); // makeId:modelId → лоты
+    nodes.forEach(node => {
+      const lot = byId.get(node.dataset.forecast);
+      if(!lot || !lot.makeId || !lot.modelId) return;
+      const key = `${lot.makeId}:${lot.modelId}`;
+      if(!pairs.has(key)) pairs.set(key, []);
+      pairs.get(key).push({node, lot});
+    });
+    // Не бомбим API: максимум 12 разных моделей на страницу, по очереди пачками
+    const entries = [...pairs.entries()].slice(0, 12);
+    for(let i = 0; i < entries.length; i += 4){
+      await Promise.all(entries.slice(i, i + 4).map(async ([key, list]) => {
+        const [makeId, modelId] = key.split(":");
+        const rows = await statsRowsFor(makeId, modelId);
+        list.forEach(({node, lot}) => {
+          if(!document.body.contains(node)) return;
+          const f = forecastFromRows(rows, lot);
+          if(!f) return;
+          node.innerHTML = `${dbIco("chart")}<span>Прогноз ставки</span><b>${money(f.lo)} – ${money(f.hi)}</b>`;
+          node.hidden = false;
+        });
+      }));
+    }
+  }
+
+  // ---- Счётчики лотов на вкладках (как у BidCars) ----
+  let tabCountSeq = 0;
+  async function updateTabCounts(){
+    const seq = ++tabCountSeq;
+    const base = formParams();
+    base.delete("tab"); base.delete("page"); base.set("per_page", "1");
+    await Promise.all(["open","sold","buy_now","archived"].map(async tab => {
+      try{
+        const p = new URLSearchParams(base);
+        p.set("tab", tab);
+        const r = await api(`/api/auctions?action=search&${p}`);
+        if(seq !== tabCountSeq) return; // фильтры уже сменились
+        const btn = document.querySelector(`[data-tab="${tab}"]`);
+        if(!btn) return;
+        let badge = btn.querySelector(".tabCountV1");
+        if(!badge){ badge = document.createElement("span"); badge.className = "tabCountV1"; btn.appendChild(badge); }
+        const total = Number(r.total) || 0;
+        badge.textContent = total ? (total > 999 ? `${Math.round(total / 1000)}k` : String(total)) : "";
+      }catch(e){ /* счётчики — украшение */ }
+    }));
   }
 
   function matchSale(lot, sale){
@@ -1111,6 +1191,8 @@
         : `Показано ${state.items.length} лотов`;
       renderCards();
       updateGenChips();
+      updateCardForecasts();
+      if(!append) updateTabCounts();
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
@@ -1268,7 +1350,7 @@
       </div>
 ` : `
       <div class="calcTopV2">
-        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${bidLabel}</span><b>${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${bidLabel}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1"></div>
@@ -1698,6 +1780,43 @@
     loadStats(lot);
     fetchLiveRates();
     startLotCountdown(lot);
+    startLiveBidWatch(lot);
+  }
+
+  // Live-обновление ставки: пока идут торги (±3 часа вокруг даты аукциона),
+  // раз в 2 минуты тянем свежую ставку мимо кешей (fresh=ts) и обновляем блок.
+  let liveBidTimer = null;
+  function startLiveBidWatch(lot){
+    if(liveBidTimer){ clearInterval(liveBidTimer); liveBidTimer = null; }
+    const t = Date.parse(lot.auctionDate || "");
+    const {finalBid} = lotSaleState(lot);
+    if(!Number.isFinite(t) || finalBid > 0) return;
+    if(Math.abs(t - Date.now()) > 3 * 3600e3) return;
+    liveBidTimer = setInterval(async () => {
+      if(document.hidden) return;
+      const cur = parseSlug(currentSlug());
+      if(!cur || String(cur.lot) !== String(lot.lot)){ clearInterval(liveBidTimer); liveBidTimer = null; return; }
+      try{
+        const p = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&fresh=${Date.now()}`);
+        const nl = p.lot;
+        if(!nl) return;
+        const bid = Number(nl.currentBid) || 0;
+        const prev = Number(state.selectedLot?.currentBid) || 0;
+        if(bid && bid !== prev){
+          if(state.selectedLot) state.selectedLot.currentBid = bid;
+          const el = document.getElementById("liveBidValueV1");
+          if(el){
+            const isCa = !!findCanadaLocation(lot);
+            el.textContent = isCa ? moneyCad(bid) : money(bid);
+            el.classList.remove("bidPulseV1");
+            void el.offsetWidth; // перезапуск анимации
+            el.classList.add("bidPulseV1");
+          }
+        }
+        const {finalBid: fb} = lotSaleState(nl);
+        if(fb > 0){ clearInterval(liveBidTimer); liveBidTimer = null; }
+      }catch(e){ /* live-обновление — не критично */ }
+    }, 120e3);
   }
 
   // Живой отсчёт до торгов в сайдбаре (обновление раз в 30 сек)

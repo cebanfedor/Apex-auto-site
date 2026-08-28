@@ -724,3 +724,16 @@ body.leadModalOpenV1 { overflow:hidden; }
 .genChipV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); font-weight:500; }
 .genChipV1.isActiveGenV1 { background:#14181f; border-color:#14181f; color:#fff; }
 .genChipV1.isActiveGenV1 i { color:rgba(255,255,255,.65); }
+
+/* Прогноз финальной ставки в карточке (вилка из архива продаж) */
+.dbForecastV1 { display:flex; align-items:center; gap:6px; margin-top:7px; font-size:11px; color:var(--aMuted); }
+.dbForecastV1 .dbIco { width:13px; height:13px; flex:none; color:#1b9c5b; }
+.dbForecastV1 b { font-size:11.5px; color:var(--aInk); white-space:nowrap; }
+
+/* Счётчики лотов на вкладках */
+.tabCountV1 { display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; background:var(--aLine2); font-size:10.5px; font-weight:700; color:var(--aMuted); }
+.auctionTabsV1 button.active .tabCountV1 { background:rgba(255,255,255,.18); color:#fff; }
+
+/* Обновление live-ставки */
+@keyframes bidPulseV1 { 0% { background:#eafaf0; } 100% { background:transparent; } }
+.bidPulseV1 { animation:bidPulseV1 1.6s ease-out; border-radius:6px; }

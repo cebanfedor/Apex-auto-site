@@ -1556,9 +1556,14 @@ module.exports = async function handler(request, response){
     return Number.isFinite(t) && t < Date.now() && !done;
   };
 
+  // Live-поллинг ставки: fresh=<ts> обходит чтение кешей (CDN обходится самим
+  // уникальным ts в URL), но результат пишется в канонический ключ кеша.
+  const freshMode = !!query.get("fresh");
+  if(freshMode) query.delete("fresh");
+
   const key = cacheKey(action, query);
   const cached = getCached(key);
-  if(cached && !detailCacheStale(cached)){
+  if(cached && !freshMode && !detailCacheStale(cached)){
     sendJson(response, 200, {...cached, cached:true});
     return;
   }
@@ -1566,7 +1571,7 @@ module.exports = async function handler(request, response){
   // Supabase persistent cache — shared across all serverless instances.
   // Checked only for actions that consume the auctionsapi.com quota.
   const dbCacheActions = new Set(["search","detail","vin","archived","manufacturers","models","generations","usadict","statistics"]);
-  if(dbCacheActions.has(action)){
+  if(dbCacheActions.has(action) && !freshMode){
     const dbHit = await getDbCache(key);
     if(dbHit && !detailCacheStale(dbHit)){
       setCached(key, dbHit);
