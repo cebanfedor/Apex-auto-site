@@ -1174,11 +1174,17 @@
     const fmtBid = v => isCa ? moneyCad(v) : money(v);
     const usdHint = v => isCa && v ? `<i class="calcBidUsdV1">≈ ${money(Math.round(v * calc.cadUsd))}</i>` : "";
     return `<aside class="lotCalcV2">
-      ${isSold && effectiveFinalBid ? `<div class="calcSoldBannerV2">Продана · Финальная ставка <b>${fmtBid(effectiveFinalBid)}</b></div>` : ""}
-      <div class="calcTopV2">
-        <div class="calcBidLabelV2${isSold ? " calcSoldV2" : ""}"><span>${bidLabel}</span><b>${fmtBid(initialBid)}</b>${usdHint(initialBid)}</div>
-        ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
+      ${isSold && effectiveFinalBid ? `
+      <div class="calcSoldCardV1">
+        <span>Продано</span>
+        <b>${fmtBid(effectiveFinalBid)}</b>
+        ${isCa ? `<i>≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
       </div>
+      ${est ? `<div class="calcEstV2 calcEstCenterV1">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}` : `
+      <div class="calcTopV2">
+        <div class="calcBidLabelV2"><span>${bidLabel}</span><b>${fmtBid(initialBid)}</b>${usdHint(initialBid)}</div>
+        ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
+      </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1" hidden></div>
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>Осталось <b id="lotCalcCountdown">${countdown}</b> до начала торгов</span></div>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>` : ""}
