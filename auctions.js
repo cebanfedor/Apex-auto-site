@@ -558,8 +558,10 @@
     const ip = kind === "pickup" || kind === "vanLarge";
     const green = ["hybrid","phev","electric"].includes(fuel);
     const zone = caLoc.zone || "east";
-    const dispatch = zone === "bc" ? 1700 : Math.round((ip ? caLoc.dispatchPickupCad : caLoc.dispatchSuvCad) * 0.90);
-    const bankFee = zone === "bc" || !dispatch ? 0 : 100;
+    const offsiteFee = options.offsite ? 100 : 0; // Offsite / Sublot — как в полном калькуляторе
+    const dispatchBase = zone === "bc" ? 1700 : Math.round((ip ? caLoc.dispatchPickupCad : caLoc.dispatchSuvCad) * 0.90);
+    const dispatch = dispatchBase ? dispatchBase + offsiteFee : 0;
+    const bankFee = zone === "bc" || !dispatchBase ? 0 : 100;
     const keeper = 300;
     const ocean = (ip ? 1170 : 950) + (green ? 150 : 0);
     const road = kind === "crossover" ? 1750 : (kind === "sedan" || kind === "moto" || kind === "atv") ? 1600 : 1900;
@@ -1256,6 +1258,7 @@
         </div>
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспортные документы</span></label>
+          <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
           <div class="calcOptV2 calcOptFixedV1">${dbIco("check")}<span>Страховка 1%</span><i>включена</i></div>
         </div>
       </div>
@@ -1307,6 +1310,7 @@
       bid:Number($("#lotBidInput").value || 0),
       insurance:true, // страховка обязательна — в стоимости всегда
       exportDocs:$("#lotCalcExportDocs")?.checked,
+      offsite:$("#lotCalcOffsite")?.checked,
       vehicleType:veh, fuel, engineLiters, usdMdl, eurMdl
     });
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
