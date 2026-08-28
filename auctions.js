@@ -2117,6 +2117,11 @@
     });
     $("#resetFiltersBtn").addEventListener("click", () => {
       $("#auctionFiltersForm").reset();
+      // Скрытые ID комбо-фильтров form.reset() не чистит — фильтр «залипал»
+      ["filterMakeIdV2","filterModelIdV2","filterGenIdV2","filterMakeV2","filterModelV2","filterGenV2"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = "";
+      });
       ["#auctionSmartSearch"].forEach(selector => {
         const input = $(selector);
         if(input) input.value = "";
