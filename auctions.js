@@ -83,7 +83,15 @@
     "bio chemical":"Био / химия","biohazard chemical":"Био / химия",
     "partial repair":"Частичный ремонт","repossession":"Изъятие (repo)","storm damage":"Шторм",
     "rejected repair":"Отказ от ремонта","missing/altered vin":"Проблема с VIN","replaced vin":"Заменён VIN",
-    "unknown":"Не указано","none":"Без повреждений"
+    "unknown":"Не указано","none":"Без повреждений",
+    "front":"Спереди","rear":"Сзади","left":"Слева","right":"Справа",
+    "normal wear & tear":"Естественный износ","normal wear and tear":"Естественный износ",
+    "wear & tear":"Естественный износ","strip":"Разукомплектован","stripping":"Разукомплектован",
+    "top":"Крыша","top roof":"Крыша","water flood":"Затопление","fresh water":"Затопление",
+    "salt water":"Затопление (солёная вода)","total burn":"Полностью сгорел","burn engine":"Огонь · двигатель",
+    "burn interior":"Огонь · салон","cargo":"Грузовой отсек","chemical":"Химическое",
+    "front & rear":"Спереди и сзади","left & right":"Обе стороны","damage history":"Была бита ранее",
+    "mechanical damage":"Механическое","engine burn":"Огонь · двигатель","undercarriage damage":"Днище / подвеска"
   };
   const RU_FUEL = {
     gasoline:"Бензин",gas:"Бензин",petrol:"Бензин",diesel:"Дизель",hybrid:"Гибрид",
@@ -166,7 +174,7 @@
   function favSave(map){ try{ localStorage.setItem(FAV_KEY, JSON.stringify(map)); }catch(e){} }
   function favHas(id){ return id != null && !!favLoad()[id]; }
   function favCompact(lot){
-    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","keys","estimatedRetailValue","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory"];
+    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","sellerType","horsePower","generationName","keys","estimatedRetailValue","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory"];
     const o = {}; keep.forEach(k => { if(lot[k] !== undefined) o[k] = lot[k]; }); return o;
   }
   function favToggle(lot){
@@ -670,6 +678,8 @@
     if(!text) return "";
     const num = Number(String(text).replace(/[^\d.]/g, ""));
     if(!num) return escapeHtml(text);
+    // «1 mi» — заглушка аукциона, а не реальный пробег
+    if(num <= 5) return "Пробег не указан";
     const fmt = v => Math.round(v).toLocaleString("ru-RU");
     if(/mi/i.test(text)) return `${fmt(num)} миль ≈ ${fmt(num * 1.609)} км`;
     return `${fmt(num)} км`;
@@ -854,7 +864,8 @@
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
-    const engineLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "";
+    const engineLine = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow);
@@ -955,6 +966,34 @@
       <aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside>
     </article>`;
     return one.repeat(n);
+  }
+
+  // Чипы поколений над выдачей при выбранной модели — как у DreamBid:
+  // один клик вместо похода в фильтры. Повторный клик по активному чипу снимает фильтр.
+  const genChipsCache = {};
+  async function updateGenChips(){
+    let box = document.getElementById("genChipsV1");
+    const modelId = document.getElementById("filterModelIdV2")?.value || "";
+    if(!modelId){ if(box) box.remove(); return; }
+    if(!box){
+      box = document.createElement("div");
+      box.id = "genChipsV1";
+      box.className = "genChipsV1";
+      const cards = document.getElementById("auctionCards");
+      if(!cards) return;
+      cards.parentNode.insertBefore(box, cards);
+    }
+    try{
+      if(!genChipsCache[modelId]){
+        const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(modelId)}`);
+        genChipsCache[modelId] = r.items || [];
+      }
+      const gens = genChipsCache[modelId];
+      if(gens.length < 2){ box.remove(); return; }
+      if((document.getElementById("filterModelIdV2")?.value || "") !== modelId) return; // модель сменили, пока грузили
+      const activeGen = document.getElementById("filterGenIdV2")?.value || "";
+      box.innerHTML = gens.map(g => `<button type="button" class="genChipV1${String(g.id) === activeGen ? " isActiveGenV1" : ""}" data-gen-id="${escapeHtml(String(g.id))}" data-gen-name="${escapeHtml(g.name || "")}">${escapeHtml(g.name || "")}${g.qty ? `<i>${escapeHtml(String(g.qty))}</i>` : ""}</button>`).join("");
+    }catch(e){ /* чипы — необязательный блок */ }
   }
 
   function renderCards(){
@@ -1069,6 +1108,7 @@
         ? (discoveryMode ? "лотов доступно на аукционах" : archived ? "лотов в архиве" : "лотов найдено")
         : `Показано ${state.items.length} лотов`;
       renderCards();
+      updateGenChips();
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
@@ -1438,7 +1478,7 @@
 
   function renderSimilarCard(lot){
     const title = lotTitle(lot);
-    const specLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    const specLine = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "", upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
@@ -1504,7 +1544,7 @@
     // Тип топлива — сразу в спек-строке, чтобы бензин/дизель/гибрид был виден без скролла
     const fuelRu = lot.fuel ? ruEnum(RU_FUEL, lot.fuel) : "";
     const driveLine = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
-    const specLine  = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    const specLine  = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "", fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
     // History summary for Главное section
     // Запись текущих торгов (h.current) — не история: впервые выставленная
@@ -1735,6 +1775,18 @@
       }
     }catch(e){ /* фоновое обновление — не критично */ }
   }
+
+  document.addEventListener("click", event => {
+    const chip = event.target.closest(".genChipV1");
+    if(!chip) return;
+    const genId = document.getElementById("filterGenIdV2");
+    const genInput = document.getElementById("filterGenV2");
+    const wasActive = chip.classList.contains("isActiveGenV1");
+    if(genId) genId.value = wasActive ? "" : chip.dataset.genId;
+    if(genInput) genInput.value = wasActive ? "" : chip.dataset.genName;
+    state.page = 1; state.displayPage = 1;
+    loadLots();
+  });
 
   // Переход из каталога на лот без перезагрузки: данные карточки уже есть
   // в state — рендерим мгновенно, полную версию дотягиваем в фоне.

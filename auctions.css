@@ -716,3 +716,11 @@ body.leadModalOpenV1 { overflow:hidden; }
   .calcPairRowV1 .calcOptV2 { font-size:11.5px; gap:6px; }
   .calcPairRowV1 .calcOptV2 i { display:none; }
 }
+
+/* Чипы поколений над выдачей (как у DreamBid) */
+.genChipsV1 { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+.genChipV1 { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border:1px solid var(--aLine2); border-radius:999px; background:var(--aCard); font-size:12.5px; font-weight:600; color:var(--aInk); cursor:pointer; transition:border-color .15s, background .15s; }
+.genChipV1:hover { border-color:var(--aInk); }
+.genChipV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); font-weight:500; }
+.genChipV1.isActiveGenV1 { background:#14181f; border-color:#14181f; color:#fff; }
+.genChipV1.isActiveGenV1 i { color:rgba(255,255,255,.65); }

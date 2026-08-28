@@ -55,7 +55,7 @@ async function notifyTelegram(data){
 
 // CACHE_VER бампается при изменении нормализации/сортировки: кеш хранит уже
 // обработанные ответы, и без этого старая выдача живёт до 6 часов.
-const CACHE_VER = "n2";
+const CACHE_VER = "n3";
 function cacheKey(action, params){
   return `${CACHE_VER}:${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
@@ -413,6 +413,9 @@ function normalizeLot(source, fallbackAuction = "copart"){
     saleType:safeName(lot?.loss_type || lot?.casualty_type || lot?.damage_type || item?.loss_type || item?.casualty_type),
     fuel:safeName(item?.fuel || lot?.fuel),
     engine:safeName(item?.engine || lot?.engine),
+    // Лошадиные силы зашиты в имя двигателя ("2.0l i-4 di, vvt, turbo, 255hp")
+    horsePower:(() => { const m = safeName(item?.engine || lot?.engine).match(/(\d{2,4})\s*hp\b/i); return m ? Number(m[1]) : 0; })(),
+    generationName:safeName(item?.generation),
     transmission:safeName(item?.transmission || lot?.transmission),
     drive:driveLabel(item?.drive_wheel || lot?.drive_wheel || item?.drive || item?.drive_type || lot?.drive),
     body:safeName(item?.body_type || item?.vehicle_type || lot?.body_type),
@@ -1019,7 +1022,10 @@ function lotQualityScore(l, todayStart){
   const dmg = String(l.damage || "").toLowerCase();
   if(/burn|fire|water|flood|roll ?over/.test(dmg)) s -= 20;
   else if(/minor|dent|scratch|normal wear|hail/.test(dmg)) s += 8;
-  if(/run/.test(String(l.condition || "").toLowerCase())) s += 6;
+  const cond = String(l.condition || "").toLowerCase();
+  if(/run/.test(cond)) s += 6;
+  else if(/engine.?start/.test(cond)) s += 2;
+  else if(/not.?run|stationar|dismantl/.test(cond)) s -= 12;
   if(!l.photoCount) s -= 10;
   // Спецтехника/лодки/прицепы идут без полного VIN — в рекомендациях не нужны
   if(String(l.vin || "").length < 17) s -= 25;
