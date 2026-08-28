@@ -913,7 +913,10 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
-      return normalizeLot(payload, auction);
+      const normalized = normalizeLot(payload, auction);
+      // Отладка нормализации: ?raw=1 отдаёт и сырой ответ auctionsapi
+      if(query.get("raw") === "1") normalized.__raw = payload;
+      return normalized;
     }catch(error){
       lastError = error;
     }
