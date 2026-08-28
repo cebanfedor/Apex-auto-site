@@ -111,11 +111,12 @@
           <div class="sortDropV1" id="sortDropV1">
             <button class="sortDropTrigV1" id="sortDropTrigV1" type="button">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M4 7h6M6 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <span id="sortDropLabelV1">Скоро торги</span>
+              <span id="sortDropLabelV1">Рекомендованные</span>
               <svg class="sortDropChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <ul class="sortDropMenuV1" id="sortDropMenuV1" hidden>
-              <li class="sortOptV1 sortOptActiveV1" data-sort="soon">Скоро торги</li>
+              <li class="sortOptV1 sortOptActiveV1" data-sort="smart">Рекомендованные</li>
+              <li class="sortOptV1" data-sort="soon">Скоро торги</li>
               <li class="sortOptV1" data-sort="date_asc">Дата аукциона 1-9</li>
               <li class="sortOptV1" data-sort="date_desc">Дата аукциона 9-1</li>
               <li class="sortOptV1" data-sort="year_asc">Год 1-9</li>
@@ -125,7 +126,7 @@
               <li class="sortOptV1" data-sort="buy_now_asc">Цена «Купить сейчас» 1-9</li>
               <li class="sortOptV1" data-sort="buy_now_desc">Цена «Купить сейчас» 9-1</li>
             </ul>
-            <input type="hidden" id="auctionSort" value="soon">
+            <input type="hidden" id="auctionSort" value="smart">
           </div>
           <button id="openFiltersBtn" class="filterDrawerBtnV1" type="button">Фильтры</button>
         </div>
@@ -394,9 +395,9 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v2" defer></script>
   <script src="/car-data.js?v=cars-v4" defer></script>
-  <script src="/auctions.js?v=auctions-v92" defer></script>
+  <script src="/auctions.js?v=auctions-v93" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
-  <script src="/i18n.js?v=multilang-v415" defer></script>
+  <script src="/i18n.js?v=multilang-v416" defer></script>
 
 <!-- Exit-intent popup -->
 <div id="exitPopupV401" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);">

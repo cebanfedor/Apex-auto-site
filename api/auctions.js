@@ -980,8 +980,50 @@ async function handleDebug(query, response){
   }
 }
 
+// «Рекомендованные» (дефолт каталога): качественные лоты наверх — страховые
+// и банковские продавцы, чистая история, ключи, живые повреждения и документы.
+// Перекупы-дилеры с многократными перепостановками уходят вниз.
+function lotQualityScore(l, todayStart){
+  let s = 0;
+  const st = String(l.sellerType || "").toLowerCase();
+  const seller = String(l.seller || "");
+  if(/insurance/.test(st) || /Страховая/.test(seller)) s += 30;
+  else if(/financ|credit|bank/.test(st)) s += 22;
+  else if(/fleet|lease|rental/.test(st)) s += 18;
+  else if(seller) s += 6; // известный продавец лучше «Неизвестен»
+  const hist = (l.priceHistory || []).filter(h => !h.current);
+  if(!hist.length) s += 14;
+  else{
+    if(hist.some(h => { const t = String(h.status || "").toLowerCase(); return t.includes("sold") && !t.includes("not"); })) s -= 25;
+    s -= Math.min(12, hist.length * 3);
+  }
+  if(l.keys === "Да") s += 8;
+  else if(l.keys === "Нет") s -= 6;
+  const doc = String(l.document || "").toLowerCase();
+  if(/bill of sale|acq|parts only|junk|non.?repair|destruction/.test(doc)) s -= 15;
+  const dmg = String(l.damage || "").toLowerCase();
+  if(/burn|fire|water|flood|roll ?over/.test(dmg)) s -= 20;
+  else if(/minor|dent|scratch|normal wear|hail/.test(dmg)) s += 8;
+  if(/run/.test(String(l.condition || "").toLowerCase())) s += 6;
+  if(!l.photoCount) s -= 10;
+  // Прошедшие торги без Buy Now в рекомендациях не нужны
+  const t = l.auctionDate ? new Date(l.auctionDate).getTime() : NaN;
+  if(!Number.isNaN(t) && t < todayStart && !(l.buyNow > 0)) s -= 60;
+  return s;
+}
+
 function sortItems(items, sort){
   const list = [...items];
+  if(sort === "smart"){
+    const soon = sortItems(list, "soon");
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    const todayStart = d.getTime();
+    // Стабильно поверх «скоро торги»: внутри равного балла — ближайшие первыми
+    return soon
+      .map((l, i) => ({l, i, s:lotQualityScore(l, todayStart)}))
+      .sort((a, b) => (b.s - a.s) || (a.i - b.i))
+      .map(x => x.l);
+  }
   if(sort === "date_asc")     return list.sort((a, b) => (a.auctionDate || "") < (b.auctionDate || "") ? -1 : 1);
   if(sort === "date_desc")    return list.sort((a, b) => (a.auctionDate || "") > (b.auctionDate || "") ? -1 : 1);
   if(sort === "year_asc")     return list.sort((a, b) => (a.year || 0) - (b.year || 0));

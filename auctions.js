@@ -190,7 +190,7 @@
     if(parseSlug(currentSlug())) return; // on a detail page — leave its path
     const p = formParams();
     p.delete("page"); p.delete("per_page");
-    if(p.get("sort") === "soon") p.delete("sort");
+    if(p.get("sort") === "smart") p.delete("sort"); // «Рекомендованные» — дефолт
     if(p.get("auction") === "all") p.delete("auction");
     if(p.get("tab") === "all") p.delete("tab");
     const qs = p.toString();
