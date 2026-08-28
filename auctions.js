@@ -2129,6 +2129,9 @@
     document.getElementById("paginationV1")?.addEventListener("click", e => {
       if(e.target.id === "pgLoadMoreBtn"){
         if(state.loading || !state.hasMore) return;
+        // Мгновенная обратная связь: подгрузка может занять несколько секунд
+        e.target.disabled = true;
+        e.target.textContent = "Загружаем…";
         state.page++;
         loadLots({append: true});
         return;

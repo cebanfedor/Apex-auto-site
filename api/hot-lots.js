@@ -77,18 +77,21 @@ async function fetchLot(lot, auction){
 module.exports = async function handler(req, res){
   if(req.method !== "GET") return methodNotAllowed(res);
 
-  let vehicles;
+  // База может лежать — не ждём дольше 2с и отвечаем пустым списком (200),
+  // чтобы страница «Горячие» показывала статический контент, а не ошибку
+  let vehicles = null;
   try {
-    vehicles = await supabase.list("vehicles", {
-      select: "id,lot,auction,auction_url,year,make,model,price,photos,description,fuel,damage,mileage",
-      status: "eq.Горячий лот",
-      order: "created_at.desc",
-      limit: "24",
-    });
-  } catch(e) {
-    return sendJson(res, e.status || 500, {ok: false, error: e.message});
-  }
-  if(!vehicles?.length) return sendJson(res, 200, {items: []});
+    vehicles = await Promise.race([
+      supabase.list("vehicles", {
+        select: "id,lot,auction,auction_url,year,make,model,price,photos,description,fuel,damage,mileage",
+        status: "eq.Горячий лот",
+        order: "created_at.desc",
+        limit: "24",
+      }).catch(() => null),
+      new Promise(resolve => setTimeout(() => resolve(null), 2000)),
+    ]);
+  } catch(e) { vehicles = null; }
+  if(!vehicles?.length) return sendJson(res, 200, {items: [], ...(vehicles ? {} : {mode:"fallback"})});
 
   const items = await Promise.all(vehicles.map(async v => {
     const auctionNorm = String(v.auction || "").toLowerCase().includes("iaai") ? "iaai" : "copart";
