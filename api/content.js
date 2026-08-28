@@ -19,7 +19,7 @@ const DEFAULT_CONTENT = {
   ]
 };
 
-const RATES_CACHE_KEY = "mdl_sell_rates_v2";
+const RATES_CACHE_KEY = "mdl_sell_rates_v3";
 const RATES_TTL = 3600;
 // Типовая маржа молдавских банков: курс продажи ≈ курс НБМ + 1.2%
 const BANK_SELL_MARGIN = 1.012;
@@ -57,8 +57,10 @@ async function fetchCadUsdRate() {
     });
     const data = await r.json();
     const usd = (data?.conversionTableFXCAL || []).find((row) => row.currencyCode === "USD");
-    const pay = Number(usd?.currencyRatePay); // сколько CAD стоит 1 USD
-    if (pay > 0) return +(1 / pay).toFixed(4);
+    // Направление «отправляем USD → получаем CAD»: за 1 USD дают currencyRateRec CAD
+    // (у TD: 39,000 CAD = 29,008 USD при Rec 1.3444 → CAD→USD 0.7438)
+    const rec = Number(usd?.currencyRateRec);
+    if (rec > 0) return +(1 / rec).toFixed(4);
   } catch {}
   try {
     const r = await fetch("https://api.frankfurter.app/latest?from=CAD&to=USD");
