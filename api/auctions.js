@@ -349,9 +349,19 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // Запись с датой текущих торгов — это финал ЭТОГО аукциона, а не прошлая
   // продажа: машина, впервые вышедшая на торги, не должна выглядеть как
   // «продавалась ранее». Помечаем — фронт не считает её историей.
+  // Пока аукцион не завершён (final_bid нет), API вешает на prices-записи
+  // технические таймстампы постановки/переноса лота — они попадают на соседние
+  // дни (у 45050740: снапшот «not_sold $10,300» за 27 авг при торгах 28-го).
+  // DreamBid такие относит к текущему циклу — записи в пределах ±3 суток
+  // от даты торгов у незавершённого лота тоже считаем текущими.
   const currentSaleDay = String(lot?.sale_date || lot?.auction_date || "").slice(0, 10);
   if(currentSaleDay){
-    priceHistory.forEach(p => { if(String(p.date).slice(0, 10) === currentSaleDay) p.current = true; });
+    priceHistory.forEach(p => {
+      if(String(p.date).slice(0, 10) === currentSaleDay){ p.current = true; return; }
+      const ts = Date.parse(p.date);
+      if(!finalBid && Number.isFinite(ts) && Number.isFinite(saleTs)
+        && Math.abs(ts - saleTs) < 3 * 864e5) p.current = true;
+    });
   }
   // For on-approval / sold lots where final_bid isn't explicitly set, infer from price history
   const resolvedFinalBid = finalBid || (!currentBid && priceHistory.length ? (priceHistory[0].bid || 0) : 0);
