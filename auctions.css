@@ -695,9 +695,11 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionSearchRowV2 input { flex:1 1 100%; min-width:0; }
   .auctionSearchRowV2 #auctionSearchBtn { flex:1 1 0; }
   .auctionSearchRowV2 .filterDrawerBtnV1 { flex:1 1 0; }
-  /* «Поделиться» — справа от крошек, не отдельной пустой строкой */
-  .auctionsShellV1 { position:relative; }
-  .shareChipV3 { position:absolute; top:16px; right:16px; }
+  /* «Поделиться» — компактная иконка справа от заголовка, без пустой строки */
+  .auctionsHeadV2 { display:flex; flex-wrap:nowrap; align-items:flex-start; gap:10px; }
+  .auctionsHeadLeftV2 { min-width:0; flex:1; }
+  .shareChipV3 { flex:none; width:38px; height:38px; padding:0; justify-content:center; }
+  .shareChipV3 span { display:none; }
   /* Инфо-баннер компактнее */
   .auctionInfoV3 { padding:10px 12px; }
   .auctionInfoV3 p { font-size:12px; line-height:1.45; }
