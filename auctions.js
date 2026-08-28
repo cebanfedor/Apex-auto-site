@@ -502,7 +502,9 @@
       const m = raw.match(/,\s*([a-z]{2})\b\s*$/);
       if(m && CA_PROV_CODES.includes(m[1].toUpperCase())) prov = m[1].toUpperCase();
     }
-    if(!prov) return null; // не канадский лот
+    // API часто пишет просто «moncton, Canada» — без провинции
+    const isCanadaWord = /,\s*canada\s*$/.test(raw);
+    if(!prov && !isCanadaWord) return null; // не канадский лот
     let city = (raw.split(",")[0] || "").replace(/[^a-z ]/g, "").trim();
     // Города-сателлиты канадских ярдов → имя площадки в базе
     const CA_CITY_ALIASES = {"stoney creek":"hamilton", "laval":"montreal", "saint eustache":"eustache", "north york":"toronto", "innisfil":"toronto"};
@@ -510,9 +512,11 @@
     const auc = String(lot.auction || "").toLowerCase().includes("iaai") ? "iaai" : "copart";
     const byA = locs.filter(l => String(l.auction || "").toLowerCase() === auc);
     let hit = byA.find(l => city && String(l.name).toLowerCase().includes(city));
-    if(!hit) hit = byA.filter(l => l.province === prov).sort((a, b) => (a.dispatchSuvCad || 0) - (b.dispatchSuvCad || 0))[0];
-    if(!hit) hit = (window.CANADA_LOCATIONS || []).find(l => l.province === prov);
-    return hit ? Object.assign({}, hit) : {name:`Канада (${prov})`, province:prov, zone:prov === "BC" ? "bc" : "east", dispatchSuvCad:0, dispatchPickupCad:0};
+    if(!hit && city) hit = locs.find(l => String(l.name).toLowerCase().includes(city)); // город из другой сети — тарифы сравнимы
+    if(!hit && prov) hit = byA.filter(l => l.province === prov).sort((a, b) => (a.dispatchSuvCad || 0) - (b.dispatchSuvCad || 0))[0];
+    if(!hit && prov) hit = locs.find(l => l.province === prov);
+    if(hit) return Object.assign({}, hit);
+    return {name:prov ? `Канада (${prov})` : "Канада", province:prov, zone:prov === "BC" ? "bc" : "east", dispatchSuvCad:0, dispatchPickupCad:0};
   }
 
   function calcCanadaLotTotal(lot, options, caLoc){
