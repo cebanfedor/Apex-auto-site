@@ -688,3 +688,27 @@ body.leadModalOpenV1 { overflow:hidden; }
   background: var(--aRed) !important; color: #fff !important; box-shadow: 0 8px 22px rgba(237,0,18,.25) !important;
 }
 .auctionTabsV1 button.active, .auctionSwitchV1 button.active { color: #fff !important; }
+
+/* ---- Мобильная полировка каталога и страницы лота ---- */
+@media (max-width:640px) {
+  /* Каталог: поиск — инпут на всю ширину, кнопки под ним в ряд */
+  .auctionSearchRowV2 input { flex:1 1 100%; min-width:0; }
+  .auctionSearchRowV2 #auctionSearchBtn { flex:1 1 0; }
+  .auctionSearchRowV2 .filterDrawerBtnV1 { flex:1 1 0; }
+  /* «Поделиться» — справа от крошек, не отдельной пустой строкой */
+  .auctionsShellV1 { position:relative; }
+  .shareChipV3 { position:absolute; top:16px; right:16px; }
+  /* Инфо-баннер компактнее */
+  .auctionInfoV3 { padding:10px 12px; }
+  .auctionInfoV3 p { font-size:12px; line-height:1.45; }
+  /* Лот: «В избранное» и «Отчёт истории VIN» — в один ряд */
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { flex:1 1 0; min-width:0; font-size:12.5px; padding:0 6px; white-space:nowrap; }
+  /* История цены: без бара, дата гибкая — цена не вылезает за карточку */
+  .histRowV1 { grid-template-columns:1fr auto auto !important; gap:8px; }
+  .histRowV1 .histBarWrapV1 { display:none; }
+  .histDateV1 { font-size:12px; }
+  /* Калькулятор: подписи селектов и опции в одну строку */
+  .calcOptColV1 > span { font-size:9px; letter-spacing:.03em; white-space:nowrap; }
+  .calcPairRowV1 .calcOptV2 { font-size:11.5px; gap:6px; }
+  .calcPairRowV1 .calcOptV2 i { display:none; }
+}

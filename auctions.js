@@ -1212,7 +1212,7 @@
       </div>
 ` : `
       <div class="calcTopV2">
-        <div class="calcBidLabelV2"><span>${bidLabel}</span><b>${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>
+        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${bidLabel}</span><b>${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
         ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1"></div>
