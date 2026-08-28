@@ -1178,7 +1178,7 @@
       <div class="calcSoldCardV1">
         <span>Продано</span>
         <b>${fmtBid(effectiveFinalBid)}</b>
-        ${isCa ? `<i>≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
+        ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
       </div>
       ${est ? `<div class="calcEstV2 calcEstCenterV1">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}` : `
       <div class="calcTopV2">
@@ -1278,6 +1278,12 @@
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
+    // ≈USD в карточке «Продано» пересчитываем живым курсом TD
+    const soldHint = document.getElementById("soldUsdHintV1");
+    if(soldHint && calc.canada){
+      const {finalBid} = lotSaleState(state.selectedLot);
+      if(finalBid) soldHint.textContent = `≈ ${money(Math.round(finalBid * calc.cadUsd))}`;
+    }
     return calc;
   }
 
