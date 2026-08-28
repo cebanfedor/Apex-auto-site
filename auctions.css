@@ -590,7 +590,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dDescGridV2 { grid-template-columns:1fr; }
 }
 @media (max-width:640px) {
-  .auctionsShellV1 { padding:16px 10px 60px; }
+  .auctionsShellV1 { padding:16px 10px 60px; width:100%; margin-left:0; margin-right:0; }
   .auctionsH1V3 { gap:8px; }
   .shareChipV3 { height:32px; padding:0 11px; font-size:12.5px; }
   .auctionInfoV3 p { font-size:13px; }
