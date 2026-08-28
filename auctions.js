@@ -1478,8 +1478,10 @@
     const dmgParts = String(lot.damage || "").split("/").map(s => s.trim()).filter(Boolean);
     const primaryDmg = lot.primaryDamage || dmgParts[0] || "";
     const secondaryDmg = lot.secondaryDamage || dmgParts[1] || "";
-    const driveLine = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
-    const specLine  = [cleanEngine(lot.engine), upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    // Тип топлива — сразу в спек-строке, чтобы бензин/дизель/гибрид был виден без скролла
+    const fuelRu = lot.fuel ? ruEnum(RU_FUEL, lot.fuel) : "";
+    const driveLine = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
+    const specLine  = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
     // History summary for Главное section
     // Запись текущих торгов (h.current) — не история: впервые выставленная
