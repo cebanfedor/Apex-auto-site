@@ -1298,7 +1298,6 @@ async function searchFromDb(query){
   // JSON-путь внутри and=() PostgREST не принимает — только отдельным параметром.
   if(query.get("saleStatus") === "timed") p.set("payload->>timed", "eq.true");
   if(query.get("saleStatus") === "no_reserve") p.set("payload->>saleStatusKey", "eq.no_reserve");
-  if(query.get("saleStatus") === "min_reserve") p.set("payload->>saleStatusKey", "eq.min_reserve");
   if(query.get("saleStatus") === "on_approval") p.set("status_id", "eq.4");
 
   const q = query.get("q");
