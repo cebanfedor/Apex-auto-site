@@ -1815,8 +1815,10 @@ module.exports = async function handler(request, response){
       // Локальная база (DreamBid-модель) — честная сортировка/фильтры по всему
       // каталогу; live-запрос к API остаётся фоллбеком, пока база не готова.
       let result = null;
-      try{ result = await searchFromDb(query); }catch(e){ result = null; }
+      let dbErr = null;
+      try{ result = await searchFromDb(query); }catch(e){ dbErr = String(e && e.message || e).slice(0, 200); result = null; }
       if(!result) result = await fetchSearch(query);
+      if(dbErr) result._dbErr = dbErr;
       const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
