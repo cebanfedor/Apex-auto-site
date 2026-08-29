@@ -744,7 +744,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* Дропдауны в крошках лота (модели/поколения, как у DreamBid) */
 .crumbDropV1 { position:relative; display:inline-flex; align-items:center; gap:1px; }
-.crumbChevV1 { border:none; background:none; padding:0 4px; cursor:pointer; color:var(--aInk2); font-size:14px; line-height:1; }
+.crumbChevV1 { display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--aLine2); border-radius:6px; background:var(--aCard, #fff); width:18px; height:18px; margin-left:3px; padding:0; cursor:pointer; color:var(--aInk2); line-height:1; }
+.crumbChevV1:hover { border-color:var(--aInk); color:var(--aInk); }
 .crumbChevV1:hover { color:var(--aInk); }
 .crumbMenuV1 { position:absolute; top:calc(100% + 6px); left:0; z-index:70; min-width:200px; max-height:330px; overflow:auto; background:var(--aCard, #fff); border:1px solid var(--aLine2); border-radius:10px; box-shadow:0 14px 34px rgba(15,23,42,.16); padding:6px; }
 .crumbOptV1 { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:7px 10px; border-radius:7px; font-size:12.5px; color:var(--aInk); text-decoration:none; white-space:nowrap; }
