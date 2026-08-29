@@ -1274,7 +1274,7 @@
     return `
       <section class="calcSecV2${closed ? " calcClosedV1" : ""}" data-calc-sec="${key}">
         <div class="calcSecHeadV2" role="button" tabindex="0" data-calc-toggle="${key}">
-          <span><svg class="calcChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg>${title}</span><b>${money(subtotal)}</b>
+          <span><svg class="calcChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg>${title}</span>
         </div>
         ${rowsHtml}
       </section>`;
@@ -1343,7 +1343,6 @@
 ` : `
       <div class="calcTopV2">
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${bidLabel}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
-        ${est ? `<div class="calcEstV2">${dbIco("chart")}${escapeHtml(est)}</div>` : ""}
       </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1"></div>
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>Осталось <b id="lotCalcCountdown">${countdown}</b> до начала торгов</span></div>` : ""}
