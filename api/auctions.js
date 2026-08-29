@@ -1294,10 +1294,11 @@ async function searchFromDb(query){
   // Трейлеры убраны с сайта: исключаем из любых выдач без явного выбора типа
   if(!query.get("vehicleType")) ands.push("or(vehicle_type_id.neq.3,vehicle_type_id.is.null)");
 
-  // Статусы продажи фильтруем по нормализованному payload
-  if(query.get("saleStatus") === "timed") ands.push("payload->>timed.eq.true");
-  if(query.get("saleStatus") === "no_reserve") ands.push("payload->>saleStatusKey.eq.no_reserve");
-  if(query.get("saleStatus") === "min_reserve") ands.push("payload->>saleStatusKey.eq.min_reserve");
+  // Статусы продажи фильтруем по нормализованному payload.
+  // JSON-путь внутри and=() PostgREST не принимает — только отдельным параметром.
+  if(query.get("saleStatus") === "timed") p.set("payload->>timed", "eq.true");
+  if(query.get("saleStatus") === "no_reserve") p.set("payload->>saleStatusKey", "eq.no_reserve");
+  if(query.get("saleStatus") === "min_reserve") p.set("payload->>saleStatusKey", "eq.min_reserve");
   if(query.get("saleStatus") === "on_approval") p.set("status_id", "eq.4");
 
   const q = query.get("q");
