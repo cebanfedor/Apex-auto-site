@@ -1729,7 +1729,7 @@
               <div class="dSecHead">Аукцион</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
-              ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus)) : ""}
+              ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus) + (lot.timed && !lotSaleState(lot).finalBid ? ` <i class="dTimedHintV1">не продан на timed — выйдет на live-торги</i>` : "")) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
@@ -2286,6 +2286,15 @@
       event.preventDefault();
       exitDiscovery(); state.page = 1; state.displayPage = 1;
       document.body.classList.remove("filtersOpenV1");
+      // Timed-очередь живёт часами — сортируем по времени окончания,
+      // как IAAI («Auction Date: Soonest First»), если стоит дефолтный сорт
+      const saleVal = document.querySelector('input[name="saleStatus"]:checked')?.value;
+      if(saleVal === "timed" && $("#auctionSort").value === "smart"){
+        $("#auctionSort").value = "soon";
+        const lbl = document.getElementById("sortDropLabelV1");
+        if(lbl) lbl.textContent = "Скоро торги";
+        document.querySelectorAll("#sortDropMenuV1 .sortOptV1").forEach(el => el.classList.toggle("sortOptActiveV1", el.dataset.sort === "soon"));
+      }
       loadLots();
     });
     $("#resetFiltersBtn").addEventListener("click", () => {

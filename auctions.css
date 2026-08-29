@@ -737,3 +737,6 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Обновление live-ставки */
 @keyframes bidPulseV1 { 0% { background:#eafaf0; } 100% { background:transparent; } }
 .bidPulseV1 { animation:bidPulseV1 1.6s ease-out; border-radius:6px; }
+
+/* Подсказка механики timed-аукциона на странице лота */
+.dTimedHintV1 { display:block; font-style:normal; font-size:10.5px; color:var(--aMuted); margin-top:2px; }
