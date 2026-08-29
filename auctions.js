@@ -1165,14 +1165,7 @@
     try{
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
       if(reqId !== state.loadSeq) return; // уже запрошено что-то новее
-      let nextItems = payload.items || [];
-      // Discovery mode: 2020+, insurance sellers (if enough) — sorted by auction date
-      if(discoveryMode){
-        const fresh = nextItems.filter(l => Number(l.year) >= 2020);
-        if(fresh.length >= 8) nextItems = fresh;
-        const ins = nextItems.filter(l => INS_RE.test(String(l.seller || "")));
-        if(ins.length >= 8) nextItems = ins;
-      }
+      const nextItems = payload.items || [];
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
       if(append){
@@ -2562,11 +2555,6 @@
         return;
       }
       restoreFromUrl();
-      // Discovery mode: pre-select "Заводится и едет" when no URL params
-      if(discoveryMode){
-        const r = document.querySelector('input[name="condition"][value="0"]');
-        if(r) r.checked = true;
-      }
       loadLots();
     }
   }
