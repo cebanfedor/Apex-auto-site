@@ -440,6 +440,16 @@
     if(/diesel|дизель/.test(f)) return "diesel";
     return greenOverride ? "hybrid" : "gasoline";
   }
+  // Текст локации лота: для канадских — площадка из канадской базы
+  // (сырое поле API у них бывает битым, вплоть до городов США)
+  function lotLocationText(lot){
+    const ca = findCanadaLocation(lot);
+    if(ca && ca.name) return `${String(ca.name).replace(/^(Copart|IAA[AI]?)\s*/i, "")} · Канада`.replace(/^Канада \((\w+)\) · Канада$/, "Канада ($1)");
+    const matched = findLotLocation(lot);
+    const label = matched ? String(matched.displayName || matched.location || "").split("→")[0].trim() : "";
+    return label || tc(lot.location);
+  }
+
   function findLotLocation(lot){
     const locs = window.LOCATIONS || [];
     if(!locs.length) return null;
@@ -460,12 +470,12 @@
     let m = byAuction.find(l => {
       const lc = String(l.city || "").toLowerCase();
       const ls = String(l.state || "").toLowerCase();
-      return city && (lc === city || lc.includes(city) || city.includes(lc)) && (!state || ls === state);
+      return city && (lc === city || lc.includes(city)) && (!state || ls === state);
     });
     // 2. City-only match — API sometimes returns wrong state (e.g. "Acworth, Florida" for GA)
     if(!m && city) m = byAuction.find(l => {
       const lc = String(l.city || "").toLowerCase();
-      return lc === city || lc.includes(city) || city.includes(lc);
+      return lc === city || lc.includes(city);
     });
     // 3. City string anywhere in location name, displayName, or city field
     if(!m && city) m = byAuction.find(l => {
@@ -900,7 +910,7 @@
               ${dbSpec("odo", dbOdo(lot.odometerText))}
               ${dbSpec("damage", escapeHtml(ruDamage(lot.damage)))}
               ${dbSpec("doc", escapeHtml(docShort(lot.document)))}
-              ${dbSpec("pin", escapeHtml(tc(lot.location)))}
+              ${dbSpec("pin", escapeHtml(lotLocationText(lot)))}
             </ul>
           </div>
           <div class="dbChecksCol">
@@ -1787,13 +1797,7 @@
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
-              ${(() => {
-                // Локация — официальная площадка из нашей базы (та же, что в
-                // калькуляторе); сырое значение API — только фоллбек
-                const matched = findLotLocation(lot);
-                const label = matched ? String(matched.displayName || matched.location || "").split("→")[0].trim() : "";
-                return dPlain("Локация", escapeHtml(label || tc(lot.location)));
-              })()}
+              ${dPlain("Локация", escapeHtml(lotLocationText(lot)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
             </section>
             <section class="dSec">
