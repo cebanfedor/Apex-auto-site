@@ -868,24 +868,60 @@ async function fetchSearch(query){
           `${AUCTIONS_API_BASE}/cars?${params}`,
           `${AUCTIONS_API_BASE}/cars?${new URLSearchParams({...Object.fromEntries(params), domain})}`
         ];
+    const normalizeItems = payload => {
+      const tab = query.get("tab") || "all";
+      const wantsPast = tab === "archived" || tab === "sold";
+      return findItems(payload)
+        .filter(item => !isAll || !isEncar(item))
+        .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
+        // For live tabs strip definitively sold/unsold lots (status 6/8).
+        // Don't filter by past auction date — recently ended lots may not have
+        // status 6/8 yet (feed lag). sortItems("soon") puts future lots first,
+        // recently ended ones at the bottom — same as bid.cars behavior.
+        .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"))
+        // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
+        // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
+        .filter(lot => query.get("saleStatus") !== "timed" || lot.timed);
+    };
+
+    // API /cars не сортирует ВООБЩЕ: сортировка одной страницы из 50 лотов
+    // давала кашу («Год 9-1» начинался с 2024 при живых 2026-х). При явных
+    // пользовательских сортировках собираем пул из нескольких страниц API
+    // параллельно и сортируем его целиком (в handler) — первые страницы
+    // выглядят честно. Юзер-страница p = окно API-страниц (p-1)*POOL+1..p*POOL.
+    const sortParam = String(query.get("sort") || "soon");
+    const POOL_SORTS = new Set(["year_desc","year_asc","mileage_asc","mileage_desc","price_asc","price_desc","buy_now_asc","buy_now_desc","date_asc","date_desc"]);
+    const POOL_PAGES = 5;
+    const userPage = safeNumber(query.get("page")) || 1;
+
+    const runPooled = async () => {
+      const startPage = (userPage - 1) * POOL_PAGES + 1;
+      const payloads = await Promise.all(Array.from({length:POOL_PAGES}, (_, i) => {
+        const p = new URLSearchParams(params);
+        p.set("page", String(startPage + i));
+        return fetchJson(`${AUCTIONS_API_BASE}/cars?${p}`).catch(() => null);
+      }));
+      const got = payloads.filter(Boolean);
+      if(!got.length) throw new Error("Auctions search failed");
+      const items = got.flatMap(normalizeItems);
+      const total = safeNumber(got[0]?.total || got[0]?.count || got[0]?.data?.total || got[0]?.data?.count || got[0]?.meta?.total);
+      const apiPerPage = safeNumber(params.get("per_page")) || 50;
+      return {
+        items, total, shown:items.length,
+        page:userPage, perPage:POOL_PAGES * apiPerPage,
+        hasMore:total ? userPage * POOL_PAGES * apiPerPage < total : items.length >= POOL_PAGES * apiPerPage - 5,
+        endpoint:"pooled"
+      };
+    };
+
+    if(POOL_SORTS.has(sortParam)) return runPooled();
+
     let lastError, lastEndpoint = attempts[0];
     for(const url of attempts){
       try{
         lastEndpoint = url;
         const payload = await fetchJson(url);
-        const tab = query.get("tab") || "all";
-        const wantsPast = tab === "archived" || tab === "sold";
-        const items = findItems(payload)
-          .filter(item => !isAll || !isEncar(item))
-          .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
-          // For live tabs strip definitively sold/unsold lots (status 6/8).
-          // Don't filter by past auction date — recently ended lots may not have
-          // status 6/8 yet (feed lag). sortItems("soon") puts future lots first,
-          // recently ended ones at the bottom — same as bid.cars behavior.
-          .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"))
-          // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
-          // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
-          .filter(lot => query.get("saleStatus") !== "timed" || lot.timed);
+        const items = normalizeItems(payload);
         const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
         return {
           items, total, shown:items.length,
