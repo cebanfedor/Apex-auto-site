@@ -539,11 +539,13 @@ function buildSearchParams(query){
   // Sale status (reserve type) is not a server-side filter on /cars — applied
   // client-side over loaded lots. "На утверждении" maps to the status param.
   if(query.get("saleStatus") === "on_approval") params.set("status", "4");
-  // Timed-аукционы — серверный фильтр (клиентский находил 1-2 на страницу)
-  if(query.get("saleStatus") === "timed") params.set("auction_type", "5");
-  // Отладочные проброски для проверки параметров /cars
-  if(query.get("_at")) params.set("auction_type", query.get("_at"));
-  if(query.get("_ita")) params.set("is_timed_auction", query.get("_ita"));
+  // Timed-аукционы: у /cars нет фильтра по auction_type (проверено по доке
+  // и живым запросам), но timed-лоты — это торги ближайших дней (IAAI гоняет
+  // их тысячами ежедневно). Сужаем окно до 72 часов — в нём доля timed ~100%,
+  // а остаток отфильтровывается после нормализации (см. fetchSearch).
+  if(query.get("saleStatus") === "timed" && !query.get("nextHours") && !query.get("daysAhead")){
+    params.set("next_hours_auction", "72");
+  }
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
@@ -880,7 +882,10 @@ async function fetchSearch(query){
           // Don't filter by past auction date — recently ended lots may not have
           // status 6/8 yet (feed lag). sortItems("soon") puts future lots first,
           // recently ended ones at the bottom — same as bid.cars behavior.
-          .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"));
+          .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"))
+          // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
+          // (окно next_hours уже сужено в buildSearchParams, доля timed там ~100%)
+          .filter(lot => query.get("saleStatus") !== "timed" || lot.timed);
         const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
         return {
           items, total, shown:items.length,
