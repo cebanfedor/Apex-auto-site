@@ -544,7 +544,7 @@ function buildSearchParams(query){
   // их тысячами ежедневно). Сужаем окно до 72 часов — в нём доля timed ~100%,
   // а остаток отфильтровывается после нормализации (см. fetchSearch).
   if(query.get("saleStatus") === "timed" && !query.get("nextHours") && !query.get("daysAhead")){
-    params.set("next_hours_auction", "72");
+    params.set("next_hours_auction", "30");
   }
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
@@ -884,7 +884,7 @@ async function fetchSearch(query){
           // recently ended ones at the bottom — same as bid.cars behavior.
           .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"))
           // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
-          // (окно next_hours уже сужено в buildSearchParams, доля timed там ~100%)
+          // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
           .filter(lot => query.get("saleStatus") !== "timed" || lot.timed);
         const total = safeNumber(payload?.total || payload?.count || payload?.data?.total || payload?.data?.count || payload?.meta?.total);
         return {
