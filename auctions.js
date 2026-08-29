@@ -927,7 +927,6 @@
           ${liveLabel ? `<span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>` : ""}
         </div>
         <div class="dbPriceWrap">
-          ${estimate ? `<div class="dbEst">${dbIco("chart")}<span>оценка ${escapeHtml(estimate)}</span></div>` : ""}
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
             <b>${price}</b>
@@ -989,7 +988,7 @@
           if(!document.body.contains(node)) return;
           const f = forecastFromRows(rows, lot);
           if(!f) return;
-          node.innerHTML = `${dbIco("chart")}<span>Прогноз ставки</span><b>${money(f.lo)} – ${money(f.hi)}</b>`;
+          node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}Прогноз ставки</span><b>${money(f.lo)} – ${money(f.hi)}</b>`;
           node.hidden = false;
         });
       }));
