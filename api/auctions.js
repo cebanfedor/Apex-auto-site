@@ -1570,9 +1570,13 @@ async function handleSyncLots(response){
       result.continue = state.phase !== "incr"; // GitHub Actions качает дальше, пока фаза full
     }else{
       // -------- Инкремент: обновлённые + архивные за окно с прошлого запуска --------
+      // При частых вызовах (ручной цикл бэкфилла) инкремент гоняем не чаще
+      // раза в 10 минут — иначе он повторно качает одно окно и съедает весь
+      // бюджет, не оставляя его архивному бэкфиллу.
       const last = state.last_incr_at ? new Date(state.last_incr_at).getTime() : Date.now() - 3600e3;
+      const skipIncr = Date.now() - last < 10 * 60e3 && !state.arch_done;
       const minutes = Math.min(4320, Math.max(30, Math.ceil((Date.now() - last) / 60e3) + 15));
-      for(const domain of SYNC_DOMAINS){
+      for(const domain of (skipIncr ? [] : SYNC_DOMAINS)){
         for(let page = 1; page <= 5; page++){
           if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
           const got = await syncImportPage("/cars", page, {minutes:String(minutes), domain_id:domain});
@@ -1580,13 +1584,13 @@ async function handleSyncLots(response){
           if(got < SYNC_PER_PAGE) break;
         }
       }
-      for(let page = 1; page <= 3; page++){
+      for(let page = 1; page <= 3 && !skipIncr; page++){
         if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
         const got = await syncImportPage("/archived-lots", page, {minutes:String(minutes)}, {archived:true});
         result.archivedMarked += got;
         if(got < SYNC_PER_PAGE) break;
       }
-      state.last_incr_at = new Date().toISOString();
+      if(!skipIncr) state.last_incr_at = new Date().toISOString();
       result.continue = false;
 
       // -------- Архивный бэкфилл: история продаж из /cars?status=6,8 --------
