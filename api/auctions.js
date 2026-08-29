@@ -1242,8 +1242,12 @@ async function searchFromDb(query){
     const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
     ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
   }else{
-    // «Все» — весь активный каталог, как считает DreamBid
+    // «Все» — живой каталог: назначенные торги (включая вчерашние, ждущие
+    // результата) или Buy Now без даты. Сток без даты и без цены — 600k+
+    // записей фида «на площадке» — не показываем (DreamBid тоже не считает).
     p.set("archived", "eq.false");
+    const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
+    ands.push(`or(sale_date.gte.${dayAgo},and(sale_date.is.null,buy_now.gt.0))`);
   }
 
   const auction = query.get("auction");
