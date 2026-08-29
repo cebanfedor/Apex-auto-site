@@ -1323,7 +1323,7 @@ async function searchFromDb(query){
       headers:{
         apikey:key,
         authorization:`Bearer ${key}`,
-        prefer:"count=planned",
+        prefer:"count=estimated",
         range:`${offset}-${offset + perPage - 1}`,
         "range-unit":"items"
       },
