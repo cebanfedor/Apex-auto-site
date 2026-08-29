@@ -1693,9 +1693,10 @@ module.exports = async function handler(request, response){
       const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${mid}`);
       const items = (Array.isArray(list?.data) ? list.data : [])
         .filter(m => m && m.name)
-        .map(m => ({id:m.id, name:m.name, qty:m.cars_qty}))
+        .map(m => ({id:m.id, name:m.name, qty:m.cars_qty, fromYear:m.from_year || m.year_from || m.start_year || null, toYear:m.to_year || m.year_to || m.end_year || null}))
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
       const payload = {ok:true, items};
+      if(query.get("raw") === "1") payload.raw = (Array.isArray(list?.data) ? list.data : []).slice(0, 3);
       setCached(key, payload);
       sendJson(response, 200, payload);
       return;
