@@ -1282,6 +1282,10 @@ async function searchFromDb(query){
   const country = query.get("country");
   if(country) p.set("country", `eq.${pgEscape(country).toLowerCase()}`);
 
+  // Timed-аукционы: в payload лежит нормализованный лот с полем timed
+  if(query.get("saleStatus") === "timed") ands.push("payload->>timed.eq.true");
+  if(query.get("saleStatus") === "on_approval") p.set("status_id", "eq.4");
+
   const q = query.get("q");
   const vin = query.get("vin");
   const name = query.get("name");
@@ -1319,7 +1323,7 @@ async function searchFromDb(query){
       headers:{
         apikey:key,
         authorization:`Bearer ${key}`,
-        prefer:"count=exact",
+        prefer:"count=planned",
         range:`${offset}-${offset + perPage - 1}`,
         "range-unit":"items"
       },
