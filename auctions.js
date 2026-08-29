@@ -1149,8 +1149,50 @@
     syncUrl();
   }
 
+  // «Ход конём»: дефолтная страница — витрина по типам техники (как BidCars).
+  // Любой поиск/фильтр/вкладка выключает витрину (exitDiscovery) и показывает
+  // полноценную выдачу.
+  const SHOWCASE_TYPES = [[1, "Автомобили"], [2, "Мотоциклы"], [5, "Квадроциклы (ATV)"], [4, "Грузовики"], [3, "Трейлеры"], [7, "Спецтехника"]];
+  async function loadShowcase(){
+    const reqId = state.loadSeq = (state.loadSeq || 0) + 1;
+    state.loading = true;
+    setMessage("");
+    if(!state.items.length) $("#auctionCards").innerHTML = skeletonCards(6);
+    try{
+      const results = await Promise.all(SHOWCASE_TYPES.map(([id]) =>
+        api(`/api/auctions?action=search&per_page=8&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null)));
+      if(reqId !== state.loadSeq || !discoveryMode) return;
+      let totalAll = 0, html = "";
+      const shown = [];
+      results.forEach((r, i) => {
+        if(!r || !Array.isArray(r.items) || !r.items.length) return;
+        const [id, label] = SHOWCASE_TYPES[i];
+        totalAll += r.total || 0;
+        const cards = r.items.slice(0, 3);
+        shown.push(...cards);
+        html += `<section class="showcaseSecV1">
+          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b>${(r.total || 0).toLocaleString("ru-RU")}</b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все →</button></div>
+          <div class="showcaseRowV1">${cards.map(renderCard).join("")}</div>
+        </section>`;
+      });
+      if(!html){ discoveryMode = false; loadLots(); return; }
+      state.items = shown;
+      state.total = totalAll;
+      $("#auctionCards").innerHTML = html;
+      $("#auctionResultCount").textContent = totalAll.toLocaleString("ru-RU");
+      $("#auctionResultLabel").textContent = "лотов доступно на аукционах";
+      const pg = document.getElementById("paginationV1");
+      if(pg) pg.hidden = true;
+      updateCardForecasts();
+      updateTabCounts();
+      updateFavCount();
+    }catch(e){ /* при сбое — обычная выдача */ discoveryMode = false; loadLots(); }
+    finally{ if(reqId === state.loadSeq) state.loading = false; }
+  }
+
   async function loadLots({_retry = false, append = false} = {}){
     if(state.tab === "favorites"){ renderFavorites(); return; }
+    if(discoveryMode && state.tab === "all"){ loadShowcase(); return; }
     // Не блокируем повторный вызов, а перебиваем предыдущий: клик по сортировке
     // или вкладке во время загрузки должен выигрывать, не игнорироваться,
     // и устаревший ответ не должен перетирать свежий (race).
@@ -1890,6 +1932,16 @@
   }
 
   document.addEventListener("click", event => {
+    const all = event.target.closest("[data-showcase-type]");
+    if(all){
+      exitDiscovery();
+      const r = document.querySelector(`input[name="vehicleType"][value="${all.dataset.showcaseType}"]`);
+      if(r) r.checked = true;
+      state.page = 1; state.displayPage = 1;
+      window.scrollTo({top:0, behavior:"smooth"});
+      loadLots();
+      return;
+    }
     const chip = event.target.closest(".genChipV1");
     if(!chip) return;
     const genId = document.getElementById("filterGenIdV2");

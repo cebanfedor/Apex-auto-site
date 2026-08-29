@@ -754,3 +754,16 @@ body.leadModalOpenV1 { overflow:hidden; }
 .crumbOptV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); }
 .crumbMenuLoadV1 { padding:8px 10px; font-size:12px; color:var(--aMuted); }
 .crumbCurV1 { color:var(--aMuted); }
+
+/* Витрина по типам техники на дефолтной странице (как BidCars) */
+.showcaseSecV1 { margin-bottom:30px; }
+.showcaseHeadV1 { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.showcaseHeadV1 h2 { margin:0; font-size:18px; letter-spacing:-.02em; color:var(--aInk); }
+.showcaseHeadV1 h2 b { margin-left:8px; font-size:13px; font-weight:600; color:var(--aMuted); }
+.showcaseAllV1 { flex:none; border:1px solid var(--aLine2); background:var(--aCard, #fff); border-radius:999px; padding:8px 15px; font-size:12.5px; font-weight:600; color:var(--aInk); cursor:pointer; transition:border-color .15s; }
+.showcaseAllV1:hover { border-color:var(--aInk); }
+.showcaseRowV1 { display:flex; flex-direction:column; gap:14px; }
+@media (max-width: 640px){
+  .showcaseHeadV1 h2 { font-size:16px; }
+  .showcaseAllV1 { padding:7px 12px; font-size:11.5px; }
+}
