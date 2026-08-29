@@ -243,7 +243,7 @@
 .dbChecksCol { display:flex; flex-direction:column; gap:8px; }
 .dbLotRowV1 { display:flex; align-items:center; justify-content:flex-start; gap:8px; flex-wrap:wrap; }
 .dbLotRowV1 .dbLotNo { font-size:12.5px; color:var(--aInk2); font-variant-numeric:tabular-nums; }
-.dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-end; text-align:right; }
+.dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); white-space:nowrap; }
 .dbWhen .dbIco { color:var(--aMuted); }
 .dbLive.live { color:#1b9c5b; } .dbLive.live .dbIco { color:#1b9c5b; }
@@ -726,7 +726,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .genChipV1.isActiveGenV1 i { color:rgba(255,255,255,.65); }
 
 /* Прогноз финальной ставки в карточке (вилка из архива продаж) */
-.dbForecastV1 { display:flex; flex-direction:column; align-items:flex-end; gap:2px; margin-top:8px; }
+.dbForecastV1 { display:flex; flex-direction:column; align-items:flex-start; gap:2px; margin-top:8px; }
 .dbForecastLabV1 { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; letter-spacing:.02em; color:var(--aMuted); }
 .dbForecastV1 .dbIco { width:13px; height:13px; flex:none; color:#1b9c5b; }
 .dbForecastV1 b { font-size:13px; color:var(--aInk); white-space:nowrap; }
