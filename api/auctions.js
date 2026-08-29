@@ -1236,11 +1236,14 @@ async function searchFromDb(query){
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); }
   else if(tab === "archived"){ p.set("archived", "eq.true"); }
   else if(tab === "buy_now"){ p.set("archived", "eq.false"); p.set("buy_now", "gt.0"); }
-  else{
+  else if(tab === "open"){
     p.set("archived", "eq.false");
-    // Показываем будущие торги, лоты без даты и прошедшие менее суток назад
+    // Открытые: будущие торги, без даты, или прошедшие менее суток назад
     const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
     ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
+  }else{
+    // «Все» — весь активный каталог, как считает DreamBid
+    p.set("archived", "eq.false");
   }
 
   const auction = query.get("auction");
@@ -1466,11 +1469,25 @@ function syncRowFromItem(item, {archived = false} = {}){
 
 async function syncUpsertRows(rows){
   if(!rows.length) return;
-  await syncSbFetch(`/api_lots?on_conflict=id`, {
-    method:"POST",
-    headers:{prefer:"resolution=merge-duplicates,return=minimal"},
-    body:JSON.stringify(rows)
-  });
+  // Чанки по 250: батч на 1000 строк упирался в statement timeout,
+  // и страница терялась целиком. Один повтор на чанк.
+  for(let i = 0; i < rows.length; i += 250){
+    const chunk = rows.slice(i, i + 250);
+    try{
+      await syncSbFetch(`/api_lots?on_conflict=id`, {
+        method:"POST",
+        headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify(chunk)
+      });
+    }catch(e){
+      await new Promise(r => setTimeout(r, 800));
+      await syncSbFetch(`/api_lots?on_conflict=id`, {
+        method:"POST",
+        headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify(chunk)
+      });
+    }
+  }
 }
 
 async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}){
@@ -1521,7 +1538,9 @@ async function handleSyncLots(response){
         const got = await syncImportPage("/cars", page, {domain_id:SYNC_DOMAINS[di]});
         result.imported += got;
         page += 1;
-        if(got < SYNC_PER_PAGE){ di += 1; page = 1; }
+        // Домен закрываем только на ПУСТОЙ странице: /cars часто отдаёт
+        // 990-999 на обычных страницах, и порог <1000 обрывал импорт рано
+        if(got === 0){ di += 1; page = 1; }
       }
       if(di >= SYNC_DOMAINS.length){
         state.phase = "incr";
