@@ -776,7 +776,6 @@ body.leadModalOpenV1 { overflow:hidden; }
 .scImgV1 img { width:100%; height:100%; object-fit:cover; display:block; }
 .scAucV1 { position:absolute; left:8px; bottom:8px; font-style:normal; font-size:9.5px; font-weight:800; letter-spacing:.04em; padding:3px 7px; border-radius:6px; color:#fff; }
 .scAucCopartV1 { background:#1462d8; }
-.scAucIaaiV1 { background:#d92j2 }
 .scAucIaaiV1 { background:#d9232e; }
 .scBodyV1 { display:flex; flex-direction:column; gap:4px; padding:10px 12px 12px; }
 .scTitleV1 { font-size:13px; line-height:1.25; letter-spacing:-.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.5em; }
