@@ -839,13 +839,13 @@
     return many;
   }
 
-  // Обратный отсчёт до торгов, как у крупных каталогов: "5h 33m" при < 72ч.
+  // Обратный отсчёт до торгов — только когда осталось меньше 12 часов.
   function timeLeftLabel(auctionDate){
     if(!auctionDate) return "";
     const t = new Date(auctionDate).getTime();
     if(Number.isNaN(t)) return "";
     const diff = t - Date.now();
-    if(diff <= 0 || diff > 72 * 3600e3) return "";
+    if(diff <= 0 || diff > 12 * 3600e3) return "";
     const h = Math.floor(diff / 3600e3);
     const m = Math.floor((diff % 3600e3) / 60e3);
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
