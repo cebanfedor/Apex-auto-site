@@ -1161,13 +1161,16 @@
     const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "";
     const spec = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive)].filter(Boolean).join(" • ");
     const tl = timeLeftLabel(lot.auctionDate);
+    const priceBar = price || buyNow
+      ? `<span class="scPriceV1"><span>${buyNow && !price ? "Купить сейчас" : "Ставка"}</span><b>${money(price || buyNow)}</b></span>`
+      : `<span class="scPriceV1 scPriceEmptyV1"><span>Ставок пока нет</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
       <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
         <b class="scTitleV1">${escapeHtml(title)}</b>
-        <span class="scSpecV1">${escapeHtml(spec || "—")}</span>
-        <span class="scPriceV1"><span>${buyNow && !price ? "Купить сейчас" : "Ставка"}</span><b>${price || buyNow ? money(price || buyNow) : "—"}</b></span>
-        <span class="scDateV1">${escapeHtml(dbDate(lot.auctionDate))}${tl ? ` · ${escapeHtml(tl)}` : ""}</span>
+        <span class="scSpecV1">${spec ? escapeHtml(spec) : "&nbsp;"}</span>
+        <span class="scDateV1">${dbIco("calendar")}<span>${escapeHtml(dbDate(lot.auctionDate))}</span>${tl ? `<i class="scTlV1">${escapeHtml(tl)}</i>` : ""}</span>
+        ${priceBar}
       </span>
     </a>`;
   }
