@@ -1772,6 +1772,7 @@
     fetchLiveRates();
     startLotCountdown(lot);
     startLiveBidWatch(lot);
+    fillGenCrumb(lot);
   }
 
   // Live-обновление ставки: пока идут торги (±3 часа вокруг даты аукциона),
@@ -1916,6 +1917,31 @@
     renderDetail(known);
     refreshDetailInBackground(slug);
   });
+
+  // API часто отдаёт generation: null — подбираем поколение по году лота
+  // из справочника поколений модели (как делает DreamBid своим маппингом).
+  async function fillGenCrumb(lot){
+    if(lot.generationId || !lot.makeId || !lot.modelId || !lot.year) return;
+    try{
+      const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(lot.modelId)}`);
+      const y = Number(lot.year);
+      const g = (r.items || [])
+        .filter(x => x.fromYear && y >= x.fromYear && (!x.toYear || y <= x.toYear))
+        .sort((a, b) => (b.fromYear || 0) - (a.fromYear || 0))[0];
+      if(!g) return;
+      const cur = parseSlug(currentSlug());
+      if(!cur || String(cur.lot) !== String(lot.lot)) return;
+      const crumbs = document.querySelector(".auctionCrumbsV1");
+      if(!crumbs || crumbs.querySelector('a[href*="generation="]')) return;
+      const lastText = [...crumbs.childNodes].reverse().find(n => n.nodeType === 3 && /\S/.test(n.nodeValue));
+      if(!lastText) return;
+      const link = document.createElement("a");
+      link.href = `/auctions?make=${encodeURIComponent(lot.makeId)}&model=${encodeURIComponent(lot.modelId)}&generation=${encodeURIComponent(g.id)}`;
+      link.textContent = g.name;
+      crumbs.insertBefore(document.createTextNode(" / "), lastText);
+      crumbs.insertBefore(link, lastText);
+    }catch(e){ /* поколение — украшение крошек */ }
+  }
 
   async function loadDetailFromUrl(){
     const slug = parseSlug(currentSlug());
