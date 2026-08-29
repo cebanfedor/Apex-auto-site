@@ -1654,7 +1654,7 @@
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
-            <span class="auctionCrumbsV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a>${lot.make ? ` / <a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>` : ""}${lot.generationId && lot.generationName && lot.makeId && lot.modelId ? ` / <a href="/auctions?make=${lot.makeId}&model=${lot.modelId}&generation=${lot.generationId}">${escapeHtml(lot.generationName)}</a>` : ""} / ${escapeHtml(lot.auction.toUpperCase())} ${escapeHtml(lot.lot || "")}</span>
+            <span class="auctionCrumbsV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a>${lot.make ? ` / <a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <span class="crumbDropV1"><a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>${lot.makeId ? `<button type="button" class="crumbChevV1" data-crumb-drop="model" aria-label="Другие модели">▾</button>` : ""}</span>` : ""}${lot.generationId && lot.generationName && lot.makeId && lot.modelId ? ` / <span class="crumbDropV1"><a href="/auctions?make=${lot.makeId}&model=${lot.modelId}&generation=${lot.generationId}">${escapeHtml(lot.generationName)}</a><button type="button" class="crumbChevV1" data-crumb-drop="gen" aria-label="Другие поколения">▾</button></span>` : ""} / <span class="crumbCurV1">${escapeHtml([lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" "))}${lot.vin ? ` ${escapeHtml(lot.vin)}` : ""}</span></span>
             <div class="dTitleRowV1">
               <h1>${escapeHtml(title)}</h1>
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
@@ -1918,6 +1918,47 @@
     refreshDetailInBackground(slug);
   });
 
+  // Дропдауны в крошках: список моделей марки и поколений модели —
+  // выбор без возврата в каталог (как у DreamBid)
+  document.addEventListener("click", async event => {
+    const openMenu = document.querySelector(".crumbMenuV1");
+    const chev = event.target.closest("[data-crumb-drop]");
+    if(!chev){
+      if(openMenu && !event.target.closest(".crumbMenuV1")) openMenu.remove();
+      return;
+    }
+    event.preventDefault();
+    const wasOpen = openMenu && openMenu.parentElement === chev.parentElement;
+    if(openMenu) openMenu.remove();
+    if(wasOpen) return;
+    const lot = state.selectedLot;
+    if(!lot || !lot.makeId) return;
+    const menu = document.createElement("div");
+    menu.className = "crumbMenuV1";
+    menu.innerHTML = `<div class="crumbMenuLoadV1">Загрузка…</div>`;
+    chev.parentElement.appendChild(menu);
+    try{
+      if(chev.dataset.crumbDrop === "model"){
+        const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(lot.makeId)}`);
+        menu.innerHTML = (r.items || []).map(m => {
+          const cur = Number(m.id) === Number(lot.modelId);
+          return `<a class="crumbOptV1${cur ? " isCurV1" : ""}" href="/auctions?make=${encodeURIComponent(lot.makeId)}&model=${encodeURIComponent(m.id)}"><span>${escapeHtml(displayModel(m.name))}</span><i>${cur ? "✓" : escapeHtml(String(m.qty || ""))}</i></a>`;
+        }).join("") || `<div class="crumbMenuLoadV1">Пусто</div>`;
+      }else{
+        const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(lot.modelId)}`);
+        const curGenA = chev.parentElement.querySelector("a");
+        const curGenId = curGenA ? (curGenA.href.match(/generation=(\d+)/) || [])[1] : null;
+        menu.innerHTML = (r.items || []).map(g => {
+          const yrs = g.fromYear ? `${g.fromYear}–${g.toYear || "…"} · ` : "";
+          const cur = String(g.id) === String(curGenId);
+          return `<a class="crumbOptV1${cur ? " isCurV1" : ""}" href="/auctions?make=${encodeURIComponent(lot.makeId)}&model=${encodeURIComponent(lot.modelId)}&generation=${encodeURIComponent(g.id)}"><span>${escapeHtml(yrs + g.name)}</span><i>${cur ? "✓" : escapeHtml(String(g.qty || ""))}</i></a>`;
+        }).join("") || `<div class="crumbMenuLoadV1">Пусто</div>`;
+      }
+    }catch(e){
+      menu.innerHTML = `<div class="crumbMenuLoadV1">Не удалось загрузить</div>`;
+    }
+  });
+
   // API часто отдаёт generation: null — подбираем поколение по году лота
   // из справочника поколений модели (как делает DreamBid своим маппингом).
   async function fillGenCrumb(lot){
@@ -1935,11 +1976,11 @@
       if(!crumbs || crumbs.querySelector('a[href*="generation="]')) return;
       const lastText = [...crumbs.childNodes].reverse().find(n => n.nodeType === 3 && /\S/.test(n.nodeValue));
       if(!lastText) return;
-      const link = document.createElement("a");
-      link.href = `/auctions?make=${encodeURIComponent(lot.makeId)}&model=${encodeURIComponent(lot.modelId)}&generation=${encodeURIComponent(g.id)}`;
-      link.textContent = g.name;
+      const wrap = document.createElement("span");
+      wrap.className = "crumbDropV1";
+      wrap.innerHTML = `<a href="/auctions?make=${encodeURIComponent(lot.makeId)}&model=${encodeURIComponent(lot.modelId)}&generation=${encodeURIComponent(g.id)}">${escapeHtml(g.name)}</a><button type="button" class="crumbChevV1" data-crumb-drop="gen" aria-label="Другие поколения">▾</button>`;
       crumbs.insertBefore(document.createTextNode(" / "), lastText);
-      crumbs.insertBefore(link, lastText);
+      crumbs.insertBefore(wrap, lastText);
     }catch(e){ /* поколение — украшение крошек */ }
   }
 

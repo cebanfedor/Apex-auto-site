@@ -741,3 +741,15 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* Подсказка механики timed-аукциона на странице лота */
 .dTimedHintV1 { display:block; font-style:normal; font-size:10.5px; color:var(--aMuted); margin-top:2px; }
+
+/* Дропдауны в крошках лота (модели/поколения, как у DreamBid) */
+.crumbDropV1 { position:relative; display:inline-flex; align-items:center; gap:1px; }
+.crumbChevV1 { border:none; background:none; padding:0 3px; cursor:pointer; color:var(--aMuted); font-size:9px; line-height:1; }
+.crumbChevV1:hover { color:var(--aInk); }
+.crumbMenuV1 { position:absolute; top:calc(100% + 6px); left:0; z-index:70; min-width:200px; max-height:330px; overflow:auto; background:var(--aCard, #fff); border:1px solid var(--aLine2); border-radius:10px; box-shadow:0 14px 34px rgba(15,23,42,.16); padding:6px; }
+.crumbOptV1 { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:7px 10px; border-radius:7px; font-size:12.5px; color:var(--aInk); text-decoration:none; white-space:nowrap; }
+.crumbOptV1:hover { background:var(--aLine2); text-decoration:none; }
+.crumbOptV1.isCurV1 { font-weight:700; }
+.crumbOptV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); }
+.crumbMenuLoadV1 { padding:8px 10px; font-size:12px; color:var(--aMuted); }
+.crumbCurV1 { color:var(--aMuted); }
