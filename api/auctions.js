@@ -514,6 +514,7 @@ function buildSearchParams(query){
     drive:"drive_wheel",
     condition:"condition",
     color:"color",
+    vehicleType:"vehicle_type",
     cylinders:"cylinders",
     damage:"damage",
     document:"document_title",
@@ -1341,6 +1342,7 @@ async function searchFromDb(query){
   const rows = await response.json();
   const total = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length;
   return {
+    _db:true,
     items:rows.map(r => r.payload).filter(Boolean),
     total,
     page,
