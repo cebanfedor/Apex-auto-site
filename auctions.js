@@ -1152,7 +1152,25 @@
   // «Ход конём»: дефолтная страница — витрина по типам техники (как BidCars).
   // Любой поиск/фильтр/вкладка выключает витрину (exitDiscovery) и показывает
   // полноценную выдачу.
-  const SHOWCASE_TYPES = [[1, "Автомобили"], [2, "Мотоциклы"], [5, "Квадроциклы (ATV)"], [4, "Грузовики"], [3, "Трейлеры"], [7, "Спецтехника"]];
+  const SHOWCASE_TYPES = [[1, "Автомобили"], [2, "Мотоциклы"], [5, "Квадроциклы (ATV)"], [4, "Грузовики"], [7, "Спецтехника"]];
+  // Компактная карточка витрины: фото сверху, несколько в ряд (как BidCars)
+  function renderShowcaseCard(lot){
+    const title = lotTitle(lot);
+    const price = Number(lot.currentBid || 0);
+    const buyNow = Number(lot.buyNow || 0);
+    const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "";
+    const spec = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive)].filter(Boolean).join(" • ");
+    const tl = timeLeftLabel(lot.auctionDate);
+    return `<a class="scCardV1" href="${detailHref(lot)}">
+      <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
+      <span class="scBodyV1">
+        <b class="scTitleV1">${escapeHtml(title)}</b>
+        <span class="scSpecV1">${escapeHtml(spec || "—")}</span>
+        <span class="scPriceV1"><span>${buyNow && !price ? "Купить сейчас" : "Ставка"}</span><b>${price || buyNow ? money(price || buyNow) : "—"}</b></span>
+        <span class="scDateV1">${escapeHtml(dbDate(lot.auctionDate))}${tl ? ` · ${escapeHtml(tl)}` : ""}</span>
+      </span>
+    </a>`;
+  }
   async function loadShowcase(){
     const reqId = state.loadSeq = (state.loadSeq || 0) + 1;
     state.loading = true;
@@ -1168,11 +1186,11 @@
         if(!r || !Array.isArray(r.items) || !r.items.length) return;
         const [id, label] = SHOWCASE_TYPES[i];
         totalAll += r.total || 0;
-        const cards = r.items.slice(0, 3);
+        const cards = r.items.slice(0, 5);
         shown.push(...cards);
         html += `<section class="showcaseSecV1">
           <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b>${(r.total || 0).toLocaleString("ru-RU")}</b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все →</button></div>
-          <div class="showcaseRowV1">${cards.map(renderCard).join("")}</div>
+          <div class="showcaseGridV1">${cards.map(renderShowcaseCard).join("")}</div>
         </section>`;
       });
       if(!html){ discoveryMode = false; loadLots(); return; }

@@ -1290,6 +1290,9 @@ async function searchFromDb(query){
   const country = query.get("country");
   if(country) p.set("country", `eq.${pgEscape(country).toLowerCase()}`);
 
+  // Трейлеры убраны с сайта: исключаем из любых выдач без явного выбора типа
+  if(!query.get("vehicleType")) ands.push("or(vehicle_type_id.neq.3,vehicle_type_id.is.null)");
+
   // Timed-аукционы: в payload лежит нормализованный лот с полем timed
   if(query.get("saleStatus") === "timed") ands.push("payload->>timed.eq.true");
   if(query.get("saleStatus") === "on_approval") p.set("status_id", "eq.4");
