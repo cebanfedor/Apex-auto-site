@@ -1084,8 +1084,9 @@ function lotQualityScore(l, todayStart){
   return s;
 }
 
-function sortItems(items, sort){
+function sortItems(items, sort, {pastTab = false} = {}){
   const list = [...items];
+  if(sort === "smart" && pastTab) return sortItems(list, "date_desc");
   if(sort === "smart"){
     const soon = sortItems(list, "soon");
     const d = new Date(); d.setHours(0, 0, 0, 0);
@@ -1293,8 +1294,10 @@ async function searchFromDb(query){
   // Трейлеры убраны с сайта: исключаем из любых выдач без явного выбора типа
   if(!query.get("vehicleType")) ands.push("or(vehicle_type_id.neq.3,vehicle_type_id.is.null)");
 
-  // Timed-аукционы: в payload лежит нормализованный лот с полем timed
+  // Статусы продажи фильтруем по нормализованному payload
   if(query.get("saleStatus") === "timed") ands.push("payload->>timed.eq.true");
+  if(query.get("saleStatus") === "no_reserve") ands.push("payload->>saleStatusKey.eq.no_reserve");
+  if(query.get("saleStatus") === "min_reserve") ands.push("payload->>saleStatusKey.eq.min_reserve");
   if(query.get("saleStatus") === "on_approval") p.set("status_id", "eq.4");
 
   const q = query.get("q");
@@ -1313,8 +1316,11 @@ async function searchFromDb(query){
 
   if(ands.length) p.set("and", `(${ands.join(",")})`);
 
+  const wantsPastTab = tab === "sold" || tab === "archived";
   const sortMap = {
-    soon:"sale_date.asc.nullslast", date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
+    soon:wantsPastTab ? "sale_date.desc.nullslast" : "sale_date.asc.nullslast",
+    smart:wantsPastTab ? "sale_date.desc.nullslast" : undefined,
+    date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
     year_asc:"year.asc.nullslast", year_desc:"year.desc.nullslast",
     mileage_asc:"odometer_mi.asc.nullslast", mileage_desc:"odometer_mi.desc.nullslast",
     price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc.nullslast",
@@ -1582,6 +1588,29 @@ async function handleSyncLots(response){
       }
       state.last_incr_at = new Date().toISOString();
       result.continue = false;
+
+      // -------- Архивный бэкфилл: история продаж из /cars?status=6,8 --------
+      // Наш архив копится только с запуска базы; основной фид отдаёт и уже
+      // проданные лоты — докачиваем их постранично, помечая archived.
+      if(!state.arch_done){
+        let st = String(state.arch_status || "6");
+        let apage = Number(state.arch_page) || 1;
+        let archImported = 0;
+        while(Date.now() - started < SYNC_RUN_BUDGET_MS && !state.arch_done){
+          const got = await syncImportPage("/cars", apage, {status:st}, {archived:true});
+          archImported += got;
+          if(got === 0){
+            if(st === "6"){ st = "8"; apage = 1; }
+            else { state.arch_done = true; }
+          }else{
+            apage += 1;
+          }
+        }
+        state.arch_status = st;
+        state.arch_page = apage;
+        result.archBackfill = archImported;
+        result.continue = !state.arch_done; // GitHub Actions продолжит качать архив
+      }
     }
     // Одноразовая чистка Encar/Кореи (ранние прогоны качали общий фид):
     // массовый DELETE упирается в statement timeout — удаляем PK-батчами
@@ -1783,7 +1812,8 @@ module.exports = async function handler(request, response){
       let result = null;
       try{ result = await searchFromDb(query); }catch(e){ result = null; }
       if(!result) result = await fetchSearch(query);
-      const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon")};
+      const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
+      const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : CACHE_TTL);
       if(!result._fallback && !result._source) setDbCache(key, payload, "search");
