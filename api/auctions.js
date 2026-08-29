@@ -539,6 +539,11 @@ function buildSearchParams(query){
   // Sale status (reserve type) is not a server-side filter on /cars — applied
   // client-side over loaded lots. "На утверждении" maps to the status param.
   if(query.get("saleStatus") === "on_approval") params.set("status", "4");
+  // Timed-аукционы — серверный фильтр (клиентский находил 1-2 на страницу)
+  if(query.get("saleStatus") === "timed") params.set("auction_type", "5");
+  // Отладочные проброски для проверки параметров /cars
+  if(query.get("_at")) params.set("auction_type", query.get("_at"));
+  if(query.get("_ita")) params.set("is_timed_auction", query.get("_ita"));
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
   if(tab === "sold") params.set("status", "6");
