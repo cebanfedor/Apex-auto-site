@@ -22,3 +22,11 @@ jobs:
             echo "$out" | grep -q '"continue":true' || break
             sleep 2
           done
+      # После синка база свободна — прогреваем CDN-кэш витрины каталога,
+      # чтобы первый посетитель не ловил медленный MISS.
+      - name: Warm showcase CDN cache
+        run: |
+          for id in 1 2 5 4 7; do
+            curl -s -o /dev/null -w "warm type=$id: %{time_total}s %header{x-vercel-cache}\n" \
+              "https://apexauto.md/api/auctions?action=search&per_page=8&vehicleType=$id&sort=smart&auction=all&tab=all"
+          done

@@ -2677,23 +2677,15 @@
 
   // Fire-and-forget пинг синхронизации каталога: сайт сам поддерживает базу
   // лотов свежей от трафика (endpoint защищён локом, чаще раза в ~5 мин не сработает).
-  function pingLotsSync(){
-    try{
-      const KEY = "apexLotsSyncPing";
-      const last = Number(localStorage.getItem(KEY) || 0);
-      if(Date.now() - last < 15 * 60e3) return;
-      localStorage.setItem(KEY, String(Date.now()));
-      fetch("/api/sync-lots?source=web").catch(() => {});
-    }catch(e){}
-  }
-
+  // Синк базы лотов запускает только GitHub Actions (hourly) — веб-пинг убран:
+  // посетитель триггерил импорт, Supabase занималась записью и каталог
+  // открывался по 7-8 секунд вместо одной.
   async function initAuctions(){
     closeLead();
     bindEvents();
     initRanges();
     initCarData();
     updateFavCount();
-    pingLotsSync();
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
       // Вход по ссылке /auctions?vin=… — сразу VIN-отчёт (ищет и в архиве),

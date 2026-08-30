@@ -1329,7 +1329,9 @@ async function searchFromDb(query){
   const offset = (page - 1) * perPage;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 6000);
+  // 3.5с: обычный запрос укладывается в ~1с; если база занята (идёт синк),
+  // быстрее упасть на live-API, чем держать посетителя 6+ секунд.
+  const timer = setTimeout(() => controller.abort(), 3500);
   let response;
   try{
     response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
