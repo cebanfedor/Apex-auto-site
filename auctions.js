@@ -2055,9 +2055,12 @@
     try{
       const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(lot.modelId)}`);
       const y = Number(lot.year);
+      // Год смены поколения попадает в оба интервала (2011: E90 2005-13 и F3x 2011-20) —
+      // берём то, к чьей середине выпуска год ближе, а не просто самое новое.
+      const mid = x => ((x.fromYear || y) + (x.toYear || new Date().getFullYear())) / 2;
       const g = (r.items || [])
         .filter(x => x.fromYear && y >= x.fromYear && (!x.toYear || y <= x.toYear))
-        .sort((a, b) => (b.fromYear || 0) - (a.fromYear || 0))[0];
+        .sort((a, b) => Math.abs(y - mid(a)) - Math.abs(y - mid(b)) || (b.fromYear || 0) - (a.fromYear || 0))[0];
       if(!g) return;
       const cur = parseSlug(currentSlug());
       if(!cur || String(cur.lot) !== String(lot.lot)) return;
