@@ -55,7 +55,7 @@ async function notifyTelegram(data){
 
 // CACHE_VER бампается при изменении нормализации/сортировки: кеш хранит уже
 // обработанные ответы, и без этого старая выдача живёт до 6 часов.
-const CACHE_VER = "n4";
+const CACHE_VER = "n5";
 function cacheKey(action, params){
   return `${CACHE_VER}:${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
@@ -290,14 +290,47 @@ function lotStatus(item, lot){
   return text || "live";
 }
 
+// Для мото/ATV/спецтехники фид не отдаёт manufacturer/model (null) — марки нет
+// в справочнике /manufacturers. Достаём её из title по известному списку брендов,
+// остаток заголовка после марки считаем моделью (BidCars делает так же).
+const TITLE_MAKES = [
+  "Harley-Davidson", "Harley Davidson", "Can-Am", "Can Am", "Cf Moto", "CFMoto",
+  "Polaris", "Arctic Cat", "Yamaha", "Kawasaki", "Suzuki", "Honda", "KTM",
+  "Ducati", "Triumph", "Indian", "Aprilia", "Moto Guzzi", "Royal Enfield",
+  "Vespa", "Piaggio", "Zero", "Segway", "Hisun", "Kayo", "Coleman", "SSR",
+  "Tao Tao", "TaoTao", "Benelli", "Husqvarna", "Gas Gas", "GasGas", "Sherco",
+  "Beta", "Sea-Doo", "Ski-Doo", "Seadoo", "Skidoo", "Bombardier", "Odes",
+  "Massimo", "Linhai", "Argo", "American Landmaster", "Landmaster",
+  "Intimidator", "Tracker", "Textron", "Cub Cadet", "John Deere", "Kubota", "Bobcat"
+];
+function makeFromTitle(title, year){
+  let rest = String(title || "").trim();
+  if(!rest) return null;
+  if(year) rest = rest.replace(new RegExp(`^\\s*${year}\\s+`), "");
+  const low = rest.toLowerCase();
+  let best = "";
+  for(const m of TITLE_MAKES){
+    const ml = m.toLowerCase();
+    if(low.startsWith(ml + " ") || low === ml){
+      if(ml.length > best.length) best = m;
+    }
+  }
+  if(!best) return null;
+  return {make:best, model:rest.slice(best.length).trim()};
+}
+
 function normalizeLot(source, fallbackAuction = "copart"){
   const item = source?.data && !Array.isArray(source.data) ? source.data : source;
   const lots = Array.isArray(item?.lots) ? item.lots : [];
   const lot = lots[0] || item?.lot || item;
   const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || fallbackAuction);
-  const make = safeName(item?.manufacturer || item?.make || item?.brand);
-  const model = safeName(item?.model);
+  let make = safeName(item?.manufacturer || item?.make || item?.brand);
+  let model = safeName(item?.model);
   const year = safeNumber(item?.year);
+  if(!make){
+    const parsed = makeFromTitle(item?.title, year);
+    if(parsed){ make = parsed.make; model = model || parsed.model; }
+  }
   const lotNumber = String(lot?.lot || lot?.lot_number || lot?.lotNumber || lot?.external_id || item?.lot || item?.lot_number || item?.lotNumber || "").replace(/~.*/, "");
   // For IAAI: external_id is the stock number used in the URL (lot.lot is the internal API id).
   const iaaiExternalId = auction === "iaai" ? String(lot?.external_id || lotNumber).replace(/~.*/, "") : "";
@@ -989,9 +1022,7 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
-      const normalized = normalizeLot(payload, auction);
-      if(query.get("raw") === "1") normalized.__raw = payload; // temp debug
-      return normalized;
+      return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
     }
