@@ -927,8 +927,7 @@ async function fetchSearch(query){
         return {
           items, total, shown:items.length,
           page:safeNumber(query.get("page")) || 1, perPage,
-          hasMore:total ? (safeNumber(query.get("page")) || 1) * perPage < total : items.length >= perPage,
-          endpoint:lastEndpoint.replace(process.env.AUCTIONS_API_KEY || "", "")
+          hasMore:total ? (safeNumber(query.get("page")) || 1) * perPage < total : items.length >= perPage
         };
       }catch(error){ lastError = error; }
     }
@@ -990,10 +989,7 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
-      const normalized = normalizeLot(payload, auction);
-      // Отладка нормализации: ?raw=1 отдаёт и сырой ответ auctionsapi
-      if(query.get("raw") === "1") normalized.__raw = payload;
-      return normalized;
+      return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
     }
@@ -1734,7 +1730,6 @@ module.exports = async function handler(request, response){
         .map(m => ({id:m.id, name:m.name, qty:m.cars_qty, fromYear:m.from_year || m.year_from || m.start_year || null, toYear:m.to_year || m.year_to || m.end_year || null}))
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
       const payload = {ok:true, items};
-      if(query.get("raw") === "1") payload.raw = (Array.isArray(list?.data) ? list.data : []).slice(0, 3);
       setCached(key, payload);
       sendJson(response, 200, payload);
       return;
@@ -1817,7 +1812,7 @@ module.exports = async function handler(request, response){
       let dbErr = null;
       try{ result = await searchFromDb(query); }catch(e){ dbErr = String(e && e.message || e).slice(0, 200); result = null; }
       if(!result) result = await fetchSearch(query);
-      if(dbErr) result._dbErr = dbErr;
+      if(dbErr) console.error("searchFromDb fallback:", dbErr);
       const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab})};
       // Fallback results cached briefly; real results cached 6h in Supabase.

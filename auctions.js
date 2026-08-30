@@ -1098,6 +1098,7 @@
     const pageItems = filtered.slice(start, start + state.displayPageSize);
     box.innerHTML = pageItems.map(renderCard).join("");
     if(sale){
+      setResultNum("");
       $("#auctionResultLabel").textContent = `показано ${filtered.length} (фильтр статуса продажи)`;
     }
     renderPagination();
@@ -1147,12 +1148,20 @@
     ];
   }
 
+  // Число в подзаголовке рядом с "лотов найдено/доступно" — отдельный span,
+  // чтобы i18n-перевод самой фразы не ломался динамическим числом.
+  function setResultNum(v){
+    const el = document.getElementById("auctionResultNum");
+    if(el) el.textContent = v === "" || v == null ? "" : String(v);
+  }
+
   function renderFavorites(){
     state.items = favList();
     state.hasMore = false;
     $("#auctionCards").innerHTML = "";
     const pg = document.getElementById("paginationV1"); if(pg) pg.hidden = true;
     $("#auctionResultCount").textContent = state.items.length;
+    setResultNum(state.items.length);
     $("#auctionResultLabel").textContent = "в избранном";
     renderCards(false);
     setMessage(state.items.length ? "" : "В избранном пусто. Нажмите ★ на карточке лота, чтобы сохранить его сюда.");
@@ -1211,6 +1220,7 @@
       state.total = totalAll;
       $("#auctionCards").innerHTML = html;
       $("#auctionResultCount").textContent = totalAll.toLocaleString("ru-RU");
+      setResultNum(totalAll.toLocaleString("ru-RU"));
       $("#auctionResultLabel").textContent = "лотов доступно на аукционах";
       const pg = document.getElementById("paginationV1");
       if(pg) pg.hidden = true;
@@ -1251,6 +1261,7 @@
       $("#auctionResultCount").textContent = state.total
         ? state.total.toLocaleString("ru-RU")
         : state.items.length;
+      setResultNum(state.total ? state.total.toLocaleString("ru-RU") : "");
       $("#auctionResultLabel").textContent = state.total
         ? (discoveryMode ? "лотов доступно на аукционах" : archived ? "лотов в архиве" : "лотов найдено")
         : `Показано ${state.items.length} лотов`;
@@ -1267,6 +1278,7 @@
         state.items = demoLots();
         state.total = state.items.length;
         $("#auctionResultCount").textContent = "373 909";
+        setResultNum("");
         $("#auctionResultLabel").textContent = "демо-лоты (локально, без AUCTIONS_API_KEY)";
         renderCards();
       }else if(!_retry){
