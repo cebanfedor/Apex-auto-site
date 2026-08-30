@@ -55,7 +55,7 @@ async function notifyTelegram(data){
 
 // CACHE_VER бампается при изменении нормализации/сортировки: кеш хранит уже
 // обработанные ответы, и без этого старая выдача живёт до 6 часов.
-const CACHE_VER = "n5";
+const CACHE_VER = "n6";
 function cacheKey(action, params){
   return `${CACHE_VER}:${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
@@ -459,6 +459,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     keys:keysLabel(lot, item),
     video:(lot?.images?.video) || (item?.images?.video) || "",
     estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || lot?.pre_accident_price || lot?.clean_wholesale_price || item?.estimated_retail_value || item?.acv),
+    repairCost:safeNumber(lot?.estimate_repair_price || lot?.estimated_repair_cost),
+    airbags:safeName(lot?.airbags),
     preAccidentPrice:safeNumber(lot?.pre_accident_price),
     cleanWholesalePrice:safeNumber(lot?.clean_wholesale_price),
     seller:sellerLabel(lot, item),
@@ -1022,9 +1024,7 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
-      const normalized = normalizeLot(payload, auction);
-      if(query.get("raw") === "1") normalized.__raw = payload; // temp debug
-      return normalized;
+      return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
     }
