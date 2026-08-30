@@ -866,8 +866,12 @@
   function lotSaleState(lot){
     const t = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
     const upcoming = Number.isFinite(t) && t > Date.now();
-    const soldLike = lot.statusId === 6 || lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
-    const isSold = soldLike && !upcoming;
+    // Явный статус sold авторитетен даже при будущей дате торгов: продажа по
+    // Buy Now случается ДО запланированного аукциона. Будущая дата отменяет
+    // только косвенные признаки (старый finalBid у перевыставленного лота).
+    const hardSold = lot.statusId === 6 || /^sold$/i.test(lot.statusName || lot.lotStatus || "");
+    const soldLike = lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
+    const isSold = hardSold || (soldLike && !upcoming);
     const finalBid = isSold ? (lot.finalBid || lot.priceHistory?.[0]?.bid || 0) : 0;
     return {isSold, finalBid};
   }
