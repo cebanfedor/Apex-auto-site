@@ -40,11 +40,12 @@
 .sortOptV1.sortOptActiveV1::after { content:"✓"; font-size:13px; }
 
 /* Search row */
-.auctionSearchRowV2 { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
-.auctionSearchRowV2 input { flex:1; min-width:110px; height:38px; padding:0 12px; border:1px solid #ccd2db; border-radius:10px; background:var(--aSoft); font-size:13px; color:var(--aInk); }
+.auctionSearchRowV2 { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.auctionSearchRowV2 input { flex:1; min-width:110px; height:48px; padding:0 16px; border:1px solid #ccd2db; border-radius:12px; background:var(--aSoft); font-size:14px; color:var(--aInk); }
 .auctionSearchRowV2 input:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.13); }
-.auctionSearchRowV2 #auctionSearchBtn { height:38px; padding:0 22px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; }
+.auctionSearchRowV2 #auctionSearchBtn { height:48px; padding:0 26px; border:none; border-radius:12px; background:var(--aRed); color:#fff; font-weight:600; font-size:14px; cursor:pointer; white-space:nowrap; }
 .auctionSearchRowV2 #auctionSearchBtn:hover { background:var(--aRed600); }
+.auctionSearchRowV2 .filterDrawerBtnV1 { height:48px; border-radius:12px; font-size:14px; }
 
 .auctionCountV1 { font-size:13px; color:var(--aMuted); white-space:normal; overflow-wrap:anywhere; max-width:100%; }
 .auctionCountV1 b { color:var(--aInk); font-size:16px; }

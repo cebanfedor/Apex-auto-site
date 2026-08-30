@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v424">
-  <link rel="stylesheet" href="/auctions.css?v=v430">
+  <link rel="stylesheet" href="/auctions.css?v=v431">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -142,12 +142,6 @@
         <span class="infoIcoV3">i</span>
         <p>Полный каталог аукционов США и Канады: тысячи автомобилей Copart и IAAI с фотографиями, описанием повреждений и историей VIN. Выберите автомобиль — привезём его под ключ в Кишинёв.</p>
         <button type="button" id="infoCloseBtn" aria-label="Скрыть">×</button>
-      </div>
-
-      <div class="auctionSearchRowV2">
-        <input id="auctionSmartSearch" placeholder="Поиск: VIN, номер лота, марка или модель" autocomplete="off">
-        <button id="auctionSearchBtn" type="button">Найти</button>
-        <button id="searchSettingsBtn" class="filterDrawerBtnV1 desktopSettingsV1" type="button">Настройки</button>
       </div>
 
       <section class="auctionLayoutV1">
@@ -342,6 +336,11 @@
         </div>
 
         <section class="auctionResultsV1">
+          <div class="auctionSearchRowV2">
+            <input id="auctionSmartSearch" placeholder="Поиск: VIN, номер лота, марка или модель" autocomplete="off">
+            <button id="auctionSearchBtn" type="button">Найти</button>
+            <button id="searchSettingsBtn" class="filterDrawerBtnV1 desktopSettingsV1" type="button">Настройки</button>
+          </div>
           <div id="auctionMessage" class="auctionMessageV1" hidden></div>
           <div id="auctionCards" class="auctionCardsV1"></div>
           <div id="paginationV1" class="paginationV1" hidden></div>
