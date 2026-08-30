@@ -372,10 +372,10 @@
 .dTone-neutral .dbIco { color:var(--aMuted); }
 .dAucMini { background:#e7f6ec; color:#1b9c5b; font-weight:700; font-size:10.5px; padding:2px 7px; border-radius:5px; margin-left:6px; }
 .dLink { color:#1f6bff; font-weight:600; }
-.dRecoV2 { display:flex; gap:12px; background:#eefaf2; border:1px solid #cdeed9; border-radius:14px; padding:14px 16px; }
-.dRecoV2 > .dbIco { color:#1b9c5b; width:22px; height:22px; flex:none; margin-top:1px; }
-.dRecoV2 b { font-size:14px; color:#176a3c; display:block; margin-bottom:3px; }
-.dRecoV2 p { font-size:13px; color:#2f6b48; line-height:1.4; }
+.dRecoV2 { display:flex; gap:10px; background:#eefaf2; border:1px solid #cdeed9; border-radius:12px; padding:9px 13px; align-items:flex-start; }
+.dRecoV2 > .dbIco { color:#1b9c5b; width:18px; height:18px; flex:none; margin-top:1px; }
+.dRecoV2 b { font-size:13px; color:#176a3c; display:block; margin-bottom:1px; }
+.dRecoV2 p { font-size:12px; color:#2f6b48; line-height:1.35; margin:0; }
 
 /* Lot calculator — DreamBid-style, light sticky panel */
 .lotCalcV2 { position:static; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:18px; box-shadow:var(--aShadow); display:flex; flex-direction:column; gap:14px; }
