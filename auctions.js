@@ -2564,6 +2564,12 @@
         const range = wrap.querySelector("[data-range]");
         if(range && range._refresh) range._refresh();
       }
+      // Клик в любое место поля даты открывает системный календарь,
+      // а не только по маленькой иконке справа.
+      const dateInput = event.target.closest('input[type="date"]');
+      if(dateInput && typeof dateInput.showPicker === "function"){
+        try{ dateInput.showPicker(); }catch(e){ /* без жеста/фокуса браузер может отказать — не страшно */ }
+      }
       const dq = event.target.closest("[data-date-range]");
       if(dq){
         const form = $("#auctionFiltersForm");
