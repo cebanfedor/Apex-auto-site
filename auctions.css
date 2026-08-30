@@ -419,9 +419,13 @@
 .calcOptColV1 { display:flex; flex-direction:column; gap:4px; cursor:pointer; }
 .calcOptColV1 > span { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
 .calcOptColV1 .calcSelectV2 { max-width:none; width:100%; }
-.calcPairRowV1 { display:grid; grid-template-columns:1.25fr 1fr 0.95fr; gap:8px; align-items:center; }
-.calcPairRowV1 .calcOptV2 { border-bottom:none; padding:4px 0; font-size:12px; gap:7px; }
-.calcPairRowV1 .calcOptV2 i { font-size:10.5px; }
+/* Опции калькулятора — чипы в один ряд */
+.calcPairRowV1 { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.calcPairRowV1 .calcOptV2 { border:1px solid var(--aLine); border-bottom:1px solid var(--aLine); border-radius:999px; padding:6px 10px; font-size:11.5px; gap:6px; white-space:nowrap; flex:none; transition:border-color .15s, background .15s; }
+.calcPairRowV1 .calcOptV2 span { flex:none; }
+.calcPairRowV1 .calcOptV2 input { width:14px; height:14px; }
+.calcPairRowV1 .calcOptV2:has(input:checked) { border-color:var(--aRed); background:rgba(237,0,18,.05); }
+.calcPairRowV1 .calcOptFixedV1 { color:var(--aInk2); background:var(--aSoft); border-color:transparent; cursor:default; }
 .calcSelectV2 { height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:12.5px; padding:0 6px; cursor:pointer; max-width:140px; }
 .calcEngineWrapV2 { display:flex; align-items:center; gap:5px; }
 .calcEngineV2 { width:58px; height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:13px; padding:0 6px; text-align:center; }
@@ -713,10 +717,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .histDateV1 { font-size:12px; }
   /* Калькулятор: подписи селектов и опции в одну строку */
   .calcOptColV1 > span { font-size:9px; letter-spacing:.03em; white-space:nowrap; }
-  .calcPairRowV1 { grid-template-columns:1fr 1fr; row-gap:0; }
-  .calcPairRowV1 .calcOptFixedV1 { grid-column:1 / -1; }
-  .calcPairRowV1 .calcOptV2 { font-size:11.5px; gap:6px; }
-  .calcPairRowV1 .calcOptV2 i { display:none; }
+  .calcPairRowV1 .calcOptV2 { font-size:11px; padding:5px 9px; }
 }
 
 /* Чипы поколений над выдачей (как у DreamBid) */
