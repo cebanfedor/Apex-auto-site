@@ -1383,7 +1383,7 @@
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}`)
         + calcSec("clear", "Таможня и оформление", clearSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
-        ${calcRow("Страховка", calc.insurance)}
+        ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
         ${calcRow("Сопровождение Apex Auto", calc.service)}`);
     }
@@ -1396,7 +1396,7 @@
         ${calcRow("Доставка морем", calc.sea)}`)
       + calcSec("clear", "Таможня и оформление", clearingSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
-        ${calcRow("Страховка", calc.insurance)}
+        ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
         ${calcRow("Сопровождение Apex Auto", calc.service)}`);
   }
@@ -1472,7 +1472,6 @@
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
-          <div class="calcOptV2 calcOptFixedV1" title="Страховка груза включена в расчёт">${dbIco("check")}<span>Страховка 1%</span></div>
         </div>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
