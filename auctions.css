@@ -758,15 +758,15 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* Витрина по типам техники на дефолтной странице (как BidCars) */
 .showcaseSecV1 { margin-bottom:30px; }
-.showcaseHeadV1 { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.showcaseHeadV1 { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; padding:0 6px; }
 .showcaseHeadV1 h2 { margin:0; font-size:18px; letter-spacing:-.02em; color:var(--aInk); }
 .showcaseHeadV1 h2 b { margin-left:8px; font-size:13px; font-weight:600; color:var(--aMuted); }
-.showcaseAllV1 { flex:none; border:1px solid var(--aLine2); background:var(--aCard, #fff); border-radius:999px; padding:8px 15px; font-size:12.5px; font-weight:600; color:var(--aInk); cursor:pointer; transition:border-color .15s; }
-.showcaseAllV1:hover { border-color:var(--aInk); }
+.showcaseAllV1 { flex:none; border:none; background:none; padding:4px 0; font-size:13px; font-weight:600; color:var(--aInk); cursor:pointer; transition:color .15s; }
+.showcaseAllV1:hover { color:var(--red, #ed0012); }
 .showcaseRowV1 { display:flex; flex-direction:column; gap:14px; }
 @media (max-width: 640px){
   .showcaseHeadV1 h2 { font-size:16px; }
-  .showcaseAllV1 { padding:7px 12px; font-size:11.5px; }
+  .showcaseAllV1 { padding:4px 0; font-size:12px; }
 }
 
 /* Витрина: компактные карточки в ряд */
@@ -784,7 +784,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .scDateV1 { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--aMuted); margin-top:auto; padding-top:6px; }
 .scDateV1 .dbIco { width:12px; height:12px; flex:none; }
 .scTlV1 { font-style:normal; margin-left:auto; font-weight:700; font-size:10px; color:#b45309; background:#fef3c7; border-radius:6px; padding:2px 6px; }
-.scPriceV1 { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px; background:var(--aBg, #f4f6f9); border-radius:9px; padding:8px 11px; }
+.scPriceV1 { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px; background:var(--aBg, #f4f6f9); border-radius:9px; padding:8px 11px; box-sizing:border-box; min-height:36px; }
 .scPriceV1 span { font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; font-weight:700; color:var(--aMuted); }
 .scPriceV1 b { font-size:15px; letter-spacing:-.01em; }
 .scPriceEmptyV1 { justify-content:center; }
