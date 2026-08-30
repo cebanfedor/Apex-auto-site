@@ -1259,7 +1259,7 @@
       updateCardForecasts();
       if(!append) updateTabCounts();
       updateFavCount();
-      if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
+      if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам. Ищете конкретную машину? Введите её VIN в поиск — история продаж находится по полной базе аукционов." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
       if(reqId !== state.loadSeq) return; // устаревший запрос — молча выходим
       state.hasMore = false;
