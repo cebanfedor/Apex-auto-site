@@ -897,9 +897,9 @@
     return `<article class="dbCard">
       <div class="dbPhoto" data-lid="${escapeHtml(String(lot.id))}">
         <a class="dbPhotoLink" href="${detailHref(lot)}">
-          ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" class="dbSlideImg">` : `<span class="dbNoPhoto">Нет фото</span>`}
+          ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" class="dbSlideImg">` : `<span class="dbNoPhoto">${L("Нет фото")}</span>`}
         </a>
-        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ Видео</span>` : ""}</span>
+        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         <span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
@@ -1787,9 +1787,9 @@
               <button class="dGalNavV1 dGalPrevV1" type="button" data-gal-step="-1" aria-label="Предыдущее фото">‹</button>
               <button class="dGalNavV1 dGalNextV1" type="button" data-gal-step="1" aria-label="Следующее фото">›</button>` : ""}
               <div class="dGalBadgesV2">
-                ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} Видео</span>` : ""}
+                ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} ${L("Видео")}</span>` : ""}
                 ${lot.has360 || lot.spin ? `<span class="dGalTagV2">360°</span>` : ""}
-                <span class="dGalTagV2">${dbIco("zoom")} HD · ${escapeHtml(images.length || 1)} фото</span>
+                <span class="dGalTagV2">${dbIco("zoom")} ${L("HD")} · ${escapeHtml(images.length || 1)} ${L("фото")}</span>
               </div>
             </div>
             <div class="detailThumbsV1">
@@ -1857,11 +1857,11 @@
           ${renderLotCalculator(lot)}
         </div>
         <section class="simSecV1" id="similarActiveSection" hidden>
-          <h2>Похожие текущие аукционы</h2>
+          <h2>${L("Похожие текущие аукционы")}</h2>
           <div class="simGridV1" id="similarActiveLots"></div>
         </section>
         <section class="simSecV1" id="similarArchivedSection" hidden>
-          <h2>Похожие архивные аукционы</h2>
+          <h2>${L("Похожие архивные аукционы")}</h2>
           <div class="simGridV1" id="similarArchivedLots"></div>
         </section>
       </section>
