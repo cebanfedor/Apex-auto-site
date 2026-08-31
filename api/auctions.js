@@ -1313,7 +1313,16 @@ async function searchFromDb(query){
   const tab = query.get("tab") || "all";
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); }
   else if(tab === "archived"){ p.set("archived", "eq.true"); }
-  else if(tab === "buy_now"){ p.set("archived", "eq.false"); p.set("buy_now", "gt.0"); }
+  else if(tab === "buy_now"){
+    // «Купить сейчас» — только реально доступные к выкупу: цена выкупа есть,
+    // не продан (status ≠ 6), и аукцион ещё не прошёл (будущая дата или без
+    // даты). Иначе наверх вкладки лезли вчерашние проданные лоты.
+    p.set("archived", "eq.false");
+    p.set("buy_now", "gt.0");
+    p.set("status_id", "neq.6");
+    const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
+    ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
+  }
   else if(tab === "open"){
     p.set("archived", "eq.false");
     // Открытые: будущие торги, без даты, или прошедшие менее суток назад
