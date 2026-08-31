@@ -222,8 +222,85 @@ function numberFromText(value){
   return Number(number) || 0;
 }
 
-function riskTag(text, pattern, label, points, advice){
-  return pattern.test(text) ? {label, points, advice} : null;
+// i18n советчика ставки / статуса импорта лота. Динамический текст инжектится
+// из JS, поэтому i18n.js-обсервер его не ловит — переводим тут, по паттерну файла
+// (window.APEX_LANG). {n}/{v}/{list} — плейсхолдеры. Русский = исходник (ключ).
+const AI_ADVICE_I18N = {
+  "оценить геометрию, безопасность и стоимость ремонта":{ro:"evaluează geometria, siguranța și costul reparației",en:"assess frame geometry, safety and repair cost"},
+  "оценить стоимость кузовного ремонта по фото":{ro:"estimează costul reparației caroseriei după poze",en:"estimate body repair cost from photos"},
+  "сильный риск по повреждениям":{ro:"risc mare din cauza daunelor",en:"high damage risk"},
+  "проверить фото, историю и стоимость восстановления до ставки":{ro:"verifică pozele, istoricul și costul restaurării înainte de licitare",en:"check photos, history and restoration cost before bidding"},
+  "документы требуют доп. оформления":{ro:"actele necesită formalități suplimentare",en:"title needs extra paperwork"},
+  "учесть экспортные документы и срок оформления":{ro:"ține cont de actele de export și termenul de perfectare",en:"account for export documents and processing time"},
+  "есть кузовные повреждения":{ro:"există daune de caroserie",en:"has body damage"},
+  "растаможка выгоднее обычного гибрида":{ro:"vămuirea e mai avantajoasă decât la un hibrid obișnuit",en:"customs cheaper than a regular hybrid"},
+  "электро":{ro:"electric",en:"electric"},
+  "нулевая таможня по акцизу":{ro:"acciză vamală zero",en:"zero excise at customs"},
+  "электро без Run & Drive":{ro:"electric fără Run & Drive",en:"electric without Run & Drive"},
+  "проверить батарею, зарядную часть и статус запуска":{ro:"verifică bateria, sistemul de încărcare și starea de pornire",en:"check battery, charging system and start status"},
+  "риск двигателя / запуска":{ro:"risc motor / pornire",en:"engine / start risk"},
+  "проверить запуск, двигатель и ходовую часть до ставки":{ro:"verifică pornirea, motorul și suspensia înainte de licitare",en:"check start, engine and suspension before bidding"},
+  "большой пробег":{ro:"rulaj mare",en:"high mileage"},
+  "проверить обслуживание и износ ходовой":{ro:"verifică istoricul de service și uzura suspensiei",en:"check service history and suspension wear"},
+  "итог близко к ACV":{ro:"totalul e aproape de ACV",en:"total close to ACV"},
+  "экономия может быть слабой после ремонта":{ro:"economia poate fi slabă după reparație",en:"savings may be weak after repair"},
+  "ставка уже высокая":{ro:"licitația e deja mare",en:"bid is already high"},
+  "дальше играть осторожно":{ro:"continuă cu prudență",en:"proceed with caution"},
+  "Играть только после проверки":{ro:"Licitează doar după verificare",en:"Bid only after inspection"},
+  "Можно рассматривать осторожно":{ro:"Se poate lua în calcul cu prudență",en:"Consider with caution"},
+  "Хороший кандидат для проверки":{ro:"Candidat bun pentru verificare",en:"Good candidate to check"},
+  "ориентир: текущий итог около {n}% от ACV":{ro:"reper: totalul curent ~{n}% din ACV",en:"reference: current total ~{n}% of ACV"},
+  "Лимит ставки: после проверки рынка и ремонта":{ro:"Limita licitației: după verificarea pieței și reparației",en:"Bid limit: after checking market and repair"},
+  "Оценка лота":{ro:"Evaluarea lotului",en:"Lot score"},
+  "текущая ставка: {v}":{ro:"licitația curentă: {v}",en:"current bid: {v}"},
+  "текущая ставка не указана":{ro:"licitația curentă nu e indicată",en:"current bid not specified"},
+  "Заполните рынок Молдовы и ремонт, чтобы увидеть диапазон разумной ставки.":{ro:"Completează piața Moldovei și reparația ca să vezi intervalul rezonabil al licitației.",en:"Fill in the Moldova market and repair to see a reasonable bid range."},
+  "Выгода слабая":{ro:"Beneficiu slab",en:"Weak upside"},
+  "Лот имеет смысл торговать":{ro:"Merită să licitezi lotul",en:"Worth bidding on"},
+  "Разумный диапазон ставки:":{ro:"Interval rezonabil al licitației:",en:"Reasonable bid range:"},
+  "Итог после ремонта при текущей ставке:":{ro:"Total după reparație la licitația curentă:",en:"Total after repair at current bid:"},
+  "Потенциальная экономия к рынку:":{ro:"Economie potențială față de piață:",en:"Potential savings vs market:"},
+  "Лот выглядит интересным":{ro:"Lotul pare interesant",en:"Lot looks interesting"},
+  "Нужна история похожих продаж":{ro:"E nevoie de istoricul vânzărilor similare",en:"Needs similar-sales history"},
+  "AI оценка":{ro:"Evaluare AI",en:"AI assessment"},
+  "AI диапазон ставки:":{ro:"Interval AI al licitației:",en:"AI bid range:"},
+  "Рынок Молдовы:":{ro:"Piața Moldovei:",en:"Moldova market:"},
+  "Ориентир ремонта:":{ro:"Reper reparație:",en:"Repair estimate:"},
+  "Потенциальная экономия:":{ro:"Economie potențială:",en:"Potential savings:"},
+  "Похожие продажи:":{ro:"Vânzări similare:",en:"Similar sales:"},
+  "лот":{ro:"lot",en:"lot"},
+  "Похожих проданных лотов пока недостаточно для уверенной ставки.":{ro:"Încă nu sunt destule loturi vândute similare pentru o licitație sigură.",en:"Not enough similar sold lots yet for a confident bid."},
+  "Источник":{ro:"Sursă",en:"Source"},
+  "AI-режим включится после подключения OPENAI_API_KEY.":{ro:"Modul AI se activează după conectarea OPENAI_API_KEY.",en:"AI mode turns on after OPENAI_API_KEY is connected."},
+  "AI считает...":{ro:"AI calculează...",en:"AI is calculating..."},
+  "AI анализирует лот, расчет, рынок и ремонт...":{ro:"AI analizează lotul, calculul, piața și reparația...",en:"AI is analyzing the lot, calculation, market and repair..."},
+  "AI-рекомендация сейчас недоступна.":{ro:"Recomandarea AI nu e disponibilă acum.",en:"AI recommendation is unavailable right now."},
+  "AI оценить ставку":{ro:"AI — evaluează licitația",en:"AI: evaluate bid"},
+  "аукцион":{ro:"licitație",en:"auction"},
+  "Аукцион: {v}":{ro:"Licitație: {v}",en:"Auction: {v}"},
+  "Лот: {v}":{ro:"Lot: {v}",en:"Lot: {v}"},
+  "год":{ro:"anul",en:"year"},
+  "топливо":{ro:"combustibil",en:"fuel"},
+  "тип кузова":{ro:"tip caroserie",en:"body type"},
+  "объем двигателя":{ro:"capacitatea motorului",en:"engine size"},
+  "локация аукциона":{ro:"locația licitației",en:"auction location"},
+  "Дата торгов: {v}":{ro:"Data licitației: {v}",en:"Auction date: {v}"},
+  "Повреждения: {v}":{ro:"Daune: {v}",en:"Damage: {v}"},
+  "Экспортные документы: +$400":{ro:"Acte de export: +$400",en:"Export documents: +$400"},
+  "текущая цена / ставка":{ro:"prețul / licitația curentă",en:"current price / bid"},
+  "Ссылка распознана, данные лота закрыты":{ro:"Link recunoscut, datele lotului sunt închise",en:"Link recognized, lot data is hidden"},
+  "Лот распознан частично":{ro:"Lot recunoscut parțial",en:"Lot partially recognized"},
+  "Мы нашли ссылку на лот, но часть данных нужно уточнить вручную. Заполните ставку, год, двигатель, топливо и локацию или отправьте лот нам на проверку.":{ro:"Am găsit linkul lotului, dar o parte din date trebuie precizate manual. Completează licitația, anul, motorul, combustibilul și locația sau trimite-ne lotul la verificare.",en:"We found the lot link, but some data needs manual input. Fill in the bid, year, engine, fuel and location, or send the lot to us for review."},
+  "Отправить лот на проверку":{ro:"Trimite lotul la verificare",en:"Send lot for review"},
+  "Для точного расчета проверьте: {list}.":{ro:"Pentru un calcul exact verifică: {list}.",en:"For an accurate estimate check: {list}."},
+  "Данных достаточно для предварительного расчета.":{ro:"Datele sunt suficiente pentru un calcul preliminar.",en:"Enough data for a preliminary estimate."}
+};
+function aiT(s, vars){
+  const lng = window.APEX_LANG || document.documentElement.lang || "ru";
+  let out = s;
+  if(lng !== "ru"){ const e = AI_ADVICE_I18N[s]; if(e && e[lng]) out = e[lng]; }
+  if(vars) for(const k in vars) out = out.replace("{"+k+"}", vars[k]);
+  return out;
 }
 
 function buildSmartLotAdvice(totalUsd){
@@ -296,7 +373,7 @@ function buildSmartLotAdvice(totalUsd){
 
   if(acv && totalUsd){
     const ratio = Math.round(totalUsd / acv * 100);
-    reasons.unshift(`ориентир: текущий итог около ${ratio}% от ACV`);
+    reasons.unshift(aiT("ориентир: текущий итог около {n}% от ACV", {n:ratio}));
   }
 
   return {
@@ -321,18 +398,18 @@ function renderSmartLotAdvice(totalUsd){
 
   box.hidden = false;
   box.className = `smartLotAdviceV129 calcWideAdviceV146 is-${advice.tone}`;
-  const bidLine = "Лимит ставки: после проверки рынка и ремонта";
+  const bidLine = aiT("Лимит ставки: после проверки рынка и ремонта");
   const acvLine = advice.acv ? ` · ACV: ${moneyUsd(advice.acv)}` : "";
-  const currentLine = advice.currentBid ? `текущая ставка: ${moneyUsd(advice.currentBid)}` : "текущая ставка не указана";
+  const currentLine = advice.currentBid ? aiT("текущая ставка: {v}", {v:moneyUsd(advice.currentBid)}) : aiT("текущая ставка не указана");
   box.innerHTML = `
     <div class="smartHeadV129">
-      <span>Оценка лота</span>
+      <span>${escapeHtml(aiT("Оценка лота"))}</span>
       <b>${escapeHtml(advice.score)}/100</b>
     </div>
-    <strong>${escapeHtml(advice.verdict)}</strong>
+    <strong>${escapeHtml(aiT(advice.verdict))}</strong>
     <p>${escapeHtml(`${bidLine}${acvLine} · ${currentLine}`)}</p>
     <ul>
-      ${advice.reasons.map(reason => `<li>${escapeHtml(reason)}</li>`).join("")}
+      ${advice.reasons.map(reason => `<li>${escapeHtml(aiT(reason))}</li>`).join("")}
     </ul>
   `;
   return advice;
@@ -379,7 +456,7 @@ function renderBidAdvisor(totalUsd){
 
   if(!marketMin || !marketMax || !repairMin || !repairMax){
     box.className = "bidAdvisorResultV138 is-empty";
-    box.innerHTML = "Заполните рынок Молдовы и ремонт, чтобы увидеть диапазон разумной ставки.";
+    box.innerHTML = escapeHtml(aiT("Заполните рынок Молдовы и ремонт, чтобы увидеть диапазон разумной ставки."));
     return null;
   }
 
@@ -401,10 +478,10 @@ function renderBidAdvisor(totalUsd){
 
   box.className = `bidAdvisorResultV138 ${isWeak ? "is-risk" : isGood ? "is-good" : "is-watch"}`;
   box.innerHTML = `
-    <strong>${escapeHtml(verdict)}</strong>
-    <p>Разумный диапазон ставки: <b>${escapeHtml(moneyUsd(bidLow))}–${escapeHtml(moneyUsd(Math.max(bidLow, bidHigh)))}</b></p>
-    <p>Итог после ремонта при текущей ставке: ${escapeHtml(moneyUsd(afterRepairLow))}–${escapeHtml(moneyUsd(afterRepairHigh))}</p>
-    <p>Потенциальная экономия к рынку: ${escapeHtml(moneyUsd(savingLow))}–${escapeHtml(moneyUsd(savingHigh))}</p>
+    <strong>${escapeHtml(aiT(verdict))}</strong>
+    <p>${escapeHtml(aiT("Разумный диапазон ставки:"))} <b>${escapeHtml(moneyUsd(bidLow))}–${escapeHtml(moneyUsd(Math.max(bidLow, bidHigh)))}</b></p>
+    <p>${escapeHtml(aiT("Итог после ремонта при текущей ставке:"))} ${escapeHtml(moneyUsd(afterRepairLow))}–${escapeHtml(moneyUsd(afterRepairHigh))}</p>
+    <p>${escapeHtml(aiT("Потенциальная экономия к рынку:"))} ${escapeHtml(moneyUsd(savingLow))}–${escapeHtml(moneyUsd(savingHigh))}</p>
   `;
 
   return {verdict, bidLow, bidHigh:Math.max(bidLow,bidHigh), afterRepairLow, afterRepairHigh, savingLow, savingHigh};
@@ -418,23 +495,23 @@ function renderAiBidAdvice(advice, mode){
     ? (advice.confidence === "high" ? "Лот выглядит интересным" : advice.confidence === "medium" ? "Можно рассматривать осторожно" : "Нужна история похожих продаж")
     : (advice.verdict || "AI оценка");
   const bidText = advice.bidMin && advice.bidMax
-    ? `<p>AI диапазон ставки: <b>${escapeHtml(moneyUsd(advice.bidMin))}–${escapeHtml(moneyUsd(advice.bidMax))}</b></p>`
+    ? `<p>${escapeHtml(aiT("AI диапазон ставки:"))} <b>${escapeHtml(moneyUsd(advice.bidMin))}–${escapeHtml(moneyUsd(advice.bidMax))}</b></p>`
     : "";
   const marketText = advice.marketMin && advice.marketMax
-    ? `<p>Рынок Молдовы: ${escapeHtml(moneyUsd(advice.marketMin))}–${escapeHtml(moneyUsd(advice.marketMax))}</p>`
+    ? `<p>${escapeHtml(aiT("Рынок Молдовы:"))} ${escapeHtml(moneyUsd(advice.marketMin))}–${escapeHtml(moneyUsd(advice.marketMax))}</p>`
     : "";
   const repairText = advice.repairMin && advice.repairMax
-    ? `<p>Ориентир ремонта: ${escapeHtml(moneyUsd(advice.repairMin))}–${escapeHtml(moneyUsd(advice.repairMax))}</p>`
+    ? `<p>${escapeHtml(aiT("Ориентир ремонта:"))} ${escapeHtml(moneyUsd(advice.repairMin))}–${escapeHtml(moneyUsd(advice.repairMax))}</p>`
     : "";
   const savingsText = Number.isFinite(Number(advice.savingsMin)) && Number.isFinite(Number(advice.savingsMax))
-    ? `<p>Потенциальная экономия: ${escapeHtml(moneyUsd(advice.savingsMin))}–${escapeHtml(moneyUsd(advice.savingsMax))}</p>`
+    ? `<p>${escapeHtml(aiT("Потенциальная экономия:"))} ${escapeHtml(moneyUsd(advice.savingsMin))}–${escapeHtml(moneyUsd(advice.savingsMax))}</p>`
     : "";
   const soldCompsText = (advice.soldComps || []).length
-    ? `<p>Похожие продажи: ${(advice.soldComps || []).slice(0, 3).map(comp => `${escapeHtml(comp.title || "лот")} ${escapeHtml(moneyUsd(comp.salePrice || 0))}`).join(" · ")}</p>`
-    : `<p class="aiWarningsV139">Похожих проданных лотов пока недостаточно для уверенной ставки.</p>`;
+    ? `<p>${escapeHtml(aiT("Похожие продажи:"))} ${(advice.soldComps || []).slice(0, 3).map(comp => `${escapeHtml(comp.title || aiT("лот"))} ${escapeHtml(moneyUsd(comp.salePrice || 0))}`).join(" · ")}</p>`
+    : `<p class="aiWarningsV139">${escapeHtml(aiT("Похожих проданных лотов пока недостаточно для уверенной ставки."))}</p>`;
   box.className = `bidAdvisorResultV138 ${tone}`;
   box.innerHTML = `
-    <strong>${escapeHtml(normalizedVerdict)}</strong>
+    <strong>${escapeHtml(aiT(normalizedVerdict))}</strong>
     <p>${escapeHtml(advice.summary || "")}</p>
     ${soldCompsText}
     ${marketText}
@@ -443,8 +520,8 @@ function renderAiBidAdvice(advice, mode){
     ${savingsText}
     ${(advice.reasons || []).length ? `<ul>${advice.reasons.slice(0, 4).map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
     ${(advice.warnings || []).length ? `<p class="aiWarningsV139">${escapeHtml(advice.warnings.slice(0, 2).join(" · "))}</p>` : ""}
-    ${(advice.sources || []).length ? `<div class="aiSourcesV139">${advice.sources.slice(0, 3).map(source => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener">${escapeHtml(source.title || "Источник")}</a>`).join("")}</div>` : ""}
-    ${mode === "fallback" ? `<p class="aiWarningsV139">AI-режим включится после подключения OPENAI_API_KEY.</p>` : ""}
+    ${(advice.sources || []).length ? `<div class="aiSourcesV139">${advice.sources.slice(0, 3).map(source => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener">${escapeHtml(source.title || aiT("Источник"))}</a>`).join("")}</div>` : ""}
+    ${mode === "fallback" ? `<p class="aiWarningsV139">${escapeHtml(aiT("AI-режим включится после подключения OPENAI_API_KEY."))}</p>` : ""}
   `;
 }
 
@@ -482,10 +559,10 @@ async function requestAiBidAdvice(){
   const button = $("aiBidBtn");
   const box = $("bidAdvisorResult");
   if(button) button.disabled = true;
-  if(button) button.textContent = "AI считает...";
+  if(button) button.textContent = aiT("AI считает...");
   if(box){
     box.className = "bidAdvisorResultV138 is-watch";
-    box.innerHTML = "AI анализирует лот, расчет, рынок и ремонт...";
+    box.innerHTML = escapeHtml(aiT("AI анализирует лот, расчет, рынок и ремонт..."));
   }
   try{
     const response = await fetch("/api/bid-advice", {
@@ -499,11 +576,11 @@ async function requestAiBidAdvice(){
   }catch(error){
     if(box){
       box.className = "bidAdvisorResultV138 is-risk";
-      box.innerHTML = `AI-рекомендация сейчас недоступна.${error?.message ? ` ${escapeHtml(error.message)}` : ""}`;
+      box.innerHTML = `${escapeHtml(aiT("AI-рекомендация сейчас недоступна."))}${error?.message ? ` ${escapeHtml(error.message)}` : ""}`;
     }
   }finally{
     if(button) button.disabled = false;
-    if(button) button.textContent = "AI оценить ставку";
+    if(button) button.textContent = aiT("AI оценить ставку");
   }
 }
 
@@ -746,24 +823,25 @@ function renderLotImportStatus(data, applied){
 
   const found = [];
   const missing = [];
-  if(data.auction) found.push(`Аукцион: ${data.auction.toUpperCase()}`); else missing.push("аукцион");
-  if(data.lotNumber) found.push(`Лот: ${data.lotNumber}`);
+  const _dLoc = (window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-US" : "ru-RU");
+  if(data.auction) found.push(aiT("Аукцион: {v}", {v:data.auction.toUpperCase()})); else missing.push(aiT("аукцион"));
+  if(data.lotNumber) found.push(aiT("Лот: {v}", {v:data.lotNumber}));
   if(data.vin) found.push(`VIN: ${data.vin}`);
-  if(!data.year) missing.push("год");
-  if(!data.fuel) missing.push("топливо");
-  if(!data.vehicleType) missing.push("тип кузова");
-  if(!data.engineLiters && data.fuel !== "electric") missing.push("объем двигателя");
-  if(!applied.location) missing.push("локация аукциона");
-  if(data.saleDate) found.push(`Дата торгов: ${new Date(data.saleDate).toLocaleDateString("ru-RU")}`);
-  if(data.damage) found.push(`Повреждения: ${data.damage}`);
-  if(needsExportDocuments(data)) found.push("Экспортные документы: +$400");
-  if(!data.currentBid) missing.push("текущая цена / ставка");
+  if(!data.year) missing.push(aiT("год"));
+  if(!data.fuel) missing.push(aiT("топливо"));
+  if(!data.vehicleType) missing.push(aiT("тип кузова"));
+  if(!data.engineLiters && data.fuel !== "electric") missing.push(aiT("объем двигателя"));
+  if(!applied.location) missing.push(aiT("локация аукциона"));
+  if(data.saleDate) found.push(aiT("Дата торгов: {v}", {v:new Date(data.saleDate).toLocaleDateString(_dLoc)}));
+  if(data.damage) found.push(aiT("Повреждения: {v}", {v:data.damage}));
+  if(needsExportDocuments(data)) found.push(aiT("Экспортные документы: +$400"));
+  if(!data.currentBid) missing.push(aiT("текущая цена / ставка"));
 
   box.hidden = false;
   const isSparse = found.length <= 2 && !data.year && !data.fuel && !data.vehicleType;
-  const title = isSparse ? "Ссылка распознана, данные лота закрыты" : (data.title || "Лот распознан частично");
+  const title = isSparse ? aiT("Ссылка распознана, данные лота закрыты") : (data.title || aiT("Лот распознан частично"));
   const apiNote = lotImportApiStatus
-    ? "Мы нашли ссылку на лот, но часть данных нужно уточнить вручную. Заполните ставку, год, двигатель, топливо и локацию или отправьте лот нам на проверку."
+    ? aiT("Мы нашли ссылку на лот, но часть данных нужно уточнить вручную. Заполните ставку, год, двигатель, топливо и локацию или отправьте лот нам на проверку.")
     : "";
 
   box.classList.toggle("isWarningV120", isSparse || Boolean(apiNote));
@@ -771,9 +849,9 @@ function renderLotImportStatus(data, applied){
     <strong>${escapeHtml(title)}</strong>
     <div class="lotImportChipsV118">
       ${found.map(item => `<span>${escapeHtml(item)}</span>`).join("")}
-      <button class="lotImportCheckBtnV120" id="sendLotCheckBtnInner">Отправить лот на проверку</button>
+      <button class="lotImportCheckBtnV120" id="sendLotCheckBtnInner">${escapeHtml(aiT("Отправить лот на проверку"))}</button>
     </div>
-    <p>${escapeHtml(apiNote || data.priceNote || (missing.length ? `Для точного расчета проверьте: ${missing.join(", ")}.` : "Данных достаточно для предварительного расчета."))}</p>
+    <p>${escapeHtml(apiNote || data.priceNote || (missing.length ? aiT("Для точного расчета проверьте: {list}.", {list:missing.join(", ")}) : aiT("Данных достаточно для предварительного расчета.")))}</p>
   `;
   box.querySelector("#sendLotCheckBtnInner").onclick = () => {
     openTelegramMessage([
