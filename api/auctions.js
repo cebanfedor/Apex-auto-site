@@ -1029,9 +1029,7 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
-      const normalized = normalizeLot(payload, auction);
-      if(query.get("raw") === "1") normalized.__raw = payload; // temp debug
-      return normalized;
+      return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
     }
