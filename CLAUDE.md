@@ -42,8 +42,28 @@ Modern dark-accent/light design, clean header + burger, calculator polished, 3D 
 "Как работаем" timeline, "Почему мы", reviews, FAQ (single block), SEO (meta/OG/sitemap/robots/schema),
 hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300).
 
+## API (auctionsapi.com) — важно
+- Подписка активна **только на LEGACY** API: хост `https://auctionsapi.com/api`,
+  авторизация заголовком `x-api-key`, эндпоинты `/cars`(+фильтры), `/manufacturers`,
+  `/models/{id}`, `/generations/{id}`, `/search-lot`, `/search-vin`, `/statistics`,
+  `/archived-lots`, `/usa/*`. Наш ключ на платном тарифе: `/cars` отдаёт до **1000**
+  записей/страницу (не 50 — то был демо-лимит).
+- НОВЫЙ API (`api.auctionsapi.com`: `/search`, отчёты истории авто, инспекции,
+  опции) нам НЕдоступен — ключ отвечает `"you don't have any data in your
+  subscription"`. Для миграции нужен апгрейд подписки у провайдера.
+- Финальные цены проданных = поле `final_bid`/`bid` фида один-в-один; расхождение
+  с DreamBid/BidCars — разница источников (timed-закрытие), не наш баг.
+
+## Perf-заметки (что сделано)
+- about/contacts/hot больше НЕ грузят `locations.js`+`script.js` (там нет калькулятора).
+- index: калькуляторные скрипты с `defer`. Каталог: словари фильтров грузятся лениво,
+  `updateTabCounts`/`updateCardForecasts` отложены на `requestIdleCallback`.
+- Hero/hot-фото в WebP (+ `.jpg`-фолбэк через `onerror`); аватар автора — `founder-avatar.webp`.
+- `vercel.json`: immutable-кэш для `.js/.css` (все ссылки версионированы `?v=`), 30д для картинок.
+
 ## Pending / TODO
-- `assets/founder.jpg` — founder photo for About page (slot ready, hidden until file added).
-- Reviews on home (`.apexReviewsV212`) are PLACEHOLDERS — replace with real testimonials.
 - Hot-lot car photos are closest-model stock, not exact 2018/2023 trims — swap if exact needed.
-- Footer stat "Сотни авто" — adjust to a verified number if desired.
+- i18n-дыры в динамике: AI-советчик ставки в `script.js` (renderBidAdvisor/renderSmartLotAdvice)
+  и часть `title=`-подсказок не обёрнуты в `i18nT`/`L()` — на RO/EN остаются русскими.
+- a11y: подписи полей калькулятора (`index.html`) без `for=`; лид-форма/AI-поля только с `placeholder`.
+- Словарь `/usa/damages` при первом открытии фильтра тянется ~4с live — можно забить статикой.

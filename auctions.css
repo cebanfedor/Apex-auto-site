@@ -552,9 +552,9 @@ body.lbOpenV1 { overflow:hidden; }
 .lbTopV1 { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:16px 22px; }
 .lbCountV1 { color:#fff; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
 .lbActionsV1 { display:flex; gap:10px; }
-.lbBtnV1 { height:38px; padding:0 16px; border:1px solid rgba(255,255,255,.25); border-radius:10px; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-weight:600; font-size:13px; cursor:pointer; transition:.15s; }
+.lbBtnV1 { height:44px; padding:0 18px; border:1px solid rgba(255,255,255,.25); border-radius:10px; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-weight:600; font-size:13px; cursor:pointer; transition:.15s; }
 .lbBtnV1:hover { background:rgba(255,255,255,.22) !important; }
-.lbCloseV1 { width:38px; padding:0; font-size:16px; }
+.lbCloseV1 { width:44px; padding:0; font-size:16px; }
 .lbNavV1 { position:absolute; top:50%; transform:translateY(-50%); width:52px; height:52px; border:1px solid rgba(255,255,255,.25); border-radius:50%; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-size:30px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; }
 .lbNavV1:hover { background:rgba(255,255,255,.22) !important; }
 .lbPrevV1 { left:24px; }
@@ -654,7 +654,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   border-radius:50%; background:rgba(237,0,18,.09); color:var(--aRed); font-weight:800; font-size:13px; font-style:italic; }
 .auctionInfoV3 p { margin:0; font-size:13.5px; line-height:1.55; color:var(--aInk2); }
 .auctionInfoV3 button { flex:none; border:none; background:none !important; box-shadow:none !important; font-size:20px; line-height:1;
-  color:var(--aMuted) !important; cursor:pointer; padding:0 2px; }
+  color:var(--aMuted) !important; cursor:pointer; padding:8px 10px; margin:-8px -6px; }
 .pickPromoV3 { margin-bottom:12px; padding:14px 15px; border-radius:14px; background:#0b0d10; color:#fff; }
 .pickPromoV3 b { display:block; font-size:14.5px; font-weight:800; }
 .pickPromoV3 p { margin:6px 0 10px; font-size:12.5px; line-height:1.5; color:rgba(255,255,255,.75); }
