@@ -446,8 +446,8 @@
           <span>Пришлём варианты с ценами под ключ — обычно за 2 часа</span>
         </div>
         <div class="miniGrid">
-          <input id="leadName" placeholder="Имя" autocomplete="given-name" required>
-          <input id="leadContact" inputmode="tel" placeholder="Телефон или @username в Telegram" autocomplete="tel" required>
+          <input id="leadName" placeholder="Имя" aria-label="Ваше имя" autocomplete="given-name" required>
+          <input id="leadContact" inputmode="tel" placeholder="Телефон или @username в Telegram" aria-label="Телефон или Telegram" autocomplete="tel" required>
         </div>
         <select id="leadBudget">
           <option value="">Бюджет (необязательно)</option>
@@ -457,7 +457,7 @@
           <option value="$18 000 – $25 000">$18 000 – $25 000</option>
           <option value="от $25 000">От $25 000</option>
         </select>
-        <input id="leadCar" placeholder="Какой автомобиль ищете? Например: BMW X5, Tesla Model Y">
+        <input id="leadCar" placeholder="Какой автомобиль ищете? Например: BMW X5, Tesla Model Y" aria-label="Какой автомобиль ищете">
         <button type="submit">Получить варианты с ценами →</button>
         <div class="miniFormTrustV365">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -476,7 +476,7 @@
       </div>
 
       <form class="checkForm" id="checkForm">
-        <input id="checkLot" placeholder="VIN, номер лота или ссылка на Copart / IAAI" required>
+        <input id="checkLot" placeholder="VIN, номер лота или ссылка на Copart / IAAI" aria-label="VIN, номер лота или ссылка на лот" required>
         <button type="submit">Проверить бесплатно →</button>
         <small>Ответим в Telegram · обычно до 2 часов</small>
       </form>
