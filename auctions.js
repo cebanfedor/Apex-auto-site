@@ -1951,8 +1951,11 @@
     const box = document.getElementById("lotStatsBox");
     if(!box || !lot.makeId || !lot.modelId) return;
     try{
+      // ВАЖНО: year в API НЕ шлём. /statistics?year=X отдаёт строки только за X,
+      // и тогда клиентское «расширить окно на год-3…год» (ниже) ломается —
+      // расширять не из чего, а подпись врёт («за 2020–2023» на данных 2023).
+      // Тянем все годы модели, скоуп считаем сами.
       const params = new URLSearchParams({manufacturer_id:String(lot.makeId), model_id:String(lot.modelId)});
-      if(lot.year) params.set("year", String(lot.year));
       const r = await api(`/api/auctions?action=statistics&${params}`);
       const rows = Array.isArray(r.stats) ? r.stats : [];
       if(!rows.length) return;

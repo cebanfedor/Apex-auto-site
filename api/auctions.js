@@ -891,9 +891,10 @@ async function fetchSearch(query){
   // "all" → omit domain_id so Copart (3) + IAAI (1) come together (domain_id
   // does not accept a CSV). Encar/Korea (12) is filtered out below.
   if(!isAll) params.set("domain_id", auctionsApiDomainId(auction));
-  // Demo-mode limit: max per_page=50. Clamp to avoid 400 errors.
-  // Remove this cap if the auctionsapi.com plan is upgraded to paid.
-  const API_MAX_PER_PAGE = 50;
+  // Платный ключ: /cars отдаёт до 1000 записей на страницу (проверено live —
+  // per_page=1000 возвращает ровно 1000; демо-лимит 50 к нам не относится).
+  // Синк уже тянет 1000/стр, живой фолбэк держим таким же потолком.
+  const API_MAX_PER_PAGE = 1000;
   const requestedPerPage = safeNumber(params.get("per_page")) || 50;
   params.set("per_page", String(Math.min(requestedPerPage, API_MAX_PER_PAGE)));
   const isEncar = it => { const d = it && it.domain; const id = d && d.id; const nm = String((d && d.name) || d || "").toLowerCase(); return id === 12 || nm.includes("encar") || nm.includes("korea"); };
