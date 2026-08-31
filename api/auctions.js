@@ -928,7 +928,10 @@ async function fetchSearch(query){
     // параллельно и сортируем его целиком (в handler) — первые страницы
     // выглядят честно. Юзер-страница p = окно API-страниц (p-1)*POOL+1..p*POOL.
     const sortParam = String(query.get("sort") || "soon");
-    const POOL_SORTS = new Set(["year_desc","year_asc","mileage_asc","mileage_desc","price_asc","price_desc","buy_now_asc","buy_now_desc","date_asc","date_desc"]);
+    // Дата-сортировки НЕ пулим: POOL тянет live-API без окна «только актуальные»
+    // и подмешивает прошедшие проданные лоты, которые date_asc ставит наверх.
+    // Дата идёт через searchFromDb (окно + сортировка по всей базе).
+    const POOL_SORTS = new Set(["year_desc","year_asc","mileage_asc","mileage_desc","price_asc","price_desc","buy_now_asc","buy_now_desc"]);
     const POOL_PAGES = 5;
     const userPage = safeNumber(query.get("page")) || 1;
 
@@ -1130,7 +1133,9 @@ function sortItems(items, sort, {pastTab = false} = {}){
       .sort((a, b) => (b.s - a.s) || (a.i - b.i))
       .map(x => x.l);
   }
-  if(sort === "date_asc")     return list.sort((a, b) => (a.auctionDate || "") < (b.auctionDate || "") ? -1 : 1);
+  // «Дата 1-9» = ближайшие БУДУЩИЕ торги первыми, прошедшие/проданные в конце
+  // (как DreamBid Date 1-9). Чистое возрастание ставило бы прошедшие наверх.
+  if(sort === "date_asc")     return sortItems(list, "soon", {pastTab});
   if(sort === "date_desc")    return list.sort((a, b) => (a.auctionDate || "") > (b.auctionDate || "") ? -1 : 1);
   if(sort === "year_asc")     return list.sort((a, b) => (a.year || 0) - (b.year || 0));
   if(sort === "year_desc")    return list.sort((a, b) => (b.year || 0) - (a.year || 0));
