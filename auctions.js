@@ -1952,9 +1952,21 @@
       const r = await api(`/api/auctions?action=statistics&${params}`);
       const rows = Array.isArray(r.stats) ? r.stats : [];
       if(!rows.length) return;
+      // Скоуп: сначала точный год. Если продаж этого года мало (свежая модель),
+      // расширяем на последние 4 года — НЕ на все года модели, иначе средняя
+      // тонет в старых дешёвых лотах (Tesla 2025 усреднялась с 2020-ми).
       const yr = Number(lot.year) || null;
-      let scope = yr ? rows.filter(x => Number(x.year) === yr) : rows;
-      if(!scope.length) scope = rows;
+      const cntOf = arr => arr.reduce((s, x) => s + (Number(x.lot_count) || 0), 0);
+      let scope = rows, scopeLabel = "";
+      if(yr){
+        const exact = rows.filter(x => Number(x.year) === yr);
+        if(cntOf(exact) >= 5){ scope = exact; scopeLabel = `${L("за")} ${yr} ${L("год")}`; }
+        else {
+          const win = rows.filter(x => { const y = Number(x.year); return y && y <= yr && y >= yr - 3; });
+          if(cntOf(win) >= 3){ scope = win; scopeLabel = `${L("за")} ${yr - 3}–${yr}`; }
+          else { scope = rows; scopeLabel = ""; }
+        }
+      }
       let sumW = 0, cnt = 0, min = Infinity, max = 0;
       scope.forEach(x => {
         const c = Number(x.lot_count) || 0, avg = Number(x.avg_final_bid) || 0;
@@ -1973,7 +1985,7 @@
           ${min < Infinity && max ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money(min)} – ${money(max)}</b></div>` : ""}
           <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${cnt}</b></div>
         </div>
-        <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${yr ? ` ${L("за")} ${yr} ${L("год")}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
+        <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
       // Короткая строка рынка в сайдбаре калькулятора — как «оценочная стоимость» у DreamBid
       const marketLine = document.getElementById("lotMarketLineV1");
