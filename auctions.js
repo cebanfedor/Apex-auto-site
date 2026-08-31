@@ -763,21 +763,21 @@
   }
   function dbCondition(raw){
     const c = conditionInfo(raw);
-    return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>Состояние:</b> ${escapeHtml(c.label)}</span></li>`;
+    return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>${L("Состояние:")}</b> ${escapeHtml(L(c.label))}</span></li>`;
   }
   function dbCheckFuel(raw){
     if(!raw) return "";
     const val = ruEnum(RU_FUEL, raw);
     const low = String(raw).toLowerCase();
     const tone = /electric|электро/.test(low) ? "good" : /hybrid|гибрид|phev|plug/.test(low) ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco("fuel")}<span><b>Топливо:</b> ${escapeHtml(val)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco("fuel")}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
   }
   function dbCheckSeller(raw){
     const val = raw ? tc(raw) : "";
     const display = val || "Неизвестен";
     const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>Продавец:</b> ${escapeHtml(display)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display))}</span></li>`;
   }
   function dbCheckKey(raw){
     if(!raw) return "";
@@ -786,26 +786,26 @@
     const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>Ключ:</b> ${escapeHtml(val)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(val))}</span></li>`;
   }
   function dbCheckHistory(rawHistory, currentLot){
     // Запись текущих торгов (h.current) — не история продаж
     const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
     const count = history.length;
     if(count === 0){
-      return `<li class="dbCheck good">${dbIco("check")}<span><b>История:</b> Ранее не продавалась</span></li>`;
+      return `<li class="dbCheck good">${dbIco("check")}<span><b>${L("История:")}</b> ${L("Ранее не продавалась")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const lotNumbers = new Set(history.map(h => h.lot).filter(Boolean));
     const relisted = currentLot && lotNumbers.size > 0 && (lotNumbers.size > 1 || (lotNumbers.size === 1 && !lotNumbers.has(String(currentLot))));
     const records = count === 1 ? "1 запись" : count < 5 ? `${count} записи` : `${count} записей`;
     if(wasSold){
-      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>История:</b> ${escapeHtml(records)} • Был продан ранее!</span></li>`;
+      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${escapeHtml(records)} • ${L("Был продан ранее!")}</span></li>`;
     }
     if(relisted){
-      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>История:</b> ${escapeHtml(records)} • Переставлялся!</span></li>`;
+      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${escapeHtml(records)} • ${L("Переставлялся!")}</span></li>`;
     }
-    return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>История:</b> ${escapeHtml(records)}</span></li>`;
+    return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${escapeHtml(records)}</span></li>`;
   }
 
   function histStatusLabel(name){
@@ -884,7 +884,7 @@
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
-    const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "";
+    const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "";
     const engineLine = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
@@ -1006,7 +1006,7 @@
           if(!document.body.contains(node)) return;
           const f = forecastFromRows(rows, lot);
           if(!f) return;
-          node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}Прогноз ставки</span><b>${money(f.lo)} – ${money(f.hi)}</b>`;
+          node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Прогноз ставки")}</span><b>${money(f.lo)} – ${money(f.hi)}</b>`;
           node.hidden = false;
         });
       }));
@@ -1185,12 +1185,12 @@
     const title = lotTitle(lot);
     const price = Number(lot.currentBid || 0);
     const buyNow = Number(lot.buyNow || 0);
-    const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "";
+    const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "";
     const spec = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive)].filter(Boolean).join(" • ");
     const tl = timeLeftLabel(lot.auctionDate);
     const priceBar = price || buyNow
       ? `<span class="scPriceV1"><span>${buyNow && !price ? "Купить сейчас" : "Ставка"}</span><b>${money(price || buyNow)}</b></span>`
-      : `<span class="scPriceV1 scPriceEmptyV1"><span>Ставок пока нет</span></span>`;
+      : `<span class="scPriceV1 scPriceEmptyV1"><span>${L("Ставок пока нет")}</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
       <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
@@ -1665,8 +1665,8 @@
 
   function renderSimilarCard(lot){
     const title = lotTitle(lot);
-    const specLine = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "", upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
-    const cond = [conditionInfo(lot.condition).label, dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
+    const specLine = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "", upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    const cond = [L(conditionInfo(lot.condition).label), dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
     return `<a class="simCardV1" href="${detailHref(lot)}">
@@ -1731,7 +1731,7 @@
     // Тип топлива — сразу в спек-строке, чтобы бензин/дизель/гибрид был виден без скролла
     const fuelRu = lot.fuel ? ruEnum(RU_FUEL, lot.fuel) : "";
     const driveLine = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
-    const specLine  = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} л.с.` : "", fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    const specLine  = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "", fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
     // History summary for Главное section
     // Запись текущих торгов (h.current) — не история: впервые выставленная
