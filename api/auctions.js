@@ -1280,6 +1280,26 @@ function pgEscape(value){
   return String(value).replace(/[(),*%\\]/g, " ").trim();
 }
 
+// Справочник поколений модели (годовые диапазоны) с кэшем на 6ч — для
+// year-based фильтра поколения в searchFromDb.
+const genRangeCache = new Map();
+async function generationsFor(modelId){
+  const key = String(modelId);
+  const now = Date.now();
+  const c = genRangeCache.get(key);
+  if(c && now - c.at < 6 * 3600e3) return c.items;
+  try{
+    const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${key.replace(/[^0-9]/g, "")}`);
+    const items = (Array.isArray(list?.data) ? list.data : []).map(m => ({
+      id:m.id,
+      from:m.from_year || m.year_from || m.start_year || null,
+      to:m.to_year || m.year_to || m.end_year || null
+    }));
+    genRangeCache.set(key, {items, at:now});
+    return items;
+  }catch(e){ return c ? c.items : []; }
+}
+
 async function searchFromDb(query){
   if(!(await lotsDbReady())) return null;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
@@ -1316,7 +1336,28 @@ async function searchFromDb(query){
   const model = query.get("model");
   if(model && /^\d+$/.test(model)) p.set("model_id", `eq.${model}`);
   const generation = query.get("generation");
-  if(generation && /^\d+$/.test(generation)) p.set("generation_id", `eq.${generation}`);
+  if(generation && /^\d+$/.test(generation)){
+    // Фид часто не проставляет generation_id (null), а справочник поколений
+    // отстаёт по годам (напр. BMW G2x значится 2018–2022, хотя выпускается и
+    // в 2023+). Поэтому вместо строгого generation_id=eq.X включаем и лоты без
+    // поколения, чей год попадает в диапазон этого поколения; для новейшего
+    // поколения модели верхнюю границу открываем до текущего года — как DreamBid.
+    let genApplied = false;
+    if(model && /^\d+$/.test(model)){
+      try{
+        const gens = await generationsFor(model);
+        const g = gens.find(x => String(x.id) === String(generation));
+        if(g && g.from){
+          const newest = gens.reduce((a, b) => ((b.from || 0) > (a.from || 0) ? b : a), gens[0] || {});
+          const curYear = new Date().getFullYear() + 1;
+          const to = String(newest.id) === String(generation) ? curYear : (g.to || curYear);
+          ands.push(`or(generation_id.eq.${generation},and(generation_id.is.null,year.gte.${g.from},year.lte.${to}))`);
+          genApplied = true;
+        }
+      }catch(e){ /* fallback ниже */ }
+    }
+    if(!genApplied) p.set("generation_id", `eq.${generation}`);
+  }
 
   const numFilters = [
     ["yearFrom", "year", "gte"], ["yearTo", "year", "lte"],
