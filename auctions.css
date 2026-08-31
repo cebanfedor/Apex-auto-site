@@ -379,7 +379,12 @@
 
 /* Lot calculator — DreamBid-style, light sticky panel */
 .lotCalcV2 { position:static; background:var(--aSurf); border:1px solid var(--aLine); border-radius:18px; padding:18px; box-shadow:var(--aShadow); display:flex; flex-direction:column; gap:14px; }
-.calcTopV2 { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.calcTopV2 { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.calcLiveBadgeV1 { display:inline-flex; align-items:center; gap:7px; background:#fdecea; color:var(--aRed); border:1px solid #f5c2bb; border-radius:999px; padding:4px 11px 4px 9px; font-size:12px; font-weight:700; letter-spacing:.01em; text-transform:uppercase; }
+.calcLiveDotV1 { width:8px; height:8px; border-radius:50%; background:var(--aRed); box-shadow:0 0 0 0 rgba(237,0,18,.5); animation:calcLivePulse 1.4s infinite; flex:none; }
+@keyframes calcLivePulse { 0%{box-shadow:0 0 0 0 rgba(237,0,18,.5)} 70%{box-shadow:0 0 0 7px rgba(237,0,18,0)} 100%{box-shadow:0 0 0 0 rgba(237,0,18,0)} }
+@media (prefers-reduced-motion:reduce){ .calcLiveDotV1 { animation:none; } }
+.calcLiveNoteV1 { margin:0; font-size:12px; line-height:1.4; color:var(--aMuted); }
 .calcBidLabelV2 span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); }
 /* Проданный лот — одна карточка в рамке по центру: «Продано», цена (CAD),
    ниже эквивалент в USD для канадских машин */

@@ -1428,7 +1428,12 @@
   function renderLotCalculator(lot){
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     const initialBid = (isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0;
-    const bidLabel = isSold && effectiveFinalBid ? "Финальная цена" : "Текущая ставка";
+    // Идут ли торги прямо сейчас (аукцион начался ≤3ч назад, ещё не продан).
+    // Во время live-аукциона ставка на Copart/IAAI растёт в реальном времени,
+    // а фид отдаёт последнюю синхронизированную — честно предупреждаем клиента.
+    const [, liveTone] = dbLive(lot);
+    const isLive = !isSold && liveTone === "live";
+    const bidLabel = isSold && effectiveFinalBid ? "Финальная цена" : isLive ? "Ставка на торгах" : "Текущая ставка";
     const kind = vehicleKind(lot);
     const fuelVal = mapFuel(lot.fuel, false, lot);
     const engL = numberFromEngine(lot.engine);
@@ -1455,7 +1460,9 @@
       </div>
 ` : `
       <div class="calcTopV2">
+        ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1"></div>
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>${L("Осталось")} <b id="lotCalcCountdown">${countdown}</b> ${L("до начала торгов")}</span></div>` : ""}
