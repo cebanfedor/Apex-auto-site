@@ -3,6 +3,10 @@
   function debounce(fn, ms){
     let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
+  // Некритичную догрузку (счётчики вкладок, прогнозы ставок — до 16 XHR)
+  // откладываем на простой браузера, чтобы не конкурировать с первым экраном.
+  const idle = fn => (window.requestIdleCallback
+    ? requestIdleCallback(fn, {timeout:1500}) : setTimeout(fn, 250));
   // Discovery mode: fresh open with no URL params → default to run-and-drive + insurance shuffle
   let discoveryMode = !location.search.length;
   const INS_RE = /insurance|geico|progressive|allstate|usaa|state.?farm|farmers|nationwide|liberty.?mutual|travelers|erie|metlife|kemper|csaa/i;
@@ -1236,8 +1240,8 @@
       $("#auctionResultLabel").textContent = "лотов доступно на аукционах";
       const pg = document.getElementById("paginationV1");
       if(pg) pg.hidden = true;
-      updateCardForecasts();
-      updateTabCounts();
+      idle(updateCardForecasts);
+      idle(updateTabCounts);
       updateFavCount();
     }catch(e){ /* при сбое — обычная выдача */ discoveryMode = false; loadLots(); }
     finally{ if(reqId === state.loadSeq) state.loading = false; }
@@ -1279,8 +1283,8 @@
         : `Показано ${state.items.length} лотов`;
       renderCards();
       updateGenChips();
-      updateCardForecasts();
-      if(!append) updateTabCounts();
+      idle(updateCardForecasts);
+      if(!append) idle(updateTabCounts);
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам. Ищете конкретную машину? Введите её VIN в поиск — история продаж находится по полной базе аукционов." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
@@ -2405,11 +2409,27 @@
     });
     document.getElementById("filterStateV2")?.addEventListener("input", () => { if(stateId) stateId.value = ""; });
 
-    // Fetch dict options — silent fail; combos populate once data arrives
+    // Словари грузим ЛЕНИВО — только при первом открытии соответствующего
+    // фильтра, а не веером на старте. Раньше dict=damages тянул все страницы
+    // live-API (~6с) прямо на критическом пути каталога и тормозил первый экран.
     const country = document.querySelector('input[name="country"]:checked')?.value || "US";
-    api("/api/auctions?action=usadict&dict=damages").then(r => { damages = r.items || []; }).catch(() => {});
-    api("/api/auctions?action=usadict&dict=colors").then(r => { colors = r.items || []; }).catch(() => {});
-    api(`/api/auctions?action=usadict&dict=states&country=${country}`).then(r => { states = r.items || []; }).catch(() => {});
+    const lazyDict = (inputId, menuId, url, assign) => {
+      const input = document.getElementById(inputId);
+      const menu = document.getElementById(menuId);
+      if(!input) return;
+      let started = false;
+      input.addEventListener("focus", () => {
+        if(started) return; started = true;
+        api(url).then(r => {
+          assign(r.items || []);
+          // данные приехали позже открытия — перерисовать, если меню ещё открыто
+          if(menu && !menu.hidden) input.dispatchEvent(new Event("click"));
+        }).catch(() => {});
+      });
+    };
+    lazyDict("filterDamageV2", "damageMenuV2", "/api/auctions?action=usadict&dict=damages", v => { damages = v; });
+    lazyDict("filterColorV2",  "colorMenuV2",  "/api/auctions?action=usadict&dict=colors",  v => { colors  = v; });
+    lazyDict("filterStateV2",  "stateMenuV2",  `/api/auctions?action=usadict&dict=states&country=${country}`, v => { states = v; });
   }
 
   function bindEvents(){
