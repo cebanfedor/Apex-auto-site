@@ -117,13 +117,13 @@
           <div class="sortDropV1" id="sortDropV1">
             <button class="sortDropTrigV1" id="sortDropTrigV1" type="button">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M4 7h6M6 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <span id="sortDropLabelV1">Рекомендованные</span>
+              <span id="sortDropLabelV1">Дата аукциона 1-9</span>
               <svg class="sortDropChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <ul class="sortDropMenuV1" id="sortDropMenuV1" hidden>
-              <li class="sortOptV1 sortOptActiveV1" data-sort="smart">Рекомендованные</li>
+              <li class="sortOptV1" data-sort="smart">Рекомендованные</li>
               <li class="sortOptV1" data-sort="soon">Скоро торги</li>
-              <li class="sortOptV1" data-sort="date_asc">Дата аукциона 1-9</li>
+              <li class="sortOptV1 sortOptActiveV1" data-sort="date_asc">Дата аукциона 1-9</li>
               <li class="sortOptV1" data-sort="date_desc">Дата аукциона 9-1</li>
               <li class="sortOptV1" data-sort="year_asc">Год 1-9</li>
               <li class="sortOptV1" data-sort="year_desc">Год 9-1</li>
@@ -132,7 +132,7 @@
               <li class="sortOptV1" data-sort="buy_now_asc">Цена «Купить сейчас» 1-9</li>
               <li class="sortOptV1" data-sort="buy_now_desc">Цена «Купить сейчас» 9-1</li>
             </ul>
-            <input type="hidden" id="auctionSort" value="smart">
+            <input type="hidden" id="auctionSort" value="date_asc">
           </div>
           <button id="openFiltersBtn" class="filterDrawerBtnV1" type="button">Фильтры</button>
         </div>
@@ -418,7 +418,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v436" defer></script>
-  <script src="/auctions.js?v=auctions-v127" defer></script>
+  <script src="/auctions.js?v=auctions-v128" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

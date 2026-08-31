@@ -1165,6 +1165,20 @@ function sortItems(items, sort, {pastTab = false} = {}){
   });
 }
 
+// Топливо словом → числовой id auctionsapi (как в UI-радио).
+function normalizeFuelParam(query){
+  const raw = String(query.get("fuel") || "").trim().toLowerCase();
+  if(!raw || /^\d+$/.test(raw)) return;
+  const map = {
+    gasoline:"4", petrol:"4", gas:"4", "бензин":"4", "benzina":"4",
+    diesel:"1", "дизель":"1", "motorina":"1",
+    hybrid:"3", "гибрид":"3", "hibrid":"3",
+    electric:"2", ev:"2", "электро":"2", "электрический":"2", "electric":"2"
+  };
+  if(map[raw]) query.set("fuel", map[raw]);
+  else query.delete("fuel"); // неизвестное значение — просто игнорируем, не роняем запрос
+}
+
 async function handleLead(request, response){
   if(request.method !== "POST"){
     methodNotAllowed(response, ["POST"]);
@@ -1849,6 +1863,10 @@ module.exports = async function handler(request, response){
     }
 
     if(action === "search"){
+      // Топливо словом (старые/ручные ссылки: fuel=hybrid) → числовой id, как
+      // шлёт UI. Иначе строка не проходит DB-фильтр (только числа) и запрос
+      // валится на live-фоллбэк с ошибкой.
+      normalizeFuelParam(query);
       // Локальная база (DreamBid-модель) — честная сортировка/фильтры по всему
       // каталогу; live-запрос к API остаётся фоллбеком, пока база не готова.
       let result = null;
