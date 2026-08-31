@@ -413,9 +413,12 @@
   <script src="/locations.js" defer></script>
   <script src="/calc-core.js?v=core-v2" defer></script>
   <script src="/car-data.js?v=cars-v4" defer></script>
+  <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
+       (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
+       иначе детали лота рендерятся по-русски до перевода. -->
+  <script src="/i18n.js?v=multilang-v432" defer></script>
   <script src="/auctions.js?v=auctions-v124" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
-  <script src="/i18n.js?v=multilang-v432" defer></script>
 
 <!-- Exit-intent popup -->
 <div id="exitPopupV401" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);">
