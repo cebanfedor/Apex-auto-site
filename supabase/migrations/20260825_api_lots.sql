@@ -52,6 +52,8 @@ create index if not exists idx_api_lots_synced  on public.api_lots (synced_at);
 -- на слабом compute → таймаут → circuit breaker отключал базу. С ними ~70мс.
 create index if not exists idx_lots_mkmd_sale_act on public.api_lots (make_id, model_id, sale_date, id) where archived = false;
 create index if not exists idx_lots_mk_sale_act   on public.api_lots (make_id, sale_date, id) where archived = false;
+-- Дефолтная выдача каталога (без фильтра марки) — сортировка активных по дате.
+create index if not exists idx_lots_sale_act_only on public.api_lots (sale_date, id) where archived = false;
 
 -- RLS: доступ только по service_role ключу (в браузер не попадает).
 alter table public.api_lots enable row level security;
