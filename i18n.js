@@ -122,6 +122,21 @@
       "Завтра":"Mâine",
       "Экспорт-документы":"Acte de export",
       "Страховка (1%)":"Asigurare (1%)",
+      "Итого под ключ до Кишинёва":"Total la cheie până la Chișinău",
+      "Открыть в полном калькуляторе":"Deschide în calculatorul complet",
+      "Оставить заявку":"Lasă o cerere",
+      "Диапазон":"Interval",
+      "Анализ лотов":"Loturi analizate",
+      "Страховая компания":"Companie de asigurări",
+      "Рынок":"Piață",
+      "средняя":"medie",
+      "По данным проданных лотов Copart и IAAI":"Pe baza loturilor vândute Copart și IAAI",
+      "за":"pentru",
+      "год":"anul",
+      "Помогает оценить адекватную ставку.":"Ajută să estimezi o ofertă corectă.",
+      "л":"l",
+      "миль":"mile",
+      "км":"km",
       "Оценка ремонта":"Cost estimat de reparație",
       "Подушки безопасности":"Airbaguri",
       "Целы":"Intacte",
@@ -1038,6 +1053,21 @@
       "Завтра":"Tomorrow",
       "Экспорт-документы":"Export documents",
       "Страховка (1%)":"Insurance (1%)",
+      "Итого под ключ до Кишинёва":"Turnkey total to Chișinău",
+      "Открыть в полном калькуляторе":"Open in full calculator",
+      "Оставить заявку":"Submit a request",
+      "Диапазон":"Range",
+      "Анализ лотов":"Lots analyzed",
+      "Страховая компания":"Insurance company",
+      "Рынок":"Market",
+      "средняя":"avg",
+      "По данным проданных лотов Copart и IAAI":"Based on sold Copart and IAAI lots",
+      "за":"for",
+      "год":"",
+      "Помогает оценить адекватную ставку.":"Helps gauge a fair bid.",
+      "л":"L",
+      "миль":"mi",
+      "км":"km",
       "Оценка ремонта":"Estimated repair cost",
       "Подушки безопасности":"Airbags",
       "Целы":"Intact",
@@ -2087,6 +2117,11 @@
 
   let currentLang = getLang();
   window.APEX_LANG = currentLang;
+  // Синхронный перевод строки в текущий язык — для динамического контента
+  // (калькулятор лота, карточки), который строится в JS уже после apply().
+  // Без него такой текст переводится только асинхронным наблюдателем — отсюда
+  // мигание русского текста на доли секунды при каждом ререндере.
+  window.i18nT = function(text){ try { return translateText(text, currentLang); } catch(e){ return text; } };
 
   document.addEventListener("DOMContentLoaded", () => {
     apply(currentLang);

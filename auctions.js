@@ -444,7 +444,11 @@
   // (сырое поле API у них бывает битым, вплоть до городов США)
   function lotLocationText(lot){
     const ca = findCanadaLocation(lot);
-    if(ca && ca.name) return `${String(ca.name).replace(/^(Copart|IAA[AI]?)\s*/i, "")} · Канада`.replace(/^Канада \((\w+)\) · Канада$/, "Канада ($1)");
+    if(ca && ca.name){
+      const raw = `${String(ca.name).replace(/^(Copart|IAA[AI]?)\s*/i, "")} · Канада`.replace(/^Канада \((\w+)\) · Канада$/, "Канада ($1)");
+      // Переводим только слово «Канада», сам город оставляем как есть.
+      return raw.replace(/Канада/g, L("Канада"));
+    }
     const matched = findLotLocation(lot);
     const label = matched ? String(matched.displayName || matched.location || "").split("→")[0].trim() : "";
     return label || tc(lot.location);
@@ -691,10 +695,10 @@
     const num = Number(String(text).replace(/[^\d.]/g, ""));
     if(!num) return escapeHtml(text);
     // «1 mi» — заглушка аукциона, а не реальный пробег
-    if(num <= 5) return "Пробег не указан";
+    if(num <= 5) return L("Пробег не указан");
     const fmt = v => Math.round(v).toLocaleString("ru-RU");
-    if(/mi/i.test(text)) return `${fmt(num)} миль ≈ ${fmt(num * 1.609)} км`;
-    return `${fmt(num)} км`;
+    if(/mi/i.test(text)) return `${fmt(num)} ${L("миль")} ≈ ${fmt(num * 1.609)} ${L("км")}`;
+    return `${fmt(num)} ${L("км")}`;
   }
   // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){
@@ -837,7 +841,7 @@
     }).join("");
     const range = bids.length ? `${fmt(min)} – ${fmt(hi)}` : "";
     return `<section class="dSec">
-      <div class="dSecHead">История цены <span class="histCountV1">${history.length} ${plural(history.length, "запись", "записи", "записей")}${range ? ` · ${escapeHtml(range)}` : ""}</span></div>
+      <div class="dSecHead">${L("История цены")} <span class="histCountV1">${history.length} ${recordsWord(history.length)}${range ? ` · ${escapeHtml(range)}` : ""}</span></div>
       <div class="histListV1">${rows}</div>
     </section>`;
   }
@@ -1352,8 +1356,28 @@
     return `${mdl} MDL · €${eurV}`;
   }
 
+  // Синхронный перевод строки в текущий язык (i18n.js экспортит window.i18nT).
+  // Динамический контент (калькулятор, детали лота) строится в JS после apply(),
+  // поэтому переводим прямо при сборке — иначе строка мигает по-русски, пока её
+  // не догонит асинхронный наблюдатель i18n.
+  function L(s){ try{ return window.i18nT ? window.i18nT(s) : s; }catch(e){ return s; } }
+  // Плюрализация «продаж» с учётом языка.
+  function salesWord(n){
+    const lang = window.APEX_LANG || "ru";
+    if(lang === "ro") return n === 1 ? "vânzare" : "vânzări";
+    if(lang === "en") return n === 1 ? "sale" : "sales";
+    return plural(n, "продажа", "продажи", "продаж");
+  }
+  // Плюрализация «записей» (история цены) с учётом языка.
+  function recordsWord(n){
+    const lang = window.APEX_LANG || "ru";
+    if(lang === "ro") return n === 1 ? "înregistrare" : "înregistrări";
+    if(lang === "en") return n === 1 ? "record" : "records";
+    return plural(n, "запись", "записи", "записей");
+  }
+
   function calcRow(label, value, sub){
-    return `<div class="calcRowV2"><span>${escapeHtml(label)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span><b>${money(value)}</b></div>`;
+    return `<div class="calcRowV2"><span>${escapeHtml(L(label))}${sub ? `<small>${escapeHtml(L(sub))}</small>` : ""}</span><b>${money(value)}</b></div>`;
   }
 
   // Свёрнутые секции калькулятора переживают перерисовку при изменении инпутов
@@ -1363,7 +1387,7 @@
     return `
       <section class="calcSecV2${closed ? " calcClosedV1" : ""}" data-calc-sec="${key}">
         <div class="calcSecHeadV2" role="button" tabindex="0" data-calc-toggle="${key}">
-          <span><svg class="calcChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg>${title}</span>
+          <span><svg class="calcChevV1" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg>${escapeHtml(L(title))}</span>
         </div>
         ${rowsHtml}
       </section>`;
@@ -1425,19 +1449,19 @@
     return `<aside class="lotCalcV2">
       ${isSold && effectiveFinalBid ? `
       <div class="calcSoldCardV1">
-        <span>Продано</span>
+        <span>${L("Продано")}</span>
         <b>${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
       </div>
 ` : `
       <div class="calcTopV2">
-        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${bidLabel}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
       </div>`}
       <div id="lotMarketLineV1" class="calcMarketV1"></div>
-      ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>Осталось <b id="lotCalcCountdown">${countdown}</b> до начала торгов</span></div>` : ""}
-      ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>Купить сейчас</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
-      ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>` : ""}
-      ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}Торги завершены</div>` : ""}
+      ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>${L("Осталось")} <b id="lotCalcCountdown">${countdown}</b> ${L("до начала торгов")}</span></div>` : ""}
+      ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
+      ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
+      ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}${L("Торги завершены")}</div>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-500" aria-label="Уменьшить ставку">−</button>
@@ -1465,7 +1489,7 @@
           <label class="calcOptColV1">
             <span>Объём двигателя</span>
             <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
-              ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} л</option>`).join("")}
+              ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} ${L("л")}</option>`).join("")}
             </select>
           </label>
         </div>
@@ -1476,7 +1500,7 @@
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
       <div class="calcGrandV2">
-        <span>Итого под ключ до Кишинёва</span>
+        <span>${L("Итого под ключ до Кишинёва")}</span>
         <b id="lotCalcTotal">${money(calc.total)}</b>
         <small id="lotCalcTotalAlt">${altCurrency(calc)}</small>
       </div>
@@ -1484,13 +1508,13 @@
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
         <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
       </div>
-      ${(() => { const dw = deliveryWindow(lot); return `<div class="calcEtaV1">${dbIco("calendar")}<span class="calcEtaLinesV1"><span>Доставка <b>${dw.days}</b> дней</span><span>Выдача в Кишинёве: <b>${dw.label}</b></span></span></div>`; })()}
+      ${(() => { const dw = deliveryWindow(lot); return `<div class="calcEtaV1">${dbIco("calendar")}<span class="calcEtaLinesV1"><span>${L("Доставка")} <b>${dw.days}</b> ${L("дней")}</span><span>${L("Выдача в Кишинёве:")} <b>${dw.label}</b></span></span></div>`; })()}
       <div class="calcCtasV2">
-        <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">Оставить заявку</button>
-        <button class="dbBtnGhost" type="button" data-copy-calc>Скопировать расчёт</button>
-        <a class="dbBtnGhost" href="${calcHref(lot)}">Открыть в полном калькуляторе</a>
+        <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>
+        <button class="dbBtnGhost" type="button" data-copy-calc>${L("Скопировать расчёт")}</button>
+        <a class="dbBtnGhost" href="${calcHref(lot)}">${L("Открыть в полном калькуляторе")}</a>
       </div>
-      <p class="calcNoteV2">Расчёт предварительный, для ориентира. Итоговую сумму подтверждаем перед покупкой. Курсы валют — по данным НБМ (bnm.md).</p>
+      <p class="calcNoteV2">${L("Расчёт предварительный, для ориентира. Итоговую сумму подтверждаем перед покупкой. Курсы валют — по данным НБМ (bnm.md).")}</p>
     </aside>`;
   }
 
@@ -1562,12 +1586,12 @@
     if(value == null || value === "") return "";
     const t = statusTone(value) || "neutral";
     const ic = iconOverride || (t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q");
-    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal dTone-${t}"><span class="dValUnit">${dbIco(ic)}<span>${escapeHtml(value)}</span></span></span></div>`;
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(L(label))}</span><span class="dRowVal dTone-${t}"><span class="dValUnit">${dbIco(ic)}<span>${escapeHtml(L(value))}</span></span></span></div>`;
   }
   function dPlain(label, valueHtml, iconName, tone){
     if(valueHtml == null || valueHtml === "") return "";
     const inner = iconName ? `<span class="dValUnit">${dbIco(iconName)}<span>${valueHtml}</span></span>` : valueHtml;
-    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(label)}</span><span class="dRowVal${tone ? ` dTone-${tone}` : ""}">${inner}</span></div>`;
+    return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(L(label))}</span><span class="dRowVal${tone ? ` dTone-${tone}` : ""}">${inner}</span></div>`;
   }
 
   const lb = {images:[], index:0};
@@ -1715,19 +1739,19 @@
     const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : []).filter(h => !h.current);
     const histCount = pastHistory.length;
     const wasSoldBefore = histCount > 0 && pastHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
-    const histStr = histCount === 0 ? "Ранее не продавалась" : wasSoldBefore ? "Был продан ранее" : `${histCount} ${plural(histCount, "запись", "записи", "записей")}`;
+    const histStr = histCount === 0 ? L("Ранее не продавалась") : wasSoldBefore ? L("Был продан ранее") : `${histCount} ${recordsWord(histCount)}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
     // Первичен seller_type из API (mapfre и др. по имени не распознать).
     const sellerTypeRaw = String(lot.sellerType || "").toLowerCase();
     const isIns = /insurance/.test(sellerTypeRaw)
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
-    const sellerTypeLabel = isIns ? "Страховая"
+    const sellerTypeLabel = L(isIns ? "Страховая"
       : /financ|credit|bank/.test(sellerTypeRaw) ? "Банк / кредитная"
       : /fleet|lease|rental/.test(sellerTypeRaw) ? "Автопарк / лизинг"
       : /dealer/.test(sellerTypeRaw) ? "Дилер"
-      : "Дилер / банк";
-    const sellerName = tc(String(lot.seller || "")).replace(/\s*·\s*Страховая\s*$/i, "");
+      : "Дилер / банк");
+    const sellerName = L(tc(String(lot.seller || "")).replace(/\s*·\s*Страховая\s*$/i, ""));
     $("#auctionCatalog").hidden = true;
     const detail = $("#auctionDetail");
     detail.hidden = false;
@@ -1775,9 +1799,9 @@
           </div>
           <div class="lotDetailCenterV1">
             <section class="dSec">
-              <div class="dSecHead">Главное</div>
+              <div class="dSecHead">${L("Главное")}</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
-              ${lot.seller ? dMain("Продавец", isIns ? `Страховая · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
+              ${lot.seller ? dMain("Продавец", isIns ? `${L("Страховая")} · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
               ${(() => {
                 const k = String(lot.keys || "").trim();
                 if(!k) return "";
@@ -1801,11 +1825,11 @@
               ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
               ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
-              ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">Отчет VIN</a>`, "gem") : ""}
+              ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
-            <div class="dRecoV2">${dbIco("check")}<div><b>Apex Auto рекомендует</b><p>Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.</p></div></div>
+            <div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>
             <section class="dSec">
-              <div class="dSecHead">Аукцион</div>
+              <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus) + (lot.timed && !lotSaleState(lot).finalBid ? ` <i class="dTimedHintV1">не продан на timed — выйдет на live-торги</i>` : "")) : ""}
@@ -1817,7 +1841,7 @@
               ${lot.repairCost ? dPlain("Оценка ремонта", money(lot.repairCost)) : ""}
             </section>
             <section class="dSec">
-              <div class="dSecHead">Описание</div>
+              <div class="dSecHead">${L("Описание")}</div>
               ${dPlain("Тип топлива", escapeHtml(ruEnum(RU_FUEL, lot.fuel)))}
               ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
@@ -1825,7 +1849,7 @@
               ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целы" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
-              ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>Смотреть видео</button>`) : ""}
+              ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot))}
             <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
@@ -1936,18 +1960,18 @@
       const avg = Math.round(sumW / cnt);
       const title = [yr, lot.make, lot.model].filter(Boolean).join(" ");
       box.innerHTML = `
-        <div class="dSecHead">Рыночная статистика <span class="histCountV1">${escapeHtml(title)} · ${cnt} ${plural(cnt, "продажа", "продажи", "продаж")}</span></div>
+        <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${cnt} ${salesWord(cnt)}</span></div>
         <div class="statGridV1">
-          <div class="statCellV1"><span>Средняя цена продажи</span><b>${money(avg)}</b></div>
-          ${min < Infinity && max ? `<div class="statCellV1"><span>Диапазон</span><b>${money(min)} – ${money(max)}</b></div>` : ""}
-          <div class="statCellV1"><span>Анализ лотов</span><b>${cnt}</b></div>
+          <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money(avg)}</b></div>
+          ${min < Infinity && max ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money(min)} – ${money(max)}</b></div>` : ""}
+          <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${cnt}</b></div>
         </div>
-        <p class="statNoteV1">По данным проданных лотов Copart и IAAI${yr ? ` за ${yr} год` : ""}. Помогает оценить адекватную ставку.</p>`;
+        <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${yr ? ` ${L("за")} ${yr} ${L("год")}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
       // Короткая строка рынка в сайдбаре калькулятора — как «оценочная стоимость» у DreamBid
       const marketLine = document.getElementById("lotMarketLineV1");
       if(marketLine){
-        marketLine.innerHTML = `${dbIco("chart")}<span>Рынок: средняя ${money(avg)} · ${cnt} ${plural(cnt, "продажа", "продажи", "продаж")}</span>`;
+        marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(avg)} · ${cnt} ${salesWord(cnt)}</span>`;
       }
     }catch(e){ /* stats optional — ignore */ }
   }
