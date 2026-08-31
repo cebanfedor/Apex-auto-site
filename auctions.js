@@ -1115,7 +1115,7 @@
     box.innerHTML = pageItems.map(renderCard).join("");
     if(sale){
       setResultNum("");
-      $("#auctionResultLabel").textContent = `показано ${filtered.length} (фильтр статуса продажи)`;
+      $("#auctionResultLabel").textContent = `${L("Показано")} ${filtered.length} (${L("фильтр статуса продажи")})`;
     }
     renderPagination();
   }
@@ -1197,7 +1197,7 @@
     const spec = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive)].filter(Boolean).join(" • ");
     const tl = timeLeftLabel(lot.auctionDate);
     const priceBar = price || buyNow
-      ? `<span class="scPriceV1"><span>${buyNow && !price ? "Купить сейчас" : "Ставка"}</span><b>${money(price || buyNow)}</b></span>`
+      ? `<span class="scPriceV1"><span>${buyNow && !price ? L("Купить сейчас") : L("Ставка")}</span><b>${money(price || buyNow)}</b></span>`
       : `<span class="scPriceV1 scPriceEmptyV1"><span>${L("Ставок пока нет")}</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
       <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
@@ -1280,7 +1280,7 @@
       setResultNum(state.total ? state.total.toLocaleString("ru-RU") : "");
       $("#auctionResultLabel").textContent = state.total
         ? (discoveryMode ? "лотов доступно на аукционах" : archived ? "лотов в архиве" : "лотов найдено")
-        : `Показано ${state.items.length} лотов`;
+        : `${L("Показано")} ${state.items.length} ${L("лотов")}`;
       renderCards();
       updateGenChips();
       idle(updateCardForecasts);
