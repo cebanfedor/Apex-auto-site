@@ -46,6 +46,13 @@ create index if not exists idx_api_lots_lot     on public.api_lots (lot);
 create index if not exists idx_api_lots_status  on public.api_lots (status_id);
 create index if not exists idx_api_lots_synced  on public.api_lots (synced_at);
 
+-- Составные индексы под каталог: фильтр по марке/модели + сортировка по дате
+-- одним индексом (фильтрация И сортировка без чтения кучи всех строк).
+-- Без них запрос «BMW 3 Series по дате» читал ~1000 строк из кучи и шёл 4–10с
+-- на слабом compute → таймаут → circuit breaker отключал базу. С ними ~70мс.
+create index if not exists idx_lots_mkmd_sale_act on public.api_lots (make_id, model_id, sale_date, id) where archived = false;
+create index if not exists idx_lots_mk_sale_act   on public.api_lots (make_id, sale_date, id) where archived = false;
+
 -- RLS: доступ только по service_role ключу (в браузер не попадает).
 alter table public.api_lots enable row level security;
 

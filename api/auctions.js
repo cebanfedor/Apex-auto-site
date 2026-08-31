@@ -1547,6 +1547,12 @@ function syncRowFromItem(item, {archived = false} = {}){
   const saleDateRaw = lot?.sale_date || lot?.auction_date || null;
   const saleDate = saleDateRaw && !Number.isNaN(new Date(saleDateRaw).getTime()) ? new Date(saleDateRaw).toISOString() : null;
   const statusId = normalized.statusId != null ? normalized.statusId : enumId(lot?.status);
+  // Лот с будущей датой торгов и не проданный — НИКОГДА не архивный, даже если
+  // фид или архивный синк говорят archived=true (фид иногда так помечает
+  // переставленные/переоткрытые лоты). Иначе живые лоты пропадают из каталога.
+  const isFutureSale = saleDate && Date.parse(saleDate) > Date.now();
+  const isSold = statusId === 6 || statusId === 8;
+  const isArchived = isSold || ((archived || lot?.archived === true) && !isFutureSale);
   return {
     id:normalized.id,
     auction,
@@ -1575,7 +1581,7 @@ function syncRowFromItem(item, {archived = false} = {}){
     final_bid:num(normalized.finalBid) || 0,
     sale_date:saleDate,
     status_id:statusId != null && Number.isFinite(Number(statusId)) ? Number(statusId) : null,
-    archived:archived || statusId === 6 || statusId === 8 || lot?.archived === true,
+    archived:isArchived,
     payload:normalized,
     synced_at:new Date().toISOString()
   };
