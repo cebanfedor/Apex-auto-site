@@ -44,6 +44,8 @@ async function notifyTelegram(data){
   if(data.lot) lines.push(`📋 *Лот:* ${data.lot}`);
   if(data.vin) lines.push(`🔑 *VIN:* ${data.vin}`);
   if(data.auction) lines.push(`🏷 *Аукцион:* ${data.auction.toUpperCase()}`);
+  // Прямая ссылка на лот — менеджер открывает машину одним кликом, без поиска.
+  if(data.lotUrl) lines.push(`🔗 ${data.lotUrl}`);
   try{
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method:"POST",
@@ -1199,6 +1201,9 @@ async function handleLead(request, response){
     const vin = String(body.vin || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 17);
     const lot = String(body.lot || "").replace(/[^A-Za-z0-9_~-]/g, "").slice(0, 30);
     const auction = String(body.auction || "").replace(/[^a-zA-Z]/g, "").toLowerCase().slice(0, 10);
+    // Прямая ссылка на лот на сайте — в заявку и в Telegram, чтобы менеджер
+    // открывал нужную машину одним кликом.
+    const lotUrl = (auction && lot) ? `https://apexauto.md/auctions/${auction}-${lot.replace(/~.*/, "")}` : "";
 
     const lead = await supabase.create("leads", {
       customer_id:customer?.id || null,
@@ -1207,13 +1212,14 @@ async function handleLead(request, response){
         comment,
         vin ? `VIN: ${vin}` : "",
         lot ? `LOT: ${lot}` : "",
-        auction ? `Аукцион: ${auction.toUpperCase()}` : ""
+        auction ? `Аукцион: ${auction.toUpperCase()}` : "",
+        lotUrl ? `Ссылка: ${lotUrl}` : ""
       ].filter(Boolean).join("\n"),
       status:"Новый",
       source:"Аукционы"
     });
 
-    notifyTelegram({name, phone, comment, lot, vin, auction}).catch(() => {});
+    notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => {});
     sendJson(response, 200, {ok:true,customer,lead});
   }catch(error){
     sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});

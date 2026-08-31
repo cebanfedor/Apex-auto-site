@@ -2186,7 +2186,16 @@
     form.vin.value = lot.vin || "";
     form.lot.value = lot.lot || "";
     form.auction.value = lot.auction?.toUpperCase() || "";
-    $("#leadFormStatus").textContent = "";
+    // Показать клиенту, по какой именно машине он оставляет заявку.
+    const titleEl = document.getElementById("leadCarTitle");
+    if(titleEl){
+      const t = lotTitle(lot);
+      titleEl.textContent = t || "";
+      titleEl.hidden = !t;
+    }
+    const status = $("#leadFormStatus");
+    status.textContent = "";
+    status.className = "";
     modal.hidden = false;
     document.body.classList.add("leadModalOpenV1");
   }
@@ -2200,16 +2209,26 @@
   async function submitLead(event){
     event.preventDefault();
     const form = event.currentTarget;
+    const btn = form.querySelector('button[type="submit"]');
     const data = Object.fromEntries(new FormData(form).entries());
-    $("#leadFormStatus").textContent = "Отправляем заявку...";
+    const status = $("#leadFormStatus");
+    status.className = "";
+    status.textContent = L("Отправляем заявку...");
+    if(btn) btn.disabled = true; // защита от двойной отправки
     try{
       await api("/api/auctions?action=lead", {method:"POST", body:data});
-      $("#leadFormStatus").textContent = "Заявка отправлена. Мы свяжемся с вами.";
+      status.className = "leadOkV1";
+      status.textContent = L("Заявка отправлена. Мы свяжемся с вами.");
       form.name.value = "";
       form.phone.value = "";
       form.comment.value = "";
+      // Автозакрытие после подтверждения — клиенту не нужно жать «×».
+      setTimeout(() => { closeLead(); status.textContent = ""; status.className = ""; }, 2200);
     }catch(error){
-      $("#leadFormStatus").textContent = error.message;
+      status.className = "leadErrV1";
+      status.textContent = L(error.message) || L("Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.");
+    }finally{
+      if(btn) btn.disabled = false;
     }
   }
 

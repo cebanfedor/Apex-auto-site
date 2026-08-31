@@ -566,7 +566,11 @@ body.leadModalOpenV1 { overflow:hidden; }
 .modalCloseV1 { position:absolute; top:14px; right:14px; width:34px; height:34px; border:none; background:var(--aSoft); border-radius:9px; font-size:20px; color:var(--aMuted); cursor:pointer; }
 .auctionLeadFormV1 button[type="submit"] { height:48px; border:none; border-radius:12px; background:var(--aRed); color:#fff; font-weight:600; cursor:pointer; }
 .auctionLeadFormV1 button[type="submit"]:hover { background:var(--aRed600); }
-#leadFormStatus { font-size:13px; color:var(--aMuted); text-align:center; }
+#leadFormStatus { font-size:13px; color:var(--aMuted); text-align:center; min-height:16px; }
+#leadFormStatus.leadOkV1 { color:#1c7f52; font-weight:600; }
+#leadFormStatus.leadErrV1 { color:var(--aRed); font-weight:600; }
+.leadCarV1 { margin:-4px 0 2px; font-size:14px; font-weight:700; color:var(--aInk); }
+.auctionLeadFormV1 button[type="submit"]:disabled { opacity:.6; cursor:progress; }
 
 /* Responsive */
 @media (max-width:1100px) {
