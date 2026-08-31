@@ -888,9 +888,13 @@
     const engineLine = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
-    const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow);
+    // Во вкладке «Купить сейчас» (и когда реальной ставки нет) показываем цену
+    // выкупа, а не номинальную стартовую ставку ($25/$50) — иначе Buy Now лоты
+    // выглядят копеечными, хотя выкуп стоит тысячи.
+    const showBuyNow = !isSold && Number(lot.buyNow) > 0 && (state.tab === "buy_now" || !Number(lot.currentBid));
+    const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow));
     const priceLabel = isSold && effectiveFinalBid ? "Финальная цена"
-      : (!Number(lot.currentBid) && Number(lot.buyNow) ? "Купить сейчас" : "Текущая цена");
+      : showBuyNow ? "Купить сейчас" : "Текущая цена";
     // Канадские площадки торгуют в CAD
     const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
     const photos = lot.photoCount || lot.images?.length || 1;
