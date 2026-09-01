@@ -831,6 +831,16 @@
       "Chisinau":                   '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
     };
 
+    // Экранирование: данные приходят из api/w8-tracking.js, который парсит
+    // стороннюю RSC-разметку w8shipping.ua. Без esc() HTML в этих полях (или в
+    // URL фото) исполнился бы у пользователя (DOM XSS). Годится для текста и для
+    // значений в двойных кавычках (src/href).
+    function esc(s){
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+        return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+      });
+    }
+
     function fmtDate(iso) {
       if (!iso) return "";
       const d = new Date(iso + "T00:00:00");
@@ -900,7 +910,7 @@
       const stagesHtml = stages.map(s => `
         <div class="${stageClass(s.status)}">
           <div class="trackStageDotV401">${stageIcon(s.title, s.status)}</div>
-          <div class="trackStageNameV401">${STAGE_LABELS[s.title] || s.title}</div>
+          <div class="trackStageNameV401">${esc(STAGE_LABELS[s.title] || s.title)}</div>
           <div class="trackStageDateV401">${s.date ? fmtDate(s.date) : "—"}</div>
         </div>
       `).join("");
@@ -912,7 +922,7 @@
           <div class="trackLogLineV401"></div>
           <div class="${logDotClass(s.status)}"></div>
           <div class="trackLogBodyV401">
-            <div class="trackLogEventV401">${STAGE_LABELS[s.title] || s.title}</div>
+            <div class="trackLogEventV401">${esc(STAGE_LABELS[s.title] || s.title)}</div>
           </div>
           <div class="trackLogDateV401">${fmtDate(s.date)}</div>
         </div>
@@ -921,13 +931,13 @@
       return `
         <div class="trackVehCardV401">
           <div class="trackVehStatusV401">${statusLabel}</div>
-          <div class="trackVehNameV401">${d.vehicle || "Автомобиль"}</div>
+          <div class="trackVehNameV401">${esc(d.vehicle || "Автомобиль")}</div>
           <div class="trackVehMetaV401">
-            ${d.lotNumber ? `<span>Лот: <strong>${d.lotNumber}</strong></span>` : ""}
-            ${d.auction   ? `<span>Аукцион: <strong>${d.auction.toUpperCase()}</strong></span>` : ""}
-            ${d.city      ? `<span>Локация: <strong>${d.city}</strong></span>` : ""}
+            ${d.lotNumber ? `<span>Лот: <strong>${esc(d.lotNumber)}</strong></span>` : ""}
+            ${d.auction   ? `<span>Аукцион: <strong>${esc(String(d.auction).toUpperCase())}</strong></span>` : ""}
+            ${d.city      ? `<span>Локация: <strong>${esc(d.city)}</strong></span>` : ""}
           </div>
-          ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${d.vin}</b></div>` : ""}
+          ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${esc(d.vin)}</b></div>` : ""}
           ${(d.titleStatus || d.keys) ? `
           <div class="trackDocsV401">
             ${d.titleStatus === "yes" ? `
@@ -959,10 +969,10 @@
             const first = cats[0];
             const total = first.photos.length;
             const tabs = cats.map((c, i) =>
-              `<button class="trackPhotoTabV401${i === 0 ? " isActiveV401" : ""}" data-cat-idx="${i}">${c.label} <span class="tabCountV401">${c.photos.length}</span></button>`
+              `<button class="trackPhotoTabV401${i === 0 ? " isActiveV401" : ""}" data-cat-idx="${i}">${esc(c.label)} <span class="tabCountV401">${c.photos.length}</span></button>`
             ).join("");
             const thumbs = first.photos.map((url, i) =>
-              `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${url}" data-idx="${i}" data-total="${total}"><img src="${url}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`
+              `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${total}"><img src="${esc(url)}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`
             ).join("");
             return `
         <div class="trackPhotosCardV401">
@@ -970,8 +980,8 @@
           <div class="trackPhotoTabsV401">${tabs}</div>
           <div class="trackGalleryWrapV401">
             <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
-            <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${first.photos[0]}" target="_blank" rel="noopener">
-              <img id="trackGalleryImgV401" src="${first.photos[0]}" alt="Фото автомобиля">
+            <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${esc(first.photos[0])}" target="_blank" rel="noopener">
+              <img id="trackGalleryImgV401" src="${esc(first.photos[0])}" alt="Фото автомобиля">
               <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
             </a>
             <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${total <= 1 ? " disabled" : ""}>&#8250;</button>
@@ -983,14 +993,14 @@
           <div class="trackCardTitleV401">Фото <span class="trackPhotoCountV401">1 / ${d.photos.length}</span></div>
           <div class="trackGalleryWrapV401">
             <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
-            <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${d.photos[0]}" target="_blank" rel="noopener">
-              <img id="trackGalleryImgV401" src="${d.photos[0]}" alt="Фото автомобиля">
+            <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${esc(d.photos[0])}" target="_blank" rel="noopener">
+              <img id="trackGalleryImgV401" src="${esc(d.photos[0])}" alt="Фото автомобиля">
               <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
             </a>
             <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${d.photos.length <= 1 ? " disabled" : ""}>&#8250;</button>
           </div>
           <div class="trackGalleryThumbsV401">
-            ${d.photos.map((url, i) => `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${url}" data-idx="${i}" data-total="${d.photos.length}"><img src="${url}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`).join("")}
+            ${d.photos.map((url, i) => `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${d.photos.length}"><img src="${esc(url)}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`).join("")}
           </div>
         </div>` : ""}
 
@@ -1006,7 +1016,7 @@
           </div>
           ${d.container?.number ? `
           <div class="trackEtaNoteV401">
-            Контейнер<br><strong>${d.container.number}</strong>
+            Контейнер<br><strong>${esc(d.container.number)}</strong>
           </div>` : ""}
         </div>` : ""}
 

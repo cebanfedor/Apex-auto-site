@@ -1,6 +1,16 @@
 (function(){
   "use strict";
 
+  // Экранирование: данные лота приходят из стороннего auction API и из
+  // vehicles.description (редактируется в админке) — без esc() HTML/<img onerror>
+  // в этих полях исполнился бы у посетителя (DOM XSS). Работает и для текста,
+  // и для значений в двойных кавычках (src/href/alt).
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
   /* ── Part 1: Admin curated lots (hotLiveSectionV349) ── */
   var liveGrid = document.getElementById("hotLiveGridV349");
   var liveSection = document.getElementById("hotLiveSectionV349");
@@ -13,19 +23,19 @@
       var buyNow = lot.buyNow > 0 ? fmtC(lot.buyNow) : "";
       var badge = lot.auction === "iaai" ? "IAAI" : "Copart";
       var badgeCls = lot.auction === "iaai" ? "hotLiveBadgeIAAIV349" : "hotLiveBadgeCopartV349";
-      var imgSrc = lot.image || (lot.images && lot.images[0]) || "";
+      var imgSrc = esc(lot.image || (lot.images && lot.images[0]) || "");
       var isExt = !lot.detailPath;
-      var href = lot.detailPath || lot.lotUrl || "#";
+      var href = esc(lot.detailPath || lot.lotUrl || "#");
       var extAttr = isExt ? ' target="_blank" rel="noopener"' : "";
-      var title = lot.title || "";
+      var title = esc(lot.title || "");
       var imgHtml = imgSrc
         ? '<a href="' + href + '"' + extAttr + '><img class="hotLiveImgV349" src="' + imgSrc + '" alt="' + title + '" loading="lazy"></a>'
         : '<div class="hotLiveImgV349 hotLiveImgEmptyV349"></div>';
-      var fuel = lot.fuel ? '<span class="hotLiveFuelV349">' + lot.fuel + '</span>' : "";
+      var fuel = lot.fuel ? '<span class="hotLiveFuelV349">' + esc(lot.fuel) + '</span>' : "";
       var metaHtml = (lot.odometerText || lot.damage)
         ? '<div class="hotLiveDetailsRowV349">'
-            + (lot.odometerText ? '<span>' + lot.odometerText + '</span>' : "")
-            + (lot.damage ? '<span>' + lot.damage + '</span>' : "")
+            + (lot.odometerText ? '<span>' + esc(lot.odometerText) + '</span>' : "")
+            + (lot.damage ? '<span>' + esc(lot.damage) + '</span>' : "")
           + '</div>'
         : "";
       return '<article class="hotLiveCardV349">'
@@ -42,7 +52,7 @@
             + (buyNow ? '<span class="hotLiveBuyNowV349">BuyNow ' + buyNow + '</span>' : "")
           + '</div>'
           + metaHtml
-          + (lot.description ? '<p class="hotLiveDescV349">' + lot.description + '</p>' : "")
+          + (lot.description ? '<p class="hotLiveDescV349">' + esc(lot.description) + '</p>' : "")
           + '<div class="hotLiveActionsV349">'
             + '<a href="' + href + '"' + extAttr + ' class="hotLiveBtnDetailV349">Подробнее</a>'
             + '<a href="/index.html#calculator" class="hotLiveBtnCalcV349">Расчёт</a>'
@@ -148,16 +158,16 @@
   function fmtP(n){ return n ? "$" + Math.round(n).toLocaleString("en-US") : ""; }
 
   function renderCard(lot){
-    var img = lot.image || (lot.images && lot.images[0]) || "";
+    var img = esc(lot.image || (lot.images && lot.images[0]) || "");
     var auc = lot.auction || "copart";
     var badgeCls = auc === "iaai" ? "hotApiBadgeIAAIV351" : "hotApiBadgeCopartV351";
     var badgeLabel = auc === "iaai" ? "IAAI" : "Copart";
-    var href = lot.lot ? "/auctions/" + auc + "-" + lot.lot : "#";
+    var href = lot.lot ? "/auctions/" + esc(auc) + "-" + esc(lot.lot) : "#";
     var bid = fmtP(lot.currentBid);
     var bn  = fmtP(lot.buyNow);
     var priceVal   = bid || bn || "—";
     var priceLabel = (lot.buyNow && !lot.currentBid) ? "Buy Now" : "Цена на аукционе";
-    var title = lot.title || "Автомобиль";
+    var title = esc(lot.title || "Автомобиль");
 
     var imgHtml = img
       ? '<img class="hotApiCardImgV351" src="' + img + '" alt="' + title + '" loading="lazy">'
@@ -171,7 +181,7 @@
     var specsHtml = specs.length
       ? '<ul class="hotApiSpecsV351">'
           + specs.slice(0,4).map(function(s){
-              return '<li><span>' + s.l + '</span><b>' + s.v + '</b></li>';
+              return '<li><span>' + s.l + '</span><b>' + esc(s.v) + '</b></li>';
             }).join("")
           + '</ul>'
       : "";
@@ -183,7 +193,7 @@
         + '<span class="hotApiAucBadgeV351 ' + badgeCls + '">' + badgeLabel + '</span>'
       + '</div>'
       + '<div class="hotApiBodyV351">'
-        + (lot.body ? '<div class="hotApiCarBodyV351">' + lot.body + '</div>' : '')
+        + (lot.body ? '<div class="hotApiCarBodyV351">' + esc(lot.body) + '</div>' : '')
         + '<div class="hotApiTitleV351">' + title + '</div>'
         + specsHtml
         + '<div class="hotApiPriceRowV351">'
