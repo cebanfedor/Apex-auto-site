@@ -209,8 +209,19 @@ function buildInput(params, rates) {
   };
 }
 
+// CORS сужен с "*" до явного allowlist (P3-6). Chrome-расширение зовёт этот API
+// из своих контекстов (side panel / options / background) через host_permissions
+// на apexauto.md/* — это CORS-exempt, серверный заголовок ему не нужен, поэтому
+// сужение его не ломает. Открытый "*" был лишним.
+const CALC_ALLOWED_ORIGINS = new Set([
+  "https://apexauto.md",
+  "http://localhost:8081",
+  "http://127.0.0.1:8081"
+]);
 module.exports = async function handler(request, response) {
-  response.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = String(request.headers.origin || "");
+  if(CALC_ALLOWED_ORIGINS.has(origin)) response.setHeader("Access-Control-Allow-Origin", origin);
+  response.setHeader("Vary", "Origin");
   response.setHeader("Access-Control-Allow-Headers", "content-type");
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
 
