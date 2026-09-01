@@ -1117,24 +1117,59 @@ function openTelegramMessage(text){
   window.open(`https://t.me/share/url?url=&text=${encoded}`, "_blank", "noopener");
 }
 
+// Серверная фиксация лида с форм главной. Раньше эти формы только открывали
+// Telegram-share, и заявка терялась, если попап заблокирован / нет Telegram /
+// пользователь не дожал «отправить». Теперь лид пишется в Supabase+Telegram-бот
+// через тот же серверный путь, что и форма аукционов, а Telegram-share — доп-канал.
+async function postMainLead(payload){
+  try{
+    const r = await fetch("/api/auctions?action=lead", {
+      method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify(payload)
+    });
+    const data = await r.json().catch(() => ({}));
+    return !!(r.ok && data.ok);
+  }catch(e){ return false; }
+}
+function renderFormResult(form, ok){
+  const lng = window.APEX_LANG || "ru";
+  const title = ok
+    ? (lng === "ro" ? "Cererea a fost trimisă!" : lng === "en" ? "Request sent!" : "Заявка отправлена!")
+    : (lng === "ro" ? "Trimiteți prin Telegram" : lng === "en" ? "Send via Telegram" : "Отправьте через Telegram");
+  const text = ok
+    ? (lng === "ro" ? "Vă vom contacta în cel mai scurt timp. Am deschis și Telegram — puteți scrie direct."
+      : lng === "en" ? "We'll get back to you shortly. We also opened Telegram — feel free to message us there."
+      : "Мы свяжемся с вами в ближайшее время. Также открыли Telegram — можно написать напрямую.")
+    : (lng === "ro" ? "Nu am putut trimite formularul. Am deschis Telegram cu mesajul — trimiteți-l, vă rugăm."
+      : lng === "en" ? "We couldn't submit the form. We opened Telegram with your message — please send it."
+      : "Не удалось отправить форму. Мы открыли Telegram с сообщением — отправьте его, пожалуйста.");
+  form.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">${ok ? "✓" : "➤"}</div><p><strong>${title}</strong>${text}</p></div>`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const selectionForm = document.getElementById("selectionForm");
   if(selectionForm){
-    selectionForm.addEventListener("submit", (e) => {
+    selectionForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const msg = [
-        "Заявка на подбор авто | APEX AUTO",
-        "",
-        "Имя: " + (document.getElementById("leadName").value || "-"),
-        "Контакт: " + (document.getElementById("leadContact").value || "-"),
-        "Бюджет: " + (document.getElementById("leadBudget").value || "-"),
-        "Авто: " + (document.getElementById("leadCar").value || "-")
-      ].join("\n");
-      openTelegramMessage(msg);
-      const _lngSF = window.APEX_LANG || "ru";
-      const _titleSF = _lngSF === "ro" ? "Telegram se deschide!" : _lngSF === "en" ? "Telegram is opening!" : "Telegram открывается!";
-      const _textSF = _lngSF === "ro" ? "Trimiteți mesajul — și vă vom contacta în cel mai scurt timp." : _lngSF === "en" ? "Send the message — and we'll get back to you shortly." : "Отправьте сообщение — и мы свяжемся с вами в ближайшее время.";
-      selectionForm.innerHTML = `<div class="formSuccessV2"><div class="formSuccessIcon">✓</div><p><strong>${_titleSF}</strong>${_textSF}</p></div>`;
+      const name = document.getElementById("leadName")?.value.trim() || "";
+      const contact = document.getElementById("leadContact")?.value.trim() || "";
+      const budget = document.getElementById("leadBudget")?.value.trim() || "";
+      const car = document.getElementById("leadCar")?.value.trim() || "";
+      const btn = selectionForm.querySelector("button[type=submit], button:not([type])");
+      if(btn) btn.disabled = true;
+      const comment = [budget ? `Бюджет: ${budget}` : "", car ? `Авто: ${car}` : ""].filter(Boolean).join("\n");
+      // Сначала сохраняем лид на сервере (Supabase+Telegram-бот), затем открываем
+      // Telegram-share как дополнительный канал. Успех показываем по факту ответа.
+      const ok = await postMainLead({name, phone:contact, comment, source:"Подбор (сайт)"});
+      openTelegramMessage([
+        "Заявка на подбор авто | APEX AUTO", "",
+        "Имя: " + (name || "-"),
+        "Контакт: " + (contact || "-"),
+        "Бюджет: " + (budget || "-"),
+        "Авто: " + (car || "-")
+      ].join("\n"));
+      renderFormResult(selectionForm, ok);
     });
   }
 });
@@ -1143,24 +1178,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const contactForm = document.getElementById("contactQuickForm");
   if(!contactForm) return;
 
-  contactForm.addEventListener("submit", (event) => {
+  contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const name = document.getElementById("contactName")?.value.trim() || "-";
-    const phone = document.getElementById("contactPhone")?.value.trim() || "-";
-    const car = document.getElementById("contactCar")?.value.trim() || "-";
-    const comment = document.getElementById("contactMessage")?.value.trim() || "-";
+    const name = document.getElementById("contactName")?.value.trim() || "";
+    const phone = document.getElementById("contactPhone")?.value.trim() || "";
+    const car = document.getElementById("contactCar")?.value.trim() || "";
+    const comment = document.getElementById("contactMessage")?.value.trim() || "";
+    const btn = contactForm.querySelector("button[type=submit], button:not([type])");
+    if(btn) btn.disabled = true;
 
+    const fullComment = [car ? `Автомобиль / ссылка: ${car}` : "", comment].filter(Boolean).join("\n");
+    const ok = await postMainLead({name, phone, comment:fullComment, source:"Контакт (сайт)"});
     openTelegramMessage([
-      "Контактный запрос | APEX AUTO",
-      "",
-      "Имя: " + name,
-      "Телефон / Telegram: " + phone,
-      "Автомобиль / ссылка: " + car,
-      "",
+      "Контактный запрос | APEX AUTO", "",
+      "Имя: " + (name || "-"),
+      "Телефон / Telegram: " + (phone || "-"),
+      "Автомобиль / ссылка: " + (car || "-"), "",
       "Задача:",
-      comment
+      comment || "-"
     ].join("\n"));
+    renderFormResult(contactForm, ok);
   });
 });
 

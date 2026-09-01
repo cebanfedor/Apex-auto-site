@@ -1214,8 +1214,12 @@ async function handleLead(request, response){
       return;
     }
 
+    // Источник заявки: с формы аукционов по умолчанию, но формы главной
+    // (подбор / контакт) передают свой source, чтобы различать в CRM.
+    const source = String(body.source || "").trim().slice(0, 40) || "Аукционы";
+
     // upsert by phone: creates new customer or returns existing one — no duplicate key errors
-    const customer = await supabase.upsert("customers", {name, phone, status:"Новый", source:"Аукционы"}, "phone");
+    const customer = await supabase.upsert("customers", {name, phone, status:"Новый", source}, "phone");
 
     const comment = String(body.comment || "").trim().slice(0, 1000);
     const vin = String(body.vin || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 17);
@@ -1236,7 +1240,7 @@ async function handleLead(request, response){
         lotUrl ? `Ссылка: ${lotUrl}` : ""
       ].filter(Boolean).join("\n"),
       status:"Новый",
-      source:"Аукционы"
+      source
     });
 
     notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => {});
