@@ -2164,11 +2164,22 @@
 
   // VIN report — uses the dedicated /search-vin endpoint (car info + price history).
   async function openVinReport(vin){
-    const clean = String(vin || "").replace(/[^A-Za-z0-9]/g, "");
+    const clean = String(vin || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     $("#auctionCatalog").hidden = true;
     $("#auctionDetail").hidden = false;
-    $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Получаем отчёт по VIN…</div>';
     window.scrollTo(0, 0);
+    // Строгая проверка VIN: ровно 17 символов, без букв I, O, Q. Иначе показываем
+    // понятную ошибку формата, а не вводящее в заблуждение «лот не найден». P2-4.
+    if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(clean)){
+      $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← ${L("Назад к каталогу")}</a>
+        <div class="vinEmptyV1">
+          <h2>${L("Некорректный VIN")}</h2>
+          <p>${L("VIN должен содержать ровно 17 символов, без букв I, O, Q. Проверьте номер и попробуйте снова.")}</p>
+          <a class="vinLeadBtnV1" href="/index.html#lead">${L("Оставить заявку")}</a>
+        </div>`;
+      return;
+    }
+    $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Получаем отчёт по VIN…</div>';
     try{
       const payload = await api(`/api/auctions?action=vin&vin=${encodeURIComponent(clean)}`);
       renderDetail(payload.lot);

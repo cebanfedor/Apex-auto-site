@@ -1204,13 +1204,18 @@ async function handleLead(request, response){
       return;
     }
     const name = String(body.name || "").trim().slice(0, 120);
-    const phone = String(body.phone || "").trim().slice(0, 30);
+    const phone = String(body.phone || "").trim().slice(0, 60);
     if(!name || !phone){
       sendJson(response, 400, {ok:false,error:"Введите имя и телефон"});
       return;
     }
-    if(phone.length < 5){
-      sendJson(response, 400, {ok:false,error:"Введите корректный номер телефона"});
+    // Контакт валиден, если это телефон (≥8 цифр — покрывает +373/+40/+7) ИЛИ
+    // Telegram (@username или t.me/…). Мусор вроде "aaaaa"/"00000" отсекаем,
+    // чтобы не плодить грязных клиентов (upsert идёт по phone). P2-3.
+    const phoneDigits = (phone.match(/\d/g) || []).length;
+    const looksTelegram = /@[a-z0-9_]{3,}|t\.me\//i.test(phone);
+    if(phoneDigits < 8 && !looksTelegram){
+      sendJson(response, 400, {ok:false,error:"Укажите телефон (+373…, +40…, +7…) или Telegram (@username)"});
       return;
     }
 
