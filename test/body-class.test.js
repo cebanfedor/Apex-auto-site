@@ -31,10 +31,39 @@ test("внедорожники классифицируются как suv", () 
   assert.equal(c("Audi", "Q7"), "suv");
 });
 
-test("не из списка → null (решает кузов лота)", () => {
-  assert.equal(c("BMW", "X6"), null);
+test("расширенный список: компактные SUV → crossover", () => {
+  assert.equal(c("Nissan", "Rogue"), "crossover");
+  assert.equal(c("Mazda", "CX-5"), "crossover");
+  assert.equal(c("Ford", "Escape"), "crossover");
+  assert.equal(c("Chevrolet", "Equinox"), "crossover");
+  assert.equal(c("Subaru", "Forester"), "crossover");
+  assert.equal(c("Jeep", "Cherokee"), "crossover");
+  assert.equal(c("Land Rover", "Discovery Sport"), "crossover");
+  assert.equal(c("Infiniti", "QX50"), "crossover");
+});
+
+test("расширенный список: средние/крупные → suv", () => {
+  assert.equal(c("Nissan", "Murano"), "suv");
+  assert.equal(c("Mazda", "CX-9"), "suv");
+  assert.equal(c("Ford", "Explorer"), "suv");     // теперь в таблице → suv
+  assert.equal(c("Chevrolet", "Tahoe"), "suv");
+  assert.equal(c("Toyota", "4Runner"), "suv");
+  assert.equal(c("Jeep", "Grand Cherokee"), "suv");
+  assert.equal(c("Land Rover", "Range Rover"), "suv");
+  assert.equal(c("Infiniti", "QX60"), "suv");
+});
+
+test("prefix-коллизии разрешаются длиной (specific раньше general)", () => {
+  assert.equal(c("Jeep", "Grand Cherokee"), "suv");     // не путать с Cherokee
+  assert.equal(c("Jeep", "Cherokee"), "crossover");
+  assert.equal(c("Land Rover", "Discovery"), "suv");    // не путать с Discovery Sport
+  assert.equal(c("Land Rover", "Discovery Sport"), "crossover");
+});
+
+test("не из таблицы → null (решает кузов лота)", () => {
   assert.equal(c("Toyota", "Camry"), null);
-  assert.equal(c("Ford", "Explorer"), null);
+  assert.equal(c("Honda", "Civic"), null);
+  assert.equal(c("Ford", "Mustang"), null);
   assert.equal(c("", ""), null);
 });
 

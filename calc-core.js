@@ -45,49 +45,51 @@
   // Классификация модели: кроссовер vs внедорожник. Влияет на доставку
   // (море: crossover +$100, suv +$300; суша: suv +$100). Возвращает
   // "crossover" | "suv" | null (не определено — решает вызывающий по кузову).
-  // Правило заведено по конкретным моделям — источник один, применяется и на
-  // странице лота, и в /api/calc, и в расширении.
+  // Принцип: компактный SUV = кроссовер, средний/крупный = внедорожник.
+  // Единый источник — сайт, /api/calc, расширение. Дополнять просто: добавь
+  // префикс модели в нужный список нужной марки. Модель не из таблицы → null.
+  var BODY_RULES = {
+    tesla:      { crossover:["modely"],                              suv:["modelx"] },
+    bmw:        { crossover:["x1","x2","x3","x4"],                   suv:["x5","x6","x7"] },
+    mercedes:   { crossover:["gla","glb","glc"],                    suv:["gle","gls","gclass","gwagen","amgg"] },
+    audi:       { crossover:["q3","q5"],                            suv:["q7","q8"] },
+    lexus:      { crossover:["ux","nx"],                            suv:["rx","gx","lx","tx"] },
+    toyota:     { crossover:["rav4","chr","corollacross","venza"],  suv:["highlander","grandhighlander","4runner","sequoia","landcruiser"] },
+    honda:      { crossover:["hrv","crv"],                          suv:["passport","pilot"] },
+    nissan:     { crossover:["kicks","rogue"],                      suv:["murano","pathfinder","armada"] },
+    infiniti:   { crossover:["qx50","qx55"],                        suv:["qx60","qx80"] },
+    mazda:      { crossover:["cx3","cx30","cx5","cx50"],            suv:["cx7","cx9","cx90"] },
+    hyundai:    { crossover:["venue","kona","tucson"],              suv:["santafe","santacruz","palisade"] },
+    kia:        { crossover:["soul","seltos","niro","sportage"],    suv:["sorento","telluride"] },
+    genesis:    { crossover:["gv70"],                               suv:["gv80"] },
+    volkswagen: { crossover:["taos","tiguan"],                      suv:["atlas","touareg"] },
+    subaru:     { crossover:["crosstrek","forester","outback"],     suv:["ascent"] },
+    ford:       { crossover:["ecosport","escape","broncosport"],    suv:["edge","explorer","expedition","bronco"] },
+    lincoln:    { crossover:["corsair"],                            suv:["nautilus","aviator","navigator"] },
+    chevrolet:  { crossover:["trax","trailblazer","equinox"],       suv:["blazer","traverse","tahoe","suburban"] },
+    gmc:        { crossover:["terrain"],                            suv:["acadia","yukon"] },
+    buick:      { crossover:["encore","envision"],                  suv:["enclave"] },
+    cadillac:   { crossover:["xt4","xt5"],                          suv:["xt6","escalade"] },
+    jeep:       { crossover:["renegade","compass","cherokee"],      suv:["grandcherokee","wrangler","grandwagoneer","wagoneer","commander"] },
+    dodge:      { crossover:["journey"],                            suv:["durango"] },
+    acura:      { crossover:["rdx"],                                suv:["mdx"] },
+    volvo:      { crossover:["xc40","xc60"],                        suv:["xc90"] },
+    mitsubishi: { crossover:["outlander","eclipsecross"],           suv:["montero","pajero"] },
+    landrover:  { crossover:["evoque","discoverysport"],           suv:["rangerover","discovery","defender","velar"] }
+  };
   function bodyClassForModel(make, model){
-    var mk = String(make || "").toLowerCase();
-    var md = String(model || "").toLowerCase().replace(/[\s._-]/g, ""); // "cr-v"→"crv", "model y"→"modely", "rx 350"→"rx350"
-    var starts = function(p){ return md.indexOf(p) === 0; };
-    if(mk.indexOf("tesla") !== -1){
-      if(starts("modely")) return "crossover";
-      if(starts("modelx")) return "suv";
-    }
-    if(mk.indexOf("bmw") !== -1){
-      if(/^x[1-4]/.test(md)) return "crossover";   // X1 X2 X3 X4
-      if(/^x[57]/.test(md))  return "suv";          // X5 X7
-    }
-    if(mk.indexOf("mercedes") !== -1){
-      if(starts("glc") || starts("glb")) return "crossover";
-      if(starts("gle") || starts("gls")) return "suv";
-    }
-    if(mk.indexOf("hyundai") !== -1){
-      if(starts("tucson")) return "crossover";
-      if(starts("santafe")) return "suv";
-    }
-    if(mk.indexOf("kia") !== -1){
-      if(starts("sportage")) return "crossover";
-      if(starts("sorento")) return "suv";
-    }
-    if(mk.indexOf("toyota") !== -1){
-      if(starts("rav4")) return "crossover";
-    }
-    if(mk.indexOf("honda") !== -1){
-      if(starts("crv")) return "crossover";
-    }
-    if(mk.indexOf("volkswagen") !== -1 || mk === "vw"){
-      if(starts("tiguan")) return "crossover";
-      if(starts("atlas")) return "suv";
-    }
-    if(mk.indexOf("lexus") !== -1){
-      if(starts("nx")) return "crossover";
-      if(starts("rx")) return "suv";
-    }
-    if(mk.indexOf("audi") !== -1){
-      if(starts("q5")) return "crossover";
-      if(starts("q7")) return "suv";
+    var mk = String(make || "").toLowerCase().replace(/[\s._-]/g, "");
+    var md = String(model || "").toLowerCase().replace(/[\s._-]/g, ""); // "cr-v"→"crv", "grand cherokee"→"grandcherokee"
+    if(!mk || !md) return null;
+    for(var key in BODY_RULES){
+      if(mk.indexOf(key) === -1) continue;
+      var r = BODY_RULES[key];
+      // Все префиксы обеих групп — самые длинные первыми, чтобы «grandcherokee»
+      // проверялся раньше «cherokee», а «discoverysport» раньше «discovery».
+      var all = (r.crossover || []).map(function(p){ return {p:p, c:"crossover"}; })
+        .concat((r.suv || []).map(function(p){ return {p:p, c:"suv"}; }))
+        .sort(function(a, b){ return b.p.length - a.p.length; });
+      for(var i = 0; i < all.length; i++) if(md.indexOf(all[i].p) === 0) return all[i].c;
     }
     return null;
   }
@@ -209,6 +211,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v5"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v6"
   };
 });
