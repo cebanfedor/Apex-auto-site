@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Apex Auto — лоты Copart/IAAI → пост",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Собирает все данные лота с Copart и IAAI и в один клик готовит пост для Telegram, Facebook и Instagram.",
   "icons": {
     "16": "icons/icon16.png",

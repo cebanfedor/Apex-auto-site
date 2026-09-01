@@ -104,65 +104,108 @@
   /* ---------- вывод параметров машины из данных лота ---------- */
 
   /* ---------- определение plug-in гибрида ----------
-     Аукцион пишет «Hybrid» или «Electric And Gas Hybrid» и для обычных гибридов,
-     и для plug-in — разницы в поле нет, а для акциза она вдвое (0.75 против 0.5).
-     Различаем по марке и названию. */
-
-  // Немецкие премиум-марки и Volvo обычных гибридов почти не выпускали:
-  // если аукцион пишет «гибрид» — это plug-in.
-  const PHEV_BRANDS = /\b(bmw|audi|mercedes|mercedes-benz|porsche|volvo|land ?rover|range ?rover|jaguar|mini)\b/i;
-
-  // Явные маркеры plug-in в названии — работают для любой марки
-  const PHEV_NAME = /\bphev\b|plug[- ]?in|\bprime\b|\benergi\b|\b4xe\b|recharge|\bt8\b|e-?hybrid|\bgte\b|\bgrand touring\b|\b\d{3}e\b|\b(25e|30e|40e|45e|50e|55e|60e)\b|\bp400e\b|\btfsi\s*e\b/i;
-
-  // Исключения: у этих моделей гибрид без розетки, хотя марка премиальная
-  const FULL_HYBRID_NAME = /active\s?hybrid|\bml450\b|\bs400\b|\be400\s*hybrid\b|\bq5\s*hybrid\b|\bcayenne\s*s\s*hybrid\b/i;
+     ЕДИНОЕ правило с сайтом (calc-core.js → isPluginHybrid). Аукцион пишет
+     «Hybrid» и обычным гибридам, и plug-in; для акциза разница вдвое (0.75 vs 0.5).
+     При правке — синхронизировать с calc-core.js на сайте. */
+  function isPluginHybrid(make, model, title, year){
+    var mk = String(make || "").toLowerCase();
+    var s = (mk + " " + String(model || "") + " " + String(title || "")).toLowerCase();
+    var yr = Number(year) || (function(){ var m = s.match(/\b(?:19|20)\d{2}\b/); return m ? Number(m[0]) : 0; })();
+    if(/plug[\s-]?in|phev|\b4xe\b|e[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance|h\+/.test(s)) return true;
+    if(/\bprime\b/.test(s) && mk.indexOf("toyota") !== -1) return true;
+    if(/bmw|mercedes/.test(s) && /\d{2,3}x?e\b/.test(s)) return true;
+    if(mk.indexOf("mitsubishi") !== -1 && /outlander/.test(s)) return true;
+    if(mk.indexOf("mazda") !== -1 && /cx[\s-]?70|cx[\s-]?90/.test(s)) return true;
+    if(mk.indexOf("volvo") !== -1 && yr >= 2016) return true;
+    if(mk.indexOf("lexus") !== -1){
+      if(/nx\s*450/.test(s) && yr >= 2022) return true;
+      if(/rx\s*450/.test(s) && yr >= 2023) return true;
+    }
+    return false;
+  }
 
   function fuelCode(value, lot){
     const name = lot ? [lot.titleRaw, lot.title, lot.model, lot.trim].filter(Boolean).join(" ") : "";
     const t = String(value || "").toLowerCase();
     const looksHybrid = t.includes("hybrid") || (t.includes("electric") && t.includes("gas"));
-
-    if(PHEV_NAME.test(name) && !FULL_HYBRID_NAME.test(name)) return "phev";
+    const plugin = isPluginHybrid(lot && lot.make, lot && lot.model, name, lot && lot.year);
     if(t.includes("plug")) return "phev";
-    if(looksHybrid){
-      // «RAV4 Prime», «Fusion Energi» уже отсеклись выше — здесь решает марка
-      if(FULL_HYBRID_NAME.test(name)) return "hybrid";
-      return PHEV_BRANDS.test(name) ? "phev" : "hybrid";
-    }
+    if(looksHybrid) return plugin ? "phev" : "hybrid";
     if(t.includes("electric")) return "electric";
     if(t.includes("diesel")) return "diesel";
     if(t.includes("gas") || t.includes("petrol") || t.includes("flex")) return "gasoline";
     return "gasoline";
   }
 
-  /* Тип кузова: сначала верим полю аукциона, потом уже угадываем по модели.
-     «Hatchback» у Audi A7 — легковая, а не кроссовер: от этого зависят море и суша. */
+  /* Классификация модели кроссовер/внедорожник — ЕДИНАЯ таблица с сайтом
+     (calc-core.js → BODY_RULES/bodyClassForModel). При правке синхронизировать. */
+  var BODY_RULES = {
+    tesla:      { crossover:["modely"],                              suv:["modelx"] },
+    bmw:        { crossover:["x1","x2","x3","x4"],                   suv:["x5","x6","x7"] },
+    mercedes:   { crossover:["gla","glb","glc"],                     suv:["gle","gls","gclass","gwagen","amgg"] },
+    audi:       { crossover:["q3","q5"],                             suv:["q7","q8"] },
+    lexus:      { crossover:["ux","nx"],                             suv:["rx","gx","lx","tx"] },
+    toyota:     { crossover:["rav4","chr","corollacross","venza"],   suv:["highlander","grandhighlander","4runner","sequoia","landcruiser"] },
+    honda:      { crossover:["hrv","crv"],                           suv:["passport","pilot"] },
+    nissan:     { crossover:["kicks","rogue"],                       suv:["murano","pathfinder","armada"] },
+    infiniti:   { crossover:["qx50","qx55"],                         suv:["qx60","qx80"] },
+    mazda:      { crossover:["cx3","cx30","cx5","cx50"],             suv:["cx7","cx9","cx90"] },
+    hyundai:    { crossover:["venue","kona","tucson"],               suv:["santafe","santacruz","palisade"] },
+    kia:        { crossover:["soul","seltos","niro","sportage"],     suv:["sorento","telluride"] },
+    genesis:    { crossover:["gv70"],                                suv:["gv80"] },
+    volkswagen: { crossover:["taos","tiguan"],                       suv:["atlas","touareg"] },
+    subaru:     { crossover:["crosstrek","forester","outback"],      suv:["ascent"] },
+    ford:       { crossover:["ecosport","escape","broncosport"],     suv:["edge","explorer","expedition","bronco"] },
+    lincoln:    { crossover:["corsair"],                             suv:["nautilus","aviator","navigator"] },
+    chevrolet:  { crossover:["trax","trailblazer","equinox"],        suv:["blazer","traverse","tahoe","suburban"] },
+    gmc:        { crossover:["terrain"],                             suv:["acadia","yukon"] },
+    buick:      { crossover:["encore","envision"],                   suv:["enclave"] },
+    cadillac:   { crossover:["xt4","xt5"],                           suv:["xt6","escalade"] },
+    jeep:       { crossover:["renegade","compass","cherokee"],       suv:["grandcherokee","wrangler","grandwagoneer","wagoneer","commander"] },
+    dodge:      { crossover:["journey"],                             suv:["durango"] },
+    acura:      { crossover:["rdx"],                                 suv:["mdx"] },
+    volvo:      { crossover:["xc40","xc60"],                         suv:["xc90"] },
+    mitsubishi: { crossover:["outlander","eclipsecross"],            suv:["montero","pajero"] },
+    landrover:  { crossover:["evoque","discoverysport"],             suv:["rangerover","discovery","defender","velar"] }
+  };
+  function bodyClassForModel(make, model){
+    var mk = String(make || "").toLowerCase().replace(/[\s._-]/g, "");
+    var md = String(model || "").toLowerCase().replace(/[\s._-]/g, "");
+    if(!mk || !md) return null;
+    for(var key in BODY_RULES){
+      if(mk.indexOf(key) === -1) continue;
+      var r = BODY_RULES[key];
+      var all = (r.crossover || []).map(function(p){ return {p:p, c:"crossover"}; })
+        .concat((r.suv || []).map(function(p){ return {p:p, c:"suv"}; }))
+        .sort(function(a, b){ return b.p.length - a.p.length; });
+      for(var i = 0; i < all.length; i++) if(md.indexOf(all[i].p) === 0) return all[i].c;
+    }
+    return null;
+  }
+
+  /* Тип кузова: спецкузова из поля лота, затем единое правило модели с сайтом. */
   function vehicleTypeCode(lot){
     const body = String(lot.bodyStyle || "").toLowerCase();
     const text = [lot.bodyStyle, lot.model, lot.titleRaw, lot.trim].filter(Boolean).join(" ").toLowerCase();
 
     if(/motorcycle|moped|scooter/.test(text)) return "moto";
     if(/\batv\b|quad|\butv\b/.test(text)) return "atv";
-
-    // 1. явный тип кузова со страницы лота
     if(/sedan|coupe|hatchback|liftback|fastback|convertible|roadster|wagon|estate/.test(body)) return "sedan";
     if(/pickup|\btruck\b|crew cab|quad cab|reg cab/.test(body)) return "pickup";
     if(/cargo van|passenger van|\bvan\b/.test(body)) return "vanLarge";
-    if(/sport utility|\bsuv\b|utility/.test(body)){
-      return /suburban|tahoe|yukon|expedition|sequoia|escalade|navigator|armada|\bqx80\b|\bgls\b|\blx\b/.test(text)
-        ? "suvLarge"
-        : "suv";
-    }
-    if(/crossover|\bcuv\b/.test(body)) return "crossover";
-
-    // 2. поле пустое или общее («Automobile») — смотрим на модель
     if(/pickup|silverado|sierra|\bram\b|f-?150|f-?250|f-?350|tundra|tacoma|ridgeline|colorado|frontier|\btitan\b/.test(text)) return "pickup";
     if(/sprinter|transit|promaster|savana|express/.test(text)) return "vanLarge";
-    if(/suburban|tahoe|yukon|expedition|sequoia|escalade|navigator|armada|\bqx80\b/.test(text)) return "suvLarge";
-    if(/\bx[3-7]\b|\bq[5-8]\b|\bgl[ces]\b|\bxc(60|90)\b|\b(nx|rx|gx|ux)\b|macan|cayenne|touareg|murano|pathfinder|telluride|palisade|sorento|santa fe|\bedge\b|passport|4runner|wrangler|bronco|grand cherokee|highlander|explorer|pilot|rav4|cr-?v/.test(text)) return "suv";
-    if(/\bx1\b|\bx2\b|\bq3\b|\bgla\b|\bglb\b|\bxc40\b|equinox|rogue|trax|hr-?v|cx-?30|cx-?5|tucson|sportage|compass|renegade|kona|seltos|corolla cross|crosstrek|forester/.test(text)) return "crossover";
 
+    // «Крупный внедорожник» — только метка (цена как suv). Решение кроссовер/внедорожник
+    // берём из единой таблицы сайта.
+    const large = /suburban|tahoe|yukon|expedition|sequoia|escalade|navigator|armada|\bqx80\b|\bgls\b|land ?cruiser/.test(text);
+    const cls = bodyClassForModel(lot.make || text, lot.model || text);
+    if(cls === "crossover") return "crossover";
+    if(cls === "suv") return large ? "suvLarge" : "suv";
+
+    // поле аукциона / общий фолбэк (как на сайте)
+    if(/sport utility|\bsuv\b|utility/.test(body)) return large ? "suvLarge" : "suv";
+    if(/crossover|\bcuv\b/.test(body)) return "crossover";
     return "sedan";
   }
 
