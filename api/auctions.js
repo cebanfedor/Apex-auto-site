@@ -1880,7 +1880,17 @@ module.exports = async function handler(request, response){
       };
       const path = paths[dict];
       if(!path){ sendJson(response, 200, {ok:true, items:[]}); return; }
-      const rows = await fetchAllPages(path);
+      // Словарь повреждений практически не меняется и большой (~2400 значений):
+      // live-выгрузка всех страниц занимала ~4с при первом открытии фильтра (P3-16).
+      // Отдаём статический снимок из репозитория мгновенно; live — фолбэк, если
+      // файл почему-то не прочитался. Остальные словари остаются live.
+      let rows;
+      if(dict === "damages"){
+        try{ rows = require("../server/usa-damages.json"); }catch(e){ rows = []; }
+        if(!Array.isArray(rows) || !rows.length) rows = await fetchAllPages(path);
+      }else{
+        rows = await fetchAllPages(path);
+      }
       const items = rows.map(d => ({
         id:d.id != null ? d.id : null,
         name:safeName(d.name || d.title || d.damage || d),
