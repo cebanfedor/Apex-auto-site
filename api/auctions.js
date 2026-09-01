@@ -1,5 +1,6 @@
 const {sendJson, methodNotAllowed, readBody, getQuery} = require("../server/http");
 const supabase = require("../server/supabase");
+const {isValidContact, isValidVin} = require("../server/validators");
 
 const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
 const CACHE_TTL = 7 * 60 * 1000;
@@ -1039,9 +1040,11 @@ async function fetchDetail(query){
 }
 
 async function fetchVin(query){
-  const vin = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "");
-  if(vin.length < 11){
-    const error = new Error("VIN указан неверно");
+  const vin = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  // Строгая проверка VIN и на сервере (17 символов, без I/O/Q) — defense-in-depth
+  // к клиентской проверке в openVinReport. P2-4.
+  if(!isValidVin(vin)){
+    const error = new Error("VIN должен содержать 17 символов, без букв I, O, Q");
     error.status = 400;
     throw error;
   }
@@ -1209,12 +1212,9 @@ async function handleLead(request, response){
       sendJson(response, 400, {ok:false,error:"Введите имя и телефон"});
       return;
     }
-    // Контакт валиден, если это телефон (≥8 цифр — покрывает +373/+40/+7) ИЛИ
-    // Telegram (@username или t.me/…). Мусор вроде "aaaaa"/"00000" отсекаем,
-    // чтобы не плодить грязных клиентов (upsert идёт по phone). P2-3.
-    const phoneDigits = (phone.match(/\d/g) || []).length;
-    const looksTelegram = /@[a-z0-9_]{3,}|t\.me\//i.test(phone);
-    if(phoneDigits < 8 && !looksTelegram){
+    // Контакт валиден, если телефон (≥8 цифр: +373/+40/+7) или Telegram (@username /
+    // t.me). Мусор "aaaaa"/"00000" отсекаем — не плодим грязных клиентов. P2-3.
+    if(!isValidContact(phone)){
       sendJson(response, 400, {ok:false,error:"Укажите телефон (+373…, +40…, +7…) или Telegram (@username)"});
       return;
     }
