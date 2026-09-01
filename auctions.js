@@ -365,23 +365,17 @@
     return match ? Number(match[1]) : 2;
   }
 
+  // Сбор аукциона — ЕДИНЫЙ источник: calc-core.js (ApexCalc), тот же, что у
+  // главного калькулятора и /api/calc. Раньше здесь была своя таблица, которая
+  // расходилась с ядром → разные суммы на странице лота и в калькуляторе.
+  // Фолбэк-процент срабатывает только если ядро не загрузилось (не должно).
   function auctionFeeFor(price, auction){
     const p = Number(price || 0);
     if(!p) return 0;
-    if(auction === "iaai"){
-      if(p <= 999) return 250;
-      if(p <= 1999) return 350;
-      if(p <= 3999) return 500;
-      if(p <= 7999) return 700;
-      if(p <= 14999) return 950;
-      return Math.round(p * 0.075);
+    if(window.ApexCalc && window.ApexCalc.auctionFeeFor){
+      return Math.round(window.ApexCalc.auctionFeeFor(p, auction).total || 0);
     }
-    if(p <= 999) return 230;
-    if(p <= 1999) return 330;
-    if(p <= 3999) return 480;
-    if(p <= 7999) return 650;
-    if(p <= 14999) return 900;
-    return Math.round(p * 0.07);
+    return Math.round(p * (auction === "iaai" ? 0.08 : 0.075));
   }
 
   function landShippingFor(lot){
