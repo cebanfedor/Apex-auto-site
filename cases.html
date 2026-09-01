@@ -51,6 +51,7 @@
     .draftNoteV1 { margin-top: 24px; padding: 14px 18px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px; font-size: 14px; color: #7a5b00; }
     @media (max-width: 860px){ .caseGridV1 { grid-template-columns: 1fr; } .casePhotosV1 { min-height: 240px; } }
   </style>
+  <script src="img-fallback.js?v=v1"></script>
 </head>
 <body>
   <header class="siteHeader apexHdrV201">
@@ -104,7 +105,7 @@
       <article class="caseCardV1">
         <div class="caseGridV1">
           <div class="casePhotosV1">
-            <img class="casePhotoMainV1" src="" alt="Фото: [Марка Модель] после выдачи в Кишинёве" onerror="this.style.background='#e8ebf0'">
+            <img class="casePhotoMainV1" src="" alt="Фото: [Марка Модель] после выдачи в Кишинёве" data-fb-bg="#e8ebf0">
             <div class="casePhotoRowV1">
               <img src="" alt="Фото лота на аукционе (до)">
               <img src="" alt="Фото после ремонта">
