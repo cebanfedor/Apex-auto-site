@@ -19,9 +19,17 @@ async function readBody(request){
 
   return new Promise((resolve, reject) => {
     let body = "";
+    let aborted = false;
     request.on?.("data", chunk => {
+      if(aborted) return;
       body += chunk;
-      if(body.length > 12 * 1024 * 1024) reject(new Error("Request body too large"));
+      if(body.length > 12 * 1024 * 1024){
+        // Прерываем чтение сокета, а не только reject промиса, иначе клиент мог
+        // продолжать слать данные (мелкий DoS). P3-8.
+        aborted = true;
+        reject(new Error("Request body too large"));
+        request.destroy?.();
+      }
     });
     request.on?.("end", () => {
       if(!body.trim()){

@@ -8,6 +8,23 @@ const {
 } = require("../server/auth");
 const supabase = require("../server/supabase");
 
+// Rate-limit по IP на попытки логина (брутфорс одного пароля-секрета). In-memory
+// per-instance, как в других роутах. 5 попыток / 10 минут. P3-3.
+const loginRateMap = new Map();
+function loginClientIp(request){
+  const xf = String(request.headers?.["x-forwarded-for"] || "").split(",")[0].trim();
+  return xf || request.socket?.remoteAddress || "unknown";
+}
+function checkLoginRate(ip){
+  const now = Date.now(), WINDOW = 10 * 60e3, MAX = 5;
+  const hits = (loginRateMap.get(ip) || []).filter(t => now - t < WINDOW);
+  if(hits.length >= MAX){ loginRateMap.set(ip, hits); return false; }
+  hits.push(now);
+  loginRateMap.set(ip, hits);
+  if(loginRateMap.size > 5000) loginRateMap.clear();
+  return true;
+}
+
 async function getLatestLeads(){
   const params = {
     select:"*,customers(name,phone),vehicles(make,model,year,lot)",
@@ -24,6 +41,11 @@ async function getLatestLeads(){
 async function login(request, response){
   if(request.method !== "POST"){
     methodNotAllowed(response, ["POST"]);
+    return;
+  }
+
+  if(!checkLoginRate(loginClientIp(request))){
+    sendJson(response, 429, {ok:false,error:"Слишком много попыток. Подождите несколько минут."});
     return;
   }
 

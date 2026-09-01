@@ -3,3 +3,6 @@ assets/*.dmg
 assets/.DS_Store
 local-server.js
 chrome-extension
+.env
+.env.*
+AUDIT.md

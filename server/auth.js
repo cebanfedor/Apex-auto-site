@@ -68,7 +68,12 @@ function requireAdmin(request, response){
 function verifyPassword(password){
   const configured = process.env.ADMIN_PASSWORD;
   if(!configured) return false;
-  return timingSafeEqualText(password, configured);
+  // HMAC обеих сторон → всегда одинаковая длина буферов, поэтому timingSafeEqual
+  // не отваливается на разной длине и не утекает длину пароля по таймингу (P3-3).
+  const key = getSecret();
+  const a = crypto.createHmac("sha256", key).update(String(password || "")).digest();
+  const b = crypto.createHmac("sha256", key).update(String(configured)).digest();
+  return crypto.timingSafeEqual(a, b);
 }
 
 module.exports = {

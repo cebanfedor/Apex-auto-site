@@ -159,7 +159,12 @@ module.exports = async function handler(request, response){
     if(request.method === "PUT" || request.method === "POST"){
       const body = await readBody(request);
       const rows = await supabase.list("site_content", {select:"id", key:`eq.${CONTENT_KEY}`, limit:1});
-      const payload = {key:CONTENT_KEY, content:{...DEFAULT_CONTENT, ...(body.content || body)}};
+      // Whitelist: принимаем только ключи, известные в DEFAULT_CONTENT — нельзя
+      // записать произвольные поля в site_content (P3-5).
+      const incoming = body.content || body || {};
+      const cleaned = {};
+      for(const k of Object.keys(DEFAULT_CONTENT)) if(Object.prototype.hasOwnProperty.call(incoming, k)) cleaned[k] = incoming[k];
+      const payload = {key:CONTENT_KEY, content:{...DEFAULT_CONTENT, ...cleaned}};
       const item = rows[0]?.id
         ? await supabase.update("site_content", rows[0].id, payload)
         : await supabase.create("site_content", payload);
