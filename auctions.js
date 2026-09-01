@@ -429,19 +429,24 @@
 
   function mapFuel(raw, greenOverride, lot){
     const f = String(raw || "").toLowerCase();
+    // PHEV по названию модели/трима (xDrive40e, 330e, RAV4 Prime, 4xe и т.п.) —
+    // фид часто отдаёт таким машинам просто «гибрид», а у PHEV таможня ниже.
+    const plugin = lot && window.ApexCalc && window.ApexCalc.isPluginHybrid
+      && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title);
     if(/plug|phev/.test(f)) return "phev";
-    if(/hybrid|гибрид/.test(f)) return "hybrid";
+    if(/hybrid|гибрид/.test(f)) return plugin ? "phev" : "hybrid";
     if(/electric|электро|tesla/.test(f)){
       /* Only reclassify as hybrid if there's real engine displacement (e.g. "2.0L").
          Cylinders field is unreliable — VIN decode can return 4 for pure EVs like BMW i7. */
       if(lot){
         const hasDisplacement = lot.engine && /\d+\.\d/i.test(String(lot.engine));
-        if(hasDisplacement) return "hybrid";
+        if(hasDisplacement) return plugin ? "phev" : "hybrid";
       }
       return "electric";
     }
     if(/diesel|дизель/.test(f)) return "diesel";
-    return greenOverride ? "hybrid" : "gasoline";
+    if(greenOverride) return plugin ? "phev" : "hybrid";
+    return "gasoline";
   }
   // Текст локации лота: для канадских — площадка из канадской базы
   // (сырое поле API у них бывает битым, вплоть до городов США)

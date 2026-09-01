@@ -92,6 +92,20 @@
     return null;
   }
 
+  // Распознавание плагин-гибрида (PHEV) по названию модели/трима — когда фид
+  // аукциона отдаёт просто «hybrid». Важно для таможни: у PHEV скидка акциза 0.5
+  // против 0.75 у обычного гибрида (PHEV дешевле). Единый источник для сайта,
+  // /api/calc и расширения.
+  function isPluginHybrid(make, model, title){
+    var s = (String(make || "") + " " + String(model || "") + " " + String(title || "")).toLowerCase();
+    if(/plug[\s-]?in|phev|\b4xe\b|e[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance/.test(s)) return true;
+    if(/\bprime\b/.test(s) && /toyota|rav4|prius/.test(s)) return true;      // Toyota RAV4/Prius Prime
+    // BMW/Mercedes: трим «40e», «45e», «330e», «530e», «745e», «350e», «225xe»,
+    // «xDrive40e/45e» — цифры + (x) + e на конце слова.
+    if(/bmw|mercedes/.test(s) && /\d{2,3}x?e\b/.test(s)) return true;
+    return false;
+  }
+
   function landMultiplier(type){
     if(type==="pickup"||type==="pickupLarge"||type==="vanLarge"||type==="pickupOversized")return 1.5;
     return 1;
@@ -195,6 +209,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, SEA, VERSION: "core-v4"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v5"
   };
 });
