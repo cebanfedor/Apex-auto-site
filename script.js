@@ -6,7 +6,11 @@ const GASOLINE_RATES={"0-2":[9.56,12.23,18.90,31.14,55.60],"3-4":[10,12.67,19.34
 const DIESEL_RATES={"0-2":[12.23,31.14,55.60],"3-4":[12.67,31.58,56.04],"5-6":[12.90,31.81,56.27],"7":[14.19,34.99,61.90],"8":[15.61,38.49,68.90],"9":[17.17,42.34,74.90],"10":[20.60,50.81,89.87],"11":[26.79,66.05,116.84],"12":[31.79,71.05,121.84],"13":[36.79,76.05,126.84],"14":[41.79,81.05,131.84],"15":[46.79,86.05,136.84],"16":[51.79,91.05,141.84],"17":[56.79,96.05,146.84],"18":[61.79,101.05,151.84],"19":[66.79,106.05,156.84],"20+":[71.79,111.05,161.84]};
 const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
 const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
-const $=id=>document.getElementById(id),num=id=>Number($(id)?.value||0);let currency="usd",selectedLocation=null,lastCalc=null,lastImportedLot=null,lotImportApiStatus="";
+const $=id=>document.getElementById(id);
+/* num: конечное неотрицательное число из поля. Отрицательное → 0, Infinity/NaN → 0
+   (ручной ввод -5000 давал отрицательный итог, 1e999 → $∞ в выводе; P2-2).
+   Все числовые поля калькулятора — неотрицательные величины, 0 остаётся валидным. */
+const num=id=>{const n=Number($(id)?.value||0);return Number.isFinite(n)?Math.max(0,n):0;};let currency="usd",selectedLocation=null,lastCalc=null,lastImportedLot=null,lotImportApiStatus="";
 const KNOWN_LOTS_V119={
   "45617472":{
     auction:"iaai",
@@ -27,8 +31,11 @@ const KNOWN_LOTS_V119={
 };
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
 function moneyUsd(v){return "$"+Math.round(v||0).toLocaleString("en-US")}function moneyMdl(v){return Math.round(v||0).toLocaleString("ru-RU")+" MDL"}function moneyEur(v){return "€"+Math.round(v||0).toLocaleString("en-US")}
-function usdToMdl(v){return v*num("usdMdl")}function mdlToUsd(v){return v/num("usdMdl")}function mdlToEur(v){return v/num("eurMdl")}
-function displayUsd(usd){if(currency==="mdl")return moneyMdl(usdToMdl(usd));if(currency==="eur")return moneyEur(usdToMdl(usd)/num("eurMdl"));return moneyUsd(usd)}
+/* Курс как делитель: если поле курса очищено/0/NaN — берём defaultValue поля
+   (значение по умолчанию из HTML), иначе была бы $∞/$NaN в итоге (P2-1). */
+function rateOf(id){const el=$(id);const v=Number(el&&el.value);if(v>0)return v;const d=Number(el&&el.defaultValue);return d>0?d:1;}
+function usdToMdl(v){return v*rateOf("usdMdl")}function mdlToUsd(v){return v/rateOf("usdMdl")}function mdlToEur(v){return v/rateOf("eurMdl")}
+function displayUsd(usd){if(currency==="mdl")return moneyMdl(usdToMdl(usd));if(currency==="eur")return moneyEur(usdToMdl(usd)/rateOf("eurMdl"));return moneyUsd(usd)}
 function displayMdl(mdl){if(currency==="mdl")return moneyMdl(mdl);if(currency==="eur")return moneyEur(mdlToEur(mdl));return moneyUsd(mdlToUsd(mdl))}
 function interpolateFee(price){if(price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
 /* Ядро расчёта живёт в calc-core.js — его же использует /api/calc и расширение Chrome.
