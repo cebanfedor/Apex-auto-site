@@ -98,13 +98,26 @@
   // аукциона отдаёт просто «hybrid». Важно для таможни: у PHEV скидка акциза 0.5
   // против 0.75 у обычного гибрида (PHEV дешевле). Единый источник для сайта,
   // /api/calc и расширения.
-  function isPluginHybrid(make, model, title){
-    var s = (String(make || "") + " " + String(model || "") + " " + String(title || "")).toLowerCase();
-    if(/plug[\s-]?in|phev|\b4xe\b|e[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance/.test(s)) return true;
-    if(/\bprime\b/.test(s) && /toyota|rav4|prius/.test(s)) return true;      // Toyota RAV4/Prius Prime
-    // BMW/Mercedes: трим «40e», «45e», «330e», «530e», «745e», «350e», «225xe»,
-    // «xDrive40e/45e» — цифры + (x) + e на конце слова.
+  function isPluginHybrid(make, model, title, year){
+    var mk = String(make || "").toLowerCase();
+    var s = (mk + " " + String(model || "") + " " + String(title || "")).toLowerCase();
+    var yr = Number(year) || (function(){ var m = s.match(/\b(?:19|20)\d{2}\b/); return m ? Number(m[0]) : 0; })();
+    // Явные маркеры PHEV в названии (включая суффикс «h+» у Toyota/Lexus).
+    if(/plug[\s-]?in|phev|\b4xe\b|e[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance|h\+/.test(s)) return true;
+    if(/\bprime\b/.test(s) && mk.indexOf("toyota") !== -1) return true;      // любой Toyota Prime (RAV4/Prius/…)
+    // BMW/Mercedes: трим «40e», «330e», «530e», «350e», «225xe», «xDrive40e» — цифры+(x)+e.
     if(/bmw|mercedes/.test(s) && /\d{2,3}x?e\b/.test(s)) return true;
+    // Mitsubishi Outlander — гибридная версия существует только как PHEV.
+    if(mk.indexOf("mitsubishi") !== -1 && /outlander/.test(s)) return true;
+    // Mazda CX-70 / CX-90 — гибрид = PHEV.
+    if(mk.indexOf("mazda") !== -1 && /cx[\s-]?70|cx[\s-]?90/.test(s)) return true;
+    // Volvo 2016+ — гибриды это PHEV (Twin Engine / Recharge / T8), обычных гибридов нет.
+    if(mk.indexOf("volvo") !== -1 && yr >= 2016) return true;
+    // Lexus последнего поколения: NX450 (2022+) и RX450 (2023+) = PHEV; «h+» уже поймали выше.
+    if(mk.indexOf("lexus") !== -1){
+      if(/nx\s*450/.test(s) && yr >= 2022) return true;
+      if(/rx\s*450/.test(s) && yr >= 2023) return true;
+    }
     return false;
   }
 
@@ -211,6 +224,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v6"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v7"
   };
 });

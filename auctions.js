@@ -432,7 +432,7 @@
     // PHEV по названию модели/трима (xDrive40e, 330e, RAV4 Prime, 4xe и т.п.) —
     // фид часто отдаёт таким машинам просто «гибрид», а у PHEV таможня ниже.
     const plugin = lot && window.ApexCalc && window.ApexCalc.isPluginHybrid
-      && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title);
+      && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title, lot.year);
     if(/plug|phev/.test(f)) return "phev";
     if(/hybrid|гибрид/.test(f)) return plugin ? "phev" : "hybrid";
     if(/electric|электро|tesla/.test(f)){

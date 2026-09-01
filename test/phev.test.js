@@ -14,6 +14,26 @@ test("PHEV распознаётся по названию модели/трим�
   assert.ok(p("Volvo", "XC60", "2022 Volvo XC60 Recharge"));
 });
 
+test("доп. PHEV-правила: Mitsubishi/Mazda/Volvo/Toyota Prime/Lexus 450h+", () => {
+  assert.ok(p("Mitsubishi", "Outlander", "2020 Mitsubishi Outlander"));
+  assert.ok(p("Mazda", "CX-90", "2024 Mazda CX-90"));
+  assert.ok(p("Mazda", "CX-70", "2025 Mazda CX-70"));
+  assert.ok(p("Volvo", "XC60", "2018 Volvo XC60", 2018));
+  assert.ok(p("Volvo", "XC90", "2016 Volvo XC90", 2016));
+  assert.ok(p("Toyota", "Prius", "2022 Toyota Prius Prime"));
+  assert.ok(p("Lexus", "NX", "2023 Lexus NX 450h+"));         // маркер h+
+  assert.ok(p("Lexus", "RX", "2024 Lexus RX 450h+"));
+  assert.ok(p("Lexus", "NX", "2022 Lexus NX 450", 2022));     // без «+», по году
+  assert.ok(p("Lexus", "RX", "2024 Lexus RX 450", 2024));
+});
+
+test("доп. правила не срабатывают ложно", () => {
+  assert.equal(p("Volvo", "XC90", "2014 Volvo XC90", 2014), false);   // до 2016
+  assert.equal(p("Lexus", "RX", "2019 Lexus RX 450h", 2019), false);  // старый RX450h — обычный гибрид
+  assert.equal(p("Lexus", "NX", "2021 Lexus NX 300h", 2021), false);
+  assert.equal(p("Mazda", "CX-5", "2022 Mazda CX-5"), false);
+});
+
 test("не-PHEV не распознаётся ложно", () => {
   assert.equal(p("BMW", "X5", "2019 BMW X5 xDrive40i"), false);  // 40i, не 40e
   assert.equal(p("Toyota", "Camry", "2020 Toyota Camry Hybrid"), false);
