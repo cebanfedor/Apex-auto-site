@@ -1808,7 +1808,10 @@ module.exports = async function handler(request, response){
   // Supabase persistent cache — shared across all serverless instances.
   // Checked only for actions that consume the auctionsapi.com quota.
   const dbCacheActions = new Set(["search","detail","vin","archived","manufacturers","models","generations","usadict","statistics"]);
-  if(dbCacheActions.has(action) && !freshMode){
+  // Словарь повреждений теперь статический (не тратит квоту API) — Supabase-кэш
+  // для него лишний round-trip, пропускаем (memory + edge-кэш достаточно). P3-16.
+  const isStaticDamages = action === "usadict" && String(query.get("dict") || "").toLowerCase() === "damages";
+  if(dbCacheActions.has(action) && !freshMode && !isStaticDamages){
     const dbHit = await getDbCache(key);
     if(dbHit && !detailCacheStale(dbHit)){
       setCached(key, dbHit);
