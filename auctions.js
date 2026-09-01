@@ -2253,12 +2253,19 @@
       form.phone.value = "";
       form.comment.value = "";
       // Автозакрытие после подтверждения — клиенту не нужно жать «×».
-      setTimeout(() => { closeLead(); status.textContent = ""; status.className = ""; }, 2200);
+      // Кнопку держим disabled до закрытия: иначе в окне 2.2с можно нажать
+      // submit повторно и уйдёт пустой запрос (P3-1).
+      setTimeout(() => { closeLead(); status.textContent = ""; status.className = ""; if(btn) btn.disabled = false; }, 2200);
     }catch(error){
       status.className = "leadErrV1";
-      status.textContent = L(error.message) || L("Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.");
-    }finally{
-      if(btn) btn.disabled = false;
+      // Сетевой сбой (fetch reject) даёт техническое «Failed to fetch/Load failed» —
+      // показываем дружелюбный fallback. Серверная ошибка уже приходит понятным текстом.
+      const msg = String((error && error.message) || "");
+      const isNetwork = !msg || /failed to fetch|load failed|networkerror|fetch/i.test(msg);
+      status.textContent = isNetwork
+        ? L("Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.")
+        : (L(msg) || L("Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."));
+      if(btn) btn.disabled = false; // ошибка — разрешаем повтор
     }
   }
 
