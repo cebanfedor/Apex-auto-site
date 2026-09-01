@@ -1,3 +1,8 @@
+// ВНИМАНИЕ (P2-9): это АДМИН-CRUD по лидам — все методы (включая POST) закрыты
+// requireAdmin через createCrudHandler (см. server/crud.js). Публичное создание
+// лида с сайта идёт НЕ сюда, а через handleLead в api/auctions.js (?action=lead):
+// там валидация, honeypot, rate-limit и запись customer+lead+Telegram.
+// Не вешать сюда публичные формы — получат 401.
 const {createCrudHandler, createItemHandler} = require("../server/crud");
 const {getQuery} = require("../server/http");
 const supabase = require("../server/supabase");

@@ -1,7 +1,30 @@
+// Rate-limit по IP: публичный трекинг инициирует исходящий скрейп w8shipping.ua
+// (+ иногда NHTSA). Без лимита эндпоинт можно использовать как усилитель нагрузки
+// или для перебора VIN. In-memory (per-instance), как в других роутах. P2-5.
+const w8RateMap = new Map();
+const W8_RATE_MAX = 20;             // запросов
+const W8_RATE_WINDOW = 10 * 60e3;   // за 10 минут
+function checkW8Rate(ip){
+  const now = Date.now();
+  const hits = (w8RateMap.get(ip) || []).filter(t => now - t < W8_RATE_WINDOW);
+  if(hits.length >= W8_RATE_MAX){ w8RateMap.set(ip, hits); return false; }
+  hits.push(now);
+  w8RateMap.set(ip, hits);
+  if(w8RateMap.size > 5000) w8RateMap.clear();
+  return true;
+}
+function w8ClientIp(req){
+  const xf = String(req.headers?.["x-forwarded-for"] || "").split(",")[0].trim();
+  return xf || req.socket?.remoteAddress || "unknown";
+}
+
 module.exports = async function handler(req, res) {
   const origin = req.headers.origin || "";
   const allowedOrigins = ["https://apexauto.md", "http://localhost:8081"];
   if(allowedOrigins.includes(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
+  if(!checkW8Rate(w8ClientIp(req))){
+    return res.status(429).json({ error: "rate_limited", message: "Слишком много запросов. Подождите пару минут." });
+  }
   const { vin, lot } = req.query;
   const query = vin || lot;
   if (!query) return res.status(400).json({ error: "vin or lot required" });
@@ -17,10 +40,12 @@ module.exports = async function handler(req, res) {
         "Accept": "text/html,application/xhtml+xml",
       },
     });
-    if (!r.ok) return res.status(502).json({ error: "W8 fetch failed", status: r.status });
+    if (!r.ok) return res.status(502).json({ error: "W8 fetch failed" });
     html = await r.text();
   } catch (e) {
-    return res.status(502).json({ error: "W8 unreachable", detail: e.message });
+    // Не отдаём наружу e.message/upstream-статус (публичный эндпоинт) — логируем серверно.
+    console.error("w8-tracking error:", e?.message || e);
+    return res.status(502).json({ error: "W8 unreachable" });
   }
 
   // Extract all Next.js RSC payload chunks
