@@ -42,6 +42,56 @@
     return{total,detail:""};
   }
 
+  // Классификация модели: кроссовер vs внедорожник. Влияет на доставку
+  // (море: crossover +$100, suv +$300; суша: suv +$100). Возвращает
+  // "crossover" | "suv" | null (не определено — решает вызывающий по кузову).
+  // Правило заведено по конкретным моделям — источник один, применяется и на
+  // странице лота, и в /api/calc, и в расширении.
+  function bodyClassForModel(make, model){
+    var mk = String(make || "").toLowerCase();
+    var md = String(model || "").toLowerCase().replace(/[\s._-]/g, ""); // "cr-v"→"crv", "model y"→"modely", "rx 350"→"rx350"
+    var starts = function(p){ return md.indexOf(p) === 0; };
+    if(mk.indexOf("tesla") !== -1){
+      if(starts("modely")) return "crossover";
+      if(starts("modelx")) return "suv";
+    }
+    if(mk.indexOf("bmw") !== -1){
+      if(/^x[1-4]/.test(md)) return "crossover";   // X1 X2 X3 X4
+      if(/^x[57]/.test(md))  return "suv";          // X5 X7
+    }
+    if(mk.indexOf("mercedes") !== -1){
+      if(starts("glc") || starts("glb")) return "crossover";
+      if(starts("gle") || starts("gls")) return "suv";
+    }
+    if(mk.indexOf("hyundai") !== -1){
+      if(starts("tucson")) return "crossover";
+      if(starts("santafe")) return "suv";
+    }
+    if(mk.indexOf("kia") !== -1){
+      if(starts("sportage")) return "crossover";
+      if(starts("sorento")) return "suv";
+    }
+    if(mk.indexOf("toyota") !== -1){
+      if(starts("rav4")) return "crossover";
+    }
+    if(mk.indexOf("honda") !== -1){
+      if(starts("crv")) return "crossover";
+    }
+    if(mk.indexOf("volkswagen") !== -1 || mk === "vw"){
+      if(starts("tiguan")) return "crossover";
+      if(starts("atlas")) return "suv";
+    }
+    if(mk.indexOf("lexus") !== -1){
+      if(starts("nx")) return "crossover";
+      if(starts("rx")) return "suv";
+    }
+    if(mk.indexOf("audi") !== -1){
+      if(starts("q5")) return "crossover";
+      if(starts("q7")) return "suv";
+    }
+    return null;
+  }
+
   function landMultiplier(type){
     if(type==="pickup"||type==="pickupLarge"||type==="vanLarge"||type==="pickupOversized")return 1.5;
     return 1;
@@ -145,6 +195,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, SEA, VERSION: "core-v3"
+    landShippingFor, seaShippingFor, bodyClassForModel, SEA, VERSION: "core-v4"
   };
 });

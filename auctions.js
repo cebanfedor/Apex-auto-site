@@ -416,6 +416,11 @@
     const t = (String(lot.model || "") + " " + String(lot.make || "")).toLowerCase();
     if(/pickup|truck|silverado|sierra|ram|f-150|f150|tundra|tacoma/.test(b + t)) return "pickup";
     if(/van|cargo|sprinter|transit|minivan/.test(b + t)) return "vanLarge";
+    // Правило по конкретным моделям (кроссовер vs внедорожник) — единый источник
+    // в calc-core. Приоритетнее общего кузова, т.к. влияет на доставку.
+    const byModel = window.ApexCalc && window.ApexCalc.bodyClassForModel
+      ? window.ApexCalc.bodyClassForModel(lot.make, lot.model) : null;
+    if(byModel) return byModel;
     if(/suv|utility|cuv|crossover/.test(b)) return "suv";
     return "sedan";
   }
