@@ -145,6 +145,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, SEA, VERSION: "core-v2"
+    landShippingFor, seaShippingFor, SEA, VERSION: "core-v3"
   };
 });
