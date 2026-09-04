@@ -49,7 +49,7 @@
     ]
   }
   </script>
-  <script src="img-fallback.js?v=v1"></script>
+  <script src="/img-fallback.js?v=v1"></script>
 </head>
 <body>
     <header class="siteHeader apexHdrV201">
@@ -440,42 +440,31 @@
 <script>
 (function(){
   var KEY = 'apexExitPopupShown';
+  var el = document.getElementById('exitPopupV401');
+  if(!el) return;
   var shown = false;
 
   function show(){
-    if(shown || sessionStorage.getItem(KEY)) return;
+    if(shown) return;
+    try{ if(sessionStorage.getItem(KEY)) return; sessionStorage.setItem(KEY,'1'); }catch(e){}
     shown = true;
-    sessionStorage.setItem(KEY,'1');
-    var el = document.getElementById('exitPopupV401');
     el.style.display = 'flex';
   }
+  function close(){ el.style.display = 'none'; }
+  window.exitPopupClose = close;
 
-  window.exitPopupClose = function(){
-    document.getElementById('exitPopupV401').style.display = 'none';
-  };
+  // Показ через 5 минут пребывания на сайте (один раз за сессию).
+  setTimeout(show, 5 * 60 * 1000);
 
-  // Desktop: mouse leaves viewport through the top
-  document.addEventListener('mouseleave', function(e){
-    if(e.clientY < 10) show();
-  });
+  // Кнопки закрытия — вешаем прямо здесь (self-contained, не зависит от других скриптов).
+  var btns = el.querySelectorAll('[data-exit-close]');
+  for(var i = 0; i < btns.length; i++) btns[i].addEventListener('click', close);
 
-  // Mobile / no mouse: show after 50 seconds of browsing
-  var mobileTimer = setTimeout(function(){
-    if(!shown && !sessionStorage.getItem(KEY)) show();
-  }, 50000);
+  // Клик по затемнённому фону — закрыть.
+  el.addEventListener('click', function(e){ if(e.target === this) close(); });
 
-  // Cancel mobile timer if user already saw the popup on desktop
-  document.addEventListener('mouseleave', function(){ clearTimeout(mobileTimer); }, {once:true});
-
-  // Close on backdrop click
-  document.getElementById('exitPopupV401').addEventListener('click', function(e){
-    if(e.target === this) exitPopupClose();
-  });
-
-  // Close on Escape
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') exitPopupClose();
-  });
+  // Escape — закрыть.
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
 })();
 </script>
 </body>
