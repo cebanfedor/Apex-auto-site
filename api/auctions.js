@@ -1269,7 +1269,10 @@ async function lotsDbReady(){
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
     if(!url || !key) throw new Error("no supabase env");
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), SB_WAIT_MS);
+    // Это чтение ОДНОЙ строки по ключу — ему незачем жить на жёстком 1.5с-бюджете
+    // circuit-breaker. На слабом compute (nano) весь ответ бывает ~1.7с, из-за чего
+    // готовность ложно падала в false. Даём отдельный, более щедрый таймаут.
+    const timer = setTimeout(() => controller.abort(), 4000);
     let r;
     try{
       r = await fetch(`${url}/rest/v1/api_sync_state?k=eq.main&select=v`, {
