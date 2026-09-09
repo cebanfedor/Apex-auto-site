@@ -1537,6 +1537,10 @@ async function fetchSoldComps(makeId, modelId){
     if(chunk.length < 200) break;
   }
   if(!items.length) return null;
+  // Порог «торги реально завершились»: 12ч назад. Фид помечает status=6 и у
+  // живых/будущих лотов, где final_bid == текущая пред-ставка (не молоток) —
+  // такие лоты давали «живые машины за $1500». Берём только прошедшие продажи.
+  const soldBefore = Date.now() - 12 * 3600e3;
   const out = [];
   for(const v of items){
     const year = safeNumber(v && v.year);
@@ -1547,6 +1551,10 @@ async function fetchSoldComps(makeId, modelId){
       const st = Number((l && l.status && (l.status.id != null ? l.status.id : l.status)) || 0);
       const fb = safeNumber(l && (l.final_bid || l.bid));
       const odo = safeNumber(l && l.odometer && l.odometer.mi);
+      // Торги должны быть в прошлом (не сегодня-вживую и не будущая дата): иначе
+      // final_bid — это текущая пред-ставка, а не финальная цена продажи.
+      const saleTs = l && l.sale_date ? Date.parse(l.sale_date) : NaN;
+      const settled = Number.isFinite(saleTs) && saleTs <= soldBefore;
       // Состояние «на ходу» — сильнейший фактор цены salvage. Определяем по id
       // условия (0 = run_and_drives), не по тексту: «not run» содержит «run».
       const condId = l && l.condition && (l.condition.id != null ? Number(l.condition.id) : null);
@@ -1554,7 +1562,7 @@ async function fetchSoldComps(makeId, modelId){
       const run = condId === 0 || (condId == null && /(runs? and drive|заводится и едет)/.test(condName));
       // Утиль (не восстановимый / сгоревший / утопленник / биохазард) не возят —
       // он занижает медиану, поэтому в оценку рынка не берём вовсе.
-      if(st === 6 && fb > 0 && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
+      if(st === 6 && fb > 0 && settled && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
     }
   }
   return out;
