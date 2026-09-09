@@ -1522,33 +1522,56 @@ async function fetchSoldComps(makeId, modelId){
   for(const v of (items || [])){
     const year = safeNumber(v && v.year);
     const fuelId = fuelTextToId(safeName(v && v.fuel));
+    const genId = Number((v && v.generation && v.generation.id) || 0) || 0;
     const lots = Array.isArray(v && v.lots) ? v.lots : [];
     for(const l of lots){
       const st = Number((l && l.status && (l.status.id != null ? l.status.id : l.status)) || 0);
       const fb = safeNumber(l && (l.final_bid || l.bid));
       const odo = safeNumber(l && l.odometer && l.odometer.mi);
-      if(st === 6 && fb > 0) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId});
+      // Состояние «на ходу» — сильнейший фактор цены salvage.
+      const condId = l && l.condition && (l.condition.id != null ? Number(l.condition.id) : null);
+      const condName = safeName(l && l.condition).toLowerCase();
+      const run = condId === 0 || /run|drive|старт|заводит/.test(condName);
+      if(st === 6 && fb > 0) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
     }
   }
   return out;
 }
 function computeComps(rows, meta){
-  const yr = Number(meta.year) || 0;
-  const odo = Number(meta.odometer) || 0;
-  const fuel = Number(meta.fuelId) || 0;
-  const MIN = 4;
+  const yr = Number(meta.year) || 0, odo = Number(meta.odometer) || 0;
+  const fuel = Number(meta.fuelId) || 0, gen = Number(meta.genId) || 0;
+  const run = (meta.run === true || meta.run === false) ? meta.run : null;
   const near = odo ? Math.max(25000, Math.round(odo * 0.35)) : 0;
-  // Тиры: узкий → широкий. match — какие фильтры реально применились (для подписи).
-  const tiers = [];
-  if(fuel && yr && odo) tiers.push([{fuel:true, year:true, mileage:true}, r => Number(r.fuel_id) === fuel && Math.abs((Number(r.year) || 0) - yr) <= 1 && Math.abs((Number(r.odometer_mi) || 0) - odo) <= near]);
-  if(fuel && yr && odo) tiers.push([{fuel:true, year:true, mileage:true}, r => Number(r.fuel_id) === fuel && Math.abs((Number(r.year) || 0) - yr) <= 2 && Math.abs((Number(r.odometer_mi) || 0) - odo) <= 50000]);
-  if(fuel && yr) tiers.push([{fuel:true, year:true, mileage:false}, r => Number(r.fuel_id) === fuel && Math.abs((Number(r.year) || 0) - yr) <= 2]);
-  if(fuel) tiers.push([{fuel:true, year:false, mileage:false}, r => Number(r.fuel_id) === fuel]);
-  if(yr) tiers.push([{fuel:false, year:true, mileage:false}, r => Math.abs((Number(r.year) || 0) - yr) <= 3]);
-  tiers.push([{fuel:false, year:false, mileage:false}, () => true]);
-  for(const [match, f] of tiers){
-    const sel = rows.filter(f).map(r => Number(r.final_bid)).filter(v => v > 0);
-    if(sel.length >= MIN){
+  const has = {fuel:!!fuel, year:!!yr, mileage:!!odo, cond:run !== null, gen:!!gen};
+  // Предикаты фильтрации сопоставимых лотов.
+  const P = {
+    fuel:r => !fuel || Number(r.fuel_id) === fuel,
+    gen: r => !gen || Number(r.gen_id) === gen,
+    run: r => run === null || (!!r.run) === run,            // то же состояние (на ходу / нет)
+    y1:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 1,
+    y2:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 2,
+    y3:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 3,
+    m1:  r => !odo || Math.abs((Number(r.odometer_mi) || 0) - odo) <= near,
+    m2:  r => !odo || Math.abs((Number(r.odometer_mi) || 0) - odo) <= 50000
+  };
+  // Тиры узкий → широкий: топливо+поколение+состояние+год+пробег … → модель.
+  const tiers = [
+    [["fuel","gen","run","y2","m1"], {fuel:1,gen:1,cond:1,year:1,mileage:1}],
+    [["fuel","gen","run","y2"],      {fuel:1,gen:1,cond:1,year:1}],
+    [["fuel","run","y2","m1"],       {fuel:1,cond:1,year:1,mileage:1}],
+    [["fuel","run","y2"],            {fuel:1,cond:1,year:1}],
+    [["fuel","run","m2"],            {fuel:1,cond:1,mileage:1}],
+    [["fuel","run"],                 {fuel:1,cond:1}],
+    [["fuel","y2","m1"],             {fuel:1,year:1,mileage:1}],
+    [["fuel","y2"],                  {fuel:1,year:1}],
+    [["fuel"],                       {fuel:1}],
+    [["y3"],                         {year:1}],
+    [[],                             {}]
+  ];
+  for(const [preds, mf] of tiers){
+    const sel = rows.filter(r => Number(r.final_bid) > 0 && preds.every(k => P[k](r))).map(r => Number(r.final_bid));
+    if(sel.length >= 4){
+      const match = {fuel:!!(mf.fuel && has.fuel), year:!!(mf.year && has.year), mileage:!!(mf.mileage && has.mileage), cond:!!(mf.cond && has.cond), gen:!!(mf.gen && has.gen)};
       return {count:sel.length, median:median(sel), mean:Math.round(sel.reduce((a, b) => a + b, 0) / sel.length),
         min:Math.min(...sel), max:Math.max(...sel), p25:percentile(sel, 25), p75:percentile(sel, 75), match};
     }
@@ -1556,7 +1579,7 @@ function computeComps(rows, meta){
   const all = rows.map(r => Number(r.final_bid)).filter(v => v > 0);
   if(all.length < 2) return null;
   return {count:all.length, median:median(all), mean:Math.round(all.reduce((a, b) => a + b, 0) / all.length),
-    min:Math.min(...all), max:Math.max(...all), p25:percentile(all, 25), p75:percentile(all, 75), match:{fuel:false, year:false, mileage:false}};
+    min:Math.min(...all), max:Math.max(...all), p25:percentile(all, 25), p75:percentile(all, 75), match:{}};
 }
 
 // ================= Синхронизация каталога в Supabase (action=synclots) =================
@@ -2053,10 +2076,14 @@ module.exports = async function handler(request, response){
         try{
           const rows = await fetchSoldComps(makeId, modelId);
           if(rows && rows.length){
+            const condRaw = String(query.get("condition") || "").toLowerCase();
+            const run = condRaw ? /run|drive|заводит|ход/.test(condRaw) : null;
             const stats = computeComps(rows, {
               year:query.get("year"),
               odometer:query.get("odometer"),
-              fuelId:fuelTextToId(query.get("fuel"))
+              fuelId:fuelTextToId(query.get("fuel")),
+              genId:String(query.get("generation_id") || "").replace(/[^0-9]/g, ""),
+              run
             });
             if(stats){
               const payload = {ok:true, comps:stats};

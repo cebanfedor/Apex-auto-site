@@ -1960,12 +1960,16 @@
     const marketLine = document.getElementById("lotMarketLineV1");
     if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(median)} · ${count} ${salesWord(count)}</span>`;
   }
-  // Подпись: какие фильтры учтены (топливо/год/пробег).
+  // Подпись: какие факторы учтены (динамически из match).
   function compsNote(match){
-    if(match && match.fuel && match.mileage) return L("Оценка с учётом топлива, года и пробега.");
-    if(match && match.fuel && match.year) return L("Оценка с учётом топлива и года.");
-    if(match && match.fuel) return L("Оценка с учётом топлива.");
-    return L("По данным проданных лотов Copart и IAAI.");
+    if(!match) return L("По данным проданных лотов Copart и IAAI.");
+    const parts = [];
+    if(match.fuel) parts.push(L("топлива"));
+    if(match.cond) parts.push(L("состояния"));
+    if(match.year) parts.push(L("года"));
+    if(match.mileage) parts.push(L("пробега"));
+    if(match.gen) parts.push(L("поколения"));
+    return parts.length ? `${L("С учётом:")} ${parts.join(", ")}.` : L("По данным проданных лотов Copart и IAAI.");
   }
 
   async function loadStats(lot){
@@ -1979,21 +1983,27 @@
       if(lot.year) cp.set("year", String(lot.year));
       if(lot.odometer) cp.set("odometer", String(lot.odometer));
       if(lot.fuel) cp.set("fuel", String(lot.fuel));
+      if(lot.generationId) cp.set("generation_id", String(lot.generationId));
+      if(lot.condition) cp.set("condition", String(lot.condition));
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
       if(cr && cr.ok && cr.comps && cr.comps.count){
         const c = cr.comps;
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
         const lo = c.p25 || c.min, hi = c.p75 || c.max;
+        const hasRange = lo && hi && hi > lo;
+        // Ведущее число — ДИАПАЗОН оценки (как у DreamBid): salvage-цена сильно
+        // зависит от состояния/повреждений, одна «средняя» вводит в заблуждение.
         box.innerHTML = `
           <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${c.count} ${salesWord(c.count)}</span></div>
           <div class="statGridV1">
-            <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money(c.median)}</b></div>
-            ${lo && hi && hi > lo ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money(lo)} – ${money(hi)}</b></div>` : ""}
+            ${hasRange ? `<div class="statCellV1"><span>${L("Оценочная стоимость")}</span><b>${money(lo)} – ${money(hi)}</b></div>` : ""}
+            <div class="statCellV1"><span>${L("Медиана продаж")}</span><b>${money(c.median)}</b></div>
             <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${c.count}</b></div>
           </div>
           <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
         box.hidden = false;
-        setMarketLine(c.median, c.count);
+        const marketLine = document.getElementById("lotMarketLineV1");
+        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)} · ${c.count} ${salesWord(c.count)}</span>`;
         return;
       }
       // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
