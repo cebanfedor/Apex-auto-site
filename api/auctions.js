@@ -1592,18 +1592,16 @@ function computeComps(rows, meta){
   // ЖЁСТКИЙ фильтр глубоко в цепочке — иначе новый кузов смешался бы со старым.
   // Внутри одного поколения кузов один, поэтому год-окно (±2) не нужно: цену
   // внутри поколения различают пробег и состояние.
+  // Гейт поколения (gr) — АБСОЛЮТНЫЙ: не снимаем его в резерве. Если своего
+  // поколения мало продаж (напр. новый 2026 Panamera), лучше вернуть null и
+  // отдать оценку агрегату /statistics, чем показать разброс по чужим кузовам.
   const tiers = hasGenRange ? [
     [["fuel","gr","run","m1"], {fuel:1,gen:1,cond:1,mileage:1}],
     [["fuel","gr","run"],      {fuel:1,gen:1,cond:1}],
     [["fuel","gr","m1"],       {fuel:1,gen:1,mileage:1}],
     [["fuel","gr"],            {fuel:1,gen:1}],
     [["gr","run"],             {gen:1,cond:1}],
-    [["gr"],                   {gen:1}],
-    // последний резерв — снимаем поколение, чтобы не остаться совсем без оценки
-    [["fuel","run","y2"],      {fuel:1,cond:1,year:1}],
-    [["fuel","y2"],            {fuel:1,year:1}],
-    [["y3"],                   {year:1}],
-    [[],                       {}]
+    [["gr"],                   {gen:1}]
   ] : [
     [["fuel","run","y2","m1"],       {fuel:1,cond:1,year:1,mileage:1}],
     [["fuel","run","y2"],            {fuel:1,cond:1,year:1}],
@@ -1633,6 +1631,10 @@ function computeComps(rows, meta){
       return build(selRows, {fuel:!!(mf.fuel && has.fuel), year:!!(mf.year && has.year), mileage:!!(mf.mileage && has.mileage), cond:!!(mf.cond && has.cond), gen:!!(mf.gen && has.gen)});
     }
   }
+  // Не набрали 4 сопоставимых. При известном поколении НЕ скатываемся на «все
+  // подряд» (чужие кузова дали бы бессмысленный разброс) — отдаём null, клиент
+  // возьмёт агрегат /statistics. Без поколения — старый широкий фолбэк.
+  if(hasGenRange) return null;
   const allRows = rows.filter(r => Number(r.final_bid) > 0);
   if(allRows.length < 2) return null;
   return build(allRows, {});
