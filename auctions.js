@@ -1984,7 +1984,11 @@
       if(lot.odometer) cp.set("odometer", String(lot.odometer));
       if(lot.fuel) cp.set("fuel", String(lot.fuel));
       if(lot.generationId) cp.set("generation_id", String(lot.generationId));
-      if(lot.condition) cp.set("condition", String(lot.condition));
+      // Состояние лота → однозначный флаг run (1 на ходу / 0 нет), чтобы сервер
+      // сравнивал с тем же классом. «Заводится (без едет)» и т.п. → не фильтруем.
+      const ci = conditionInfo(lot.condition);
+      const runFlag = ci.tone === "good" ? "1" : ci.tone === "bad" ? "0" : "";
+      if(runFlag) cp.set("run", runFlag);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
       if(cr && cr.ok && cr.comps && cr.comps.count){
         const c = cr.comps;

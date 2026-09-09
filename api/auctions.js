@@ -1528,10 +1528,11 @@ async function fetchSoldComps(makeId, modelId){
       const st = Number((l && l.status && (l.status.id != null ? l.status.id : l.status)) || 0);
       const fb = safeNumber(l && (l.final_bid || l.bid));
       const odo = safeNumber(l && l.odometer && l.odometer.mi);
-      // Состояние «на ходу» — сильнейший фактор цены salvage.
+      // Состояние «на ходу» — сильнейший фактор цены salvage. Определяем по id
+      // условия (0 = run_and_drives), не по тексту: «not run» содержит «run».
       const condId = l && l.condition && (l.condition.id != null ? Number(l.condition.id) : null);
       const condName = safeName(l && l.condition).toLowerCase();
-      const run = condId === 0 || /run|drive|старт|заводит/.test(condName);
+      const run = condId === 0 || (condId == null && /(runs? and drive|заводится и едет)/.test(condName));
       if(st === 6 && fb > 0) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
     }
   }
@@ -2076,8 +2077,10 @@ module.exports = async function handler(request, response){
         try{
           const rows = await fetchSoldComps(makeId, modelId);
           if(rows && rows.length){
-            const condRaw = String(query.get("condition") || "").toLowerCase();
-            const run = condRaw ? /run|drive|заводит|ход/.test(condRaw) : null;
+            // run приходит с клиента как 1/0 (клиент классифицирует состояние лота
+            // однозначно); пусто → не фильтруем по состоянию.
+            const runQ = String(query.get("run") || "");
+            const run = runQ === "1" ? true : runQ === "0" ? false : null;
             const stats = computeComps(rows, {
               year:query.get("year"),
               odometer:query.get("odometer"),
