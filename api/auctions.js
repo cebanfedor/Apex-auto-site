@@ -1507,7 +1507,10 @@ function percentile(arr, pct){
   return s[Math.min(s.length - 1, Math.max(0, Math.round((pct / 100) * (s.length - 1))))];
 }
 async function fetchSoldComps(makeId, modelId){
-  if(!(await lotsDbReady())) return null;
+  // Для исторических цен строгий gate «синк в фазе incr» не нужен — достаточно,
+  // чтобы Supabase был доступен (не в отключке по circuit breaker). Проданные
+  // лоты в api_lots полезны даже при неполном/идущем синке каталога.
+  if(!sbUp()) return null;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const p = new URLSearchParams();
