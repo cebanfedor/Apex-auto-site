@@ -801,3 +801,13 @@ body.leadModalOpenV1 { overflow:hidden; }
 .scPriceEmptyV1 span { text-transform:none; letter-spacing:0; font-size:11px; font-weight:600; }
 @media (max-width: 1100px){ .showcaseGridV1 { grid-template-columns:repeat(3, 1fr); } .scCardV1:nth-child(n+4) { display:none; } }
 @media (max-width: 640px){ .showcaseGridV1 { grid-template-columns:repeat(2, 1fr); gap:10px; } .scCardV1:nth-child(n+3) { display:none; } .scCardV1:nth-child(-n+2) { display:flex; } } }
+
+/* Список похожих проданных лотов в блоке рыночной оценки (comps). */
+.compsListV1{ margin-top:12px; border-top:1px solid var(--aLine,#e8ebf0); padding-top:10px; }
+.compsListHeadV1{ font-size:11.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--aMuted,#9aa3af); margin-bottom:6px; }
+.compsRowV1{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--aLine,#f1f2f4); font-size:13px; }
+.compsRowV1:last-child{ border-bottom:none; }
+.compsMetaV1{ color:var(--aInk2,#4b5563); }
+.compsRowV1 b{ font-variant-numeric:tabular-nums; color:var(--aInk,#11141a); white-space:nowrap; }
+.compsRunV1{ font-style:normal; color:#1a7f45; font-weight:600; }
+.compsNoRunV1{ font-style:normal; color:#c2410c; font-weight:600; }

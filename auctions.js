@@ -1995,6 +1995,14 @@
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
         const lo = c.p25 || c.min, hi = c.p75 || c.max;
         const hasRange = lo && hi && hi > lo;
+        // Список нескольких похожих проданных лотов (год · пробег · состояние · цена) — как у DreamBid.
+        const kmLabel = mi => mi ? `${Math.round(mi * 1.609 / 1000)} ${L("тыс. км")}` : "—";
+        const samples = Array.isArray(c.samples) ? c.samples : [];
+        const samplesHtml = samples.length ? `
+          <div class="compsListV1">
+            <div class="compsListHeadV1">${L("Похожие проданные лоты")}</div>
+            ${samples.map(s => `<div class="compsRowV1"><span class="compsMetaV1">${s.year || ""} · ${kmLabel(s.mi)} · <i class="${s.run ? "compsRunV1" : "compsNoRunV1"}">${s.run ? L("на ходу") : L("не на ходу")}</i></span><b>${money(s.price)}</b></div>`).join("")}
+          </div>` : "";
         // Ведущее число — ДИАПАЗОН оценки (как у DreamBid): salvage-цена сильно
         // зависит от состояния/повреждений, одна «средняя» вводит в заблуждение.
         box.innerHTML = `
@@ -2004,7 +2012,8 @@
             <div class="statCellV1"><span>${L("Медиана продаж")}</span><b>${money(c.median)}</b></div>
             <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${c.count}</b></div>
           </div>
-          <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
+          <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>
+          ${samplesHtml}`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
         if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)} · ${c.count} ${salesWord(c.count)}</span>`;

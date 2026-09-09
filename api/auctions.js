@@ -1569,18 +1569,27 @@ function computeComps(rows, meta){
     [["y3"],                         {year:1}],
     [[],                             {}]
   ];
+  // Несколько примеров сопоставимых лотов — ближайшие по пробегу/году к оцениваемому.
+  const samplesFrom = selRows => selRows.slice()
+    .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 8000)
+                  - (Math.abs((b.odometer_mi || 0) - odo) + Math.abs((b.year || 0) - yr) * 8000))
+    .slice(0, 6)
+    .map(r => ({year:r.year || null, mi:Math.round(r.odometer_mi) || null, run:!!r.run, price:Math.round(r.final_bid)}));
+  const build = (selRows, mf) => {
+    const sel = selRows.map(r => Number(r.final_bid));
+    return {count:sel.length, median:median(sel), mean:Math.round(sel.reduce((a, b) => a + b, 0) / sel.length),
+      min:Math.min(...sel), max:Math.max(...sel), p25:percentile(sel, 25), p75:percentile(sel, 75),
+      match:mf, samples:samplesFrom(selRows)};
+  };
   for(const [preds, mf] of tiers){
-    const sel = rows.filter(r => Number(r.final_bid) > 0 && preds.every(k => P[k](r))).map(r => Number(r.final_bid));
-    if(sel.length >= 4){
-      const match = {fuel:!!(mf.fuel && has.fuel), year:!!(mf.year && has.year), mileage:!!(mf.mileage && has.mileage), cond:!!(mf.cond && has.cond), gen:!!(mf.gen && has.gen)};
-      return {count:sel.length, median:median(sel), mean:Math.round(sel.reduce((a, b) => a + b, 0) / sel.length),
-        min:Math.min(...sel), max:Math.max(...sel), p25:percentile(sel, 25), p75:percentile(sel, 75), match};
+    const selRows = rows.filter(r => Number(r.final_bid) > 0 && preds.every(k => P[k](r)));
+    if(selRows.length >= 4){
+      return build(selRows, {fuel:!!(mf.fuel && has.fuel), year:!!(mf.year && has.year), mileage:!!(mf.mileage && has.mileage), cond:!!(mf.cond && has.cond), gen:!!(mf.gen && has.gen)});
     }
   }
-  const all = rows.map(r => Number(r.final_bid)).filter(v => v > 0);
-  if(all.length < 2) return null;
-  return {count:all.length, median:median(all), mean:Math.round(all.reduce((a, b) => a + b, 0) / all.length),
-    min:Math.min(...all), max:Math.max(...all), p25:percentile(all, 25), p75:percentile(all, 75), match:{}};
+  const allRows = rows.filter(r => Number(r.final_bid) > 0);
+  if(allRows.length < 2) return null;
+  return build(allRows, {});
 }
 
 // ================= Синхронизация каталога в Supabase (action=synclots) =================
