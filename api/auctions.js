@@ -2157,6 +2157,7 @@ module.exports = async function handler(request, response){
             });
             if(stats){
               const payload = {ok:true, comps:stats};
+              if(query.get("debug") === "1") payload.debug = {genFrom, genTo, yearQ, genIdQ, rows:rows.length};
               setCached(key, payload);
               sendJson(response, 200, payload);
               return;
