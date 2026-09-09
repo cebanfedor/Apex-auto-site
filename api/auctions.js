@@ -2021,16 +2021,23 @@ module.exports = async function handler(request, response){
       const out = {ok:true, hasEnv:!!(url && skey), sbUp:sbUp(), lotsDbReady:await lotsDbReady().catch(() => false), sync:null, total:null, sold:null, error:null};
       if(url && skey){
         const H = {apikey:skey, authorization:`Bearer ${skey}`};
-        const count = async q => {
-          try{
-            const r = await fetch(`${url}/rest/v1/api_lots?${q}&select=id`, {headers:{...H, prefer:"count=estimated", range:"0-0", "range-unit":"items"}});
-            return r.ok ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`;
-          }catch(e){ return `err ${String(e.message || e).slice(0,40)}`; }
+        // Короткий abort — иначе висящие запросы к БД упирались в лимит функции.
+        const withTimeout = async (path, extra, ms) => {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), ms || 3000);
+          const started = Date.now();
+          try{ const r = await fetch(`${url}/rest/v1${path}`, {headers:{...H, ...(extra || {})}, signal:ctrl.signal}); return {r, ms:Date.now() - started}; }
+          catch(e){ return {err:(e && e.name === "AbortError") ? `timeout>${ms || 3000}ms` : String(e.message || e).slice(0, 40)}; }
+          finally{ clearTimeout(t); }
         };
-        try{
-          const r = await fetch(`${url}/rest/v1/api_sync_state?k=eq.main&select=v,updated_at`, {headers:H});
-          out.sync = r.ok ? ((await r.json())[0] || null) : `HTTP ${r.status}`;
-        }catch(e){ out.error = String(e.message || e).slice(0, 80); }
+        const count = async q => {
+          const {r, err} = await withTimeout(`/api_lots?${q}&select=id`, {prefer:"count=estimated", range:"0-0", "range-unit":"items"}, 3500);
+          if(err) return err;
+          return r.ok ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`;
+        };
+        const {r, err, ms} = await withTimeout(`/api_sync_state?k=eq.main&select=v,updated_at`, {}, 3500);
+        out.sync = err || (r.ok ? ((await r.json())[0] || null) : `HTTP ${r.status}`);
+        out.syncMs = err ? null : ms;
         out.total = await count("");
         out.sold = await count("status_id=eq.6");
       }
