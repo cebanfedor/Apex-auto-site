@@ -2043,16 +2043,33 @@
           else { scope = rows; scopeLabel = ""; }
         }
       }
-      let sumW = 0, cnt = 0, min = Infinity, max = 0;
+      // Сузить до того же двигателя лота (напр. 2.5 гибрид), чтобы не мешать с
+      // 2.0/2.4-бензином других комплектаций. Если своих мало — оставляем шире.
+      if(lot.engineId){
+        const byEng = scope.filter(x => x.engine && Number(x.engine.id) === Number(lot.engineId));
+        if(cntOf(byEng) >= 3) scope = byEng;
+      }
+      // Средняя — взвешенная по числу продаж. Диапазон — НЕ абсолютные min/max
+      // (там одиночные не-продажи вроде $1 900 и разовые пики), а взвешенный
+      // разброс СРЕДНИХ по годам/площадкам (p15–p85) — устойчивая рыночная вилка.
+      let sumW = 0, cnt = 0;
+      const buckets = [];
       scope.forEach(x => {
         const c = Number(x.lot_count) || 0, avg = Number(x.avg_final_bid) || 0;
-        if(avg > 0 && c > 0){ sumW += avg * c; cnt += c; }
-        const mn = Number(x.min_final_bid) || 0, mx = Number(x.max_final_bid) || 0;
-        if(mn > 0) min = Math.min(min, mn);
-        if(mx > 0) max = Math.max(max, mx);
+        if(avg > 0 && c > 0){ sumW += avg * c; cnt += c; buckets.push({avg, c}); }
       });
       if(!cnt) return;
       const avg = Math.round(sumW / cnt);
+      const wPctAvg = pct => {
+        const s = buckets.slice().sort((a, b) => a.avg - b.avg);
+        const tot = s.reduce((a, b) => a + b.c, 0);
+        const target = pct / 100 * tot; let acc = 0;
+        for(const b of s){ acc += b.c; if(acc >= target) return b.avg; }
+        return s.length ? s[s.length - 1].avg : 0;
+      };
+      let min = buckets.length >= 3 ? Math.round(wPctAvg(15)) : Math.round(avg * 0.8);
+      let max = buckets.length >= 3 ? Math.round(wPctAvg(85)) : Math.round(avg * 1.2);
+      if(min >= max){ min = Math.round(avg * 0.8); max = Math.round(avg * 1.2); }
       const title = [yr, lot.make, lot.model].filter(Boolean).join(" ");
       box.innerHTML = `
         <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${cnt} ${salesWord(cnt)}</span></div>
