@@ -1480,6 +1480,82 @@ async function searchFromDb(query){
   };
 }
 
+// ================= Сопоставимые продажи (action=comps) =================
+// Оценка рынка и прогноз ставки по РЕАЛЬНЫМ проданным лотам той же модели с
+// фильтром по топливу, году и пробегу (медиана устойчивее к выбросам, чем
+// среднее). Тянет проданные лоты из api_lots и фильтрует тирами от узкого к
+// широкому — берём первый тир с достаточным числом сопоставимых.
+const FUEL_TEXT_TO_ID = {
+  gasoline:4, petrol:4, gas:4, "бензин":4, benzina:4,
+  diesel:1, "дизель":1, motorina:1,
+  hybrid:3, "гибрид":3, hibrid:3, phev:3, "plug-in":3, plugin:3,
+  electric:2, ev:2, "электро":2, "электрический":2
+};
+function fuelTextToId(v){
+  const raw = String(v || "").trim().toLowerCase();
+  if(/^\d+$/.test(raw)) return Number(raw);
+  return FUEL_TEXT_TO_ID[raw] || 0;
+}
+function median(arr){
+  if(!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b), m = s.length >> 1;
+  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+}
+function percentile(arr, pct){
+  if(!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.max(0, Math.round((pct / 100) * (s.length - 1))))];
+}
+async function fetchSoldComps(makeId, modelId){
+  if(!(await lotsDbReady())) return null;
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const p = new URLSearchParams();
+  p.set("select", "final_bid,year,odometer_mi,fuel_id,generation_id");
+  p.set("make_id", `eq.${makeId}`);
+  p.set("model_id", `eq.${modelId}`);
+  p.set("status_id", "eq.6");        // продан
+  p.set("final_bid", "gt.0");
+  p.set("order", "sale_date.desc.nullslast");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 7000);
+  let resp;
+  try{
+    resp = await fetch(`${url}/rest/v1/api_lots?${p}`, {
+      headers:{apikey:key, authorization:`Bearer ${key}`, range:"0-999", "range-unit":"items"},
+      signal:controller.signal
+    });
+  }finally{ clearTimeout(timer); }
+  if(!resp.ok) return null;
+  return (await resp.json()).filter(r => Number(r.final_bid) > 0);
+}
+function computeComps(rows, meta){
+  const yr = Number(meta.year) || 0;
+  const odo = Number(meta.odometer) || 0;
+  const fuel = Number(meta.fuelId) || 0;
+  const MIN = 4;
+  const near = odo ? Math.max(25000, Math.round(odo * 0.35)) : 0;
+  // Тиры: узкий → широкий. match — какие фильтры реально применились (для подписи).
+  const tiers = [];
+  if(fuel && yr && odo) tiers.push([{fuel:true, year:true, mileage:true}, r => Number(r.fuel_id) === fuel && Math.abs((Number(r.year) || 0) - yr) <= 1 && Math.abs((Number(r.odometer_mi) || 0) - odo) <= near]);
+  if(fuel && yr && odo) tiers.push([{fuel:true, year:true, mileage:true}, r => Number(r.fuel_id) === fuel && Math.abs((Number(r.year) || 0) - yr) <= 2 && Math.abs((Number(r.odometer_mi) || 0) - odo) <= 50000]);
+  if(fuel && yr) tiers.push([{fuel:true, year:true, mileage:false}, r => Number(r.fuel_id) === fuel && Math.abs((Number(r.year) || 0) - yr) <= 2]);
+  if(fuel) tiers.push([{fuel:true, year:false, mileage:false}, r => Number(r.fuel_id) === fuel]);
+  if(yr) tiers.push([{fuel:false, year:true, mileage:false}, r => Math.abs((Number(r.year) || 0) - yr) <= 3]);
+  tiers.push([{fuel:false, year:false, mileage:false}, () => true]);
+  for(const [match, f] of tiers){
+    const sel = rows.filter(f).map(r => Number(r.final_bid)).filter(v => v > 0);
+    if(sel.length >= MIN){
+      return {count:sel.length, median:median(sel), mean:Math.round(sel.reduce((a, b) => a + b, 0) / sel.length),
+        min:Math.min(...sel), max:Math.max(...sel), p25:percentile(sel, 25), p75:percentile(sel, 75), match};
+    }
+  }
+  const all = rows.map(r => Number(r.final_bid)).filter(v => v > 0);
+  if(all.length < 2) return null;
+  return {count:all.length, median:median(all), mean:Math.round(all.reduce((a, b) => a + b, 0) / all.length),
+    min:Math.min(...all), max:Math.max(...all), p25:percentile(all, 25), p75:percentile(all, 75), match:{fuel:false, year:false, mileage:false}};
+}
+
 // ================= Синхронизация каталога в Supabase (action=synclots) =================
 // Официальная схема интеграции auctionsapi.com: фаза "full" — первичный импорт
 // /cars постранично (per_page=1000), фаза "incr" — /cars?minutes=NN + /archived-lots.
@@ -1932,6 +2008,32 @@ module.exports = async function handler(request, response){
       setCached(key, payload);
       setDbCache(key, payload, "vin");
       sendJson(response, 200, payload);
+      return;
+    }
+
+    if(action === "comps"){
+      // Оценка по реальным проданным лотам с учётом топлива, года и пробега.
+      const makeId = String(query.get("manufacturer_id") || query.get("make_id") || "").replace(/[^0-9]/g, "");
+      const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+      if(makeId && modelId){
+        try{
+          const rows = await sbGuard(fetchSoldComps(makeId, modelId));
+          if(rows && rows.length){
+            const stats = computeComps(rows, {
+              year:query.get("year"),
+              odometer:query.get("odometer"),
+              fuelId:fuelTextToId(query.get("fuel"))
+            });
+            if(stats){
+              const payload = {ok:true, comps:stats};
+              setCached(key, payload);
+              sendJson(response, 200, payload);
+              return;
+            }
+          }
+        }catch(e){ /* база недоступна — отдаём ok:false, клиент откатится на /statistics */ }
+      }
+      sendJson(response, 200, {ok:false});
       return;
     }
 

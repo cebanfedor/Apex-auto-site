@@ -1955,10 +1955,48 @@
   }
 
   // Market statistics for this make/model (avg sale price, range, sample size).
+  // Короткая строка рынка в сайдбаре калькулятора.
+  function setMarketLine(median, count){
+    const marketLine = document.getElementById("lotMarketLineV1");
+    if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(median)} · ${count} ${salesWord(count)}</span>`;
+  }
+  // Подпись: какие фильтры учтены (топливо/год/пробег).
+  function compsNote(match){
+    if(match && match.fuel && match.mileage) return L("Оценка с учётом топлива, года и пробега.");
+    if(match && match.fuel && match.year) return L("Оценка с учётом топлива и года.");
+    if(match && match.fuel) return L("Оценка с учётом топлива.");
+    return L("По данным проданных лотов Copart и IAAI.");
+  }
+
   async function loadStats(lot){
     const box = document.getElementById("lotStatsBox");
     if(!box || !lot.makeId || !lot.modelId) return;
     try{
+      // 1) Точная оценка по РЕАЛЬНЫМ сопоставимым продажам: тот же тип топлива,
+      // близкий год и пробег (медиана устойчивее к выбросам). Пробег/топливо
+      // критичны — гибрид не усредняем с бензином, свежий с пробежным.
+      const cp = new URLSearchParams({action:"comps", manufacturer_id:String(lot.makeId), model_id:String(lot.modelId)});
+      if(lot.year) cp.set("year", String(lot.year));
+      if(lot.odometer) cp.set("odometer", String(lot.odometer));
+      if(lot.fuel) cp.set("fuel", String(lot.fuel));
+      const cr = await api(`/api/auctions?${cp}`).catch(() => null);
+      if(cr && cr.ok && cr.comps && cr.comps.count){
+        const c = cr.comps;
+        const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
+        const lo = c.p25 || c.min, hi = c.p75 || c.max;
+        box.innerHTML = `
+          <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${c.count} ${salesWord(c.count)}</span></div>
+          <div class="statGridV1">
+            <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money(c.median)}</b></div>
+            ${lo && hi && hi > lo ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money(lo)} – ${money(hi)}</b></div>` : ""}
+            <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${c.count}</b></div>
+          </div>
+          <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
+        box.hidden = false;
+        setMarketLine(c.median, c.count);
+        return;
+      }
+      // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
       // ВАЖНО: year в API НЕ шлём. /statistics?year=X отдаёт строки только за X,
       // и тогда клиентское «расширить окно на год-3…год» (ниже) ломается —
       // расширять не из чего, а подпись врёт («за 2020–2023» на данных 2023).
@@ -2002,11 +2040,7 @@
         </div>
         <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
-      // Короткая строка рынка в сайдбаре калькулятора — как «оценочная стоимость» у DreamBid
-      const marketLine = document.getElementById("lotMarketLineV1");
-      if(marketLine){
-        marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(avg)} · ${cnt} ${salesWord(cnt)}</span>`;
-      }
+      setMarketLine(avg, cnt);
     }catch(e){ /* stats optional — ignore */ }
   }
 
