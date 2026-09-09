@@ -1506,6 +1506,19 @@ function percentile(arr, pct){
   const s = [...arr].sort((a, b) => a - b);
   return s[Math.min(s.length - 1, Math.max(0, Math.round((pct / 100) * (s.length - 1))))];
 }
+// «Утиль» — машины, которые к нам не возят и которые занижают медиану: не
+// восстановимые по титулу или уничтоженные типом повреждения. ВАЖНО: обычный
+// Salvage/Rebuildable/Clear и даже Rollover/All Over — нормальные восстановимые
+// авто (их и импортируют), их НЕ трогаем. Отсекаем только настоящий хлам.
+const JUNK_TITLE = /non-?repairable|cert(ificate)?\s*of\s*destruction|junk|parts?\s*only|for\s*parts|dismantle|scrap|destroyed|bill\s*of\s*sale/i;
+const JUNK_DAMAGE = /burn|flood|water|biohazard/i;
+function isJunkLot(l){
+  const t = (safeName(l && l.title) + " " + safeName(l && l.detailed_title)).toLowerCase();
+  if(JUNK_TITLE.test(t)) return true;
+  const d = (safeName(l && l.damage && l.damage.main) + " " + safeName(l && l.damage && l.damage.second)).toLowerCase();
+  if(JUNK_DAMAGE.test(d)) return true;
+  return false;
+}
 async function fetchSoldComps(makeId, modelId){
   // Проданные лоты той же модели напрямую из auctionsapi (status=6) — источник
   // всегда доступен (в отличие от нашей флаки-базы). Тянем ВСЕ страницы архива
@@ -1539,7 +1552,9 @@ async function fetchSoldComps(makeId, modelId){
       const condId = l && l.condition && (l.condition.id != null ? Number(l.condition.id) : null);
       const condName = safeName(l && l.condition).toLowerCase();
       const run = condId === 0 || (condId == null && /(runs? and drive|заводится и едет)/.test(condName));
-      if(st === 6 && fb > 0) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
+      // Утиль (не восстановимый / сгоревший / утопленник / биохазард) не возят —
+      // он занижает медиану, поэтому в оценку рынка не берём вовсе.
+      if(st === 6 && fb > 0 && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
     }
   }
   return out;
