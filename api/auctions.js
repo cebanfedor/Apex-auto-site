@@ -2014,6 +2014,30 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    if(action === "dbstatus"){
+      // Диагностика БД: доступность, фаза синка, счётчики (read-only).
+      const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+      const skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+      const out = {ok:true, hasEnv:!!(url && skey), sbUp:sbUp(), lotsDbReady:await lotsDbReady().catch(() => false), sync:null, total:null, sold:null, error:null};
+      if(url && skey){
+        const H = {apikey:skey, authorization:`Bearer ${skey}`};
+        const count = async q => {
+          try{
+            const r = await fetch(`${url}/rest/v1/api_lots?${q}&select=id`, {headers:{...H, prefer:"count=estimated", range:"0-0", "range-unit":"items"}});
+            return r.ok ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`;
+          }catch(e){ return `err ${String(e.message || e).slice(0,40)}`; }
+        };
+        try{
+          const r = await fetch(`${url}/rest/v1/api_sync_state?k=eq.main&select=v,updated_at`, {headers:H});
+          out.sync = r.ok ? ((await r.json())[0] || null) : `HTTP ${r.status}`;
+        }catch(e){ out.error = String(e.message || e).slice(0, 80); }
+        out.total = await count("");
+        out.sold = await count("status_id=eq.6");
+      }
+      sendJson(response, 200, out);
+      return;
+    }
+
     if(action === "comps"){
       // Оценка по реальным проданным лотам с учётом топлива, года и пробега.
       const makeId = String(query.get("manufacturer_id") || query.get("make_id") || "").replace(/[^0-9]/g, "");
