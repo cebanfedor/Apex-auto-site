@@ -61,7 +61,22 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - Hero/hot-фото в WebP (+ `.jpg`-фолбэк через `onerror`); аватар автора — `founder-avatar.webp`.
 - `vercel.json`: immutable-кэш для `.js/.css` (все ссылки версионированы `?v=`), 30д для картинок.
 
+## Рыночная оценка (comps) — как считается
+- `action=comps` (`api/auctions.js`): оценка по РЕАЛЬНЫМ проданным лотам из
+  `auctionsapi /cars?status=6` (live, не зависит от нашей флаки-базы). Тиры фильтров
+  узкий→широкий: топливо+поколение+**состояние(на ходу)**+год±2+пробег → … → модель;
+  первый тир с ≥4 сопоставимыми. Ведущее число — **диапазон p25–p75** (как DreamBid),
+  медиана вторична. Состояние (run&drive) — сильнейший фактор salvage-цены.
+  `loadStats` в `auctions.js` вызывает comps на КАЖДОЙ странице лота; фолбэк на
+  агрегат `/statistics`, если comps пусты. Карточки каталога (dbForecastV1) пока на
+  старом агрегате (год+двигатель) — не переведены на comps (дорого по вызовам).
+- `action=dbstatus` — read-only диагностика БД (фаза синка, sbUp, счётчики).
+
 ## Pending / TODO
+- ⚠️ **Supabase БД зависает на запросах** (09.09.2026): keyless-401 быстрый, но любой
+  аутентифицированный запрос к api_lots/api_sync_state виснет >3.5с → `lotsDbReady=false`,
+  каталог и все DB-фичи на live-фолбэке (медленнее), часовой синк не идёт. Проверить
+  `?action=dbstatus`. Лечится рестартом проекта в дашборде Supabase (как 01.09).
 - Hot-lot car photos are closest-model stock, not exact 2018/2023 trims — swap if exact needed.
 - i18n-дыры в динамике: AI-советчик ставки в `script.js` (renderBidAdvisor/renderSmartLotAdvice)
   и часть `title=`-подсказок не обёрнуты в `i18nT`/`L()` — на RO/EN остаются русскими.
