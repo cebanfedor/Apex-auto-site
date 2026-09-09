@@ -1508,18 +1508,24 @@ function percentile(arr, pct){
 }
 async function fetchSoldComps(makeId, modelId){
   // Проданные лоты той же модели напрямую из auctionsapi (status=6) — источник
-  // всегда доступен (в отличие от нашей флаки-базы) и отдаёт год/топливо/пробег/
-  // финальную цену по каждому лоту. Этого достаточно для оценки с фильтром.
-  const params = new URLSearchParams({
-    manufacturer_id:String(makeId), model_id:String(modelId),
-    status:"6", per_page:"300", simple_paginate:"1"
-  });
-  let payload;
-  try{ payload = await fetchJson(`${AUCTIONS_API_BASE}/cars?${params}`); }
-  catch(e){ return null; }
-  const items = findItems(payload);
+  // всегда доступен (в отличие от нашей флаки-базы). Тянем ВСЕ страницы архива
+  // (обычно 1–3), чтобы выборка была большой, а не «медиана по 4 лотам».
+  const items = [];
+  for(let page = 1; page <= 6; page++){
+    const params = new URLSearchParams({
+      manufacturer_id:String(makeId), model_id:String(modelId),
+      status:"6", per_page:"200", page:String(page), simple_paginate:"1"
+    });
+    let chunk;
+    try{ chunk = findItems(await fetchJson(`${AUCTIONS_API_BASE}/cars?${params}`)); }
+    catch(e){ break; }
+    if(!chunk || !chunk.length) break;
+    items.push(...chunk);
+    if(chunk.length < 200) break;
+  }
+  if(!items.length) return null;
   const out = [];
-  for(const v of (items || [])){
+  for(const v of items){
     const year = safeNumber(v && v.year);
     const fuelId = fuelTextToId(safeName(v && v.fuel));
     const genId = Number((v && v.generation && v.generation.id) || 0) || 0;
@@ -1541,13 +1547,17 @@ async function fetchSoldComps(makeId, modelId){
 function computeComps(rows, meta){
   const yr = Number(meta.year) || 0, odo = Number(meta.odometer) || 0;
   const fuel = Number(meta.fuelId) || 0, gen = Number(meta.genId) || 0;
+  const genFrom = Number(meta.genFrom) || 0, genTo = Number(meta.genTo) || 0;
+  const hasGenRange = genFrom > 0 && genTo >= genFrom;
   const run = (meta.run === true || meta.run === false) ? meta.run : null;
   const near = odo ? Math.max(25000, Math.round(odo * 0.35)) : 0;
-  const has = {fuel:!!fuel, year:!!yr, mileage:!!odo, cond:run !== null, gen:!!gen};
+  const has = {fuel:!!fuel, year:!!yr, mileage:!!odo, cond:run !== null, gen:hasGenRange || !!gen};
   // Предикаты фильтрации сопоставимых лотов.
   const P = {
     fuel:r => !fuel || Number(r.fuel_id) === fuel,
-    gen: r => !gen || Number(r.gen_id) === gen,
+    // Поколение по диапазону лет (кузов) — год есть у всех лотов, в отличие от
+    // generation_id. Это отделяет новый кузов (напр. Accord 2023+) от старого.
+    gr:  r => !hasGenRange || ((Number(r.year) || 0) >= genFrom && (Number(r.year) || 0) <= genTo),
     run: r => run === null || (!!r.run) === run,            // то же состояние (на ходу / нет)
     y1:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 1,
     y2:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 2,
@@ -1555,10 +1565,23 @@ function computeComps(rows, meta){
     m1:  r => !odo || Math.abs((Number(r.odometer_mi) || 0) - odo) <= near,
     m2:  r => !odo || Math.abs((Number(r.odometer_mi) || 0) - odo) <= 50000
   };
-  // Тиры узкий → широкий: топливо+поколение+состояние+год+пробег … → модель.
-  const tiers = [
-    [["fuel","gen","run","y2","m1"], {fuel:1,gen:1,cond:1,year:1,mileage:1}],
-    [["fuel","gen","run","y2"],      {fuel:1,gen:1,cond:1,year:1}],
+  // Тиры узкий → широкий. Когда известен диапазон поколения, он держится как
+  // ЖЁСТКИЙ фильтр глубоко в цепочке — иначе новый кузов смешался бы со старым.
+  // Внутри одного поколения кузов один, поэтому год-окно (±2) не нужно: цену
+  // внутри поколения различают пробег и состояние.
+  const tiers = hasGenRange ? [
+    [["fuel","gr","run","m1"], {fuel:1,gen:1,cond:1,mileage:1}],
+    [["fuel","gr","run"],      {fuel:1,gen:1,cond:1}],
+    [["fuel","gr","m1"],       {fuel:1,gen:1,mileage:1}],
+    [["fuel","gr"],            {fuel:1,gen:1}],
+    [["gr","run"],             {gen:1,cond:1}],
+    [["gr"],                   {gen:1}],
+    // последний резерв — снимаем поколение, чтобы не остаться совсем без оценки
+    [["fuel","run","y2"],      {fuel:1,cond:1,year:1}],
+    [["fuel","y2"],            {fuel:1,year:1}],
+    [["y3"],                   {year:1}],
+    [[],                       {}]
+  ] : [
     [["fuel","run","y2","m1"],       {fuel:1,cond:1,year:1,mileage:1}],
     [["fuel","run","y2"],            {fuel:1,cond:1,year:1}],
     [["fuel","run","m2"],            {fuel:1,cond:1,mileage:1}],
@@ -2090,11 +2113,33 @@ module.exports = async function handler(request, response){
             // однозначно); пусто → не фильтруем по состоянию.
             const runQ = String(query.get("run") || "");
             const run = runQ === "1" ? true : runQ === "0" ? false : null;
+            const yearQ = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
+            const genIdQ = String(query.get("generation_id") || "").replace(/[^0-9]/g, "");
+            // Поколение = кузов. Аккорд 2024 (новый кузов) нельзя мешать с 2021.
+            // generation_id в фиде проставлен слабо (~1/3 лотов), поэтому вместо
+            // строгого id вычисляем ДИАПАЗОН ЛЕТ поколения и фильтруем по году —
+            // год есть у всех лотов. Диапазон ищем по generation_id, а если его
+            // нет — по году оцениваемого лота; у новейшего поколения верх открыт.
+            let genFrom = 0, genTo = 0;
+            try{
+              const gens = await generationsFor(modelId);
+              if(gens && gens.length){
+                const newest = gens.reduce((a, b) => ((b.from || 0) > (a.from || 0) ? b : a), gens[0]);
+                const curYear = new Date().getFullYear() + 1;
+                let g = genIdQ ? gens.find(x => String(x.id) === String(genIdQ)) : null;
+                if(!g && yearQ) g = gens.find(x => x.from && yearQ >= x.from && yearQ <= (x.to || curYear));
+                if(g && g.from){
+                  genFrom = g.from;
+                  genTo = String(g.id) === String(newest.id) ? curYear : (g.to || curYear);
+                }
+              }
+            }catch(e){ /* справочник поколений недоступен — считаем без него */ }
             const stats = computeComps(rows, {
-              year:query.get("year"),
+              year:yearQ,
               odometer:query.get("odometer"),
               fuelId:fuelTextToId(query.get("fuel")),
-              genId:String(query.get("generation_id") || "").replace(/[^0-9]/g, ""),
+              genId:genIdQ,
+              genFrom, genTo,
               run
             });
             if(stats){
