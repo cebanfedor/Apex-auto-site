@@ -1519,6 +1519,13 @@ function isJunkLot(l){
   if(JUNK_DAMAGE.test(d)) return true;
   return false;
 }
+// «Тяжёлые» — структурно разбитые (перевёртыш, всё вокруг, рама, лонжерон): цену
+// уводят вниз и это не «нормальная восстановимая» машина. Исключаем из оценки.
+const HEAVY_DAMAGE = /all over|roll\s?over|undercarriage|frame|total loss|strip/i;
+function isHeavyLot(l){
+  const d = (safeName(l && l.damage && l.damage.main) + " " + safeName(l && l.damage && l.damage.second)).toLowerCase();
+  return HEAVY_DAMAGE.test(d);
+}
 // Сырой пул проданных зависит ТОЛЬКО от марки+модели, а comps дёргается на
 // каждом лоте (год/пробег/топливо разные → разные ключи ответа). Без этого
 // кэша тяжёлая выгрузка архива (~1МБ/страница, ~5–10с) повторялась бы на каждом
@@ -1571,7 +1578,7 @@ async function fetchSoldComps(makeId, modelId){
       const run = condId === 0 || (condId == null && /(runs? and drive|заводится и едет)/.test(condName));
       // Утиль (не восстановимый / сгоревший / утопленник / биохазард) не возят —
       // он занижает медиану, поэтому в оценку рынка не берём вовсе.
-      if(st === 6 && fb > 0 && settled && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
+      if(st === 6 && fb > 0 && settled && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run, heavy:isHeavyLot(l)});
     }
   }
   soldPoolCache.set(ck, {rows:out, at:Date.now()});
@@ -1579,75 +1586,60 @@ async function fetchSoldComps(makeId, modelId){
 }
 function computeComps(rows, meta){
   const yr = Number(meta.year) || 0, odo = Number(meta.odometer) || 0;
-  const fuel = Number(meta.fuelId) || 0, gen = Number(meta.genId) || 0;
+  const fuel = Number(meta.fuelId) || 0;
   const genFrom = Number(meta.genFrom) || 0, genTo = Number(meta.genTo) || 0;
   const hasGenRange = genFrom > 0 && genTo >= genFrom;
-  const run = (meta.run === true || meta.run === false) ? meta.run : null;
-  const near = odo ? Math.max(25000, Math.round(odo * 0.35)) : 0;
-  const has = {fuel:!!fuel, year:!!yr, mileage:!!odo, cond:run !== null, gen:hasGenRange || !!gen};
-  // Предикаты фильтрации сопоставимых лотов.
-  const P = {
-    fuel:r => !fuel || Number(r.fuel_id) === fuel,
-    // Поколение по диапазону лет (кузов) — год есть у всех лотов, в отличие от
-    // generation_id. Это отделяет новый кузов (напр. Accord 2023+) от старого.
-    gr:  r => !hasGenRange || ((Number(r.year) || 0) >= genFrom && (Number(r.year) || 0) <= genTo),
-    run: r => run === null || (!!r.run) === run,            // то же состояние (на ходу / нет)
-    y1:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 1,
-    y2:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 2,
-    y3:  r => !yr || Math.abs((Number(r.year) || 0) - yr) <= 3,
-    m1:  r => !odo || Math.abs((Number(r.odometer_mi) || 0) - odo) <= near,
-    m2:  r => !odo || Math.abs((Number(r.odometer_mi) || 0) - odo) <= 50000
+  const inGenRange = r => !hasGenRange || ((Number(r.year) || 0) >= genFrom && (Number(r.year) || 0) <= genTo);
+
+  // Оценка по ПОХОЖЕСТИ, а не одна медиана на всё поколение. Внутри одного кузова
+  // цена сильно зависит от года и пробега: свежий малопробежный стоит вдвое больше
+  // убитого пробежного. Поэтому берём проданные того же поколения (без утиля и без
+  // структурно-тяжёлых), и взвешиваем каждый лот по близости к оцениваемому по году
+  // и пробегу — близкие определяют цену, далёкие почти не влияют. Состояние
+  // «заводится/нет» НЕ фильтруем: не на ходу ≠ плохая машина (может быть целой).
+  const notWreck = r => Number(r.final_bid) > 0 && !r.heavy && inGenRange(r);
+  let base = rows.filter(notWreck);
+  let fuelMatched = false;
+  if(fuel){
+    const f = base.filter(r => Number(r.fuel_id) === fuel);
+    if(f.length >= 4){ base = f; fuelMatched = true; }   // топливо — только если хватает своих
+  }
+  // Мало продаж своего поколения → не выдумываем, отдаём агрегату /statistics.
+  if(hasGenRange && base.length < 4) return null;
+  if(base.length < 2) return null;
+
+  // Вес похожести: 1 год ≈ 40к миль по влиянию; далёкие быстро затухают.
+  const wOf = r => {
+    const dy = yr ? Math.abs((Number(r.year) || 0) - yr) : 0;
+    const dm = odo ? Math.abs((Number(r.odometer_mi) || 0) - odo) : 0;
+    return 1 / (1 + (dy / 2) * (dy / 2) + (dm / 40000) * (dm / 40000));
   };
-  // Тиры узкий → широкий. Когда известен диапазон поколения, он держится как
-  // ЖЁСТКИЙ фильтр глубоко в цепочке — иначе новый кузов смешался бы со старым.
-  // Внутри одного поколения кузов один, поэтому год-окно (±2) не нужно: цену
-  // внутри поколения различают пробег и состояние.
-  // Гейт поколения (gr) — АБСОЛЮТНЫЙ: не снимаем его в резерве. Если своего
-  // поколения мало продаж (напр. новый 2026 Panamera), лучше вернуть null и
-  // отдать оценку агрегату /statistics, чем показать разброс по чужим кузовам.
-  const tiers = hasGenRange ? [
-    [["fuel","gr","run","m1"], {fuel:1,gen:1,cond:1,mileage:1}],
-    [["fuel","gr","run"],      {fuel:1,gen:1,cond:1}],
-    [["fuel","gr","m1"],       {fuel:1,gen:1,mileage:1}],
-    [["fuel","gr"],            {fuel:1,gen:1}],
-    [["gr","run"],             {gen:1,cond:1}],
-    [["gr"],                   {gen:1}]
-  ] : [
-    [["fuel","run","y2","m1"],       {fuel:1,cond:1,year:1,mileage:1}],
-    [["fuel","run","y2"],            {fuel:1,cond:1,year:1}],
-    [["fuel","run","m2"],            {fuel:1,cond:1,mileage:1}],
-    [["fuel","run"],                 {fuel:1,cond:1}],
-    [["fuel","y2","m1"],             {fuel:1,year:1,mileage:1}],
-    [["fuel","y2"],                  {fuel:1,year:1}],
-    [["fuel"],                       {fuel:1}],
-    [["y3"],                         {year:1}],
-    [[],                             {}]
-  ];
-  // Несколько примеров сопоставимых лотов — ближайшие по пробегу/году к оцениваемому.
-  const samplesFrom = selRows => selRows.slice()
-    .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 8000)
-                  - (Math.abs((b.odometer_mi || 0) - odo) + Math.abs((b.year || 0) - yr) * 8000))
+  const wPct = pct => {
+    const s = base.map(r => ({v:Number(r.final_bid), w:wOf(r)})).sort((a, b) => a.v - b.v);
+    const tot = s.reduce((a, b) => a + b.w, 0);
+    if(tot <= 0) return 0;
+    const target = pct / 100 * tot;
+    let cum = 0;
+    for(const it of s){ cum += it.w; if(cum >= target) return Math.round(it.v); }
+    return Math.round(s[s.length - 1].v);
+  };
+  let sw = 0, sv = 0;
+  for(const r of base){ const w = wOf(r); sw += w; sv += w * Number(r.final_bid); }
+  const prices = base.map(r => Number(r.final_bid));
+  // Примеры — ближайшие по году+пробегу (1 год ≈ 15к миль для сортировки).
+  const samples = base.slice()
+    .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 15000)
+                  - (Math.abs((b.odometer_mi || 0) - odo) + Math.abs((b.year || 0) - yr) * 15000))
     .slice(0, 6)
     .map(r => ({year:r.year || null, mi:Math.round(r.odometer_mi) || null, run:!!r.run, price:Math.round(r.final_bid)}));
-  const build = (selRows, mf) => {
-    const sel = selRows.map(r => Number(r.final_bid));
-    return {count:sel.length, median:median(sel), mean:Math.round(sel.reduce((a, b) => a + b, 0) / sel.length),
-      min:Math.min(...sel), max:Math.max(...sel), p25:percentile(sel, 25), p75:percentile(sel, 75),
-      match:mf, samples:samplesFrom(selRows)};
+  return {
+    count:base.length,
+    median:wPct(50), mean:sw ? Math.round(sv / sw) : 0,
+    min:Math.min(...prices), max:Math.max(...prices),
+    p25:wPct(25), p75:wPct(75),
+    match:{fuel:fuelMatched, year:!!yr, mileage:!!odo, gen:hasGenRange},
+    samples
   };
-  for(const [preds, mf] of tiers){
-    const selRows = rows.filter(r => Number(r.final_bid) > 0 && preds.every(k => P[k](r)));
-    if(selRows.length >= 4){
-      return build(selRows, {fuel:!!(mf.fuel && has.fuel), year:!!(mf.year && has.year), mileage:!!(mf.mileage && has.mileage), cond:!!(mf.cond && has.cond), gen:!!(mf.gen && has.gen)});
-    }
-  }
-  // Не набрали 4 сопоставимых. При известном поколении НЕ скатываемся на «все
-  // подряд» (чужие кузова дали бы бессмысленный разброс) — отдаём null, клиент
-  // возьмёт агрегат /statistics. Без поколения — старый широкий фолбэк.
-  if(hasGenRange) return null;
-  const allRows = rows.filter(r => Number(r.final_bid) > 0);
-  if(allRows.length < 2) return null;
-  return build(allRows, {});
 }
 
 // ================= Синхронизация каталога в Supabase (action=synclots) =================
