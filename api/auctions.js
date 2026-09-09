@@ -1519,22 +1519,31 @@ function isJunkLot(l){
   if(JUNK_DAMAGE.test(d)) return true;
   return false;
 }
+// Сырой пул проданных зависит ТОЛЬКО от марки+модели, а comps дёргается на
+// каждом лоте (год/пробег/топливо разные → разные ключи ответа). Без этого
+// кэша тяжёлая выгрузка архива (~1МБ/страница, ~5–10с) повторялась бы на каждом
+// лоте одной модели и упиралась в 12с-abort → ok:false. Кэшируем пул на 30 мин.
+const soldPoolCache = new Map();
+const SOLD_POOL_TTL = 30 * 60e3;
 async function fetchSoldComps(makeId, modelId){
+  const ck = `${makeId}:${modelId}`;
+  const cc = soldPoolCache.get(ck);
+  if(cc && Date.now() - cc.at < SOLD_POOL_TTL) return cc.rows;
   // Проданные лоты той же модели напрямую из auctionsapi (status=6) — источник
-  // всегда доступен (в отличие от нашей флаки-базы). Тянем ВСЕ страницы архива
-  // (обычно 1–3), чтобы выборка была большой, а не «медиана по 4 лотам».
+  // всегда доступен (в отличие от нашей флаки-базы). Страница 100 (не 200):
+  // 200 весит ~1.5МБ и балансирует на грани 12с-abort в fetchJson → обрывалось.
   const items = [];
-  for(let page = 1; page <= 6; page++){
+  for(let page = 1; page <= 8; page++){
     const params = new URLSearchParams({
       manufacturer_id:String(makeId), model_id:String(modelId),
-      status:"6", per_page:"200", page:String(page), simple_paginate:"1"
+      status:"6", per_page:"100", page:String(page), simple_paginate:"1"
     });
     let chunk;
     try{ chunk = findItems(await fetchJson(`${AUCTIONS_API_BASE}/cars?${params}`)); }
     catch(e){ break; }
     if(!chunk || !chunk.length) break;
     items.push(...chunk);
-    if(chunk.length < 200) break;
+    if(chunk.length < 100) break;
   }
   if(!items.length) return null;
   // Порог «торги реально завершились»: 12ч назад. Фид помечает status=6 и у
@@ -1565,6 +1574,7 @@ async function fetchSoldComps(makeId, modelId){
       if(st === 6 && fb > 0 && settled && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run});
     }
   }
+  soldPoolCache.set(ck, {rows:out, at:Date.now()});
   return out;
 }
 function computeComps(rows, meta){
