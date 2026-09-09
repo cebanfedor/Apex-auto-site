@@ -1507,30 +1507,30 @@ function percentile(arr, pct){
   return s[Math.min(s.length - 1, Math.max(0, Math.round((pct / 100) * (s.length - 1))))];
 }
 async function fetchSoldComps(makeId, modelId){
-  // Для исторических цен строгий gate «синк в фазе incr» не нужен — достаточно,
-  // чтобы Supabase был доступен (не в отключке по circuit breaker). Проданные
-  // лоты в api_lots полезны даже при неполном/идущем синке каталога.
-  if(!sbUp()) return null;
-  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  const p = new URLSearchParams();
-  p.set("select", "final_bid,year,odometer_mi,fuel_id,generation_id");
-  p.set("make_id", `eq.${makeId}`);
-  p.set("model_id", `eq.${modelId}`);
-  p.set("status_id", "eq.6");        // продан
-  p.set("final_bid", "gt.0");
-  p.set("order", "sale_date.desc.nullslast");
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 7000);
-  let resp;
-  try{
-    resp = await fetch(`${url}/rest/v1/api_lots?${p}`, {
-      headers:{apikey:key, authorization:`Bearer ${key}`, range:"0-999", "range-unit":"items"},
-      signal:controller.signal
-    });
-  }finally{ clearTimeout(timer); }
-  if(!resp.ok) return null;
-  return (await resp.json()).filter(r => Number(r.final_bid) > 0);
+  // Проданные лоты той же модели напрямую из auctionsapi (status=6) — источник
+  // всегда доступен (в отличие от нашей флаки-базы) и отдаёт год/топливо/пробег/
+  // финальную цену по каждому лоту. Этого достаточно для оценки с фильтром.
+  const params = new URLSearchParams({
+    manufacturer_id:String(makeId), model_id:String(modelId),
+    status:"6", per_page:"300", simple_paginate:"1"
+  });
+  let payload;
+  try{ payload = await fetchJson(`${AUCTIONS_API_BASE}/cars?${params}`); }
+  catch(e){ return null; }
+  const items = findItems(payload);
+  const out = [];
+  for(const v of (items || [])){
+    const year = safeNumber(v && v.year);
+    const fuelId = fuelTextToId(safeName(v && v.fuel));
+    const lots = Array.isArray(v && v.lots) ? v.lots : [];
+    for(const l of lots){
+      const st = Number((l && l.status && (l.status.id != null ? l.status.id : l.status)) || 0);
+      const fb = safeNumber(l && (l.final_bid || l.bid));
+      const odo = safeNumber(l && l.odometer && l.odometer.mi);
+      if(st === 6 && fb > 0) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId});
+    }
+  }
+  return out;
 }
 function computeComps(rows, meta){
   const yr = Number(meta.year) || 0;
@@ -2020,7 +2020,7 @@ module.exports = async function handler(request, response){
       const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
       if(makeId && modelId){
         try{
-          const rows = await sbGuard(fetchSoldComps(makeId, modelId));
+          const rows = await fetchSoldComps(makeId, modelId);
           if(rows && rows.length){
             const stats = computeComps(rows, {
               year:query.get("year"),
