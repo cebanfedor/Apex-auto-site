@@ -1535,13 +1535,63 @@ function isHeavyLot(l){
 // лоте одной модели и упиралась в 12с-abort → ok:false. Кэшируем пул на 30 мин.
 const soldPoolCache = new Map();
 const SOLD_POOL_TTL = 30 * 60e3;
+// Полная история проданных из НАШЕЙ базы api_lots (~15k проданных, топливо и
+// повреждения отдельными колонками) — правильный источник comps, как своя БД у
+// DreamBid/BidCars. Отделяет гибрид от бензина (fuel_id), чего агрегат не умеет.
+async function fetchSoldCompsFromDb(makeId, modelId){
+  if(!(await lotsDbReady())) return null;
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if(!url || !key) return null;
+  const p = new URLSearchParams();
+  p.set("select", "year,fuel_id,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date");
+  p.set("make_id", `eq.${String(makeId).replace(/[^0-9]/g, "")}`);
+  p.set("model_id", `eq.${String(modelId).replace(/[^0-9]/g, "")}`);
+  p.set("archived", "eq.true");
+  p.set("status_id", "eq.6");
+  p.set("final_bid", "gt.0");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  let response;
+  try{
+    response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
+      headers:{apikey:key, authorization:`Bearer ${key}`, range:"0-1999", "range-unit":"items"},
+      signal:controller.signal
+    });
+  }catch(e){ return null; }finally{ clearTimeout(timer); }
+  if(!response || !response.ok) return null;
+  let rows; try{ rows = await response.json(); }catch(e){ return null; }
+  if(!Array.isArray(rows) || !rows.length) return null;
+  const soldBefore = Date.now() - 12 * 3600e3;
+  const out = [];
+  for(const r of rows){
+    const fb = Number(r.final_bid) || 0;
+    if(fb <= 0) continue;
+    const saleTs = r.sale_date ? Date.parse(r.sale_date) : NaN;
+    if(Number.isFinite(saleTs) && saleTs > soldBefore) continue; // не берём ещё не отторгованные
+    const titleTxt = `${r.title || ""} ${r.document || ""}`.toLowerCase();
+    const dmgTxt = String(r.damage || "").toLowerCase();
+    if(JUNK_TITLE.test(titleTxt) || JUNK_DAMAGE.test(dmgTxt)) continue;   // утиль не берём
+    out.push({final_bid:fb, year:Number(r.year) || 0, odometer_mi:Number(r.odometer_mi) || 0,
+      fuel_id:Number(r.fuel_id) || 0, gen_id:Number(r.generation_id) || 0,
+      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt)});
+  }
+  return out.length ? out : null;
+}
 async function fetchSoldComps(makeId, modelId){
   const ck = `${makeId}:${modelId}`;
   const cc = soldPoolCache.get(ck);
   if(cc && Date.now() - cc.at < SOLD_POOL_TTL) return cc.rows;
-  // Проданные лоты той же модели напрямую из auctionsapi (status=6) — источник
-  // всегда доступен (в отличие от нашей флаки-базы). Страница 100 (не 200):
-  // 200 весит ~1.5МБ и балансирует на грани 12с-abort в fetchJson → обрывалось.
+  // 1) Полная история из нашей базы (лучший источник). 2) Тонкий живой /cars.
+  let rowsOut = null;
+  try{ rowsOut = await fetchSoldCompsFromDb(makeId, modelId); }catch(e){ rowsOut = null; }
+  if(!rowsOut) rowsOut = await fetchSoldCompsLive(makeId, modelId);
+  if(rowsOut) soldPoolCache.set(ck, {rows:rowsOut, at:Date.now()});
+  return rowsOut;
+}
+async function fetchSoldCompsLive(makeId, modelId){
+  // Фолбэк: тонкий живой срез /cars?status=6, когда база не готова. Страница 100
+  // (не 200): 200 весит ~1.5МБ и балансирует на грани 12с-abort в fetchJson.
   const items = [];
   for(let page = 1; page <= 8; page++){
     const params = new URLSearchParams({
@@ -1584,8 +1634,7 @@ async function fetchSoldComps(makeId, modelId){
       if(st === 6 && fb > 0 && settled && !isJunkLot(l)) out.push({final_bid:fb, year, odometer_mi:odo, fuel_id:fuelId, gen_id:genId, run, heavy:isHeavyLot(l)});
     }
   }
-  soldPoolCache.set(ck, {rows:out, at:Date.now()});
-  return out;
+  return out.length ? out : null;
 }
 function computeComps(rows, meta){
   const yr = Number(meta.year) || 0, odo = Number(meta.odometer) || 0;
