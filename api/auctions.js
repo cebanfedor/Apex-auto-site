@@ -2123,14 +2123,27 @@ module.exports = async function handler(request, response){
             let genFrom = 0, genTo = 0;
             try{
               const gens = await generationsFor(modelId);
-              if(gens && gens.length){
-                const newest = gens.reduce((a, b) => ((b.from || 0) > (a.from || 0) ? b : a), gens[0]);
+              const withFrom = (gens || []).filter(x => x.from);
+              if(withFrom.length){
                 const curYear = new Date().getFullYear() + 1;
-                let g = genIdQ ? gens.find(x => String(x.id) === String(genIdQ)) : null;
-                if(!g && yearQ) g = gens.find(x => x.from && yearQ >= x.from && yearQ <= (x.to || curYear));
+                const newest = withFrom.reduce((a, b) => (b.from > a.from ? b : a));
+                let g = genIdQ ? withFrom.find(x => String(x.id) === String(genIdQ)) : null;
+                if(!g && yearQ){
+                  // Все поколения, чей реальный диапазон содержит год лота. При
+                  // перекрытии диапазонов (в справочнике Accord IX и X оба
+                  // накрывают 2017–2020) берём новейшее — по нему и кузов свежее.
+                  const containing = withFrom.filter(x => yearQ >= x.from && yearQ <= (x.to || curYear));
+                  if(containing.length) g = containing.reduce((a, b) => (b.from > a.from ? b : a));
+                }
                 if(g && g.from){
-                  genFrom = g.from;
-                  genTo = String(g.id) === String(newest.id) ? curYear : (g.to || curYear);
+                  // Реальные границы поколения (верх НЕ открываем до текущего года:
+                  // иначе в старый кузов просочился бы новый, напр. Accord 2024).
+                  genFrom = g.from; genTo = g.to || curYear;
+                } else if(yearQ && yearQ > (newest.to || newest.from)){
+                  // Год за верхом самого свежего известного поколения → новый,
+                  // ещё не занесённый в справочник кузов (напр. Accord XI, 2023+):
+                  // сравниваем только с ним, не подмешивая прошлый кузов.
+                  genFrom = (newest.to || newest.from) + 1; genTo = curYear;
                 }
               }
             }catch(e){ /* справочник поколений недоступен — считаем без него */ }
