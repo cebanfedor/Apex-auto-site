@@ -1688,7 +1688,13 @@
   function renderSimilarCard(lot){
     const title = lotTitle(lot);
     const specLine = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "", upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
-    const cond = [L(conditionInfo(lot.condition).label), dbOdo(lot.odometerText)].filter(v => v && v !== "—").join(" · ");
+    // Компактно: короткий цветной статус («На ходу»/«Не на ходу») вместо длинного
+    // «Заводится и едет», и пробег ОДНОЙ единицей (тыс. км) — иначе не вмещалось.
+    const tone = conditionInfo(lot.condition).tone;
+    const condShort = tone === "good" ? L("на ходу") : tone === "bad" ? L("не на ходу") : L(conditionInfo(lot.condition).label);
+    const condCls = tone === "good" ? "compsRunV1" : tone === "bad" ? "compsNoRunV1" : "";
+    const miNum = Number(lot.odometer) || Number(String(lot.odometerText || "").replace(/[^0-9]/g, "").slice(0, 7)) || 0;
+    const odoShort = miNum ? `${Math.round(miNum * 1.609 / 1000)} ${L("тыс. км")}` : "";
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
     return `<a class="simCardV1" href="${detailHref(lot)}">
@@ -1696,7 +1702,7 @@
       <h4>${escapeHtml(title)}</h4>
       <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
-      <span>${dbIco("odo")}${escapeHtml(cond || "—")}</span>
+      <span class="simCondV1">${dbIco("odo")}<i class="${condCls}">${escapeHtml(condShort)}</i>${odoShort ? ` · ${escapeHtml(odoShort)}` : ""}</span>
     </a>`;
   }
 
