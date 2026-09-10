@@ -1723,6 +1723,12 @@ function computeComps(rows, meta){
       if(w === 3 && yb.length >= 2){ base = yb; yearMatched = false; }
     }
   }
+  // Машина топливо-чувствительная (гибрид/электро/дизель), но своих по топливу не
+  // набралось И год не совпал → выборка мешает бензин и чужие годы (напр. свежий
+  // 530e plug-in: 4 случайных G30). Лучше отдать агрегату /statistics — там есть
+  // объём по двигателю, чем показать бред по 4 несопоставимым лотам.
+  const fuelSensitive = fuel === 1 || fuel === 2 || fuel === 3;
+  if(fuelSensitive && !fuelMatched && !yearMatched && base.length < 8) return null;
 
   // Вес похожести: 1 год ≈ 40к миль по влиянию; далёкие быстро затухают.
   const wOf = r => {
