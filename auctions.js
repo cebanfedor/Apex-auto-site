@@ -2009,7 +2009,7 @@
           <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${c.count} ${salesWord(c.count)}</span></div>
           <div class="statGridV1">
             ${hasRange ? `<div class="statCellV1"><span>${L("Оценочная стоимость")}</span><b>${money(lo)} – ${money(hi)}</b></div>` : ""}
-            <div class="statCellV1"><span>${L("Медиана продаж")}</span><b>${money(c.median)}</b></div>
+            <div class="statCellV1"><span>${L("Средняя цена рынка")}</span><b>${money(c.median)}</b></div>
             <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${c.count}</b></div>
           </div>
           <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>

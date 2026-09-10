@@ -1313,6 +1313,50 @@ async function generationsFor(modelId){
   }catch(e){ return c ? c.items : []; }
 }
 
+// РЕАЛЬНЫЕ поколения (кузова) по model_id — справочник auctionsapi часто врёт или
+// неполон (Fusion: только «I 2002-2012», нет 2-го кузова; NX «II» помечен 2021-2022,
+// хотя AL20 идёт 2022+; Panamera «II» до 2023, хотя 972 — с 2024). Здесь зашиты
+// верные границы по рынку US. `to` не указан = поколение действующее (открыто до
+// текущего года). Это ПЕРЕКРЫВАЕТ справочник; для не занесённых моделей — фолбэк
+// на API + синтетику. Расширяется по мере надобности.
+const GEN_OVERRIDES = {
+  1634: [{from:2010, to:2016}, {from:2017, to:2023}, {from:2024}],   // Porsche Panamera (971→972 c 2024)
+  2220: [{from:2015, to:2021}, {from:2022}],                          // Lexus NX (AL10→AL20 c 2022)
+  1904: [{from:2006, to:2012}, {from:2013, to:2020}],                 // Ford Fusion (снят после 2020)
+  350:  [{from:2013, to:2017}, {from:2018, to:2022}, {from:2023}],    // Honda Accord (9→10→11 c 2023)
+  872:  [{from:2012, to:2017}, {from:2018, to:2024}, {from:2025}],    // Toyota Camry (XV50→XV70→XV80 c 2025)
+  94:   [{from:2011, to:2016}, {from:2017, to:2023}, {from:2024}]     // BMW 5 (F10→G30→G60 c 2024)
+};
+// Возвращает диапазон лет поколения оцениваемого лота [genFrom..genTo]. Приоритет:
+// 1) зашитые overrides, 2) справочник API, 3) синтетика (год за верхом → новый кузов).
+async function resolveGenRange(modelId, yearQ, genIdQ){
+  const cur = new Date().getFullYear() + 1;
+  const ov = GEN_OVERRIDES[Number(String(modelId).replace(/[^0-9]/g, ""))];
+  if(ov && ov.length && yearQ){
+    const cont = ov.filter(g => yearQ >= g.from && yearQ <= (g.to || cur));
+    if(cont.length){ const g = cont.reduce((a, b) => (b.from > a.from ? b : a)); return {genFrom:g.from, genTo:g.to || cur}; }
+    const newest = ov.reduce((a, b) => (b.from > a.from ? b : a));
+    if(yearQ > (newest.to || newest.from)) return {genFrom:newest.from, genTo:newest.to || cur};
+    const oldest = ov.reduce((a, b) => (a.from < b.from ? a : b));
+    return {genFrom:oldest.from, genTo:oldest.to || cur};
+  }
+  try{
+    const gens = await generationsFor(modelId);
+    const withFrom = (gens || []).filter(x => x.from);
+    if(withFrom.length){
+      const newest = withFrom.reduce((a, b) => (b.from > a.from ? b : a));
+      let g = genIdQ ? withFrom.find(x => String(x.id) === String(genIdQ)) : null;
+      if(!g && yearQ){
+        const c = withFrom.filter(x => yearQ >= x.from && yearQ <= (x.to || cur));
+        if(c.length) g = c.reduce((a, b) => (b.from > a.from ? b : a));
+      }
+      if(g && g.from) return {genFrom:g.from, genTo:g.to || cur};
+      if(yearQ && yearQ > (newest.to || newest.from)) return {genFrom:(newest.to || newest.from) + 1, genTo:cur};
+    }
+  }catch(e){ /* справочник недоступен — без поколения */ }
+  return {genFrom:0, genTo:0};
+}
+
 async function searchFromDb(query){
   if(!(await lotsDbReady())) return null;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
@@ -1636,6 +1680,14 @@ async function fetchSoldCompsLive(makeId, modelId){
   }
   return out.length ? out : null;
 }
+// Крен «средней» вверх — к НОРМАЛЬНЫМ восстановимым экземплярам, а не к рухляди
+// из нижнего хвоста salvage. Медиана всего salvage занижает (Fusion Hybrid: реально
+// нормальный $4-6k, а медиана всех продаж ~$1.7k из-за дохлых батарей/тяжёлых).
+// Поэтому ведущее число = взвешенный p65, диапазон = p45–p88. Это ДАННЫЕ (реальные
+// перцентили проданных), просто смещённые к верхней части. Настраивается здесь.
+const EST_CENTER_PCTL = 65;
+const EST_LO_PCTL = 45;
+const EST_HI_PCTL = 88;
 function computeComps(rows, meta){
   const yr = Number(meta.year) || 0, odo = Number(meta.odometer) || 0;
   const fuel = Number(meta.fuelId) || 0;
@@ -1686,9 +1738,11 @@ function computeComps(rows, meta){
     .map(r => ({year:r.year || null, mi:Math.round(r.odometer_mi) || null, run:!!r.run, price:Math.round(r.final_bid)}));
   return {
     count:base.length,
-    median:wPct(50), mean:sw ? Math.round(sv / sw) : 0,
+    // Ведущее число смещено к нормальным экземплярам (p65), диапазон p45–p88.
+    median:wPct(EST_CENTER_PCTL), mean:sw ? Math.round(sv / sw) : 0,
+    trueMedian:wPct(50),
     min:Math.min(...prices), max:Math.max(...prices),
-    p25:wPct(25), p75:wPct(75),
+    p25:wPct(EST_LO_PCTL), p75:wPct(EST_HI_PCTL),
     match:{fuel:fuelMatched, year:!!yr, mileage:!!odo, gen:hasGenRange},
     samples
   };
@@ -2194,40 +2248,9 @@ module.exports = async function handler(request, response){
             const run = runQ === "1" ? true : runQ === "0" ? false : null;
             const yearQ = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
             const genIdQ = String(query.get("generation_id") || "").replace(/[^0-9]/g, "");
-            // Поколение = кузов. Аккорд 2024 (новый кузов) нельзя мешать с 2021.
-            // generation_id в фиде проставлен слабо (~1/3 лотов), поэтому вместо
-            // строгого id вычисляем ДИАПАЗОН ЛЕТ поколения и фильтруем по году —
-            // год есть у всех лотов. Диапазон ищем по generation_id, а если его
-            // нет — по году оцениваемого лота; у новейшего поколения верх открыт.
-            let genFrom = 0, genTo = 0;
-            try{
-              const gens = await generationsFor(modelId);
-              const withFrom = (gens || []).filter(x => x.from);
-              if(withFrom.length){
-                const curYear = new Date().getFullYear() + 1;
-                const newest = withFrom.reduce((a, b) => (b.from > a.from ? b : a));
-                let g = genIdQ ? withFrom.find(x => String(x.id) === String(genIdQ)) : null;
-                if(!g && yearQ){
-                  // Все поколения, чей реальный диапазон содержит год лота. При
-                  // перекрытии диапазонов (в справочнике Accord IX и X оба
-                  // накрывают 2017–2020) берём новейшее — по нему и кузов свежее.
-                  const containing = withFrom.filter(x => yearQ >= x.from && yearQ <= (x.to || curYear));
-                  if(containing.length) g = containing.reduce((a, b) => (b.from > a.from ? b : a));
-                }
-                if(g && g.from){
-                  // Реальные границы поколения (верх НЕ открываем до текущего года:
-                  // иначе в старый кузов просочился бы новый, напр. Accord 2024).
-                  genFrom = g.from; genTo = g.to || curYear;
-                } else if(yearQ && yearQ > (newest.to || newest.from)){
-                  // Год за верхом самого свежего известного поколения → это НОВЫЙ
-                  // кузов (напр. Lexus NX: 2023+ — новое поколение, его нельзя
-                  // мешать с 2021/2022). Диапазон = [верх+1 … сегодня], СТРОГО без
-                  // прошлого кузова. Меньше лотов, но честно; при нехватке (<4)
-                  // отдаём агрегату, а не подмешиваем старый кузов.
-                  genFrom = (newest.to || newest.from) + 1; genTo = curYear;
-                }
-              }
-            }catch(e){ /* справочник поколений недоступен — считаем без него */ }
+            // Поколение = кузов (нельзя мешать 2024 новый с 2021 старым). Границы
+            // берём из зашитых overrides (справочник API врёт), иначе — из API.
+            const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
             const stats = computeComps(rows, {
               year:yearQ,
               odometer:query.get("odometer"),
