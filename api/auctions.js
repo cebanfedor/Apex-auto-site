@@ -2010,8 +2010,13 @@ async function handleSyncLots(response){
         result.incrSkipped = true; result.continue = false;   // недавно слили — ждём
       }else{
         if(!state.incr_anchor){ state.incr_anchor = new Date().toISOString(); state.incr_di = 0; state.incr_page = 1; }
+        // Свежие reschedule фид отдаёт первыми (по updated_at), поэтому ~30 страниц
+        // (30k лотов) на домен достаточно; без этого потолка дренаж 24ч-окна Copart
+        // убегал на 100+ страниц и часами держал нагрузку → comps таймаутил.
+        const MAX_INCR_PAGES = 30;
         let idi = Number(state.incr_di) || 0, ipage = Number(state.incr_page) || 1;
         while(Date.now() - started < SYNC_RUN_BUDGET_MS && idi < SYNC_DOMAINS.length){
+          if(ipage > MAX_INCR_PAGES){ idi += 1; ipage = 1; continue; }   // потолок на домен
           const got = await syncImportPage("/cars", ipage, {minutes:String(INCR_WINDOW_MIN), domain_id:SYNC_DOMAINS[idi]});
           result.imported += got;
           if(got < SYNC_PER_PAGE){ idi += 1; ipage = 1; } else { ipage += 1; }
