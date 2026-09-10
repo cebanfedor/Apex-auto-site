@@ -1757,7 +1757,8 @@ function computeComps(rows, meta){
   // у низа. Хорошие цены в пуле как раз и есть хорошие экземпляры.
   const cq = meta.cq === "good" || meta.cq === "poor" ? meta.cq : "mid";
   const centerP = cq === "good" ? 90 : cq === "poor" ? 45 : 68;
-  const loP = Math.max(10, centerP - 25), hiP = Math.min(97, centerP + 11);
+  // Диапазон — ОТ средней и ВВЕРХ (нижний хвост не показываем): низ = центр.
+  const loP = centerP, hiP = Math.min(98, centerP + 8);
   // Примеры — ближайшие по году+пробегу (1 год ≈ 15к миль для сортировки).
   const samples = base.slice()
     .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 15000)
