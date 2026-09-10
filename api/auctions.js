@@ -1756,7 +1756,7 @@ function computeComps(rows, meta){
   // (заводится, лёгкое повреждение) стоит у ВЕРХА диапазона своего года, убитый —
   // у низа. Хорошие цены в пуле как раз и есть хорошие экземпляры.
   const cq = meta.cq === "good" || meta.cq === "poor" ? meta.cq : "mid";
-  const centerP = cq === "good" ? 85 : cq === "poor" ? 45 : 68;
+  const centerP = cq === "good" ? 90 : cq === "poor" ? 45 : 68;
   const loP = Math.max(10, centerP - 25), hiP = Math.min(97, centerP + 11);
   // Примеры — ближайшие по году+пробегу (1 год ≈ 15к миль для сортировки).
   const samples = base.slice()
