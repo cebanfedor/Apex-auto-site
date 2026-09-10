@@ -1489,7 +1489,6 @@
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
-      <div id="lotMarketLineV1" class="calcMarketV1"></div>
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>${L("Осталось")} <b id="lotCalcCountdown">${countdown}</b> ${L("до начала торгов")}</span></div>` : ""}
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
@@ -1707,8 +1706,11 @@
     const odoShort = miNum ? `${Math.round(miNum * 1.609 / 1000)} ${L("тыс. км")}` : "";
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
+    // На проданных Timed/IAAI цену в фиде не показываем (она расходится с реальной
+    // и выглядит смешно — $825 за Model 3). Copart-живые/активные — показываем.
+    const hidePrice = isSold && (lot.timed === true || String(lot.auction || "").toLowerCase() === "iaai");
     return `<a class="simCardV1" href="${detailHref(lot)}">
-      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
+      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${!hidePrice && Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
       <h4>${escapeHtml(title)}</h4>
       <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
@@ -1896,7 +1898,6 @@
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot))}
-            <section class="dSec lotStatsBoxV1" id="lotStatsBox" hidden></section>
           </div>
           ${renderLotCalculator(lot)}
         </div>
@@ -1920,7 +1921,6 @@
     updateLotCalculator();
     loadSimilarActive(lot);
     loadSimilarArchived(lot);
-    loadStats(lot);
     fetchLiveRates();
     startLotCountdown(lot);
     startLiveBidWatch(lot);
