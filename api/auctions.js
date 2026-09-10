@@ -1595,11 +1595,11 @@ async function fetchSoldCompsFromDb(makeId, modelId){
   p.set("status_id", "eq.6");
   p.set("final_bid", "gt.0");
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), 12000);
   let response;
   try{
     response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
-      headers:{apikey:key, authorization:`Bearer ${key}`, range:"0-1999", "range-unit":"items"},
+      headers:{apikey:key, authorization:`Bearer ${key}`, range:"0-1499", "range-unit":"items"},
       signal:controller.signal
     });
   }catch(e){ return null; }finally{ clearTimeout(timer); }

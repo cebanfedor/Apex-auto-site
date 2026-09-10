@@ -54,6 +54,10 @@ create index if not exists idx_lots_mkmd_sale_act on public.api_lots (make_id, m
 create index if not exists idx_lots_mk_sale_act   on public.api_lots (make_id, sale_date, id) where archived = false;
 -- Дефолтная выдача каталога (без фильтра марки) — сортировка активных по дате.
 create index if not exists idx_lots_sale_act_only on public.api_lots (sale_date, id) where archived = false;
+-- Оценка (comps): проданные по марке+модели. Без этого частичного индекса запрос
+-- сканировал тысячи строк популярной марки и на micro упирался в таймаут → comps
+-- падал на медленный live-фолбэк. С ним выборка проданных ~десятки мс.
+create index if not exists idx_lots_sold_mkmd on public.api_lots (make_id, model_id) where archived = true and status_id = 6;
 
 -- RLS: доступ только по service_role ключу (в браузер не попадает).
 alter table public.api_lots enable row level security;
