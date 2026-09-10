@@ -1992,53 +1992,30 @@ async function handleSyncLots(response){
       result.phase = state.phase || "full";
       result.continue = state.phase !== "incr"; // GitHub Actions качает дальше, пока фаза full
     }else{
-      // -------- Инкремент: ДРЕНАЖ окна обновлений постранично через запуски --------
-      // Раньше инкремент брал только первые 5 страниц окна и сразу двигал
-      // last_incr_at — при большом backlog (после простоя синка) хвост терялся, и
-      // у части лотов оставалась протухшая дата торгов → каталог казался пустым
-      // (BMW G30 гибрид: в фиде 23 с будущей датой, у нас показывался 1). Теперь
-      // фиксируем «якорь» окна и идём по (домен, страница) между запусками, пока
-      // не сольём ВСЁ окно; только тогда двигаем last_incr_at и сбрасываем курсор.
-      // Окно ФИКСИРОВАНО 24ч: API отдаёт данные на minutes=1440, но ПУСТО на
-      // бОльших значениях (5760/20160 → 0), поэтому окно нельзя расширять — только
-      // держать 24ч и сливать его постранично между запусками. Свежие reschedule
-      // (у лота меняется дата → updated_at в сутках) так попадают в каталог.
-      // Троттлинг: новую сессию дренажа начинаем не чаще раза в 30 мин.
+      // -------- Инкремент: ЛЁГКОЕ обновление (без зацикливания) --------
+      // Окно 24ч (API отдаёт пусто на minutes>~1440). Берём первые страницы окна —
+      // фид отдаёт свежие reschedule ПЕРВЫМИ (по updated_at), поэтому этого хватает
+      // для актуальности дат каталога. НЕ зацикливаемся (continue=false) и держим
+      // прогон коротким — агрессивный постраничный дренаж убегал на 100+ страниц,
+      // таймаутил прогон и грузил базу, из-за чего мигал comps (главная фича).
       const INCR_WINDOW_MIN = 1440;
-      const doneAt = state.incr_drain_done_at ? new Date(state.incr_drain_done_at).getTime() : 0;
-      if(!state.incr_anchor && Date.now() - doneAt < 30 * 60e3){
-        result.incrSkipped = true; result.continue = false;   // недавно слили — ждём
-      }else{
-        if(!state.incr_anchor){ state.incr_anchor = new Date().toISOString(); state.incr_di = 0; state.incr_page = 1; }
-        // Свежие reschedule фид отдаёт первыми (по updated_at), поэтому потолок
-        // 10 страниц/домен достаточно. Держим прогон ЛЁГКИМ (бюджет + потолок),
-        // иначе 24ч-окно Copart убегало на 100+ страниц, таймаутило прогон (лок не
-        // снимался) и грузило базу → comps (главная фича) мигал.
-        const MAX_INCR_PAGES = 10;
-        const DRAIN_BUDGET = Math.min(SYNC_RUN_BUDGET_MS, 30000);
-        let idi = Number(state.incr_di) || 0, ipage = Number(state.incr_page) || 1;
-        if(ipage > MAX_INCR_PAGES){ idi += 1; ipage = 1; }   // подхватить убежавший курсор
-        while(Date.now() - started < DRAIN_BUDGET && idi < SYNC_DOMAINS.length){
-          if(ipage > MAX_INCR_PAGES){ idi += 1; ipage = 1; continue; }
-          const got = await syncImportPage("/cars", ipage, {minutes:String(INCR_WINDOW_MIN), domain_id:SYNC_DOMAINS[idi]});
+      const INCR_BUDGET = 22000;
+      for(const domain of SYNC_DOMAINS){
+        for(let page = 1; page <= 5; page++){
+          if(Date.now() - started > INCR_BUDGET) break;
+          const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain});
           result.imported += got;
-          if(got < SYNC_PER_PAGE){ idi += 1; ipage = 1; } else { ipage += 1; }
-        }
-        state.incr_di = idi; state.incr_page = ipage;
-        result.incrDrain = {di:idi, page:ipage};
-        if(idi >= SYNC_DOMAINS.length){
-          if(Date.now() - started < DRAIN_BUDGET){
-            const got = await syncImportPage("/archived-lots", 1, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
-            result.archivedMarked += got;
-          }
-          state.last_incr_at = new Date().toISOString();
-          state.incr_drain_done_at = new Date().toISOString();
-          state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
-          result.continue = false;
-        }else{
-          result.continue = true; // GitHub Actions продолжит дренаж окна
+          if(got < SYNC_PER_PAGE) break;
         }
       }
+      if(Date.now() - started < INCR_BUDGET){
+        const got = await syncImportPage("/archived-lots", 1, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
+        result.archivedMarked += got;
+      }
+      state.last_incr_at = new Date().toISOString();
+      // Сбрасываем возможный застрявший курсор дренажа прошлой версии.
+      state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
+      result.continue = false;
 
       // -------- Архивный бэкфилл: история продаж из /cars?status=6,8 --------
       // Наш архив копится только с запуска базы; основной фид отдаёт и уже
