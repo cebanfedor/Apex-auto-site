@@ -1476,7 +1476,8 @@
       <div class="calcSoldCardV1">
         <span>${L("Продано")}</span>
         ${hidePrice ? `
-        <i class="soldRefineNoteV1">${L("Финалку на Timed уточняйте у нас — в фиде цена расходится с реальной")}</i>
+        <b class="soldByReqV1">${L("Цена — по запросу")}</b>
+        <i class="soldRefineNoteV1">${L("Напишите нам — подскажем точную цену продажи")}</i>
         ` : `
         <b id="soldFinalV1">${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}

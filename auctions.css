@@ -392,6 +392,7 @@
 .calcSoldCardV1 span { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--aRed); }
 .calcSoldCardV1 b { font-size:23px; font-weight:800; letter-spacing:-.02em; color:var(--aRed); line-height:1.1; }
 .calcSoldCardV1 i { font-style:normal; font-size:13px; color:var(--aMuted); }
+.calcSoldCardV1 b.soldByReqV1 { font-size:18px; color:var(--aInk,#11141a); }
 .calcEstCenterV1 { justify-content:center; }
 .calcBidUsdV1 { display:block; font-style:normal; font-size:13px; color:var(--aMuted); margin-top:2px; }
 .calcBidLabelV2 b { font-size:24px; font-weight:800; color:var(--aInk); }
