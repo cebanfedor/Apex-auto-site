@@ -1717,7 +1717,10 @@ function computeComps(rows, meta){
   if(yr){
     for(const w of [0, 1, 2, 3]){
       const yb = base.filter(r => Math.abs((Number(r.year) || 0) - yr) <= w);
-      if(yb.length >= 4){ base = yb; yearMatched = w === 0; break; }
+      // Нужно ≥8 сопоставимых для устойчивой оценки; иначе окно года шире. Так
+      // «тонкий» год (5 дешёвых лотов) не даёт заниженную цифру с потолком $1800.
+      if(yb.length >= 8){ base = yb; yearMatched = w === 0; break; }
+      if(w === 3 && yb.length >= 2){ base = yb; yearMatched = false; }
     }
   }
 
@@ -1739,6 +1742,12 @@ function computeComps(rows, meta){
   let sw = 0, sv = 0;
   for(const r of base){ const w = wOf(r); sw += w; sv += w * Number(r.final_bid); }
   const prices = base.map(r => Number(r.final_bid));
+  // Перцентиль ведущей цены — ПО СОСТОЯНИЮ оцениваемого лота: хороший экземпляр
+  // (заводится, лёгкое повреждение) стоит у ВЕРХА диапазона своего года, убитый —
+  // у низа. Хорошие цены в пуле как раз и есть хорошие экземпляры.
+  const cq = meta.cq === "good" || meta.cq === "poor" ? meta.cq : "mid";
+  const centerP = cq === "good" ? 82 : cq === "poor" ? 45 : 68;
+  const loP = Math.max(10, centerP - 22), hiP = Math.min(96, centerP + 12);
   // Примеры — ближайшие по году+пробегу (1 год ≈ 15к миль для сортировки).
   const samples = base.slice()
     .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 15000)
@@ -1747,11 +1756,11 @@ function computeComps(rows, meta){
     .map(r => ({year:r.year || null, mi:Math.round(r.odometer_mi) || null, run:!!r.run, price:Math.round(r.final_bid)}));
   return {
     count:base.length,
-    // Ведущее число смещено к нормальным экземплярам (p65), диапазон p45–p88.
-    median:wPct(EST_CENTER_PCTL), mean:sw ? Math.round(sv / sw) : 0,
+    // Ведущее число и диапазон — по состоянию лота (см. centerP/loP/hiP).
+    median:wPct(centerP), mean:sw ? Math.round(sv / sw) : 0,
     trueMedian:wPct(50),
     min:Math.min(...prices), max:Math.max(...prices),
-    p25:wPct(EST_LO_PCTL), p75:wPct(EST_HI_PCTL),
+    p25:wPct(loP), p75:wPct(hiP),
     match:{fuel:fuelMatched, year:yearMatched, mileage:!!odo, gen:hasGenRange},
     samples
   };
@@ -2279,13 +2288,15 @@ module.exports = async function handler(request, response){
             // Поколение = кузов (нельзя мешать 2024 новый с 2021 старым). Границы
             // берём из зашитых overrides (справочник API врёт), иначе — из API.
             const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
+            const cqQ = String(query.get("cq") || "");   // качество состояния лота: good|mid|poor
             const stats = computeComps(rows, {
               year:yearQ,
               odometer:query.get("odometer"),
               fuelId:fuelTextToId(query.get("fuel")),
               genId:genIdQ,
               genFrom, genTo,
-              run
+              run,
+              cq:cqQ
             });
             if(stats){
               const payload = {ok:true, comps:stats};

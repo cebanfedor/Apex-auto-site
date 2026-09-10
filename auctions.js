@@ -1964,7 +1964,7 @@
   // Короткая строка рынка в сайдбаре калькулятора.
   function setMarketLine(median, count){
     const marketLine = document.getElementById("lotMarketLineV1");
-    if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(median)} · ${count} ${salesWord(count)}</span>`;
+    if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(median)}</span>`;
   }
   // Подпись: какие факторы учтены (динамически из match).
   function compsNote(match){
@@ -1995,6 +1995,15 @@
       const ci = conditionInfo(lot.condition);
       const runFlag = ci.tone === "good" ? "1" : ci.tone === "bad" ? "0" : "";
       if(runFlag) cp.set("run", runFlag);
+      // Качество состояния (cq) → перцентиль средней: хороший экземпляр (заводится
+      // + лёгкое повреждение) оценивается у ВЕРХА диапазона года, убитый — у низа.
+      const dmgTxt = `${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.damage || ""}`.toLowerCase();
+      const heavyDmg = /all over|roll ?over|undercarriage|frame|burn|flood|water|strip|biohazard/.test(dmgTxt);
+      const multiDmg = /&|,|\band\b|\+/.test(dmgTxt) || (lot.secondaryDamage && lot.secondaryDamage !== "-" && !/unknown|none|normal/.test(String(lot.secondaryDamage).toLowerCase()));
+      let cq = "mid";
+      if(ci.tone === "good" && !heavyDmg && !multiDmg) cq = "good";
+      else if(ci.tone === "bad" || heavyDmg) cq = "poor";
+      cp.set("cq", cq);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
       if(cr && cr.ok && cr.comps && cr.comps.count){
         const c = cr.comps;
@@ -2004,16 +2013,15 @@
         // Список отдельных проданных лотов убран — ниже показываем реальные лоты
         // того же года (открытые + архив), их можно открыть.
         box.innerHTML = `
-          <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${c.count} ${salesWord(c.count)}</span></div>
+          <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)}</span></div>
           <div class="statGridV1">
             ${hasRange ? `<div class="statCellV1"><span>${L("Оценочная стоимость")}</span><b>${money(lo)} – ${money(hi)}</b></div>` : ""}
             <div class="statCellV1"><span>${L("Средняя цена рынка")}</span><b>${money(c.median)}</b></div>
-            <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${c.count}</b></div>
           </div>
           <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
-        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)} · ${c.count} ${salesWord(c.count)}</span>`;
+        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)}</span>`;
         return;
       }
       // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
@@ -2069,11 +2077,10 @@
       if(min >= max){ min = Math.round(avg * 0.8); max = Math.round(avg * 1.2); }
       const title = [yr, lot.make, lot.model].filter(Boolean).join(" ");
       box.innerHTML = `
-        <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${cnt} ${salesWord(cnt)}</span></div>
+        <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)}</span></div>
         <div class="statGridV1">
           <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money(avg)}</b></div>
           ${min < Infinity && max ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money(min)} – ${money(max)}</b></div>` : ""}
-          <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${cnt}</b></div>
         </div>
         <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
