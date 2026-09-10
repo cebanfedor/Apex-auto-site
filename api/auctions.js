@@ -1970,33 +1970,40 @@ async function handleSyncLots(response){
       // (BMW G30 гибрид: в фиде 23 с будущей датой, у нас показывался 1). Теперь
       // фиксируем «якорь» окна и идём по (домен, страница) между запусками, пока
       // не сольём ВСЁ окно; только тогда двигаем last_incr_at и сбрасываем курсор.
-      if(!state.incr_anchor){
-        state.incr_anchor = state.last_incr_at || new Date(Date.now() - 3600e3).toISOString();
-        state.incr_di = 0; state.incr_page = 1;
-      }
-      const anchorMs = new Date(state.incr_anchor).getTime();
-      const minutes = Math.min(43200, Math.max(30, Math.ceil((Date.now() - anchorMs) / 60e3) + 15));
-      let idi = Number(state.incr_di) || 0, ipage = Number(state.incr_page) || 1;
-      while(Date.now() - started < SYNC_RUN_BUDGET_MS && idi < SYNC_DOMAINS.length){
-        const got = await syncImportPage("/cars", ipage, {minutes:String(minutes), domain_id:SYNC_DOMAINS[idi]});
-        result.imported += got;
-        if(got < SYNC_PER_PAGE){ idi += 1; ipage = 1; } else { ipage += 1; }
-      }
-      state.incr_di = idi; state.incr_page = ipage;
-      result.incrDrain = {di:idi, page:ipage, minutes};
-      if(idi >= SYNC_DOMAINS.length){
-        // Окно полностью слито — метим архивные за то же окно, фиксируем, сбрасываем курсор.
-        for(let page = 1; page <= 3; page++){
-          if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-          const got = await syncImportPage("/archived-lots", page, {minutes:String(minutes)}, {archived:true});
-          result.archivedMarked += got;
-          if(got < SYNC_PER_PAGE) break;
-        }
-        state.last_incr_at = new Date().toISOString();
-        state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
-        result.continue = false;
+      // Окно ФИКСИРОВАНО 24ч: API отдаёт данные на minutes=1440, но ПУСТО на
+      // бОльших значениях (5760/20160 → 0), поэтому окно нельзя расширять — только
+      // держать 24ч и сливать его постранично между запусками. Свежие reschedule
+      // (у лота меняется дата → updated_at в сутках) так попадают в каталог.
+      // Троттлинг: новую сессию дренажа начинаем не чаще раза в 30 мин.
+      const INCR_WINDOW_MIN = 1440;
+      const doneAt = state.incr_drain_done_at ? new Date(state.incr_drain_done_at).getTime() : 0;
+      if(!state.incr_anchor && Date.now() - doneAt < 30 * 60e3){
+        result.incrSkipped = true; result.continue = false;   // недавно слили — ждём
       }else{
-        result.continue = true; // GitHub Actions продолжит дренаж окна
+        if(!state.incr_anchor){ state.incr_anchor = new Date().toISOString(); state.incr_di = 0; state.incr_page = 1; }
+        let idi = Number(state.incr_di) || 0, ipage = Number(state.incr_page) || 1;
+        while(Date.now() - started < SYNC_RUN_BUDGET_MS && idi < SYNC_DOMAINS.length){
+          const got = await syncImportPage("/cars", ipage, {minutes:String(INCR_WINDOW_MIN), domain_id:SYNC_DOMAINS[idi]});
+          result.imported += got;
+          if(got < SYNC_PER_PAGE){ idi += 1; ipage = 1; } else { ipage += 1; }
+        }
+        state.incr_di = idi; state.incr_page = ipage;
+        result.incrDrain = {di:idi, page:ipage};
+        if(idi >= SYNC_DOMAINS.length){
+          // Окно слито — метим архивные за то же окно, фиксируем время, сбрасываем курсор.
+          for(let page = 1; page <= 3; page++){
+            if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
+            const got = await syncImportPage("/archived-lots", page, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
+            result.archivedMarked += got;
+            if(got < SYNC_PER_PAGE) break;
+          }
+          state.last_incr_at = new Date().toISOString();
+          state.incr_drain_done_at = new Date().toISOString();
+          state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
+          result.continue = false;
+        }else{
+          result.continue = true; // GitHub Actions продолжит дренаж окна
+        }
       }
 
       // -------- Архивный бэкфилл: история продаж из /cars?status=6,8 --------
