@@ -2010,13 +2010,16 @@ async function handleSyncLots(response){
         result.incrSkipped = true; result.continue = false;   // недавно слили — ждём
       }else{
         if(!state.incr_anchor){ state.incr_anchor = new Date().toISOString(); state.incr_di = 0; state.incr_page = 1; }
-        // Свежие reschedule фид отдаёт первыми (по updated_at), поэтому ~30 страниц
-        // (30k лотов) на домен достаточно; без этого потолка дренаж 24ч-окна Copart
-        // убегал на 100+ страниц и часами держал нагрузку → comps таймаутил.
-        const MAX_INCR_PAGES = 30;
+        // Свежие reschedule фид отдаёт первыми (по updated_at), поэтому потолок
+        // 10 страниц/домен достаточно. Держим прогон ЛЁГКИМ (бюджет + потолок),
+        // иначе 24ч-окно Copart убегало на 100+ страниц, таймаутило прогон (лок не
+        // снимался) и грузило базу → comps (главная фича) мигал.
+        const MAX_INCR_PAGES = 10;
+        const DRAIN_BUDGET = Math.min(SYNC_RUN_BUDGET_MS, 30000);
         let idi = Number(state.incr_di) || 0, ipage = Number(state.incr_page) || 1;
-        while(Date.now() - started < SYNC_RUN_BUDGET_MS && idi < SYNC_DOMAINS.length){
-          if(ipage > MAX_INCR_PAGES){ idi += 1; ipage = 1; continue; }   // потолок на домен
+        if(ipage > MAX_INCR_PAGES){ idi += 1; ipage = 1; }   // подхватить убежавший курсор
+        while(Date.now() - started < DRAIN_BUDGET && idi < SYNC_DOMAINS.length){
+          if(ipage > MAX_INCR_PAGES){ idi += 1; ipage = 1; continue; }
           const got = await syncImportPage("/cars", ipage, {minutes:String(INCR_WINDOW_MIN), domain_id:SYNC_DOMAINS[idi]});
           result.imported += got;
           if(got < SYNC_PER_PAGE){ idi += 1; ipage = 1; } else { ipage += 1; }
@@ -2024,12 +2027,9 @@ async function handleSyncLots(response){
         state.incr_di = idi; state.incr_page = ipage;
         result.incrDrain = {di:idi, page:ipage};
         if(idi >= SYNC_DOMAINS.length){
-          // Окно слито — метим архивные за то же окно, фиксируем время, сбрасываем курсор.
-          for(let page = 1; page <= 3; page++){
-            if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-            const got = await syncImportPage("/archived-lots", page, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
+          if(Date.now() - started < DRAIN_BUDGET){
+            const got = await syncImportPage("/archived-lots", 1, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
             result.archivedMarked += got;
-            if(got < SYNC_PER_PAGE) break;
           }
           state.last_incr_at = new Date().toISOString();
           state.incr_drain_done_at = new Date().toISOString();
