@@ -1963,29 +1963,41 @@ async function handleSyncLots(response){
       result.phase = state.phase || "full";
       result.continue = state.phase !== "incr"; // GitHub Actions качает дальше, пока фаза full
     }else{
-      // -------- Инкремент: обновлённые + архивные за окно с прошлого запуска --------
-      // При частых вызовах (ручной цикл бэкфилла) инкремент гоняем не чаще
-      // раза в 10 минут — иначе он повторно качает одно окно и съедает весь
-      // бюджет, не оставляя его архивному бэкфиллу.
-      const last = state.last_incr_at ? new Date(state.last_incr_at).getTime() : Date.now() - 3600e3;
-      const skipIncr = Date.now() - last < 10 * 60e3 && !state.arch_done;
-      const minutes = Math.min(4320, Math.max(30, Math.ceil((Date.now() - last) / 60e3) + 15));
-      for(const domain of (skipIncr ? [] : SYNC_DOMAINS)){
-        for(let page = 1; page <= 5; page++){
+      // -------- Инкремент: ДРЕНАЖ окна обновлений постранично через запуски --------
+      // Раньше инкремент брал только первые 5 страниц окна и сразу двигал
+      // last_incr_at — при большом backlog (после простоя синка) хвост терялся, и
+      // у части лотов оставалась протухшая дата торгов → каталог казался пустым
+      // (BMW G30 гибрид: в фиде 23 с будущей датой, у нас показывался 1). Теперь
+      // фиксируем «якорь» окна и идём по (домен, страница) между запусками, пока
+      // не сольём ВСЁ окно; только тогда двигаем last_incr_at и сбрасываем курсор.
+      if(!state.incr_anchor){
+        state.incr_anchor = state.last_incr_at || new Date(Date.now() - 3600e3).toISOString();
+        state.incr_di = 0; state.incr_page = 1;
+      }
+      const anchorMs = new Date(state.incr_anchor).getTime();
+      const minutes = Math.min(43200, Math.max(30, Math.ceil((Date.now() - anchorMs) / 60e3) + 15));
+      let idi = Number(state.incr_di) || 0, ipage = Number(state.incr_page) || 1;
+      while(Date.now() - started < SYNC_RUN_BUDGET_MS && idi < SYNC_DOMAINS.length){
+        const got = await syncImportPage("/cars", ipage, {minutes:String(minutes), domain_id:SYNC_DOMAINS[idi]});
+        result.imported += got;
+        if(got < SYNC_PER_PAGE){ idi += 1; ipage = 1; } else { ipage += 1; }
+      }
+      state.incr_di = idi; state.incr_page = ipage;
+      result.incrDrain = {di:idi, page:ipage, minutes};
+      if(idi >= SYNC_DOMAINS.length){
+        // Окно полностью слито — метим архивные за то же окно, фиксируем, сбрасываем курсор.
+        for(let page = 1; page <= 3; page++){
           if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-          const got = await syncImportPage("/cars", page, {minutes:String(minutes), domain_id:domain});
-          result.imported += got;
+          const got = await syncImportPage("/archived-lots", page, {minutes:String(minutes)}, {archived:true});
+          result.archivedMarked += got;
           if(got < SYNC_PER_PAGE) break;
         }
+        state.last_incr_at = new Date().toISOString();
+        state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
+        result.continue = false;
+      }else{
+        result.continue = true; // GitHub Actions продолжит дренаж окна
       }
-      for(let page = 1; page <= 3 && !skipIncr; page++){
-        if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-        const got = await syncImportPage("/archived-lots", page, {minutes:String(minutes)}, {archived:true});
-        result.archivedMarked += got;
-        if(got < SYNC_PER_PAGE) break;
-      }
-      if(!skipIncr) state.last_incr_at = new Date().toISOString();
-      result.continue = false;
 
       // -------- Архивный бэкфилл: история продаж из /cars?status=6,8 --------
       // Наш архив копится только с запуска базы; основной фид отдаёт и уже
