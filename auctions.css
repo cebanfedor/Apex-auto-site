@@ -811,3 +811,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .compsRowV1 b{ font-variant-numeric:tabular-nums; color:var(--aInk,#11141a); white-space:nowrap; }
 .compsRunV1{ font-style:normal; color:#1a7f45; font-weight:600; }
 .compsNoRunV1{ font-style:normal; color:#c2410c; font-weight:600; }
+/* «Уточнить финалку» на таймед-проданных лотах */
+.soldRefineV1{ display:inline-block; margin-top:2px; padding:7px 14px; border:1px solid var(--red,#ed0012); background:#fff; color:var(--red,#ed0012); font-size:14px; font-weight:700; border-radius:10px; cursor:pointer; transition:background .15s,color .15s; }
+.soldRefineV1:hover{ background:var(--red,#ed0012); color:#fff; }
+.soldRefineV1:disabled{ opacity:.6; cursor:default; }
+.soldRefineV1.soldRefineDoneV1{ border-color:#d1d5db; color:var(--aInk,#11141a); cursor:default; }
+.soldRefineNoteV1{ display:block; margin-top:4px; font-style:normal; font-size:12px; color:var(--aMuted,#6b7280); line-height:1.3; }
