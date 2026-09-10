@@ -1730,13 +1730,23 @@ function computeComps(rows, meta){
     const dm = odo ? Math.abs((Number(r.odometer_mi) || 0) - odo) : 0;
     return 1 / (1 + (dy / 2) * (dy / 2) + (dm / 40000) * (dm / 40000));
   };
+  // Взвешенный перцентиль С ИНТЕРПОЛЯЦИЕЙ между соседними лотами: при малой
+  // выборке ступенчатый перцентиль прыгает (p82=$3025, p88=$5800), а нужное
+  // значение в разрыве. Интерполяция даёт плавную цену внутри разрыва.
   const wPct = pct => {
     const s = base.map(r => ({v:Number(r.final_bid), w:wOf(r)})).sort((a, b) => a.v - b.v);
     const tot = s.reduce((a, b) => a + b.w, 0);
     if(tot <= 0) return 0;
     const target = pct / 100 * tot;
     let cum = 0;
-    for(const it of s){ cum += it.w; if(cum >= target) return Math.round(it.v); }
+    for(let i = 0; i < s.length; i++){
+      const prev = cum; cum += s[i].w;
+      if(cum >= target){
+        if(i === 0 || s[i].w <= 0) return Math.round(s[i].v);
+        const frac = Math.max(0, Math.min(1, (target - prev) / s[i].w));
+        return Math.round(s[i - 1].v + (s[i].v - s[i - 1].v) * frac);
+      }
+    }
     return Math.round(s[s.length - 1].v);
   };
   let sw = 0, sv = 0;
@@ -1746,8 +1756,8 @@ function computeComps(rows, meta){
   // (заводится, лёгкое повреждение) стоит у ВЕРХА диапазона своего года, убитый —
   // у низа. Хорошие цены в пуле как раз и есть хорошие экземпляры.
   const cq = meta.cq === "good" || meta.cq === "poor" ? meta.cq : "mid";
-  const centerP = cq === "good" ? 88 : cq === "poor" ? 45 : 68;
-  const loP = Math.max(10, centerP - 26), hiP = Math.min(97, centerP + 9);
+  const centerP = cq === "good" ? 85 : cq === "poor" ? 45 : 68;
+  const loP = Math.max(10, centerP - 25), hiP = Math.min(97, centerP + 11);
   // Примеры — ближайшие по году+пробегу (1 год ≈ 15к миль для сортировки).
   const samples = base.slice()
     .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 15000)
