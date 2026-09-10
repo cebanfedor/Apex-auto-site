@@ -1978,18 +1978,6 @@
     return parts.length ? `${L("С учётом:")} ${parts.join(", ")}.` : L("По данным проданных лотов Copart и IAAI.");
   }
 
-  // На ПРОДАННЫХ лотах дефолт ставки в калькуляторе = рыночная оценка (планируем
-  // покупку похожей машины), а не финалка именно этого лота. Ставим после того,
-  // как оценка загрузилась, и только если пользователь ещё не менял поле.
-  function applySoldDefaultBid(lot, estimate){
-    if(!estimate || !lotSaleState(lot).isSold) return;
-    const input = document.getElementById("lotBidInput");
-    if(!input) return;
-    const {finalBid} = lotSaleState(lot);
-    if(input.value && finalBid && Number(input.value) !== Number(finalBid)) return; // пользователь трогал
-    input.value = Math.round(estimate);
-    updateLotCalculator();
-  }
   async function loadStats(lot){
     const box = document.getElementById("lotStatsBox");
     if(!box || !lot.makeId || !lot.modelId) return;
@@ -2034,7 +2022,6 @@
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
         if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)}</span>`;
-        applySoldDefaultBid(lot, c.median);
         return;
       }
       // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
@@ -2098,7 +2085,6 @@
         <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
       setMarketLine(avg, cnt);
-      applySoldDefaultBid(lot, avg);
     }catch(e){ /* stats optional — ignore */ }
   }
 
