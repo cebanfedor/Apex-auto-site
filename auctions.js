@@ -1995,6 +1995,9 @@
   async function loadStats(lot){
     const box = document.getElementById("lotStatsBox");
     if(!box || !lot.makeId || !lot.modelId) return;
+    // Префетч агрегата ПАРАЛЛЕЛЬНО с comps (не ждём провала comps) — если comps
+    // уйдёт в фолбэк, статистика уже загружена и рендер мгновенный.
+    const statsPrefetch = statsRowsFor(lot.makeId, lot.modelId);
     try{
       // 1) Точная оценка по РЕАЛЬНЫМ сопоставимым продажам: тот же тип топлива,
       // близкий год и пробег (медиана устойчивее к выбросам). Пробег/топливо
@@ -2042,11 +2045,10 @@
       // ВАЖНО: year в API НЕ шлём. /statistics?year=X отдаёт строки только за X,
       // и тогда клиентское «расширить окно на год-3…год» (ниже) ломается —
       // расширять не из чего, а подпись врёт («за 2020–2023» на данных 2023).
-      // Тянем все годы модели, скоуп считаем сами.
-      const params = new URLSearchParams({manufacturer_id:String(lot.makeId), model_id:String(lot.modelId)});
-      const r = await api(`/api/auctions?action=statistics&${params}`);
-      const rows = Array.isArray(r.stats) ? r.stats : [];
-      if(!rows.length) return;
+      // Тянем все годы модели, скоуп считаем сами. Используем ПАРАЛЛЕЛЬНЫЙ префетч
+      // (запущен в начале loadStats) — обычно уже готов, ждать не приходится.
+      const rows = await statsPrefetch;
+      if(!Array.isArray(rows) || !rows.length) return;
       // Скоуп: сначала точный год. Если продаж этого года мало (свежая модель),
       // расширяем на последние 4 года — НЕ на все года модели, иначе средняя
       // тонет в старых дешёвых лотах (Tesla 2025 усреднялась с 2020-ми).

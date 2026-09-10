@@ -63,6 +63,12 @@ function cacheKey(action, params){
   return `${CACHE_VER}:${action}:${Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
+// Edge-кэш Vercel (CDN) для медленно меняющихся оценок: повторные открытия того
+// же лота/модели отдаются с CDN мгновенно, без вызова функции. stale-while-
+// revalidate — отдаём кэш сразу, а обновляем в фоне.
+const COMPS_EDGE_CACHE = {"cache-control": "public, s-maxage=900, stale-while-revalidate=86400"};
+const STATS_EDGE_CACHE = {"cache-control": "public, s-maxage=3600, stale-while-revalidate=86400"};
+
 // DB_TTL in seconds: search=6h, detail=30мин (аукционы переносят даты — 24h кеш
 // показывал устаревшую дату торгов), vin=7d, dict/lists=12h
 const DB_TTL = {search:21600, detail:1800, vin:604800, _default:43200};
@@ -2102,10 +2108,12 @@ module.exports = async function handler(request, response){
   const freshMode = !!query.get("fresh");
   if(freshMode) query.delete("fresh");
 
+  // Edge-заголовок для медленных оценок — чтобы CDN кэшировал и hit из памяти/БД.
+  const edgeHdr = action === "comps" ? COMPS_EDGE_CACHE : action === "statistics" ? STATS_EDGE_CACHE : undefined;
   const key = cacheKey(action, query);
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
-    sendJson(response, 200, {...cached, cached:true});
+    sendJson(response, 200, {...cached, cached:true}, edgeHdr);
     return;
   }
 
@@ -2119,7 +2127,7 @@ module.exports = async function handler(request, response){
     const dbHit = await getDbCache(key);
     if(dbHit && !detailCacheStale(dbHit)){
       setCached(key, dbHit);
-      sendJson(response, 200, {...dbHit, cached:true});
+      sendJson(response, 200, {...dbHit, cached:true}, edgeHdr);
       return;
     }
   }
@@ -2332,13 +2340,15 @@ module.exports = async function handler(request, response){
             if(stats){
               const payload = {ok:true, comps:stats};
               setCached(key, payload);
-              sendJson(response, 200, payload);
+              // Edge-кэш Vercel: тот же лот при повторном открытии отдаётся с CDN
+              // мгновенно, без вызова функции. Данные меняются медленно.
+              sendJson(response, 200, payload, COMPS_EDGE_CACHE);
               return;
             }
           }
         }catch(e){ /* база недоступна — отдаём ok:false, клиент откатится на /statistics */ }
       }
-      sendJson(response, 200, {ok:false});
+      sendJson(response, 200, {ok:false}, COMPS_EDGE_CACHE);
       return;
     }
 
@@ -2351,7 +2361,8 @@ module.exports = async function handler(request, response){
       const data = await fetchJson(`${AUCTIONS_API_BASE}/statistics?${p}`);
       const payload = {ok:true, stats:(data && data.data) || data || null};
       setCached(key, payload);
-      sendJson(response, 200, payload);
+      // Агрегат меняется медленно и общий на всю модель → держим на edge подольше.
+      sendJson(response, 200, payload, STATS_EDGE_CACHE);
       return;
     }
 
