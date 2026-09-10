@@ -64,6 +64,9 @@
     const number = Number(value || 0);
     return number ? `$${Math.round(number).toLocaleString("en-US")}` : "—";
   }
+  // Округление цены рынка до $500 (вверх): $2 083 → $2 500, $5 314 → $5 500.
+  function round500(value){ return Math.ceil((Number(value) || 0) / 500) * 500; }
+  function money500(value){ return money(round500(value)); }
 
   // Ставки канадских аукционов — в канадских долларах
   function moneyCad(value){
@@ -1964,7 +1967,7 @@
   // Короткая строка рынка в сайдбаре калькулятора.
   function setMarketLine(median, count){
     const marketLine = document.getElementById("lotMarketLineV1");
-    if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money(median)}</span>`;
+    if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money500(median)}</span>`;
   }
   // Подпись: какие факторы учтены (динамически из match).
   function compsNote(match){
@@ -2015,13 +2018,13 @@
         box.innerHTML = `
           <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)}</span></div>
           <div class="statGridV1">
-            ${hasRange ? `<div class="statCellV1"><span>${L("Оценочная стоимость")}</span><b>${money(lo)} – ${money(hi)}</b></div>` : ""}
-            <div class="statCellV1"><span>${L("Средняя цена рынка")}</span><b>${money(c.median)}</b></div>
+            ${hasRange ? `<div class="statCellV1"><span>${L("Оценочная стоимость")}</span><b>${money500(lo)} – ${money500(hi)}</b></div>` : ""}
+            <div class="statCellV1"><span>${L("Средняя цена рынка")}</span><b>${money500(c.median)}</b></div>
           </div>
           <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
-        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)}</span>`;
+        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money500(lo)}–${money500(hi)}` : money500(c.median)}</span>`;
         return;
       }
       // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
@@ -2079,8 +2082,8 @@
       box.innerHTML = `
         <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)}</span></div>
         <div class="statGridV1">
-          <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money(avg)}</b></div>
-          ${min < Infinity && max ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money(min)} – ${money(max)}</b></div>` : ""}
+          <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money500(avg)}</b></div>
+          ${min < Infinity && max ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money500(min)} – ${money500(max)}</b></div>` : ""}
         </div>
         <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
