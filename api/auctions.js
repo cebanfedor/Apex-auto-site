@@ -2274,9 +2274,12 @@ module.exports = async function handler(request, response){
       if(!vin){ sendJson(response, 200, {ok:false}); return; }
       try{
         const data = await fetchJson(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(vin)}`);
-        const items = findItems(data) || [];
+        // /search-vin отдаёт {data: <машина с .lots>} (или массив машин) — НЕ через
+        // findItems (он вернул бы под-лоты). Разбираем форму напрямую.
+        const raw = data && data.data !== undefined ? data.data : data;
+        const cars = Array.isArray(raw) ? raw : (raw ? [raw] : []);
         let best = null;
-        for(const v of items){
+        for(const v of cars){
           for(const l of (Array.isArray(v && v.lots) ? v.lots : [])){
             const st = Number((l && l.status && (l.status.id != null ? l.status.id : l.status)) || 0);
             const sold = st === 6 || /sold/.test(safeName(l && l.status).toLowerCase());
