@@ -1706,11 +1706,20 @@ function computeComps(rows, meta){
   let fuelMatched = false;
   if(fuel){
     const f = base.filter(r => Number(r.fuel_id) === fuel);
-    if(f.length >= 4){ base = f; fuelMatched = true; }   // топливо — только если хватает своих
+    if(f.length >= 3){ base = f; fuelMatched = true; }   // топливо: гибрид→гибрид (порог 3)
   }
   // Мало продаж своего поколения → не выдумываем, отдаём агрегату /statistics.
   if(hasGenRange && base.length < 4) return null;
   if(base.length < 2) return null;
+  // СТРОГО тот же год (как просил Фёдор): 2017 → берём 2017. Окно года расширяем
+  // только если своих мало (<4): ±1, ±2, ±3, иначе — всё поколение как было.
+  let yearMatched = false;
+  if(yr){
+    for(const w of [0, 1, 2, 3]){
+      const yb = base.filter(r => Math.abs((Number(r.year) || 0) - yr) <= w);
+      if(yb.length >= 4){ base = yb; yearMatched = w === 0; break; }
+    }
+  }
 
   // Вес похожести: 1 год ≈ 40к миль по влиянию; далёкие быстро затухают.
   const wOf = r => {
@@ -1743,7 +1752,7 @@ function computeComps(rows, meta){
     trueMedian:wPct(50),
     min:Math.min(...prices), max:Math.max(...prices),
     p25:wPct(EST_LO_PCTL), p75:wPct(EST_HI_PCTL),
-    match:{fuel:fuelMatched, year:!!yr, mileage:!!odo, gen:hasGenRange},
+    match:{fuel:fuelMatched, year:yearMatched, mileage:!!odo, gen:hasGenRange},
     samples
   };
 }

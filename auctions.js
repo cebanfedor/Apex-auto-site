@@ -1707,6 +1707,9 @@
       const params = new URLSearchParams({action:"search", per_page:"12", sort:"soon"});
       if(lot.makeId) params.set("make", String(lot.makeId));
       if(lot.modelId) params.set("model", String(lot.modelId));
+      // Тот же год и то же топливо — как просил Фёдор (2017 гибрид → 2017 гибрид).
+      if(lot.year){ params.set("yearFrom", String(lot.year)); params.set("yearTo", String(lot.year)); }
+      if(lot.fuel) params.set("fuel", String(lot.fuel));
       const payload = await api(`/api/auctions?${params}`);
       items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
     }catch(error){
@@ -1725,6 +1728,9 @@
       const params = new URLSearchParams({action:"search", per_page:"12", tab:"archived"});
       if(lot.makeId) params.set("make", String(lot.makeId));
       if(lot.modelId) params.set("model", String(lot.modelId));
+      // Тот же год и то же топливо — архив ровно по этой машине.
+      if(lot.year){ params.set("yearFrom", String(lot.year)); params.set("yearTo", String(lot.year)); }
+      if(lot.fuel) params.set("fuel", String(lot.fuel));
       const payload = await api(`/api/auctions?${params}`);
       const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
       if(!items.length) return;
@@ -1995,16 +2001,8 @@
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
         const lo = c.p25 || c.min, hi = c.p75 || c.max;
         const hasRange = lo && hi && hi > lo;
-        // Список нескольких похожих проданных лотов (год · пробег · состояние · цена) — как у DreamBid.
-        const kmLabel = mi => mi ? `${Math.round(mi * 1.609 / 1000)} ${L("тыс. км")}` : "—";
-        const samples = Array.isArray(c.samples) ? c.samples : [];
-        const samplesHtml = samples.length ? `
-          <div class="compsListV1">
-            <div class="compsListHeadV1">${L("Похожие проданные лоты")}</div>
-            ${samples.map(s => `<div class="compsRowV1"><span class="compsMetaV1">${s.year || ""} · ${kmLabel(s.mi)} · <i class="${s.run ? "compsRunV1" : "compsNoRunV1"}">${s.run ? L("на ходу") : L("не на ходу")}</i></span><b>${money(s.price)}</b></div>`).join("")}
-          </div>` : "";
-        // Ведущее число — ДИАПАЗОН оценки (как у DreamBid): salvage-цена сильно
-        // зависит от состояния/повреждений, одна «средняя» вводит в заблуждение.
+        // Список отдельных проданных лотов убран — ниже показываем реальные лоты
+        // того же года (открытые + архив), их можно открыть.
         box.innerHTML = `
           <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)} · ${c.count} ${salesWord(c.count)}</span></div>
           <div class="statGridV1">
@@ -2012,8 +2010,7 @@
             <div class="statCellV1"><span>${L("Средняя цена рынка")}</span><b>${money(c.median)}</b></div>
             <div class="statCellV1"><span>${L("Анализ лотов")}</span><b>${c.count}</b></div>
           </div>
-          <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>
-          ${samplesHtml}`;
+          <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
         if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)} · ${c.count} ${salesWord(c.count)}</span>`;
