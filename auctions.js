@@ -2068,33 +2068,33 @@
         const byEng = scope.filter(x => x.engine && Number(x.engine.id) === Number(lot.engineId));
         if(cntOf(byEng) >= 3) scope = byEng;
       }
-      // Средняя — взвешенная по числу продаж. Диапазон — НЕ абсолютные min/max
-      // (там одиночные не-продажи вроде $1 900 и разовые пики), а взвешенный
-      // разброс СРЕДНИХ по годам/площадкам (p15–p85) — устойчивая рыночная вилка.
-      let sumW = 0, cnt = 0;
-      const buckets = [];
+      // ИНДИВИДУАЛЬНО по состоянию лота, даже на агрегате: у каждой корзины есть
+      // avg/min/max — берём взвешенную среднюю A и темперированные верх (HI) и низ
+      // (LO) (пики/шум $100 обрезаем). Хороший экземпляр (cq=good) → к HI, убитый
+      // (poor) → к LO, средний → A. Диапазон показываем ОТ средней и вверх.
+      let sumW = 0, cnt = 0, sHi = 0, sLo = 0;
       scope.forEach(x => {
-        const c = Number(x.lot_count) || 0, avg = Number(x.avg_final_bid) || 0;
-        if(avg > 0 && c > 0){ sumW += avg * c; cnt += c; buckets.push({avg, c}); }
+        const c = Number(x.lot_count) || 0, a = Number(x.avg_final_bid) || 0;
+        if(a > 0 && c > 0){
+          sumW += a * c; cnt += c;
+          const mx = Number(x.max_final_bid) || a, mn = Number(x.min_final_bid) || a;
+          sHi += Math.min(mx, a * 1.6) * c;     // темперируем разовые пики
+          sLo += Math.max(mn, a * 0.55) * c;    // темперируем шум (не-продажи $100)
+        }
       });
       if(!cnt) return;
-      const avg = Math.round(sumW / cnt);
-      const wPctAvg = pct => {
-        const s = buckets.slice().sort((a, b) => a.avg - b.avg);
-        const tot = s.reduce((a, b) => a + b.c, 0);
-        const target = pct / 100 * tot; let acc = 0;
-        for(const b of s){ acc += b.c; if(acc >= target) return b.avg; }
-        return s.length ? s[s.length - 1].avg : 0;
-      };
-      let min = buckets.length >= 3 ? Math.round(wPctAvg(15)) : Math.round(avg * 0.8);
-      let max = buckets.length >= 3 ? Math.round(wPctAvg(85)) : Math.round(avg * 1.2);
-      if(min >= max){ min = Math.round(avg * 0.8); max = Math.round(avg * 1.2); }
+      const A = sumW / cnt, HI = sHi / cnt, LO = sLo / cnt;
+      let center = A;
+      if(cq === "good") center = A + (HI - A) * 0.7;
+      else if(cq === "poor") center = LO + (A - LO) * 0.35;
+      const avg = Math.round(center);
+      const min = Math.round(center), max = Math.round(Math.max(HI, center * 1.06));
       const title = [yr, lot.make, lot.model].filter(Boolean).join(" ");
       box.innerHTML = `
         <div class="dSecHead">${L("Рыночная статистика")} <span class="histCountV1">${escapeHtml(title)}</span></div>
         <div class="statGridV1">
-          <div class="statCellV1"><span>${L("Средняя цена продажи")}</span><b>${money500(avg)}</b></div>
-          ${min < Infinity && max ? `<div class="statCellV1"><span>${L("Диапазон")}</span><b>${money500(min)} – ${money500(max)}</b></div>` : ""}
+          <div class="statCellV1"><span>${L("Оценочная стоимость")}</span><b>${money500(min)} – ${money500(max)}</b></div>
+          <div class="statCellV1"><span>${L("Средняя цена рынка")}</span><b>${money500(avg)}</b></div>
         </div>
         <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
