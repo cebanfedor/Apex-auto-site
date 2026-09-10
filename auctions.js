@@ -1442,7 +1442,12 @@
 
   function renderLotCalculator(lot){
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
-    const initialBid = (isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0;
+    // Финалку НЕ показываем на таймед-проданных: в фиде она расходится с реальной
+    // (клиент: «пишете $10600, а купил за $11100»). auctionsapi часто НЕ помечает
+    // IAAI-таймед как timed (лот 2022 Tesla шёл как «live»), поэтому прячем на
+    // timed ИЛИ на всех IAAI-проданных; Copart-живые продажи достоверны — оставляем.
+    const hidePrice = isSold && (lot.timed === true || String(lot.auction || "").toLowerCase() === "iaai");
+    const initialBid = hidePrice ? 0 : ((isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0);
     // Идут ли торги прямо сейчас (аукцион начался ≤3ч назад, ещё не продан).
     // Во время live-аукциона ставка на Copart/IAAI растёт в реальном времени,
     // а фид отдаёт последнюю синхронизированную — честно предупреждаем клиента.
@@ -1467,12 +1472,11 @@
     const currOnly = Number(lot.currentBid || 0);
     const topBidValue = isSold ? initialBid : currOnly;
     return `<aside class="lotCalcV2">
-      ${isSold && effectiveFinalBid ? `
+      ${isSold && (effectiveFinalBid || hidePrice) ? `
       <div class="calcSoldCardV1">
         <span>${L("Продано")}</span>
-        ${isSold && lot.timed && lot.vin ? `
-        <button type="button" class="soldRefineV1" id="soldRefineBtnV1" data-refine-vin="${escapeHtml(lot.vin)}" data-refine-timed="${fmtBid(effectiveFinalBid)}">${L("Финальная цена — уточнить")}</button>
-        <i class="soldRefineNoteV1">${L("Продан на Timed — уточним точную финалку по VIN")}</i>
+        ${hidePrice ? `
+        <i class="soldRefineNoteV1">${L("Финалку на Timed уточняйте у нас — в фиде цена расходится с реальной")}</i>
         ` : `
         <b id="soldFinalV1">${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
