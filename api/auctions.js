@@ -1321,7 +1321,7 @@ async function generationsFor(modelId){
 // на API + синтетику. Расширяется по мере надобности.
 const GEN_OVERRIDES = {
   1634: [{from:2010, to:2016}, {from:2017, to:2023}, {from:2024}],   // Porsche Panamera (971→972 c 2024)
-  2220: [{from:2015, to:2021}, {from:2022}],                          // Lexus NX (AL10→AL20 c 2022)
+  2220: [{from:2015, to:2022}, {from:2023}],                          // Lexus NX (новый кузов с 2023 — по Фёдору)
   1904: [{from:2006, to:2012}, {from:2013, to:2020}],                 // Ford Fusion (снят после 2020)
   350:  [{from:2013, to:2017}, {from:2018, to:2022}, {from:2023}],    // Honda Accord (9→10→11 c 2023)
   872:  [{from:2012, to:2017}, {from:2018, to:2024}, {from:2025}],    // Toyota Camry (XV50→XV70→XV80 c 2025)
@@ -1685,7 +1685,7 @@ async function fetchSoldCompsLive(makeId, modelId){
 // нормальный $4-6k, а медиана всех продаж ~$1.7k из-за дохлых батарей/тяжёлых).
 // Поэтому ведущее число = взвешенный p65, диапазон = p45–p88. Это ДАННЫЕ (реальные
 // перцентили проданных), просто смещённые к верхней части. Настраивается здесь.
-const EST_CENTER_PCTL = 65;
+const EST_CENTER_PCTL = 70;
 const EST_LO_PCTL = 45;
 const EST_HI_PCTL = 88;
 function computeComps(rows, meta){
