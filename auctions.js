@@ -1483,9 +1483,9 @@
       ${isSold && !effectiveFinalBid ? `<div class="calcDoneV2">${dbIco("check")}${L("Торги завершены")}</div>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
       <div class="calcStepperV2">
-        <button type="button" data-bid-step="-500" aria-label="Уменьшить ставку">−</button>
+        <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
-        <button type="button" data-bid-step="500" aria-label="Увеличить ставку">+</button>
+        <button type="button" data-bid-step="1" aria-label="Увеличить ставку">+</button>
       </div>
       <div class="calcOptsV2">
         <div class="calcPairV1">
@@ -1978,6 +1978,18 @@
     return parts.length ? `${L("С учётом:")} ${parts.join(", ")}.` : L("По данным проданных лотов Copart и IAAI.");
   }
 
+  // На ПРОДАННЫХ лотах дефолт ставки в калькуляторе = рыночная оценка (планируем
+  // покупку похожей машины), а не финалка именно этого лота. Ставим после того,
+  // как оценка загрузилась, и только если пользователь ещё не менял поле.
+  function applySoldDefaultBid(lot, estimate){
+    if(!estimate || !lotSaleState(lot).isSold) return;
+    const input = document.getElementById("lotBidInput");
+    if(!input) return;
+    const {finalBid} = lotSaleState(lot);
+    if(input.value && finalBid && Number(input.value) !== Number(finalBid)) return; // пользователь трогал
+    input.value = Math.round(estimate);
+    updateLotCalculator();
+  }
   async function loadStats(lot){
     const box = document.getElementById("lotStatsBox");
     if(!box || !lot.makeId || !lot.modelId) return;
@@ -2022,6 +2034,7 @@
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
         if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money(lo)}–${money(hi)}` : money(c.median)}</span>`;
+        applySoldDefaultBid(lot, c.median);
         return;
       }
       // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
@@ -2085,6 +2098,7 @@
         <p class="statNoteV1">${L("По данным проданных лотов Copart и IAAI")}${scopeLabel ? ` ${scopeLabel}` : ""}. ${L("Помогает оценить адекватную ставку.")}</p>`;
       box.hidden = false;
       setMarketLine(avg, cnt);
+      applySoldDefaultBid(lot, avg);
     }catch(e){ /* stats optional — ignore */ }
   }
 
@@ -2797,7 +2811,12 @@
       const bidStep = event.target.closest("[data-bid-step]");
       if(bidStep && $("#lotBidInput")){
         const input = $("#lotBidInput");
-        input.value = Math.max(0, Number(input.value || 0) + Number(bidStep.dataset.bidStep || 0));
+        const dir = Number(bidStep.dataset.bidStep) < 0 ? -1 : 1;
+        const cur = Number(input.value || 0);
+        // Шаг ставки: до $25k — по $100, свыше — по $250. При уменьшении с
+        // порога шаг берём по целевому уровню (25000 → 24900, не 24750).
+        const step = (dir > 0 ? cur >= 25000 : cur > 25000) ? 250 : 100;
+        input.value = Math.max(0, cur + dir * step);
         updateLotCalculator();
       }
       if(event.target.closest("[data-copy-calc]")) copyCalculation();
