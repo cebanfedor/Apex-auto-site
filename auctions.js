@@ -2749,39 +2749,6 @@
     $("#openFiltersBtn").addEventListener("click", openFiltersDrawer);
     $("#searchSettingsBtn")?.addEventListener("click", openFiltersDrawer);
     $("#closeFiltersBtn").addEventListener("click", closeFiltersDrawer);
-    // «Уточнить финалку» на таймед-проданных: тянем самую авторитетную продажу
-    // по VIN через наш auctionsapi (живой молоток приоритетнее таймед-предзакрытия).
-    document.addEventListener("click", async event => {
-      const refine = event.target.closest("[data-refine-vin]");
-      if(!refine) return;
-      event.preventDefault();
-      const vin = refine.dataset.refineVin;
-      const timedVal = refine.dataset.refineTimed || "";
-      refine.disabled = true;
-      const orig = refine.textContent;
-      refine.textContent = L("Уточняю…");
-      try{
-        const r = await api(`/api/auctions?action=vinfinal&vin=${encodeURIComponent(vin)}`).catch(() => null);
-        const card = refine.closest(".calcSoldCardV1");
-        const note = card && card.querySelector(".soldRefineNoteV1");
-        if(r && r.ok && r.finalBid){
-          const isCa = !!findCanadaLocation(state.selectedLot || {});
-          const b = document.createElement("b");
-          b.id = "soldFinalV1";
-          b.textContent = isCa ? moneyCad(r.finalBid) : money(r.finalBid);
-          refine.replaceWith(b);
-          if(note) note.textContent = r.timed ? L("Уточнено по VIN (Timed)") : L("Уточнено по VIN (живые торги)");
-          const input = document.getElementById("lotBidInput");
-          if(input){ input.value = Math.round(r.finalBid); updateLotCalculator(); }
-        }else{
-          // Нет данных по VIN — показываем таймед-значение как есть.
-          refine.textContent = timedVal || orig;
-          refine.disabled = false;
-          refine.classList.add("soldRefineDoneV1");
-          if(note) note.textContent = L("Точная финалка недоступна — показана цена Timed");
-        }
-      }catch(e){ refine.textContent = orig; refine.disabled = false; }
-    });
     document.addEventListener("click", event => {
       const slideBtn = event.target.closest(".dbSlideBtn");
       if(slideBtn){

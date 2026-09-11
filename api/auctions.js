@@ -2358,38 +2358,6 @@ module.exports = async function handler(request, response){
       return;
     }
 
-    if(action === "vinfinal"){
-      // «Уточнить финалку» для таймед-лотов: наш auctionsapi по VIN отдаёт ВСЕ
-      // продажи этого авто. Таймед часто «закрывается» дешевле, а затем лот
-      // уходит на ЖИВЫЕ торги дороже (напр. Corolla: таймед $5200 → живой $14000).
-      // Берём самую авторитетную: не-таймед (живой молоток) приоритетнее таймед,
-      // при равенстве — выше цена. Источник — наш платный API, не парсинг чужих.
-      const vin = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 20);
-      if(!vin){ sendJson(response, 200, {ok:false}); return; }
-      try{
-        const data = await fetchJson(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(vin)}`);
-        // /search-vin отдаёт {data: <машина с .lots>} (или массив машин) — НЕ через
-        // findItems (он вернул бы под-лоты). Разбираем форму напрямую.
-        const raw = data && data.data !== undefined ? data.data : data;
-        const cars = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-        let best = null;
-        for(const v of cars){
-          for(const l of (Array.isArray(v && v.lots) ? v.lots : [])){
-            const st = Number((l && l.status && (l.status.id != null ? l.status.id : l.status)) || 0);
-            const sold = st === 6 || /sold/.test(safeName(l && l.status).toLowerCase());
-            const fb = safeNumber(l && (l.final_bid || l.bid));
-            if(!sold || fb <= 0) continue;
-            const timed = (l && l.is_timed_auction === true) || (v && v.is_timed_auction === true);
-            const cand = {finalBid:fb, timed:!!timed, saleDate:(l && l.sale_date && (l.sale_date.value || l.sale_date)) || null};
-            if(!best || (!cand.timed && best.timed) || (cand.timed === best.timed && fb > best.finalBid)) best = cand;
-          }
-        }
-        if(best){ sendJson(response, 200, {ok:true, ...best}); return; }
-      }catch(e){ /* нет данных по VIN — отдаём ok:false */ }
-      sendJson(response, 200, {ok:false});
-      return;
-    }
-
     if(action === "comps"){
       // Оценка по реальным проданным лотам с учётом топлива, года и пробега.
       const makeId = String(query.get("manufacturer_id") || query.get("make_id") || "").replace(/[^0-9]/g, "");
