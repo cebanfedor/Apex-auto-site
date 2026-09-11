@@ -1412,3 +1412,40 @@ details > summary::-webkit-details-marker { display: none; }
 .bcWarningV400.bcInfoV400 { background: #e8f4ff; border-color: #4a9edd; color: #1a4f7a; }
 .calcModeCanada [data-usa-only] { display: none !important; }
 .calcModeCanada .exportCurrencyRowV374 { justify-content: flex-end; }
+
+/* ---- Живые лоты с аукциона на главной (под калькулятором) ------------- */
+.homeLotsV1 { padding: 40px 0 8px; }
+.homeLotsHeadV1 { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.homeLotsHeadTxtV1 h2 { font-size: clamp(22px, 3.4vw, 30px); }
+.homeLotsHeadTxtV1 p { margin: 6px 0 0; color: var(--muted); font-size: 14px; max-width: 640px; }
+.homeLotsAllV1 { flex: none; font-weight: 700; color: var(--red); font-size: 14.5px; white-space: nowrap; }
+.homeLotsAllV1:hover { color: var(--red-700); }
+.homeLotsGridV1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.homeLotCardV1 { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s var(--ease); }
+.homeLotCardV1:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--field-line); }
+.homeLotImgV1 { position: relative; aspect-ratio: 4 / 3; background: var(--field); overflow: hidden; }
+.homeLotImgV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.homeLotPriceV1 { position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 8px; background: rgba(18, 21, 27, .86); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: -.02em; }
+.homeLotAucV1 { position: absolute; right: 8px; bottom: 8px; padding: 3px 8px; border-radius: 7px; background: rgba(255, 255, 255, .92); color: var(--ink); font-weight: 700; font-size: 10.5px; letter-spacing: .04em; }
+.homeLotBodyV1 { padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.homeLotTitleV1 { font-size: 15px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.homeLotSpecV1 { font-size: 12.5px; color: var(--muted); }
+.homeLotMetaV1 { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 12.5px; color: var(--ink-2); }
+.homeLotMetaV1 i { font-style: normal; font-weight: 700; }
+.homeLotRunV1 { color: #12864b; }
+.homeLotNoRunV1 { color: #b23; }
+.homeLotDotV1 { color: var(--line); }
+.homeLotSkelV1 { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(100deg, var(--field) 30%, #f7f9fc 50%, var(--field) 70%); background-size: 200% 100%; animation: homeLotSkel 1.2s infinite; aspect-ratio: 4 / 3.35; }
+@keyframes homeLotSkel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.homeLotsMoreBtnV1 { display: none; }
+@media (max-width: 1080px) { .homeLotsGridV1 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px) {
+  .homeLotsV1 { padding: 28px 0 4px; }
+  .homeLotsGridV1 { grid-template-columns: repeat(2, 1fr); gap: 11px; }
+  .homeLotsHeadV1 { align-items: flex-start; }
+  .homeLotsAllV1 { display: none; }
+  .homeLotTitleV1 { font-size: 14px; }
+  .homeLotPriceV1 { font-size: 13px; }
+  .homeLotsMoreBtnV1 { display: block; margin: 16px auto 0; max-width: 420px; text-align: center; padding: 14px 20px; border-radius: 12px; background: var(--red); color: #fff; font-weight: 800; font-size: 15px; box-shadow: var(--shadow-red); }
+  .homeLotsMoreBtnV1:hover { background: var(--red-600); }
+}
