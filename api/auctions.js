@@ -2430,27 +2430,27 @@ module.exports = async function handler(request, response){
       try{
         const bases = [{fuel:"hybrid"}, {fuel:"plug_in_hybrid"}, {fuel:"electric"}, {make:"16"}];
         const lists = await Promise.all(bases.map(b =>
-          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"40", auction:"all" }))
+          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"50", auction:"all" }))
             .then(r => (r.items || []).filter(cheapOk)).catch(() => [])
         ));
         // Round-robin: перемешиваем гибрид/PHEV/электро/BMW, чтобы витрина не
         // забивалась одной маркой; дедуп по id.
         const seen = new Set(), cand = [];
-        for(let i = 0; i < 40; i++){
+        for(let i = 0; i < 50; i++){
           for(const l of lists){ const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); cand.push(it); } }
         }
-        // «Впервые»: добираем detail (история) параллельно по первым кандидатам
-        // (бюджет 16 — на всех, раз в 30 мин), оставляем без прошлых продаж.
-        const probe = cand.slice(0, 16);
-        const verified = await Promise.all(probe.map(it =>
-          fetchDetail(shim({ auction: it.auction, lot: it.lot }))
-            .then(d => {
-              const past = (d.priceHistory || []).some(h => /sold|not_sold/i.test(String(h && h.status || "")));
-              return past ? null : it;
-            })
-            .catch(() => null)
-        ));
-        const items = verified.filter(Boolean).slice(0, 8);
+        // «Впервые»: добираем detail (история) волнами с ранней остановкой —
+        // как только набрали 8 без прошлых продаж, дальше не запрашиваем. Бюджет
+        // 48 detail на всех (раз в 30 мин), чанк 12, чтобы не долбить API разом.
+        const items = [];
+        for(let i = 0; i < cand.length && i < 48 && items.length < 8; i += 12){
+          const wave = await Promise.all(cand.slice(i, i + 12).map(it =>
+            fetchDetail(shim({ auction: it.auction, lot: it.lot }))
+              .then(d => (d.priceHistory || []).some(h => /sold|not_sold/i.test(String(h && h.status || ""))) ? null : it)
+              .catch(() => null)
+          ));
+          for(const it of wave){ if(it && items.length < 8) items.push(it); }
+        }
         const payload = {ok:true, items};
         setCached(key, payload, 30 * 60 * 1000);
         sendJson(response, 200, payload, SHOWCASE_EDGE);
