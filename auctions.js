@@ -1749,27 +1749,34 @@
     const gr = (Number(lot.genFrom) && Number(lot.genTo))
       ? {from:Number(lot.genFrom), to:Number(lot.genTo)}
       : genYearRange(lot.modelId, lot.year);
-    const applyYears = p => {
-      if(gr){ p.set("yearFrom", String(gr.from)); p.set("yearTo", String(gr.to)); }
-      else if(lot.year){ p.set("yearFrom", String(lot.year)); p.set("yearTo", String(lot.year)); }
-    };
-    const variants = [
-      p => { applyYears(p); if(lot.fuel) p.set("fuel", String(lot.fuel)); },
-      p => { applyYears(p); }
-    ];
-    for(const apply of variants){
+    const query = withFuel => {
       const p = new URLSearchParams({action:"search", per_page:"12"});
       if(archived) p.set("tab", "archived"); else p.set("sort", "soon");
       if(lot.makeId) p.set("make", String(lot.makeId));
       if(lot.modelId) p.set("model", String(lot.modelId));
-      apply(p);
-      try{
-        const payload = await api(`/api/auctions?${p}`);
-        const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
-        if(items.length) return items;
-      }catch(e){ /* пробуем следующий вариант */ }
+      if(gr){ p.set("yearFrom", String(gr.from)); p.set("yearTo", String(gr.to)); }
+      else if(lot.year){ p.set("yearFrom", String(lot.year)); p.set("yearTo", String(lot.year)); }
+      if(withFuel && lot.fuel) p.set("fuel", String(lot.fuel));
+      return api(`/api/auctions?${p}`)
+        .then(r => (r.items || []).filter(x => String(x.id) !== String(lot.id)))
+        .catch(() => []);
+    };
+    // Тот же КУЗОВ (диапазон лет поколения), любое топливо — база «похожих».
+    const genAll = await query(false);
+    if(!genAll.length) return [];
+    // Топливо — НЕ жёсткий фильтр, а приоритет: тот же тип (гибрид/бензин) идёт
+    // первым, дальше добираем другими из того же поколения. Иначе, когда своего
+    // топлива в фиде мало (напр. 1 гибрид), показывалась одна одинокая карточка,
+    // хотя того же кузова десяток.
+    if(!lot.fuel) return genAll.slice(0, 12);
+    const sameFuel = await query(true);
+    const seen = new Set(), out = [];
+    for(const x of [...sameFuel, ...genAll]){
+      const k = String(x.id);
+      if(seen.has(k)) continue;
+      seen.add(k); out.push(x);
     }
-    return [];
+    return out.slice(0, 12);
   }
 
   async function loadSimilarActive(lot){
