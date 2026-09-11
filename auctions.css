@@ -393,6 +393,10 @@
 .calcSoldCardV1 b { font-size:23px; font-weight:800; letter-spacing:-.02em; color:var(--aRed); line-height:1.1; }
 .calcSoldCardV1 i { font-style:normal; font-size:13px; color:var(--aMuted); }
 .calcSoldCardV1 b.soldByReqV1 { font-size:18px; color:var(--aInk,#11141a); }
+/* Плашка «лот продан — подберём похожую» на проданных лотах */
+.soldPitchV1 { margin:2px 0 2px; padding:12px 14px; background:#f6f8fb; border:1px solid #e6eaf0; border-radius:12px; display:flex; flex-direction:column; gap:10px; }
+.soldPitchV1 p { margin:0; font-size:13.5px; line-height:1.4; color:var(--aInk2,#4b5563); }
+.soldPitchCtaV1 { width:100%; }
 .calcEstCenterV1 { justify-content:center; }
 .calcBidUsdV1 { display:block; font-style:normal; font-size:13px; color:var(--aMuted); margin-top:2px; }
 .calcBidLabelV2 b { font-size:24px; font-weight:800; color:var(--aInk); }
