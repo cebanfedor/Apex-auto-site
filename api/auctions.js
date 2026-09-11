@@ -2439,18 +2439,33 @@ module.exports = async function handler(request, response){
         for(let i = 0; i < 50; i++){
           for(const l of lists){ const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); cand.push(it); } }
         }
-        // «Впервые»: добираем detail (история) волнами с ранней остановкой —
-        // как только набрали 8 без прошлых продаж, дальше не запрашиваем. Бюджет
-        // 48 detail на всех (раз в 30 мин), чанк 12, чтобы не долбить API разом.
-        const items = [];
-        for(let i = 0; i < cand.length && i < 48 && items.length < 8; i += 12){
+        // «Впервые на аукционе»: сегмент почти весь перевыставлен, поэтому строго
+        // «ни разу не был» — редкость. Убираем УЖЕ ПРОДАННЫЕ ранее (перекуп/
+        // повторы), а из чистых ставим truly-first-time (нет прошлых торгов)
+        // вперёд, добирая «ни разу не проданными» (был выставлен, но не купили).
+        // Историю тянем волнами (detail) с бюджетом 48 на всех (раз в 30 мин).
+        const classify = ph => {
+          let sold = false, past = false;
+          for(const h of (ph || [])){
+            const st = String(h && h.status || "").toLowerCase();
+            if(st === "not_sold"){ past = true; }
+            else if(/sold/.test(st)){ sold = true; past = true; }
+          }
+          return { sold, first: !past };
+        };
+        const firstTier = [], secondTier = [];
+        for(let i = 0; i < cand.length && i < 48 && (firstTier.length + secondTier.length) < 8; i += 12){
           const wave = await Promise.all(cand.slice(i, i + 12).map(it =>
             fetchDetail(shim({ auction: it.auction, lot: it.lot }))
-              .then(d => (d.priceHistory || []).some(h => /sold|not_sold/i.test(String(h && h.status || ""))) ? null : it)
+              .then(d => ({ it, c: classify(d.priceHistory) }))
               .catch(() => null)
           ));
-          for(const it of wave){ if(it && items.length < 8) items.push(it); }
+          for(const r of wave){
+            if(!r || r.c.sold) continue;                 // уже продавалась — вон
+            (r.c.first ? firstTier : secondTier).push(r.it);
+          }
         }
+        const items = firstTier.concat(secondTier).slice(0, 8);
         const payload = {ok:true, items};
         setCached(key, payload, 30 * 60 * 1000);
         sendJson(response, 200, payload, SHOWCASE_EDGE);
