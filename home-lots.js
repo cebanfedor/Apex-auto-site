@@ -49,9 +49,7 @@
     var p = price(it);
     var km = kmFromMi(it.odometer);
     var date = shortDate(it.auctionDate || it.saleDate);
-    var meta = ['<i class="homeLotRunV1">На ходу</i>', km ? "<span>" + esc(km) + "</span>" : "", date ? "<span>" + esc(date) + "</span>" : ""]
-      .filter(Boolean)
-      .join('<span class="homeLotDotV1">·</span>');
+    var sub = [km, date].filter(Boolean).map(esc).join(" · ");
     return (
       '<a class="homeLotCardV1" href="/auctions/' + esc(it.id) + '">' +
       '<div class="homeLotImgV1">' +
@@ -62,7 +60,9 @@
       '<div class="homeLotBodyV1">' +
       '<h3 class="homeLotTitleV1">' + esc(title) + "</h3>" +
       '<div class="homeLotSpecV1">' + esc(specLine(it)) + "</div>" +
-      '<div class="homeLotMetaV1">' + meta + "</div>" +
+      '<div class="homeLotMetaV1"><i class="homeLotRunV1">На ходу</i>' +
+      (sub ? '<span class="homeLotSubV1">' + sub + "</span>" : "") +
+      "</div>" +
       "</div>" +
       "</a>"
     );

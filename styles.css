@@ -1432,11 +1432,11 @@ details > summary::-webkit-details-marker { display: none; }
 .homeLotBodyV1 { padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
 .homeLotTitleV1 { font-size: 15px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .homeLotSpecV1 { font-size: 12.5px; color: var(--muted); }
-.homeLotMetaV1 { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 12.5px; color: var(--ink-2); }
+.homeLotMetaV1 { margin-top: auto; display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px; font-size: 12.5px; color: var(--ink-2); }
 .homeLotMetaV1 i { font-style: normal; font-weight: 700; }
 .homeLotRunV1 { color: #12864b; }
 .homeLotNoRunV1 { color: #b23; }
-.homeLotDotV1 { color: var(--line); }
+.homeLotSubV1 { color: var(--muted); font-variant-numeric: tabular-nums; }
 .homeLotSkelV1 { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(100deg, var(--field) 30%, #f7f9fc 50%, var(--field) 70%); background-size: 200% 100%; animation: homeLotSkel 1.2s infinite; aspect-ratio: 4 / 3.35; }
 @keyframes homeLotSkel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .homeLotsMoreBtnV1 { display: none; }
