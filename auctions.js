@@ -1709,13 +1709,13 @@
     const odoShort = miNum ? `${Math.round(miNum * 1.609 / 1000)} ${L("тыс. км")}` : "";
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
-    // На проданных Timed/IAAI цену в фиде не показываем (она расходится с реальной
-    // и выглядит смешно — $825 за Model 3). Copart-живые/активные — показываем.
-    const hidePrice = isSold && (lot.timed === true || String(lot.auction || "").toLowerCase() === "iaai");
+    // Дата продажи/торгов компактно (MM/YY) — как у DreamBid.
+    const sd = Date.parse(lot.auctionDate || lot.saleDate || "");
+    const dateMMYY = Number.isFinite(sd) ? `${String(new Date(sd).getMonth() + 1).padStart(2, "0")}/${String(new Date(sd).getFullYear()).slice(2)}` : "";
     return `<a class="simCardV1" href="${detailHref(lot)}">
-      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${!hidePrice && Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
+      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
       <h4>${escapeHtml(title)}</h4>
-      <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}</span>
+      <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}${dateMMYY ? ` · ${dateMMYY}` : ""}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
       <span class="simCondV1">${dbIco("odo")}<i class="${condCls}">${escapeHtml(condShort)}</i>${odoShort ? ` · ${escapeHtml(odoShort)}` : ""}</span>
     </a>`;
