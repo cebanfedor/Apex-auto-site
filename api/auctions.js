@@ -2424,11 +2424,16 @@ module.exports = async function handler(request, response){
       const SHOWCASE_EDGE = {"cache-control":"public, s-maxage=1800, stale-while-revalidate=86400"};
       const shim = obj => ({ get: k => (obj[k] != null ? String(obj[k]) : null) });
       const JUNK = /all over|roll ?over|undercarriage|frame|strip|burn|fire|flood|water|biohazard|vandal|missing|total/i;
+      const NOT_CAR = /bike|motorcycle|moped|scooter|atv|quad|snowmobile|watercraft|jet ?ski|trailer/i;
       const cheapOk = it => it && it.image && Number(it.year) >= 2020
         && String(it.condition || "").toLowerCase() === "run_and_drives"
-        && !JUNK.test(String(it.damage || "") + " " + String(it.secondaryDamage || ""));
+        && !JUNK.test(String(it.damage || "") + " " + String(it.secondaryDamage || ""))
+        && !NOT_CAR.test(String(it.body || "") + " " + String(it.vehicleType || ""));
       try{
-        const bases = [{fuel:"hybrid"}, {fuel:"plug_in_hybrid"}, {fuel:"electric"}, {make:"16"}];
+        // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
+        // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
+        // марке (любое топливо). Сырые слова API не фильтрует → берём id.
+        const bases = [{fuel:"3"}, {fuel:"2"}, {make:"16"}];
         const lists = await Promise.all(bases.map(b =>
           fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"50", auction:"all" }))
             .then(r => (r.items || []).filter(cheapOk)).catch(() => [])
