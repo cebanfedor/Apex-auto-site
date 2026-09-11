@@ -1703,7 +1703,7 @@
     // Компактно: короткий цветной статус («На ходу»/«Не на ходу») вместо длинного
     // «Заводится и едет», и пробег ОДНОЙ единицей (тыс. км) — иначе не вмещалось.
     const tone = conditionInfo(lot.condition).tone;
-    const condShort = tone === "good" ? L("на ходу") : tone === "bad" ? L("не на ходу") : L(conditionInfo(lot.condition).label);
+    const condShort = tone === "good" ? L("На ходу") : tone === "bad" ? L("Не на ходу") : L(conditionInfo(lot.condition).label);
     const condCls = tone === "good" ? "compsRunV1" : tone === "bad" ? "compsNoRunV1" : "";
     const miNum = Number(lot.odometer) || Number(String(lot.odometerText || "").replace(/[^0-9]/g, "").slice(0, 7)) || 0;
     const odoShort = miNum ? `${Math.round(miNum * 1.609 / 1000)} ${L("тыс. км")}` : "";
