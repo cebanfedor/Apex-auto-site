@@ -1326,12 +1326,79 @@ async function generationsFor(modelId){
 // текущего года). Это ПЕРЕКРЫВАЕТ справочник; для не занесённых моделей — фолбэк
 // на API + синтетику. Расширяется по мере надобности.
 const GEN_OVERRIDES = {
-  1634: [{from:2010, to:2016}, {from:2017, to:2023}, {from:2024}],   // Porsche Panamera (971→972 c 2024)
-  2220: [{from:2015, to:2022}, {from:2023}],                          // Lexus NX (новый кузов с 2023 — по Фёдору)
-  1904: [{from:2006, to:2012}, {from:2013, to:2020}],                 // Ford Fusion (снят после 2020)
-  350:  [{from:2013, to:2017}, {from:2018, to:2022}, {from:2023}],    // Honda Accord (9→10→11 c 2023)
-  872:  [{from:2012, to:2017}, {from:2018, to:2024}, {from:2025}],    // Toyota Camry (XV50→XV70→XV80 c 2025)
-  94:   [{from:2011, to:2016}, {from:2017, to:2023}, {from:2024}]     // BMW 5 (F10→G30→G60 c 2024)
+  // Toyota
+  872:  [{from:2012, to:2017}, {from:2018, to:2024}, {from:2025}],   // Camry XV50→XV70→XV80
+  876:  [{from:2014, to:2019}, {from:2020}],                         // Corolla E170→E210
+  906:  [{from:2013, to:2018}, {from:2019, to:2025}, {from:2026}],   // RAV4 XA40→XA50→gen6(2026)
+  887:  [{from:2014, to:2019}, {from:2020}],                         // Highlander XU50→XU70
+  1307: [{from:2016, to:2023}, {from:2024}],                         // Tacoma N300→N400
+  1390: [{from:2014, to:2021}, {from:2022}],                         // Tundra XK50→XK70
+  860:  [{from:2010, to:2024}, {from:2025}],                         // 4Runner N280→N300
+  902:  [{from:2016, to:2022}, {from:2023}],                         // Prius XW50→XW60
+  // Honda
+  350:  [{from:2013, to:2017}, {from:2018, to:2022}, {from:2023}],   // Accord 9→10→11
+  354:  [{from:2016, to:2021}, {from:2022}],                         // Civic 10→11
+  356:  [{from:2017, to:2022}, {from:2023}],                         // CR-V 5→6
+  371:  [{from:2016, to:2022}, {from:2023}],                         // Pilot 3→4
+  360:  [{from:2016, to:2022}, {from:2023}],                         // HR-V
+  // Ford
+  1387: [{from:2015, to:2020}, {from:2021}],                         // F-150 13→14
+  323:  [{from:2013, to:2019}, {from:2020}],                         // Escape 3→4
+  303:  [{from:2011, to:2019}, {from:2020}],                         // Explorer 5→6
+  1904: [{from:2006, to:2012}, {from:2013, to:2020}],                // Fusion (снят 2020)
+  324:  [{from:2015, to:2023}, {from:2024}],                         // Mustang S550→S650
+  1436: [{from:2021}],                                               // Bronco (2021+)
+  309:  [{from:2022}],                                               // Maverick (2022+)
+  // Chevrolet / GMC
+  1078: [{from:2018, to:2024}, {from:2025}],                         // Equinox 3→4
+  1349: [{from:2014, to:2018}, {from:2019}],                         // Silverado
+  150:  [{from:2015, to:2020}, {from:2021}],                         // Tahoe
+  1686: [{from:2018, to:2023}, {from:2024}],                         // Traverse
+  1153: [{from:2014, to:2018}, {from:2019}],                         // GMC Sierra
+  // Nissan
+  658:  [{from:2013, to:2018}, {from:2019}],                         // Altima 5→6
+  1364: [{from:2014, to:2020}, {from:2021}],                         // Rogue 2→3
+  689:  [{from:2013, to:2019}, {from:2020}],                         // Sentra 7→8
+  // Tesla
+  2741: [{from:2017, to:2023}, {from:2024}],                         // Model 3 → Highland 2024
+  1772: [{from:2012, to:2020}, {from:2021}],                         // Model S refresh 2021
+  2497: [{from:2016, to:2021}, {from:2022}],                         // Model X refresh 2022
+  // BMW
+  93:   [{from:2012, to:2018}, {from:2019}],                         // 3er F30→G20
+  94:   [{from:2011, to:2016}, {from:2017, to:2023}, {from:2024}],   // 5er F10→G30→G60
+  1895: [{from:2018, to:2024}, {from:2025}],                         // X3 G01→G45
+  1665: [{from:2014, to:2018}, {from:2019}],                         // X5 F15→G05
+  // Lexus / Mercedes / Porsche / Audi
+  2220: [{from:2015, to:2022}, {from:2023}],                         // Lexus NX (по Фёдору с 2023)
+  481:  [{from:2016, to:2022}, {from:2023}],                         // Lexus RX 4→5
+  476:  [{from:2013, to:2018}, {from:2019}],                         // Lexus ES 6→7
+  2426: [{from:2016, to:2022}, {from:2023}],                         // Mercedes GLC
+  2396: [{from:2016, to:2019}, {from:2020}],                         // Mercedes GLE W166→W167
+  1634: [{from:2010, to:2016}, {from:2017, to:2023}, {from:2024}],   // Porsche Panamera 970→971→972
+  762:  [{from:2011, to:2018}, {from:2019}],                         // Porsche Cayenne
+  58:   [{from:2009, to:2016}, {from:2017}],                         // Audi A4 B8→B9
+  1577: [{from:2009, to:2017}, {from:2018}],                         // Audi Q5
+  // Hyundai / Kia
+  394:  [{from:2017, to:2020}, {from:2021}],                         // Elantra 6→7
+  400:  [{from:2015, to:2019}, {from:2020}],                         // Sonata 7→8
+  1034: [{from:2016, to:2021}, {from:2022}],                         // Tucson 3→4
+  398:  [{from:2019, to:2023}, {from:2024}],                         // Santa Fe TM→MX5
+  449:  [{from:2017, to:2022}, {from:2023}],                         // Sportage 4→5
+  448:  [{from:2016, to:2020}, {from:2021}],                         // Sorento 3→4
+  2764: [{from:2021}],                                               // Kia K5
+  // Jeep / Dodge / Ram
+  431:  [{from:2011, to:2021}, {from:2022}],                         // Grand Cherokee WK2→WL
+  432:  [{from:2007, to:2017}, {from:2018}],                         // Wrangler JK→JL
+  1321: [{from:2017}],                                               // Compass
+  1360: [{from:2011, to:2023}, {from:2024}],                         // Dodge Charger
+  3181: [{from:2009, to:2018}, {from:2019}],                         // Ram 1500 DS→DT
+  // VW / Subaru / Mazda
+  1201: [{from:2011, to:2018}, {from:2019}],                         // VW Jetta A6→A7
+  1485: [{from:2018}],                                               // VW Tiguan 2nd
+  1501: [{from:2015, to:2019}, {from:2020}],                         // Subaru Outback 5→6
+  828:  [{from:2014, to:2018}, {from:2019}],                         // Subaru Forester 4→5
+  1812: [{from:2013, to:2016}, {from:2017}],                         // Mazda CX-5 1→2
+  1036: [{from:2014, to:2018}, {from:2019}]                          // Mazda3 3→4
 };
 // Возвращает диапазон лет поколения оцениваемого лота [genFrom..genTo]. Приоритет:
 // 1) зашитые overrides, 2) справочник API, 3) синтетика (год за верхом → новый кузов).
@@ -1361,6 +1428,17 @@ async function resolveGenRange(modelId, yearQ, genIdQ){
     }
   }catch(e){ /* справочник недоступен — без поколения */ }
   return {genFrom:0, genTo:0};
+}
+// Кладём в лот диапазон лет ЕГО поколения (кузова) — для фильтра «похожих» того же
+// поколения на клиенте. Работает для ВСЕХ моделей: overrides → справочник → синтетика.
+async function attachGenRange(lot){
+  try{
+    if(lot && lot.modelId && lot.year){
+      const gr = await resolveGenRange(lot.modelId, Number(lot.year) || 0, lot.generationId || "");
+      if(gr && gr.genFrom){ lot.genFrom = gr.genFrom; lot.genTo = gr.genTo; }
+    }
+  }catch(e){ /* без поколения — клиент откатится на год */ }
+  return lot;
 }
 
 async function searchFromDb(query){
@@ -2231,6 +2309,7 @@ module.exports = async function handler(request, response){
 
     if(action === "detail"){
       const lot = await fetchDetail(query);
+      await attachGenRange(lot);
       const payload = {ok:true,lot};
       setCached(key, payload);
       setDbCache(key, payload, "detail");
@@ -2240,6 +2319,7 @@ module.exports = async function handler(request, response){
 
     if(action === "vin"){
       const lot = await fetchVin(query);
+      await attachGenRange(lot);
       const payload = {ok:true,lot};
       setCached(key, payload);
       setDbCache(key, payload, "vin");

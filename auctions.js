@@ -1744,7 +1744,11 @@
   // «Такие же»: то же ПОКОЛЕНИЕ (диапазон лет кузова) + топливо → поколение без
   // топлива. БЕЗ подмешивания других поколений. Если модели нет в карте — тот же год.
   async function fetchSimilarLots(lot, archived){
-    const gr = genYearRange(lot.modelId, lot.year);
+    // Диапазон лет поколения: сначала серверный (работает для ВСЕХ моделей —
+    // overrides+справочник+синтетика), затем клиентская карта, затем тот же год.
+    const gr = (Number(lot.genFrom) && Number(lot.genTo))
+      ? {from:Number(lot.genFrom), to:Number(lot.genTo)}
+      : genYearRange(lot.modelId, lot.year);
     const applyYears = p => {
       if(gr){ p.set("yearFrom", String(gr.from)); p.set("yearTo", String(gr.to)); }
       else if(lot.year){ p.set("yearFrom", String(lot.year)); p.set("yearTo", String(lot.year)); }
