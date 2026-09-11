@@ -1721,24 +1721,60 @@
     </a>`;
   }
 
+  // Диапазоны лет поколений (кузовов) по model_id — зеркало серверных GEN_OVERRIDES.
+  // Нужно, т.к. у свежих лотов (2025/2026 Panamera) generation_id в фиде ПУСТ, а в
+  // справочнике поколений нового кузова нет — фильтруем «такие же» по диапазону лет.
+  const SIM_GEN_OV = {
+    1634:[[2010,2016],[2017,2023],[2024,null]], // Porsche Panamera
+    2220:[[2015,2022],[2023,null]],             // Lexus NX
+    1904:[[2006,2012],[2013,2020]],             // Ford Fusion
+    350:[[2013,2017],[2018,2022],[2023,null]],  // Honda Accord
+    872:[[2012,2017],[2018,2024],[2025,null]],  // Toyota Camry
+    94:[[2011,2016],[2017,2023],[2024,null]]    // BMW 5
+  };
+  function genYearRange(modelId, year){
+    const ov = SIM_GEN_OV[Number(modelId)], cur = new Date().getFullYear() + 1;
+    if(!ov || !year) return null;
+    const cont = ov.filter(g => year >= g[0] && year <= (g[1] || cur));
+    if(cont.length){ const g = cont.reduce((a, b) => (b[0] > a[0] ? b : a)); return {from:g[0], to:g[1] || cur}; }
+    const newest = ov.reduce((a, b) => (b[0] > a[0] ? b : a));
+    if(year > (newest[1] || newest[0])) return {from:newest[0], to:cur};
+    return null;
+  }
+  // «Такие же»: то же ПОКОЛЕНИЕ (диапазон лет кузова) + топливо → поколение без
+  // топлива. БЕЗ подмешивания других поколений. Если модели нет в карте — тот же год.
+  async function fetchSimilarLots(lot, archived){
+    const gr = genYearRange(lot.modelId, lot.year);
+    const applyYears = p => {
+      if(gr){ p.set("yearFrom", String(gr.from)); p.set("yearTo", String(gr.to)); }
+      else if(lot.year){ p.set("yearFrom", String(lot.year)); p.set("yearTo", String(lot.year)); }
+    };
+    const variants = [
+      p => { applyYears(p); if(lot.fuel) p.set("fuel", String(lot.fuel)); },
+      p => { applyYears(p); }
+    ];
+    for(const apply of variants){
+      const p = new URLSearchParams({action:"search", per_page:"12"});
+      if(archived) p.set("tab", "archived"); else p.set("sort", "soon");
+      if(lot.makeId) p.set("make", String(lot.makeId));
+      if(lot.modelId) p.set("model", String(lot.modelId));
+      apply(p);
+      try{
+        const payload = await api(`/api/auctions?${p}`);
+        const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
+        if(items.length) return items;
+      }catch(e){ /* пробуем следующий вариант */ }
+    }
+    return [];
+  }
+
   async function loadSimilarActive(lot){
     const box = document.getElementById("similarActiveLots");
     const sec = document.getElementById("similarActiveSection");
     if(!box || !sec) return;
     let items = [];
-    try{
-      if(isLocalHost()) throw new Error("local-demo");
-      const params = new URLSearchParams({action:"search", per_page:"12", sort:"soon"});
-      if(lot.makeId) params.set("make", String(lot.makeId));
-      if(lot.modelId) params.set("model", String(lot.modelId));
-      // Тот же год и то же топливо — как просил Фёдор (2017 гибрид → 2017 гибрид).
-      if(lot.year){ params.set("yearFrom", String(lot.year)); params.set("yearTo", String(lot.year)); }
-      if(lot.fuel) params.set("fuel", String(lot.fuel));
-      const payload = await api(`/api/auctions?${params}`);
-      items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
-    }catch(error){
-      if(isLocalHost()) items = demoLots().filter(x => String(x.id) !== String(lot.id)).slice(0, 6);
-    }
+    if(isLocalHost()){ items = demoLots().filter(x => String(x.id) !== String(lot.id)).slice(0, 6); }
+    else items = await fetchSimilarLots(lot, false);
     if(!items.length) return;
     box.innerHTML = items.map(renderSimilarCard).join("");
     sec.hidden = false;
@@ -1748,28 +1784,10 @@
     const box = document.getElementById("similarArchivedLots");
     const sec = document.getElementById("similarArchivedSection");
     if(!box || !sec) return;
-    // Ищем архив с ПОСЛАБЛЕНИЕМ: сначала тот же год+топливо, потом модель+топливо,
-    // потом просто модель. Свежая модель (2026 Panamera) без архива своего года —
-    // блок раньше вообще пропадал; теперь показываем ближайшее по модели.
-    const attempts = [
-      {year:true, fuel:true}, {year:false, fuel:true}, {year:false, fuel:false}
-    ];
-    try{
-      for(const a of attempts){
-        const params = new URLSearchParams({action:"search", per_page:"12", tab:"archived"});
-        if(lot.makeId) params.set("make", String(lot.makeId));
-        if(lot.modelId) params.set("model", String(lot.modelId));
-        if(a.year && lot.year){ params.set("yearFrom", String(lot.year)); params.set("yearTo", String(lot.year)); }
-        if(a.fuel && lot.fuel) params.set("fuel", String(lot.fuel));
-        const payload = await api(`/api/auctions?${params}`);
-        const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
-        if(items.length){
-          box.innerHTML = items.map(renderSimilarCard).join("");
-          sec.hidden = false;
-          return;
-        }
-      }
-    }catch(e){ /* archived similar is optional */ }
+    const items = await fetchSimilarLots(lot, true);
+    if(!items.length) return;
+    box.innerHTML = items.map(renderSimilarCard).join("");
+    sec.hidden = false;
   }
 
   function renderDetail(lot){
