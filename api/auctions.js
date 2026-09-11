@@ -2414,6 +2414,52 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    if(action === "showcase"){
+      // Витрина лотов на главной: ГИБРИД/PHEV/ЭЛЕКТРО/BMW, 2020+, только «на ходу»
+      // (run_and_drives), ВПЕРВЫЕ на аукционе (в истории нет прошлых продаж) и без
+      // «котлет» (без тяжёлых/утильных повреждений). Проверка «впервые» требует
+      // истории лота (её нет в списке/БД — только в detail), поэтому добираем
+      // detail по кандидатам. Дорого на каждый показ → считаем РАЗ в 30 минут и
+      // отдаём с edge-кэшем: одна пересборка на всех посетителей.
+      const SHOWCASE_EDGE = {"cache-control":"public, s-maxage=1800, stale-while-revalidate=86400"};
+      const shim = obj => ({ get: k => (obj[k] != null ? String(obj[k]) : null) });
+      const JUNK = /all over|roll ?over|undercarriage|frame|strip|burn|fire|flood|water|biohazard|vandal|missing|total/i;
+      const cheapOk = it => it && it.image && Number(it.year) >= 2020
+        && String(it.condition || "").toLowerCase() === "run_and_drives"
+        && !JUNK.test(String(it.damage || "") + " " + String(it.secondaryDamage || ""));
+      try{
+        const bases = [{fuel:"hybrid"}, {fuel:"plug_in_hybrid"}, {fuel:"electric"}, {make:"16"}];
+        const lists = await Promise.all(bases.map(b =>
+          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"40", auction:"all" }))
+            .then(r => (r.items || []).filter(cheapOk)).catch(() => [])
+        ));
+        // Round-robin: перемешиваем гибрид/PHEV/электро/BMW, чтобы витрина не
+        // забивалась одной маркой; дедуп по id.
+        const seen = new Set(), cand = [];
+        for(let i = 0; i < 40; i++){
+          for(const l of lists){ const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); cand.push(it); } }
+        }
+        // «Впервые»: добираем detail (история) параллельно по первым кандидатам
+        // (бюджет 16 — на всех, раз в 30 мин), оставляем без прошлых продаж.
+        const probe = cand.slice(0, 16);
+        const verified = await Promise.all(probe.map(it =>
+          fetchDetail(shim({ auction: it.auction, lot: it.lot }))
+            .then(d => {
+              const past = (d.priceHistory || []).some(h => /sold|not_sold/i.test(String(h && h.status || "")));
+              return past ? null : it;
+            })
+            .catch(() => null)
+        ));
+        const items = verified.filter(Boolean).slice(0, 8);
+        const payload = {ok:true, items};
+        setCached(key, payload, 30 * 60 * 1000);
+        sendJson(response, 200, payload, SHOWCASE_EDGE);
+      }catch(e){
+        sendJson(response, 200, {ok:true, items:[]}, SHOWCASE_EDGE);
+      }
+      return;
+    }
+
     if(action === "search"){
       // Топливо словом (старые/ручные ссылки: fuel=hybrid) → числовой id, как
       // шлёт UI. Иначе строка не проходит DB-фильтр (только числа) и запрос
