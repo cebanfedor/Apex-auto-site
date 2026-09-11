@@ -1477,7 +1477,7 @@
         <span>${L("Продано")}</span>
         ${hidePrice ? `
         <b class="soldByReqV1">${L("Цена — по запросу")}</b>
-        <i class="soldRefineNoteV1">${L("Напишите нам — подскажем точную цену продажи")}</i>
+        <button type="button" class="soldRefineNoteV1 soldNoteBtnV1" data-lead="${escapeHtml(lot.id)}">${L("Напишите нам — подскажем точную цену продажи")}</button>
         ` : `
         <b id="soldFinalV1">${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
@@ -1944,6 +1944,11 @@
           <div class="simGridV1" id="similarArchivedLots"></div>
         </section>
       </section>
+      ${(() => { const s = lotSaleState(lot).isSold; return `
+      <div class="lotStickyCtaV1">
+        <span class="lotStickyTitleV1">${escapeHtml([lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" "))}</span>
+        <button type="button" class="dbBtnPrimary lotStickyBtnV1" data-lead="${escapeHtml(lot.id)}">${s ? L("Подобрать похожую") : L("Оставить заявку")}</button>
+      </div>`; })()}
     `;
     state.selectedLot = lot;
     state.detailImages = images;

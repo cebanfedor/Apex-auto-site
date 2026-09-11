@@ -397,6 +397,17 @@
 .soldPitchV1 { margin:2px 0 2px; padding:12px 14px; background:#f6f8fb; border:1px solid #e6eaf0; border-radius:12px; display:flex; flex-direction:column; gap:10px; }
 .soldPitchV1 p { margin:0; font-size:13.5px; line-height:1.4; color:var(--aInk2,#4b5563); }
 .soldPitchCtaV1 { width:100%; }
+/* Кликабельная подсказка «напишите нам» на проданных Timed/IAAI */
+.soldNoteBtnV1 { display:block; margin-top:4px; padding:0; border:none; background:none; cursor:pointer; text-align:center; text-decoration:underline; text-underline-offset:2px; }
+/* Липкая мобильная CTA-панель на странице лота (90% трафика — телефоны) */
+.lotStickyCtaV1 { display:none; }
+@media (max-width:860px){
+  .lotStickyCtaV1 { position:fixed; left:0; right:0; bottom:0; z-index:60; display:flex; align-items:center; gap:10px; padding:9px 12px calc(9px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.97); backdrop-filter:blur(8px); border-top:1px solid #e6eaf0; box-shadow:0 -6px 20px rgba(17,20,26,.08); }
+  .lotStickyTitleV1 { flex:1; min-width:0; font-size:13px; font-weight:700; color:var(--aInk,#11141a); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lotStickyBtnV1 { flex:none; padding:11px 18px; font-size:15px; }
+  /* Чтобы контент не прятался под панелью */
+  #auctionDetail { padding-bottom:72px; }
+}
 .calcEstCenterV1 { justify-content:center; }
 .calcBidUsdV1 { display:block; font-style:normal; font-size:13px; color:var(--aMuted); margin-top:2px; }
 .calcBidLabelV2 b { font-size:24px; font-weight:800; color:var(--aInk); }
