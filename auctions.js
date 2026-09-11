@@ -1748,18 +1748,27 @@
     const box = document.getElementById("similarArchivedLots");
     const sec = document.getElementById("similarArchivedSection");
     if(!box || !sec) return;
+    // Ищем архив с ПОСЛАБЛЕНИЕМ: сначала тот же год+топливо, потом модель+топливо,
+    // потом просто модель. Свежая модель (2026 Panamera) без архива своего года —
+    // блок раньше вообще пропадал; теперь показываем ближайшее по модели.
+    const attempts = [
+      {year:true, fuel:true}, {year:false, fuel:true}, {year:false, fuel:false}
+    ];
     try{
-      const params = new URLSearchParams({action:"search", per_page:"12", tab:"archived"});
-      if(lot.makeId) params.set("make", String(lot.makeId));
-      if(lot.modelId) params.set("model", String(lot.modelId));
-      // Тот же год и то же топливо — архив ровно по этой машине.
-      if(lot.year){ params.set("yearFrom", String(lot.year)); params.set("yearTo", String(lot.year)); }
-      if(lot.fuel) params.set("fuel", String(lot.fuel));
-      const payload = await api(`/api/auctions?${params}`);
-      const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
-      if(!items.length) return;
-      box.innerHTML = items.map(renderSimilarCard).join("");
-      sec.hidden = false;
+      for(const a of attempts){
+        const params = new URLSearchParams({action:"search", per_page:"12", tab:"archived"});
+        if(lot.makeId) params.set("make", String(lot.makeId));
+        if(lot.modelId) params.set("model", String(lot.modelId));
+        if(a.year && lot.year){ params.set("yearFrom", String(lot.year)); params.set("yearTo", String(lot.year)); }
+        if(a.fuel && lot.fuel) params.set("fuel", String(lot.fuel));
+        const payload = await api(`/api/auctions?${params}`);
+        const items = (payload.items || []).filter(x => String(x.id) !== String(lot.id)).slice(0, 12);
+        if(items.length){
+          box.innerHTML = items.map(renderSimilarCard).join("");
+          sec.hidden = false;
+          return;
+        }
+      }
     }catch(e){ /* archived similar is optional */ }
   }
 
