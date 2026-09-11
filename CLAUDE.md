@@ -80,10 +80,16 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   (`isHeavyLot`): All Over / Rollover / Undercarriage / Frame / Strip — не «нормальная
   восстановимая» машина. Обычный Salvage/Rebuildable/Clear остаётся.
   **Поколения — свои `GEN_OVERRIDES` по model_id** (справочник API врёт: Fusion без
-  2-го кузова, NX/Panamera/Camry с устаревшими границами). Зашиты верные годовые
-  границы (Panamera 2024+, NX 2023+, Camry 2025+, Accord 2023+, BMW G60 2024+,
-  Fusion 2013-2020). `resolveGenRange`: overrides → API → синтетика. Расширять по
-  надобности (ключ = model_id).
+  2-го кузова, NX/Panamera/Camry/RAV4 с устаревшими границами — RAV4 XA50 значится
+  до 2022 вместо 2025). Зашиты верные US-границы для ~55 популярных моделей (Toyota/
+  Honda/Ford/Chevy/Nissan/Tesla/BMW/Lexus/Mercedes/Porsche/Hyundai/Kia/Jeep/VW/
+  Subaru/Mazda…). `resolveGenRange`: overrides → API → синтетика (год за верхом →
+  новый кузов). Расширять по надобности (ключ = model_id).
+  **Диапазон поколения — универсально на ВСЕ модели**: `attachGenRange` кладёт в лот
+  (detail/vin) `genFrom`/`genTo` через `resolveGenRange`. Клиент (`fetchSimilarLots`)
+  фильтрует «Похожие текущие/архивные» СТРОГО по этому диапазону (тот же кузов), не
+  по generation_id (в фиде пуст у свежих) и не по всем поколениям. Карточки «похожих»
+  как у DreamBid: фото+цена+дата(MM/YY)+спек+состояние; цена показывается везде.
   **Перцентиль ведущей цены — ПО СОСТОЯНИЮ лота** (`cq`): хороший экземпляр
   (заводится + лёгкое одиночное повреждение) = p90 своего года, средний = p68,
   убитый (не на ходу / тяжёлое) = p45. Клиент считает `cq` (good/mid/poor) по
