@@ -1234,7 +1234,7 @@
         const cards = r.items.slice(0, 5);
         shown.push(...cards);
         html += `<section class="showcaseSecV1">
-          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b>${(r.total || 0).toLocaleString("ru-RU")}</b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все →</button></div>
+          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b>${(r.total || 0).toLocaleString("ru-RU")}</b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
           <div class="showcaseGridV1">${cards.map(renderShowcaseCard).join("")}</div>
         </section>`;
       });
