@@ -784,15 +784,16 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* Витрина по типам техники на дефолтной странице (как BidCars) */
 .showcaseSecV1 { margin-bottom:30px; }
-.showcaseHeadV1 { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; padding:0 6px; }
+.showcaseHeadV1 { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; padding:0 14px; }
 .showcaseHeadV1 h2 { margin:0; font-size:18px; letter-spacing:-.02em; color:var(--aInk); }
 .showcaseHeadV1 h2 b { margin-left:8px; font-size:13px; font-weight:600; color:var(--aMuted); }
-.showcaseAllV1 { flex:none; border:none; background:none; padding:4px 0; font-size:13px; font-weight:600; color:var(--aInk); cursor:pointer; transition:color .15s; }
-.showcaseAllV1:hover { color:var(--red, #ed0012); }
+.showcaseAllV1 { flex:none; display:inline-flex; align-items:center; gap:6px; border:1px solid var(--aLine); background:var(--aSurf); padding:8px 16px; border-radius:999px; font-size:13px; font-weight:700; color:var(--aInk); cursor:pointer; transition:border-color .16s, color .16s, background .16s, transform .16s; }
+.showcaseAllV1:hover { border-color:var(--red, #ed0012); color:var(--red, #ed0012); background:#ffe9ea; transform:translateY(-1px); }
 .showcaseRowV1 { display:flex; flex-direction:column; gap:14px; }
 @media (max-width: 640px){
+  .showcaseHeadV1 { padding:0 10px; }
   .showcaseHeadV1 h2 { font-size:16px; }
-  .showcaseAllV1 { padding:4px 0; font-size:12px; }
+  .showcaseAllV1 { padding:7px 13px; font-size:12px; }
 }
 
 /* Витрина: компактные карточки в ряд */
