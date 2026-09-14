@@ -1223,7 +1223,7 @@
     if(!state.items.length) $("#auctionCards").innerHTML = skeletonCards(6);
     try{
       const results = await Promise.all(SHOWCASE_TYPES.map(([id]) =>
-        api(`/api/auctions?action=search&per_page=8&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null)));
+        api(`/api/auctions?action=search&per_page=30&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null)));
       if(reqId !== state.loadSeq || !discoveryMode) return;
       let totalAll = 0, html = "";
       const shown = [];
@@ -1231,7 +1231,10 @@
         if(!r || !Array.isArray(r.items) || !r.items.length) return;
         const [id, label] = SHOWCASE_TYPES[i];
         totalAll += r.total || 0;
-        const cards = r.items.slice(0, 5);
+        // Ротация как на главной: пул 30 → случайные 5 на каждом обновлении страницы.
+        const pool = r.items.slice();
+        for(let k = pool.length - 1; k > 0; k--){ const j = Math.floor(Math.random() * (k + 1)); [pool[k], pool[j]] = [pool[j], pool[k]]; }
+        const cards = pool.slice(0, 5);
         shown.push(...cards);
         html += `<section class="showcaseSecV1">
           <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b>${(r.total || 0).toLocaleString("ru-RU")}</b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
