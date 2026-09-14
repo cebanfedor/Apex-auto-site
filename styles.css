@@ -1226,8 +1226,10 @@ details > summary::-webkit-details-marker { display: none; }
   .heroEyebrowV207 { display: none; }
   .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
   .heroMainV45 p { display: none; }
-  .heroAucV1 { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
-  .heroAucV1 li { padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.24); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.2; backdrop-filter: blur(2px); }
+  /* Список площадок сверху вниз, просто текстом с маркерами. */
+  .heroAucV1 { display: block; margin: 12px 0 0; padding: 0; list-style: none; }
+  .heroAucV1 li { position: relative; padding-left: 14px; color: #fff; font-size: 14px; font-weight: 600; line-height: 1.55; }
+  .heroAucV1 li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
   .heroCtasV207 { margin-top: auto; padding-top: 16px; gap: 8px; }
   .heroBtnPrimaryV207 { height: 40px; padding: 0 20px; font-size: 14px; align-self: flex-start; }
   .heroBtnGhostV207 { display: none; }
