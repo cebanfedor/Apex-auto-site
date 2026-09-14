@@ -310,6 +310,13 @@ function aiT(s, vars){
   return out;
 }
 
+// Хелпер советчика: тег риска по совпадению регулярки. Был удалён при i18n-
+// рефакторинге (7e98bb6), а вызовы остались → ReferenceError ронял calculate()
+// ДО присвоения lastCalc → «Скопировать расчёт» отдавал базовый расчёт.
+function riskTag(text, pattern, label, points, advice){
+  return pattern.test(text) ? {label, points, advice} : null;
+}
+
 function buildSmartLotAdvice(totalUsd){
   const data = lastImportedLot;
   if(!data?.original) return null;
