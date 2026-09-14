@@ -215,7 +215,7 @@
     const p = new URLSearchParams(location.search);
     if(!Array.from(p.keys()).length) return;
     const setActive = (sel, attr, val) => document.querySelectorAll(sel).forEach(b => b.classList.toggle("active", b.getAttribute(attr) === val));
-    if(p.get("tab")){ state.tab = p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); }
+    if(p.get("tab")){ state.tab = p.get("tab") === "sold" ? "archived" : p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); } // старые ссылки ?tab=sold → «Архив»
     if(p.get("auction")){ state.auction = p.get("auction"); setActive("[data-auction-switch]", "data-auction-switch", state.auction); }
     if(p.get("sort") && $("#auctionSort")) $("#auctionSort").value = p.get("sort");
     // make из URL — это ID марки для фильтра, в текстовый поиск его нельзя:
