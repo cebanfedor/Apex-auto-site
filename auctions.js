@@ -1602,18 +1602,66 @@
     return calc;
   }
 
-  function copyCalculation(){
+  // Текст расчёта для буфера — тот же полный формат, что «Скопировать расчёт» на
+  // главной: аукцион, локация с маршрутом (как на экране), ссылки на лот (наш сайт +
+  // площадка), номер лота, VIN, вся разбивка платежей, итог USD + MDL/EUR.
+  function buildCalcText(){
+    const lot = state.selectedLot;
     const calc = updateLotCalculator();
-    if(!calc || !state.selectedLot) return;
-    const text = [
-      lotTitle(state.selectedLot),
-      `Аукцион: ${String(state.selectedLot.auction || "").toUpperCase()}`,
-      `LOT: ${state.selectedLot.lot || "—"}`,
-      `VIN: ${state.selectedLot.vin || "—"}`,
-      `Ставка: ${money(calc.bid)}`,
-      `Итого под ключ: ${money(calc.total)}`
-    ].join("\n");
-    navigator.clipboard?.writeText(text);
+    if(!calc || !lot) return "";
+    const row = (label, v, sub) => v > 0 ? `• ${L(label)}${sub ? ` (${sub})` : ""} — ${money(v)}` : "";
+    const rows = calc.canada ? [
+      row("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd}`),
+      row("Аукционный сбор", calc.auctionFee),
+      row("Доставка по Канаде", calc.dispatch),
+      row("Комиссия банка TD", calc.bankFee),
+      row("Услуги канадской компании", calc.canadaFee),
+      row("Складирование и погрузка", calc.keeper),
+      row("Морская перевозка", calc.ocean),
+      row("Дорога Клайпеда → Кишинёв", calc.road),
+      row("Таможенные платежи", calc.customsUsd),
+      row("Страховка (1%)", calc.insurance),
+      row("Экспортные документы", calc.exportDocs),
+      row("Сопровождение Apex Auto", calc.service)
+    ] : [
+      row("Ставка", calc.bid),
+      row("Аукционный сбор", calc.auctionFee),
+      row("Доставка по США", calc.land),
+      row("Доставка морем", calc.sea),
+      row("Таможенные платежи", calc.customsUsd),
+      row("Страховка (1%)", calc.insurance),
+      row("Экспортные документы", calc.exportDocs),
+      row("Сопровождение Apex Auto", calc.service)
+    ];
+    // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
+    const place = String(lot.location || "").trim();
+    const landRoute = calc.canada ? calc.dispatchRoute : calc.landRoute;
+    const locParts = [place, landRoute && landRoute !== place ? landRoute : ""].filter(Boolean);
+    const siteUrl = `${location.origin}/auctions/${lot.id}`;
+    const aucName = String(lot.auction || "").toLowerCase() === "iaai" ? "IAAI" : "Copart";
+    return [
+      `APEX AUTO | ${L("Расчёт под ключ")}`, "",
+      lotTitle(lot),
+      `${L("Аукцион")}: ${String(lot.auction || "").toUpperCase()}`,
+      locParts.length ? `${L("Локация")}: ${locParts.join(" → ")}` : null,
+      calc.seaRoute ? `${L("Морем")}: ${calc.seaRoute}` : null,
+      `${L("Ссылка на лот")}: ${siteUrl}`,
+      lot.url ? `${aucName}: ${lot.url}` : null,
+      lot.lot ? `${L("Номер лота")}: ${lot.lot}` : null,
+      lot.vin ? `VIN: ${lot.vin}` : null,
+      "", ...rows.filter(Boolean), "",
+      `${L("Итого под ключ")}: ${money(calc.total)}`,
+      altCurrency(calc),
+      "", L("Расчёт предварительный.")
+    ].filter(l => l !== null).join("\n");
+  }
+  async function copyCalculation(){
+    const text = buildCalcText();
+    if(!text) return;
+    const btn = document.querySelector("[data-copy-calc]");
+    try{ await navigator.clipboard.writeText(text); }
+    catch(e){ window.prompt(L("Скопируйте расчёт"), text); return; }
+    if(btn){ const orig = btn.textContent; btn.textContent = L("Скопировано"); setTimeout(() => { btn.textContent = orig; }, 1400); }
   }
 
   function dMain(label, value, iconOverride){
