@@ -190,6 +190,8 @@ section { position: relative; }
 .heroMainV45 h1::after { content: ""; display: block; width: 64px; height: 4px; margin-top: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--red), #ff7a44); }
 .heroMainV45 p { margin-top: 16px; font-size: 15.5px; color: var(--ink-2); max-width: 44ch; }
 .heroCtasV207 { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+/* Чипы площадок в hero — только мобильная версия (на десктопе площадки уже в trust-списке). */
+.heroAucV1 { display: none; }
 .heroBtnGhostV207 { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border-radius: 12px; background: #fff; color: var(--ink); border: 1px solid var(--field-line); font-weight: 700; font-size: 15px; transition: transform 0.18s, border-color 0.18s; }
 .heroBtnGhostV207:hover { transform: translateY(-1px); border-color: var(--muted); }
 .heroTrustV207 { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px 22px; }
@@ -1224,6 +1226,8 @@ details > summary::-webkit-details-marker { display: none; }
   .heroEyebrowV207 { display: none; }
   .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
   .heroMainV45 p { display: none; }
+  .heroAucV1 { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .heroAucV1 li { padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.24); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.2; backdrop-filter: blur(2px); }
   .heroCtasV207 { margin-top: auto; padding-top: 16px; gap: 8px; }
   .heroBtnPrimaryV207 { height: 40px; padding: 0 20px; font-size: 14px; align-self: flex-start; }
   .heroBtnGhostV207 { display: none; }
