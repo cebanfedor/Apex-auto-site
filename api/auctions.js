@@ -1122,6 +1122,10 @@ function lotQualityScore(l, todayStart){
   else if(/engine.?start/.test(cond)) s += 2;
   else if(/not.?run|stationar|dismantl/.test(cond)) s -= 12;
   if(!l.photoCount) s -= 10;
+  // Год: свежие машины выше (2020+ ≈ +20, 2017 ≈ +8, 2015 = 0, старше 2012 ≈ −15).
+  // Без этого «Рекомендованные» поднимали 2004 Civic из-за страхового продавца.
+  const yr = Number(l.year) || 0;
+  if(yr) s += Math.max(-15, Math.min(20, (yr - 2015) * 4));
   // Спецтехника/лодки/прицепы идут без полного VIN — в рекомендациях не нужны
   if(String(l.vin || "").length < 17) s -= 25;
   // Прошедшие торги без Buy Now в рекомендациях не нужны
