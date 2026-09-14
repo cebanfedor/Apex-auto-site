@@ -1034,7 +1034,7 @@
     const seq = ++tabCountSeq;
     const base = formParams();
     base.delete("tab"); base.delete("page"); base.set("per_page", "1");
-    await Promise.all(["open","sold","buy_now","archived"].map(async tab => {
+    await Promise.all(["open","buy_now","archived"].map(async tab => {   // «Завершенные» убраны 15.09.2026: 99% совпадали с архивом
       try{
         const p = new URLSearchParams(base);
         p.set("tab", tab);
