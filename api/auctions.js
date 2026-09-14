@@ -1538,8 +1538,14 @@ async function attachGenRange(lot){
       const gens = (await generationsFor(lot.modelId)).filter(g => g && g.from && g.name);
       let pick = null;
       if(lot.genFrom){
-        const c = gens.filter(g => g.from <= lot.genFrom + 1);
-        if(c.length) pick = c.reduce((a, b) => (b.from > a.from ? b : a));
+        // Ближайшее по началу поколение (±3 года), при равенстве — более раннее.
+        // Правило «max from ≤ genFrom+1» давало Forte 2020 → «II» (III в справочнике
+        // с 2021) и X1 2023 → «F48» (U11 нет вовсе). Нет записи в пределах ±3 →
+        // крошку поколения не показываем: честнее, чем чужой код кузова.
+        const c = gens.map(g => ({g, d:Math.abs(g.from - lot.genFrom)})).filter(x => x.d <= 3)
+          .sort((a, b) => a.d - b.d || a.g.from - b.g.from);
+        if(c.length) pick = c[0].g;
+        else { lot.generationId = null; lot.generationName = ""; }
       }
       if(!pick && yr){
         const c = gens.filter(g => yr >= g.from && yr <= (g.to || cur));
