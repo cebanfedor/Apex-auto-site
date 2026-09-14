@@ -1311,6 +1311,7 @@ async function generationsFor(modelId){
     const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${key.replace(/[^0-9]/g, "")}`);
     const items = (Array.isArray(list?.data) ? list.data : []).map(m => ({
       id:m.id,
+      name:m.name || "",
       from:m.from_year || m.year_from || m.start_year || null,
       to:m.to_year || m.year_to || m.end_year || null
     }));
@@ -1434,8 +1435,34 @@ async function resolveGenRange(modelId, yearQ, genIdQ){
 async function attachGenRange(lot){
   try{
     if(lot && lot.modelId && lot.year){
-      const gr = await resolveGenRange(lot.modelId, Number(lot.year) || 0, lot.generationId || "");
+      const yr = Number(lot.year) || 0;
+      const cur = new Date().getFullYear() + 1;
+      const gr = await resolveGenRange(lot.modelId, yr, lot.generationId || "");
       if(gr && gr.genFrom){ lot.genFrom = gr.genFrom; lot.genTo = gr.genTo; }
+      // Поколение в крошках/фильтре — ПО ГОДУ, а не по generation_id фида: фид
+      // относит 2018 BMW 330e к «VII (G2x)», хотя это F30; годы в справочнике API
+      // перекрываются (F3x 2011–2020, G2x 2018–2022 — мировые, не US). Берём запись
+      // справочника с максимальным from ≤ нашего genFrom (допуск 1 год), в имя
+      // добавляем US-годы. Нет совпадения и фид начинается позже года лота → не
+      // показываем ложное поколение вовсе.
+      const gens = (await generationsFor(lot.modelId)).filter(g => g && g.from && g.name);
+      let pick = null;
+      if(lot.genFrom){
+        const c = gens.filter(g => g.from <= lot.genFrom + 1);
+        if(c.length) pick = c.reduce((a, b) => (b.from > a.from ? b : a));
+      }
+      if(!pick && yr){
+        const c = gens.filter(g => yr >= g.from && yr <= (g.to || cur));
+        if(c.length) pick = c.reduce((a, b) => (b.from > a.from ? b : a));
+      }
+      if(pick){
+        const to = lot.genTo && lot.genTo < cur ? String(lot.genTo) : "";
+        lot.generationId = pick.id;
+        lot.generationName = lot.genFrom ? `${pick.name} · ${lot.genFrom}–${to}` : pick.name;
+      }else if(lot.generationId){
+        const feed = gens.find(g => String(g.id) === String(lot.generationId));
+        if(feed && yr && feed.from > yr){ lot.generationId = null; lot.generationName = ""; }
+      }
     }
   }catch(e){ /* без поколения — клиент откатится на год */ }
   return lot;
