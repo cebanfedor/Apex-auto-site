@@ -2437,15 +2437,20 @@ module.exports = async function handler(request, response){
       const cheapOk = it => it && it.image && Number(it.year) >= 2020
         && String(it.condition || "").toLowerCase() === "run_and_drives"
         && cosmeticOnly(it)
+        && repairOk(it)
         && !NOT_CAR.test(String(it.body || "") + " " + String(it.vehicleType || ""));
       // Ранжируем по МИНИМАЛЬНОМУ РЕМОНТУ: отношение оценки ремонта к оценочной
       // стоимости авто (repairCost / estimatedRetailValue) — чем меньше, тем выше.
       // Без оценки ремонта — в конец. Затем новее и с меньшим пробегом.
+      // estimatedRetailValue в фиде часто «1» (заглушка) — считаем оценку валидной
+      // только при > $1000. Ремонт > 25% от оценки — не «минимум ремонта», исключаем.
+      const REPAIR_MAX = 0.25;
       const repairRatio = it => {
         const rc = Number(it.repairCost) || 0, v = Number(it.estimatedRetailValue) || 0;
-        return rc > 0 && v > 0 ? Math.min(rc / v, 5) : 9;
+        return rc > 0 && v > 1000 ? rc / v : null;   // null = оценки нет
       };
-      const score = it => repairRatio(it) * 1e6 - Number(it.year) * 1e3 + Math.min(Number(it.odometer) || 0, 300000) / 100;
+      const repairOk = it => { const r = repairRatio(it); return r == null || r <= REPAIR_MAX; };
+      const score = it => { const r = repairRatio(it); return (r == null ? 9 : r) * 1e6 - Number(it.year) * 1e3 + Math.min(Number(it.odometer) || 0, 300000) / 100; };
       try{
         // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
         // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
