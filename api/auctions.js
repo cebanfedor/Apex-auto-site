@@ -2423,40 +2423,42 @@ module.exports = async function handler(request, response){
       // отдаём с edge-кэшем: одна пересборка на всех посетителей.
       const SHOWCASE_EDGE = {"cache-control":"public, s-maxage=900, stale-while-revalidate=86400"};
       const shim = obj => ({ get: k => (obj[k] != null ? String(obj[k]) : null) });
-      // «Без котлет» — витрина, а не каталог: разбитые морды/мульти-зоны/тяжёлые —
-      // вон. Уровень повреждения: 0 = косметика (царапины/вмятины/град/normal wear/
-      // механика/none), 1 = одиночный зад/бок (резерв, если косметики мало),
-      // 2 = морда, несколько зон, структурное, огонь/вода — исключаем.
-      const HEAVY = /all over|roll ?over|undercarriage|frame|strip|burn|fire|flood|water|biohazard|total|partial|replaced vin|missing/i;
-      const FRONT = /front/i;
-      const BODY  = /rear|side|left|right|top|roof/i;
-      const dmgTier = it => {
-        const d = (String(it.damage || "") + " / " + String(it.secondaryDamage || "")).trim();
-        if(HEAVY.test(d) || FRONT.test(d)) return 2;
-        const zones = d.split("/").map(x => x.trim()).filter(x => x && !/minor|scratch|dent|normal wear|hail|mechanical|electrical|vandal|cosmetic|history|none|unknown/i.test(x));
-        if(!zones.length) return 0;
-        return zones.length === 1 && BODY.test(zones[0]) ? 1 : 2;
+      // «Без котлет» — витрина: ТОЛЬКО косметика. Каждая зона повреждения должна
+      // быть «Minor Dent/Scratches», «None» или «Damage History» (без видимых
+      // повреждений). Normal Wear, Hail, Mechanical, любые зоны кузова (морда/зад/
+      // бок), структурное, огонь/вода — исключаем.
+      const COSMETIC = /^(minor dent\/scratches|minor dents?\/scratches|minor dent|scratches|none|damage history)$/i;
+      const cosmeticOnly = it => {
+        const zones = (String(it.damage || "") + " / " + String(it.secondaryDamage || ""))
+          .split("/").map(x => x.trim()).filter(Boolean);
+        return zones.length > 0 && zones.every(z => COSMETIC.test(z));
       };
       const NOT_CAR = /bike|motorcycle|moped|scooter|atv|quad|snowmobile|watercraft|jet ?ski|trailer/i;
       const cheapOk = it => it && it.image && Number(it.year) >= 2020
         && String(it.condition || "").toLowerCase() === "run_and_drives"
-        && dmgTier(it) < 2
+        && cosmeticOnly(it)
         && !NOT_CAR.test(String(it.body || "") + " " + String(it.vehicleType || ""));
-      // Качество: косметика раньше зада/бока, затем новее и с меньшим пробегом.
-      const score = it => dmgTier(it) * 1e6 - Number(it.year) * 1e4 + Math.min(Number(it.odometer) || 0, 300000) / 30;
+      // Ранжируем по МИНИМАЛЬНОМУ РЕМОНТУ: отношение оценки ремонта к оценочной
+      // стоимости авто (repairCost / estimatedRetailValue) — чем меньше, тем выше.
+      // Без оценки ремонта — в конец. Затем новее и с меньшим пробегом.
+      const repairRatio = it => {
+        const rc = Number(it.repairCost) || 0, v = Number(it.estimatedRetailValue) || 0;
+        return rc > 0 && v > 0 ? Math.min(rc / v, 5) : 9;
+      };
+      const score = it => repairRatio(it) * 1e6 - Number(it.year) * 1e3 + Math.min(Number(it.odometer) || 0, 300000) / 100;
       try{
         // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
         // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
         // марке (любое топливо). Сырые слова API не фильтрует → берём id.
         const bases = [{fuel:"3"}, {fuel:"2"}, {make:"16"}];
         const lists = await Promise.all(bases.map(b =>
-          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"100", auction:"all" }))
+          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"150", auction:"all" }))
             .then(r => (r.items || []).filter(cheapOk).sort((a, b) => score(a) - score(b))).catch(() => [])
         ));
         // Round-robin: перемешиваем гибрид/PHEV/электро/BMW, чтобы витрина не
         // забивалась одной маркой; дедуп по id.
         const seen = new Set(), cand = [];
-        for(let i = 0; i < 100; i++){
+        for(let i = 0; i < 150; i++){
           for(const l of lists){ const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); cand.push(it); } }
         }
         // «Впервые на аукционе»: сегмент почти весь перевыставлен, поэтому строго
@@ -2487,7 +2489,9 @@ module.exports = async function handler(request, response){
             (r.c.first ? firstTier : secondTier).push(r.it);
           }
         }
-        const items = firstTier.concat(secondTier).slice(0, 24);
+        // Итоговый пул — снова по минимальному ремонту (tier «впервые» лишь отсекает
+        // уже проданные; порядок задаёт repairCost / estimatedRetailValue).
+        const items = firstTier.concat(secondTier).sort((a, b) => score(a) - score(b)).slice(0, 24);
         const payload = {ok:true, items};
         setCached(key, payload, 15 * 60 * 1000);
         sendJson(response, 200, payload, SHOWCASE_EDGE);
