@@ -246,6 +246,15 @@
   // Полное имя с версией/тримом из API — как у DreamBid: «BMW 4 Series 430i»,
   // а не «BMW 4er». year+make+model — только фоллбек.
   function lotTitle(lot){
+    const t = lotTitleRaw(lot);
+    // Фид иногда пишет в заголовке не тот год («2018 Nissan Rogue» при year=2014 по
+    // VIN) — год из поля лота надёжнее заголовка.
+    const y = Number(lot && lot.year) || 0;
+    const m = String(t || "").match(/^\s*((?:19|20)\d\d)\b/);
+    if(y && m && Number(m[1]) !== y) return String(t).replace(m[1], String(y));
+    return t;
+  }
+  function lotTitleRaw(lot){
     const raw = String(lot.title || "").trim();
     if(raw){
       return raw
@@ -1052,7 +1061,8 @@
       await Promise.all(jobs.slice(i, i + 4).map(async ({node, lot}) => {
         const f = await forecastForLot(lot);
         if(!f || !document.body.contains(node)) return;
-        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Прогноз ставки")}</span><b>${money500(f.lo)} – ${money500(f.hi)}</b>`;
+        const lo = Math.floor(f.lo / 500) * 500, hi = Math.max(round500(f.hi), lo + 500);
+        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Прогноз ставки")}</span><b>${money(lo)} – ${money(hi)}</b>`;
         node.dataset.src = f.src;
         node.hidden = false;
       }));
