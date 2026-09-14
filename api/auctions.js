@@ -184,7 +184,11 @@ function auctionUrl(auction, lot){
 function normalizeImageUrl(url){
   const m = String(url || "").match(/^https?:\/\/vis\.iaai\.com\/deepzoom\?.*?imageKey=([^&]+)/i);
   if(!m) return url;
-  const key = decodeURIComponent(m[1]).replace(/~RW.*$/i, "");
+  // Соль версии ранжирования/окна выборки: ответ поиска кэшируется на 6 ч уже
+  // отсортированным, без соли изменения сортировки/окна доходят до людей с
+  // опозданием. Поднимать при изменении sortItems/lotQualityScore/окна.
+  const SEARCH_CACHE_VER = "2";
+  const key = decodeURIComponent(m[1]).replace(/~RW.*$/i, "") + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "");
   return `https://vis.iaai.com/resizer?imageKeys=${encodeURIComponent(key)}&width=1280&height=960`;
 }
 
