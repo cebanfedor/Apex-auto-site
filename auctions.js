@@ -1424,7 +1424,7 @@
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Сопровождение Apex Auto", calc.service)}`);
+        ${calcRow("Комиссия", calc.service)}`);
     }
     const shippingSub = calc.bid + calc.auctionFee + calc.land + calc.sea;
     const clearingSub = calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
@@ -1437,7 +1437,7 @@
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Сопровождение Apex Auto", calc.service)}`);
+        ${calcRow("Комиссия", calc.service)}`);
   }
 
   function renderLotCalculator(lot){
@@ -1622,7 +1622,7 @@
       row("Таможенные платежи", calc.customsUsd),
       row("Страховка (1%)", calc.insurance),
       row("Экспортные документы", calc.exportDocs),
-      row("Сопровождение Apex Auto", calc.service)
+      row("Комиссия", calc.service)
     ] : [
       row("Ставка", calc.bid),
       row("Аукционный сбор", calc.auctionFee),
@@ -1631,7 +1631,7 @@
       row("Таможенные платежи", calc.customsUsd),
       row("Страховка (1%)", calc.insurance),
       row("Экспортные документы", calc.exportDocs),
-      row("Сопровождение Apex Auto", calc.service)
+      row("Комиссия", calc.service)
     ];
     // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
     // Фид отдаёт место строчными («hillsborough, new jersey») — приводим к Title Case.

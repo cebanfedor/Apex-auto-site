@@ -999,7 +999,7 @@ function calculate(){
     ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd", dangerBadge],
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
-    ["Сопровождение APEX AUTO", company, "", "usd"],
+    ["Комиссия", company, "", "usd"],
     ["Таможенные платежи", customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
 
@@ -1038,7 +1038,7 @@ function textCalc(){
     "Доставка по США (GA)":   ro ? "Transport în SUA (GA)" : en ? "Inland US shipping (GA)" : "Доставка по США (GA)",
     "Доставка в Кишинёв":      ro ? "Transport la Chișinău" : en ? "Delivery to Chișinău" : "Доставка в Кишинёв",
     "Страховка":               ro ? "Asigurare"             : en ? "Insurance"            : "Страховка",
-    "Сопровождение APEX AUTO": ro ? "Asistența companiei"   : en ? "Company service"      : "Сопровождение компании",
+    "Комиссия":                ro ? "Comision"              : en ? "Commission"           : "Комиссия",
     "Экспортные документы":    ro ? "Acte de export"        : en ? "Export documents"     : "Экспортные документы",
     "Таможенные платежи":      ro ? "Taxe vamale"           : en ? "Customs fees"         : "Таможенные платежи",
   };
@@ -1575,7 +1575,7 @@ function calculateCanada(){
   rows.push(
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
-    ["Сопровождение APEX AUTO",     company,      "",                              "usd"],
+    ["Комиссия",                    company,      "",                              "usd"],
     ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
   );
 
