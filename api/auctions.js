@@ -2421,27 +2421,42 @@ module.exports = async function handler(request, response){
       // истории лота (её нет в списке/БД — только в detail), поэтому добираем
       // detail по кандидатам. Дорого на каждый показ → считаем РАЗ в 30 минут и
       // отдаём с edge-кэшем: одна пересборка на всех посетителей.
-      const SHOWCASE_EDGE = {"cache-control":"public, s-maxage=1800, stale-while-revalidate=86400"};
+      const SHOWCASE_EDGE = {"cache-control":"public, s-maxage=900, stale-while-revalidate=86400"};
       const shim = obj => ({ get: k => (obj[k] != null ? String(obj[k]) : null) });
-      const JUNK = /all over|roll ?over|undercarriage|frame|strip|burn|fire|flood|water|biohazard|vandal|missing|total/i;
+      // «Без котлет» — витрина, а не каталог: разбитые морды/мульти-зоны/тяжёлые —
+      // вон. Уровень повреждения: 0 = косметика (царапины/вмятины/град/normal wear/
+      // механика/none), 1 = одиночный зад/бок (резерв, если косметики мало),
+      // 2 = морда, несколько зон, структурное, огонь/вода — исключаем.
+      const HEAVY = /all over|roll ?over|undercarriage|frame|strip|burn|fire|flood|water|biohazard|total|partial|replaced vin|missing/i;
+      const FRONT = /front/i;
+      const BODY  = /rear|side|left|right|top|roof/i;
+      const dmgTier = it => {
+        const d = (String(it.damage || "") + " / " + String(it.secondaryDamage || "")).trim();
+        if(HEAVY.test(d) || FRONT.test(d)) return 2;
+        const zones = d.split("/").map(x => x.trim()).filter(x => x && !/minor|scratch|dent|normal wear|hail|mechanical|electrical|vandal|cosmetic|history|none|unknown/i.test(x));
+        if(!zones.length) return 0;
+        return zones.length === 1 && BODY.test(zones[0]) ? 1 : 2;
+      };
       const NOT_CAR = /bike|motorcycle|moped|scooter|atv|quad|snowmobile|watercraft|jet ?ski|trailer/i;
       const cheapOk = it => it && it.image && Number(it.year) >= 2020
         && String(it.condition || "").toLowerCase() === "run_and_drives"
-        && !JUNK.test(String(it.damage || "") + " " + String(it.secondaryDamage || ""))
+        && dmgTier(it) < 2
         && !NOT_CAR.test(String(it.body || "") + " " + String(it.vehicleType || ""));
+      // Качество: косметика раньше зада/бока, затем новее и с меньшим пробегом.
+      const score = it => dmgTier(it) * 1e6 - Number(it.year) * 1e4 + Math.min(Number(it.odometer) || 0, 300000) / 30;
       try{
         // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
         // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
         // марке (любое топливо). Сырые слова API не фильтрует → берём id.
         const bases = [{fuel:"3"}, {fuel:"2"}, {make:"16"}];
         const lists = await Promise.all(bases.map(b =>
-          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"50", auction:"all" }))
-            .then(r => (r.items || []).filter(cheapOk)).catch(() => [])
+          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"100", auction:"all" }))
+            .then(r => (r.items || []).filter(cheapOk).sort((a, b) => score(a) - score(b))).catch(() => [])
         ));
         // Round-robin: перемешиваем гибрид/PHEV/электро/BMW, чтобы витрина не
         // забивалась одной маркой; дедуп по id.
         const seen = new Set(), cand = [];
-        for(let i = 0; i < 50; i++){
+        for(let i = 0; i < 100; i++){
           for(const l of lists){ const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); cand.push(it); } }
         }
         // «Впервые на аукционе»: сегмент почти весь перевыставлен, поэтому строго
@@ -2459,7 +2474,9 @@ module.exports = async function handler(request, response){
           return { sold, first: !past };
         };
         const firstTier = [], secondTier = [];
-        for(let i = 0; i < cand.length && i < 48 && (firstTier.length + secondTier.length) < 8; i += 12){
+        // Собираем ПУЛ до 24: клиент показывает случайные 8 на каждом заходе —
+        // витрина меняется, а не висит одним набором. Бюджет detail — 72 на всех.
+        for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length) < 24; i += 12){
           const wave = await Promise.all(cand.slice(i, i + 12).map(it =>
             fetchDetail(shim({ auction: it.auction, lot: it.lot }))
               .then(d => ({ it, c: classify(d.priceHistory) }))
@@ -2470,9 +2487,9 @@ module.exports = async function handler(request, response){
             (r.c.first ? firstTier : secondTier).push(r.it);
           }
         }
-        const items = firstTier.concat(secondTier).slice(0, 8);
+        const items = firstTier.concat(secondTier).slice(0, 24);
         const payload = {ok:true, items};
-        setCached(key, payload, 30 * 60 * 1000);
+        setCached(key, payload, 15 * 60 * 1000);
         sendJson(response, 200, payload, SHOWCASE_EDGE);
       }catch(e){
         sendJson(response, 200, {ok:true, items:[]}, SHOWCASE_EDGE);

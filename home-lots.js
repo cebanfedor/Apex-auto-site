@@ -81,6 +81,8 @@
       .then(function (j) {
         var items = (j && j.items) || [];
         if (!items.length) { sec.hidden = true; return; }
+        // Сервер отдаёт пул до 24 — берём случайные 8, чтобы витрина менялась на каждом заходе.
+        for (var i = items.length - 1; i > 0; i--) { var k = Math.floor(Math.random() * (i + 1)); var t = items[i]; items[i] = items[k]; items[k] = t; }
         grid.innerHTML = items.slice(0, COUNT).map(card).join("");
       })
       .catch(function () { sec.hidden = true; });
