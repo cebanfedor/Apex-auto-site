@@ -1634,7 +1634,8 @@
       row("Сопровождение Apex Auto", calc.service)
     ];
     // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
-    const place = String(lot.location || "").trim();
+    // Фид отдаёт место строчными («hillsborough, new jersey») — приводим к Title Case.
+    const place = String(lot.location || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase());
     const landRoute = calc.canada ? calc.dispatchRoute : calc.landRoute;
     const locParts = [place, landRoute && landRoute !== place ? landRoute : ""].filter(Boolean);
     const siteUrl = `${location.origin}/auctions/${lot.id}`;
