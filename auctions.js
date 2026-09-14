@@ -205,7 +205,7 @@
     if(parseSlug(currentSlug())) return; // on a detail page — leave its path
     const p = formParams();
     p.delete("page"); p.delete("per_page");
-    if(p.get("sort") === "date_asc") p.delete("sort"); // «Дата 1-9» — дефолт (как DreamBid)
+    if(p.get("sort") === "smart") p.delete("sort"); // «Рекомендованные» — дефолт с 15.09.2026 (лучшие из ближайших торгов первыми)
     if(p.get("auction") === "all") p.delete("auction");
     if(p.get("tab") === "all") p.delete("tab");
     const qs = p.toString();
