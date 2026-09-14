@@ -1727,6 +1727,15 @@ async function searchFromDb(query){
       signal:controller.signal
     });
   }finally{ clearTimeout(timer); }
+  // 416 = PostgREST «диапазон вне результата»: запрошена страница дальше конца
+  // выборки (мало лотов по фильтру, клиент листает). Это НЕ сбой базы — отдаём
+  // корректную пустую страницу с total из Content-Range. Раньше бросали ошибку →
+  // «searchFromDb fallback: 416» в логах и лишний медленный live-запрос (60 раз
+  // за 15 минут в алерте Vercel 14.09.2026).
+  if(response.status === 416){
+    const total416 = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+    return {_db:true, items:[], total:total416, page, perPage, _source:"db"};
+  }
   if(!response.ok) throw new Error(`lots db search failed: ${response.status}`);
   const rows = await response.json();
   const total = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length;
