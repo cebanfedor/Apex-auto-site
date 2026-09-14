@@ -1315,6 +1315,15 @@ async function generationsFor(modelId){
       from:m.from_year || m.year_from || m.start_year || null,
       to:m.to_year || m.year_to || m.end_year || null
     }));
+    // Справочник API обрывается на ~2022: у самого свежего поколения to=2022 —
+    // граница ДАННЫХ, а не конец кузова (Malibu IX «2015-2022» реально 2016–2025).
+    // Без этого любой 2023+ авто выпадал из всех диапазонов и получал ложный
+    // «новый кузов». Открываем верх у поколения с максимальным from.
+    const withFrom = items.filter(x => x.from);
+    if(withFrom.length){
+      const newest = withFrom.reduce((a, b) => (b.from > a.from ? b : a));
+      if(newest.to != null && newest.to >= 2021) newest.to = null;
+    }
     genRangeCache.set(key, {items, at:now});
     return items;
   }catch(e){ return c ? c.items : []; }
@@ -1399,7 +1408,88 @@ const GEN_OVERRIDES = {
   1501: [{from:2015, to:2019}, {from:2020}],                         // Subaru Outback 5→6
   828:  [{from:2014, to:2018}, {from:2019}],                         // Subaru Forester 4→5
   1812: [{from:2013, to:2016}, {from:2017}],                         // Mazda CX-5 1→2
-  1036: [{from:2014, to:2018}, {from:2019}]                          // Mazda3 3→4
+  1036: [{from:2014, to:2018}, {from:2019}],                          // Mazda3 3→4
+  // ---- Аудит 14.09.2026: перекрытия/обрыв справочника, US-модельные годы ----
+  7: [{from:2001, to:2006}, {from:2007, to:2013}, {from:2014, to:2020}, {from:2022}], // Acura MDX
+  12: [{from:2004, to:2008}, {from:2009, to:2014}],                      // Acura TL
+  115: [{from:2003, to:2007}, {from:2008, to:2013}, {from:2014, to:2019}], // Cadillac CTS
+  118: [{from:2002, to:2006}, {from:2007, to:2014}, {from:2015, to:2020}, {from:2021}], // Cadillac Escalade
+  130: [{from:2019}],                                                    // Chevrolet Blazer
+  131: [{from:2010, to:2015}, {from:2016, to:2024}],                     // Chevrolet Camaro
+  137: [{from:2005, to:2013}, {from:2014, to:2019}, {from:2020}],        // Chevrolet Corvette
+  138: [{from:2000, to:2005}, {from:2006, to:2013}, {from:2014, to:2020}], // Chevrolet Impala
+  141: [{from:1997, to:2003}, {from:2004, to:2007}, {from:2008, to:2012}, {from:2013, to:2015}, {from:2016, to:2025}], // Chevrolet Malibu
+  149: [{from:2000, to:2006}, {from:2007, to:2014}, {from:2015, to:2020}, {from:2021}], // Chevrolet Suburban
+  152: [{from:2002, to:2009}, {from:2021}],                              // Chevrolet TrailBlazer
+  163: [{from:2004, to:2008}, {from:2017}],                              // Chrysler Pacifica
+  168: [{from:2001, to:2007}, {from:2008, to:2016}],                     // Chrysler Town & Country
+  241: [{from:2001, to:2007}, {from:2008, to:2020}],                     // Dodge Caravan
+  243: [{from:2004, to:2009}, {from:2011}],                              // Dodge Durango
+  302: [{from:2003, to:2006}, {from:2007, to:2017}, {from:2018}],        // Ford Expedition
+  304: [{from:2011, to:2019}],                                           // Ford Fiesta
+  305: [{from:2000, to:2007}, {from:2008, to:2011}, {from:2012, to:2018}], // Ford Focus
+  322: [{from:1992, to:2014}],                                           // Ford Econoline
+  325: [{from:2000, to:2007}, {from:2008, to:2009}, {from:2010, to:2019}], // Ford Taurus
+  338: [{from:2000, to:2006}, {from:2007, to:2014}, {from:2015, to:2020}, {from:2021}], // GMC Yukon
+  359: [{from:2007, to:2008}, {from:2009, to:2014}, {from:2015, to:2020}], // Honda Fit
+  388: [{from:2006, to:2011}, {from:2012, to:2017}, {from:2018, to:2022}], // Hyundai Accent
+  429: [{from:2002, to:2007}, {from:2008, to:2013}, {from:2014, to:2023}], // Jeep Cherokee
+  445: [{from:2006, to:2011}, {from:2012, to:2017}, {from:2018, to:2023}], // Kia Rio
+  478: [{from:2001, to:2005}, {from:2006, to:2013}, {from:2014}],        // Lexus IS
+  570: [{from:2001, to:2007}, {from:2008, to:2014}, {from:2015, to:2021}, {from:2022}], // Mercedes C
+  573: [{from:2003, to:2009}, {from:2010, to:2016}, {from:2017, to:2023}, {from:2024}], // Mercedes E
+  617: [{from:2014}],                                                    // Mitsubishi Mirage
+  618: [{from:2007, to:2013}, {from:2014, to:2021}, {from:2022}],        // Mitsubishi Outlander
+  677: [{from:2003, to:2007}, {from:2009, to:2014}, {from:2015, to:2024}], // Nissan Murano
+  678: [{from:2005, to:2012}, {from:2013, to:2020}, {from:2022}],        // Nissan Pathfinder
+  829: [{from:2008, to:2011}, {from:2012, to:2016}, {from:2017, to:2023}, {from:2024}], // Subaru Impreza
+  831: [{from:2005, to:2009}, {from:2010, to:2014}, {from:2015, to:2019}, {from:2020}], // Subaru Legacy
+  864: [{from:2005, to:2012}, {from:2013, to:2018}, {from:2019, to:2022}], // Toyota Avalon
+  910: [{from:2004, to:2010}, {from:2011, to:2020}, {from:2021}],        // Toyota Sienna
+  919: [{from:2007, to:2011}, {from:2012, to:2019}, {from:2020}],        // Toyota Yaris
+  976: [{from:2006, to:2010}, {from:2012, to:2019}, {from:2020, to:2022}], // VW Passat
+  1002: [{from:2003, to:2014}, {from:2016}],                             // Volvo XC90
+  1016: [{from:2002, to:2008}, {from:2009, to:2018}, {from:2019}],       // Ram 1500
+  1020: [{from:2004, to:2008}, {from:2009, to:2014}, {from:2016, to:2023}], // Nissan Maxima
+  1039: [{from:2004, to:2009}, {from:2010, to:2016}],                    // Cadillac SRX
+  1073: [{from:2005, to:2009}, {from:2010, to:2016}, {from:2017, to:2019}], // Buick LaCrosse
+  1092: [{from:2007, to:2015}, {from:2017}],                             // Audi Q7
+  1097: [{from:2005, to:2021}, {from:2022}],                             // Nissan Frontier
+  1123: [{from:2013, to:2015}, {from:2016, to:2022}],                    // Chevrolet Spark
+  1151: [{from:1998, to:2011}, {from:2019, to:2023}, {from:2024}],       // Ford Ranger
+  1161: [{from:2004, to:2015}, {from:2017, to:2024}],                    // Nissan Titan
+  1189: [{from:2003, to:2008}, {from:2009, to:2013}, {from:2014, to:2021}], // Mazda6
+  1311: [{from:2007, to:2012}, {from:2013, to:2018}, {from:2019}],       // Acura RDX
+  1365: [{from:2007, to:2015}, {from:2016, to:2023}],                    // Mazda CX-9
+  1385: [{from:2011, to:2015}, {from:2016, to:2020}],                    // Kia Optima
+  1427: [{from:2004, to:2012}, {from:2015, to:2022}, {from:2023}],       // Chevrolet Colorado
+  1449: [{from:2007, to:2011}, {from:2012, to:2019}, {from:2020}],       // Nissan Versa
+  1464: [{from:2007, to:2012}, {from:2013, to:2020}],                    // Lincoln MKZ
+  1471: [{from:2007, to:2016}, {from:2017, to:2023}, {from:2024}],       // GMC Acadia
+  1483: [{from:2007, to:2014}, {from:2015, to:2024}],                    // Ford Edge
+  1506: [{from:2008, to:2017}, {from:2018, to:2024}, {from:2025}],       // Buick Enclave
+  1517: [{from:2008, to:2023}],                                          // Dodge Challenger
+  1574: [{from:2009, to:2020}],                                          // Dodge Journey
+  1600: [{from:2011, to:2015}, {from:2016, to:2019}],                    // Chevrolet Cruze
+  1608: [{from:2010, to:2013}, {from:2014, to:2019}, {from:2020}],       // Kia Soul
+  1675: [{from:2010, to:2017}, {from:2018}],                             // GMC Terrain
+  1804: [{from:2003, to:2006}, {from:2007, to:2013}],                    // Infiniti G
+  1808: [{from:2012, to:2020}],                                          // Chevrolet Sonic
+  1884: [{from:2013, to:2017}, {from:2018, to:2023}, {from:2024}],       // Subaru Crosstrek
+  1894: [{from:2013, to:2015}, {from:2016, to:2022}, {from:2023}],       // BMW X1
+  1945: [{from:2003}],                                                   // Chevrolet Express
+  1959: [{from:2011, to:2014}, {from:2015, to:2017}],                    // Chrysler 200
+  1967: [{from:1999, to:2004}, {from:2005, to:2010}, {from:2011, to:2017}, {from:2018}], // Honda Odyssey
+  2070: [{from:2014, to:2020}, {from:2021}],                             // BMW 4er
+  2124: [{from:2014}],                                                   // Infiniti Q50
+  2127: [{from:2013, to:2020}, {from:2022}],                             // Infiniti QX60
+  2156: [{from:2018, to:2022}],                                          // Ford EcoSport
+  2218: [{from:2013, to:2022}],                                          // Buick Encore
+  2228: [{from:2015, to:2020}, {from:2021}],                             // Acura TLX
+  2231: [{from:2015}],                                                   // Jeep Renegade
+  2723: [{from:2018, to:2023}, {from:2024}],                             // Hyundai Kona
+  2763: [{from:2010, to:2013}, {from:2014, to:2018}, {from:2019, to:2024}], // Kia Forte
+  3220: [{from:2015}],                                                   // Ford Transit
 };
 // Возвращает диапазон лет поколения оцениваемого лота [genFrom..genTo]. Приоритет:
 // 1) зашитые overrides, 2) справочник API, 3) синтетика (год за верхом → новый кузов).
