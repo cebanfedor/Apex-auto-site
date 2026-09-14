@@ -2468,7 +2468,12 @@ module.exports = async function handler(request, response){
 
   // Edge-заголовок для медленных оценок — чтобы CDN кэшировал и hit из памяти/БД.
   const edgeHdr = action === "comps" ? COMPS_EDGE_CACHE : action === "statistics" ? STATS_EDGE_CACHE : undefined;
-  const key = cacheKey(action, query);
+  // Соль версии ранжирования/окна выборки для поиска: ответ кэшируется (память +
+  // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
+  // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
+  // изменении этой логики.
+  const SEARCH_CACHE_VER = "2";
+  const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "");
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
     sendJson(response, 200, {...cached, cached:true}, edgeHdr);
