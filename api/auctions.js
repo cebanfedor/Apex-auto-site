@@ -1547,7 +1547,10 @@ async function attachGenRange(lot){
         if(c.length) pick = c[0].g;
         else { lot.generationId = null; lot.generationName = ""; }
       }
-      if(!pick && yr){
+      // Запасной подбор «по вхождению года» — только если у лота НЕТ нашего
+      // диапазона (модель не в overrides и справочник не дал границ). Иначе после
+      // открытого верха свежего поколения F48 «2015–∞» ловил X1 2023 (это U11).
+      if(!pick && yr && !lot.genFrom){
         const c = gens.filter(g => yr >= g.from && yr <= (g.to || cur));
         if(c.length) pick = c.reduce((a, b) => (b.from > a.from ? b : a));
       }
