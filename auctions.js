@@ -984,9 +984,9 @@
     }
     return statsCache[key];
   }
-  function forecastFromRows(rows, lot){
+  function forecastFromRows(rows, lot, tol = 0){
     const yr = Number(lot.year) || 0;
-    let scope = yr ? rows.filter(x => Number(x.year) === yr) : rows;
+    let scope = yr ? rows.filter(x => Math.abs(Number(x.year) - yr) <= tol) : rows;
     if(!scope.length) return null;
     const byEngine = lot.engineId ? scope.filter(x => x.engine && Number(x.engine.id) === Number(lot.engineId)) : [];
     if(byEngine.length) scope = byEngine;
@@ -999,31 +999,62 @@
     const avg = sumW / cnt;
     return {lo:Math.round(avg * 0.8 / 50) * 50, hi:Math.round(avg * 1.15 / 50) * 50, cnt};
   }
+  // Параметры comps для лота — те же, что на странице лота: год, пробег, топливо,
+  // поколение, run (1/0) и cq (good/mid/poor) по состоянию и повреждениям.
+  function compsParamsFor(lot){
+    const cp = new URLSearchParams({action:"comps", manufacturer_id:String(lot.makeId), model_id:String(lot.modelId)});
+    if(lot.year) cp.set("year", String(lot.year));
+    if(lot.odometer) cp.set("odometer", String(lot.odometer));
+    if(lot.fuel) cp.set("fuel", String(lot.fuel));
+    if(lot.generationId) cp.set("generation_id", String(lot.generationId));
+    const ci = conditionInfo(lot.condition);
+    const runFlag = ci.tone === "good" ? "1" : ci.tone === "bad" ? "0" : "";
+    if(runFlag) cp.set("run", runFlag);
+    const dmgTxt = `${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.damage || ""}`.toLowerCase();
+    const heavyDmg = /all over|roll ?over|undercarriage|frame|burn|flood|water|strip|biohazard/.test(dmgTxt);
+    const multiDmg = /&|,|\band\b|\+/.test(dmgTxt) || (lot.secondaryDamage && lot.secondaryDamage !== "-" && !/unknown|none|normal/.test(String(lot.secondaryDamage).toLowerCase()));
+    let cq = "mid";
+    if(ci.tone === "good" && !heavyDmg && !multiDmg) cq = "good";
+    else if(ci.tone === "bad" || heavyDmg) cq = "poor";
+    cp.set("cq", cq);
+    return cp;
+  }
+  const compsCache = {};
+  // Прогноз для карточки: comps (поколение, состояние, вес по году/пробегу, без
+  // утиля, только завершённые торги) → диапазон p25–p75. Если своего поколения
+  // мало (<4 продаж) — агрегат по году (точный год, затем ±1).
+  async function forecastForLot(lot){
+    const cp = compsParamsFor(lot); const key = cp.toString();
+    if(!compsCache[key]) compsCache[key] = api(`/api/auctions?${cp}`).catch(() => null);
+    const cr = await compsCache[key];
+    const c = cr && cr.ok && cr.comps;
+    if(c && c.count && c.p25 > 0 && c.p75 >= c.p25) return {lo:c.p25, hi:c.p75, src:"comps"};
+    const rows = await statsRowsFor(lot.makeId, lot.modelId);
+    const f = forecastFromRows(rows, lot, 0) || forecastFromRows(rows, lot, 1);
+    return f ? {lo:f.lo, hi:f.hi, src:"stats"} : null;
+  }
+  // Прогноз только для 2017+ (старше — не интересно) и только для непроданных.
+  const FORECAST_MIN_YEAR = 2017;
   async function updateCardForecasts(){
     const nodes = [...document.querySelectorAll("[data-forecast]")];
     if(!nodes.length) return;
     const byId = new Map(state.items.map(l => [String(l.id), l]));
-    const pairs = new Map(); // makeId:modelId → лоты
+    const jobs = [];
     nodes.forEach(node => {
       const lot = byId.get(node.dataset.forecast);
       if(!lot || !lot.makeId || !lot.modelId) return;
-      const key = `${lot.makeId}:${lot.modelId}`;
-      if(!pairs.has(key)) pairs.set(key, []);
-      pairs.get(key).push({node, lot});
+      if((Number(lot.year) || 0) < FORECAST_MIN_YEAR) return;
+      if(lotSaleState(lot).isSold) return;
+      jobs.push({node, lot});
     });
-    // Не бомбим API: максимум 12 разных моделей на страницу, по очереди пачками
-    const entries = [...pairs.entries()].slice(0, 12);
-    for(let i = 0; i < entries.length; i += 4){
-      await Promise.all(entries.slice(i, i + 4).map(async ([key, list]) => {
-        const [makeId, modelId] = key.split(":");
-        const rows = await statsRowsFor(makeId, modelId);
-        list.forEach(({node, lot}) => {
-          if(!document.body.contains(node)) return;
-          const f = forecastFromRows(rows, lot);
-          if(!f) return;
-          node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Прогноз ставки")}</span><b>${money(f.lo)} – ${money(f.hi)}</b>`;
-          node.hidden = false;
-        });
+    // Пачками по 4, чтобы не бомбить API; comps кэшируется на edge и по пулу продаж.
+    for(let i = 0; i < jobs.length; i += 4){
+      await Promise.all(jobs.slice(i, i + 4).map(async ({node, lot}) => {
+        const f = await forecastForLot(lot);
+        if(!f || !document.body.contains(node)) return;
+        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Прогноз ставки")}</span><b>${money500(f.lo)} – ${money500(f.hi)}</b>`;
+        node.dataset.src = f.src;
+        node.hidden = false;
       }));
     }
   }
