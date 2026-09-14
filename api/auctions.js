@@ -1458,7 +1458,10 @@ async function attachGenRange(lot){
       if(pick){
         const to = lot.genTo && lot.genTo < cur ? String(lot.genTo) : "";
         lot.generationId = pick.id;
-        lot.generationName = lot.genFrom ? `${pick.name} · ${lot.genFrom}–${to}` : pick.name;
+        // Как у DreamBid — коротко, кодом кузова («G05», «F3x»): берём текст в скобках
+        // имени справочника («VI (F3x)» → «F3x»), иначе имя целиком. Плюс US-годы.
+        const code = (String(pick.name).match(/\(([^)]+)\)/) || [])[1] || String(pick.name).trim();
+        lot.generationName = lot.genFrom ? `${code} · ${lot.genFrom}–${to}` : code;
       }else if(lot.generationId){
         const feed = gens.find(g => String(g.id) === String(lot.generationId));
         if(feed && yr && feed.from > yr){ lot.generationId = null; lot.generationName = ""; }
