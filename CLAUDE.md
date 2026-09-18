@@ -153,3 +153,11 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   и часть `title=`-подсказок не обёрнуты в `i18nT`/`L()` — на RO/EN остаются русскими.
 - a11y: подписи полей калькулятора (`index.html`) без `for=`; лид-форма/AI-поля только с `placeholder`.
 - Словарь `/usa/damages` при первом открытии фильтра тянется ~4с live — можно забить статикой.
+
+## Трекинг (`api/w8-tracking.js`, `tracking.html`)
+- Провайдеры по порядку: **Dealer API** (env `DEALER_API_KEY`+`DEALER_API_BASE`; база не задана → спит) →
+  **AvtoShipping** (публичный `avtoshipping.com.ua/api/Data/Get/{VIN}` + `GetAttachmentsByCarId/{VIN}`,
+  без ключа, ТОЛЬКО точный 17-значный VIN; эндпоинт без VIN в пути не вызывать никогда) → **W8**.
+- Этапы AvtoShipping `A_*` (статусы 0..6, даты из `statusHistory`); фото title-документов (типы 5, 9) не отдаём.
+- ⚠️ Инлайн-скрипт `tracking.html` под CSP-хешем в `vercel.json` — после правки пересчитать sha256.
+- `?diag=1` — только булевы флаги конфигурации Dealer API.
