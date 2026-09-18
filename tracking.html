@@ -727,7 +727,7 @@
     </div>
   </footer>
 
-  <script src="i18n.js?v=i18n-v15"></script>
+  <script src="i18n.js?v=i18n-v16"></script>
   <script>
   (function(){
     const input = document.getElementById('trackInputV401');
@@ -822,6 +822,14 @@
       "Loading":                    "Погружен в контейнер",
       "Arrival":                    "Порт Клайпеда",
       "Chisinau":                   "Кишинёв",
+      // Провайдер №2 (Dealer API): этапы из пары «состояние + локация»
+      "D_PURCHASED":                "Куплен",
+      "D_TO_ORIGIN":                "В пути на склад",
+      "D_AT_ORIGIN":                "На складе / в порту отправки",
+      "D_SEA":                      "Морская перевозка",
+      "D_TO_DEST":                  "В пути по Европе",
+      "D_AT_DEST":                  "На складе в Европе",
+      "D_ARRIVED":                  "Прибыл",
     };
 
     // Stage icons (SVG paths)
@@ -893,9 +901,10 @@
         if (today >= etaDate) chisinauStatus = "completed";
         else if (portDate && today >= portDate) chisinauStatus = "current";
       }
-      stages.push({ title: "Chisinau", date: chisinauDate, status: chisinauStatus });
+      // Синтетический «Кишинёв» (+14 дней от Клайпеды) — логика W8; у Dealer API свой маршрут
+      if (d.source !== "dealer") stages.push({ title: "Chisinau", date: chisinauDate, status: chisinauStatus });
 
-      const eta = d.etaChisinau || d.container?.portArrival;
+      const eta = d.source === "dealer" ? d.expectedDate : (d.etaChisinau || d.container?.portArrival);
       const etaDisplay = eta ? fmtDate(eta) : null;
       const isEstimate = !!d.etaChisinau;
 
@@ -906,7 +915,7 @@
       if (activeStage) {
         if (activeStage.title === "Chisinau" && activeStage.status === "completed") statusLabel = "Доставлен в Кишинёв";
         else if (activeStage.title === "Chisinau") statusLabel = "В пути до Кишинёва";
-        else statusLabel = STAGE_LABELS[activeStage.title] || activeStage.title;
+        else { statusLabel = STAGE_LABELS[activeStage.title] || activeStage.title; if (d.source === "dealer" && d.statusDetail) statusLabel += " · " + d.statusDetail; }
       }
 
       // Build stages HTML
@@ -1013,8 +1022,8 @@
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div>
-            <div class="trackEtaLabelV401">${isEstimate ? "Ориентировочное прибытие" : "Ожидаемое прибытие"}</div>
-            <div class="trackEtaValV401">${etaDisplay} · <span>Кишинёв</span></div>
+            <div class="trackEtaLabelV401">${d.source === "dealer" ? "Ожидаемая дата" : (isEstimate ? "Ориентировочное прибытие" : "Ожидаемое прибытие")}</div>
+            <div class="trackEtaValV401">${etaDisplay}${d.source === "dealer" ? (d.arrivedCity ? " · <span>" + esc(d.arrivedCity) + "</span>" : "") : " · <span>Кишинёв</span>"}</div>
             ${isEstimate ? '<div class="trackEtaHintV401">После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней</div>' : ""}
           </div>
           ${d.container?.number ? `
@@ -1082,7 +1091,7 @@
         const data = await res.json();
 
         if (!res.ok || data.error) {
-          showError(data.message || "Автомобиль не найден в системе W8 Shipping. Проверьте VIN или номер лота.");
+          showError(data.message || "Автомобиль не найден. Проверьте VIN или номер лота.");
         } else {
           _lastData = data;
           area.innerHTML = renderResult(data);
