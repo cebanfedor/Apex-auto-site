@@ -126,7 +126,11 @@ module.exports = async function handler(req, res) {
     let upstream = 0;
     if(dealerConfig()){ try{ upstream = (await dealerFetch("/purchases?$limit=1&$select[]=_id")).status; }catch(_){ upstream = -1; } }
     res.setHeader("Cache-Control", "no-store");
-    return res.json({dealerConfigured: !!dealerConfig(), dealerUpstreamStatus: upstream});
+    // По отдельности — чтобы было видно, какой переменной не хватает. Только да/нет, значения не раскрываем.
+    const hasKey = !!String(process.env.DEALER_API_KEY || "").trim();
+    const hasBase = !!String(process.env.DEALER_API_BASE || "").trim();
+    const baseLooksValid = /^https:\/\/[^\s/]+/i.test(String(process.env.DEALER_API_BASE || "").trim());
+    return res.json({dealerConfigured: !!dealerConfig(), hasKey, hasBase, baseLooksValid, dealerUpstreamStatus: upstream});
   }
   const { vin, lot } = req.query;
   const query = vin || lot;
