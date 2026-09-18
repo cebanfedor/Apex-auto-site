@@ -114,6 +114,98 @@ function mapDealer(p, vinQuery){
   };
 }
 
+// ============ Провайдер №3: AvtoShipping — публичный трекинг по VIN ============
+// Тот же эндпоинт, которым пользуется их сайт avtoshipping.com.ua (без ключа):
+// GET /api/Data/Get/{VIN} + /api/Data/GetAttachmentsByCarId/{VIN}. Ходим ТОЛЬКО по
+// точному 17-значному VIN (эндпоинт без VIN в пути у них отдаёт всю базу — его не
+// трогаем никогда). Статусы 0..6 = семь этапов их трекинга; в statusHistory есть
+// реальные даты этапов.
+const AVTO_BASE = "https://avtoshipping.com.ua/api/Data";
+const AVTO_STAGES = ["A_PURCHASED", "A_DISPATCHED", "A_DELIVERED", "A_LOADED", "A_UNLOADED", "A_EU_DISPATCHED", "A_READY"];
+// 5 и 9 — фото title (документ с личными данными) — клиенту не показываем.
+const AVTO_PHOTO_LABELS = {
+  6:"С аукциона", 3:"Фото водителя (США)", 4:"Ключи (США)", 0:"Погрузка", 2:"В пути", 1:"Выгрузка",
+  7:"Фото водителя (порт ЕС)", 8:"Ключи (порт ЕС)", 11:"На площадке в ЕС", 10:"Зарядка (площадка ЕС)",
+  12:"Ключи (площадка ЕС)", 14:"Фото водителя (ЕС)", 13:"Зарядка (водитель ЕС)", 15:"Ключи (водитель ЕС)",
+  19:"Таможня", 17:"Выдача", 16:"Ключи (выдача)", 18:"Зарядка (выдача)"
+};
+const AVTO_PHOTO_ORDER = [6, 3, 4, 0, 2, 1, 7, 8, 11, 10, 12, 14, 13, 15, 19, 17, 16, 18];
+async function avtoFetch(path){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try{
+    const r = await fetch(AVTO_BASE + path, {headers:{accept:"application/json", "user-agent":"Mozilla/5.0 (compatible; ApexAutoTracker/1.0)"}, signal:controller.signal});
+    if(!r.ok) return null;
+    const ct = String(r.headers.get("content-type") || "");
+    if(!/json/i.test(ct)) return null;   // SPA-заглушка отдаёт text/html
+    return await r.json();
+  }catch(_){ return null; }
+  finally{ clearTimeout(timer); }
+}
+const avtoDay = v => { const s = v ? String(v).slice(0, 10) : ""; return s && !s.startsWith("0001") ? s : null; };
+async function lookupAvto(vinRaw){
+  const vin = String(vinRaw || "").toUpperCase();
+  if(!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return null;
+  const j = await avtoFetch("/Get/" + encodeURIComponent(vin) + "?includeAttachments=false");
+  if(!j || typeof j !== "object" || Array.isArray(j) || String(j.vin || "").toUpperCase() !== vin || j.isDeleted) return null;
+  const atts = await avtoFetch("/GetAttachmentsByCarId/" + encodeURIComponent(vin));
+  return mapAvto(j, Array.isArray(atts) ? atts : []);
+}
+function mapAvto(j, atts){
+  // Этапы: максимальный достигнутый статус = текущий; даты — из истории.
+  const hist = {};
+  (Array.isArray(j.statusHistory) ? j.statusHistory : []).forEach(h => {
+    const st = Number(h && h.status); const d = avtoDay(h && h.createdAt);
+    if(Number.isInteger(st) && st >= 0 && st <= 6 && d && (!hist[st] || d < hist[st])) hist[st] = d;
+  });
+  const reached = Object.keys(hist).map(Number);
+  const max = reached.length ? Math.max(...reached) : 0;
+  const fallback = {0:avtoDay(j.dateOfPurchase), 2:avtoDay(j.dateOfWarehouse), 3:avtoDay(j.containerDate) || avtoDay(j.loadingDate), 6:avtoDay(j.lvivArrivalDate)};
+  const stages = AVTO_STAGES.map((title, i) => ({
+    title,
+    date: i <= max ? (hist[i] || fallback[i] || null) : null,
+    status: i < max ? "completed" : i === max ? (max === 6 ? "completed" : "current") : "todo"
+  }));
+  // Фото по типам (без title-документов), только https и не удалённые.
+  const byType = {};
+  atts.forEach(a => {
+    if(!a || a.isDeleted || a.isImage === false) return;
+    const t = Number(a.attachmentType); const url = String(a.url || "");
+    if(!AVTO_PHOTO_LABELS[t] || !/^https:\/\//i.test(url)) return;
+    (byType[t] = byType[t] || []).push(url);
+  });
+  const photoCategories = AVTO_PHOTO_ORDER.filter(t => byType[t] && byType[t].length)
+    .map(t => ({type:"avto_" + t, label:AVTO_PHOTO_LABELS[t], photos:byType[t]}));
+  // Порт прибытия у них — Клайпеда; оценка «Кишинёв» — та же логика, что для W8 (+14 дней).
+  const portArrival = avtoDay(j.estimatedArrivalDate);
+  let etaChisinau = null;
+  if(portArrival){
+    const d = new Date(portArrival + "T00:00:00Z"); const dow = d.getUTCDay();
+    d.setUTCDate(d.getUTCDate() + 14 + (dow === 5 ? 2 : dow === 6 ? 1 : 0));
+    etaChisinau = d.toISOString().slice(0, 10);
+  }
+  return {
+    vehicle: j.title || [j.year, j.mark, j.model].filter(Boolean).join(" ") || null,
+    vin: j.vin || null,
+    auction: null,
+    city: j.locationAtAuction || null,
+    lotNumber: null,
+    keys: j.keyCount == null ? null : (Number(j.keyCount) > 0 ? "yes" : "no"),
+    titleStatus: j.hasTitle == null ? null : (j.hasTitle ? "yes" : "no"),
+    titleReceived: null,
+    document: j.auctionTitleDoc || null,
+    container: {
+      number: j.containerNumber || null, booking: null,
+      loadingPort: j.containerLoadingYard || null, destinationPort: j.destinationCountry || null, portArrival
+    },
+    etaChisinau,
+    stages,
+    photos: photoCategories.flatMap(c => c.photos).slice(0, 12),
+    photoCategories,
+    source: "avtoshipping"
+  };
+}
+
 module.exports = async function handler(req, res) {
   const origin = req.headers.origin || "";
   const allowedOrigins = ["https://apexauto.md", "http://localhost:8081"];
@@ -145,6 +237,16 @@ module.exports = async function handler(req, res) {
       return res.json(mapDealer(dealer, vin));
     }
   }catch(e){ console.error("dealer-tracking error:", e?.message || e); }
+  // Затем — публичный трекинг AvtoShipping (только по VIN); не нашли — W8.
+  if(paramKey === "vin"){
+    try{
+      const av = await lookupAvto(String(query).trim());
+      if(av){
+        res.setHeader("Cache-Control", "s-maxage=600, stale-while-revalidate=60");
+        return res.json(av);
+      }
+    }catch(e){ console.error("avtoshipping-tracking error:", e?.message || e); }
+  }
   const url = `https://dc.w8shipping.ua/ru/cargo-tracking?${paramKey}=${encodeURIComponent(query)}`;
 
   let html;

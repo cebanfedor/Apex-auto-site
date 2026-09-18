@@ -727,7 +727,7 @@
     </div>
   </footer>
 
-  <script src="i18n.js?v=i18n-v16"></script>
+  <script src="i18n.js?v=i18n-v17"></script>
   <script>
   (function(){
     const input = document.getElementById('trackInputV401');
@@ -830,6 +830,14 @@
       "D_TO_DEST":                  "В пути по Европе",
       "D_AT_DEST":                  "На складе в Европе",
       "D_ARRIVED":                  "Прибыл",
+      // Провайдер №3 (AvtoShipping): статусы 0..6 их трекинга
+      "A_PURCHASED":                "Авто выкуплено",
+      "A_DISPATCHED":               "В пути на склад",
+      "A_DELIVERED":                "На складе",
+      "A_LOADED":                   "В контейнере",
+      "A_UNLOADED":                 "Выгружен из контейнера",
+      "A_EU_DISPATCHED":            "Едет в пункт назначения",
+      "A_READY":                    "Готов к выдаче",
     };
 
     // Stage icons (SVG paths)
@@ -902,7 +910,7 @@
         else if (portDate && today >= portDate) chisinauStatus = "current";
       }
       // Синтетический «Кишинёв» (+14 дней от Клайпеды) — логика W8; у Dealer API свой маршрут
-      if (d.source !== "dealer") stages.push({ title: "Chisinau", date: chisinauDate, status: chisinauStatus });
+      if (d.source !== "dealer" && (d.source !== "avtoshipping" || d.etaChisinau)) stages.push({ title: "Chisinau", date: chisinauDate, status: chisinauStatus });
 
       const eta = d.source === "dealer" ? d.expectedDate : (d.etaChisinau || d.container?.portArrival);
       const etaDisplay = eta ? fmtDate(eta) : null;
