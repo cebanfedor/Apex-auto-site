@@ -577,6 +577,14 @@ function buildSearchParams(query){
     const value = query.get(from);
     if(value) params.set(to, value);
   }
+  // Поколение из нашей таблицы (синтетический id) → диапазон лет вместо generation_id.
+  const synGenLive = parseSynGen(query.get("generation"));
+  if(synGenLive){
+    params.delete("generation_id");
+    const yf = Number(params.get("from_year")) || 0, yt = Number(params.get("to_year")) || 0;
+    params.set("from_year", String(Math.max(yf, synGenLive.from)));
+    if(synGenLive.to) params.set("to_year", String(yt ? Math.min(yt, synGenLive.to) : synGenLive.to));
+  }
   const make = query.get("make");
   const model = query.get("model");
   if(make && /^[\d,]+$/.test(make)) params.set("manufacturer_id", make);
@@ -1305,8 +1313,26 @@ function pgEscape(value){
 
 // Справочник поколений модели (годовые диапазоны) с кэшем на 6ч — для
 // year-based фильтра поколения в searchFromDb.
+// Своя таблица поколений (классификация DreamBid: коды кузова + годы, см.
+// server/gen-table.js). Для моделей из таблицы поколение = ДИАПАЗОН ЛЕТ, а его id —
+// синтетический: from*10000 + to (20192025; to=0 — выпускается). Фильтр каталога по
+// такому id работает по году лота, а не по generation_id фида (тот пуст/врёт).
+const GEN_TABLE = require("../server/gen-table");
+const SYN_GEN_MIN = 19000000;
+function parseSynGen(id){
+  const n = Number(String(id || "").replace(/[^0-9]/g, ""));
+  if(!(n >= SYN_GEN_MIN)) return null;
+  const from = Math.floor(n / 10000), to = n % 10000;
+  return from >= 1900 && from <= 2100 ? {from, to:to || 0} : null;
+}
+function tableGens(modelId){
+  const t = GEN_TABLE[Number(String(modelId).replace(/[^0-9]/g, ""))];
+  return t ? t.map(([from, to, c]) => ({id:from * 10000 + (to || 0), name:c || "", from, to:to || null})) : null;
+}
 const genRangeCache = new Map();
 async function generationsFor(modelId){
+  const tg = tableGens(modelId);
+  if(tg) return tg;
   const key = String(modelId);
   const now = Date.now();
   const c = genRangeCache.get(key);
@@ -1633,14 +1659,17 @@ const GEN_OVERRIDES = {
 // 1) зашитые overrides, 2) справочник API, 3) синтетика (год за верхом → новый кузов).
 async function resolveGenRange(modelId, yearQ, genIdQ){
   const cur = new Date().getFullYear() + 1;
-  const ov = GEN_OVERRIDES[Number(String(modelId).replace(/[^0-9]/g, ""))];
+  const ov = tableGens(modelId) || GEN_OVERRIDES[Number(String(modelId).replace(/[^0-9]/g, ""))];
   if(ov && ov.length && yearQ){
     const cont = ov.filter(g => yearQ >= g.from && yearQ <= (g.to || cur));
     if(cont.length){ const g = cont.reduce((a, b) => (b.from > a.from ? b : a)); return {genFrom:g.from, genTo:g.to || cur}; }
     const newest = ov.reduce((a, b) => (b.from > a.from ? b : a));
     if(yearQ > (newest.to || newest.from)) return {genFrom:newest.from, genTo:newest.to || cur};
-    const oldest = ov.reduce((a, b) => (a.from < b.from ? a : b));
-    return {genFrom:oldest.from, genTo:oldest.to || cur};
+    // Год в «дыре» между поколениями (A8 2018: D4 до 2017, D5 с 2019) → ближайшее по
+    // годам, при равенстве — более раннее (переходный год обычно ещё старый кузов).
+    const dist = g => (yearQ < g.from ? g.from - yearQ : yearQ - (g.to || cur));
+    const near = ov.slice().sort((a, b) => dist(a) - dist(b) || a.from - b.from)[0];
+    return {genFrom:near.from, genTo:near.to || cur};
   }
   try{
     const gens = await generationsFor(modelId);
@@ -1667,6 +1696,14 @@ async function attachGenRange(lot){
       const cur = new Date().getFullYear() + 1;
       const gr = await resolveGenRange(lot.modelId, yr, lot.generationId || "");
       if(gr && gr.genFrom){ lot.genFrom = gr.genFrom; lot.genTo = gr.genTo; }
+      // Модель в нашей таблице → крошка как у DreamBid: код кузова + годы.
+      const tg = tableGens(lot.modelId);
+      if(tg){
+        const g = lot.genFrom ? tg.find(x => x.from === lot.genFrom) : null;
+        if(g){ lot.generationId = g.id; lot.generationName = (g.name ? g.name + " · " : "") + g.from + "–" + (g.to || ""); }
+        else { lot.generationId = null; lot.generationName = ""; }
+        return lot;
+      }
       // Поколение в крошках/фильтре — ПО ГОДУ, а не по generation_id фида: фид
       // относит 2018 BMW 330e к «VII (G2x)», хотя это F30; годы в справочнике API
       // перекрываются (F3x 2011–2020, G2x 2018–2022 — мировые, не US). Берём запись
@@ -1757,7 +1794,11 @@ async function searchFromDb(query){
   const model = query.get("model");
   if(model && /^\d+$/.test(model)) p.set("model_id", `eq.${model}`);
   const generation = query.get("generation");
-  if(generation && /^\d+$/.test(generation)){
+  const synGen = parseSynGen(generation);
+  if(synGen){
+    ands.push(`year.gte.${synGen.from}`);
+    if(synGen.to) ands.push(`year.lte.${synGen.to}`);
+  }else if(generation && /^\d+$/.test(generation)){
     // Фид часто не проставляет generation_id (null), а справочник поколений
     // отстаёт по годам (напр. BMW G2x значится 2018–2022, хотя выпускается и
     // в 2023+). Поэтому вместо строгого generation_id=eq.X включаем и лоты без
@@ -2473,7 +2514,8 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "2";
-  const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "");
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g2" : "";   // бамп при смене таблицы поколений
+  const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
     sendJson(response, 200, {...cached, cached:true}, edgeHdr);
@@ -2532,6 +2574,16 @@ module.exports = async function handler(request, response){
     if(action === "generations"){
       const mid = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
       if(!mid){ sendJson(response, 200, {ok:true, items:[]}); return; }
+      const tgList = tableGens(mid);
+      if(tgList){
+        // Как у DreamBid: свежие кузова первыми, имя = код кузова (нет кода — годы).
+        const items = tgList.slice().sort((a, b) => b.from - a.from)
+          .map(g => ({id:g.id, name:g.name || (g.from + "–" + (g.to || "")), fromYear:g.from, toYear:g.to || null}));
+        const payload = {ok:true, items};
+        setCached(key, payload);
+        sendJson(response, 200, payload);
+        return;
+      }
       const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${mid}`);
       const items = (Array.isArray(list?.data) ? list.data : [])
         .filter(m => m && m.name)
@@ -2656,7 +2708,8 @@ module.exports = async function handler(request, response){
             const runQ = String(query.get("run") || "");
             const run = runQ === "1" ? true : runQ === "0" ? false : null;
             const yearQ = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
-            const genIdQ = String(query.get("generation_id") || "").replace(/[^0-9]/g, "");
+            let genIdQ = String(query.get("generation_id") || "").replace(/[^0-9]/g, "");
+            if(parseSynGen(genIdQ)) genIdQ = "";
             // Поколение = кузов (нельзя мешать 2024 новый с 2021 старым). Границы
             // берём из зашитых overrides (справочник API врёт), иначе — из API.
             const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
@@ -2689,6 +2742,7 @@ module.exports = async function handler(request, response){
       const p = new URLSearchParams();
       ["manufacturer_id","model_id","generation_id","engine_id","year"].forEach(k => {
         const v = String(query.get(k) || "").replace(/[^0-9]/g, "");
+        if(k === "generation_id" && parseSynGen(v)) return;   // наш синтетический id провайдеру неизвестен
         if(v) p.set(k, v);
       });
       const data = await fetchJson(`${AUCTIONS_API_BASE}/statistics?${p}`);
