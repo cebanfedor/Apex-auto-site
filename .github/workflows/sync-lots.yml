@@ -26,7 +26,15 @@ jobs:
       # чтобы первый посетитель не ловил медленный MISS.
       - name: Warm showcase CDN cache
         run: |
-          for id in 1 2 5 4 7; do
+          # Адреса — РОВНО те, что запрашивает сайт (иначе прогрев мимо кэша): витрина каталога
+          # (per_page=30, типы 1/2/5/7), блок на главной, счётчики вкладок.
+          for id in 1 2 5 7; do
             curl -s -o /dev/null -w "warm type=$id: %{time_total}s %header{x-vercel-cache}\n" \
-              "https://apexauto.md/api/auctions?action=search&per_page=8&vehicleType=$id&sort=smart&auction=all&tab=all"
+              "https://apexauto.md/api/auctions?action=search&per_page=30&vehicleType=$id&sort=smart&auction=all&tab=all"
           done
+          for tab in open archived buy_now; do
+            curl -s -o /dev/null -w "warm tab=$tab: %{time_total}s\n" \
+              "https://apexauto.md/api/auctions?action=search&auction=all&sort=smart&per_page=1&tab=$tab"
+          done
+          curl -s -o /dev/null -w "warm showcase: %{time_total}s\n" "https://apexauto.md/api/auctions?action=showcase"
+          curl -s -o /dev/null -w "warm transit: %{time_total}s\n" "https://apexauto.md/api/hot-lots?type=transit"

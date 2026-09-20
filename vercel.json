@@ -67,8 +67,16 @@
     },
     {
       "source": "/api/auctions",
+      "missing": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived)" }],
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=300" }
+      ]
+    },
+    {
+      "source": "/api/auctions",
+      "has": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived)" }],
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=43200" }
       ]
     },
     {
