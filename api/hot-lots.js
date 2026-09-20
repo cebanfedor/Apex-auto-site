@@ -77,6 +77,44 @@ async function fetchLot(lot, auction){
 module.exports = async function handler(req, res){
   if(req.method !== "GET") return methodNotAllowed(res);
 
+  // ?type=transit — объявления «Продажа авто в пути»: наши машины, которые едут в
+  // Молдову и продаются. Источник — админка → Автомобили со статусом «Продаётся в пути».
+  // Отдаём только публичные поля объявления.
+  const type = String(new URL(req.url, "http://x").searchParams.get("type") || "");
+  if(type === "transit"){
+    let rows = null, transitErr = "timeout";
+    try{
+      rows = await Promise.race([
+        supabase.list("vehicles", {
+          select:"id,vin,year,make,model,price,photos,description,fuel,damage,mileage,engine,status,created_at",
+          status:"in.(\"Продаётся в пути\",\"Продан в пути\")",
+          order:"created_at.desc",
+          limit:"60",
+        }).catch(e => { transitErr = String(e && e.message || e).slice(0, 200); return null; }),
+        new Promise(resolve => setTimeout(() => resolve(null), 3500)),
+      ]);
+    }catch(e){ rows = null; }
+    if(!rows) return sendJson(res, 200, {items:[], mode:"fallback", reason:transitErr});
+    const items = rows.map(v => {
+      const photos = (Array.isArray(v.photos) ? v.photos
+        : typeof v.photos === "string" ? v.photos.split(/[\n,]+/) : [])
+        .map(x => String(x || "").trim()).filter(x => /^https:\/\//i.test(x)).slice(0, 40);
+      return {
+        id:v.id,
+        title:[v.year, v.make, v.model].filter(Boolean).join(" ") || "Автомобиль",
+        year:Number(v.year) || 0, make:v.make || "", model:v.model || "",
+        vin:String(v.vin || "").toUpperCase(),
+        price:Number(v.price) || 0,
+        mileage:v.mileage || "", fuel:v.fuel || "", engine:v.engine || "", damage:v.damage || "",
+        description:v.description || "",
+        photos,
+        sold:v.status === "Продан в пути",
+        createdAt:v.created_at || null,
+      };
+    }).sort((x, y) => Number(x.sold) - Number(y.sold));
+    return sendJson(res, 200, {items});
+  }
+
   // База может лежать — не ждём дольше 2с и отвечаем пустым списком (200),
   // чтобы страница «Горячие» показывала статический контент, а не ошибку
   let vehicles = null;

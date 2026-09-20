@@ -266,3 +266,5 @@ textarea{resize:vertical}
   .topbar{align-items:flex-start;flex-direction:column}
   .panelHead,.filters{align-items:stretch;flex-direction:column}
 }
+
+.formHintV1{margin:0 0 14px;padding:10px 12px;border-radius:10px;background:rgba(237,0,18,.07);font-size:13px;line-height:1.45}

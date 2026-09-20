@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>APEX AUTO CRM</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=admin-v169">
+  <link rel="stylesheet" href="/admin/admin.css?v=admin-v170">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -75,6 +75,7 @@
             </div>
             <form id="vehicleForm" class="panel formPanel">
               <h2 id="vehicleFormTitle">Новый автомобиль</h2>
+              <p class="formHintV1">Чтобы авто появилось на сайте в разделе «Продажа авто в пути» — выберите статус <b>«Продаётся в пути»</b>, укажите цену, описание и добавьте фото (первое фото — обложка). Если указать VIN, в объявлении покажется, где сейчас машина. Продали — поставьте «Продан в пути».</p>
               <input type="hidden" name="id">
               <div class="grid2">
                 <label>VIN<input name="vin"></label>
@@ -85,6 +86,8 @@
                 <label>Цена, $<input name="price" type="number"></label>
                 <label>Статус
                   <select name="status">
+                    <option>Продаётся в пути</option>
+                    <option>Продан в пути</option>
                     <option>Горячий лот</option>
                     <option>Рекомендуется</option>
                     <option>В наличии</option>
@@ -94,6 +97,10 @@
                   </select>
                 </label>
                 <label>Аукцион<input name="auction" placeholder="Copart / IAAI / Manheim"></label>
+                <label>Пробег<input name="mileage" placeholder="напр. 45 000 миль"></label>
+                <label>Двигатель<input name="engine" placeholder="напр. 2.0 Turbo / Long Range AWD"></label>
+                <label>Топливо<input name="fuel" placeholder="Бензин / Гибрид / Электро"></label>
+                <label>Повреждения<input name="damage" placeholder="напр. Перед, без подушек"></label>
               </div>
               <label>Описание<textarea name="description" rows="4"></textarea></label>
               <label>Фотографии

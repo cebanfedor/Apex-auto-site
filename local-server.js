@@ -211,6 +211,7 @@ http.createServer((req, res) => {
   let pathname = url.pathname === "/admin" ? "/admin/" : url.pathname;
   if(pathname === "/auctions") pathname = "/auctions.html";
   if(pathname === "/tracking") pathname = "/tracking.html";
+  if(pathname === "/in-transit") pathname = "/in-transit.html";
   if(/^\/auctions\/[^/]+$/.test(pathname)) pathname = "/auctions.html";
   const safePath = path.normalize(pathname === "/" ? "/index.html" : pathname);
   const filePath = path.join(root, safePath.endsWith("/") ? `${safePath}index.html` : safePath);

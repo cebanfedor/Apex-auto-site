@@ -5,6 +5,10 @@
   "crons": [
     { "path": "/api/sync-lots", "schedule": "0 5 * * *" }
   ],
+  "redirects": [
+    { "source": "/hot", "destination": "/in-transit", "permanent": true },
+    { "source": "/hot.html", "destination": "/in-transit", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/api/sync-lots", "destination": "/api/auctions?action=synclots" },
     { "source": "/api/calc", "destination": "/api/content?calc=1" },
@@ -16,7 +20,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contacts", "destination": "/contacts.html" },
-    { "source": "/hot", "destination": "/hot.html" },
+    { "source": "/in-transit", "destination": "/in-transit.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },

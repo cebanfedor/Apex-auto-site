@@ -13,7 +13,7 @@ No build step. Files are served as-is. (For /api + admin you need env vars — s
 ## Structure
 - `index.html` — home: hero, calculator, economy band, "Как мы работаем", "Почему мы", lead form, free-VIN check, hot lots, reviews, FAQ.
 - `auctions.html` (+`auctions.css`, `auctions.js`) — Copart/IAAI catalog via auctionsapi.com; lot detail; lead modal.
-- `hot.html`, `about.html`, `contacts.html` — inner pages.
+- `in-transit.html` (+`transit.js`) — «Продажа авто в пути» (бывш. `hot.html`/«Горячие», `/hot` → 301). `about.html`, `contacts.html` — inner pages.
 - `styles.css` — **the whole design system** (see below).
 - `script.js` — calculator logic (the core). `locations.js` — auction locations/ports data.
 - `i18n.js` — translations + RU/RO/EN switcher (injected into `.mainNavV82`).
@@ -173,3 +173,13 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   в comps/statistics такой id провайдеру не передаём. `action=generations` отдаёт таблицу (свежие первыми).
 - Год в «дыре» между поколениями → ближайшее поколение (раньше падало в самое старое).
 - Смена таблицы → бамп `|g2` (`GEN_CACHE_SALT`) — кэш detail/vin/generations живёт до 6ч.
+
+## Продажа авто в пути (`/in-transit`, 20.09.2026)
+- Объявления = записи админки «Автомобили» (таблица `vehicles`) со статусом **«Продаётся в пути»**
+  (проданные — «Продан в пути», показываются серыми в конце). Поля: год/марка/модель, цена, описание,
+  фото (первое — обложка), пробег, двигатель, топливо, повреждения, VIN. Миграций нет — статус текстовый.
+- API: `/api/hot-lots?type=transit` (только публичные поля; edge-кэш 5 мин → новое объявление видно не сразу).
+- Клиент `transit.js`: список + карточка по `?id=N` (pushState, ссылкой делятся), галерея со свайпом,
+  «Где сейчас авто» из `/api/w8-tracking?vin=`, WhatsApp/Telegram/звонок, лид через `action=lead`
+  (source «Авто в пути»). Под объявлениями остался блок гибридов/электро с аукционов (`hot.js`, часть 2).
+- Шапка: пункт длинный → на 821–1290px шапка ужимается (см. конец `styles.css`), бургер по-прежнему с 820px.
