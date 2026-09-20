@@ -879,3 +879,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionCrumbsV1 .crumbMenuV1 { left:0; right:0; top:100%; width:auto; min-width:0; max-width:none; }
 }
 .dbPriceBox b.dbNoBidV1 { font-size:13px; font-weight:700; color:var(--aMuted); }
+
+/* Архив: сводка цен продаж по выбранной модели */
+.archStatsV1 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px 18px; margin:0 0 14px; padding:16px 18px; background:var(--aCard,#fff); border:1px solid var(--aLine2); border-radius:14px; }
+.archStatsV1 > div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.archStatsV1 span { font-size:12px; font-weight:600; color:var(--aMuted); }
+.archStatsV1 b { font-size:20px; font-weight:800; color:var(--aInk); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.archStatsV1 > div:first-child b { color:#15803d; }
+.archStatsV1 p { grid-column:1 / -1; margin:0; font-size:12.5px; line-height:1.45; color:var(--aMuted); }
+@media (max-width:640px) { .archStatsV1 { grid-template-columns:1fr 1fr; padding:14px; } .archStatsV1 > div:first-child { grid-column:1 / -1; } .archStatsV1 b { font-size:18px; } }

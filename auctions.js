@@ -1327,6 +1327,38 @@
     finally{ if(reqId === state.loadSeq) state.loading = false; }
   }
 
+  // ---- Архив: сводка цен продаж по выбранной модели ----
+  // «За сколько реально уходят такие машины» — главный вопрос к архиву. Считаем по последним
+  // (до 100) состоявшимся продажам с ТЕМИ ЖЕ фильтрами, что в выдаче: середина рынка p25–p75,
+  // медиана, число продаж. Только когда выбрана модель — по всей марке цифра бессмысленна.
+  let archStatsSeq = 0;
+  async function updateArchiveStats(){
+    const seq = ++archStatsSeq;
+    const cards = document.getElementById("auctionCards");
+    let box = document.getElementById("archStatsV1");
+    const modelPicked = !!(document.getElementById("filterModelIdV2")?.value);
+    if(state.tab !== "archived" || !modelPicked || !cards){ if(box) box.remove(); return; }
+    try{
+      const p = formParams();
+      p.set("tab", "archived"); p.set("page", "1"); p.set("per_page", "100"); p.set("sort", "date_desc");
+      const r = await api(`/api/auctions?action=search&${p}`);
+      if(seq !== archStatsSeq || state.tab !== "archived") return;
+      const bids = (r.items || []).filter(l => !findCanadaLocation(l)).map(l => {
+        const st = lotSaleState(l);
+        return st.isSold ? Number(st.finalBid) || 0 : 0;
+      }).filter(v => v >= 100).sort((x, y) => x - y);
+      if(bids.length < 5){ if(box) box.remove(); return; }
+      const q = f => { const i = (bids.length - 1) * f, lo = Math.floor(i), hi = Math.ceil(i); return bids[lo] + (bids[hi] - bids[lo]) * (i - lo); };
+      const lo = Math.floor(q(.25) / 100) * 100, hi = Math.ceil(q(.75) / 100) * 100, med = Math.round(q(.5) / 50) * 50;
+      if(!box){ box = document.createElement("div"); box.id = "archStatsV1"; box.className = "archStatsV1"; cards.parentNode.insertBefore(box, cards); }
+      box.innerHTML = `
+        <div><span>${L("Обычно продаются за")}</span><b data-no-i18n="true">${money(lo)} – ${money(hi)}</b></div>
+        <div><span>${L("Медиана")}</span><b data-no-i18n="true">${money(med)}</b></div>
+        <div><span>${L("Продаж в выборке")}</span><b data-no-i18n="true">${bids.length}${(r.total || 0) > bids.length ? "+" : ""}</b></div>
+        <p>${L("Цены молотка на аукционе, без сборов и доставки. Разброс зависит от повреждений и пробега — точный расчёт под ключ на странице лота.")}</p>`;
+    }catch(e){ if(box) box.remove(); }
+  }
+
   // Заголовок страницы по вкладке: в «Архиве» стояло «Текущие аукционы».
   function updateCatalogH1(){
     const el = document.getElementById("auctionH1TextV1");
@@ -1373,6 +1405,7 @@
       updateGenChips();
       idle(updateCardForecasts);
       if(!append) idle(updateTabCounts);
+      if(!append) idle(updateArchiveStats);
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам. Ищете конкретную машину? Введите её VIN в поиск — история продаж находится по полной базе аукционов." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
