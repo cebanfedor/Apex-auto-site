@@ -1047,6 +1047,26 @@
     const f = forecastFromRows(rows, lot, 0) || forecastFromRows(rows, lot, 1);
     return f ? {lo:f.lo, hi:f.hi, src:"stats"} : null;
   }
+  // Липкая панель на телефоне: вместо названия (оно и так в шапке) — итог «под ключ» из
+  // калькулятора лота; тап по нему прокручивает к расчёту. Главная цифра страницы была на 3-м экране.
+  function syncStickyTotal(){
+    const box = document.getElementById("lotStickyTotalV1");
+    const src = document.getElementById("lotCalcTotal");
+    if(!box || !src) return;
+    const txt = (src.textContent || "").trim();
+    const ok = /\d/.test(txt);
+    box.hidden = !ok;
+    if(ok) box.querySelector("b").textContent = txt;
+    const title = box.parentElement && box.parentElement.querySelector(".lotStickyTitleV1");
+    if(title) title.hidden = ok;
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest("[data-sticky-calc]");
+    if(!b) return;
+    const calc = document.querySelector("#auctionDetail .lotCalcV2");
+    if(calc) calc.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+
   // Прогноз только для 2017+ (старше — не интересно) и только для непроданных.
   const FORECAST_MIN_YEAR = 2017;
   async function updateCardForecasts(){
@@ -1635,6 +1655,7 @@
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
+    syncStickyTotal();
     // ≈USD (карточка «Продано» и текущая ставка) пересчитываем живым курсом TD
     if(calc.canada){
       const soldHint = document.getElementById("soldUsdHintV1");
@@ -2051,12 +2072,16 @@
       </section>
       ${(() => { const s = lotSaleState(lot).isSold; return `
       <div class="lotStickyCtaV1">
-        <span class="lotStickyTitleV1">${escapeHtml([lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" "))}</span>
+        <button type="button" class="lotStickyInfoV1" data-sticky-calc aria-label="${L("Расчёт под ключ")}">
+          <span class="lotStickyTitleV1">${escapeHtml([lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" "))}</span>
+          <span class="lotStickyTotalV1" id="lotStickyTotalV1" hidden><small>${L("Под ключ в Кишинёве")} ≈</small> <b data-no-i18n="true"></b></span>
+        </button>
         <button type="button" class="dbBtnPrimary lotStickyBtnV1" data-lead="${escapeHtml(lot.id)}">${s ? L("Подобрать похожую") : L("Оставить заявку")}</button>
       </div>`; })()}
     `;
     state.selectedLot = lot;
     state.detailImages = images;
+    setTimeout(syncStickyTotal, 0);
     // Единый медиа-набор для лайтбокса: фото + видео осмотра последней плиткой
     state.detailMedia = images.map(src => ({type:"image", src}));
     if(lot.video) state.detailMedia.push({type:"video", src:lot.video, poster:images[0] || ""});
