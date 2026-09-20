@@ -1745,6 +1745,7 @@ async function attachGenRange(lot){
   return lot;
 }
 
+const undatedCountCache = new Map();
 async function searchFromDb(query){
   if(!(await lotsDbReady())) return null;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
@@ -1960,6 +1961,11 @@ async function searchFromDb(query){
       p2.set("order", "id.asc");
       const need = Math.max(0, perPage - rows.length);
       const off2 = Math.max(0, offset - total);
+      // Хвост нужен только на глубоких страницах; счётчик недатированных кэшируем на 6ч
+      // (ключ = набор фильтров) — иначе второй запрос добавлял 1–4с к каждой странице.
+      const tailKey = p2.toString();
+      const tc = undatedCountCache.get(tailKey);
+      if(need === 0 && tc && Date.now() - tc.at < 6 * 3600e3){ total += tc.n; throw null; }
       const ctrl2 = new AbortController();
       const t2 = setTimeout(() => ctrl2.abort(), 3000);
       let r2;
@@ -1974,8 +1980,10 @@ async function searchFromDb(query){
         const undated = Number((r2.headers.get("content-range") || "*/0").split("/").pop()) || 0;
         if(r2.ok && need > 0){ const extra = await r2.json(); rows = rows.concat(extra.slice(0, need)); }
         total += undated;
+        undatedCountCache.set(tailKey, {n:undated, at:Date.now()});
+        if(undatedCountCache.size > 200) undatedCountCache.delete(undatedCountCache.keys().next().value);
       }
-    }catch(e){ /* без хвоста — отдаём датированные */ }
+    }catch(e){ /* без хвоста — отдаём датированные (null = взяли счётчик из кэша) */ }
   }
   return {
     _db:true,
