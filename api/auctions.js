@@ -1759,8 +1759,11 @@ async function searchFromDb(query){
 
   const tab = query.get("tab") || "all";
   let datedOnly = false;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
-  if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); }
-  else if(tab === "archived"){ p.set("archived", "eq.true"); }
+  // Архив = только СОСТОЯВШИЕСЯ торги. Фид помечает sold/archived и лоты с будущей датой,
+  // где final_bid — всего лишь пред-ставка: они вставали первыми («23 сент., финальная $975»).
+  const pastOnly = () => ands.push(`or(sale_date.lte.${new Date().toISOString()},sale_date.is.null)`);
+  if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); pastOnly(); }
+  else if(tab === "archived"){ p.set("archived", "eq.true"); pastOnly(); }
   else if(tab === "buy_now"){
     // «Купить сейчас» — только реально доступные к выкупу: цена выкупа есть,
     // не продан (status ≠ 6), и аукцион ещё не прошёл (будущая дата или без
@@ -2646,7 +2649,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "6";
+  const SEARCH_CACHE_VER = "7";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);

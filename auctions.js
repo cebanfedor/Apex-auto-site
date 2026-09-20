@@ -272,7 +272,9 @@
   function displayModel(model){
     const m = String(model || "");
     const ser = m.match(/^(\d)er$/i);
-    return ser ? `${ser[1]} Series` : m;
+    if(ser) return `${ser[1]} Series`;
+    // Справочник фида немецкий: «C-klasse», «GLA-klasse AMG» → привычное «C-Class», «GLA-Class AMG»
+    return m.replace(/-klasse\b/i, "-Class");
   }
 
   function detailHref(lot){
@@ -1323,7 +1325,15 @@
     finally{ if(reqId === state.loadSeq) state.loading = false; }
   }
 
+  // Заголовок страницы по вкладке: в «Архиве» стояло «Текущие аукционы».
+  function updateCatalogH1(){
+    const el = document.getElementById("auctionH1TextV1");
+    if(!el) return;
+    const map = {archived:"Архив аукционов", soon:"Торги сегодня и завтра", buy_now:"Купить сейчас", favorites:"Избранное"};
+    el.textContent = L(map[state.tab] || "Текущие аукционы");
+  }
   async function loadLots({_retry = false, append = false} = {}){
+    updateCatalogH1();
     if(state.tab === "favorites"){ renderFavorites(); return; }
     if(discoveryMode && state.tab === "all"){ loadShowcase(); return; }
     // Не блокируем повторный вызов, а перебиваем предыдущий: клик по сортировке
@@ -2655,7 +2665,7 @@
       models = [];
       resetGenerations();
       if(opt.id != null){
-        try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(opt.id)}`); models = r.items || []; }
+        try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(opt.id)}`); models = (r.items || []).map(x => ({...x, name:displayModel(x.name)})); }
         catch(e){ models = []; }
       }else{
         const key = Object.keys(data.models || {}).find(k => k.toLowerCase() === String(opt.name).toLowerCase());
@@ -2690,7 +2700,7 @@
       const m = manufacturers.find(x => String(x.id) === String(mk));
       if(!m) return;
       makeInput.value = m.name;
-      try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(mk)}`); models = r.items || []; }catch(e){ models = []; }
+      try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(mk)}`); models = (r.items || []).map(x => ({...x, name:displayModel(x.name)})); }catch(e){ models = []; }
       if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
       if(!md || !modelInput || modelInput.value) return;
       const mo = models.find(x => String(x.id) === String(md));
