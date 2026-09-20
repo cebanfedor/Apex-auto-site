@@ -839,3 +839,11 @@ body.leadModalOpenV1 { overflow:hidden; }
 .soldRefineV1:disabled{ opacity:.6; cursor:default; }
 .soldRefineV1.soldRefineDoneV1{ border-color:#d1d5db; color:var(--aInk,#11141a); cursor:default; }
 .soldRefineNoteV1{ display:block; margin-top:4px; font-style:normal; font-size:12px; color:var(--aMuted,#6b7280); line-height:1.3; }
+
+/* Телефон: первый экран каталога — машины, а не служебный текст. Убираем крошки,
+   описательную строку и инфо-баннер; счётчик лотов остаётся. */
+@media (max-width: 700px) {
+  .auctionsCrumbV3, .auctionInfoV3, .auctionsSubV3 .subTxtV3 { display: none !important; }
+  .auctionsHeadV2 { margin-bottom: 6px; }
+  .auctionsSubV3 { margin-top: 2px; font-size: 13px; }
+}
