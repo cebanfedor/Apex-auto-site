@@ -231,6 +231,9 @@ function bindForms(){
     event.preventDefault();
     const form = event.currentTarget;
     const data = formData(form);
+    const btn = form.querySelector("button[type=submit]");
+    if(btn){ btn.disabled = true; btn.textContent = "Сохраняю…"; }
+    try{
     const photoUrls = await uploadFiles($("#vehiclePhotos"), "vehicles");
     const existing = String(data.photos || "").split(/\n+/).map(item => item.trim()).filter(Boolean);
     data.photos = [...existing, ...photoUrls];
@@ -240,6 +243,14 @@ function bindForms(){
     resetForm("vehicleForm");
     await loadVehicles();
     showNotice("Автомобиль сохранен", true);
+    }catch(e){
+      // Раньше ошибка сохранения молча терялась — форма «ничего не делала».
+      const msg = String(e && e.message || e);
+      showNotice("Не сохранилось: " + msg, false);
+      alert("Не сохранилось: " + msg + (/column|schema/i.test(msg) ? "\n\nВ базе не хватает колонок — выполните SQL из supabase/migrations/20260920_vehicles_listing_fields.sql в Supabase → SQL Editor." : ""));
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = "Сохранить"; }
+    }
   });
 
   $("#customerForm").addEventListener("submit", async event => {
