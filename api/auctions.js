@@ -1756,6 +1756,7 @@ async function searchFromDb(query){
   ands.push("or(country.neq.kr,country.is.null)");
 
   const tab = query.get("tab") || "all";
+  let datedOnly = false;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); }
   else if(tab === "archived"){ p.set("archived", "eq.true"); }
   else if(tab === "buy_now"){
@@ -1782,6 +1783,7 @@ async function searchFromDb(query){
       ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${grace}`);
+      datedOnly = true;
     }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }else{
@@ -1805,6 +1807,7 @@ async function searchFromDb(query){
       ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${grace}`);
+      datedOnly = true;
     }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }
@@ -1938,13 +1941,42 @@ async function searchFromDb(query){
   // корректную пустую страницу с total из Content-Range. Раньше бросали ошибку →
   // «searchFromDb fallback: 416» в логах и лишний медленный live-запрос (60 раз
   // за 15 минут в алерте Vercel 14.09.2026).
-  if(response.status === 416){
-    const total416 = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+  const total416 = response.status === 416 ? (Number((response.headers.get("content-range") || "*/0").split("/").pop()) || 0) : 0;
+  if(response.status === 416 && !datedOnly){
     return {_db:true, items:[], total:total416, page, perPage, _source:"db"};
   }
-  if(!response.ok) throw new Error(`lots db search failed: ${response.status}`);
-  const rows = await response.json();
-  const total = Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length;
+  if(!response.ok && response.status !== 416) throw new Error(`lots db search failed: ${response.status}`);
+  let rows = response.status === 416 ? [] : await response.json();
+  let total = response.status === 416 ? total416 : (Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length);
+  // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
+  // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
+  // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
+  if(datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc)$/)){
+    try{
+      const p2 = new URLSearchParams(p);
+      const ands2 = ands.filter(x => !x.startsWith("sale_date.gte."));
+      ands2.push("sale_date.is.null");
+      p2.set("and", `(${ands2.join(",")})`);
+      p2.set("order", "id.asc");
+      const need = Math.max(0, perPage - rows.length);
+      const off2 = Math.max(0, offset - total);
+      const ctrl2 = new AbortController();
+      const t2 = setTimeout(() => ctrl2.abort(), 3000);
+      let r2;
+      try{
+        r2 = await fetch(`${url}/rest/v1/api_lots?${p2}`, {
+          headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=estimated",
+            range:`${off2}-${off2 + Math.max(need, 1) - 1}`, "range-unit":"items"},
+          signal:ctrl2.signal
+        });
+      }finally{ clearTimeout(t2); }
+      if(r2 && (r2.ok || r2.status === 416)){
+        const undated = Number((r2.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+        if(r2.ok && need > 0){ const extra = await r2.json(); rows = rows.concat(extra.slice(0, need)); }
+        total += undated;
+      }
+    }catch(e){ /* без хвоста — отдаём датированные */ }
+  }
   return {
     _db:true,
     items:rows.map(r => r.payload).filter(Boolean),
@@ -2536,7 +2568,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "4";
+  const SEARCH_CACHE_VER = "5";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
