@@ -847,3 +847,14 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionsHeadV2 { margin-bottom: 6px; }
   .auctionsSubV3 { margin-top: 2px; font-size: 13px; }
 }
+
+/* Телефон: в свёрнутой карточке сразу видно главное — дата торгов, ставка, прогноз, повреждение */
+.dbMobMetaV1 { display:none; }
+@media (max-width:640px) {
+  .dbCard:not(.dbOpenV1) .dbMobMetaV1 { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin:2px 0 4px; font-size:13.5px; color:var(--aMuted); }
+  .dbMobMetaV1 .dbIco { width:14px; height:14px; margin-right:5px; vertical-align:-2px; }
+  .dbMobMetaV1 b { color:var(--aInk); font-size:15px; }
+  .dbMobForecastV1 { flex-direction:row; align-items:center; gap:6px; margin-top:0; width:100%; }
+  .dbCard:not(.dbOpenV1) .dbSpecs li:nth-child(3) { display:flex; }
+  .dbCard:not(.dbOpenV1) .dbSpecs li:nth-child(n+4) { display:none; }
+}

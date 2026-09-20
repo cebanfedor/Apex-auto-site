@@ -701,7 +701,7 @@
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
   }
   function dbDate(value, withYear){
-    if(!value) return "Future";
+    if(!value) return L("Дата уточняется");
     const d = new Date(value);
     if(Number.isNaN(d.getTime())) return String(value).slice(0, 16);
     const lang = window.APEX_LANG || "ru";
@@ -925,12 +925,17 @@
         </a>
         <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
-        <span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>
+        ${Number(priceVal) > 0 ? `<span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>` : ""}
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
         ${photos > 1 ? `<button class="dbSlideBtn dbSlidePrev" type="button" aria-label="Предыдущее фото" data-dir="-1">‹</button><button class="dbSlideBtn dbSlideNext" type="button" aria-label="Следующее фото" data-dir="1">›</button>` : ""}
       </div>
       <div class="dbBody">
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
+        <div class="dbMobMetaV1">
+          <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
+          <span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>
+          <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
+        </div>
         <div class="dbCols">
           <div class="dbLeftCol">
             <div class="dbIds">
