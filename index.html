@@ -33,7 +33,7 @@
   <link rel="preload" as="image" href="/assets/hot/founder-auction.webp" type="image/webp" fetchpriority="high">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v432">
+  <link rel="stylesheet" href="styles.css?v=v433">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -409,7 +409,7 @@
   <script src="site-content.js?v=admin-v166" defer></script>
   <script src="home-transit.js?v=ht-v1" defer></script>
   <script src="home-lots.js?v=home-v5" defer></script>
-  <script src="i18n.js?v=multilang-v450" defer></script>
+  <script src="i18n.js?v=multilang-v451" defer></script>
 
   <section class="apexProcessV205" id="how">
     <span class="sectionKicker">Как мы работаем</span>
@@ -477,18 +477,19 @@
           <span>Пришлём варианты с ценами под ключ — обычно за 2 часа</span>
         </div>
         <div class="miniGrid">
-          <input id="leadName" placeholder="Имя" aria-label="Ваше имя" autocomplete="given-name" required>
-          <input id="leadContact" inputmode="tel" placeholder="Телефон или @username в Telegram" aria-label="Телефон или Telegram" autocomplete="tel" required>
+          <label class="miniFieldV1" for="leadName"><span>Имя</span><input id="leadName" placeholder="Как к вам обращаться" autocomplete="given-name" required></label>
+          <label class="miniFieldV1" for="leadContact"><span>Телефон или Telegram</span><input id="leadContact" inputmode="tel" placeholder="068 123 456 или @username" autocomplete="tel" required></label>
         </div>
+        <label class="miniFieldV1" for="leadBudget"><span>Бюджет <i>необязательно</i></span>
         <select id="leadBudget">
-          <option value="">Бюджет (необязательно)</option>
+          <option value="">Не выбран</option>
           <option value="до $8 000">До $8 000</option>
           <option value="$8 000 – $12 000">$8 000 – $12 000</option>
           <option value="$12 000 – $18 000">$12 000 – $18 000</option>
           <option value="$18 000 – $25 000">$18 000 – $25 000</option>
           <option value="от $25 000">От $25 000</option>
-        </select>
-        <input id="leadCar" placeholder="Какой автомобиль ищете? Например: BMW X5, Tesla Model Y" aria-label="Какой автомобиль ищете">
+        </select></label>
+        <label class="miniFieldV1" for="leadCar"><span>Какой автомобиль ищете <i>необязательно</i></span><input id="leadCar" placeholder="Например: BMW X5, Tesla Model Y"></label>
         <button type="submit">Получить варианты с ценами →</button>
         <div class="miniFormTrustV365">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
