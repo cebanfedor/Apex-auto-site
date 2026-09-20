@@ -61,9 +61,52 @@ function setForm(form, item = {}){
   }
 }
 
+// ── Фото автомобиля: превью со списком URL (textarea name=photos — источник правды).
+// Первое фото = обложка объявления. Кнопки: ★ сделать обложкой, ←/→ порядок, × убрать.
+function vehiclePhotoList(){
+  const ta = document.querySelector('#vehicleForm [name="photos"]');
+  return ta ? String(ta.value || "").split(/\n+/).map(x => x.trim()).filter(Boolean) : [];
+}
+function setVehiclePhotoList(list){
+  const ta = document.querySelector('#vehicleForm [name="photos"]');
+  if(ta){ ta.value = list.join("\n"); renderVehiclePhotoThumbs(); }
+}
+function renderVehiclePhotoThumbs(){
+  const box = document.getElementById("vehiclePhotoThumbs");
+  if(!box) return;
+  const list = vehiclePhotoList();
+  box.innerHTML = list.map((url, i) => `
+    <figure class="photoThumbV1${i === 0 ? " isCoverV1" : ""}">
+      <img src="${escapeHtml(url)}" alt="" loading="lazy">
+      ${i === 0 ? '<figcaption>Обложка</figcaption>' : ""}
+      <div class="photoThumbBtnsV1">
+        ${i > 0 ? `<button type="button" data-photo-act="cover" data-photo-i="${i}" title="Сделать обложкой">★</button><button type="button" data-photo-act="left" data-photo-i="${i}" title="Левее">←</button>` : ""}
+        ${i < list.length - 1 ? `<button type="button" data-photo-act="right" data-photo-i="${i}" title="Правее">→</button>` : ""}
+        <button type="button" class="danger" data-photo-act="del" data-photo-i="${i}" title="Убрать фото">×</button>
+      </div>
+    </figure>`).join("");
+}
+function bindVehiclePhotoThumbs(){
+  const box = document.getElementById("vehiclePhotoThumbs");
+  const ta = document.querySelector('#vehicleForm [name="photos"]');
+  if(!box || !ta) return;
+  ta.addEventListener("input", renderVehiclePhotoThumbs);
+  box.addEventListener("click", event => {
+    const btn = event.target.closest("[data-photo-act]");
+    if(!btn) return;
+    const i = Number(btn.dataset.photoI), list = vehiclePhotoList(), act = btn.dataset.photoAct;
+    if(act === "del") list.splice(i, 1);
+    else if(act === "cover") list.unshift(list.splice(i, 1)[0]);
+    else if(act === "left" && i > 0) [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    else if(act === "right" && i < list.length - 1) [list[i + 1], list[i]] = [list[i], list[i + 1]];
+    setVehiclePhotoList(list);
+  });
+}
+
 function resetForm(id){
   const form = document.getElementById(id);
   form.reset();
+  if(id === "vehicleForm") setTimeout(renderVehiclePhotoThumbs, 0);
   form.querySelector('[name="id"]').value = "";
   const title = document.getElementById(`${id.replace("Form", "FormTitle")}`);
   if(title){
@@ -248,6 +291,7 @@ function bindTabs(){
 }
 
 function bindForms(){
+  bindVehiclePhotoThumbs();
   $("#vehicleForm").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -322,6 +366,7 @@ function bindLists(){
     if(vehicleId){
       const item = state.vehicles.find(row => String(row.id) === String(vehicleId));
       setForm($("#vehicleForm"), item);
+      renderVehiclePhotoThumbs();
       $("#vehicleFormTitle").textContent = "Редактировать автомобиль";
     }
     if(customerId){

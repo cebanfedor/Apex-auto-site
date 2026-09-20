@@ -89,7 +89,9 @@
       : lang() === "en" ? "Hello! I'm interested in the car in transit: "
       : "Здравствуйте! Интересует авто в пути: ")
       + it.title + (it.price ? " — " + money(it.price) : "") + " " + location.origin + "/in-transit/" + it.id;
-    return "https://wa.me/" + PHONE.replace(/\D/g, "") + "?text=" + encodeURIComponent(text);
+    // Не wa.me: site-content.js переписывает все ссылки wa.me (href и текст) на общий контакт —
+    // терялся заготовленный текст про конкретное авто, а кнопка превращалась в «WhatsApp: 068…».
+    return "https://api.whatsapp.com/send?phone=" + PHONE.replace(/\D/g, "") + "&text=" + encodeURIComponent(text);
   }
 
   function specRow(label, value, noI18n){
