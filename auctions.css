@@ -872,3 +872,9 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionCrumbsV1 { font-size:12.5px; line-height:1.5; }
   .auctionCrumbsV1 .crumbCurV1 { display:none; }
 }
+@media (max-width:640px) {
+  /* Меню крошек вылезало за правый край экрана: на телефоне привязываем его к строке крошек целиком */
+  .auctionCrumbsV1 { position:relative; display:block; }
+  .auctionCrumbsV1 .crumbDropV1 { position:static; }
+  .auctionCrumbsV1 .crumbMenuV1 { left:0; right:0; top:100%; width:auto; min-width:0; max-width:none; }
+}
