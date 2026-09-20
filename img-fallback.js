@@ -10,7 +10,7 @@
     if(!el || el.tagName !== "IMG" || el.getAttribute("data-fb-done")) return;
     el.setAttribute("data-fb-done", "1");
     var fb = el.getAttribute("data-fb");
-    if(fb){ el.src = fb; return; }
+    if(fb){ el.removeAttribute("srcset"); el.removeAttribute("sizes"); el.src = fb; return; }   // srcset перебивал бы src
     if(el.hasAttribute("data-fb-hide")){ el.style.display = "none"; return; }
     var bg = el.getAttribute("data-fb-bg");
     if(bg){ el.style.background = bg; }
