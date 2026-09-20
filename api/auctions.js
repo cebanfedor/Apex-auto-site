@@ -2482,14 +2482,72 @@ async function handleSyncLots(response){
           if(got < SYNC_PER_PAGE) break;
         }
       }
-      if(Date.now() - started < INCR_BUDGET){
-        const got = await syncImportPage("/archived-lots", 1, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
+      // Закрытые лоты: раньше брали ОДНУ страницу (1000) — а площадки закрывают десятки тысяч
+      // лотов в сутки, остальное навсегда оставалось в базе «живым». Берём до 6 страниц.
+      for(let apg = 1; apg <= 6; apg++){
+        if(Date.now() - started > INCR_BUDGET + 8000) break;
+        const got = await syncImportPage("/archived-lots", apg, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
         result.archivedMarked += got;
+        if(got < SYNC_PER_PAGE) break;
       }
       state.last_incr_at = new Date().toISOString();
       // Сбрасываем возможный застрявший курсор дренажа прошлой версии.
       state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
       result.continue = false;
+
+      // -------- Еженедельная сверка с живым фидом (sweep) --------
+      // Инкремент видит только изменения за сутки и часть закрытий → в базе копились лоты,
+      // которых в фиде давно нет (21.09.2026: ~560k «живых» без даты против ~152k в фиде;
+      // завышенный счётчик каталога и «проданные» в выдаче). Раз в 7 дней ночью (UTC 0–4)
+      // заново проходим весь /cars по доменам (upsert обновляет synced_at), затем удаляем
+      // неархивные лоты, которых обход не встретил. Удаляем, а не архивируем: исход торгов по
+      // ним неизвестен, вкладку «Архив» и comps они бы только засоряли (страница лота всё равно
+      // берётся из live). Страховка: чистим, только если обход дошёл до конца обоих доменов и
+      // принёс ≥80k лотов — иначе считаем фид сбойным и ничего не трогаем.
+      const SWEEP_EVERY_MS = 7 * 86400e3;
+      const sw = state.sweep || (state.sweep = {});
+      const hourUtc = new Date().getUTCHours();
+      if(!sw.active && !state.arch_backfilling && (!sw.done_at || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at)){   // самый первый обход — в любой час
+        state.sweep = {active:true, started_at:new Date().toISOString(), di:0, page:1, imported:0, stage:"crawl", deleted:0, done_at:sw.done_at || null};
+      }
+      const sweep = state.sweep;
+      if(sweep.active && sweep.stage === "crawl"){
+        while(Date.now() - started < SYNC_RUN_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
+          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]});
+          sweep.imported += got;
+          if(got === 0){ sweep.di += 1; sweep.page = 1; } else { sweep.page += 1; }
+        }
+        if(sweep.di >= SYNC_DOMAINS.length){
+          if(sweep.imported >= 80000){ sweep.stage = "purge"; }
+          else { sweep.active = false; sweep.aborted = "feed too small: " + sweep.imported; sweep.done_at = new Date().toISOString(); }
+        }
+        result.sweep = {stage:sweep.stage, di:sweep.di, page:sweep.page, imported:sweep.imported};
+        if(sweep.active) result.continue = true;
+      }
+      if(sweep.active && sweep.stage === "purge"){
+        // Час запаса: лот, обновлённый инкрементом прямо перед стартом обхода, не трогаем.
+        const cutoff = new Date(new Date(sweep.started_at).getTime() - 3600e3).toISOString();
+        let left = true;
+        try{
+        while(Date.now() - started < SYNC_RUN_BUDGET_MS){
+          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=lt.${encodeURIComponent(cutoff)}&select=id&order=synced_at.asc&limit=1000`);
+          if(!rows || !rows.length){ left = false; break; }
+          for(let i = 0; i < rows.length; i += 250){
+            const ids = rows.slice(i, i + 250).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+            await syncSbFetch(`/api_lots?id=in.(${ids})&archived=eq.false`, {method:"DELETE", headers:{prefer:"return=minimal"}});
+          }
+          sweep.deleted += rows.length;
+          if(rows.length < 1000){ left = false; break; }
+        }
+        }catch(e){
+          // Тяжёлый запрос упёрся в таймаут базы — не зацикливаемся: 5 сбоев подряд → отмена до следующей недели.
+          sweep.errors = (sweep.errors || 0) + 1; sweep.last_error = String(e.message || e).slice(0, 120);
+          if(sweep.errors >= 5){ sweep.active = false; sweep.aborted = "purge errors"; sweep.done_at = new Date().toISOString(); }
+        }
+        if(!left){ sweep.active = false; sweep.stage = "done"; sweep.done_at = new Date().toISOString(); }
+        result.sweep = {stage:sweep.stage, deleted:sweep.deleted};
+        if(sweep.active) result.continue = true;
+      }
 
       // -------- Архивный бэкфилл: история продаж из /cars?status=6,8 --------
       // Наш архив копится только с запуска базы; основной фид отдаёт и уже
@@ -2511,7 +2569,7 @@ async function handleSyncLots(response){
         state.arch_status = st;
         state.arch_page = apage;
         result.archBackfill = archImported;
-        result.continue = !state.arch_done; // GitHub Actions продолжит качать архив
+        result.continue = result.continue || !state.arch_done; // GitHub Actions продолжит качать архив
       }
     }
     // Одноразовая чистка Encar/Кореи (ранние прогоны качали общий фид):
