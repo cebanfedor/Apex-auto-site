@@ -1572,3 +1572,6 @@ details > summary::-webkit-details-marker { display: none; }
 @media (min-width: 821px) and (max-width: 920px) {
   .apexBrandTextV201 { display: none; }
 }
+.homeTransitV1[hidden] { display: none; }
+.homeTransitV1 .transitGridV1 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+@media (max-width: 560px) { .homeTransitV1 .transitGridV1 { grid-template-columns: 1fr; } }

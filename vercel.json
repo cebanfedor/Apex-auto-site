@@ -24,6 +24,7 @@
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contacts", "destination": "/contacts.html" },
     { "source": "/in-transit", "destination": "/in-transit.html" },
+    { "source": "/in-transit/:id(\\d+)", "destination": "/api/transit-page?id=:id" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },

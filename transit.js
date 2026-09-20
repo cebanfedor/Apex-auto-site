@@ -45,7 +45,7 @@
     var img = it.photos[0]
       ? '<img src="' + esc(it.photos[0]) + '" alt="' + esc(it.title) + '" loading="lazy">'
       : '<div class="transitNoImgV1"></div>';
-    return '<a class="transitCardV1' + (it.sold ? " isSoldV1" : "") + '" href="/in-transit?id=' + encodeURIComponent(it.id) + '" data-transit-id="' + esc(it.id) + '">'
+    return '<a class="transitCardV1' + (it.sold ? " isSoldV1" : "") + '" href="/in-transit/' + encodeURIComponent(it.id) + '" data-transit-id="' + esc(it.id) + '">'
       + '<div class="transitCardImgV1">' + img
         + '<span class="transitBadgeV1">' + esc(T(it.sold ? "Продан" : "В пути")) + '</span>'
         + (it.photos.length > 1 ? '<span class="transitPhotoCntV1">' + it.photos.length + ' ' + esc(T("фото")) + '</span>' : "")
@@ -88,7 +88,7 @@
     var text = (lang() === "ro" ? "Bună ziua! Mă interesează auto în tranzit: "
       : lang() === "en" ? "Hello! I'm interested in the car in transit: "
       : "Здравствуйте! Интересует авто в пути: ")
-      + it.title + (it.price ? " — " + money(it.price) : "") + " " + location.origin + "/in-transit?id=" + it.id;
+      + it.title + (it.price ? " — " + money(it.price) : "") + " " + location.origin + "/in-transit/" + it.id;
     return "https://wa.me/" + PHONE.replace(/\D/g, "") + "?text=" + encodeURIComponent(text);
   }
 
@@ -172,7 +172,7 @@
       if(t.dataset.gal){ show(idx + Number(t.dataset.gal)); }
       else if(t.dataset.thumb != null && t.hasAttribute("data-thumb")){ show(Number(t.dataset.thumb)); }
       else if(t.dataset.transitShare){
-        var url = location.origin + "/in-transit?id=" + it.id;
+        var url = location.origin + "/in-transit/" + it.id;
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){
           t.textContent = T("Ссылка скопирована");
         }).catch(function(){ window.prompt("", url); });
@@ -200,7 +200,7 @@
         method:"POST", headers:{"content-type":"application/json"},
         body:JSON.stringify({
           name:name, phone:phone, hp_website:form.hp_website.value, source:"Авто в пути", vin:it.vin || "",
-          comment:"Объявление #" + it.id + ": " + it.title + (it.price ? " — " + money(it.price) : "") + " · " + location.origin + "/in-transit?id=" + it.id
+          comment:"Объявление #" + it.id + ": " + it.title + (it.price ? " — " + money(it.price) : "") + " · " + location.origin + "/in-transit/" + it.id
         })
       }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return r.ok && d.ok; }); })
         .catch(function(){ return false; })
@@ -236,7 +236,8 @@
 
   /* ── Роутинг: /in-transit ↔ /in-transit?id=N ── */
   function route(){
-    var id = new URLSearchParams(location.search).get("id");
+    // /in-transit/<id> (серверная страница объявления) или старый вид ?id=
+    var id = (location.pathname.match(/^\/in-transit\/(\d+)/) || [])[1] || new URLSearchParams(location.search).get("id");
     var it = id ? ITEMS.filter(function(x){ return String(x.id) === String(id); })[0] : null;
     if(it){ renderDetail(it); return; }
     detail.hidden = true; detail.innerHTML = "";
@@ -254,10 +255,17 @@
   });
   window.addEventListener("popstate", route);
 
-  grid.innerHTML = skeletons();
-  fetch("/api/hot-lots?type=transit")
-    .then(function(r){ return r.json(); })
-    .then(function(d){ ITEMS = Array.isArray(d.items) ? d.items : []; })
-    .catch(function(){ ITEMS = []; })
-    .then(function(){ renderList(); route(); });
+  // Серверная страница объявления уже вшила список в HTML — второй запрос не нужен.
+  var ssrEl = document.getElementById("ssrTransitV1"), ssr = null;
+  if(ssrEl){ try{ ssr = JSON.parse(ssrEl.textContent); }catch(e){ ssr = null; } }
+  if(ssr && Array.isArray(ssr.items)){
+    ITEMS = ssr.items; renderList(); route();
+  }else{
+    grid.innerHTML = skeletons();
+    fetch("/api/hot-lots?type=transit")
+      .then(function(r){ return r.json(); })
+      .then(function(d){ ITEMS = Array.isArray(d.items) ? d.items : []; })
+      .catch(function(){ ITEMS = []; })
+      .then(function(){ renderList(); route(); });
+  }
 })();
