@@ -54,12 +54,18 @@ module.exports = async function(req, res){
     return;
   }
 
-  const url = `https://apexauto.md/in-transit/${id}`;
+  const langQ = String(req.query.lang || "").toLowerCase();
+  const lang = langQ.startsWith("ro") ? "ro" : langQ.startsWith("en") ? "en" : "ru";
+  const baseUrl = `https://apexauto.md/in-transit/${id}`;
+  const url = lang === "ru" ? baseUrl : `${baseUrl}?lang=${lang}`;
+  const W = {ru:{tag:"авто в пути", forP:" за ", sold:" — продан", go:" — едет в Молдову, можно забронировать"},
+    ro:{tag:"auto în tranzit", forP:" la ", sold:" — vândut", go:" — în drum spre Moldova, se poate rezerva"},
+    en:{tag:"car in transit", forP:" for ", sold:" — sold", go:" — on its way to Moldova, can be reserved"}}[lang];
   const price = money(it.price);
-  const title = `${it.title}${price ? " — " + price : ""} · авто в пути | Apex Auto`;
+  const title = `${it.title}${price ? " — " + price : ""} · ${W.tag} | Apex Auto`;
   const specs = [it.mileage, it.fuel, it.engine, it.damage].filter(Boolean).join(" · ");
   const descSrc = String(it.description || "").replace(/\s+/g, " ").trim();
-  const desc = [`${it.title}${price ? " за " + price : ""}${it.sold ? " — продан" : " — едет в Молдову, можно забронировать"}.`, specs, descSrc]
+  const desc = [`${it.title}${price ? W.forP + price : ""}${it.sold ? W.sold : W.go}.`, specs, descSrc]
     .filter(Boolean).join(" ").slice(0, 300);
   const image = it.photos && it.photos[0] ? it.photos[0] : "https://apexauto.md/assets/og/hot.png";
 
@@ -96,7 +102,8 @@ module.exports = async function(req, res){
   html = html
     .replace(/<title>[^<]*<\/title>/, `<title>${escHtml(title)}</title>`)
     .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escAttr(desc)}">`)
-    .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${escAttr(url)}">`)
+    .replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`)
+    .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${escAttr(url)}">\n  <link rel="alternate" hreflang="ru" href="${escAttr(baseUrl)}">\n  <link rel="alternate" hreflang="ro" href="${escAttr(baseUrl)}?lang=ro">\n  <link rel="alternate" hreflang="en" href="${escAttr(baseUrl)}?lang=en">\n  <link rel="alternate" hreflang="x-default" href="${escAttr(baseUrl)}">`)
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escAttr(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escAttr(desc)}">`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${escAttr(url)}">`)

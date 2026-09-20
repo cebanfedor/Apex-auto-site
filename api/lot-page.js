@@ -35,9 +35,26 @@ function escapeHtml(str){
 module.exports = async function(req, res){
   const slug = String(req.query.slug || "").replace(/[^a-zA-Z0-9_-]/g, "");
 
-  const ogUrl = `https://apexauto.md/auctions/${slug}`;
-  let ogTitle = "Аукционы Copart и IAAI — каталог авто из США | Apex Auto";
-  let ogDesc = "Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.";
+  // Языковые версии для поиска: ?lang=ro|en — свой title/description, <html lang>, каноникал на
+  // себя и hreflang-связки. Без этого Google видел только русскую версию (язык переключался
+  // скриптом уже в браузере), и румыноязычные запросы шли мимо.
+  const langQ = String(req.query.lang || "").toLowerCase();
+  const lang = langQ.startsWith("ro") ? "ro" : langQ.startsWith("en") ? "en" : "ru";
+  const baseUrl = `https://apexauto.md/auctions/${slug}`;
+  const ogUrl = lang === "ru" ? baseUrl : `${baseUrl}?lang=${lang}`;
+  const TXT = {
+    ru:{t:"Аукционы Copart и IAAI — каталог авто из США | Apex Auto",
+        d:"Каталог авто с аукционов Copart и IAAI: поиск по VIN и лоту, фильтры, фото, страница лота и заявка. Расчёт под ключ до Кишинёва от Apex Auto.",
+        tail:"Доставка под ключ до Кишинёва от Apex Auto.", lot:"лот"},
+    ro:{t:"Licitații Copart și IAAI — catalog auto din SUA | Apex Auto",
+        d:"Catalog de mașini de la licitațiile Copart și IAAI: căutare după VIN și lot, filtre, fotografii, pagina lotului și cerere. Calcul la cheie până la Chișinău de la Apex Auto.",
+        tail:"Livrare la cheie până la Chișinău de la Apex Auto.", lot:"lot"},
+    en:{t:"Copart and IAAI auctions — cars from the USA | Apex Auto",
+        d:"Catalog of cars from Copart and IAAI auctions: search by VIN and lot, filters, photos, lot page and request. Turnkey estimate to Chișinău by Apex Auto.",
+        tail:"Turnkey delivery to Chișinău by Apex Auto.", lot:"lot"}
+  }[lang];
+  let ogTitle = TXT.t;
+  let ogDesc = TXT.d;
   let ogImage = "https://apexauto.md/assets/hot/bmw-530e.jpg";
 
   const match = slug.match(/^(iaai|copart)-(.+)$/i);
@@ -50,12 +67,12 @@ module.exports = async function(req, res){
       lot = got.lot; notFound = got.notFound;
       if(lot && lot.title){
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title;
-        ogTitle = `${title} | Apex Auto`;
+        ogTitle = `${title} — ${match[1].toUpperCase()} ${TXT.lot} ${match[2]} | Apex Auto`;
         const parts = [];
         if(lot.odometerText) parts.push(lot.odometerText);
-        if(lot.primaryDamage) parts.push(lot.primaryDamage);
+        if(lot.primaryDamage && lang !== "ro") parts.push(lot.primaryDamage);
         if(lot.location) parts.push(lot.location);
-        ogDesc = `${title}${parts.length ? ". " + parts.join(" · ") : ""}. Доставка под ключ до Кишинёва от Apex Auto.`;
+        ogDesc = `${title}${parts.length ? ". " + parts.join(" · ") : ""}. ${TXT.tail}`;
         if(lot.image) ogImage = lot.image;
       }
     }catch(e){
@@ -87,7 +104,9 @@ module.exports = async function(req, res){
 
   html = html
     .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(ogTitle)}</title>`)
-    .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${escapeAttr(ogUrl)}">`)
+    .replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`)
+    .replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${escapeAttr(ogUrl)}">\n  <link rel="alternate" hreflang="ru" href="${escapeAttr(baseUrl)}">\n  <link rel="alternate" hreflang="ro" href="${escapeAttr(baseUrl)}?lang=ro">\n  <link rel="alternate" hreflang="en" href="${escapeAttr(baseUrl)}?lang=en">\n  <link rel="alternate" hreflang="x-default" href="${escapeAttr(baseUrl)}">`)
+    .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${escapeAttr(ogDesc)}">`)
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeAttr(ogTitle)}">`)
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeAttr(ogDesc)}">`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${escapeAttr(ogUrl)}">`)
