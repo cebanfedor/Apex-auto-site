@@ -1775,6 +1775,7 @@ async function searchFromDb(query){
     // из ВЧЕРАШНИХ уже прошедших торгов (ставку не сделать, смотрелось как мусор).
     const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
     ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+    ands.push("or(status_id.neq.6,status_id.is.null)");
   }else{
     // «Все» — живой каталог: назначенные торги (включая вчерашние, ждущие
     // результата) или Buy Now без даты. Сток без даты и без цены — 600k+
@@ -1783,7 +1784,13 @@ async function searchFromDb(query){
     // То же окно «сейчас − 2 ч»: вчерашние торги, ждущие результата, покупателю
     // бесполезны — после синка они и так уходят в архив.
     const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
-    ands.push(`or(sale_date.gte.${grace},and(sale_date.is.null,buy_now.gt.0))`);
+    // 21.09.2026: лоты БЕЗ даты возвращены. Проверка выборки по live-фиду: ~70% из них —
+    // живые «upcoming» (площадка ещё не назначила торги; у DreamBid это «Future», их 872
+    // у BMW 3 Series против наших 11 с датой). Сортировка sale_date.asc NULLS LAST держит
+    // назначенные торги наверху, недатированные идут следом. Проданные (status 6), которые
+    // синк не успел унести в архив, отсекаем.
+    ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+    ands.push("or(status_id.neq.6,status_id.is.null)");
   }
 
   const auction = query.get("auction");
@@ -2513,7 +2520,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "2";
+  const SEARCH_CACHE_VER = "3";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
