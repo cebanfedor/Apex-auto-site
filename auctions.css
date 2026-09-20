@@ -868,7 +868,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .lotStickyTotalV1 b { font-size:18px; font-weight:800; color:var(--aInk,#11141a); font-variant-numeric:tabular-nums; }
 @media (max-width:640px) {
   .detailTopRowV1 .detailSearchV1 { display:none; }
-  .auctionCrumbsV1 { display:block; white-space:nowrap; overflow-x:auto; scrollbar-width:none; font-size:12.5px; }
-  .auctionCrumbsV1::-webkit-scrollbar { display:none; }
+  /* без overflow: у крошек выпадающие меню (модели/поколения) — скролл-контейнер их обрезал */
+  .auctionCrumbsV1 { font-size:12.5px; line-height:1.5; }
   .auctionCrumbsV1 .crumbCurV1 { display:none; }
 }
