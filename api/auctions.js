@@ -1774,7 +1774,15 @@ async function searchFromDb(query){
     // без даты. Раньше окно было «сутки назад» → первая страница по дате состояла
     // из ВЧЕРАШНИХ уже прошедших торгов (ставку не сделать, смотрелось как мусор).
     const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
-    ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+    // Без марки/модели/поиска OR по sale_date не даёт Postgres идти по индексу диапазоном:
+    // общий каталог упирался в 8с-таймаут и падал на live (10с первая загрузка). В общем
+    // виде берём только назначенные торги — чистый range-scan по (sale_date,id); недатированные
+    // там всё равно были бы на тысячных страницах. С маркой/моделью — полный набор с «Future».
+    if(query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
+      ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+    }else{
+      ands.push(`sale_date.gte.${grace}`);
+    }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }else{
     // «Все» — живой каталог: назначенные торги (включая вчерашние, ждущие
@@ -1789,7 +1797,15 @@ async function searchFromDb(query){
     // у BMW 3 Series против наших 11 с датой). Сортировка sale_date.asc NULLS LAST держит
     // назначенные торги наверху, недатированные идут следом. Проданные (status 6), которые
     // синк не успел унести в архив, отсекаем.
-    ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+    // Без марки/модели/поиска OR по sale_date не даёт Postgres идти по индексу диапазоном:
+    // общий каталог упирался в 8с-таймаут и падал на live (10с первая загрузка). В общем
+    // виде берём только назначенные торги — чистый range-scan по (sale_date,id); недатированные
+    // там всё равно были бы на тысячных страницах. С маркой/моделью — полный набор с «Future».
+    if(query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
+      ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+    }else{
+      ands.push(`sale_date.gte.${grace}`);
+    }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }
 
@@ -2520,7 +2536,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "3";
+  const SEARCH_CACHE_VER = "4";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
