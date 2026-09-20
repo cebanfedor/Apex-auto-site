@@ -1947,7 +1947,7 @@
     const primaryDmg = lot.primaryDamage || dmgParts[0] || "";
     const secondaryDmg = lot.secondaryDamage || dmgParts[1] || "";
     // Тип топлива — сразу в спек-строке, чтобы бензин/дизель/гибрид был виден без скролла
-    const fuelRu = lot.fuel ? ruEnum(RU_FUEL, lot.fuel) : "";
+    const fuelRu = lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "";   // в составной строке «2.0 · Бензин · AWD» словарь i18n не сработает сам
     const driveLine = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
     const specLine  = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "", fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
