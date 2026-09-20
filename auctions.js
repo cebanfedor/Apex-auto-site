@@ -164,8 +164,10 @@
   function ruDamage(raw){
     if(raw == null || raw === "") return raw;
     const whole = String(raw).toLowerCase().replace(/\s+/g, " ").trim();
-    if(RU_DAMAGE[whole]) return RU_DAMAGE[whole];
-    return String(raw).split("/").map(p => ruEnum(RU_DAMAGE, p)).join(" / ");
+    // Каждую часть переводим отдельно: составная строка «Сбоку / Повреждение рамы» в словарях
+    // RO/EN не находилась и оставалась русской.
+    if(RU_DAMAGE[whole]) return L(RU_DAMAGE[whole]);
+    return String(raw).split("/").map(p => L(ruEnum(RU_DAMAGE, p))).join(" / ");
   }
 
   function dateText(value){
@@ -799,7 +801,7 @@
     const display = val || "Неизвестен";
     const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display))}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display).replace(/Страховая/g, L("Страховая")).replace(/^Неизвестен$/, L("Неизвестен")))}</span></li>`;
   }
   function dbCheckKey(raw){
     if(!raw) return "";
@@ -820,7 +822,7 @@
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const lotNumbers = new Set(history.map(h => h.lot).filter(Boolean));
     const relisted = currentLot && lotNumbers.size > 0 && (lotNumbers.size > 1 || (lotNumbers.size === 1 && !lotNumbers.has(String(currentLot))));
-    const records = count === 1 ? "1 запись" : count < 5 ? `${count} записи` : `${count} записей`;
+    const records = `${count} ${recordsWord(count)}`;
     if(wasSold){
       return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${escapeHtml(records)} • ${L("Был продан ранее!")}</span></li>`;
     }
@@ -2639,6 +2641,10 @@
     document.addEventListener("click", e => { if(e.target.closest(".comboV2") !== wrap) close(); });
   }
 
+  // Плейсхолдер, который меняется на лету: i18n кэширует ПЕРВЫЙ русский текст поля и на RO/EN
+  // возвращал бы его перевод поверх нового — обновляем и кэш, и сам атрибут.
+  function setPhV1(el, text){ if(!el) return; el.__i18nPh = text; el.setAttribute("placeholder", L(text)); }
+
   function initCarData(){
     const data = window.CAR_DATA || {};
     const makeInput = document.getElementById("filterMakeV2");
@@ -2653,14 +2659,14 @@
 
     function resetGenerations(){
       generations = [];
-      if(genInput){ genInput.value = ""; genInput.placeholder = "Сначала выберите модель"; }
+      if(genInput){ genInput.value = ""; setPhV1(genInput, "Сначала выберите модель"); }
       if(genId) genId.value = "";
     }
 
     // Make + Model: live from API (manufacturer_id / model_id); fall back to static names locally.
     setupCombo("filterMakeV2", "makeMenuV2", () => manufacturers, async (opt) => {
       if(makeId) makeId.value = opt.id != null ? opt.id : "";
-      if(modelInput){ modelInput.value = ""; modelInput.placeholder = "Загрузка моделей…"; }
+      if(modelInput){ modelInput.value = ""; setPhV1(modelInput, "Загрузка моделей…"); }
       if(modelId) modelId.value = "";
       models = [];
       resetGenerations();
@@ -2671,7 +2677,7 @@
         const key = Object.keys(data.models || {}).find(k => k.toLowerCase() === String(opt.name).toLowerCase());
         models = key ? data.models[key].map(n => ({id:null, name:n})) : [];
       }
-      if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
+      if(modelInput) setPhV1(modelInput, models.length ? "Выбрать модель" : "Модель (введите вручную)");
     });
     makeInput?.addEventListener("input", () => { if(makeId) makeId.value = ""; });
 
@@ -2679,10 +2685,10 @@
       if(modelId) modelId.value = opt.id != null ? opt.id : "";
       resetGenerations();
       if(opt.id != null){
-        if(genInput) genInput.placeholder = "Загрузка поколений…";
+        if(genInput) setPhV1(genInput, "Загрузка поколений…");
         try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(opt.id)}`); generations = r.items || []; }
         catch(e){ generations = []; }
-        if(genInput) genInput.placeholder = generations.length ? "Любое поколение" : "Поколения не найдены";
+        if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
       }
     });
     modelInput?.addEventListener("input", () => { if(modelId) modelId.value = ""; resetGenerations(); });
@@ -2701,13 +2707,13 @@
       if(!m) return;
       makeInput.value = m.name;
       try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(mk)}`); models = (r.items || []).map(x => ({...x, name:displayModel(x.name)})); }catch(e){ models = []; }
-      if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
+      if(modelInput) setPhV1(modelInput, models.length ? "Выбрать модель" : "Модель (введите вручную)");
       if(!md || !modelInput || modelInput.value) return;
       const mo = models.find(x => String(x.id) === String(md));
       if(!mo) return;
       modelInput.value = mo.name;
       try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(md)}`); generations = r.items || []; }catch(e){ generations = []; }
-      if(genInput) genInput.placeholder = generations.length ? "Любое поколение" : "Поколения не найдены";
+      if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
       if(gn && genInput && !genInput.value){
         const g = generations.find(x => String(x.id) === String(gn));
         if(g) genInput.value = g.name;
