@@ -2383,7 +2383,11 @@
     $("#auctionCatalog").hidden = true;
     $("#auctionDetail").hidden = false;
     // SSR: лот уже вшит в HTML сервером (lot-page) — рендерим без запроса
-    const ssr = window.__ssrLot;
+    let ssr = window.__ssrLot;
+    if(!ssr){
+      const ssrEl = document.getElementById("ssrLotV1");
+      if(ssrEl){ try{ ssr = JSON.parse(ssrEl.textContent); }catch(e){ ssr = null; } ssrEl.remove(); }
+    }
     if(ssr && String(ssr.lot) === String(slug.lot) && ssr.auction === slug.auction){
       window.__ssrLot = null;
       renderDetail(ssr);

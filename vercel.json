@@ -6,6 +6,9 @@
     { "path": "/api/sync-lots", "schedule": "0 5 * * *" }
   ],
   "redirects": [
+    { "source": "/:path*", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/:path*", "permanent": true },
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
     { "source": "/hot", "destination": "/in-transit", "permanent": true },
     { "source": "/hot.html", "destination": "/in-transit", "permanent": true }
   ],

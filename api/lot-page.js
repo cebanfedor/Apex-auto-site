@@ -18,7 +18,9 @@ async function fetchOwnDetail(req, auction, lotId){
   try{
     const r = await fetch(url, {headers:{accept:"application/json"}, signal:controller.signal});
     const payload = await r.json().catch(() => null);
-    return r.ok && payload && payload.ok !== false ? payload.lot : null;
+    // 404 от своего API = лота нет ни в фиде, ни в архиве (не таймаут и не сбой).
+    if(r.status === 404) return {lot:null, notFound:true};
+    return {lot:r.ok && payload && payload.ok !== false ? payload.lot : null, notFound:false};
   }finally{ clearTimeout(timer); }
 }
 
@@ -40,10 +42,12 @@ module.exports = async function(req, res){
 
   const match = slug.match(/^(iaai|copart)-(.+)$/i);
   let lot = null;
+  let notFound = false;
   let debugError = null;
   if(match){
     try{
-      lot = await fetchOwnDetail(req, match[1].toLowerCase(), match[2]);
+      const got = await fetchOwnDetail(req, match[1].toLowerCase(), match[2]);
+      lot = got.lot; notFound = got.notFound;
       if(lot && lot.title){
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title;
         ogTitle = `${title} | Apex Auto`;
@@ -59,6 +63,7 @@ module.exports = async function(req, res){
     }
   }else{
     debugError = "slug did not match";
+    notFound = true;
   }
 
   if(req.query.debug === "1"){
@@ -95,7 +100,20 @@ module.exports = async function(req, res){
   // </script> внутри JSON экранируем, чтобы не разорвать тег.
   if(lot){
     const json = JSON.stringify(lot).replace(/</g, "\\u003c");
-    html = html.replace("</head>", `<script>window.__ssrLot=${json};</script>\n</head>`);
+    // type=application/json — блок данных, а не исполняемый скрипт: его не режет CSP
+    // (инлайн <script>window.__ssrLot=…</script> блокировался — хеш у него каждый раз новый,
+    // и SSR-ускорение молча не работало). Клиент читает #ssrLotV1.
+    html = html.replace("</head>", `<script type="application/json" id="ssrLotV1">${json}</script>\n</head>`);
+  }
+
+  // Лота не существует → честный 404 + noindex. Раньше отдавали 200 с общей страницей
+  // каталога и каноникалом на себя — Google копил это как «soft 404» и дубли.
+  if(notFound && !lot){
+    html = html.replace("</head>", `<meta name="robots" content="noindex">\n</head>`);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "public, s-maxage=300, max-age=60");
+    res.status(404).send(html);
+    return;
   }
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
