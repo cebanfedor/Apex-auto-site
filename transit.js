@@ -36,6 +36,12 @@
     "A_EU_DISPATCHED":"В пути к месту выдачи", "A_READY":"Готов к выдаче"
   };
 
+  function fmtEta(d){
+    if(!d) return "";
+    var dt = new Date(d + "T00:00:00");
+    return isNaN(dt) ? "" : dt.toLocaleDateString(lang() === "ro" ? "ro-RO" : lang() === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"long", year:"numeric"});
+  }
+
   function chips(it){
     return [it.mileage, it.fuel, it.engine, it.damage].filter(Boolean)
       .map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
@@ -103,7 +109,7 @@
     var gallery = photos.length
       ? '<div class="transitGalV1">'
           + '<div class="transitGalMainV1"><img id="transitMainImgV1" src="' + esc(photos[0]) + '" alt="' + esc(it.title) + '">'
-            + (photos.length > 1 ? '<button type="button" class="transitGalNavV1 isPrevV1" data-gal="-1" aria-label="Назад">‹</button><button type="button" class="transitGalNavV1 isNextV1" data-gal="1" aria-label="Вперёд">›</button><span class="transitGalCntV1" id="transitGalCntV1">1 / ' + photos.length + '</span>' : "")
+            + (photos.length > 1 ? '<button type="button" class="transitGalNavV1 isPrevV1" data-gal="-1" aria-label="Предыдущее фото">‹</button><button type="button" class="transitGalNavV1 isNextV1" data-gal="1" aria-label="Следующее фото">›</button><span class="transitGalCntV1" id="transitGalCntV1">1 / ' + photos.length + '</span>' : "")
           + '</div>'
           + (photos.length > 1 ? '<div class="transitThumbsV1">' + photos.map(function(p, i){
               return '<button type="button" class="' + (i === 0 ? "isActiveV1" : "") + '" data-thumb="' + i + '"><img src="' + esc(p) + '" alt="" loading="lazy"></button>';
@@ -125,7 +131,10 @@
             + specRow("Топливо", it.fuel)
             + specRow("Повреждения", it.damage)
             + specRow("VIN", it.vin, true)
+            + specRow("Оценка ремонта", it.repairEstimate ? "≈ " + money(it.repairEstimate) : "", true)
+            + specRow("Ожидается в Кишинёве", fmtEta(it.eta), true)
           + '</div>'
+          + (it.priceIncludes ? '<p class="transitInclV1"><b>' + esc(T("Цена включает")) + ':</b> <span data-no-i18n="true">' + esc(it.priceIncludes) + '</span></p>' : "")
           + '<div id="transitWhereV1" class="transitWhereV1" hidden></div>'
           + (it.sold ? "" :
             '<div class="transitCtaV1">'

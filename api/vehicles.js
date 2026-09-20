@@ -21,7 +21,10 @@ const options = {
     "mileage",
     "damage",
     "fuel",
-    "engine"
+    "engine",
+    "price_includes",
+    "repair_estimate",
+    "eta_date"
   ]
 };
 

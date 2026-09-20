@@ -101,7 +101,10 @@
                 <label>Двигатель<input name="engine" placeholder="напр. 2.0 Turbo / Long Range AWD"></label>
                 <label>Топливо<input name="fuel" placeholder="Бензин / Гибрид / Электро"></label>
                 <label>Повреждения<input name="damage" placeholder="напр. Перед, без подушек"></label>
+                <label>Оценка ремонта, $<input name="repair_estimate" type="number" placeholder="напр. 2500"></label>
+                <label>Ожидается в Кишинёве<input name="eta_date" type="date"></label>
               </div>
+              <label>Цена включает<input name="price_includes" placeholder="напр. авто, доставка, растаможка. Без ремонта"></label>
               <label>Описание<textarea name="description" rows="4"></textarea></label>
               <label>Фотографии
                 <input id="vehiclePhotos" type="file" accept="image/*" multiple>
@@ -231,6 +234,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v172"></script>
+  <script src="/admin/admin.js?v=admin-v173"></script>
 </body>
 </html>

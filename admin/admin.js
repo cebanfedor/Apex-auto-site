@@ -304,7 +304,16 @@ function bindForms(){
     data.photos = [...existing, ...photoUrls];
     const id = data.id;
     delete data.id;
-    await api(id ? `/api/vehicles?id=${encodeURIComponent(id)}` : "/api/vehicles", {method:id ? "PATCH" : "POST", body:data});
+    const saveVehicle = body => api(id ? `/api/vehicles?id=${encodeURIComponent(id)}` : "/api/vehicles", {method:id ? "PATCH" : "POST", body});
+    try{ await saveVehicle(data); }
+    catch(e){
+      // Новые поля объявления (оценка ремонта / дата / «цена включает») появятся в базе после
+      // SQL-миграции 20260921. Пока её нет — сохраняем без них, а не роняем всё сохранение.
+      if(!/column|schema|price_includes|repair_estimate|eta_date/i.test(String(e && e.message))) throw e;
+      const rest = {...data}; delete rest.price_includes; delete rest.repair_estimate; delete rest.eta_date;
+      await saveVehicle(rest);
+      alert("Сохранено, но без полей «Оценка ремонта», «Ожидается в Кишинёве» и «Цена включает»: в базе ещё нет этих колонок. Выполните SQL из supabase/migrations/20260921_vehicles_offer_fields.sql.");
+    }
     resetForm("vehicleForm");
     await loadVehicles();
     showNotice("Автомобиль сохранен", true);

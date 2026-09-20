@@ -84,13 +84,15 @@ module.exports = async function handler(req, res){
   if(type === "transit"){
     let rows = null, transitErr = "timeout";
     try{
+      // Доп. поля объявления (миграция 20260921): если колонок ещё нет — берём без них.
+      const BASE = "id,vin,year,make,model,price,photos,description,fuel,damage,mileage,engine,status,created_at";
+      const listWith = select => supabase.list("vehicles", {
+        select, status:"in.(\"Продаётся в пути\",\"Продан в пути\")", order:"created_at.desc", limit:"60",
+      });
       rows = await Promise.race([
-        supabase.list("vehicles", {
-          select:"id,vin,year,make,model,price,photos,description,fuel,damage,mileage,engine,status,created_at",
-          status:"in.(\"Продаётся в пути\",\"Продан в пути\")",
-          order:"created_at.desc",
-          limit:"60",
-        }).catch(e => { transitErr = String(e && e.message || e).slice(0, 200); return null; }),
+        listWith(BASE + ",price_includes,repair_estimate,eta_date")
+          .catch(e => (/column|schema/i.test(String(e && e.message)) ? listWith(BASE) : Promise.reject(e)))
+          .catch(e => { transitErr = String(e && e.message || e).slice(0, 200); return null; }),
         new Promise(resolve => setTimeout(() => resolve(null), 3500)),
       ]);
     }catch(e){ rows = null; }
@@ -107,6 +109,9 @@ module.exports = async function handler(req, res){
         price:Number(v.price) || 0,
         mileage:v.mileage || "", fuel:v.fuel || "", engine:v.engine || "", damage:v.damage || "",
         description:v.description || "",
+        priceIncludes:v.price_includes || "",
+        repairEstimate:Number(v.repair_estimate) || 0,
+        eta:v.eta_date ? String(v.eta_date).slice(0, 10) : "",
         photos,
         sold:v.status === "Продан в пути",
         createdAt:v.created_at || null,

@@ -135,8 +135,8 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   `engine.id=10` («2.5l 4») → среднюю гибрида ($≈30k) от бензина ($≈18k) не отделить.
   **Точная по-триму/топливу оценка возможна только из нашей базы `api_lots`** (там
   `fuel_id`, полная история) — как у DreamBid/BidCars. Пока БД висит (см. TODO) —
-  оценка свежих/премиальных комплектаций занижена. Карточки каталога (dbForecastV1)
-  на старом агрегате (год+двигатель).
+  оценка свежих/премиальных комплектаций занижена. Карточки каталога — тоже через comps
+  (`forecastForLot`, 2017+), агрегат только фолбэком.
 - `action=dbstatus` — read-only диагностика БД (фаза синка, sbUp, счётчики).
 - Таймед-проданные: финалку НЕ показываем (фид таймед-закрытия расходится с реальной
   ценой живого молотка → путало клиентов). Прежний `action=vinfinal` (добор финалки по
@@ -149,10 +149,8 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   каталог и все DB-фичи на live-фолбэке (медленнее), часовой синк не идёт. Проверить
   `?action=dbstatus`. Лечится рестартом проекта в дашборде Supabase (как 01.09).
 - Hot-lot car photos are closest-model stock, not exact 2018/2023 trims — swap if exact needed.
-- i18n-дыры в динамике: AI-советчик ставки в `script.js` (renderBidAdvisor/renderSmartLotAdvice)
-  и часть `title=`-подсказок не обёрнуты в `i18nT`/`L()` — на RO/EN остаются русскими.
+- i18n: AI-советчик и aria-подписи проверены 21.09.2026 — все ключи aiT/атрибутов есть в словарях.
 - a11y: подписи полей калькулятора (`index.html`) без `for=`; лид-форма/AI-поля только с `placeholder`.
-- Словарь `/usa/damages` при первом открытии фильтра тянется ~4с live — можно забить статикой.
 
 ## Трекинг (`api/w8-tracking.js`, `tracking.html`)
 - Провайдеры по порядку: **Dealer API** (env `DEALER_API_KEY`+`DEALER_API_BASE`; база не задана → спит) →
@@ -196,3 +194,7 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - SSR-данные лота — `<script type="application/json" id="ssrLotV1">` (инлайн `window.__ssrLot=` резал CSP, SSR молча не работал).
 - Редиректы: `www.apexauto.md` → apex, `/index.html` → `/`, `/<page>.html` → `/<page>` (новую страницу добавить в список в `vercel.json`).
 - В sitemap нет noindex-страниц (`cases` — черновик, `privacy`). Снимешь noindex с cases → верни в sitemap.
+- Объявление: доп. поля `price_includes`, `repair_estimate`, `eta_date` (миграция 20260921). Пока колонок нет —
+  API читает без них, админка сохраняет без них и предупреждает.
+- Каталог, вкладка «Все» (21.09.2026): датированные будущие торги + живые лоты БЕЗ даты (status≠6), NULLS LAST.
+  Проверка по live: ~70% недатированных в базе — реальные upcoming; ~30% проданы, синк их не донёс в архив.
