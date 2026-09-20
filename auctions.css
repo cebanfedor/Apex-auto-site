@@ -878,3 +878,4 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionCrumbsV1 .crumbDropV1 { position:static; }
   .auctionCrumbsV1 .crumbMenuV1 { left:0; right:0; top:100%; width:auto; min-width:0; max-width:none; }
 }
+.dbPriceBox b.dbNoBidV1 { font-size:13px; font-weight:700; color:var(--aMuted); }

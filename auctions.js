@@ -976,7 +976,7 @@
         <div class="dbPriceWrap">
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
-            <b>${price}</b>
+            ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
           <div class="dbForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
@@ -2681,7 +2681,29 @@
     setupCombo("filterGenV2", "genMenuV2", () => generations, (opt) => { if(genId) genId.value = opt.id != null ? opt.id : ""; });
     genInput?.addEventListener("input", () => { if(genId) genId.value = ""; });
 
-    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; }).catch(() => {
+    // Каталог открыт по ссылке (?make=16&model=93&generation=…): в форме стоят только id, а поля
+    // показывали «Выбрать марку» — человек не видел, по чему отфильтровано, и не мог сбросить.
+    // Подставляем названия и подгружаем зависимые списки.
+    async function hydrateNamesFromIds(){
+      const mk = makeId && makeId.value, md = modelId && modelId.value, gn = genId && genId.value;
+      if(!mk || /,/.test(mk) || !makeInput || makeInput.value) return;
+      const m = manufacturers.find(x => String(x.id) === String(mk));
+      if(!m) return;
+      makeInput.value = m.name;
+      try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(mk)}`); models = r.items || []; }catch(e){ models = []; }
+      if(modelInput) modelInput.placeholder = models.length ? "Выбрать модель" : "Модель (введите вручную)";
+      if(!md || !modelInput || modelInput.value) return;
+      const mo = models.find(x => String(x.id) === String(md));
+      if(!mo) return;
+      modelInput.value = mo.name;
+      try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(md)}`); generations = r.items || []; }catch(e){ generations = []; }
+      if(genInput) genInput.placeholder = generations.length ? "Любое поколение" : "Поколения не найдены";
+      if(gn && genInput && !genInput.value){
+        const g = generations.find(x => String(x.id) === String(gn));
+        if(g) genInput.value = g.name;
+      }
+    }
+    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; hydrateNamesFromIds(); }).catch(() => {
       manufacturers = (data.makes || []).map(n => ({id:null, name:n}));
     });
 
