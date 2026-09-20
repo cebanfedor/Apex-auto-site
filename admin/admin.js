@@ -194,9 +194,30 @@ async function refresh(){
   if(state.view === "content") await loadContent();
 }
 
+// Фото с телефона весят 3–8 МБ, а тело запроса к функции Vercel ограничено ~4.5 МБ.
+// Перед отправкой ужимаем до 1920px по длинной стороне в JPEG — и грузится быстро,
+// и сайт не тянет оригиналы. Не получилось (старый браузер) — шлём файл как есть.
+async function shrinkImage(file){
+  try{
+    if(!/^image\//.test(file.type || "") && !/\.(jpe?g|png|webp|heic)$/i.test(file.name || "")) return file;
+    const bmp = await createImageBitmap(file);
+    const MAX = 1920;
+    const k = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+    if(k === 1 && file.size < 900 * 1024 && /jpeg|webp/.test(file.type)) return file;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * k); canvas.height = Math.round(bmp.height * k);
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    return blob || file;
+  }catch(e){ return file; }
+}
+
 async function uploadFiles(input, folder){
   const urls = [];
-  for(const file of Array.from(input.files || [])){
+  const files = Array.from(input.files || []);
+  for(let i = 0; i < files.length; i++){
+    showNotice(`Загружаю фото ${i + 1} из ${files.length}…`, true);
+    const file = await shrinkImage(files[i]);
     const data = await api("/api/uploads", {
       method:"POST",
       body:file,

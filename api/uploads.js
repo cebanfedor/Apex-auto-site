@@ -14,6 +14,36 @@ function sniffImage(buffer){
   return null;
 }
 
+const SB_BUCKET = "site-uploads";
+let sbBucketReady = false;
+async function putSupabase(name, buffer, contentType){
+  const base = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if(!base || !key) throw new Error("Нет хранилища для фото: не заданы ни BLOB_READ_WRITE_TOKEN, ни SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY");
+  const auth = {apikey:key, authorization:`Bearer ${key}`};
+  const upload = () => fetch(`${base}/storage/v1/object/${SB_BUCKET}/${name}`, {
+    method:"POST",
+    headers:{...auth, "content-type":contentType, "cache-control":"public, max-age=31536000, immutable", "x-upsert":"false"},
+    body:buffer
+  });
+  let r = await upload();
+  if(!r.ok && !sbBucketReady){
+    // Бакета ещё нет → создаём публичный (только картинки, до 8 МБ) и повторяем.
+    await fetch(`${base}/storage/v1/bucket`, {
+      method:"POST",
+      headers:{...auth, "content-type":"application/json"},
+      body:JSON.stringify({id:SB_BUCKET, name:SB_BUCKET, public:true, file_size_limit:MAX_UPLOAD_BYTES, allowed_mime_types:["image/jpeg","image/png","image/webp"]})
+    }).catch(() => null);
+    r = await upload();
+  }
+  if(!r.ok){
+    const t = await r.text().catch(() => "");
+    throw new Error("Supabase Storage: " + r.status + " " + t.slice(0, 160));
+  }
+  sbBucketReady = true;
+  return `${base}/storage/v1/object/public/${SB_BUCKET}/${name}`;
+}
+
 module.exports = async function handler(request, response){
   if(!requireAdmin(request, response)) return;
   if(request.method !== "POST"){
@@ -22,15 +52,6 @@ module.exports = async function handler(request, response){
   }
 
   try{
-    if(!process.env.BLOB_READ_WRITE_TOKEN){
-      sendJson(response, 500, {
-        ok:false,
-        error:"Missing BLOB_READ_WRITE_TOKEN. Connect Vercel Blob to the project or add the read-write token in Vercel Environment Variables."
-      });
-      return;
-    }
-
-    const {put} = require("@vercel/blob");
     const chunks = [];
     let received = 0;
     for await (const chunk of request){
@@ -56,14 +77,18 @@ module.exports = async function handler(request, response){
 
     const folder = String(request.headers["x-apex-folder"] || "uploads").replace(/[^a-z0-9-]/gi, "-").toLowerCase();
     const name = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${sniffed.ext}`;
-    const blob = await put(name, buffer, {
-      access:"public",
-      contentType:sniffed.type
-    });
-
-    sendJson(response, 200, {ok:true,url:blob.url,pathname:blob.pathname});
+    // Хранилище: Vercel Blob, если подключён; иначе — Supabase Storage (ключ уже есть,
+    // отдельной настройки не требует; публичный бакет создаётся при первой загрузке).
+    if(process.env.BLOB_READ_WRITE_TOKEN){
+      const {put} = require("@vercel/blob");
+      const blob = await put(name, buffer, {access:"public", contentType:sniffed.type});
+      sendJson(response, 200, {ok:true,url:blob.url,pathname:blob.pathname});
+      return;
+    }
+    const url = await putSupabase(name, buffer, sniffed.type);
+    sendJson(response, 200, {ok:true,url,pathname:name});
   }catch(error){
     console.error("uploads error:", error?.message || error);
-    sendJson(response, 500, {ok:false,error:"Не удалось загрузить файл"});
+    sendJson(response, 500, {ok:false,error:"Не удалось загрузить файл: " + String(error?.message || error).slice(0, 200)});
   }
 };
