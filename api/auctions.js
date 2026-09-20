@@ -601,6 +601,7 @@ function buildSearchParams(query){
   }
   const tab = query.get("tab");
   if(tab === "buy_now") params.set("buy_now", "1");
+  if(tab === "soon" && !params.get("next_hours_auction")) params.set("next_hours_auction", "48");
   if(tab === "sold") params.set("status", "6");
   // Archive = completed auctions (sold + not sold). sale_date filters are
   // unreliable in this API, so use the status field (CSV is accepted).
@@ -1770,6 +1771,17 @@ async function searchFromDb(query){
     const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
     ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
   }
+  else if(tab === "soon"){
+    // «Сегодня и завтра»: торги в ближайшие 48 часов (плюс идущие сейчас). Чистый range по
+    // sale_date — быстро и без недатированных. Заменила вкладку «Открытые», которая после
+    // возврата лотов без даты стала копией «Все».
+    p.set("archived", "eq.false");
+    const from = new Date(Date.now() - 2 * 3600e3).toISOString();
+    const to = new Date(Date.now() + 48 * 3600e3).toISOString();
+    ands.push(`sale_date.gte.${from}`);
+    ands.push(`sale_date.lte.${to}`);
+    ands.push("or(status_id.neq.6,status_id.is.null)");
+  }
   else if(tab === "open"){
     p.set("archived", "eq.false");
     // Открытые: будущие торги (плюс идущие прямо сейчас — до 2 ч после старта) или
@@ -2634,7 +2646,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "5";
+  const SEARCH_CACHE_VER = "6";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
