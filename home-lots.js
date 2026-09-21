@@ -38,8 +38,15 @@
     if (it.transmission) parts.push(String(it.transmission).replace(/automatic/i, "AT").replace(/manual/i, "MT"));
     return parts.filter(Boolean).slice(0, 3).join(" • ");
   }
+  // Цена на карточке — ТОЛЬКО актуальная: текущая ставка, иначе «Купить сейчас».
+  // finalBid НЕ показываем: у перевыставленного лота это цена ПРОШЛОЙ продажи (BMW M4: старые
+  // $78 000 при текущей ставке $0 и выкупе $41 500) — выглядело как бредовая цена.
+  function T(x) { return typeof window.i18nT === "function" ? window.i18nT(x) : x; }
   function price(it) {
-    return Number(it.currentBid) || Number(it.finalBid) || Number(it.buyNow) || 0;
+    var bid = Number(it.currentBid) || 0, bn = Number(it.buyNow) || 0;
+    if (bid > 0) return {v: bid, label: "Ставка"};
+    if (bn > 0) return {v: bn, label: "Купить сейчас"};
+    return null;
   }
 
   function card(it) {
@@ -54,7 +61,8 @@
       '<a class="homeLotCardV1" href="/auctions/' + esc(it.id) + '">' +
       '<div class="homeLotImgV1">' +
       (img ? '<img src="' + esc(img) + '" alt="' + esc(title) + '" loading="lazy" onerror="this.style.display=\'none\'">' : "") +
-      (p ? '<span class="homeLotPriceV1">' + esc(money(p)) + "</span>" : "") +
+      (p ? '<span class="homeLotPriceV1"><small>' + esc(T(p.label)) + "</small> " + esc(money(p.v)) + "</span>"
+         : '<span class="homeLotPriceV1 homeLotNoBidV1">' + esc(T("Ставок пока нет")) + "</span>") +
       (auc ? '<span class="homeLotAucV1">' + esc(auc) + "</span>" : "") +
       "</div>" +
       '<div class="homeLotBodyV1">' +
