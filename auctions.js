@@ -1180,6 +1180,19 @@
     }catch(e){ /* чипы — необязательный блок */ }
   }
 
+  // Пагинация по ВСЕМУ каталогу: страница = запрос к серверу (30 лотов, уже отсортированных
+  // по всей выборке). Раньше грузили 100 лотов и строили «страницы 1–4» только из них —
+  // казалось, что каталог и сортировка — это пара страниц, остальное пряталось за «Показать ещё».
+  // Исключение — фильтры, которые применяются в браузере (статус продажи, диапазон дат): там
+  // по-прежнему берём пачки по 100 и листаем загруженное.
+  const SERVER_PAGE_SIZE = 30, MAX_SERVER_PAGES = 400;
+  function clientFilterActive(){
+    return !!(document.querySelector('input[name="saleStatus"]:checked')?.value
+      || document.querySelector('input[name="auctionDateFrom"]')?.value
+      || document.querySelector('input[name="auctionDateTo"]')?.value);
+  }
+  function isServerPaging(){ return state.tab !== "favorites" && !clientFilterActive(); }
+
   function renderCards(){
     const box = $("#auctionCards");
     const sale     = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
@@ -1200,13 +1213,16 @@
   function renderPagination(){
     const box = document.getElementById("paginationV1");
     if(!box) return;
-    const totalPages = Math.ceil(state.filteredCount / state.displayPageSize);
+    const server = isServerPaging();
+    const totalPages = server
+      ? Math.min(MAX_SERVER_PAGES, Math.max(Math.ceil((state.total || 0) / SERVER_PAGE_SIZE), state.hasMore ? state.page + 1 : state.page))
+      : Math.ceil(state.filteredCount / state.displayPageSize);
     const showPageNums = totalPages > 1;
     if(!showPageNums && !state.hasMore){ box.hidden = true; return; }
     box.hidden = false;
     let html = "";
     if(showPageNums){
-      const p = state.displayPage;
+      const p = server ? state.page : state.displayPage;
       const vis = new Set([1, totalPages]);
       for(let i = Math.max(1, p - 2); i <= Math.min(totalPages, p + 2); i++) vis.add(i);
       const pages = [...vis].sort((a, b) => a - b);
@@ -1219,7 +1235,7 @@
       }
       html += `<button class="pgBtnV1 pgNavV1"${p === totalPages ? " disabled" : ""} data-page="${p + 1}">&#8250;</button>`;
     }
-    if(state.hasMore){
+    if(state.hasMore && !server){
       html += `<button class="pgLoadMoreBtnV1" id="pgLoadMoreBtn"${state.loading ? " disabled" : ""}>Показать ещё лоты</button>`;
     }
     box.innerHTML = html;
@@ -1373,6 +1389,7 @@
     // Не блокируем повторный вызов, а перебиваем предыдущий: клик по сортировке
     // или вкладке во время загрузки должен выигрывать, не игнорироваться,
     // и устаревший ответ не должен перетирать свежий (race).
+    if(!append) state.perPage = isServerPaging() ? SERVER_PAGE_SIZE : 100;
     const reqId = state.loadSeq = (state.loadSeq || 0) + 1;
     state.loading = true;
     setMessage("");
@@ -2936,6 +2953,13 @@
       if(!btn || btn.disabled || btn.classList.contains("pgActiveV1")) return;
       const page = parseInt(btn.dataset.page);
       if(!page || page < 1) return;
+      if(isServerPaging()){
+        state.page = page; state.displayPage = 1;
+        const top = document.getElementById("auctionCards")?.offsetTop ?? 0;
+        window.scrollTo({top: Math.max(0, top - 80), behavior:"smooth"});
+        loadLots();
+        return;
+      }
       const loadedPages = Math.ceil(state.items.length / state.displayPageSize);
       if(page > loadedPages && state.hasMore){
         state.page++;

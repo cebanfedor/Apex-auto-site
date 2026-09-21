@@ -1927,6 +1927,12 @@ async function searchFromDb(query){
     price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc.nullslast",
     buy_now_asc:"buy_now.asc.nullslast", buy_now_desc:"buy_now.desc.nullslast"
   };
+  // «Пробег 1-9» возглавляли сотни лотов с пробегом 0 (не указан), «Купить сейчас 1-9» —
+  // заглушки $1–$100. В сортировке по этим полям такие значения отбрасываем.
+  const sortQ = query.get("sort") || "";
+  if(sortQ === "mileage_asc" || sortQ === "mileage_desc") ands.push("odometer_mi.gt.0");
+  if(sortQ === "buy_now_asc" || sortQ === "buy_now_desc") ands.push("buy_now.gte.300");
+  if(ands.length) p.set("and", `(${ands.join(",")})`);
   p.set("order", `${sortMap[query.get("sort") || "soon"] || sortMap.soon},id.asc`);
 
   const perPage = Math.min(100, Math.max(1, Number(query.get("per_page") || query.get("limit") || 50) || 50));
@@ -2649,7 +2655,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "7";
+  const SEARCH_CACHE_VER = "8";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
