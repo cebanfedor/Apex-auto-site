@@ -1932,20 +1932,18 @@ async function searchFromDb(query){
     // desc БЕЗ nullslast: NULL-ы уже отсечены фильтром выше, а «DESC NULLS LAST» обычный btree-индекс
     // обслужить не может → сортировка 600k строк в памяти → таймаут → live-фолбэк на 10 секунд.
     mileage_asc:"odometer_mi.asc.nullslast", mileage_desc:"odometer_mi.desc",
-    price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc.nullslast",
-    buy_now_asc:"buy_now.asc.nullslast", buy_now_desc:"buy_now.desc.nullslast"
+    price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc",
+    buy_now_asc:"buy_now.asc.nullslast", buy_now_desc:"buy_now.desc"
   };
-  // «Пробег 1-9» возглавляли сотни лотов с пробегом 0 (не указан), «Купить сейчас 1-9» —
-  // заглушки $1–$100. В сортировке по этим полям такие значения отбрасываем.
+  // В каталоге показываем ВСЁ, что даёт API (решение Федора, 22.09.2026): никаких отсечений по
+  // «пробегу 0», «году 0», дешёвому Buy Now и т.п. — скрывать часть лотов можно только в
+  // «Рекомендованных» (smart). Единственное техническое: у DESC-сортировок NULL-значения выносим
+  // в «хвост» отдельным запросом (см. ниже) — «ORDER BY x DESC NULLS LAST» обычный индекс не
+  // обслуживает, и сортировка 600k строк в памяти уходила в таймаут. Лоты при этом НЕ теряются.
   const sortQ = query.get("sort") || "";
-  // Пробег 1–9 миль и год 0 — заглушки фида, а не данные.
-  // Пробег 0 НЕ отсекаем: это и реальные новые машины (решение Федора, 22.09.2026). Убираем только
-  // физически невозможное (≥999 999 миль — заглушки фида вида 999 999 / 999 999 999), а для DESC — NULL-ы,
-  // чтобы сортировка шла по индексу (gte.0 отбрасывает только NULL).
-  if(sortQ === "mileage_asc") ands.push("or(odometer_mi.lt.999999,odometer_mi.is.null)");
-  if(sortQ === "mileage_desc"){ ands.push("odometer_mi.gte.0"); ands.push("odometer_mi.lt.999999"); }
-  if(sortQ === "year_asc" || sortQ === "year_desc") ands.push("year.gt.1900");
-  if(sortQ === "buy_now_asc" || sortQ === "buy_now_desc") ands.push("buy_now.gte.300");
+  const DESC_COL = {year_desc:"year", mileage_desc:"odometer_mi", buy_now_desc:"buy_now", price_desc:"current_bid"};
+  const nullTailCol = DESC_COL[sortQ] || "";
+  if(nullTailCol) ands.push(`${nullTailCol}.not.is.null`);
   if(ands.length) p.set("and", `(${ands.join(",")})`);
   p.set("order", `${sortMap[query.get("sort") || "soon"] || sortMap.soon},id.asc`);
 
@@ -1987,11 +1985,14 @@ async function searchFromDb(query){
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
-  if(datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc)$/)){
+  const dateTail = datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc)$/);
+  if(dateTail || nullTailCol){
     try{
       const p2 = new URLSearchParams(p);
-      const ands2 = ands.filter(x => !x.startsWith("sale_date.gte."));
-      ands2.push("sale_date.is.null");
+      const ands2 = dateTail
+        ? ands.filter(x => !x.startsWith("sale_date.gte."))
+        : ands.filter(x => x !== `${nullTailCol}.not.is.null`);
+      ands2.push(dateTail ? "sale_date.is.null" : `${nullTailCol}.is.null`);
       p2.set("and", `(${ands2.join(",")})`);
       p2.set("order", "id.asc");
       const need = Math.max(0, perPage - rows.length);
@@ -2669,7 +2670,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "13";
+  const SEARCH_CACHE_VER = "14";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
