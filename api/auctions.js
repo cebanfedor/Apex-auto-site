@@ -2123,7 +2123,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
     if(JUNK_TITLE.test(titleTxt) || JUNK_DAMAGE.test(dmgTxt)) continue;   // утиль не берём
     out.push({final_bid:fb, year:Number(r.year) || 0, odometer_mi:Number(r.odometer_mi) || 0,
       fuel_id:Number(r.fuel_id) || 0, gen_id:Number(r.generation_id) || 0,
-      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || "")});
+      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || ""), title:String(r.title || "")});
   }
   return out.length ? out : null;
 }
@@ -2880,6 +2880,11 @@ module.exports = async function handler(request, response){
       const rows = (makeId && modelId) ? await fetchSoldCompsFromDb(makeId, modelId) : null;
       if(!rows){ sendJson(response, 200, {ok:false, reason:"no db rows"}); return; }
       const genCache = new Map();
+      // Проверка ТАБЛИЦЫ Федора на тех же продажах (только агрегаты — цифры таблицы наружу не уходят).
+      const guideRows = await priceGuide.loadGuide();
+      const mkName = String(query.get("make_name") || ""), mdName = String(query.get("model_name") || "");
+      const FUEL_TXT = {1:"Gasoline", 2:"Electric", 3:"Hybrid", 4:"Diesel"};
+      const tErrs = [], tRatio = [], tIn20 = [], tByYear = {};
       const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = [], gIn10 = [], gIn15 = [], gIn20 = []; let nulls = 0;
       const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
       for(const r of sample){
@@ -2889,9 +2894,20 @@ module.exports = async function handler(request, response){
         const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:r.fuel_id, genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
         if(!st || !st.median){ nulls++; continue; }
         errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
+        if(mkName && guideRows.length){
+          const parts = String(r.dmg || "").split(/\s+\/\s+/);
+          const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:"", year:r.year, fuel:FUEL_TXT[r.fuel_id] || ""});
+          if(row){
+            const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
+            const tb = priceGuide.guideBand(row.base_price, row.k, cf);
+            const rel = Math.abs(r.final_bid - tb.mid) / r.final_bid;
+            tErrs.push(rel); tRatio.push(r.final_bid / tb.mid); tIn20.push(Math.abs(r.final_bid - tb.mid) / tb.mid <= .2 ? 1 : 0);
+          }
+        }
         const gb = dataGuideBase(rest, g, r.fuel_id, r.year);
         if(gb){
-          const cf = priceGuide.conditionCoef({dmg:r.dmg, dmg2:"", run:r.run, doc:r.doc});
+          const dp = String(r.dmg || "").split(/\s+\/\s+/);
+          const cf = priceGuide.conditionCoef({dmg:dp[0], dmg2:dp[1] || "", run:r.run, doc:r.doc});
           const b = priceGuide.guideBand(gb, DATA_GUIDE_K, cf);
           gErrs.push(Math.abs(b.mid - r.final_bid) / r.final_bid);
           gIn.push(r.final_bid >= b.lo && r.final_bid <= b.hi ? 1 : 0);
@@ -2909,6 +2925,10 @@ module.exports = async function handler(request, response){
         within25pct:errs.length ? Math.round(errs.filter(e => e <= .25).length / errs.length * 100) : null,
         actualInsideBandPct:inBand.length ? Math.round(inBand.reduce((x, y) => x + y, 0) / inBand.length * 100) : null,
         medianBandWidthPct:widths.length ? Math.round(med(widths) * 100) : null,
+        table:{tested:tErrs.length, medianAbsErrPct:tErrs.length ? Math.round(med(tErrs) * 100) : null,
+          within25pct:tErrs.length ? Math.round(tErrs.filter(e => e <= .25).length / tErrs.length * 100) : null,
+          inside20:tIn20.length ? Math.round(tIn20.reduce((x, y) => x + y, 0) / tIn20.length * 100) : null,
+          actualToGuideRatio:tRatio.length ? Math.round(med(tRatio) * 100) / 100 : null},
         formula:{tested:gErrs.length, medianAbsErrPct:gErrs.length ? Math.round(med(gErrs) * 100) : null,
           within25pct:gErrs.length ? Math.round(gErrs.filter(e => e <= .25).length / gErrs.length * 100) : null,
           insideBandPct:gIn.length ? Math.round(gIn.reduce((x, y) => x + y, 0) / gIn.length * 100) : null,
