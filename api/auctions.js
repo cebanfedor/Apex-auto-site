@@ -402,7 +402,15 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // так что реальные relist-записи под правило не попадают.
   const saleTs = Date.parse(lot?.sale_date || lot?.auction_date || "");
   const saleUpcoming = Number.isFinite(saleTs) && saleTs > Date.now();
+  // Проверка на здравый смысл: «не продан за $78 000» при оценке авто $54 000 и выкупе $41 500
+  // (BMW M4, лот 64624966) — не ставка. Продавец не откажется от 78k, чтобы выставить выкуп за 41.5k:
+  // фид записал в поле ставки что-то иное (запрос продавца/сорванную ставку). Такие записи непроданных
+  // раундов выбрасываем: ставка выше 115% оценочной стоимости или в 1.5+ раза выше текущего «Купить сейчас».
+  const buyNowNow = safeNumber(lot?.buy_now || item?.buy_now);
+  const absurdBid = p => /not_sold/i.test(p.status) && (p.bid || 0) > 0
+    && ((ervForNoise > 0 && p.bid > ervForNoise * 1.15) || (buyNowNow > 0 && p.bid > buyNowNow * 1.5));
   const priceHistory = Array.from(byDay.values())
+    .filter(p => !absurdBid(p))
     .filter(p => !(/not_sold/i.test(p.status) && (p.bid || 0) > 0 && (p.bid || 0) < noiseCap && !p.buyNow))
     .filter(p => !(saleUpcoming && currentBid > 0 && /not_sold/i.test(p.status)
       && (p.bid || 0) > 0 && (p.bid || 0) < currentBid
@@ -426,7 +434,11 @@ function normalizeLot(source, fallbackAuction = "copart"){
     });
   }
   // For on-approval / sold lots where final_bid isn't explicitly set, infer from price history
-  const resolvedFinalBid = finalBid || (!currentBid && priceHistory.length ? (priceHistory[0].bid || 0) : 0);
+  // ⚠️ Раньше финал «додумывался» из ЛЮБОЙ последней записи истории, даже «не продан» — так у лота без
+  // ставок появлялась «финальная цена» непроданного раунда. Додумываем только из записи со статусом продажи.
+  const topHist = priceHistory[0];
+  const topIsSale = topHist && /sold|approval/i.test(topHist.status || "") && !/not_sold/i.test(topHist.status || "");
+  const resolvedFinalBid = finalBid || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
 
   return {
@@ -1749,6 +1761,16 @@ async function attachGenRange(lot){
   return lot;
 }
 
+// payload в базе нормализован на момент синка — в старых записях finalBid мог быть «додуман» из
+// непроданного раунда. Финал оставляем только у лотов со статусом продажи.
+function sanitizeStoredLot(l){
+  if(l && Number(l.finalBid) > 0){
+    const st = String(l.statusName || l.lotStatus || "");
+    const sold = l.statusId === 6 || l.statusId === 4 || (/sold|approval/i.test(st) && !/not_sold/i.test(st));
+    if(!sold) return {...l, finalBid:0};
+  }
+  return l;
+}
 const undatedCountCache = new Map();
 async function searchFromDb(query){
   if(!(await lotsDbReady())) return null;
@@ -2026,7 +2048,7 @@ async function searchFromDb(query){
   }
   return {
     _db:true,
-    items:rows.map(r => r.payload).filter(Boolean),
+    items:rows.map(r => r.payload).filter(Boolean).map(sanitizeStoredLot),
     total,
     page,
     perPage,
@@ -2692,8 +2714,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "14";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
+  const SEARCH_CACHE_VER = "15";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g4" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
