@@ -2896,7 +2896,7 @@ module.exports = async function handler(request, response){
         errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
         if(mkName && guideRows.length){
           const parts = String(r.dmg || "").split(/\s+\/\s+/);
-          const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:"", year:r.year, fuel:FUEL_TXT[r.fuel_id] || ""});
+          const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:((tableGens(modelId) || []).find(x => x.from === g.genFrom) || {}).name || "", year:r.year, fuel:FUEL_TXT[r.fuel_id] || ""});
           if(row){
             const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
             const tb = priceGuide.guideBand(row.base_price, row.k, cf);
