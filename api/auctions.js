@@ -2884,7 +2884,7 @@ module.exports = async function handler(request, response){
       const guideRows = await priceGuide.loadGuide();
       const mkName = String(query.get("make_name") || ""), mdName = String(query.get("model_name") || "");
       const FUEL_TXT = {1:"Gasoline", 2:"Electric", 3:"Hybrid", 4:"Diesel"};
-      const tErrs = [], tRatio = [], tIn20 = [], tByYear = {};
+      const tErrs = [], tRatio = [], tIn20 = [], tByYear = {}, tLow = [], tHigh = [];
       const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = [], gIn10 = [], gIn15 = [], gIn20 = []; let nulls = 0;
       const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
       for(const r of sample){
@@ -2899,6 +2899,9 @@ module.exports = async function handler(request, response){
           const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:((tableGens(modelId) || []).find(x => x.from === g.genFrom) || {}).name || "", year:r.year, fuel:FUEL_TXT[r.fuel_id] || ""});
           if(row){
             const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
+            // Таблица Федора рассчитана на пробег до 100 тыс. миль — считаем отдельно «как в таблице» и «пробежные».
+            const lowMi = r.odometer_mi > 0 && r.odometer_mi < 100000;
+            (lowMi ? tLow : tHigh).push(r.final_bid / priceGuide.guideBand(row.base_price, row.k, cf).mid);
             const tb = priceGuide.guideBand(row.base_price, row.k, cf);
             const rel = Math.abs(r.final_bid - tb.mid) / r.final_bid;
             tErrs.push(rel); tRatio.push(r.final_bid / tb.mid);
@@ -2930,6 +2933,8 @@ module.exports = async function handler(request, response){
           within25pct:tErrs.length ? Math.round(tErrs.filter(e => e <= .25).length / tErrs.length * 100) : null,
           inside20:tIn20.length ? Math.round(tIn20.reduce((x, y) => x + y, 0) / tIn20.length * 100) : null,
           actualToGuideRatio:tRatio.length ? Math.round(med(tRatio) * 100) / 100 : null,
+          under100k:{n:tLow.length, ratio:tLow.length ? Math.round(med(tLow) * 100) / 100 : null, within25pct:tLow.length ? Math.round(tLow.filter(x => Math.abs(x - 1) <= .25).length / tLow.length * 100) : null},
+          over100k:{n:tHigh.length, ratio:tHigh.length ? Math.round(med(tHigh) * 100) / 100 : null},
           ratioByAuction:Object.fromEntries(Object.entries(tByYear).map(([k, v]) => [k, {n:v.length, ratio:Math.round(med(v) * 100) / 100}]))},
         formula:{tested:gErrs.length, medianAbsErrPct:gErrs.length ? Math.round(med(gErrs) * 100) : null,
           within25pct:gErrs.length ? Math.round(gErrs.filter(e => e <= .25).length / gErrs.length * 100) : null,
