@@ -898,7 +898,10 @@
     // Buy Now случается ДО запланированного аукциона. Будущая дата отменяет
     // только косвенные признаки (старый finalBid у перевыставленного лота).
     const hardSold = lot.statusId === 6 || /^sold$/i.test(lot.statusName || lot.lotStatus || "");
-    const soldLike = lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "") || lot.finalBid > 0;
+    // finalBid сам по себе НЕ признак продажи: фид кладёт туда последнюю ставку и непроданных раундов
+    // (BMW M4 64624966: «$78 000 · not_sold» 02.09 при реальных раундах $40 500/$29 750 и текущей ставке $0).
+    // Проданным считаем только по статусу.
+    const soldLike = lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "");
     const isSold = hardSold || (soldLike && !upcoming);
     const finalBid = isSold ? (lot.finalBid || lot.priceHistory?.[0]?.bid || 0) : 0;
     return {isSold, finalBid};

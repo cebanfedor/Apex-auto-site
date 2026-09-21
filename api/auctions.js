@@ -218,7 +218,9 @@ function imageList(value){
 
 // Seller: real name + type badge. IAAI has seller_type; Copart detects from name.
 function sellerLabel(lot, item){
-  const name = safeName(lot?.seller || item?.seller);
+  let name = safeName(lot?.seller || item?.seller);
+  // Фид иногда кладёт в seller имя файла («dsc2.jpg») — это мусор, не продавец.
+  if(/\.(jpe?g|png|webp|gif)$/i.test(name) || /^https?:/i.test(name)) name = "";
   const t = safeName(lot?.seller_type || item?.seller_type).toLowerCase();
   // Detect insurance from seller_type or from well-known insurer names
   const nameUp = name.toUpperCase();
