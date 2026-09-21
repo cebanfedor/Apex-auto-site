@@ -105,6 +105,18 @@ function conditionCoef(meta){
   return runs ? 0.9 : (noStart ? 0.8 : 0.85);                // две зоны
 }
 
+// Таблица Федора рассчитана на пробег ДО 100 тыс. миль (его слова, 22.09.2026). Выше — понижающая
+// поправка: проверка на продажах показала, что BMW 3 с пробегом >100k уходят за ~0.3 от ориентира
+// таблицы против ~0.8 у малопробежных. Ступени стартовые — Федор может поправить.
+function mileageFactor(odometerMi){
+  const mi = Number(odometerMi) || 0;
+  if(mi <= 100000) return 1;
+  if(mi <= 125000) return 0.8;
+  if(mi <= 150000) return 0.65;
+  if(mi <= 180000) return 0.5;
+  return 0.4;
+}
+
 const round100 = v => Math.round(v / 100) * 100;
 // Вилка ориентира: ±0.05 от коэффициента вокруг базы×K.
 function guideBand(base, k, coef){
@@ -113,4 +125,4 @@ function guideBand(base, k, coef){
   return {lo:round100(g * (coef - 0.05)), mid:round100(g * coef), hi:round100(g * (coef + 0.05))};
 }
 
-module.exports = {loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash};
+module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash};

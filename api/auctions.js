@@ -2901,7 +2901,7 @@ module.exports = async function handler(request, response){
             const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
             // Таблица Федора рассчитана на пробег до 100 тыс. миль — считаем отдельно «как в таблице» и «пробежные».
             const lowMi = r.odometer_mi > 0 && r.odometer_mi < 100000;
-            (lowMi ? tLow : tHigh).push(r.final_bid / priceGuide.guideBand(row.base_price, row.k, cf).mid);
+            (lowMi ? tLow : tHigh).push(r.final_bid / priceGuide.guideBand(row.base_price * priceGuide.mileageFactor(r.odometer_mi), row.k, cf).mid);
             const tb = priceGuide.guideBand(row.base_price, row.k, cf);
             const rel = Math.abs(r.final_bid - tb.mid) / r.final_bid;
             tErrs.push(rel); tRatio.push(r.final_bid / tb.mid);
@@ -2962,7 +2962,8 @@ module.exports = async function handler(request, response){
           const hasCond = !!(query.get("dmg") || query.get("cond"));
           const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:query.get("make_name"), model:query.get("model_name"),
             title:query.get("title"), gen:query.get("gen"), year:yearG, fuel:query.get("fuel")}) : null;
-          let band = row ? priceGuide.guideBand(row.base_price, row.k, coef) : null, src = "guide";
+          const miF = priceGuide.mileageFactor(String(query.get("odometer") || "").replace(/[^0-9]/g, ""));
+          let band = row ? priceGuide.guideBand(row.base_price * miF, row.k, coef) : null, src = "guide";
           if(!band && hasCond && yearG){
             const pool = await fetchSoldComps(makeId, modelId);
             const g = await resolveGenRange(modelId, yearG, "");
