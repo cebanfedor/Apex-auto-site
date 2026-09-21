@@ -440,6 +440,12 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const topIsSale = topHist && /sold|approval/i.test(topHist.status || "") && !/not_sold/i.test(topHist.status || "");
   const resolvedFinalBid = finalBid || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
+  // ⚠️ Фид ставит статус «sold» (6) лотам, торги по которым ЕЩЁ НЕ ПРОШЛИ, а в final_bid кладёт текущую
+  // пред-ставку. Торги в будущем → лот не может быть продан: это активный лот со ставкой. Иначе в архиве
+  // висели «торги 23 сентября · финальная цена $1 700».
+  const saleTsN = Date.parse(lot?.sale_date || lot?.auction_date || "");
+  const soldByStatus = Number(statusId) === 6 || Number(statusId) === 8 || /sold/i.test(String(statusName || ""));
+  const preBidSold = soldByStatus && Number.isFinite(saleTsN) && saleTsN > Date.now();
 
   return {
     id:`${auction}-${lotNumber || item?.vin || Math.random().toString(36).slice(2)}`,
@@ -457,8 +463,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     url:auctionUrl(auction, iaaiExternalId || lotNumber),
     location,
     auctionDate:lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "",
-    currentBid,
-    finalBid:resolvedFinalBid,
+    currentBid:preBidSold ? Math.max(currentBid, resolvedFinalBid) : currentBid,
+    finalBid:preBidSold ? 0 : resolvedFinalBid,
     buyNow,
     odometer,
     odometerKm:safeNumber(lot?.odometer?.km),
@@ -492,9 +498,9 @@ function normalizeLot(source, fallbackAuction = "copart"){
     condition:safeName(lot?.condition || item?.condition),
     priceHistory,
     photoCount:images.length,
-    lotStatus:lotStatus(item, lot),
-    statusName,
-    statusId,
+    lotStatus:preBidSold ? "sale" : lotStatus(item, lot),
+    statusName:preBidSold ? "On sale" : statusName,
+    statusId:preBidSold ? 3 : statusId,
     saleStatus:sale.label,
     saleStatusKey:sale.key,
     timed:sale.timed,
@@ -888,7 +894,8 @@ async function fetchEridanSearch(query){
     const results = Array.isArray(data.results) ? data.results : [];
     const items = results
       .map(normalizeEridanLot)
-      .filter(lot => wantsPast ? String(lot.statusId) === "6" : String(lot.statusId) !== "6");
+      .filter(lot => wantsPast ? String(lot.statusId) === "6" : String(lot.statusId) !== "6")
+      .filter(lot => !wantsPast || !(Date.parse(lot.auctionDate || "") > Date.now()));
     return {
       items,
       total:data.count || items.length,
@@ -949,6 +956,8 @@ async function fetchSearch(query){
         // status 6/8 yet (feed lag). sortItems("soon") puts future lots first,
         // recently ended ones at the bottom — same as bid.cars behavior.
         .filter(lot => wantsPast || (String(lot.statusId) !== "6" && String(lot.statusId) !== "8"))
+        // Архив = только состоявшиеся торги: лот с будущей датой (фид помечает его sold с пред-ставкой) — не архив.
+        .filter(lot => !wantsPast || !(Date.parse(lot.auctionDate || "") > Date.now()))
         // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
         // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
         .filter(lot => query.get("saleStatus") !== "timed" || lot.timed);
@@ -1764,6 +1773,10 @@ async function attachGenRange(lot){
 // payload в базе нормализован на момент синка — в старых записях finalBid мог быть «додуман» из
 // непроданного раунда. Финал оставляем только у лотов со статусом продажи.
 function sanitizeStoredLot(l){
+  const ts = l && l.auctionDate ? Date.parse(l.auctionDate) : NaN;
+  if(l && Number.isFinite(ts) && ts > Date.now() && (l.statusId === 6 || l.statusId === 8 || /^sold$/i.test(String(l.lotStatus || "")))){
+    l = {...l, currentBid:Math.max(Number(l.currentBid) || 0, Number(l.finalBid) || 0), finalBid:0, lotStatus:"sale", statusName:"On sale", statusId:3};
+  }
   if(l && Number(l.finalBid) > 0){
     const st = String(l.statusName || l.lotStatus || "");
     const sold = l.statusId === 6 || l.statusId === 4 || (/sold|approval/i.test(st) && !/not_sold/i.test(st));
@@ -1786,7 +1799,8 @@ async function searchFromDb(query){
   let datedOnly = false;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
   // Архив = только СОСТОЯВШИЕСЯ торги. Фид помечает sold/archived и лоты с будущей датой,
   // где final_bid — всего лишь пред-ставка: они вставали первыми («23 сент., финальная $975»).
-  const pastOnly = () => ands.push(`or(sale_date.lte.${new Date().toISOString()},sale_date.is.null)`);
+  let pastTail = false;
+  const pastOnly = () => { ands.push(`sale_date.lte.${new Date().toISOString()}`); pastTail = true; };
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); pastOnly(); }
   else if(tab === "archived"){ p.set("archived", "eq.true"); pastOnly(); }
   else if(tab === "buy_now"){
@@ -1950,8 +1964,8 @@ async function searchFromDb(query){
 
   const wantsPastTab = tab === "sold" || tab === "archived";
   const sortMap = {
-    soon:wantsPastTab ? "sale_date.desc.nullslast" : "sale_date.asc.nullslast",
-    smart:wantsPastTab ? "sale_date.desc.nullslast" : undefined,
+    soon:wantsPastTab ? "sale_date.desc" : "sale_date.asc.nullslast",
+    smart:wantsPastTab ? "sale_date.desc" : undefined,
     date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
     year_asc:"year.asc.nullslast", year_desc:"year.desc",
     // desc БЕЗ nullslast: NULL-ы уже отсечены фильтром выше, а «DESC NULLS LAST» обычный btree-индекс
@@ -2010,12 +2024,12 @@ async function searchFromDb(query){
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
-  const dateTail = datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc)$/);
+  const dateTail = (datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/));
   if(dateTail || nullTailCol){
     try{
       const p2 = new URLSearchParams(p);
       const ands2 = dateTail
-        ? ands.filter(x => !x.startsWith("sale_date.gte."))
+        ? ands.filter(x => !x.startsWith("sale_date.gte.") && !x.startsWith("sale_date.lte."))
         : ands.filter(x => x !== `${nullTailCol}.not.is.null`);
       ands2.push(dateTail ? "sale_date.is.null" : `${nullTailCol}.is.null`);
       p2.set("and", `(${ands2.join(",")})`);
@@ -2423,7 +2437,7 @@ function syncRowFromItem(item, {archived = false} = {}){
   // фид или архивный синк говорят archived=true (фид иногда так помечает
   // переставленные/переоткрытые лоты). Иначе живые лоты пропадают из каталога.
   const isFutureSale = saleDate && Date.parse(saleDate) > Date.now();
-  const isSold = statusId === 6 || statusId === 8;
+  const isSold = (statusId === 6 || statusId === 8) && !isFutureSale;
   const isArchived = isSold || ((archived || lot?.archived === true) && !isFutureSale);
   return {
     id:normalized.id,
@@ -2714,8 +2728,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "15";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g4" : "";   // бамп при смене таблицы поколений
+  const SEARCH_CACHE_VER = "16";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g5" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
