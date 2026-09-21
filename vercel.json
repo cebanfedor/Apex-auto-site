@@ -6,6 +6,7 @@
     { "path": "/api/sync-lots", "schedule": "0 5 * * *" }
   ],
   "redirects": [
+    { "source": "/server/:path*", "destination": "/404", "permanent": false },
     { "source": "/:path*", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/:path*", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
@@ -13,7 +14,6 @@
     { "source": "/hot.html", "destination": "/in-transit", "permanent": true }
   ],
   "rewrites": [
-    { "source": "/server/:path*", "destination": "/__not_found__" },
     { "source": "/api/sync-lots", "destination": "/api/auctions?action=synclots" },
     { "source": "/api/calc", "destination": "/api/content?calc=1" },
     { "source": "/api/locations", "destination": "/api/content?calc=1&locations=" },
