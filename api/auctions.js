@@ -1795,7 +1795,10 @@ async function searchFromDb(query){
     // общий каталог упирался в 8с-таймаут и падал на live (10с первая загрузка). В общем
     // виде берём только назначенные торги — чистый range-scan по (sale_date,id); недатированные
     // там всё равно были бы на тысячных страницах. С маркой/моделью — полный набор с «Future».
-    if(query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
+    // …и только для сортировок ПО ДАТЕ: при «Год»/«Пробег»/«Buy Now» порядок задаёт другое поле,
+    // range-scan по дате не нужен — сортируем весь каталог, включая лоты без даты.
+    const dateSorted = /^(|soon|smart|date_asc|date_desc)$/.test(query.get("sort") || "");
+    if(!dateSorted || query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
       ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${grace}`);
@@ -1819,7 +1822,10 @@ async function searchFromDb(query){
     // общий каталог упирался в 8с-таймаут и падал на live (10с первая загрузка). В общем
     // виде берём только назначенные торги — чистый range-scan по (sale_date,id); недатированные
     // там всё равно были бы на тысячных страницах. С маркой/моделью — полный набор с «Future».
-    if(query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
+    // …и только для сортировок ПО ДАТЕ: при «Год»/«Пробег»/«Buy Now» порядок задаёт другое поле,
+    // range-scan по дате не нужен — сортируем весь каталог, включая лоты без даты.
+    const dateSorted = /^(|soon|smart|date_asc|date_desc)$/.test(query.get("sort") || "");
+    if(!dateSorted || query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
       ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${grace}`);
@@ -2655,7 +2661,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "8";
+  const SEARCH_CACHE_VER = "9";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
