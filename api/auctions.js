@@ -1939,7 +1939,11 @@ async function searchFromDb(query){
   // заглушки $1–$100. В сортировке по этим полям такие значения отбрасываем.
   const sortQ = query.get("sort") || "";
   // Пробег 1–9 миль и год 0 — заглушки фида, а не данные.
-  if(sortQ === "mileage_asc" || sortQ === "mileage_desc"){ ands.push("odometer_mi.gte.10"); ands.push("odometer_mi.lte.400000"); }   // 999 999 999 миль — тоже заглушка
+  // Пробег 0 НЕ отсекаем: это и реальные новые машины (решение Федора, 22.09.2026). Убираем только
+  // физически невозможное (>1 млн миль — заглушки фида вида 999 999 999), а для DESC — NULL-ы,
+  // чтобы сортировка шла по индексу (gte.0 отбрасывает только NULL).
+  if(sortQ === "mileage_asc") ands.push("or(odometer_mi.lte.1000000,odometer_mi.is.null)");
+  if(sortQ === "mileage_desc"){ ands.push("odometer_mi.gte.0"); ands.push("odometer_mi.lte.1000000"); }
   if(sortQ === "year_asc" || sortQ === "year_desc") ands.push("year.gt.1900");
   if(sortQ === "buy_now_asc" || sortQ === "buy_now_desc") ands.push("buy_now.gte.300");
   if(ands.length) p.set("and", `(${ands.join(",")})`);
@@ -2665,7 +2669,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "11";
+  const SEARCH_CACHE_VER = "12";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
