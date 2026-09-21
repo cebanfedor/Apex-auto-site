@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>APEX AUTO CRM</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=admin-v171">
+  <link rel="stylesheet" href="/admin/admin.css?v=admin-v172">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -34,6 +34,7 @@
           <button data-view="vehicles">Автомобили</button>
           <button data-view="customers">Клиенты</button>
           <button data-view="leads">Заявки</button>
+          <button data-view="guide">Оценка лотов</button>
           <button data-view="content">Контент сайта</button>
         </nav>
         <button id="logoutBtn" class="logoutBtn">Выйти</button>
@@ -210,6 +211,20 @@
           </div>
         </section>
 
+        <section id="guideView" class="view">
+          <div class="panel">
+            <h2>Таблица оценки — ориентир ставки</h2>
+            <p class="formHintV1">Закрытая таблица: хранится в базе, на сайт уходит только итоговая вилка ставки. Формула: <b>база × K × коэффициент состояния</b> (1.10 почти целая · 1.00 небольшой удар · 0.90 средний · 0.80 сильный · ниже — тяжёлые случаи). Чтобы обновить — выделите в Google Таблице строки с моделями (столбцы A–I, без шапки), скопируйте и вставьте сюда. Импорт <b>заменяет</b> таблицу целиком.</p>
+            <textarea id="guidePaste" rows="6" placeholder="Вставьте сюда строки из листа «Таблица расчётов» (A–I)"></textarea>
+            <div class="formActions">
+              <button type="button" id="guideParseBtn">Разобрать</button>
+              <button type="button" id="guideSaveBtn" disabled>Сохранить таблицу</button>
+              <span id="guideInfo" class="muted"></span>
+            </div>
+            <div id="guideTable" class="guideTableV1"></div>
+          </div>
+        </section>
+
         <section id="contentView" class="view">
           <form id="contentForm" class="panel formPanel widePanel">
             <h2>Контент сайта</h2>
@@ -234,6 +249,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v173"></script>
+  <script src="/admin/admin.js?v=admin-v174"></script>
 </body>
 </html>

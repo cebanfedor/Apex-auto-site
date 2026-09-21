@@ -229,6 +229,7 @@ async function loadContent(){
 async function refresh(){
   if(state.view === "dashboard") await loadDashboard();
   if(state.view === "vehicles") await loadVehicles();
+  if(state.view === "guide") await loadGuide();
   if(state.view === "customers") await loadCustomers();
   if(state.view === "leads"){
     await Promise.all([loadCustomers(), loadVehicles()]);
@@ -290,7 +291,82 @@ function bindTabs(){
   });
 }
 
+// ── Оценка лотов: импорт закрытой таблицы из Google Sheets (вставка TSV) ──
+// Строка «bmw g30 530e LCI 21-23 | плагин | … | K | база» → марка, ключевые слова, годы, топливо.
+const GUIDE_MAKES2 = ["alfa romeo","land rover","aston martin"];
+function parseGuideName(nameRaw, noteRaw){
+  let name = String(nameRaw || "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const note = String(noteRaw || "").toLowerCase();
+  let make = GUIDE_MAKES2.find(m => name.startsWith(m + " ")) || name.split(" ")[0];
+  let rest = name.slice(make.length).trim();
+  let yf = null, yt = null;
+  const yr = rest.match(/(?:^|\s)((?:20)?\d{2})\s*-\s*((?:20)?\d{2})?(?=\s|$)/) || rest.match(/(?:^|\s)(20\d{2}|\d{2})(?=\s*$)/);
+  if(yr){
+    const y = v => v ? (Number(v) < 100 ? 2000 + Number(v) : Number(v)) : null;
+    yf = y(yr[1]); yt = yr[2] !== undefined ? y(yr[2]) : (/-\s*$/.test(yr[0]) || /-/.test(yr[0]) ? null : yf);
+    rest = rest.replace(yr[0], " ").trim();
+  }
+  rest = rest.replace(/\bmodel\s+([3sxy])\b/g, "model$1").replace(/\bsanta\s+fe\b/g, "santafe").replace(/\bmach\s*-?\s*e\b/g, "mache")
+    .replace(/\be-?tron\b/g, "etron").replace(/\bc-max\b/g, "cmax").replace(/\bcorasir\b/g, "corsair").replace(/\blci\b/g, " ");
+  const tokens = rest.split(/[\s,]+/).map(t => t.replace(/[^a-z0-9]/g, "")).filter(Boolean);
+  const hint = note + " " + name;
+  let fuel = "any";
+  if(/plug|плагин|phev/.test(hint)) fuel = "plugin";
+  else if(/hybrid|гибрид/.test(hint)) fuel = "hybrid";
+  else if(/electric|электр|etron|e-tron|lyriq|\bleaf\b|mach e|polestar|^tesla|bmw ix\b/.test(hint)) fuel = "electric";
+  return {make, tokens, year_from:yf, year_to:yt, fuel};
+}
+function parseGuidePaste(text){
+  const out = [];
+  String(text || "").split(/\r?\n/).forEach(line => {
+    const c = line.split("\t").map(x => x.trim());
+    if(!c[0] || c.length < 3) return;
+    const nums = c.map(x => Number(String(x).replace(/\s/g, "").replace(",", ".")));
+    const base = nums[c.length - 1], k = nums[c.length - 2];
+    if(!(base > 300) || !(k > 0.5 && k < 3)) return;        // шапка/пустая строка
+    const p = parseGuideName(c[0], c[1]);
+    if(!p.tokens.length) return;
+    out.push({name:c[0], note:/^\d{5}(\.0)?$/.test(c[1] || "") ? "" : (c[1] || ""), ...p, base_price:Math.round(base), k:Math.round(k * 100) / 100});
+  });
+  return out;
+}
+let guideParsed = [];
+function renderGuideTable(items, saved){
+  const box = document.getElementById("guideTable");
+  if(!box) return;
+  const FUEL = {any:"любое", gas:"бензин", hybrid:"гибрид", plugin:"плагин", electric:"электро", diesel:"дизель"};
+  box.innerHTML = items.length ? `<table><thead><tr><th>Строка таблицы</th><th>Марка</th><th>Ключевые слова</th><th>Годы</th><th>Топливо</th><th>База, $</th><th>K</th><th>1.00 →</th></tr></thead><tbody>${items.map(r => `
+    <tr><td>${escapeHtml(r.name)}${r.note ? ` <i>${escapeHtml(r.note)}</i>` : ""}</td><td>${escapeHtml(r.make)}</td><td>${escapeHtml((r.tokens || []).join(" + "))}</td>
+    <td>${r.year_from || "…"}–${r.year_to || "…"}</td><td>${FUEL[r.fuel] || r.fuel}</td><td>${Number(r.base_price).toLocaleString("ru-RU")}</td><td>${r.k}</td><td>${Math.round(r.base_price * r.k).toLocaleString("ru-RU")}</td></tr>`).join("")}</tbody></table>` : "";
+  document.getElementById("guideInfo").textContent = items.length ? (saved ? `В базе: ${items.length} строк` : `Разобрано: ${items.length} строк — проверьте и нажмите «Сохранить таблицу»`) : "";
+}
+async function loadGuide(){
+  try{ const r = await api("/api/price-guide"); renderGuideTable(r.items || [], true); }
+  catch(e){ document.getElementById("guideInfo").textContent = "Таблица ещё не создана в базе: выполните SQL 20260922_price_guide.sql. (" + e.message + ")"; }
+}
+function bindGuide(){
+  const parseBtn = document.getElementById("guideParseBtn"), saveBtn = document.getElementById("guideSaveBtn");
+  if(!parseBtn) return;
+  parseBtn.addEventListener("click", () => {
+    guideParsed = parseGuidePaste(document.getElementById("guidePaste").value);
+    renderGuideTable(guideParsed, false);
+    saveBtn.disabled = !guideParsed.length;
+    if(!guideParsed.length) showNotice("Не нашёл строк: нужны столбцы A–I, последний — база, предпоследний — K");
+  });
+  saveBtn.addEventListener("click", async () => {
+    if(!guideParsed.length || !confirm(`Заменить таблицу оценки на ${guideParsed.length} строк?`)) return;
+    saveBtn.disabled = true;
+    try{
+      const r = await api("/api/price-guide", {method:"PUT", body:{items:guideParsed}});
+      showNotice(`Сохранено строк: ${r.saved}`, true);
+      document.getElementById("guidePaste").value = ""; guideParsed = [];
+      await loadGuide();
+    }catch(e){ alert("Не сохранилось: " + e.message); saveBtn.disabled = false; }
+  });
+}
+
 function bindForms(){
+  bindGuide();
   bindVehiclePhotoThumbs();
   $("#vehicleForm").addEventListener("submit", async event => {
     event.preventDefault();

@@ -1,5 +1,6 @@
 const {sendJson, methodNotAllowed, readBody, getQuery} = require("../server/http");
 const supabase = require("../server/supabase");
+const priceGuide = require("../server/price-guide");
 const {isValidContact, isValidVin} = require("../server/validators");
 
 const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
@@ -2122,7 +2123,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
     if(JUNK_TITLE.test(titleTxt) || JUNK_DAMAGE.test(dmgTxt)) continue;   // утиль не берём
     out.push({final_bid:fb, year:Number(r.year) || 0, odometer_mi:Number(r.odometer_mi) || 0,
       fuel_id:Number(r.fuel_id) || 0, gen_id:Number(r.generation_id) || 0,
-      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt)});
+      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || "")});
   }
   return out.length ? out : null;
 }
@@ -2192,6 +2193,19 @@ async function fetchSoldCompsLive(makeId, modelId){
 const EST_CENTER_PCTL = 70;
 const EST_LO_PCTL = 45;
 const EST_HI_PCTL = 88;
+// База для моделей ВНЕ таблицы — аналог «актуаластат»: средняя цена всех продаж кузова (и топлива)
+// из нашей истории, с отсечением 5% хвостов. Меньше 8 продаж — не считаем.
+const DATA_GUIDE_K = 1.2;
+function dataGuideBase(rows, g, fuelId){
+  if(!rows || !rows.length || !g || !g.genFrom) return null;
+  let base = rows.filter(r => r.final_bid > 0 && r.year >= g.genFrom && r.year <= g.genTo);
+  if(fuelId){ const f = base.filter(r => Number(r.fuel_id) === Number(fuelId)); if(f.length >= 8) base = f; else if(base.some(r => r.fuel_id && Number(r.fuel_id) !== Number(fuelId))) return null; }
+  if(base.length < 8) return null;
+  const v = base.map(r => r.final_bid).sort((a, b) => a - b);
+  const cut = Math.floor(v.length * 0.05), t = v.slice(cut, v.length - cut);
+  return t.reduce((a, b) => a + b, 0) / t.length;
+}
+
 function computeComps(rows, meta){
   const yr = Number(meta.year) || 0, odo = Number(meta.odometer) || 0;
   const fuel = Number(meta.fuelId) || 0;
@@ -2860,7 +2874,7 @@ module.exports = async function handler(request, response){
       const rows = (makeId && modelId) ? await fetchSoldCompsFromDb(makeId, modelId) : null;
       if(!rows){ sendJson(response, 200, {ok:false, reason:"no db rows"}); return; }
       const genCache = new Map();
-      const errs = [], inBand = [], widths = []; let nulls = 0;
+      const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = []; let nulls = 0;
       const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
       for(const r of sample){
         if(!genCache.has(r.year)) genCache.set(r.year, await resolveGenRange(modelId, r.year, ""));
@@ -2869,6 +2883,14 @@ module.exports = async function handler(request, response){
         const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:r.fuel_id, genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
         if(!st || !st.median){ nulls++; continue; }
         errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
+        const gb = dataGuideBase(rest, g, r.fuel_id);
+        if(gb){
+          const cf = priceGuide.conditionCoef({dmg:r.dmg, dmg2:"", run:r.run, doc:r.doc});
+          const b = priceGuide.guideBand(gb, DATA_GUIDE_K, cf);
+          gErrs.push(Math.abs(b.mid - r.final_bid) / r.final_bid);
+          gIn.push(r.final_bid >= b.lo && r.final_bid <= b.hi ? 1 : 0);
+          gRatio.push(r.final_bid / (gb * cf));
+        }
         inBand.push(r.final_bid >= st.p25 && r.final_bid <= st.p75 ? 1 : 0);
         widths.push((st.p75 - st.p25) / Math.max(1, st.median));
       }
@@ -2879,7 +2901,11 @@ module.exports = async function handler(request, response){
         p80AbsErrPct:errs.length ? Math.round(pct(errs, .8) * 100) : null,
         within25pct:errs.length ? Math.round(errs.filter(e => e <= .25).length / errs.length * 100) : null,
         actualInsideBandPct:inBand.length ? Math.round(inBand.reduce((x, y) => x + y, 0) / inBand.length * 100) : null,
-        medianBandWidthPct:widths.length ? Math.round(med(widths) * 100) : null}, {"cache-control":"no-store"});
+        medianBandWidthPct:widths.length ? Math.round(med(widths) * 100) : null,
+        formula:{tested:gErrs.length, medianAbsErrPct:gErrs.length ? Math.round(med(gErrs) * 100) : null,
+          within25pct:gErrs.length ? Math.round(gErrs.filter(e => e <= .25).length / gErrs.length * 100) : null,
+          insideBandPct:gIn.length ? Math.round(gIn.reduce((x, y) => x + y, 0) / gIn.length * 100) : null,
+          impliedK:gRatio.length ? Math.round(med(gRatio) * 100) / 100 : null}}, {"cache-control":"no-store"});
       return;
     }
 
@@ -2887,6 +2913,33 @@ module.exports = async function handler(request, response){
       // Оценка по реальным проданным лотам с учётом топлива, года и пробега.
       const makeId = String(query.get("manufacturer_id") || query.get("make_id") || "").replace(/[^0-9]/g, "");
       const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+      // ---- Ориентир ставки по формуле Федора: база × K × коэффициент состояния ----
+      // 1) модель есть в его закрытой таблице → база оттуда; 2) нет → та же формула, но база =
+      // средняя цена продаж кузова+топлива из нашей истории. Наружу — только вилка, без базы и K.
+      if(makeId && modelId){
+        try{
+          const yearG = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
+          const runG = String(query.get("run") || "");
+          const coef = priceGuide.conditionCoef({dmg:query.get("dmg"), dmg2:query.get("dmg2"), cond:query.get("cond"),
+            run:runG === "1" ? true : runG === "0" ? false : null, doc:query.get("doc")});
+          const hasCond = !!(query.get("dmg") || query.get("cond"));
+          const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:query.get("make_name"), model:query.get("model_name"),
+            title:query.get("title"), gen:query.get("gen"), year:yearG, fuel:query.get("fuel")}) : null;
+          let band = row ? priceGuide.guideBand(row.base_price, row.k, coef) : null, src = "guide";
+          if(!band && hasCond && yearG){
+            const pool = await fetchSoldComps(makeId, modelId);
+            const g = await resolveGenRange(modelId, yearG, "");
+            const base = dataGuideBase(pool, g, fuelTextToId(query.get("fuel")));
+            if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
+          }
+          if(band){
+            const payload = {ok:true, comps:{guide:true, src, p25:band.lo, p75:band.hi, median:band.mid, trueMedian:band.mid, count:0, match:{gen:true, fuel:true}}};
+            setCached(key, payload);
+            sendJson(response, 200, payload, COMPS_EDGE_CACHE);
+            return;
+          }
+        }catch(e){ /* ориентир не получился — ниже прежняя оценка по похожим продажам */ }
+      }
       if(makeId && modelId){
         try{
           const rows = await fetchSoldComps(makeId, modelId);

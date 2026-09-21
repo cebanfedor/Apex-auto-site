@@ -6,3 +6,12 @@ chrome-extension
 .env
 .env.*
 AUDIT.md
+CLAUDE.md
+ADMIN_README.md
+README.md
+README.txt
+.github
+generate-og.js
+test
+supabase
+apex-extension-v1.1.0.zip.bak

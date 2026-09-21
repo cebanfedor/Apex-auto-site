@@ -278,3 +278,10 @@ textarea{resize:vertical}
 .photoThumbBtnsV1{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:flex-end;gap:2px;padding:3px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
 .photoThumbBtnsV1 button{width:24px;height:24px;min-height:0;padding:0;border:0;border-radius:6px;background:rgba(255,255,255,.92);color:#14181f;font-size:13px;line-height:1;cursor:pointer}
 .photoThumbBtnsV1 button.danger{background:#ed0012;color:#fff}
+
+.guideTableV1{margin-top:14px;overflow-x:auto}
+.guideTableV1 table{width:100%;border-collapse:collapse;font-size:13px}
+.guideTableV1 th,.guideTableV1 td{padding:6px 8px;border-bottom:1px solid rgba(0,0,0,.08);text-align:left;white-space:nowrap}
+.guideTableV1 td:nth-child(n+6){text-align:right;font-variant-numeric:tabular-nums}
+.guideTableV1 i{color:#79828f;font-style:normal;font-size:12px}
+#guidePaste{width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px}

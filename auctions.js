@@ -1035,6 +1035,17 @@
     if(ci.tone === "good" && !heavyDmg && !multiDmg) cq = "good";
     else if(ci.tone === "bad" || heavyDmg) cq = "poor";
     cp.set("cq", cq);
+    // Данные для «ориентира ставки» (формула: база × K × коэффициент состояния считается на сервере).
+    const dParts = String(lot.damage || "").split(/\s+\/\s+/);
+    const d1 = lot.primaryDamage || dParts[0] || "", d2 = lot.secondaryDamage || dParts[1] || "";
+    if(d1) cp.set("dmg", String(d1).slice(0, 60));
+    if(d2 && d2 !== "-") cp.set("dmg2", String(d2).slice(0, 60));
+    if(lot.condition) cp.set("cond", String(lot.condition).slice(0, 40));
+    if(lot.document) cp.set("doc", String(lot.document).slice(0, 60));
+    if(lot.make) cp.set("make_name", String(lot.make).slice(0, 40));
+    if(lot.model) cp.set("model_name", String(lot.model).slice(0, 40));
+    if(lot.title) cp.set("title", String(lot.title).slice(0, 80));
+    if(lot.generationName) cp.set("gen", String(lot.generationName).slice(0, 60));
     return cp;
   }
   const compsCache = {};
@@ -1046,6 +1057,7 @@
     if(!compsCache[key]) compsCache[key] = api(`/api/auctions?${cp}`).catch(() => null);
     const cr = await compsCache[key];
     const c = cr && cr.ok && cr.comps;
+    if(c && c.guide && c.p25 > 0) return {lo:c.p25, hi:c.p75, src:"guide", guide:true};
     if(c && c.count && c.p25 > 0 && c.p75 >= c.p25) return {lo:c.p25, hi:c.p75, src:"comps"};
     const rows = await statsRowsFor(lot.makeId, lot.modelId);
     const f = forecastFromRows(rows, lot, 0) || forecastFromRows(rows, lot, 1);
@@ -1090,8 +1102,8 @@
       await Promise.all(jobs.slice(i, i + 4).map(async ({node, lot}) => {
         const f = await forecastForLot(lot);
         if(!f || !document.body.contains(node)) return;
-        const lo = Math.floor(f.lo / 500) * 500, hi = Math.max(round500(f.hi), lo + 500);
-        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Прогноз ставки")}</span><b>${money(lo)} – ${money(hi)}</b>`;
+        const lo = f.guide ? f.lo : Math.floor(f.lo / 500) * 500, hi = f.guide ? f.hi : Math.max(round500(f.hi), lo + 500);
+        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Ориентир ставки")}</span><b>${money(lo)} – ${money(hi)}</b>`;
         node.dataset.src = f.src;
         node.hidden = false;
       }));
@@ -2238,26 +2250,24 @@
       // 1) Точная оценка по РЕАЛЬНЫМ сопоставимым продажам: тот же тип топлива,
       // близкий год и пробег (медиана устойчивее к выбросам). Пробег/топливо
       // критичны — гибрид не усредняем с бензином, свежий с пробежным.
-      const cp = new URLSearchParams({action:"comps", manufacturer_id:String(lot.makeId), model_id:String(lot.modelId)});
-      if(lot.year) cp.set("year", String(lot.year));
-      if(lot.odometer) cp.set("odometer", String(lot.odometer));
-      if(lot.fuel) cp.set("fuel", String(lot.fuel));
-      if(lot.generationId) cp.set("generation_id", String(lot.generationId));
-      // Состояние лота → однозначный флаг run (1 на ходу / 0 нет), чтобы сервер
-      // сравнивал с тем же классом. «Заводится (без едет)» и т.п. → не фильтруем.
-      const ci = conditionInfo(lot.condition);
-      const runFlag = ci.tone === "good" ? "1" : ci.tone === "bad" ? "0" : "";
-      if(runFlag) cp.set("run", runFlag);
-      // Качество состояния (cq) → перцентиль средней: хороший экземпляр (заводится
-      // + лёгкое повреждение) оценивается у ВЕРХА диапазона года, убитый — у низа.
-      const dmgTxt = `${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.damage || ""}`.toLowerCase();
-      const heavyDmg = /all over|roll ?over|undercarriage|frame|burn|flood|water|strip|biohazard/.test(dmgTxt);
-      const multiDmg = /&|,|\band\b|\+/.test(dmgTxt) || (lot.secondaryDamage && lot.secondaryDamage !== "-" && !/unknown|none|normal/.test(String(lot.secondaryDamage).toLowerCase()));
-      let cq = "mid";
-      if(ci.tone === "good" && !heavyDmg && !multiDmg) cq = "good";
-      else if(ci.tone === "bad" || heavyDmg) cq = "poor";
-      cp.set("cq", cq);
+      // Параметры те же, что у карточек каталога (один источник правды — compsParamsFor).
+      const cp = compsParamsFor(lot);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
+      if(cr && cr.ok && cr.comps && cr.comps.guide){
+        // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
+        const c = cr.comps;
+        const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
+        box.innerHTML = `
+          <div class="dSecHead">${L("Ориентир ставки")} <span class="histCountV1">${escapeHtml(title)}</span></div>
+          <div class="statGridV1">
+            <div class="statCellV1"><span>${L("Разумная ставка для этого лота")}</span><b>${money(c.p25)} – ${money(c.p75)}</b></div>
+          </div>
+          <p class="statNoteV1">${L("Считаем от средней цены продаж этого кузова с поправкой на состояние лота: повреждения и на ходу ли машина. Это ориентир, а не гарантия — перед ставкой проверяем лот вручную.")}</p>`;
+        box.hidden = false;
+        const marketLine = document.getElementById("lotMarketLineV1");
+        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: ${money(c.p25)}–${money(c.p75)}</span>`;
+        return;
+      }
       if(cr && cr.ok && cr.comps && cr.comps.count){
         const c = cr.comps;
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
