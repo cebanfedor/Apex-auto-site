@@ -3,6 +3,31 @@
 // 'unsafe-hashes'). Загружается блокирующим тегом в <head> ДО картинок, чтобы
 // поймать ошибку даже у eager-hero (error не всплывает и не повторяется).
 (function(){
+  // 0) Страховка стилей: если styles.css не загрузился (обрыв сети, сбой в момент деплоя,
+  //    расширение браузера) — страница показывалась «голой». Пробуем один раз перезагрузить
+  //    таблицу с другим адресом (в обход закэшированной ошибки). Этот скрипт выполняется ПОСЛЕ
+  //    попытки загрузки CSS, поэтому проверяем и уже случившийся сбой (link.sheet === null),
+  //    и будущие — через событие error.
+  function retryCss(link){
+    if(!link || link.getAttribute("data-css-retry")) return;
+    var href = link.getAttribute("href") || "";
+    if(!href || /fonts\.googleapis/.test(href)) return;
+    var fresh = document.createElement("link");
+    fresh.rel = "stylesheet";
+    fresh.setAttribute("data-css-retry", "1");
+    fresh.href = href + (href.indexOf("?") < 0 ? "?" : "&") + "r=" + Date.now();
+    link.setAttribute("data-css-retry", "1");
+    link.parentNode.insertBefore(fresh, link.nextSibling);
+  }
+  try{
+    var links = document.querySelectorAll('link[rel="stylesheet"]');
+    for(var i = 0; i < links.length; i++){ if(!links[i].sheet) retryCss(links[i]); }
+  }catch(e){}
+  document.addEventListener("error", function(e){
+    var el = e.target;
+    if(el && el.tagName === "LINK" && /stylesheet/i.test(el.rel || "")) retryCss(el);
+  }, true);
+
   // 1) Фолбэк битых картинок: data-fb → подставить src; data-fb-hide → скрыть;
   //    data-fb-bg → задать фон. (замена onerror="this.src=…/style=…")
   document.addEventListener("error", function(e){
