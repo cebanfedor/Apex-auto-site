@@ -2852,6 +2852,37 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    // Диагностика точности оценки (read-only): leave-one-out по истории продаж модели.
+    // Каждую проданную машину «оцениваем» по остальным и сравниваем с реальным молотком.
+    if(action === "compstest"){
+      const makeId = String(query.get("manufacturer_id") || "").replace(/[^0-9]/g, "");
+      const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+      const rows = (makeId && modelId) ? await fetchSoldCompsFromDb(makeId, modelId) : null;
+      if(!rows){ sendJson(response, 200, {ok:false, reason:"no db rows"}); return; }
+      const genCache = new Map();
+      const errs = [], inBand = [], widths = []; let nulls = 0;
+      const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
+      for(const r of sample){
+        if(!genCache.has(r.year)) genCache.set(r.year, await resolveGenRange(modelId, r.year, ""));
+        const g = genCache.get(r.year);
+        const rest = rows.filter(x => x !== r);
+        const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:r.fuel_id, genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
+        if(!st || !st.median){ nulls++; continue; }
+        errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
+        inBand.push(r.final_bid >= st.p25 && r.final_bid <= st.p75 ? 1 : 0);
+        widths.push((st.p75 - st.p25) / Math.max(1, st.median));
+      }
+      const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : null; };
+      const pct = (a, f) => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[Math.floor((b.length - 1) * f)] : null; };
+      sendJson(response, 200, {ok:true, pool:rows.length, tested:errs.length, noEstimate:nulls,
+        medianAbsErrPct:errs.length ? Math.round(med(errs) * 100) : null,
+        p80AbsErrPct:errs.length ? Math.round(pct(errs, .8) * 100) : null,
+        within25pct:errs.length ? Math.round(errs.filter(e => e <= .25).length / errs.length * 100) : null,
+        actualInsideBandPct:inBand.length ? Math.round(inBand.reduce((x, y) => x + y, 0) / inBand.length * 100) : null,
+        medianBandWidthPct:widths.length ? Math.round(med(widths) * 100) : null}, {"cache-control":"no-store"});
+      return;
+    }
+
     if(action === "comps"){
       // Оценка по реальным проданным лотам с учётом топлива, года и пробега.
       const makeId = String(query.get("manufacturer_id") || query.get("make_id") || "").replace(/[^0-9]/g, "");
