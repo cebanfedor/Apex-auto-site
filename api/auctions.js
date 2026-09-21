@@ -2093,7 +2093,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return null;
   const p = new URLSearchParams();
-  p.set("select", "year,fuel_id,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date");
+  p.set("select", "auction,year,fuel_id,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date");
   p.set("make_id", `eq.${String(makeId).replace(/[^0-9]/g, "")}`);
   p.set("model_id", `eq.${String(modelId).replace(/[^0-9]/g, "")}`);
   p.set("archived", "eq.true");
@@ -2123,7 +2123,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
     if(JUNK_TITLE.test(titleTxt) || JUNK_DAMAGE.test(dmgTxt)) continue;   // утиль не берём
     out.push({final_bid:fb, year:Number(r.year) || 0, odometer_mi:Number(r.odometer_mi) || 0,
       fuel_id:Number(r.fuel_id) || 0, gen_id:Number(r.generation_id) || 0,
-      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || ""), title:String(r.title || "")});
+      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || ""), title:String(r.title || ""), auction:String(r.auction || "")});
   }
   return out.length ? out : null;
 }
@@ -2901,7 +2901,8 @@ module.exports = async function handler(request, response){
             const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
             const tb = priceGuide.guideBand(row.base_price, row.k, cf);
             const rel = Math.abs(r.final_bid - tb.mid) / r.final_bid;
-            tErrs.push(rel); tRatio.push(r.final_bid / tb.mid); tIn20.push(Math.abs(r.final_bid - tb.mid) / tb.mid <= .2 ? 1 : 0);
+            tErrs.push(rel); tRatio.push(r.final_bid / tb.mid);
+            (tByYear[r.auction || "?"] = tByYear[r.auction || "?"] || []).push(r.final_bid / tb.mid); tIn20.push(Math.abs(r.final_bid - tb.mid) / tb.mid <= .2 ? 1 : 0);
           }
         }
         const gb = dataGuideBase(rest, g, r.fuel_id, r.year);
@@ -2928,7 +2929,8 @@ module.exports = async function handler(request, response){
         table:{tested:tErrs.length, medianAbsErrPct:tErrs.length ? Math.round(med(tErrs) * 100) : null,
           within25pct:tErrs.length ? Math.round(tErrs.filter(e => e <= .25).length / tErrs.length * 100) : null,
           inside20:tIn20.length ? Math.round(tIn20.reduce((x, y) => x + y, 0) / tIn20.length * 100) : null,
-          actualToGuideRatio:tRatio.length ? Math.round(med(tRatio) * 100) / 100 : null},
+          actualToGuideRatio:tRatio.length ? Math.round(med(tRatio) * 100) / 100 : null,
+          ratioByAuction:Object.fromEntries(Object.entries(tByYear).map(([k, v]) => [k, {n:v.length, ratio:Math.round(med(v) * 100) / 100}]))},
         formula:{tested:gErrs.length, medianAbsErrPct:gErrs.length ? Math.round(med(gErrs) * 100) : null,
           within25pct:gErrs.length ? Math.round(gErrs.filter(e => e <= .25).length / gErrs.length * 100) : null,
           insideBandPct:gIn.length ? Math.round(gIn.reduce((x, y) => x + y, 0) / gIn.length * 100) : null,
