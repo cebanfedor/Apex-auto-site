@@ -2195,12 +2195,18 @@ const EST_LO_PCTL = 45;
 const EST_HI_PCTL = 88;
 // База для моделей ВНЕ таблицы — аналог «актуаластат»: средняя цена всех продаж кузова (и топлива)
 // из нашей истории, с отсечением 5% хвостов. Меньше 8 продаж — не считаем.
-const DATA_GUIDE_K = 1.2;
-function dataGuideBase(rows, g, fuelId){
+// K для базы из НАШИХ данных = 1.0, а не 1.2: у Федора 1.2 поднимает «среднюю по всей истории» (с утилем)
+// до уровня нормальной машины, а наш пул уже без утиля — проверка на продажах дала K≈1.03 (RAV4, Camry).
+const DATA_GUIDE_K = 1.0;
+// База сужается по году как строки его таблицы (диапазоны 2–4 года): сначала год ±1, затем ±2, затем весь кузов.
+function dataGuideBase(rows, g, fuelId, year){
   if(!rows || !rows.length || !g || !g.genFrom) return null;
-  let base = rows.filter(r => r.final_bid > 0 && r.year >= g.genFrom && r.year <= g.genTo);
-  if(fuelId){ const f = base.filter(r => Number(r.fuel_id) === Number(fuelId)); if(f.length >= 8) base = f; else if(base.some(r => r.fuel_id && Number(r.fuel_id) !== Number(fuelId))) return null; }
-  if(base.length < 8) return null;
+  let gen = rows.filter(r => r.final_bid > 0 && r.year >= g.genFrom && r.year <= g.genTo);
+  if(fuelId){ const f = gen.filter(r => Number(r.fuel_id) === Number(fuelId)); if(f.length >= 8) gen = f; else if(gen.some(r => r.fuel_id && Number(r.fuel_id) !== Number(fuelId))) return null; }
+  if(gen.length < 8) return null;
+  let base = gen;
+  const yr = Number(year) || 0;
+  if(yr){ for(const d of [1, 2]){ const near = gen.filter(r => Math.abs(r.year - yr) <= d); if(near.length >= 8){ base = near; break; } } }
   const v = base.map(r => r.final_bid).sort((a, b) => a - b);
   const cut = Math.floor(v.length * 0.05), t = v.slice(cut, v.length - cut);
   return t.reduce((a, b) => a + b, 0) / t.length;
@@ -2874,7 +2880,7 @@ module.exports = async function handler(request, response){
       const rows = (makeId && modelId) ? await fetchSoldCompsFromDb(makeId, modelId) : null;
       if(!rows){ sendJson(response, 200, {ok:false, reason:"no db rows"}); return; }
       const genCache = new Map();
-      const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = []; let nulls = 0;
+      const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = [], gIn10 = [], gIn15 = [], gIn20 = []; let nulls = 0;
       const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
       for(const r of sample){
         if(!genCache.has(r.year)) genCache.set(r.year, await resolveGenRange(modelId, r.year, ""));
@@ -2883,12 +2889,13 @@ module.exports = async function handler(request, response){
         const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:r.fuel_id, genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
         if(!st || !st.median){ nulls++; continue; }
         errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
-        const gb = dataGuideBase(rest, g, r.fuel_id);
+        const gb = dataGuideBase(rest, g, r.fuel_id, r.year);
         if(gb){
           const cf = priceGuide.conditionCoef({dmg:r.dmg, dmg2:"", run:r.run, doc:r.doc});
           const b = priceGuide.guideBand(gb, DATA_GUIDE_K, cf);
           gErrs.push(Math.abs(b.mid - r.final_bid) / r.final_bid);
           gIn.push(r.final_bid >= b.lo && r.final_bid <= b.hi ? 1 : 0);
+          const rel = Math.abs(r.final_bid - b.mid) / b.mid; gIn10.push(rel <= .10 ? 1 : 0); gIn15.push(rel <= .15 ? 1 : 0); gIn20.push(rel <= .20 ? 1 : 0);
           gRatio.push(r.final_bid / (gb * cf));
         }
         inBand.push(r.final_bid >= st.p25 && r.final_bid <= st.p75 ? 1 : 0);
@@ -2905,7 +2912,10 @@ module.exports = async function handler(request, response){
         formula:{tested:gErrs.length, medianAbsErrPct:gErrs.length ? Math.round(med(gErrs) * 100) : null,
           within25pct:gErrs.length ? Math.round(gErrs.filter(e => e <= .25).length / gErrs.length * 100) : null,
           insideBandPct:gIn.length ? Math.round(gIn.reduce((x, y) => x + y, 0) / gIn.length * 100) : null,
-          impliedK:gRatio.length ? Math.round(med(gRatio) * 100) / 100 : null}}, {"cache-control":"no-store"});
+          impliedK:gRatio.length ? Math.round(med(gRatio) * 100) / 100 : null,
+          inside10:gIn10.length ? Math.round(gIn10.reduce((x, y) => x + y, 0) / gIn10.length * 100) : null,
+          inside15:gIn15.length ? Math.round(gIn15.reduce((x, y) => x + y, 0) / gIn15.length * 100) : null,
+          inside20:gIn20.length ? Math.round(gIn20.reduce((x, y) => x + y, 0) / gIn20.length * 100) : null}}, {"cache-control":"no-store"});
       return;
     }
 
@@ -2929,7 +2939,7 @@ module.exports = async function handler(request, response){
           if(!band && hasCond && yearG){
             const pool = await fetchSoldComps(makeId, modelId);
             const g = await resolveGenRange(modelId, yearG, "");
-            const base = dataGuideBase(pool, g, fuelTextToId(query.get("fuel")));
+            const base = dataGuideBase(pool, g, fuelTextToId(query.get("fuel")), yearG);
             if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
           }
           if(band){
