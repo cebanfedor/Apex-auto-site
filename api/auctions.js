@@ -1928,15 +1928,19 @@ async function searchFromDb(query){
     soon:wantsPastTab ? "sale_date.desc.nullslast" : "sale_date.asc.nullslast",
     smart:wantsPastTab ? "sale_date.desc.nullslast" : undefined,
     date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
-    year_asc:"year.asc.nullslast", year_desc:"year.desc.nullslast",
-    mileage_asc:"odometer_mi.asc.nullslast", mileage_desc:"odometer_mi.desc.nullslast",
+    year_asc:"year.asc.nullslast", year_desc:"year.desc",
+    // desc БЕЗ nullslast: NULL-ы уже отсечены фильтром выше, а «DESC NULLS LAST» обычный btree-индекс
+    // обслужить не может → сортировка 600k строк в памяти → таймаут → live-фолбэк на 10 секунд.
+    mileage_asc:"odometer_mi.asc.nullslast", mileage_desc:"odometer_mi.desc",
     price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc.nullslast",
     buy_now_asc:"buy_now.asc.nullslast", buy_now_desc:"buy_now.desc.nullslast"
   };
   // «Пробег 1-9» возглавляли сотни лотов с пробегом 0 (не указан), «Купить сейчас 1-9» —
   // заглушки $1–$100. В сортировке по этим полям такие значения отбрасываем.
   const sortQ = query.get("sort") || "";
-  if(sortQ === "mileage_asc" || sortQ === "mileage_desc") ands.push("odometer_mi.gt.0");
+  // Пробег 1–9 миль и год 0 — заглушки фида, а не данные.
+  if(sortQ === "mileage_asc" || sortQ === "mileage_desc") ands.push("odometer_mi.gte.10");
+  if(sortQ === "year_asc" || sortQ === "year_desc") ands.push("year.gt.1900");
   if(sortQ === "buy_now_asc" || sortQ === "buy_now_desc") ands.push("buy_now.gte.300");
   if(ands.length) p.set("and", `(${ands.join(",")})`);
   p.set("order", `${sortMap[query.get("sort") || "soon"] || sortMap.soon},id.asc`);
@@ -2661,7 +2665,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "9";
+  const SEARCH_CACHE_VER = "10";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g3" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
