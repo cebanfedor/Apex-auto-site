@@ -2577,6 +2577,29 @@ function syncRowFromItem(item, {archived = false} = {}){
   };
 }
 
+// «Сыгралась → сразу в архив»: /archived-lots отдаёт закрытые торги с лагом и пропусками (RAV4 Prime
+// 66820296: продан 22.09 16:00, в /archived-lots?minutes=90 через 2 часа так и не пришёл, хотя /search-lot
+// и /search-vin уже отдают sold+$23 000). Поэтому любой проданный лот, который сервер увидел живым запросом
+// (страница лота, VIN, VIN-история), тут же дописываем в базу как архивный. Огонь-и-забыть, ошибки глотаем.
+function upsertClosedLot(lot){
+  try{
+    if(!lot || !lot.lot || !lot.auction) return;
+    const ts = Date.parse(lot.auctionDate || "");
+    const sold = (lot.statusId === 6 || lot.statusId === 8) && Number.isFinite(ts) && ts < Date.now();
+    if(!sold) return;
+    const n = v => { const x = Number(v); return Number.isFinite(x) ? Math.round(x) : null; };
+    const row = {
+      id:`${lot.auction}-${lot.lot}`, auction:lot.auction, lot:String(lot.lot), vin:lot.vin || null, title:lot.title || null,
+      year:n(lot.year), make_id:n(lot.makeId), model_id:n(lot.modelId), generation_id:parseSynGen(lot.generationId) ? null : n(lot.generationId),
+      fuel_id:fuelTextToId(lot.fuel) || null, condition_id:/not/.test(String(lot.condition || "")) ? 1 : (lot.condition ? 0 : null),
+      damage:lot.damage || null, document:lot.document || null, odometer_mi:n(lot.odometer),
+      current_bid:n(lot.currentBid) || 0, buy_now:n(lot.buyNow) || 0, final_bid:n(lot.finalBid) || 0,
+      sale_date:new Date(ts).toISOString(), status_id:lot.statusId, archived:true,
+      payload:{...lot, images:Array.isArray(lot.images) ? lot.images.slice(0, 4) : lot.images}, synced_at:new Date().toISOString()
+    };
+    syncUpsertRows([row]).catch(() => {});
+  }catch(e){ /* не мешаем ответу */ }
+}
 async function syncUpsertRows(rows){
   if(!rows.length) return;
   // Чанки по 250: батч на 1000 строк упирался в statement timeout,
@@ -3005,6 +3028,7 @@ module.exports = async function handler(request, response){
       const lot = await fetchDetail(query);
       await attachVinHistory(lot);
       await attachGenRange(lot);
+      upsertClosedLot(lot);
       const payload = {ok:true,lot};
       setCached(key, payload);
       setDbCache(key, payload, "detail");
@@ -3039,6 +3063,7 @@ module.exports = async function handler(request, response){
     if(action === "vin"){
       const lot = await fetchVin(query);
       await attachGenRange(lot);
+      upsertClosedLot(lot);
       const payload = {ok:true,lot};
       setCached(key, payload);
       setDbCache(key, payload, "vin");
