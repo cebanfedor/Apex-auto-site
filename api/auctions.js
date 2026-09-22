@@ -573,7 +573,8 @@ function buildSearchParams(query){
     mileageTo:"odometer_to_mi",
     mileageFromKm:"odometer_from_km",
     mileageToKm:"odometer_to_km",
-    fuel:"fuel_type",
+    // fuel — ниже отдельно: /cars принимает одно значение, мультивыбор дофильтровываем после нормализации
+
     body:"body_type",
     transmission:"transmission",
     drive:"drive_wheel",
@@ -598,6 +599,8 @@ function buildSearchParams(query){
     const value = query.get(from);
     if(value) params.set(to, value);
   }
+  const fuelCsv = String(query.get("fuel") || "");
+  if(/^\d+$/.test(fuelCsv)) params.set("fuel_type", fuelCsv);
   // Поколение из нашей таблицы (синтетический id) → диапазон лет вместо generation_id.
   const synGenLive = parseSynGen(query.get("generation"));
   if(synGenLive){
@@ -960,7 +963,15 @@ async function fetchSearch(query){
         .filter(lot => !wantsPast || !(Date.parse(lot.auctionDate || "") > Date.now()))
         // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
         // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
-        .filter(lot => query.get("saleStatus") !== "timed" || lot.timed);
+        .filter(lot => query.get("saleStatus") !== "timed" || lot.timed)
+        // Мультивыбор топлива (live): список id → фильтр по нормализованному fuel
+        .filter(lot => {
+          const ids = String(query.get("fuel") || "").split(",").filter(x => /^\d+$/.test(x));
+          if(ids.length < 2) return true;
+          const T = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline"};
+          const f = String(lot.fuel || "").toLowerCase();
+          return ids.some(id => T[id] && f.includes(T[id]));
+        });
     };
 
     // API /cars не сортирует ВООБЩЕ: сортировка одной страницы из 50 лотов
@@ -1273,7 +1284,7 @@ function sortItems(items, sort, {pastTab = false} = {}){
 // Топливо словом → числовой id auctionsapi (как в UI-радио).
 function normalizeFuelParam(query){
   const raw = String(query.get("fuel") || "").trim().toLowerCase();
-  if(!raw || /^\d+$/.test(raw)) return;
+  if(!raw || /^[\d,]+$/.test(raw)) return;   // id или список id («3,2» — мультивыбор)
   const map = {
     gasoline:"4", petrol:"4", gas:"4", "бензин":"4", "benzina":"4",
     diesel:"1", "дизель":"1", "motorina":"1",
@@ -2803,7 +2814,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "18";
+  const SEARCH_CACHE_VER = "19";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g6" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
