@@ -72,7 +72,8 @@ const STATS_EDGE_CACHE = {"cache-control": "public, s-maxage=3600, stale-while-r
 
 // DB_TTL in seconds: search=6h, detail=30мин (аукционы переносят даты — 24h кеш
 // показывал устаревшую дату торгов), vin=7d, dict/lists=12h
-const DB_TTL = {search:21600, detail:1800, vin:604800, _default:43200};
+// search: 3 мин — иначе лот, сыгравший час назад, до 6 часов не появлялся в архиве (кэш живого ответа).
+const DB_TTL = {search:180, detail:1800, vin:604800, _default:43200};
 
 // Supabase может лечь/тормозить (переполнение, пауза проекта) — его никогда
 // не ждём дольше 1.5с (живая база отвечает <300мс), а после двух подряд
@@ -2809,6 +2810,22 @@ module.exports = async function handler(request, response){
 
   if(action === "lead") return handleLead(request, response);
   if(action === "synclots") return handleSyncLots(response);
+  // Быстрый синк ЗАКРЫТЫХ торгов (каждые 10 мин из GitHub Actions): только /archived-lots за последние 90 минут.
+  // Даёт правило «сыгралась → сразу в архив»: лаг ≤10 мин вместо часа. Полный инкремент остаётся часовым.
+  if(action === "syncclosed"){
+    response.setHeader("cache-control", "no-store");
+    if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
+    const started = Date.now(); let n = 0;
+    try{
+      for(let apg = 1; apg <= 3; apg++){
+        if(Date.now() - started > 20000) break;
+        const got = await syncImportPage("/archived-lots", apg, {minutes:"90"}, {archived:true});
+        n += got; if(got < SYNC_PER_PAGE) break;
+      }
+      response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, ms:Date.now() - started}));
+    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
+    return;
+  }
   if(request.method !== "GET"){
     methodNotAllowed(response, ["GET","POST"]);
     return;
@@ -2835,7 +2852,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "20";
+  const SEARCH_CACHE_VER = "21";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g8" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
@@ -3310,7 +3327,7 @@ module.exports = async function handler(request, response){
       const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
-      setCached(key, payload, result._fallback ? 90 * 1000 : CACHE_TTL);
+      setCached(key, payload, result._fallback ? 90 * 1000 : 3 * 60 * 1000);
       if(!result._fallback && !result._source) setDbCache(key, payload, "search");
       sendJson(response, 200, payload);
       return;

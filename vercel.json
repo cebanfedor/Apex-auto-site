@@ -76,7 +76,14 @@
     },
     {
       "source": "/api/auctions",
-      "has": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived)" }],
+      "has": [{ "type": "query", "key": "action", "value": "(search|archived)" }],
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=180, stale-while-revalidate=600" }
+      ]
+    },
+    {
+      "source": "/api/auctions",
+      "has": [{ "type": "query", "key": "action", "value": "(showcase|comps|statistics|manufacturers|models|generations|usadict)" }],
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=43200" }
       ]
