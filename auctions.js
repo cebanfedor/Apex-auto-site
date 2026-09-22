@@ -817,7 +817,9 @@
     const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
     const count = history.length;
     if(count === 0){
-      return `<li class="dbCheck good">${dbIco("check")}<span><b>${L("История:")}</b> ${L("Ранее не продавалась")}</span></li>`;
+      // В списке фид отдаёт историю только ТЕКУЩЕГО номера лота; перевыставленные машины (новый номер после
+      // продажи) выглядели «ранее не продавалась». Полная история по VIN — на странице лота.
+      return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const lotNumbers = new Set(history.map(h => h.lot).filter(Boolean));

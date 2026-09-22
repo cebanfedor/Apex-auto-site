@@ -1078,6 +1078,40 @@ async function fetchDetail(query){
   throw lastError || new Error("Lot detail failed");
 }
 
+// История продаж ПО VIN: у перевыставленной машины каждый заход на аукцион — новый номер лота, и
+// /search-lot видит только историю текущего номера (Volvo XC60 69432156: «ранее не продавалась», хотя
+// под лотом 62957656 продана 25.08 за $7 600). /search-vin отдаёт все заходы — сливаем их в priceHistory.
+async function attachVinHistory(lot){
+  try{
+    if(!lot || !isValidVin(String(lot.vin || ""))) return lot;
+    const params = new URLSearchParams({prices_history:"1"});
+    const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(lot.vin)}?${params}`);
+    const entries = [];
+    const lotsArr = Array.isArray(payload?.lots) ? payload.lots : Array.isArray(payload?.data?.lots) ? payload.data.lots : [];
+    for(const l of lotsArr){
+      const lotNo = String(l?.lot || l?.lot_number || l?.external_id || "").replace(/~.*/, "");
+      const dom = normalizeAuction(l?.domain || payload?.domain || lot.auction);
+      const st = safeName(l?.status).toLowerCase();
+      const fb = safeNumber(l?.final_bid || l?.winning_bid);
+      const sd = l?.sale_date || l?.auction_date || "";
+      // Заход целиком: продан (6) с финалом и прошедшей датой → запись продажи.
+      if(lotNo && lotNo !== String(lot.lot) && fb > 0 && sd && Date.parse(sd) < Date.now() && (Number(enumIdOf(l?.status)) === 6 || /sold/.test(st) && !/not/.test(st))){
+        entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom});
+      }
+      // Плюс вложенные раунды другого номера лота.
+      for(const p of (Array.isArray(l?.prices) ? l.prices : [])){
+        const pd = p?.sale_date || ""; const pb = safeNumber(p?.bid || p?.final_bid || p?.current_bid);
+        if(lotNo && lotNo !== String(lot.lot) && pb > 0 && pd && Date.parse(pd) < Date.now()) entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:safeName(p?.status) || st, lot:lotNo, auction:dom});
+      }
+    }
+    if(!entries.length) return lot;
+    const seen = new Set((lot.priceHistory || []).map(p => String(p.date).slice(0, 10) + "|" + p.bid));
+    const add = entries.filter(e => { const k = e.date.slice(0, 10) + "|" + e.bid; if(seen.has(k)) return false; seen.add(k); return true; });
+    lot.priceHistory = [...(lot.priceHistory || []), ...add].sort((a, b) => a.date < b.date ? 1 : -1);
+  }catch(e){ /* история по VIN недоступна — остаёмся с историей лота */ }
+  return lot;
+}
+function enumIdOf(v){ return (v && typeof v === "object" && v.id != null) ? Number(v.id) : (typeof v === "number" ? v : null); }
 async function fetchVin(query){
   const vin = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   // Строгая проверка VIN и на сервере (17 символов, без I/O/Q) — defense-in-depth
@@ -2861,6 +2895,7 @@ module.exports = async function handler(request, response){
 
     if(action === "detail"){
       const lot = await fetchDetail(query);
+      await attachVinHistory(lot);
       await attachGenRange(lot);
       const payload = {ok:true,lot};
       setCached(key, payload);
