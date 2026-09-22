@@ -2036,7 +2036,8 @@
     const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : []).filter(h => !h.current);
     const histCount = pastHistory.length;
     const wasSoldBefore = histCount > 0 && pastHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
-    const histStr = histCount === 0 ? L("Ранее не продавалась") : wasSoldBefore ? L("Был продан ранее") : `${histCount} ${recordsWord(histCount)}`;
+    // На странице лота история собрана ПО VIN (attachVinHistory) — здесь «не продавалась» честно.
+    const histStr = histCount === 0 ? L("Ранее не продавалась (по VIN)") : wasSoldBefore ? L("Был продан ранее") : `${histCount} ${recordsWord(histCount)}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
     // Первичен seller_type из API (mapfre и др. по имени не распознать).

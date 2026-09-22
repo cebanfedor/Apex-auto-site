@@ -1138,8 +1138,13 @@ async function attachVinHistory(lot){
     // «не продан» за копейки (перенос без ставок) — не история
     const erv = Number(lot.estimatedRetailValue) || 0, cap = Math.max(300, erv * 0.02);
     const seen = new Set();
+    const bn = Number(lot.buyNow) || 0;
+    const absurd = e => /not_sold/.test(e.status) && ((erv > 1 && e.bid > erv * 1.15) || (bn > 0 && e.bid > bn * 1.5));
     lot.priceHistory = entries
       .filter(e => !(/not_sold/.test(e.status) && e.bid < cap))
+      .filter(e => !absurd(e))
+      // одна продажа, отданная и «заходом», и «раундом» на соседний день — одна запись
+      .filter((e, i, arr) => !(e.status === "sold" && arr.some((o, j) => j < i && o.status === "sold" && o.lot === e.lot && o.bid === e.bid && Math.abs(Date.parse(o.date) - Date.parse(e.date)) < 3 * 864e5)))
       .filter(e => { const k = e.date.slice(0, 10) + "|" + e.lot + "|" + e.status; if(seen.has(k)) return false; seen.add(k); return true; })
       .sort((a, b) => a.date < b.date ? 1 : -1);
     // Финал — только если ТЕКУЩИЙ заход реально продан (прошедшая дата + статус) — по VIN-данным
@@ -2827,7 +2832,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "20";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g7" : "";   // бамп при смене таблицы поколений
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g8" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -3241,6 +3246,7 @@ module.exports = async function handler(request, response){
         for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length) < 24; i += 12){
           const wave = await Promise.all(cand.slice(i, i + 12).map(it =>
             fetchDetail(shim({ auction: it.auction, lot: it.lot }))
+              .then(d => attachVinHistory(d))                 // история ПО VIN, не по номеру лота
               .then(d => ({ it, c: classify(d.priceHistory) }))
               .catch(() => null)
           ));
