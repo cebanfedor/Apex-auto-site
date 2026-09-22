@@ -2597,7 +2597,15 @@ function upsertClosedLot(lot){
     if(!lot || !lot.lot || !lot.auction) return;
     const ts = Date.parse(lot.auctionDate || "");
     const sold = lot.statusId === 6 && Number.isFinite(ts) && ts < Date.now();
-    if(!sold) return;
+    if(!sold){
+      // Живой лот (торги впереди / не продан) — «оживляем» строку в базе, если она там архивная или с устаревшей датой.
+      if(Number.isFinite(ts) && ts > Date.now()){
+        syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.auction + "-" + lot.lot)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
+          body:JSON.stringify({archived:false, status_id:lot.statusId || 3, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0,
+            sale_date:new Date(ts).toISOString(), payload:{...lot, finalBid:0}, synced_at:new Date().toISOString()})}).catch(() => {});
+      }
+      return;
+    }
     const n = v => { const x = Number(v); return Number.isFinite(x) ? Math.round(x) : null; };
     const row = {
       id:`${lot.auction}-${lot.lot}`, auction:lot.auction, lot:String(lot.lot), vin:lot.vin || null, title:lot.title || null,
@@ -2897,8 +2905,12 @@ module.exports = async function handler(request, response){
     response.setHeader("cache-control", "no-store");
     let fixed = 0, started = Date.now();
     try{
+      // По индексу (archived, sale_date): сутки за прогон, назад от сегодня; day=N — смещение.
+      const dayOff = Math.max(0, Number(query.get("day") || 0));
+      const d0 = new Date(Date.now() - dayOff * 86400e3); d0.setUTCHours(0, 0, 0, 0);
+      const d1 = new Date(d0.getTime() + 86400e3);
       while(Date.now() - started < 40000){
-        const rows = await syncSbFetch(`/api_lots?archived=eq.true&final_bid=eq.0&select=id&limit=500`);
+        const rows = await syncSbFetch(`/api_lots?archived=eq.true&sale_date=gte.${d0.toISOString()}&sale_date=lt.${d1.toISOString()}&final_bid=eq.0&select=id&limit=500`);
         if(!rows || !rows.length) break;
         for(let i = 0; i < rows.length; i += 100){
           const ids = rows.slice(i, i + 100).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
