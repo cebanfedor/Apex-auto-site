@@ -302,3 +302,11 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   при `dbHealthy` (sbUp и последний прогон ok). Точка отказа — `last_run.stage`/`failedAt`, тайминги — `last_run.steps`.
 - `action=count` при недоступной базе берёт `total` живого фида (`src:"live"`), не 0. Счётчик «Текущие аукционы» = датированные
   неархивные (`sale_date ≥ now−2ч`); недатированные живые в базе пока ненадёжны (purge не дочищен: ~750k «живых» строк против ~180k в фиде).
+- **Расписание — Vercel Cron** (`vercel.json` crons → rewrites `/api/cron/sync|closed|settle`): sync каждые 5 мин (инкремент не чаще
+  раза в ~50 мин, остальные тики — sweep/purge или пусто), closed и settle каждые 10 мин. GitHub Actions `sync-lots.yml` — только
+  резервный ежечасный запуск: его cron срабатывал 5–6 раз в СУТКИ (история запусков 22.09), а `*/10` не срабатывал вовсе — это и было
+  главной причиной отставания каталога. Метки тиков: `sync.v.last_run` / `last_closed` / `last_settle` в `?action=dbstatus`.
+- **VACUUM ANALYZE выполнен Федором 23.09.2026 ~23:45 UTC** (по одной команде в SQL Editor — несколько VACUUM в одном запросе падают
+  «cannot run inside a transaction block»). Эффект: запись 16 → ~250 строк/с (syncclosed 1568 строк за 9.5с). `statement_timeout`
+  сервисной роли = 60с. Если снова затормозит после большого purge — повторить VACUUM.
+- Инкремент IAAI: окно 3ч может отдавать 0 лотов (23.09) → страховочная страница `minutes=1440` (`(24h fallback)` в steps).
