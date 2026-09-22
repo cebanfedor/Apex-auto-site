@@ -1860,6 +1860,8 @@ async function attachGenRange(lot){
 // payload в базе нормализован на момент синка — в старых записях finalBid мог быть «додуман» из
 // непроданного раунда. Финал оставляем только у лотов со статусом продажи.
 function sanitizeStoredLot(l){
+  // строка помечена проданной, но финала нет → это непроданный раунд, лот жив
+  if(l && l.statusId === 6 && !(Number(l.finalBid) > 0)) l = {...l, statusId:3, lotStatus:"sale", statusName:"sale"};
   const ts = l && l.auctionDate ? Date.parse(l.auctionDate) : NaN;
   if(l && Number.isFinite(ts) && ts > Date.now() && (l.statusId === 6 || l.statusId === 8 || /^sold$/i.test(String(l.lotStatus || "")))){
     l = {...l, currentBid:Math.max(Number(l.currentBid) || 0, Number(l.finalBid) || 0), finalBid:0, lotStatus:"sale", statusName:"On sale", statusId:3};
@@ -1889,7 +1891,7 @@ async function searchFromDb(query){
   let pastTail = false;
   const pastOnly = () => { ands.push(`sale_date.lte.${new Date().toISOString()}`); pastTail = true; };
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); pastOnly(); }
-  else if(tab === "archived"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); pastOnly(); }
+  else if(tab === "archived"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); p.set("final_bid", "gt.0"); pastOnly(); }
   else if(tab === "buy_now"){
     // «Купить сейчас» — только реально доступные к выкупу: цена выкупа есть,
     // не продан (status ≠ 6), и аукцион ещё не прошёл (будущая дата или без
@@ -2546,8 +2548,12 @@ function syncRowFromItem(item, {archived = false} = {}){
   // фид или архивный синк говорят archived=true (фид иногда так помечает
   // переставленные/переоткрытые лоты). Иначе живые лоты пропадают из каталога.
   const isFutureSale = saleDate && Date.parse(saleDate) > Date.now();
-  const isSold = (statusId === 6 || statusId === 8) && !isFutureSale;
-  const isArchived = isSold || ((archived || lot?.archived === true) && !isFutureSale);
+  // Архив = ТОЛЬКО продан (6) и торги прошли. «Не продан» (8) и флаг archived из /archived-lots без продажи —
+  // непроданный раунд: лот перевыставляют (RAV4 62012166: 17 раундов not_sold, «Купить сейчас», торги 23.09 —
+  // а в архиве висел «продан $7 500»). Такие пишем как живые; finalBid у живых — 0.
+  const isSold = statusId === 6 && !isFutureSale;
+  const isArchived = isSold;
+  if(!isSold){ normalized.finalBid = 0; if(normalized.statusId === 6 || normalized.statusId === 8){ normalized.statusId = 3; normalized.lotStatus = "sale"; normalized.statusName = "sale"; } }
   return {
     id:normalized.id,
     auction,
@@ -2590,7 +2596,7 @@ function upsertClosedLot(lot){
   try{
     if(!lot || !lot.lot || !lot.auction) return;
     const ts = Date.parse(lot.auctionDate || "");
-    const sold = (lot.statusId === 6 || lot.statusId === 8) && Number.isFinite(ts) && ts < Date.now();
+    const sold = lot.statusId === 6 && Number.isFinite(ts) && ts < Date.now();
     if(!sold) return;
     const n = v => { const x = Number(v); return Number.isFinite(x) ? Math.round(x) : null; };
     const row = {
@@ -2874,16 +2880,34 @@ module.exports = async function handler(request, response){
             const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:r.lot}));
             checked++;
             const ts = Date.parse(lot.auctionDate || "");
-            if((lot.statusId === 6 || lot.statusId === 8) && ts < Date.now()){ upsertClosedLot(lot); closed++; }
+            if(lot.statusId === 6 && ts < Date.now()){ upsertClosedLot(lot); closed++; }
             else if(Number.isFinite(ts) && ts > Date.now()){
-              // перенесли на другую дату — обновляем дату, чтобы не опрашивать зря
-              await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(r.auction + "-" + r.lot)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({sale_date:new Date(ts).toISOString(), payload:lot})});
+              // перенесли на другую дату — обновляем дату и снимаем архив/финал, если ошибочно стояли
+              await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(r.auction + "-" + r.lot)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({sale_date:new Date(ts).toISOString(), archived:false, status_id:lot.statusId, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0, payload:{...lot, finalBid:0}})});
             }
           }catch(e){}
         }));
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, ms:Date.now() - started}));
     }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
+    return;
+  }
+  // Одноразово/по запросу: «призраки» — в архиве без цены продажи (непроданные раунды, записанные как sold) → оживить.
+  if(action === "syncghosts"){
+    response.setHeader("cache-control", "no-store");
+    let fixed = 0, started = Date.now();
+    try{
+      while(Date.now() - started < 40000){
+        const rows = await syncSbFetch(`/api_lots?archived=eq.true&final_bid=eq.0&select=id&limit=500`);
+        if(!rows || !rows.length) break;
+        for(let i = 0; i < rows.length; i += 100){
+          const ids = rows.slice(i, i + 100).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+          await syncSbFetch(`/api_lots?id=in.(${ids})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({archived:false, status_id:3})});
+        }
+        fixed += rows.length; if(rows.length < 500) break;
+      }
+      response.statusCode = 200; response.end(JSON.stringify({ok:true, revived:fixed, ms:Date.now() - started}));
+    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200), revived:fixed})); }
     return;
   }
   if(action === "syncclosed"){
@@ -2926,8 +2950,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "22";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g9" : "";   // бамп при смене таблицы поколений
+  const SEARCH_CACHE_VER = "23";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g10" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -3093,7 +3117,7 @@ module.exports = async function handler(request, response){
       const vins = [...new Set(String(query.get("vins") || "").toUpperCase().split(",").map(v => v.replace(/[^A-Z0-9]/g, "")).filter(isValidVin))].slice(0, 30);
       const out = {};
       const one = async vin => {
-        const ck = "vinhist2:" + vin;
+        const ck = "vinhist3:" + vin;
         const c = getCached(ck);
         if(c){ out[vin] = c; return; }
         try{
@@ -3104,7 +3128,7 @@ module.exports = async function handler(request, response){
           // Отдаём записи с номером лота и датой: клиент сам исключает ТЕКУЩИЙ лот (для архивной
           // карточки её собственная продажа — не «ранее», а эта самая продажа).
           const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null,
-            entries:h.slice(0, 12).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || ""}))};
+            entries:[...sold, ...h.filter(x => x.status !== "sold")].slice(0, 40).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || ""}))};
           setCached(ck, r, 2 * 3600e3);
           out[vin] = r;
         }catch(e){ out[vin] = null; }
