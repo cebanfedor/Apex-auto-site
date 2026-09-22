@@ -278,3 +278,5 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   (GitHub Actions каждые 10 мин, `/archived-lots?minutes=90`). Итоговый лаг «сыгралась → в архиве» ≤ ~13 мин.
 - `action=syncsettle` (каждые 10 мин): лоты базы с прошедшей за 3ч датой торгов и archived=false → точечный /search-lot →
   проданные сразу в архив (`upsertClosedLot`), перенесённые — обновить дату. Закрывает пропуски `/archived-lots`.
+- **Резерв продавца** (22.09.2026): фид отдаёт `seller_reserve` как объект `{price, updated_at}` (раньше — число). `saleStatusInfo`
+  парсит оба вида → `lot.sellerReserve` ($) и `sellerReserveAt`; показывается в карточке (`.dbReserveV1`) и на странице лота (блок «Аукцион»).

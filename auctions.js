@@ -190,7 +190,7 @@
   function favSave(map){ try{ localStorage.setItem(FAV_KEY, JSON.stringify(map)); }catch(e){} }
   function favHas(id){ return id != null && !!favLoad()[id]; }
   function favCompact(lot){
-    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","sellerType","horsePower","generationName","keys","estimatedRetailValue","repairCost","airbags","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory"];
+    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","sellerType","horsePower","generationName","keys","estimatedRetailValue","repairCost","airbags","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory","sellerReserve","sellerReserveAt"];
     const o = {}; keep.forEach(k => { if(lot[k] !== undefined) o[k] = lot[k]; }); return o;
   }
   function favToggle(lot){
@@ -1012,6 +1012,7 @@
             ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
+          ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
           <div class="dbForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
         </div>
       </aside>
@@ -2178,6 +2179,7 @@
               <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
+              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("обновлён")} ${escapeHtml(dbDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus) + (lot.timed && !lotSaleState(lot).finalBid ? ` <i class="dTimedHintV1">не продан на timed — выйдет на live-торги</i>` : "")) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}

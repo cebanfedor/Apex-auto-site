@@ -275,7 +275,10 @@ function locationLabel(loc){
 // Sale status = reserve type of the lot (not the vehicle condition).
 // Sources: lots[0].auction_type ("pure_sale"), lots[0].seller_reserve, is_timed_auction.
 function saleStatusInfo(lot, item){
-  const reserve = lot?.seller_reserve != null ? lot.seller_reserve : item?.seller_reserve;
+  // seller_reserve: раньше число, с сентября 2026 — объект {price, updated_at} (резерв продавца на Timed).
+  const rawRes = lot?.seller_reserve != null ? lot.seller_reserve : item?.seller_reserve;
+  const reserve = rawRes && typeof rawRes === "object" ? Number(rawRes.price) || 0 : Number(rawRes) || 0;
+  const reserveAt = rawRes && typeof rawRes === "object" ? (rawRes.updated_at || "") : "";
   const auctionType = safeName(lot?.auction_type || item?.auction_type).toLowerCase();
   const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true;
   let key = "", label = "";
@@ -283,7 +286,7 @@ function saleStatusInfo(lot, item){
   else if(auctionType === "pure_sale"){ key = "no_reserve"; label = "Без резерва"; }
   if(!label && timed){ key = "timed"; label = "Timed аукцион"; }
   else if(label && timed){ label += " · Timed"; }
-  return {key, label, timed};
+  return {key, label, timed, reserve:reserve > 0 ? Math.round(reserve) : 0, reserveAt};
 }
 
 function lotStatus(item, lot){
@@ -515,6 +518,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     statusName:preBidSold ? "On sale" : statusName,
     statusId:preBidSold ? 3 : statusId,
     saleStatus:sale.label,
+    sellerReserve:sale.reserve || 0,          // резерв продавца, $ (0 = не указан)
+    sellerReserveAt:sale.reserveAt || "",
     saleStatusKey:sale.key,
     timed:sale.timed,
     images,
@@ -2921,8 +2926,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "21";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g8" : "";   // бамп при смене таблицы поколений
+  const SEARCH_CACHE_VER = "22";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g9" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
