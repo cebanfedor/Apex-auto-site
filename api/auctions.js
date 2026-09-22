@@ -643,7 +643,7 @@ function buildSearchParams(query){
   // Archive = completed auctions (sold + not sold). sale_date filters are
   // unreliable in this API, so use the status field (CSV is accepted).
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
-    params.set("status", "6,8");
+    params.set("status", "6");   // Архив = только ПРОДАННЫЕ (Федор 22.09.2026): непроданные раунды никому не нужны
   }
   // sale_date_in_days is the only reliable date filter in this API.
   // sale_date_from/to are NOT sent to the API — they confuse it and return 0 results.
@@ -1884,7 +1884,7 @@ async function searchFromDb(query){
   let pastTail = false;
   const pastOnly = () => { ands.push(`sale_date.lte.${new Date().toISOString()}`); pastTail = true; };
   if(tab === "sold"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); pastOnly(); }
-  else if(tab === "archived"){ p.set("archived", "eq.true"); pastOnly(); }
+  else if(tab === "archived"){ p.set("archived", "eq.true"); p.set("status_id", "eq.6"); pastOnly(); }
   else if(tab === "buy_now"){
     // «Купить сейчас» — только реально доступные к выкупу: цена выкупа есть,
     // не продан (status ≠ 6), и аукцион ещё не прошёл (будущая дата или без
@@ -2012,7 +2012,7 @@ async function searchFromDb(query){
     else if(ids.length > 1) p.set(col, `in.(${ids.join(",")})`);   // мультивыбор
   }
   // Статус лота (мультивыбор): 10 скоро торги · 3 в продаже · 4 на одобрении · 6 продан · 8 не продан
-  const stIds = String(query.get("lotStatus") || "").replace(/[^0-9,]/g, "").split(",").filter(Boolean);
+  const stIds = String(query.get("lotStatus") || "").replace(/[^0-9,]/g, "").split(",").filter(x => x && x !== "8");
   if(stIds.length){
     ["status_id"].forEach(k => p.delete(k));
     for(let i = ands.length - 1; i >= 0; i--) if(/status_id/.test(ands[i])) ands.splice(i, 1);
