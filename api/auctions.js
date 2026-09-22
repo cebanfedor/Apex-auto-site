@@ -2464,7 +2464,7 @@ function computeComps(rows, meta){
 
 const SYNC_PER_PAGE = 1000;
 const SYNC_PAGES_PER_RUN = 8;
-const SYNC_LOCK_MINUTES = 5;
+const SYNC_LOCK_MINUTES = 3;
 const SYNC_RUN_BUDGET_MS = 45000;
 
 function syncSb(){
@@ -2493,6 +2493,21 @@ async function syncSbFetch(path, options = {}){
 async function syncGetState(){
   const rows = await syncSbFetch(`/api_sync_state?k=eq.main&select=v`);
   return (rows && rows[0] && rows[0].v) || {};
+}
+
+// Один писатель в api_lots одновременно: инкремент, syncclosed и syncsettle делят lock_at
+// (параллельные upsert одних и тех же лотов ждали друг друга и упирались в statement timeout).
+async function acquireSyncLock(){
+  const st = await syncGetState().catch(() => null);
+  if(!st) return false;
+  const lockAt = st.lock_at ? new Date(st.lock_at).getTime() : 0;
+  if(Date.now() - lockAt < SYNC_LOCK_MINUTES * 60e3) return false;
+  st.lock_at = new Date().toISOString();
+  await syncSetState(st);
+  return true;
+}
+async function releaseSyncLock(){
+  try{ const st = await syncGetState(); st.lock_at = null; await syncSetState(st); }catch(e){}
 }
 
 async function syncSetState(v){
@@ -2717,17 +2732,24 @@ async function handleSyncLots(response){
       // для актуальности дат каталога. НЕ зацикливаемся (continue=false) и держим
       // прогон коротким — агрессивный постраничный дренаж убегал на 100+ страниц,
       // таймаутил прогон и грузил базу, из-за чего мигал comps (главная фича).
-      const INCR_WINDOW_MIN = 1440;
+      const INCR_WINDOW_MIN = 180;   // было 1440: фид отдаёт свежие первыми, 3 страниц×1000 за 3ч хватает; сутки догоняет ночной обход
+      // Внутри pump-цикла sweep (GitHub Actions крутит вызовы, пока continue:true) инкремент НЕ повторяем —
+      // раньше каждая итерация заново переписывала 6000 лотов, и база захлёбывалась.
+      const lastIncr = state.last_incr_at ? new Date(state.last_incr_at).getTime() : 0;
+      const skipIncr = !!(state.sweep && state.sweep.active) && Date.now() - lastIncr < 50 * 60e3;
+      result.incrSkipped = skipIncr;
       // 22.09.2026: после чистки 300k строк база пишет в 4–5 раз медленнее (1000 upsert ≈ 39с), 22с не хватало
       // даже на первую страницу → synс падал по таймауту, каталог отстал на сутки. Бюджет 45с, страниц меньше —
       // фид отдаёт свежие изменения первыми, дальние страницы догоняет ночной обход.
       const INCR_BUDGET = 45000;
       result.steps = [];
       const stepT = () => Date.now() - started;
-      for(const domain of SYNC_DOMAINS){
+      result.at = "incr start";
+      if(!skipIncr) for(const domain of SYNC_DOMAINS){
         for(let page = 1; page <= 3; page++){
           if(Date.now() - started > INCR_BUDGET) break;
           const t0 = stepT();
+          result.at = `incr d${domain} p${page}`;
           const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain});
           result.imported += got;
           result.steps.push(`incr d${domain} p${page}: ${got} in ${stepT() - t0}ms (feed ${syncImportPage.lastFetchMs}ms, skipped ${syncUpsertRows.skipped || 0})`);
@@ -2736,13 +2758,14 @@ async function handleSyncLots(response){
       }
       // Закрытые лоты: раньше брали ОДНУ страницу (1000) — а площадки закрывают десятки тысяч
       // лотов в сутки, остальное навсегда оставалось в базе «живым». Берём до 6 страниц.
-      for(let apg = 1; apg <= 6; apg++){
+      if(!skipIncr) for(let apg = 1; apg <= 6; apg++){
         if(Date.now() - started > INCR_BUDGET + 8000) break;
+        result.at = `archived p${apg}`;
         const got = await syncImportPage("/archived-lots", apg, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
         result.archivedMarked += got;
         if(got < SYNC_PER_PAGE) break;
       }
-      state.last_incr_at = new Date().toISOString();
+      if(!skipIncr) state.last_incr_at = new Date().toISOString();
       // Сбрасываем возможный застрявший курсор дренажа прошлой версии.
       state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
       result.continue = false;
@@ -2781,7 +2804,8 @@ async function handleSyncLots(response){
         result.sweep = {stage:sweep.stage, di:sweep.di, page:sweep.page, imported:sweep.imported};
         if(sweep.active) result.continue = true;
       }
-      if(sweep.active && sweep.stage === "purge" && dbHealthy && Date.now() - started < SYNC_RUN_BUDGET_MS - 15000){
+      if(sweep.active && sweep.stage === "purge" && dbHealthy && Date.now() - started < SYNC_RUN_BUDGET_MS - (skipIncr ? 5000 : 15000)){
+        result.at = "purge";
         // Час запаса: лот, обновлённый инкрементом прямо перед стартом обхода, не трогаем.
         const cutoff = new Date(new Date(sweep.started_at).getTime() - 3600e3).toISOString();
         let left = true;
@@ -2792,8 +2816,8 @@ async function handleSyncLots(response){
           const hi = new Date(Math.min(new Date(cur).getTime() + 6 * 3600e3, new Date(cutoff).getTime())).toISOString();
           const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=gte.${encodeURIComponent(cur)}&synced_at=lt.${encodeURIComponent(hi)}&select=id&limit=200`);
           if(!rows || !rows.length){ if(hi >= cutoff){ left = false; break; } sweep.purge_cursor = hi; continue; }
-          for(let i = 0; i < rows.length; i += 100){
-            const ids = rows.slice(i, i + 100).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+          for(let i = 0; i < rows.length; i += 50){
+            const ids = rows.slice(i, i + 50).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
             await syncSbFetch(`/api_lots?id=in.(${ids})&archived=eq.false`, {method:"DELETE", headers:{prefer:"return=minimal"}});
           }
           sweep.deleted += rows.length;
@@ -2853,7 +2877,7 @@ async function handleSyncLots(response){
   }catch(e){
     result.ok = false;
     result.error = e.message;
-    result.failedAt = (result.steps && result.steps.length) ? "after: " + result.steps[result.steps.length - 1] : "before first import (state/lock?)";
+    result.failedAt = (result.at || "before first import") + ((result.steps && result.steps.length) ? " · after: " + result.steps[result.steps.length - 1] : "");
     result.continue = false;
   }
   state.lock_at = null; // шаг завершён — следующий вызов может стартовать сразу
@@ -2894,6 +2918,7 @@ module.exports = async function handler(request, response){
   if(action === "syncsettle"){
     response.setHeader("cache-control", "no-store");
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
+    if(!(await acquireSyncLock())){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"sync running"})); return; }
     const started = Date.now(); let checked = 0, closed = 0;
     try{
       const to = new Date(Date.now() - 15 * 60e3).toISOString(), from = new Date(Date.now() - 3 * 3600e3).toISOString();
@@ -2915,6 +2940,7 @@ module.exports = async function handler(request, response){
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, ms:Date.now() - started}));
     }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
+    finally{ await releaseSyncLock(); }
     return;
   }
   // Одноразово/по запросу: «призраки» — в архиве без цены продажи (непроданные раунды, записанные как sold) → оживить.
@@ -2942,15 +2968,18 @@ module.exports = async function handler(request, response){
   if(action === "syncclosed"){
     response.setHeader("cache-control", "no-store");
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
+    if(!(await acquireSyncLock())){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"sync running"})); return; }
     const started = Date.now(); let n = 0;
     try{
-      for(let apg = 1; apg <= 3; apg++){
-        if(Date.now() - started > 20000) break;
-        const got = await syncImportPage("/archived-lots", apg, {minutes:"90"}, {archived:true});
+      // Окно 30 мин при запуске каждые 10 мин (было 90: каждый закрытый лот переписывался ~9 раз подряд).
+      for(let apg = 1; apg <= 2; apg++){
+        if(Date.now() - started > 25000) break;
+        const got = await syncImportPage("/archived-lots", apg, {minutes:"30"}, {archived:true});
         n += got; if(got < SYNC_PER_PAGE) break;
       }
-      response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, ms:Date.now() - started}));
+      response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started}));
     }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
+    finally{ await releaseSyncLock(); }
     return;
   }
   if(request.method !== "GET"){
