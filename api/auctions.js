@@ -1874,6 +1874,46 @@ function sanitizeStoredLot(l){
   return l;
 }
 const undatedCountCache = new Map();
+
+// Счётчик вкладки БЕЗ фильтров — один на вкладку+площадку, не зависит от сортировки (кэш 10 мин).
+// Раньше total = оценка планировщика по конкретному запросу: у сортировок разные предикаты
+// («year.not.is.null», хвост без даты…) → «Все» показывало 526k / 164k / 483k при смене сортировки.
+const tabTotalCache = new Map();
+async function tabTotal(tab, auction){
+  const ck = `${tab}|${auction || "all"}`;
+  const c = tabTotalCache.get(ck);
+  if(c && Date.now() - c.at < 10 * 60e3) return c.n;
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if(!url || !key) return 0;
+  const auc = auction && auction !== "all" ? `&auction=eq.${pgEscape(auction).toLowerCase()}` : "";
+  const cnt = async (q, exact) => {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+    try{
+      const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false${auc}&${q}`,
+        {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:exact ? "count=exact" : "count=planned", range:"0-0", "range-unit":"items"}, signal:ctrl.signal});
+      return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
+    }finally{ clearTimeout(t); }
+  };
+  const live = "or=(status_id.neq.6,status_id.is.null)";
+  const grace = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+  let n = 0;
+  if(tab === "soon"){
+    const to = encodeURIComponent(new Date(Date.now() + 48 * 3600e3).toISOString());
+    n = await cnt(`sale_date=gte.${grace}&sale_date=lte.${to}&${live}`, true);
+  }else if(tab === "buy_now"){
+    const dayAgo = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
+    n = (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=gte.${dayAgo}`)) + (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=is.null`));
+  }else if(tab === "dated"){
+    n = await cnt(`sale_date=gte.${grace}&${live}`);
+  }else{
+    n = (await cnt(`sale_date=gte.${grace}&${live}`)) + (await cnt(`sale_date=is.null&${live}`));
+  }
+  if(n > 0){ tabTotalCache.set(ck, {n, at:Date.now()}); }
+  return n;
+}
+// Датированные торги (как у DreamBid «current») — для сводки в count.
+async function datedTotal(auction){ return tabTotal("dated", auction); }
 async function searchFromDb(query){
   if(!(await lotsDbReady())) return null;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
@@ -2173,6 +2213,10 @@ async function searchFromDb(query){
       }
     }catch(e){ /* без хвоста — отдаём датированные (null = взяли счётчик из кэша) */ }
   }
+  // Вкладка без фильтров: единый счётчик, не зависящий от сортировки (см. tabTotal).
+  const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
+  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now"].includes(tab);
+  if(unfiltered){ const t = await tabTotal(tab, query.get("auction")).catch(() => 0); if(t > 0) total = t; }
   return {
     _db:true,
     items:rows.map(r => r.payload).filter(Boolean).map(sanitizeStoredLot),
@@ -3211,9 +3255,10 @@ module.exports = async function handler(request, response){
         // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
         return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
       };
-      let all = 0, copart = 0, iaai = 0;
+      let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0;
       if(sbUp() && await lotsDbReady().catch(() => false)){
-        [all, copart, iaai] = await Promise.all([cnt(""), cnt("&auction=eq.copart"), cnt("&auction=eq.iaai")]);
+        // Те же числа, что у вкладки «Все» (tabTotal) — заголовок и вкладка не расходятся.
+        [all, copart, iaai, dated, buyNow] = await Promise.all([tabTotal("all", "all"), tabTotal("all", "copart"), tabTotal("all", "iaai"), datedTotal("all"), tabTotal("buy_now", "all")].map(p => p.catch(() => 0)));
       }
       if(!(all > 0)){
         // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
@@ -3225,7 +3270,7 @@ module.exports = async function handler(request, response){
           all = (a && a.total) || 0; copart = (c && c.total) || 0; iaai = (i && i.total) || 0;
         }catch(e){}
       }
-      const payload = {ok:true, total:all, copart, iaai, src:sbUp() ? "db" : "live", at:new Date().toISOString()};
+      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString()};
       setCached(ck, payload, 10 * 60e3);
       sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
       return;
