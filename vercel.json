@@ -7,6 +7,7 @@
   ],
   "redirects": [
     { "source": "/server/:path*", "destination": "/404", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/", "permanent": true },
     { "source": "/:path*", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/:path*", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
