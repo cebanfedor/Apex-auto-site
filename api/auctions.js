@@ -3093,7 +3093,7 @@ module.exports = async function handler(request, response){
       const vins = [...new Set(String(query.get("vins") || "").toUpperCase().split(",").map(v => v.replace(/[^A-Z0-9]/g, "")).filter(isValidVin))].slice(0, 30);
       const out = {};
       const one = async vin => {
-        const ck = "vinhist:" + vin;
+        const ck = "vinhist2:" + vin;
         const c = getCached(ck);
         if(c){ out[vin] = c; return; }
         try{
@@ -3101,8 +3101,11 @@ module.exports = async function handler(request, response){
           await attachVinHistory(stub);
           const h = stub.priceHistory || [];
           const sold = h.filter(x => x.status === "sold");
-          const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null};
-          setCached(ck, r, 6 * 3600e3);
+          // Отдаём записи с номером лота и датой: клиент сам исключает ТЕКУЩИЙ лот (для архивной
+          // карточки её собственная продажа — не «ранее», а эта самая продажа).
+          const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null,
+            entries:h.slice(0, 12).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || ""}))};
+          setCached(ck, r, 2 * 3600e3);
           out[vin] = r;
         }catch(e){ out[vin] = null; }
       };

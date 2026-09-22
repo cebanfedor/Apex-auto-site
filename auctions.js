@@ -1163,10 +1163,27 @@
       const h = vinHistCache[lot.vin]; if(!h) return;
       const li = [...card.querySelectorAll(".dbChecks li")].find(x => /История/.test(x.textContent));
       if(!li) return;
-      if(!h.count){ li.className = "dbCheck good"; li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${L("Ранее не продавалась (по VIN)")}</span>`; return; }
-      const last = h.lastSale ? ` · ${money(h.lastSale.bid)} (${h.lastSale.date.slice(5, 7)}/${h.lastSale.date.slice(2, 4)})` : "";
-      li.className = h.sold ? "dbCheck bad" : "dbCheck neutral";
-      li.innerHTML = `${dbIco(h.sold ? "warn" : "dot")}<span><b>${L("История:")}</b> ${h.sold ? L("Был продан ранее") + last : `${h.count} ${recordsWord(h.count)}`}</span>`;
+      // Прошлые заходы = записи ДРУГИХ лотов (текущий номер — это текущие/эти торги, не «ранее»).
+      const cur = String(lot.lot || "");
+      const curDay = String(lot.auctionDate || "").slice(0, 10);
+      const entries = Array.isArray(h.entries) ? h.entries : [];
+      const past = entries.filter(e => !(e.lot && e.lot === cur) && !(!e.lot && e.date === curDay));
+      const pastSold = past.filter(e => e.status === "sold");
+      const fmt = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : d; };
+      const {isSold} = lotSaleState(lot);
+      if(!past.length){
+        li.className = "dbCheck good";
+        li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${isSold ? L("Единственная продажа (по VIN)") : L("Ранее не продавалась (по VIN)")}</span>`;
+        return;
+      }
+      if(pastSold.length){
+        const last = pastSold[0];
+        li.className = "dbCheck bad";
+        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продавалась ранее")}: ${money(last.bid)} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}</span>`;
+      }else{
+        li.className = "dbCheck neutral";
+        li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")}: ${past.length} ${recordsWord(past.length)}, ${L("не продана")}</span>`;
+      }
     });
   }
 
@@ -2109,11 +2126,18 @@
     // History summary for Главное section
     // Запись текущих торгов (h.current) — не история: впервые выставленная
     // машина не должна выглядеть как «продавалась ранее»
-    const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : []).filter(h => !h.current);
+    // «Ранее» = записи ДРУГИХ лотов по этому VIN. Запись текущего номера (в т.ч. его продажа) — это
+    // эти торги, а не история. Продан один раз под текущим номером → «Единственная продажа».
+    const curLotNo = String(lot.lot || ""), curDay = String(lot.auctionDate || "").slice(0, 10);
+    const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : [])
+      .filter(h => !h.current && !(h.lot && String(h.lot) === curLotNo) && !(!h.lot && String(h.date).slice(0, 10) === curDay));
     const histCount = pastHistory.length;
-    const wasSoldBefore = histCount > 0 && pastHistory.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
-    // На странице лота история собрана ПО VIN (attachVinHistory) — здесь «не продавалась» честно.
-    const histStr = histCount === 0 ? L("Ранее не продавалась (по VIN)") : wasSoldBefore ? L("Был продан ранее") : `${histCount} ${recordsWord(histCount)}`;
+    const pastSold = pastHistory.filter(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
+    const fmtHd = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : ""; };
+    const histStr = histCount === 0
+      ? (lotSaleState(lot).isSold ? L("Единственная продажа (по VIN)") : L("Ранее не продавалась (по VIN)"))
+      : pastSold.length ? `${L("Продавалась ранее")}: ${money(pastSold[0].bid)} · ${fmtHd(pastSold[0].date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}`
+      : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
     // Первичен seller_type из API (mapfre и др. по имени не распознать).
