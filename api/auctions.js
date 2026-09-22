@@ -1895,11 +1895,14 @@ async function tabTotal(tab, auction){
       const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false${auc}&${q}`,
         {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:`count=${mode}`, range:"0-0", "range-unit":"items"}, signal:ctrl.signal});
       if(!(r.ok || r.status === 416)) throw new Error(`HTTP ${r.status} ${(await r.text().catch(() => "")).slice(0, 80)}`);
-      return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0;
-    }finally{ clearTimeout(t); }
+      const n = Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+      tabTotal.debug = (tabTotal.debug || []).slice(-24).concat([{ck, q, mode, n, cr:r.headers.get("content-range"), st:r.status}]);
+      return n;
+    }catch(e){ tabTotal.debug = (tabTotal.debug || []).slice(-24).concat([{ck, q, mode, err:String(e.message || e).slice(0, 80)}]); throw e; }
+    finally{ clearTimeout(t); }
   };
   const cnt = async q => {
-    try{ return await one(q, "exact", 8000); }
+    try{ return await one(q, "exact", 5000); }
     catch(e){ tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return one(q, "planned", 4000); }
   };
   const live = "or=(status_id.neq.6,status_id.is.null)";
@@ -2124,7 +2127,9 @@ async function searchFromDb(query){
   const sortMap = {
     soon:wantsPastTab ? "sale_date.desc" : "sale_date.asc.nullslast",   // архив: только что сыгравшие — первыми
     smart:wantsPastTab ? "sale_date.desc" : undefined,
-    date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
+    // date_desc: на общем каталоге набор уже без NULL (datedOnly) — «DESC NULLS LAST» индекс не обслуживает,
+    // сортировка 600k строк в памяти → 8с-таймаут → live-фолбэк (782k «лотов» с Кореей). Недатированные — хвостом.
+    date_asc:"sale_date.asc.nullslast", date_desc:datedOnly ? "sale_date.desc" : "sale_date.desc.nullslast",
     year_asc:"year.asc.nullslast", year_desc:"year.desc",
     // desc БЕЗ nullslast: NULL-ы уже отсечены фильтром выше, а «DESC NULLS LAST» обычный btree-индекс
     // обслужить не может → сортировка 600k строк в памяти → таймаут → live-фолбэк на 10 секунд.
@@ -2184,7 +2189,7 @@ async function searchFromDb(query){
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
-  const dateTail = (datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/));
+  const dateTail = (datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc|date_desc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/));
   if(dateTail || nullTailCol){
     try{
       const p2 = new URLSearchParams(p);
@@ -3277,7 +3282,7 @@ module.exports = async function handler(request, response){
           all = (a && a.total) || 0; copart = (c && c.total) || 0; iaai = (i && i.total) || 0;
         }catch(e){}
       }
-      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null};
+      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
       setCached(ck, payload, 10 * 60e3);
       sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
       return;
