@@ -2113,7 +2113,9 @@ async function searchFromDb(query){
       headers:{
         apikey:key,
         authorization:`Bearer ${key}`,
-        prefer:"count=estimated",
+        // Архив: точный счётчик — выборка ограничена проданными (~50k, частичный индекс), а estimated после
+        // массовой чистки без ANALYZE врал в 50 раз («Архив 1k» при 49k продаж).
+        prefer:tab === "archived" ? "count=exact" : "count=estimated",
         range:`${offset}-${offset + perPage - 1}`,
         "range-unit":"items"
       },
