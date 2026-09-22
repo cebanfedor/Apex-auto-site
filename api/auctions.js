@@ -2812,6 +2812,24 @@ module.exports = async function handler(request, response){
   if(action === "synclots") return handleSyncLots(response);
   // Быстрый синк ЗАКРЫТЫХ торгов (каждые 10 мин из GitHub Actions): только /archived-lots за последние 90 минут.
   // Даёт правило «сыгралась → сразу в архив»: лаг ≤10 мин вместо часа. Полный инкремент остаётся часовым.
+  // Диагностика фида закрытых лотов (read-only, только админ): есть ли лот в /archived-lots за N минут.
+  if(action === "closedprobe"){
+    const {isAuthenticated} = require("../server/auth");
+    if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false}); return; }
+    const lotQ = String(query.get("lot") || "").replace(/[^0-9]/g, "");
+    const mins = String(query.get("minutes") || "180").replace(/[^0-9]/g, "");
+    const out = {ok:true, minutes:mins, pages:[]};
+    for(let pg = 1; pg <= 5; pg++){
+      const p = new URLSearchParams({per_page:"1000", page:String(pg), simple_paginate:"1", minutes:mins});
+      const payload = await syncApiFetch(`${AUCTIONS_API_BASE}/archived-lots?${p}`);
+      const items = findItems(payload) || [];
+      const hit = items.find(it => String(((it.lots||[])[0]||it.lot||it).lot || "") === lotQ);
+      out.pages.push({page:pg, n:items.length, hit:hit ? {status:((hit.lots||[])[0]||{}).status, final:((hit.lots||[])[0]||{}).final_bid, sale_date:((hit.lots||[])[0]||{}).sale_date, updated:((hit.lots||[])[0]||{}).final_bid_updated_at || ((hit.lots||[])[0]||{}).updated_at} : null});
+      if(hit || items.length < 1000) break;
+    }
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "syncclosed"){
     response.setHeader("cache-control", "no-store");
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
