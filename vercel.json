@@ -3,7 +3,9 @@
     "api/auctions.js": { "maxDuration": 60 }
   },
   "crons": [
-    { "path": "/api/sync-lots", "schedule": "0 5 * * *" }
+    { "path": "/api/cron/sync", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/closed", "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/settle", "schedule": "5-59/10 * * * *" }
   ],
   "redirects": [
     { "source": "/server/:path*", "destination": "/404", "permanent": false },
@@ -15,6 +17,9 @@
     { "source": "/hot.html", "destination": "/in-transit", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/api/cron/sync", "destination": "/api/auctions?action=synclots&source=cron" },
+    { "source": "/api/cron/closed", "destination": "/api/auctions?action=syncclosed&source=cron" },
+    { "source": "/api/cron/settle", "destination": "/api/auctions?action=syncsettle&source=cron" },
     { "source": "/api/sync-lots", "destination": "/api/auctions?action=synclots" },
     { "source": "/api/calc", "destination": "/api/content?calc=1" },
     { "source": "/api/locations", "destination": "/api/content?calc=1&locations=" },

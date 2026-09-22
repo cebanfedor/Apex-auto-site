@@ -6,8 +6,9 @@
 name: Sync auction lots
 on:
   schedule:
+    # Основное расписание — Vercel Cron (vercel.json: /api/cron/sync каждые 5 мин, closed/settle каждые 10).
+    # GitHub cron срабатывал 5–6 раз в СУТКИ (23.09.2026) — здесь только резервный запуск.
     - cron: "17 * * * *"
-    - cron: "*/10 * * * *"   # быстрый синк закрытых торгов (см. job closed)
   workflow_dispatch:
 
 jobs:

@@ -2744,7 +2744,9 @@ async function handleSyncLots(response){
       // Внутри pump-цикла sweep (GitHub Actions крутит вызовы, пока continue:true) инкремент НЕ повторяем —
       // раньше каждая итерация заново переписывала 6000 лотов, и база захлёбывалась.
       const lastIncr = state.last_incr_at ? new Date(state.last_incr_at).getTime() : 0;
-      const skipIncr = !!(state.sweep && state.sweep.active) && Date.now() - lastIncr < 50 * 60e3;
+      // Vercel cron дёргает /api/cron/sync каждые 5 мин (GitHub cron срабатывал 5–6 раз в СУТКИ вместо
+      // ежечасно, см. 23.09.2026) — инкремент делаем не чаще раза в ~50 мин, остальные вызовы отдаём sweep или выходим.
+      const skipIncr = Date.now() - lastIncr < 50 * 60e3;
       result.incrSkipped = skipIncr;
       // 22.09.2026: после чистки 300k строк база пишет в 4–5 раз медленнее (1000 upsert ≈ 39с), 22с не хватало
       // даже на первую страницу → synс падал по таймауту, каталог отстал на сутки. Бюджет 45с, страниц меньше —
