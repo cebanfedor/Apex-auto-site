@@ -731,7 +731,8 @@
     if(num <= 5) return L("Пробег не указан");
     const fmt = v => Math.round(v).toLocaleString("ru-RU");
     if(/mi/i.test(text)) return `${fmt(num)} ${L("миль")} ≈ ${fmt(num * 1.609)} ${L("км")}`;
-    return `${fmt(num)} ${L("км")}`;
+    // Канадские лоты: одометр уже в км (как на Copart CA) — показываем км, мили справочно
+    return `${fmt(num)} ${L("км")} ≈ ${fmt(num / 1.609)} ${L("миль")}`;
   }
   // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){

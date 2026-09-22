@@ -350,7 +350,17 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const location = locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location);
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
-  const odometer = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
+  // Канада: Copart CA показывает одометр в КМ, а фид кладёт то же число в odometer.mi и «пересчитывает»
+  // в km (48 349 km на Copart → mi:48349, km:77810). Для канадских лотов число = километры;
+  // мили считаем сами (÷1.609). Признак — страна локации CA или провинция в строке локации.
+  const odoRaw = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
+  const isCanadaLot = (() => {
+    const iso = String(lot?.location?.country?.iso || lot?.location?.country_code || lot?.location?.country || "").toLowerCase();
+    if(iso === "ca" || iso === "canada") return true;
+    return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
+  })();
+  const odometerKmVal = isCanadaLot ? odoRaw : safeNumber(lot?.odometer?.km);
+  const odometer = isCanadaLot ? Math.round(odoRaw / 1.609) : odoRaw;
   // У timed-аукционов ставка живёт в timed_start_bid, а bid пуст
   const currentBid = safeNumber(lot?.bid || lot?.current_bid || lot?.currentBid || item?.current_bid || item?.bid)
     || safeNumber(lot?.timed_start_bid);
@@ -467,8 +477,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     finalBid:preBidSold ? 0 : resolvedFinalBid,
     buyNow,
     odometer,
-    odometerKm:safeNumber(lot?.odometer?.km),
-    odometerText:odometer ? `${odometer.toLocaleString("en-US")} mi` : "",
+    odometerKm:odometerKmVal,
+    // Для Канады текст — в км (как на Copart), чтобы клиент не считал дважды.
+    odometerText:isCanadaLot ? (odoRaw ? `${odoRaw.toLocaleString("en-US")} km` : "") : (odometer ? `${odometer.toLocaleString("en-US")} mi` : ""),
+    odometerUnit:isCanadaLot ? "km" : "mi",
     odometerStatus:safeName(lot?.odometer?.status),
     primaryDamage,
     secondaryDamage,
@@ -2814,8 +2826,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "19";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g6" : "";   // бамп при смене таблицы поколений
+  const SEARCH_CACHE_VER = "20";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g7" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
