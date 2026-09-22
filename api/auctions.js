@@ -2508,8 +2508,9 @@ async function acquireSyncLock(){
   await syncSetState(st);
   return true;
 }
-async function releaseSyncLock(){
-  try{ const st = await syncGetState(); st.lock_at = null; await syncSetState(st); }catch(e){}
+// info — короткий итог для диагностики (?action=dbstatus → sync.v.last_<name>).
+async function releaseSyncLock(name, info){
+  try{ const st = await syncGetState(); st.lock_at = null; if(name) st["last_" + name] = {at:new Date().toISOString(), ...(info || {})}; await syncSetState(st); }catch(e){}
 }
 
 async function syncSetState(v){
@@ -2936,7 +2937,7 @@ module.exports = async function handler(request, response){
     response.setHeader("cache-control", "no-store");
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
     if(!(await acquireSyncLock())){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"sync running"})); return; }
-    const started = Date.now(); let checked = 0, closed = 0;
+    const started = Date.now(); let checked = 0, closed = 0, settleInfo = null;
     try{
       const to = new Date(Date.now() - 15 * 60e3).toISOString(), from = new Date(Date.now() - 3 * 3600e3).toISOString();
       const rows = await syncSbFetch(`/api_lots?archived=eq.false&sale_date=gte.${encodeURIComponent(from)}&sale_date=lte.${encodeURIComponent(to)}&select=auction,lot,sale_date&order=sale_date.desc&limit=400`);
@@ -2956,8 +2957,9 @@ module.exports = async function handler(request, response){
         }));
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, ms:Date.now() - started}));
-    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
-    finally{ await releaseSyncLock(); }
+      settleInfo = {candidates:(rows || []).length, checked, closed, ms:Date.now() - started};
+    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); settleInfo = {error:String(e.message || e).slice(0, 120)}; }
+    finally{ await releaseSyncLock("settle", settleInfo); }
     return;
   }
   // Одноразово/по запросу: «призраки» — в архиве без цены продажи (непроданные раунды, записанные как sold) → оживить.
@@ -2986,7 +2988,7 @@ module.exports = async function handler(request, response){
     response.setHeader("cache-control", "no-store");
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
     if(!(await acquireSyncLock())){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"sync running"})); return; }
-    const started = Date.now(); let n = 0;
+    const started = Date.now(); let n = 0, closedInfo = null;
     try{
       // Окно 30 мин при запуске каждые 10 мин (было 90: каждый закрытый лот переписывался ~9 раз подряд).
       for(let apg = 1; apg <= 2; apg++){
@@ -2995,8 +2997,9 @@ module.exports = async function handler(request, response){
         n += syncImportPage.lastWritten; if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started}));
-    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
-    finally{ await releaseSyncLock(); }
+      closedInfo = {archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started};
+    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); closedInfo = {error:String(e.message || e).slice(0, 120)}; }
+    finally{ await releaseSyncLock("closed", closedInfo); }
     return;
   }
   if(request.method !== "GET"){
