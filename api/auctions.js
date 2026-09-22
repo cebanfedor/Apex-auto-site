@@ -2760,9 +2760,15 @@ async function handleSyncLots(response){
           if(Date.now() - started > INCR_BUDGET) break;
           const t0 = stepT();
           result.stage = `incr d${domain} p${page}`;
-          const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain}, {}, started + INCR_BUDGET);
+          let got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain}, {}, started + INCR_BUDGET);
+          let label = `incr d${domain} p${page}`;
+          if(got === 0 && page === 1){
+            // 23.09.2026: IAAI на окне 3ч отдал 0 лотов (Copart — 3000). Страховка: сутки, одна страница.
+            got = await syncImportPage("/cars", 1, {minutes:"1440", domain_id:domain}, {}, started + INCR_BUDGET);
+            label += " (24h fallback)";
+          }
           result.imported += syncImportPage.lastWritten;
-          result.steps.push(`incr d${domain} p${page}: ${syncImportPage.lastWritten}/${got} in ${stepT() - t0}ms (feed ${syncImportPage.lastFetchMs}ms, skipped ${syncUpsertRows.skipped || 0})`);
+          result.steps.push(`${label}: ${syncImportPage.lastWritten}/${got} in ${stepT() - t0}ms (feed ${syncImportPage.lastFetchMs}ms, skipped ${syncUpsertRows.skipped || 0})`);
           if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
         }
       }
