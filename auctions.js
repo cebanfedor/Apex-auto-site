@@ -1603,7 +1603,9 @@
     // (клиент: «пишете $10600, а купил за $11100»). auctionsapi часто НЕ помечает
     // IAAI-таймед как timed (лот 2022 Tesla шёл как «live»), поэтому прячем на
     // timed ИЛИ на всех IAAI-проданных; Copart-живые продажи достоверны — оставляем.
-    const hidePrice = isSold && (lot.timed === true || String(lot.auction || "").toLowerCase() === "iaai");
+    // 22.09.2026: скрытие снято (Федор). Финал теперь берётся по VIN только у состоявшихся продаж,
+    // а история цены ниже и так показывала ту же цифру — «по запросу» сверху выглядело как противоречие.
+    const hidePrice = false;
     const initialBid = hidePrice ? 0 : ((isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0);
     // Идут ли торги прямо сейчас (аукцион начался ≤3ч назад, ещё не продан).
     // Во время live-аукциона ставка на Copart/IAAI растёт в реальном времени,
