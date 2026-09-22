@@ -3174,6 +3174,31 @@ module.exports = async function handler(request, response){
     // История по VIN пачкой для карточек каталога (правило Федора: VIN — первичен, номер лота — второстепенен).
     // До 30 VIN за запрос, параллельно по 6, результат кэшируется 6ч (история меняется редко).
     // Живые ставка/резерв/статус продажи пачкой для карточек (≤30 id, параллельно по 6, кэш 2 мин).
+    // Диагностика (read-only, кэш 10 мин): сколько лотов у ФИДА по площадкам — с датой торгов в 60 дней и всего.
+    // Нужна, чтобы сверять счётчик каталога с источником, а не с DreamBid.
+    if(action === "feedcount"){
+      const ck = "feedcount"; const c = getCached(ck);
+      if(c){ sendJson(response, 200, c, {"cache-control":"no-store"}); return; }
+      const one = async extra => {
+        const p = new URLSearchParams({per_page:"1", page:"1", simple_paginate:"0", prices_history:"0", ...extra});
+        const payload = await fetchJson(`${AUCTIONS_API_BASE}/cars?${p}`).catch(e => ({error:String(e.message || e).slice(0, 80)}));
+        const meta = payload && (payload.meta || payload.pagination || payload);
+        return payload && payload.error ? payload.error : Number(payload.total ?? (meta && meta.total) ?? (payload.data && payload.data.total)) || 0;
+      };
+      const out = {ok:true, at:new Date().toISOString()};
+      for(const [name, d] of [["copart", "3"], ["iaai", "1"]]){
+        out[name] = {
+          dated60:await one({domain_id:d, sale_date_in_days:"60", exclude_expired_auctions:"0"}),
+          dated60_live:await one({domain_id:d, sale_date_in_days:"60", exclude_expired_auctions:"1"}),
+          buy_now:await one({domain_id:d, buy_now:"1"}),
+          total:await one({domain_id:d}),
+          sold:await one({domain_id:d, status:"6"})
+        };
+      }
+      setCached(ck, out, 600);
+      sendJson(response, 200, out, {"cache-control":"no-store"});
+      return;
+    }
     if(action === "count"){
       const ck = "catalog-count"; const c = getCached(ck);
       if(c){ sendJson(response, 200, c, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"}); return; }
