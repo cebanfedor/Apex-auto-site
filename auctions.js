@@ -2681,11 +2681,17 @@
     $("#auctionDetail").hidden = false;
     $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Ищем лот…</div>';
     window.scrollTo(0, 0);
-    for(const auc of ["copart", "iaai"]){
-      try{
-        const payload = await api(`/api/auctions?action=detail&auction=${auc}&lot=${encodeURIComponent(lotNo)}`);
-        if(payload.lot && payload.lot.lot){ renderDetail(payload.lot); return; }
-      }catch(e){ /* пробуем следующий аукцион */ }
+    // Номер лота НЕ уникален между площадками (46053676 = Tesla на IAAI и Camaro на Copart) —
+    // спрашиваем обе параллельно; нашлись две разные машины → даём выбрать, а не открываем первую.
+    const res = await Promise.allSettled(["copart", "iaai"].map(auc => api(`/api/auctions?action=detail&auction=${auc}&lot=${encodeURIComponent(lotNo)}`)));
+    const found = res.map(r => r.status === "fulfilled" && r.value && r.value.lot && r.value.lot.lot ? r.value.lot : null).filter(Boolean);
+    const distinct = found.filter((l, i) => !found.slice(0, i).some(o => (o.vin && l.vin && o.vin === l.vin) || String(o.auction) === String(l.auction)));
+    if(distinct.length === 1 || (distinct.length > 1 && distinct.every(l => l.vin && l.vin === distinct[0].vin))){ renderDetail(distinct[0]); return; }
+    if(distinct.length > 1){
+      $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">${L("← Вернуться к каталогу")}</a>
+        <div class="auctionMessageV1">${L("Номер лота")} ${escapeHtml(lotNo)} ${L("есть на обеих площадках — это разные машины. Выберите нужную:")}</div>
+        <div class="lotPickV1">${distinct.map(renderShowcaseCard).join("")}</div>`;
+      return;
     }
     $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">Лот ${escapeHtml(lotNo)} не найден на Copart и IAAI.</div>`;
   }
