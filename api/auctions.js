@@ -1988,9 +1988,19 @@ async function searchFromDb(query){
     ["status_id"].forEach(k => p.delete(k));
     for(let i = ands.length - 1; i >= 0; i--) if(/status_id/.test(ands[i])) ands.splice(i, 1);
     p.set("status_id", stIds.length === 1 ? `eq.${stIds[0]}` : `in.(${stIds.join(",")})`);
-    // выбраны продан/не продан → смотрим и в архиве
-    if(stIds.some(x => x === "6" || x === "8") && !stIds.some(x => x !== "6" && x !== "8")) p.set("archived", "eq.true");
-    else if(stIds.some(x => x === "6" || x === "8")) p.delete("archived");
+    // «Продан/не продан» реальны только у ПРОШЕДШИХ торгов: фид метит sold и будущие лоты с пред-ставкой.
+    const past = stIds.filter(x => x === "6" || x === "8"), live = stIds.filter(x => x !== "6" && x !== "8");
+    if(past.length){
+      for(let i = ands.length - 1; i >= 0; i--) if(/^sale_date\./.test(ands[i]) || /^or\(sale_date/.test(ands[i])) ands.splice(i, 1);
+      p.delete("archived");
+      const nowIso = new Date().toISOString();
+      if(live.length){
+        p.delete("status_id");
+        ands.push(`or(and(status_id.in.(${past.join(",")}),sale_date.lte.${nowIso}),and(status_id.in.(${live.join(",")}),archived.eq.false))`);
+      }else{
+        ands.push(`sale_date.lte.${nowIso}`);
+      }
+    }
   }
 
   const damage = query.get("damage");
@@ -2793,7 +2803,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "17";
+  const SEARCH_CACHE_VER = "18";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g6" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
