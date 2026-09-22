@@ -1115,6 +1115,31 @@
 
   // История по VIN для карточек на странице (пачкой). Строка «История» в карточке
   // перерисовывается по VIN-данным: «продавалась N раз · последняя $X (MM/YY)».
+  // Живые ставка и резерв для карточек на странице: база обновляется с лагом (Tesla: в базе $13 500,
+  // на IAAI уже $17 200, резерв появился после синка). Пачкой ≤30 лотов через action=livebids.
+  async function updateCardLiveBids(){
+    const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
+    const byId = new Map(state.items.map(l => [String(l.id), l]));
+    const ids = cards.map(cd => cd.querySelector(".dbPhoto")?.dataset.lid).filter(id => byId.has(String(id)) && !lotSaleState(byId.get(String(id))).isSold);
+    if(!ids.length) return;
+    let live = {};
+    try{ const r = await api(`/api/auctions?action=livebids&ids=${encodeURIComponent(ids.slice(0, 30).join(","))}`); live = r.items || {}; }catch(e){ return; }
+    cards.forEach(cd => {
+      const lid = cd.querySelector(".dbPhoto")?.dataset.lid; const lot = byId.get(String(lid)); const lv = live[lid];
+      if(!lot || !lv) return;
+      Object.assign(lot, {currentBid:lv.currentBid, buyNow:lv.buyNow, sellerReserve:lv.sellerReserve, saleStatus:lv.saleStatus || lot.saleStatus, timed:lv.timed});
+      const box = cd.querySelector(".dbPriceBox b"); const isCa = !!findCanadaLocation(lot);
+      const v = lv.currentBid || (state.tab === "buy_now" ? lv.buyNow : 0);
+      if(box && v > 0){ box.textContent = isCa ? moneyCad(v) : money(v); box.classList.remove("dbNoBidV1"); }
+      const photoPrice = cd.querySelector(".dbPhotoPrice"); if(photoPrice && v > 0) photoPrice.textContent = isCa ? moneyCad(v) : money(v);
+      const mob = cd.querySelector(".dbMobPriceV1 b"); if(mob && v > 0) mob.textContent = isCa ? moneyCad(v) : money(v);
+      const wrap = cd.querySelector(".dbPriceWrap"); let res = cd.querySelector(".dbReserveV1");
+      if(lv.sellerReserve > 0 && wrap){
+        if(!res){ res = document.createElement("div"); res.className = "dbReserveV1"; const sale = cd.querySelector(".dbSale"); (sale || cd.querySelector(".dbPriceBox")).insertAdjacentElement("afterend", res); }
+        res.innerHTML = `${L("Резерв продавца")}: <b>${isCa ? moneyCad(lv.sellerReserve) : money(lv.sellerReserve)}</b>`;
+      }
+    });
+  }
   const vinHistCache = {};
   async function updateCardVinHistory(){
     const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
@@ -1495,6 +1520,7 @@
       renderCards();
       updateGenChips();
       idle(updateCardVinHistory);
+      idle(updateCardLiveBids);
       idle(updateCardForecasts);
       if(!append) idle(updateTabCounts);
       if(!append) idle(updateArchiveStats);
@@ -1705,6 +1731,7 @@
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
+      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b>${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<i>${L("ставка ниже резерва")}</i>` : ""}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">

@@ -3071,6 +3071,24 @@ module.exports = async function handler(request, response){
 
     // История по VIN пачкой для карточек каталога (правило Федора: VIN — первичен, номер лота — второстепенен).
     // До 30 VIN за запрос, параллельно по 6, результат кэшируется 6ч (история меняется редко).
+    // Живые ставка/резерв/статус продажи пачкой для карточек (≤30 id, параллельно по 6, кэш 2 мин).
+    if(action === "livebids"){
+      const ids = [...new Set(String(query.get("ids") || "").split(",").map(x => x.trim()).filter(x => /^(copart|iaai)-[0-9]+$/.test(x)))].slice(0, 30);
+      const out = {};
+      const one = async id => {
+        const ck = "livebid:" + id; const c = getCached(ck); if(c){ out[id] = c; return; }
+        try{
+          const [auction, lotNo] = id.split("-");
+          const lot = await fetchDetail(new URLSearchParams({auction, lot:lotNo}));
+          const r = {currentBid:Number(lot.currentBid) || 0, buyNow:Number(lot.buyNow) || 0, sellerReserve:Number(lot.sellerReserve) || 0,
+            saleStatus:lot.saleStatus || "", timed:!!lot.timed, statusId:lot.statusId, auctionDate:lot.auctionDate || ""};
+          setCached(ck, r, 2 * 60e3); out[id] = r;
+        }catch(e){ out[id] = null; }
+      };
+      for(let i = 0; i < ids.length; i += 6) await Promise.all(ids.slice(i, i + 6).map(one));
+      sendJson(response, 200, {ok:true, items:out}, {"cache-control":"public, s-maxage=120, stale-while-revalidate=60"});
+      return;
+    }
     if(action === "vinhist"){
       const vins = [...new Set(String(query.get("vins") || "").toUpperCase().split(",").map(v => v.replace(/[^A-Z0-9]/g, "")).filter(isValidVin))].slice(0, 30);
       const out = {};
