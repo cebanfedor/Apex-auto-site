@@ -67,6 +67,13 @@
   // Округление цены рынка до $500 (вверх): $2 083 → $2 500, $5 314 → $5 500.
   function round500(value){ return Math.ceil((Number(value) || 0) / 500) * 500; }
   function money500(value){ return money(round500(value)); }
+  // Канадские лоты: оценка/ремонт у Copart CA — в CAD, как и ставка. Показываем CAD + ≈USD.
+  let _caLotFlag = false;
+  function caMoney(v){
+    if(!_caLotFlag) return money(v);
+    const rate = (typeof liveRates !== "undefined" && liveRates.cadUsd) || 0.7325;
+    return `${moneyCad(v)} ≈ ${money(Math.round(v * rate))}`;
+  }
 
   // Ставки канадских аукционов — в канадских долларах
   function moneyCad(value){
@@ -2012,6 +2019,7 @@
   }
 
   function renderDetail(lot){
+    _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
     try{
@@ -2135,8 +2143,8 @@
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
               ${dPlain("Локация", escapeHtml(lotLocationText(lot)))}
-              ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", money(lot.estimatedRetailValue)) : ""}
-              ${lot.repairCost ? dPlain("Оценка ремонта", money(lot.repairCost)) : ""}
+              ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
+              ${lot.repairCost ? dPlain("Оценка ремонта", caMoney(lot.repairCost)) : ""}
             </section>
             <section class="dSec">
               <div class="dSecHead">${L("Описание")}</div>
@@ -2145,7 +2153,7 @@
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
               ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целы" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
-              ${lot.preAccidentPrice ? dPlain("Оценка до аварии", money(lot.preAccidentPrice)) : ""}
+              ${lot.preAccidentPrice ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
             </section>
