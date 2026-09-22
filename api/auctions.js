@@ -2715,11 +2715,15 @@ async function handleSyncLots(response){
       // таймаутил прогон и грузил базу, из-за чего мигал comps (главная фича).
       const INCR_WINDOW_MIN = 1440;
       const INCR_BUDGET = 22000;
+      result.steps = [];
+      const stepT = () => Date.now() - started;
       for(const domain of SYNC_DOMAINS){
         for(let page = 1; page <= 5; page++){
           if(Date.now() - started > INCR_BUDGET) break;
+          const t0 = stepT();
           const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain});
           result.imported += got;
+          result.steps.push(`incr d${domain} p${page}: ${got} in ${stepT() - t0}ms`);
           if(got < SYNC_PER_PAGE) break;
         }
       }
@@ -2841,7 +2845,7 @@ async function handleSyncLots(response){
   }catch(e){
     result.ok = false;
     result.error = e.message;
-    result.failedAt = result.imported ? "after-import" : "import-or-state";
+    result.failedAt = (result.steps && result.steps.length) ? "after: " + result.steps[result.steps.length - 1] : "before first import (state/lock?)";
     result.continue = false;
   }
   state.lock_at = null; // шаг завершён — следующий вызов может стартовать сразу

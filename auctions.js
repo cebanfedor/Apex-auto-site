@@ -1530,6 +1530,15 @@
         state.items = nextItems;
         state.displayPage = 1;
       }
+      // Вкладка «Все» без фильтров: total из базы включает лоты без даты торгов (сток «на площадке») —
+      // в заголовке показываем реальное число лотов С торгами (action=count), как DreamBid.
+      if(state.tab === "all" && !clientFilterActive()){
+        const fp = formParams(); ["auction","tab","sort","page","per_page"].forEach(k => fp.delete(k));
+        if(![...fp.keys()].length){
+          const cr = await api("/api/auctions?action=count").catch(() => null);
+          if(cr && cr.total > 0 && reqId === state.loadSeq) state.total = state.auction === "copart" ? cr.copart : state.auction === "iaai" ? cr.iaai : cr.total;
+        }
+      }
       $("#auctionResultCount").textContent = state.total
         ? state.total.toLocaleString("ru-RU")
         : state.items.length;
