@@ -2633,21 +2633,25 @@ async function syncUpsertRows(rows){
         body:JSON.stringify(chunk)
       });
     }catch(e){
-      await new Promise(r => setTimeout(r, 800));
-      await syncSbFetch(`/api_lots?on_conflict=id`, {
-        method:"POST",
-        headers:{prefer:"resolution=merge-duplicates,return=minimal"},
-        body:JSON.stringify(chunk)
-      });
+      // Таймаут на чанке: пробуем мелкими пачками по 25; если и они падают — пропускаем чанк
+      // (лот догонит следующий прогон), но НЕ роняем весь синк.
+      await new Promise(r => setTimeout(r, 500));
+      for(let j = 0; j < chunk.length; j += 25){
+        try{
+          await syncSbFetch(`/api_lots?on_conflict=id`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(chunk.slice(j, j + 25))});
+        }catch(e2){ syncUpsertRows.skipped = (syncUpsertRows.skipped || 0) + Math.min(25, chunk.length - j); }
+      }
     }
   }
 }
 
 async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}){
   const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
+  const tA = Date.now();
   const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`);
   const items = findItems(payload) || [];
   const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
+  syncImportPage.lastFetchMs = Date.now() - tA;
   await syncUpsertRows(rows);
   return items.length;
 }
@@ -2726,7 +2730,7 @@ async function handleSyncLots(response){
           const t0 = stepT();
           const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain});
           result.imported += got;
-          result.steps.push(`incr d${domain} p${page}: ${got} in ${stepT() - t0}ms`);
+          result.steps.push(`incr d${domain} p${page}: ${got} in ${stepT() - t0}ms (feed ${syncImportPage.lastFetchMs}ms, skipped ${syncUpsertRows.skipped || 0})`);
           if(got < SYNC_PER_PAGE) break;
         }
       }
