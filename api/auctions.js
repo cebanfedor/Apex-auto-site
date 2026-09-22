@@ -2067,7 +2067,7 @@ async function searchFromDb(query){
 
   const wantsPastTab = tab === "sold" || tab === "archived";
   const sortMap = {
-    soon:wantsPastTab ? "sale_date.desc" : "sale_date.asc.nullslast",
+    soon:wantsPastTab ? "sale_date.desc" : "sale_date.asc.nullslast",   // архив: только что сыгравшие — первыми
     smart:wantsPastTab ? "sale_date.desc" : undefined,
     date_asc:"sale_date.asc.nullslast", date_desc:"sale_date.desc.nullslast",
     year_asc:"year.asc.nullslast", year_desc:"year.desc",
@@ -2974,6 +2974,30 @@ module.exports = async function handler(request, response){
       setCached(key, payload);
       setDbCache(key, payload, "detail");
       sendJson(response, 200, payload);
+      return;
+    }
+
+    // История по VIN пачкой для карточек каталога (правило Федора: VIN — первичен, номер лота — второстепенен).
+    // До 30 VIN за запрос, параллельно по 6, результат кэшируется 6ч (история меняется редко).
+    if(action === "vinhist"){
+      const vins = [...new Set(String(query.get("vins") || "").toUpperCase().split(",").map(v => v.replace(/[^A-Z0-9]/g, "")).filter(isValidVin))].slice(0, 30);
+      const out = {};
+      const one = async vin => {
+        const ck = "vinhist:" + vin;
+        const c = getCached(ck);
+        if(c){ out[vin] = c; return; }
+        try{
+          const stub = {vin, lot:"", auctionDate:"", estimatedRetailValue:0, buyNow:0, priceHistory:[]};
+          await attachVinHistory(stub);
+          const h = stub.priceHistory || [];
+          const sold = h.filter(x => x.status === "sold");
+          const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null};
+          setCached(ck, r, 6 * 3600e3);
+          out[vin] = r;
+        }catch(e){ out[vin] = null; }
+      };
+      for(let i = 0; i < vins.length; i += 6) await Promise.all(vins.slice(i, i + 6).map(one));
+      sendJson(response, 200, {ok:true, items:out}, {"cache-control":"public, s-maxage=3600, stale-while-revalidate=21600"});
       return;
     }
 

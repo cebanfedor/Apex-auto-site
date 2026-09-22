@@ -1105,6 +1105,38 @@
     if(calc) calc.scrollIntoView({behavior:"smooth", block:"start"});
   });
 
+  // История по VIN для карточек на странице (пачкой). Строка «История» в карточке
+  // перерисовывается по VIN-данным: «продавалась N раз · последняя $X (MM/YY)».
+  const vinHistCache = {};
+  async function updateCardVinHistory(){
+    const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
+    const byId = new Map(state.items.map(l => [String(l.id), l]));
+    const need = [];
+    cards.forEach(card => {
+      const lid = card.querySelector(".dbPhoto")?.dataset.lid;
+      const lot = byId.get(String(lid));
+      if(lot && lot.vin && lot.vin.length === 17 && vinHistCache[lot.vin] === undefined) need.push(lot.vin);
+    });
+    const uniq = [...new Set(need)];
+    for(let i = 0; i < uniq.length; i += 30){
+      try{
+        const r = await api(`/api/auctions?action=vinhist&vins=${encodeURIComponent(uniq.slice(i, i + 30).join(","))}`);
+        Object.assign(vinHistCache, r.items || {});
+      }catch(e){ uniq.slice(i, i + 30).forEach(v => { vinHistCache[v] = null; }); }
+    }
+    cards.forEach(card => {
+      const lid = card.querySelector(".dbPhoto")?.dataset.lid;
+      const lot = byId.get(String(lid)); if(!lot || !lot.vin) return;
+      const h = vinHistCache[lot.vin]; if(!h) return;
+      const li = [...card.querySelectorAll(".dbChecks li")].find(x => /История/.test(x.textContent));
+      if(!li) return;
+      if(!h.count){ li.className = "dbCheck good"; li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${L("Ранее не продавалась (по VIN)")}</span>`; return; }
+      const last = h.lastSale ? ` · ${money(h.lastSale.bid)} (${h.lastSale.date.slice(5, 7)}/${h.lastSale.date.slice(2, 4)})` : "";
+      li.className = h.sold ? "dbCheck bad" : "dbCheck neutral";
+      li.innerHTML = `${dbIco(h.sold ? "warn" : "dot")}<span><b>${L("История:")}</b> ${h.sold ? L("Был продан ранее") + last : `${h.count} ${recordsWord(h.count)}`}</span>`;
+    });
+  }
+
   // Прогноз только для 2017+ (старше — не интересно) и только для непроданных.
   const FORECAST_MIN_YEAR = 2017;
   async function updateCardForecasts(){
@@ -1454,6 +1486,7 @@
         : `${L("Показано")} ${state.items.length} ${L("лотов")}`;
       renderCards();
       updateGenChips();
+      idle(updateCardVinHistory);
       idle(updateCardForecasts);
       if(!append) idle(updateTabCounts);
       if(!append) idle(updateArchiveStats);
@@ -2950,8 +2983,12 @@
       document.body.classList.remove("filtersOpenV1");
       // Timed-очередь живёт часами — сортируем по времени окончания,
       // как IAAI («Auction Date: Soonest First»), если стоит дефолтный сорт
+      // Правило Федора (22.09.2026): «Рекомендованные» — только для витрины без фильтров.
+      // Как только пользователь применил любой фильтр — сортируем по ближайшим торгам.
+      const fp = formParams(); ["auction","tab","sort","page","per_page"].forEach(k => fp.delete(k));
+      const anyFilter = [...fp.keys()].length > 0;
       const saleVal = document.querySelector('input[name="saleStatus"]:checked')?.value;
-      if(saleVal === "timed" && $("#auctionSort").value === "smart"){
+      if((anyFilter || saleVal === "timed") && $("#auctionSort").value === "smart"){
         $("#auctionSort").value = "soon";
         const lbl = document.getElementById("sortDropLabelV1");
         if(lbl) lbl.textContent = "Скоро торги";
