@@ -1887,20 +1887,27 @@ async function tabTotal(tab, auction){
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return 0;
   const auc = auction && auction !== "all" ? `&auction=eq.${pgEscape(auction).toLowerCase()}` : "";
-  const cnt = async (q, exact) => {
-    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+  // Точный счёт (частичные индексы where archived=false держат его в ~1с даже на 500k), при
+  // таймауте — оценка планировщика. Ошибки не глотаем молча: tabTotal.lastError для диагностики.
+  const one = async (q, mode, ms) => {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
     try{
       const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false${auc}&${q}`,
-        {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:exact ? "count=exact" : "count=planned", range:"0-0", "range-unit":"items"}, signal:ctrl.signal});
-      return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
+        {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:`count=${mode}`, range:"0-0", "range-unit":"items"}, signal:ctrl.signal});
+      if(!(r.ok || r.status === 416)) throw new Error(`HTTP ${r.status} ${(await r.text().catch(() => "")).slice(0, 80)}`);
+      return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0;
     }finally{ clearTimeout(t); }
+  };
+  const cnt = async q => {
+    try{ return await one(q, "exact", 8000); }
+    catch(e){ tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return one(q, "planned", 4000); }
   };
   const live = "or=(status_id.neq.6,status_id.is.null)";
   const grace = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
   let n = 0;
   if(tab === "soon"){
     const to = encodeURIComponent(new Date(Date.now() + 48 * 3600e3).toISOString());
-    n = await cnt(`sale_date=gte.${grace}&sale_date=lte.${to}&${live}`, true);
+    n = await cnt(`sale_date=gte.${grace}&sale_date=lte.${to}&${live}`);
   }else if(tab === "buy_now"){
     const dayAgo = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
     n = (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=gte.${dayAgo}`)) + (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=is.null`));
@@ -3270,7 +3277,7 @@ module.exports = async function handler(request, response){
           all = (a && a.total) || 0; copart = (c && c.total) || 0; iaai = (i && i.total) || 0;
         }catch(e){}
       }
-      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString()};
+      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null};
       setCached(ck, payload, 10 * 60e3);
       sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
       return;
