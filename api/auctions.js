@@ -2623,8 +2623,9 @@ async function syncUpsertRows(rows){
   if(!rows.length) return;
   // Чанки по 250: батч на 1000 строк упирался в statement timeout,
   // и страница терялась целиком. Один повтор на чанк.
-  for(let i = 0; i < rows.length; i += 250){
-    const chunk = rows.slice(i, i + 250);
+  // 100 (было 250): после ежедневного sweep база тяжелее — 250 снова ловили statement timeout.
+  for(let i = 0; i < rows.length; i += 100){
+    const chunk = rows.slice(i, i + 100);
     try{
       await syncSbFetch(`/api_lots?on_conflict=id`, {
         method:"POST",
@@ -2840,6 +2841,7 @@ async function handleSyncLots(response){
   }catch(e){
     result.ok = false;
     result.error = e.message;
+    result.failedAt = result.imported ? "after-import" : "import-or-state";
     result.continue = false;
   }
   state.lock_at = null; // шаг завершён — следующий вызов может стартовать сразу
@@ -3119,7 +3121,8 @@ module.exports = async function handler(request, response){
       const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
       const cnt = async extra => {
         const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
-          {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}});
+          {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
+        // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
         return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
       };
       const [all, copart, iaai] = await Promise.all([cnt(""), cnt("&auction=eq.copart"), cnt("&auction=eq.iaai")]);
