@@ -2759,7 +2759,8 @@ async function handleSyncLots(response){
       const SWEEP_EVERY_MS = 20 * 3600e3;   // ежедневно (Федор, 22.09.2026): окно UTC 0–4, интервал 20ч чтобы не пропустить ночь
       const sw = state.sweep || (state.sweep = {});
       const hourUtc = new Date().getUTCHours();
-      if(!sw.active && !state.arch_backfilling && (!sw.done_at || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at)){   // самый первый обход — в любой час
+      const dbHealthy = sbUp() && !(state.last_run && state.last_run.ok === false);
+      if(dbHealthy && !sw.active && !state.arch_backfilling && (!sw.done_at || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at)){   // самый первый обход — в любой час
         state.sweep = {active:true, started_at:new Date().toISOString(), di:0, page:1, imported:0, stage:"crawl", deleted:0, done_at:sw.done_at || null};
       }
       if(sw.aborted === "purge errors" && sw.started_at && Date.now() - new Date(sw.started_at).getTime() < 3 * 86400e3){
@@ -2780,7 +2781,7 @@ async function handleSyncLots(response){
         result.sweep = {stage:sweep.stage, di:sweep.di, page:sweep.page, imported:sweep.imported};
         if(sweep.active) result.continue = true;
       }
-      if(sweep.active && sweep.stage === "purge" && Date.now() - started < SYNC_RUN_BUDGET_MS - 15000){
+      if(sweep.active && sweep.stage === "purge" && dbHealthy && Date.now() - started < SYNC_RUN_BUDGET_MS - 15000){
         // Час запаса: лот, обновлённый инкрементом прямо перед стартом обхода, не трогаем.
         const cutoff = new Date(new Date(sweep.started_at).getTime() - 3600e3).toISOString();
         let left = true;
@@ -3136,8 +3137,21 @@ module.exports = async function handler(request, response){
         // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
         return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
       };
-      const [all, copart, iaai] = await Promise.all([cnt(""), cnt("&auction=eq.copart"), cnt("&auction=eq.iaai")]);
-      const payload = {ok:true, total:all, copart, iaai, at:new Date().toISOString()};
+      let all = 0, copart = 0, iaai = 0;
+      if(sbUp() && await lotsDbReady().catch(() => false)){
+        [all, copart, iaai] = await Promise.all([cnt(""), cnt("&auction=eq.copart"), cnt("&auction=eq.iaai")]);
+      }
+      if(!(all > 0)){
+        // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
+        try{
+          const [a, c, i] = await Promise.all([
+            fetchSearch(new URLSearchParams({tab:"all", auction:"all", per_page:"1"})).catch(() => null),
+            fetchSearch(new URLSearchParams({tab:"all", auction:"copart", per_page:"1"})).catch(() => null),
+            fetchSearch(new URLSearchParams({tab:"all", auction:"iaai", per_page:"1"})).catch(() => null)]);
+          all = (a && a.total) || 0; copart = (c && c.total) || 0; iaai = (i && i.total) || 0;
+        }catch(e){}
+      }
+      const payload = {ok:true, total:all, copart, iaai, src:sbUp() ? "db" : "live", at:new Date().toISOString()};
       setCached(ck, payload, 10 * 60e3);
       sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
       return;
