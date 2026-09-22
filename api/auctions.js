@@ -1086,28 +1086,47 @@ async function attachVinHistory(lot){
     if(!lot || !isValidVin(String(lot.vin || ""))) return lot;
     const params = new URLSearchParams({prices_history:"1"});
     const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(lot.vin)}?${params}`);
-    const entries = [];
     const lotsArr = Array.isArray(payload?.lots) ? payload.lots : Array.isArray(payload?.data?.lots) ? payload.data.lots : [];
+    // История ТОЛЬКО по VIN (правило Федора 22.09.2026): номер лота — не идентификатор машины (один номер
+    // может быть у разных машин на Copart и IAAI), поэтому историю текущего номера НЕ используем —
+    // берём всё, что фид знает по этому VIN, включая текущий заход, и пересобираем с нуля.
+    const entries = [];
+    const curDay = String(lot.auctionDate || "").slice(0, 10);
     for(const l of lotsArr){
       const lotNo = String(l?.lot || l?.lot_number || l?.external_id || "").replace(/~.*/, "");
       const dom = normalizeAuction(l?.domain || payload?.domain || lot.auction);
       const st = safeName(l?.status).toLowerCase();
+      const sid = Number(enumIdOf(l?.status));
       const fb = safeNumber(l?.final_bid || l?.winning_bid);
       const sd = l?.sale_date || l?.auction_date || "";
-      // Заход целиком: продан (6) с финалом и прошедшей датой → запись продажи.
-      if(lotNo && lotNo !== String(lot.lot) && fb > 0 && sd && Date.parse(sd) < Date.now() && (Number(enumIdOf(l?.status)) === 6 || /sold/.test(st) && !/not/.test(st))){
-        entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom});
-      }
-      // Плюс вложенные раунды другого номера лота.
+      const past = sd && Date.parse(sd) < Date.now();
+      const soldReal = past && fb > 0 && (sid === 6 || (/sold/.test(st) && !/not/.test(st)));
+      if(soldReal) entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom});
       for(const p of (Array.isArray(l?.prices) ? l.prices : [])){
         const pd = p?.sale_date || ""; const pb = safeNumber(p?.bid || p?.final_bid || p?.current_bid);
-        if(lotNo && lotNo !== String(lot.lot) && pb > 0 && pd && Date.parse(pd) < Date.now()) entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:safeName(p?.status) || st, lot:lotNo, auction:dom});
+        if(!(pb > 0 && pd && Date.parse(pd) < Date.now())) continue;
+        const pst = safeName(p?.status).toLowerCase() || st;
+        // пред-ставки текущих торгов (тот же день) — не история
+        const cur = String(pd).slice(0, 10) === curDay;
+        entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur});
       }
     }
-    if(!entries.length) return lot;
-    const seen = new Set((lot.priceHistory || []).map(p => String(p.date).slice(0, 10) + "|" + p.bid));
-    const add = entries.filter(e => { const k = e.date.slice(0, 10) + "|" + e.bid; if(seen.has(k)) return false; seen.add(k); return true; });
-    lot.priceHistory = [...(lot.priceHistory || []), ...add].sort((a, b) => a.date < b.date ? 1 : -1);
+    if(!lotsArr.length) return lot;   // VIN не найден — оставляем как есть
+    // «не продан» за копейки (перенос без ставок) — не история
+    const erv = Number(lot.estimatedRetailValue) || 0, cap = Math.max(300, erv * 0.02);
+    const seen = new Set();
+    lot.priceHistory = entries
+      .filter(e => !(/not_sold/.test(e.status) && e.bid < cap))
+      .filter(e => { const k = e.date.slice(0, 10) + "|" + e.lot + "|" + e.status; if(seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => a.date < b.date ? 1 : -1);
+    // Финал — только если ТЕКУЩИЙ заход реально продан (прошедшая дата + статус) — по VIN-данным
+    const curEntry = lotsArr.find(l => String(l?.lot || l?.lot_number || "").replace(/~.*/, "") === String(lot.lot));
+    if(curEntry){
+      const sid = Number(enumIdOf(curEntry.status)), fb = safeNumber(curEntry.final_bid || curEntry.winning_bid);
+      const sd = curEntry.sale_date || curEntry.auction_date || "";
+      const sold = sid === 6 && fb > 0 && sd && Date.parse(sd) < Date.now();
+      lot.finalBid = sold ? fb : 0;
+    }
   }catch(e){ /* история по VIN недоступна — остаёмся с историей лота */ }
   return lot;
 }
@@ -2763,7 +2782,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "16";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g5" : "";   // бамп при смене таблицы поколений
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g6" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

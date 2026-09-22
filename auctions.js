@@ -822,8 +822,8 @@
       return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
-    const lotNumbers = new Set(history.map(h => h.lot).filter(Boolean));
-    const relisted = currentLot && lotNumbers.size > 0 && (lotNumbers.size > 1 || (lotNumbers.size === 1 && !lotNumbers.has(String(currentLot))));
+    // «Переставлялся» = были прошлые заходы на торги (по VIN). Номера лотов не сравниваем — они не идентификатор машины.
+    const relisted = history.length > 0;
     const records = `${count} ${recordsWord(count)}`;
     if(wasSold){
       return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${escapeHtml(records)} • ${L("Был продан ранее!")}</span></li>`;
