@@ -2725,7 +2725,7 @@ async function handleSyncLots(response){
       // ним неизвестен, вкладку «Архив» и comps они бы только засоряли (страница лота всё равно
       // берётся из live). Страховка: чистим, только если обход дошёл до конца обоих доменов и
       // принёс ≥80k лотов — иначе считаем фид сбойным и ничего не трогаем.
-      const SWEEP_EVERY_MS = 7 * 86400e3;
+      const SWEEP_EVERY_MS = 20 * 3600e3;   // ежедневно (Федор, 22.09.2026): окно UTC 0–4, интервал 20ч чтобы не пропустить ночь
       const sw = state.sweep || (state.sweep = {});
       const hourUtc = new Date().getUTCHours();
       if(!sw.active && !state.arch_backfilling && (!sw.done_at || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at)){   // самый первый обход — в любой час
@@ -2851,6 +2851,34 @@ module.exports = async function handler(request, response){
       if(hit || items.length < 1000) break;
     }
     sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
+  // Сыгравшие, которых /archived-lots не отдал: лоты с прошедшей датой торгов (последние 3ч), в базе ещё не архив →
+  // точечный /search-lot по каждому, проданные тут же в архив. Каждые 10 мин из GitHub Actions вместе с syncclosed.
+  if(action === "syncsettle"){
+    response.setHeader("cache-control", "no-store");
+    if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
+    const started = Date.now(); let checked = 0, closed = 0;
+    try{
+      const to = new Date(Date.now() - 15 * 60e3).toISOString(), from = new Date(Date.now() - 3 * 3600e3).toISOString();
+      const rows = await syncSbFetch(`/api_lots?archived=eq.false&sale_date=gte.${encodeURIComponent(from)}&sale_date=lte.${encodeURIComponent(to)}&select=auction,lot,sale_date&order=sale_date.desc&limit=400`);
+      for(let i = 0; i < (rows || []).length; i += 8){
+        if(Date.now() - started > 40000) break;
+        await Promise.all(rows.slice(i, i + 8).map(async r => {
+          try{
+            const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:r.lot}));
+            checked++;
+            const ts = Date.parse(lot.auctionDate || "");
+            if((lot.statusId === 6 || lot.statusId === 8) && ts < Date.now()){ upsertClosedLot(lot); closed++; }
+            else if(Number.isFinite(ts) && ts > Date.now()){
+              // перенесли на другую дату — обновляем дату, чтобы не опрашивать зря
+              await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(r.auction + "-" + r.lot)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({sale_date:new Date(ts).toISOString(), payload:lot})});
+            }
+          }catch(e){}
+        }));
+      }
+      response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, ms:Date.now() - started}));
+    }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
     return;
   }
   if(action === "syncclosed"){

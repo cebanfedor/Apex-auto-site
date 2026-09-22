@@ -47,3 +47,5 @@ jobs:
     steps:
       - name: Sync closed lots
         run: curl -s --max-time 60 "https://apexauto.md/api/auctions?action=syncclosed&source=gha"
+      - name: Settle lots whose auction just ended
+        run: curl -s --max-time 60 "https://apexauto.md/api/auctions?action=syncsettle&source=gha"
