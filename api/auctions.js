@@ -2707,6 +2707,10 @@ async function handleSyncLots(response){
       if(!sw.active && !state.arch_backfilling && (!sw.done_at || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at)){   // самый первый обход — в любой час
         state.sweep = {active:true, started_at:new Date().toISOString(), di:0, page:1, imported:0, stage:"crawl", deleted:0, done_at:sw.done_at || null};
       }
+      if(sw.aborted === "purge errors" && sw.started_at && Date.now() - new Date(sw.started_at).getTime() < 3 * 86400e3){
+        // чистка прервалась по таймауту базы — продолжаем её меньшими пачками, обход заново не делаем
+        Object.assign(sw, {active:true, stage:"purge", errors:0, aborted:null});
+      }
       const sweep = state.sweep;
       if(sweep.active && sweep.stage === "crawl"){
         while(Date.now() - started < SYNC_RUN_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
@@ -2727,19 +2731,19 @@ async function handleSyncLots(response){
         let left = true;
         try{
         while(Date.now() - started < SYNC_RUN_BUDGET_MS){
-          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=lt.${encodeURIComponent(cutoff)}&select=id&order=synced_at.asc&limit=1000`);
+          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=lt.${encodeURIComponent(cutoff)}&select=id&limit=300`);   // без order (сортировка 700k строк ловила statement timeout), пачка 300
           if(!rows || !rows.length){ left = false; break; }
-          for(let i = 0; i < rows.length; i += 250){
-            const ids = rows.slice(i, i + 250).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+          for(let i = 0; i < rows.length; i += 100){
+            const ids = rows.slice(i, i + 100).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
             await syncSbFetch(`/api_lots?id=in.(${ids})&archived=eq.false`, {method:"DELETE", headers:{prefer:"return=minimal"}});
           }
           sweep.deleted += rows.length;
-          if(rows.length < 1000){ left = false; break; }
+          if(rows.length < 300){ left = false; break; }
         }
         }catch(e){
           // Тяжёлый запрос упёрся в таймаут базы — не зацикливаемся: 5 сбоев подряд → отмена до следующей недели.
           sweep.errors = (sweep.errors || 0) + 1; sweep.last_error = String(e.message || e).slice(0, 120);
-          if(sweep.errors >= 5){ sweep.active = false; sweep.aborted = "purge errors"; sweep.done_at = new Date().toISOString(); }
+          if(sweep.errors >= 30){ sweep.active = false; sweep.aborted = "purge errors"; sweep.done_at = new Date().toISOString(); }
         }
         if(!left){ sweep.active = false; sweep.stage = "done"; sweep.done_at = new Date().toISOString(); }
         result.sweep = {stage:sweep.stage, deleted:sweep.deleted};
