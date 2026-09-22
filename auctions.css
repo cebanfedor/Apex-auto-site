@@ -896,3 +896,4 @@ body.leadModalOpenV1 { overflow:hidden; }
 .calcReserveV1 span { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .calcReserveV1 b { font-size:18px; font-weight:800; }
 .calcReserveV1 i { font-style:normal; font-size:12px; color:#b45309; margin-left:auto; }
+.calcReserveV1 p { flex-basis:100%; margin:4px 0 0; font-size:12.5px; line-height:1.4; color:#7c3f00; font-weight:500; }

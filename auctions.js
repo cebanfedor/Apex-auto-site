@@ -1731,7 +1731,7 @@
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
-      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b>${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<i>${L("ставка ниже резерва")}</i>` : ""}</div>` : ""}
+      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b>${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<i>${L("ставка ниже резерва")}</i>` : ""}<p>${L("Если на Timed-аукционе резерв продавца не будет достигнут, машину снова выставят на онлайн-аукцион.")}</p></div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
