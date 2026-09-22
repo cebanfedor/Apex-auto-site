@@ -2634,13 +2634,17 @@ function upsertClosedLot(lot){
     syncUpsertRows([row]).catch(() => {});
   }catch(e){ /* не мешаем ответу */ }
 }
-async function syncUpsertRows(rows){
+async function syncUpsertRows(rows, deadline){
+  syncUpsertRows.written = 0;
   if(!rows.length) return;
   // Чанки по 250: батч на 1000 строк упирался в statement timeout,
   // и страница терялась целиком. Один повтор на чанк.
   // 100 (было 250): после ежедневного sweep база тяжелее — 250 снова ловили statement timeout.
   for(let i = 0; i < rows.length; i += 100){
+    // Дедлайн прогона: остаток страницы не пишем (инкремент догонит окном 3ч; обход sweep страницу повторит).
+    if(deadline && Date.now() > deadline) break;
     const chunk = rows.slice(i, i + 100);
+    syncUpsertRows.written += chunk.length;
     try{
       await syncSbFetch(`/api_lots?on_conflict=id`, {
         method:"POST",
@@ -2660,14 +2664,16 @@ async function syncUpsertRows(rows){
   }
 }
 
-async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}){
+async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, deadline){
   const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
   const tA = Date.now();
   const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`);
   const items = findItems(payload) || [];
   const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
   syncImportPage.lastFetchMs = Date.now() - tA;
-  await syncUpsertRows(rows);
+  await syncUpsertRows(rows, deadline);
+  syncImportPage.lastComplete = syncUpsertRows.written >= rows.length;
+  syncImportPage.lastWritten = syncUpsertRows.written;
   return items.length;
 }
 
@@ -2744,26 +2750,26 @@ async function handleSyncLots(response){
       const INCR_BUDGET = 45000;
       result.steps = [];
       const stepT = () => Date.now() - started;
-      result.at = "incr start";
+      result.stage = "incr start";
       if(!skipIncr) for(const domain of SYNC_DOMAINS){
         for(let page = 1; page <= 3; page++){
           if(Date.now() - started > INCR_BUDGET) break;
           const t0 = stepT();
-          result.at = `incr d${domain} p${page}`;
-          const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain});
-          result.imported += got;
-          result.steps.push(`incr d${domain} p${page}: ${got} in ${stepT() - t0}ms (feed ${syncImportPage.lastFetchMs}ms, skipped ${syncUpsertRows.skipped || 0})`);
-          if(got < SYNC_PER_PAGE) break;
+          result.stage = `incr d${domain} p${page}`;
+          const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain}, {}, started + INCR_BUDGET);
+          result.imported += syncImportPage.lastWritten;
+          result.steps.push(`incr d${domain} p${page}: ${syncImportPage.lastWritten}/${got} in ${stepT() - t0}ms (feed ${syncImportPage.lastFetchMs}ms, skipped ${syncUpsertRows.skipped || 0})`);
+          if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
         }
       }
       // Закрытые лоты: раньше брали ОДНУ страницу (1000) — а площадки закрывают десятки тысяч
       // лотов в сутки, остальное навсегда оставалось в базе «живым». Берём до 6 страниц.
       if(!skipIncr) for(let apg = 1; apg <= 6; apg++){
         if(Date.now() - started > INCR_BUDGET + 8000) break;
-        result.at = `archived p${apg}`;
-        const got = await syncImportPage("/archived-lots", apg, {minutes:String(INCR_WINDOW_MIN)}, {archived:true});
-        result.archivedMarked += got;
-        if(got < SYNC_PER_PAGE) break;
+        result.stage = `archived p${apg}`;
+        const got = await syncImportPage("/archived-lots", apg, {minutes:String(INCR_WINDOW_MIN)}, {archived:true}, started + INCR_BUDGET + 8000);
+        result.archivedMarked += syncImportPage.lastWritten;
+        if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
       }
       if(!skipIncr) state.last_incr_at = new Date().toISOString();
       // Сбрасываем возможный застрявший курсор дренажа прошлой версии.
@@ -2793,7 +2799,8 @@ async function handleSyncLots(response){
       const sweep = state.sweep;
       if(sweep.active && sweep.stage === "crawl"){
         while(Date.now() - started < SYNC_RUN_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
-          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]});
+          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, started + SYNC_RUN_BUDGET_MS);
+          if(got && !syncImportPage.lastComplete) break;   // не успели записать страницу — повторим её в следующем вызове
           sweep.imported += got;
           if(got === 0){ sweep.di += 1; sweep.page = 1; } else { sweep.page += 1; }
         }
@@ -2805,7 +2812,7 @@ async function handleSyncLots(response){
         if(sweep.active) result.continue = true;
       }
       if(sweep.active && sweep.stage === "purge" && dbHealthy && Date.now() - started < SYNC_RUN_BUDGET_MS - (skipIncr ? 5000 : 15000)){
-        result.at = "purge";
+        result.stage = "purge";
         // Час запаса: лот, обновлённый инкрементом прямо перед стартом обхода, не трогаем.
         const cutoff = new Date(new Date(sweep.started_at).getTime() - 3600e3).toISOString();
         let left = true;
@@ -2877,7 +2884,7 @@ async function handleSyncLots(response){
   }catch(e){
     result.ok = false;
     result.error = e.message;
-    result.failedAt = (result.at || "before first import") + ((result.steps && result.steps.length) ? " · after: " + result.steps[result.steps.length - 1] : "");
+    result.failedAt = (result.stage || "before first import") + ((result.steps && result.steps.length) ? " · after: " + result.steps[result.steps.length - 1] : "");
     result.continue = false;
   }
   state.lock_at = null; // шаг завершён — следующий вызов может стартовать сразу
@@ -2974,8 +2981,8 @@ module.exports = async function handler(request, response){
       // Окно 30 мин при запуске каждые 10 мин (было 90: каждый закрытый лот переписывался ~9 раз подряд).
       for(let apg = 1; apg <= 2; apg++){
         if(Date.now() - started > 25000) break;
-        const got = await syncImportPage("/archived-lots", apg, {minutes:"30"}, {archived:true});
-        n += got; if(got < SYNC_PER_PAGE) break;
+        const got = await syncImportPage("/archived-lots", apg, {minutes:"30"}, {archived:true}, started + 30000);
+        n += syncImportPage.lastWritten; if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started}));
     }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); }
