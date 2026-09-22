@@ -1445,6 +1445,9 @@
       });
       if(!html){ discoveryMode = false; loadLots(); return; }
       state.items = shown;
+      // Счётчик заголовка: реальное число текущих лотов из базы (одним запросом), а не сумма
+      // «total» витрин по типам — фид считает их по-разному, сумма врала (60k против 120k у DreamBid).
+      try{ const cr = await api("/api/auctions?action=count"); if(cr && cr.total > 0) totalAll = cr.total; }catch(e){}
       state.total = totalAll;
       $("#auctionCards").innerHTML = html;
       $("#auctionResultCount").textContent = totalAll.toLocaleString("ru-RU");

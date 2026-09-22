@@ -2768,20 +2768,23 @@ async function handleSyncLots(response){
         result.sweep = {stage:sweep.stage, di:sweep.di, page:sweep.page, imported:sweep.imported};
         if(sweep.active) result.continue = true;
       }
-      if(sweep.active && sweep.stage === "purge"){
+      if(sweep.active && sweep.stage === "purge" && Date.now() - started < SYNC_RUN_BUDGET_MS - 15000){
         // Час запаса: лот, обновлённый инкрементом прямо перед стартом обхода, не трогаем.
         const cutoff = new Date(new Date(sweep.started_at).getTime() - 3600e3).toISOString();
         let left = true;
         try{
         while(Date.now() - started < SYNC_RUN_BUDGET_MS){
-          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=lt.${encodeURIComponent(cutoff)}&select=id&limit=300`);   // без order (сортировка 700k строк ловила statement timeout), пачка 300
-          if(!rows || !rows.length){ left = false; break; }
+          // Окно по synced_at (индекс): [cursor, cursor+6ч) — узкий диапазон, без сортировки всей таблицы.
+          const cur = sweep.purge_cursor || "2020-01-01T00:00:00.000Z";
+          const hi = new Date(Math.min(new Date(cur).getTime() + 6 * 3600e3, new Date(cutoff).getTime())).toISOString();
+          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=gte.${encodeURIComponent(cur)}&synced_at=lt.${encodeURIComponent(hi)}&select=id&limit=200`);
+          if(!rows || !rows.length){ if(hi >= cutoff){ left = false; break; } sweep.purge_cursor = hi; continue; }
           for(let i = 0; i < rows.length; i += 100){
             const ids = rows.slice(i, i + 100).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
             await syncSbFetch(`/api_lots?id=in.(${ids})&archived=eq.false`, {method:"DELETE", headers:{prefer:"return=minimal"}});
           }
           sweep.deleted += rows.length;
-          if(rows.length < 300){ left = false; break; }
+          if(rows.length < 200){ sweep.purge_cursor = hi; if(hi >= cutoff){ left = false; break; } }
         }
         }catch(e){
           // Тяжёлый запрос упёрся в таймаут базы — не зацикливаемся: 5 сбоев подряд → отмена до следующей недели.
@@ -3108,6 +3111,23 @@ module.exports = async function handler(request, response){
     // История по VIN пачкой для карточек каталога (правило Федора: VIN — первичен, номер лота — второстепенен).
     // До 30 VIN за запрос, параллельно по 6, результат кэшируется 6ч (история меняется редко).
     // Живые ставка/резерв/статус продажи пачкой для карточек (≤30 id, параллельно по 6, кэш 2 мин).
+    if(action === "count"){
+      const ck = "catalog-count"; const c = getCached(ck);
+      if(c){ sendJson(response, 200, c, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"}); return; }
+      const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+      const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
+      const cnt = async extra => {
+        const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
+          {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}});
+        return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
+      };
+      const [all, copart, iaai] = await Promise.all([cnt(""), cnt("&auction=eq.copart"), cnt("&auction=eq.iaai")]);
+      const payload = {ok:true, total:all, copart, iaai, at:new Date().toISOString()};
+      setCached(ck, payload, 10 * 60e3);
+      sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
+      return;
+    }
     if(action === "livebids"){
       const ids = [...new Set(String(query.get("ids") || "").split(",").map(x => x.trim()).filter(x => /^(copart|iaai)-[0-9]+$/.test(x)))].slice(0, 30);
       const out = {};
