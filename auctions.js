@@ -227,6 +227,13 @@
     if(p.get("tab")){ state.tab = p.get("tab") === "sold" ? "archived" : p.get("tab") === "open" ? "all" : p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); } // старые ссылки ?tab=sold → «Архив»
     if(p.get("auction")){ state.auction = p.get("auction"); setActive("[data-auction-switch]", "data-auction-switch", state.auction); }
     if(p.get("sort") && $("#auctionSort")) $("#auctionSort").value = p.get("sort");
+    // Открыли по ссылке с фильтрами (марка/модель/…) без явной сортировки → «Скоро торги», не «Рекомендованные»
+    const fk = [...p.keys()].filter(k => !["sort","tab","auction","page","per_page","lang"].includes(k));
+    if(fk.length && !p.get("sort") && $("#auctionSort") && !["archived","favorites"].includes(state.tab)){
+      $("#auctionSort").value = "soon";
+      const lbl = document.getElementById("sortDropLabelV1"); if(lbl) lbl.textContent = "Скоро торги";
+      document.querySelectorAll("#sortDropMenuV1 .sortOptV1").forEach(el => el.classList.toggle("sortOptActiveV1", el.dataset.sort === "soon"));
+    }
     // make из URL — это ID марки для фильтра, в текстовый поиск его нельзя:
     // «?make=16» превращался в поиск name=16 и убивал выдачу
     const smartPrefill = p.get("vin") || p.get("q") || p.get("name");
