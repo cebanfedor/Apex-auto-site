@@ -2714,11 +2714,14 @@ async function handleSyncLots(response){
       // прогон коротким — агрессивный постраничный дренаж убегал на 100+ страниц,
       // таймаутил прогон и грузил базу, из-за чего мигал comps (главная фича).
       const INCR_WINDOW_MIN = 1440;
-      const INCR_BUDGET = 22000;
+      // 22.09.2026: после чистки 300k строк база пишет в 4–5 раз медленнее (1000 upsert ≈ 39с), 22с не хватало
+      // даже на первую страницу → synс падал по таймауту, каталог отстал на сутки. Бюджет 45с, страниц меньше —
+      // фид отдаёт свежие изменения первыми, дальние страницы догоняет ночной обход.
+      const INCR_BUDGET = 45000;
       result.steps = [];
       const stepT = () => Date.now() - started;
       for(const domain of SYNC_DOMAINS){
-        for(let page = 1; page <= 5; page++){
+        for(let page = 1; page <= 3; page++){
           if(Date.now() - started > INCR_BUDGET) break;
           const t0 = stepT();
           const got = await syncImportPage("/cars", page, {minutes:String(INCR_WINDOW_MIN), domain_id:domain});
