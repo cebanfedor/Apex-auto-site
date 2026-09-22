@@ -208,11 +208,10 @@
             </details>
             <details open class="fSecV2"><summary>Тип топлива</summary>
               <div class="optListV2">
-                <label class="optV2"><input type="radio" name="fuel" value="" checked><span>Любой</span></label>
-                <label class="optV2"><input type="radio" name="fuel" value="4"><span>Бензин</span></label>
-                <label class="optV2"><input type="radio" name="fuel" value="1"><span>Дизель</span></label>
-                <label class="optV2"><input type="radio" name="fuel" value="3"><span>Гибрид</span></label>
-                <label class="optV2"><input type="radio" name="fuel" value="2"><span>Электро</span></label>
+                <label class="optV2"><input type="checkbox" name="fuel" value="4"><span>Бензин</span></label>
+                <label class="optV2"><input type="checkbox" name="fuel" value="1"><span>Дизель</span></label>
+                <label class="optV2"><input type="checkbox" name="fuel" value="3"><span>Гибрид</span></label>
+                <label class="optV2"><input type="checkbox" name="fuel" value="2"><span>Электро</span></label>
               </div>
             </details>
             <details class="fSecV2"><summary>Тип кузова</summary>
@@ -304,12 +303,11 @@
             </details>
             <details class="fSecV2"><summary>Статус лота</summary>
               <div class="optListV2">
-                <label class="optV2"><input type="radio" name="lotStatus" value="" checked><span>Любой</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="10"><span>Скоро торги</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="3"><span>В продаже</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="4"><span>На одобрении</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="6"><span>Продан</span></label>
-                <label class="optV2"><input type="radio" name="lotStatus" value="8"><span>Не продан</span></label>
+                <label class="optV2"><input type="checkbox" name="lotStatus" value="10"><span>Скоро торги</span></label>
+                <label class="optV2"><input type="checkbox" name="lotStatus" value="3"><span>В продаже</span></label>
+                <label class="optV2"><input type="checkbox" name="lotStatus" value="4"><span>На одобрении</span></label>
+                <label class="optV2"><input type="checkbox" name="lotStatus" value="6"><span>Продан</span></label>
+                <label class="optV2"><input type="checkbox" name="lotStatus" value="8"><span>Не продан</span></label>
               </div>
             </details>
             <details class="fSecV2"><summary>Статус продажи</summary>
@@ -418,7 +416,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v461" defer></script>
-  <script src="/auctions.js?v=auctions-v193" defer></script>
+  <script src="/auctions.js?v=auctions-v194" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

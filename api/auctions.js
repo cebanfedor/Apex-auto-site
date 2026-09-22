@@ -1977,8 +1977,20 @@ async function searchFromDb(query){
 
   const enumFilters = [["fuel","fuel_id"],["body","body_id"],["transmission","transmission_id"],["drive","drive_id"],["condition","condition_id"],["color","color_id"],["cylinders","cylinders"],["vehicleType","vehicle_type_id"]];
   for(const [from, col] of enumFilters){
-    const v = query.get(from);
-    if(v && /^\d+$/.test(v)) p.set(col, `eq.${v}`);
+    const v = String(query.get(from) || "").replace(/[^0-9,]/g, "");
+    const ids = v.split(",").filter(Boolean);
+    if(ids.length === 1) p.set(col, `eq.${ids[0]}`);
+    else if(ids.length > 1) p.set(col, `in.(${ids.join(",")})`);   // мультивыбор
+  }
+  // Статус лота (мультивыбор): 10 скоро торги · 3 в продаже · 4 на одобрении · 6 продан · 8 не продан
+  const stIds = String(query.get("lotStatus") || "").replace(/[^0-9,]/g, "").split(",").filter(Boolean);
+  if(stIds.length){
+    ["status_id"].forEach(k => p.delete(k));
+    for(let i = ands.length - 1; i >= 0; i--) if(/status_id/.test(ands[i])) ands.splice(i, 1);
+    p.set("status_id", stIds.length === 1 ? `eq.${stIds[0]}` : `in.(${stIds.join(",")})`);
+    // выбраны продан/не продан → смотрим и в архиве
+    if(stIds.some(x => x === "6" || x === "8") && !stIds.some(x => x !== "6" && x !== "8")) p.set("archived", "eq.true");
+    else if(stIds.some(x => x === "6" || x === "8")) p.delete("archived");
   }
 
   const damage = query.get("damage");
@@ -2781,7 +2793,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "16";
+  const SEARCH_CACHE_VER = "17";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g6" : "";   // бамп при смене таблицы поколений
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);

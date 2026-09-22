@@ -227,7 +227,10 @@
     const form = $("#auctionFiltersForm");
     if(form) for(const [k, v] of p.entries()){
       const radios = form.querySelectorAll(`[name="${k}"]`);
-      if(radios.length && radios[0].type === "radio"){
+      if(radios.length && radios[0].type === "checkbox"){
+        const set = new Set(String(v).split(","));
+        radios.forEach(r => { r.checked = set.has(r.value); });
+      }else if(radios.length && radios[0].type === "radio"){
         radios.forEach(r => { r.checked = (r.value === v); });
       }else if(form.elements[k]){
         try{ form.elements[k].value = v; }catch(e){}
@@ -327,6 +330,12 @@
   function formParams(){
     const form = $("#auctionFiltersForm");
     const params = new URLSearchParams(new FormData(form));
+    // Мультивыбор (топливо, статус лота): чекбоксы одного имени → «4,3» одним параметром.
+    for(const name of ["fuel", "lotStatus"]){
+      const vals = params.getAll(name).filter(Boolean);
+      params.delete(name);
+      if(vals.length) params.set(name, vals.join(","));
+    }
     // Top smart search: VIN → vin, lot number → search_query, text → "name" (title search).
     const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
     if(smart.vin) params.set("vin", smart.vin);
