@@ -2735,9 +2735,36 @@ function upsertClosedLot(lot){
     syncUpsertRows([row]).catch(() => {});
   }catch(e){ /* не мешаем ответу */ }
 }
-async function syncUpsertRows(rows, deadline){
-  syncUpsertRows.written = 0;
+// Ключевые поля строки: если в базе они те же — строку не переписываем (upsert = переписать 12 индексов + TOAST payload).
+const ROW_KEY_FIELDS = ["sale_date", "current_bid", "buy_now", "final_bid", "status_id", "odometer_mi", "archived"];
+async function dropUnchangedRows(rows){
+  if(!rows.length) return rows;
+  try{
+    const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${ROW_KEY_FIELDS.join(",")}`);
+    if(!Array.isArray(ex)) return rows;
+    const map = new Map(ex.map(r => [r.id, r]));
+    const same = (a, b) => {
+      for(const f of ROW_KEY_FIELDS){
+        let x = a[f], y = b[f];
+        if(f === "sale_date"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
+        if((x ?? null) !== (y ?? null) && !(Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && Number(x) === Number(y))) return false;
+      }
+      return true;
+    };
+    return rows.filter(r => { const e = map.get(r.id); return !e || !same(r, e); });
+  }catch(e){ return rows; }   // не смогли сравнить — пишем всё
+}
+async function syncUpsertRows(rows, deadline, opts = {}){
+  syncUpsertRows.written = 0; syncUpsertRows.unchanged = 0;
   if(!rows.length) return;
+  if(!opts.force){
+    const before = rows.length;
+    rows = await dropUnchangedRows(rows);
+    syncUpsertRows.unchanged = before - rows.length;
+    syncUpsertRows.written = syncUpsertRows.unchanged;   // «учтены», хоть и не переписаны — страница считается полной
+    if(!rows.length) return;
+  }
   // Чанки по 250: батч на 1000 строк упирался в statement timeout,
   // и страница терялась целиком. Один повтор на чанк.
   // 100 (было 250): после ежедневного sweep база тяжелее — 250 снова ловили statement timeout.
@@ -2765,15 +2792,16 @@ async function syncUpsertRows(rows, deadline){
   }
 }
 
-async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, deadline){
+async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, deadline, upsertOpts = {}){
   const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
   const tA = Date.now();
   const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`);
   const items = findItems(payload) || [];
   const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
   syncImportPage.lastFetchMs = Date.now() - tA;
-  await syncUpsertRows(rows, deadline);
+  await syncUpsertRows(rows, deadline, upsertOpts);
   syncImportPage.lastComplete = syncUpsertRows.written >= rows.length;
+  syncImportPage.lastUnchanged = syncUpsertRows.unchanged || 0;
   syncImportPage.lastWritten = syncUpsertRows.written;
   return items.length;
 }
@@ -2881,6 +2909,26 @@ async function handleSyncLots(response){
         if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
       }
       if(!skipIncr) state.last_incr_at = new Date().toISOString();
+
+      // -------- Обход ближайших торгов (каждый 5-мин тик без инкремента) --------
+      // 23.09.2026: фид на 48ч отдаёт ~77k лотов, в базе было 45k — часовой инкремент (3 страницы изменений на площадку)
+      // не успевает за новыми лотами, а полный обход идёт раз в сутки. Здесь по кругу листаем /cars?next_hours_auction=72
+      // по площадкам с курсором в состоянии; неизменившиеся строки не переписываем (dropUnchangedRows).
+      if(skipIncr){
+        const UP_BUDGET_MS = 32000;
+        const up = state.upcoming || (state.upcoming = {di:0, page:1, cycles:0});
+        result.upSteps = [];
+        result.stage = "upcoming";
+        while(Date.now() - started < UP_BUDGET_MS && up.di < SYNC_DOMAINS.length){
+          const t0 = stepT();
+          const got = await syncImportPage("/cars", up.page, {next_hours_auction:"72", domain_id:SYNC_DOMAINS[up.di]}, {}, started + UP_BUDGET_MS);
+          result.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
+          result.upSteps.push(`up d${SYNC_DOMAINS[up.di]} p${up.page}: ${got} (same ${syncImportPage.lastUnchanged}) in ${stepT() - t0}ms`);
+          if(got && !syncImportPage.lastComplete) break;          // не дописали страницу — повторим её
+          if(got < SYNC_PER_PAGE){ up.di += 1; up.page = 1; } else { up.page += 1; }
+        }
+        if(up.di >= SYNC_DOMAINS.length){ up.di = 0; up.page = 1; up.cycles += 1; up.done_at = new Date().toISOString(); }
+      }
       // Сбрасываем возможный застрявший курсор дренажа прошлой версии.
       state.incr_anchor = null; state.incr_di = 0; state.incr_page = 1;
       result.continue = false;
@@ -2908,7 +2956,7 @@ async function handleSyncLots(response){
       const sweep = state.sweep;
       if(sweep.active && sweep.stage === "crawl"){
         while(Date.now() - started < SYNC_RUN_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
-          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, started + SYNC_RUN_BUDGET_MS);
+          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, started + SYNC_RUN_BUDGET_MS, {force:true});
           if(got && !syncImportPage.lastComplete) break;   // не успели записать страницу — повторим её в следующем вызове
           sweep.imported += got;
           if(got === 0){ sweep.di += 1; sweep.page = 1; } else { sweep.page += 1; }
