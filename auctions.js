@@ -2050,15 +2050,17 @@
     const odoShort = miNum ? `${Math.round(miNum * 1.609 / 1000)} ${L("тыс. км")}` : "";
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
-    // Дата продажи/торгов компактно (MM/YY) — как у DreamBid.
+    // Дата торгов/продажи: «26 сент.» (в другом году — «12 сент. 2025»). Формат MM/YY «09/26» читался как непонятно что (Федор 23.09.2026).
     const sd = Date.parse(lot.auctionDate || lot.saleDate || "");
-    const dateMMYY = Number.isFinite(sd) ? `${String(new Date(sd).getMonth() + 1).padStart(2, "0")}/${String(new Date(sd).getFullYear()).slice(2)}` : "";
+    const dateMMYY = Number.isFinite(sd)
+      ? dbDate(new Date(sd).toISOString()).replace(/^[^,]+,\s*/, "").replace(/,?\s*\d{1,2}:\d{2}$/, "") + (new Date(sd).getFullYear() !== new Date().getFullYear() ? ` ${new Date(sd).getFullYear()}` : "")
+      : "";
     return `<a class="simCardV1" href="${detailHref(lot)}">
       <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
       <h4>${escapeHtml(title)}</h4>
       <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}${dateMMYY ? ` · ${dateMMYY}` : ""}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
-      <span class="simCondV1">${dbIco("odo")}<i class="${condCls}">${escapeHtml(condShort)}</i>${odoShort ? ` · ${escapeHtml(odoShort)}` : ""}</span>
+      <span class="simCondV1">${dbIco("odo")}<span class="${condCls}">${escapeHtml(condShort)}</span>${odoShort ? ` · ${escapeHtml(odoShort)}` : ""}</span>
     </a>`;
   }
 
