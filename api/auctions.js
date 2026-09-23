@@ -79,7 +79,7 @@ const DB_TTL = {search:180, detail:1800, vin:604800, _default:43200};
 // не ждём дольше 1.5с (живая база отвечает <300мс), а после двух подряд
 // таймаутов/ошибок пропускаем его целиком на 3 минуты (circuit breaker):
 // иначе каждый MISS-запрос детальной/каталога терял секунды на мёртвой базе.
-const SB_WAIT_MS = 1500;
+const SB_WAIT_MS = 2500;   // 23.09.2026: под нагрузкой (purge + тяжёлые вкладки) чтения кэша выходили за 1.5с и выбивали базу на 3 мин
 let sbFails = 0, sbDownUntil = 0;
 function sbUp(){ return Date.now() > sbDownUntil; }
 const SB_TIMEOUT = Symbol("sbTimeout");
@@ -3284,11 +3284,14 @@ module.exports = async function handler(request, response){
       if(!(all > 0)){
         // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
         try{
-          const [a, c, i] = await Promise.all([
-            fetchSearch(new URLSearchParams({tab:"all", auction:"all", per_page:"1"})).catch(() => null),
-            fetchSearch(new URLSearchParams({tab:"all", auction:"copart", per_page:"1"})).catch(() => null),
-            fetchSearch(new URLSearchParams({tab:"all", auction:"iaai", per_page:"1"})).catch(() => null)]);
-          all = (a && a.total) || 0; copart = (c && c.total) || 0; iaai = (i && i.total) || 0;
+          const tc = k => { const x = tabTotalCache.get(k); return x && x.n > 0 ? x.n : 0; };
+          [all, copart, iaai] = [tc("all|all"), tc("all|copart"), tc("all|iaai")];   // последнее известное из базы
+          if(!(all > 0)){
+            const [c, i] = await Promise.all([
+              fetchSearch(new URLSearchParams({tab:"all", auction:"copart", per_page:"1"})).catch(() => null),
+              fetchSearch(new URLSearchParams({tab:"all", auction:"iaai", per_page:"1"})).catch(() => null)]);
+            copart = (c && c.total) || 0; iaai = (i && i.total) || 0; all = copart + iaai;   // без «all»: там и Корея
+          }
         }catch(e){}
       }
       const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
@@ -3643,7 +3646,17 @@ module.exports = async function handler(request, response){
       let result = null;
       let dbErr = null;
       try{ result = await searchFromDb(query); }catch(e){ dbErr = String(e && e.message || e).slice(0, 200); result = null; }
-      if(!result) result = await fetchSearch(query);
+      if(!result){
+        result = await fetchSearch(query);
+        // Live-фолбэк без фильтров: total фида — ВСЕ домены (с Кореей, 782k) и «прыгает» относительно базы.
+        // Берём последний известный счётчик вкладки из базы (кэш tabTotal), если он есть.
+        const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
+        const tab0 = query.get("tab") || "all";
+        if([...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now"].includes(tab0)){
+          const tc = tabTotalCache.get(`${tab0}|${query.get("auction") || "all"}`);
+          if(tc && tc.n > 0) result = {...result, total:tc.n};
+        }
+      }
       if(dbErr) console.error("searchFromDb fallback:", dbErr);
       const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab})};
