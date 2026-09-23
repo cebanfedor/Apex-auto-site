@@ -926,3 +926,23 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dSoldPrevV1 { background:var(--aRed); color:#fff; border:1px solid var(--aRed); }
 .dSoldPrevV1:hover { filter:brightness(1.08); text-decoration:none; }
 @media (max-width:640px){ .dSoldWarnV1 { padding:12px; } .dSoldWarnV1 p { font-size:13px; } }
+
+/* 23.09.2026 мобильные нахлёсты на странице лота */
+@media (max-width:640px){
+  /* предупреждение «продан на другом аукционе» — компактно сверху фото, не перекрывает бейджи внизу */
+  .dSoldWarnV1 { top:8px; left:8px; right:8px; width:auto; transform:none; padding:10px 12px; }
+  .dSoldWarnV1 b { font-size:14px; margin-bottom:2px; }
+  .dSoldWarnV1 p { font-size:12.5px; margin-bottom:8px; }
+  .dSoldWarnBtnsV1 { gap:8px; }
+  .dSoldWarnBtnsV1 button, .dSoldWarnBtnsV1 a { padding:8px 10px; font-size:12.5px; flex:1 1 120px; }
+  /* история цены: длинный статус («Timed · не продан», «без ставок») не выталкивает сумму за край */
+  .histStatusV1 { font-size:9px; padding:2px 6px; white-space:normal; text-align:center; max-width:104px; line-height:1.2; }
+  .histBidV1 { min-width:0; font-size:12.5px; }
+  .histDateV1 { font-size:11px; }
+  /* витрина: подпись цены одной строкой */
+  .scPriceV1 span { font-size:9.5px; white-space:nowrap; }
+}
+/* похожие лоты: строки не вылезают за карточку (было «2.0 Turbo • 247 л.с. • AV|») */
+.simCardV1 > span { display:flex; align-items:center; gap:5px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.simCardV1 > span > .dbIco { flex:none; }
+.simCardV1 > span > span, .simCardV1 > span > i { min-width:0; overflow:hidden; text-overflow:ellipsis; }
