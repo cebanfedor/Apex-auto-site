@@ -2992,10 +2992,10 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   // Чанки по 250: батч на 1000 строк упирался в statement timeout,
   // и страница терялась целиком. Один повтор на чанк.
   // 100 (было 250): после ежедневного sweep база тяжелее — 250 снова ловили statement timeout.
-  for(let i = 0; i < rows.length; i += 100){
-    // Дедлайн прогона: остаток страницы не пишем (инкремент догонит окном 3ч; обход sweep страницу повторит).
-    if(deadline && Date.now() > deadline) break;
-    const chunk = rows.slice(i, i + 100);
+  // Чанки пишем по 3 параллельно (23.09.2026): страница в ~900 изменённых строк шла 10 чанков подряд (~5с), обход ближайших торгов
+  // успевал ~1 страницу в минуту. Строки разных чанков не пересекаются (уникальные id) — Medium-база держит 3 потока.
+  const CHUNK = 100, PAR = 3;
+  const writeChunk = async chunk => {
     syncUpsertRows.written += chunk.length;
     try{
       await syncSbFetch(`/api_lots?on_conflict=id`, {
@@ -3013,6 +3013,13 @@ async function syncUpsertRows(rows, deadline, opts = {}){
         }catch(e2){ syncUpsertRows.skipped = (syncUpsertRows.skipped || 0) + Math.min(25, chunk.length - j); }
       }
     }
+  };
+  for(let i = 0; i < rows.length; i += CHUNK * PAR){
+    // Дедлайн прогона: остаток страницы не пишем (инкремент догонит окном 3ч; обход sweep страницу повторит).
+    if(deadline && Date.now() > deadline) break;
+    const group = [];
+    for(let k = 0; k < PAR; k++){ const c = rows.slice(i + k * CHUNK, i + (k + 1) * CHUNK); if(c.length) group.push(c); }
+    await Promise.all(group.map(writeChunk));
   }
 }
 
