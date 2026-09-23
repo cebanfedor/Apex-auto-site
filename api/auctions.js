@@ -2716,9 +2716,10 @@ function upsertClosedLot(lot){
     if(!sold){
       // Живой лот (торги впереди / не продан) — «оживляем» строку в базе, если она там архивная или с устаревшей датой.
       if(Number.isFinite(ts) && ts > Date.now()){
-        syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.auction + "-" + lot.lot)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
+        const rid = lot.auction + "-" + lot.lot;
+        preserveSoldCopies([rid]).then(() => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
           body:JSON.stringify({archived:false, status_id:lot.statusId || 3, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0,
-            sale_date:new Date(ts).toISOString(), payload:{...lot, finalBid:0}, synced_at:new Date().toISOString()})}).catch(() => {});
+            sale_date:new Date(ts).toISOString(), payload:{...lot, finalBid:0}, synced_at:new Date().toISOString()})})).catch(() => {});
       }
       return;
     }
@@ -2737,34 +2738,48 @@ function upsertClosedLot(lot){
 }
 // Ключевые поля строки: если в базе они те же — строку не переписываем (upsert = переписать 12 индексов + TOAST payload).
 const ROW_KEY_FIELDS = ["sale_date", "current_bid", "buy_now", "final_bid", "status_id", "odometer_mi", "archived"];
-async function dropUnchangedRows(rows){
-  if(!rows.length) return rows;
+function sameKeyFields(a, b){
+  for(const f of ROW_KEY_FIELDS){
+    let x = a[f], y = b[f];
+    if(f === "sale_date"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
+    if((x ?? null) !== (y ?? null) && !(Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && Number(x) === Number(y))) return false;
+  }
+  return true;
+}
+// Правило Федора (23.09.2026): машина продалась → запись о продаже остаётся в архиве НАВСЕГДА, даже если лот
+// перевыставили (Buy Now / новые торги) под тем же номером. Перед тем как перезаписать строку-продажу живой версией
+// (или другой продажей с другой датой), копируем её под id `<auction>-<lot>-s<YYYYMMDD>` (archived=true).
+const isSaleRow = r => r && r.archived === true && Number(r.final_bid) > 0 && Number(r.status_id) === 6;
+async function preserveSoldCopies(ids){
+  if(!ids.length) return 0;
+  try{
+    const full = await syncSbFetch(`/api_lots?id=in.(${ids.map(x => `"${String(x).replace(/[^a-z0-9_-]/gi, "")}"`).join(",")})&select=*`);
+    const copies = (Array.isArray(full) ? full : []).filter(isSaleRow).map(r => ({...r, id:`${r.id}-s${String(r.sale_date || "").slice(0, 10).replace(/-/g, "")}`, archived:true}));
+    if(!copies.length) return 0;
+    await syncSbFetch(`/api_lots?on_conflict=id`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(copies)});
+    return copies.length;
+  }catch(e){ return 0; }
+}
+async function syncUpsertRows(rows, deadline, opts = {}){
+  syncUpsertRows.written = 0; syncUpsertRows.unchanged = 0; syncUpsertRows.preserved = 0;
+  if(!rows.length) return;
+  // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
     const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${ROW_KEY_FIELDS.join(",")}`);
-    if(!Array.isArray(ex)) return rows;
-    const map = new Map(ex.map(r => [r.id, r]));
-    const same = (a, b) => {
-      for(const f of ROW_KEY_FIELDS){
-        let x = a[f], y = b[f];
-        if(f === "sale_date"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
-        if((x ?? null) !== (y ?? null) && !(Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && Number(x) === Number(y))) return false;
+    if(Array.isArray(ex)){
+      const map = new Map(ex.map(r => [r.id, r]));
+      const toPreserve = rows.filter(r => { const e = map.get(r.id); return isSaleRow(e) && (r.archived !== true || Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) > 3600e3); }).map(r => r.id);
+      if(toPreserve.length) syncUpsertRows.preserved = await preserveSoldCopies(toPreserve);
+      if(!opts.force){
+        const before = rows.length;
+        rows = rows.filter(r => { const e = map.get(r.id); return !e || !sameKeyFields(r, e); });
+        syncUpsertRows.unchanged = before - rows.length;
+        syncUpsertRows.written = syncUpsertRows.unchanged;   // «учтены», хоть и не переписаны — страница считается полной
+        if(!rows.length) return;
       }
-      return true;
-    };
-    return rows.filter(r => { const e = map.get(r.id); return !e || !same(r, e); });
-  }catch(e){ return rows; }   // не смогли сравнить — пишем всё
-}
-async function syncUpsertRows(rows, deadline, opts = {}){
-  syncUpsertRows.written = 0; syncUpsertRows.unchanged = 0;
-  if(!rows.length) return;
-  if(!opts.force){
-    const before = rows.length;
-    rows = await dropUnchangedRows(rows);
-    syncUpsertRows.unchanged = before - rows.length;
-    syncUpsertRows.written = syncUpsertRows.unchanged;   // «учтены», хоть и не переписаны — страница считается полной
-    if(!rows.length) return;
-  }
+    }
+  }catch(e){ /* не смогли сравнить — пишем всё */ }
   // Чанки по 250: батч на 1000 строк упирался в statement timeout,
   // и страница терялась целиком. Один повтор на чанк.
   // 100 (было 250): после ежедневного sweep база тяжелее — 250 снова ловили statement timeout.
@@ -2915,11 +2930,26 @@ async function handleSyncLots(response){
       // не успевает за новыми лотами, а полный обход идёт раз в сутки. Здесь по кругу листаем /cars?next_hours_auction=72
       // по площадкам с курсором в состоянии; неизменившиеся строки не переписываем (dropUnchangedRows).
       if(skipIncr){
-        const UP_BUDGET_MS = 32000;
+        // Окно изменений фида (3ч) — по курсору, чтобы за час пройти его ЦЕЛИКОМ, а не первые 3 страницы:
+        // фид меняет десятки тысяч лотов в час, и новые лоты попадали в базу только ночным обходом.
+        const CH_BUDGET_MS = 18000;
+        const ch = state.changes || (state.changes = {di:0, page:1});
+        result.chSteps = [];
+        result.stage = "changes";
+        while(Date.now() - started < CH_BUDGET_MS && ch.di < SYNC_DOMAINS.length){
+          const t0 = stepT();
+          const got = await syncImportPage("/cars", ch.page, {minutes:String(INCR_WINDOW_MIN), domain_id:SYNC_DOMAINS[ch.di]}, {}, started + CH_BUDGET_MS);
+          result.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
+          result.chSteps.push(`ch d${SYNC_DOMAINS[ch.di]} p${ch.page}: ${got} (same ${syncImportPage.lastUnchanged}, kept ${syncUpsertRows.preserved || 0}) in ${stepT() - t0}ms`);
+          if(got && !syncImportPage.lastComplete) break;
+          if(got < SYNC_PER_PAGE || ch.page >= 40){ ch.di += 1; ch.page = 1; } else { ch.page += 1; }
+        }
+        if(ch.di >= SYNC_DOMAINS.length){ ch.di = 0; ch.page = 1; ch.done_at = new Date().toISOString(); }
+        const UP_BUDGET_MS = 40000;
         const up = state.upcoming || (state.upcoming = {di:0, page:1, cycles:0});
         result.upSteps = [];
         result.stage = "upcoming";
-        while(Date.now() - started < UP_BUDGET_MS && up.di < SYNC_DOMAINS.length){
+        while(Date.now() - started < UP_BUDGET_MS && up.di < SYNC_DOMAINS.length && Date.now() - started >= 0){
           const t0 = stepT();
           const got = await syncImportPage("/cars", up.page, {next_hours_auction:"72", domain_id:SYNC_DOMAINS[up.di]}, {}, started + UP_BUDGET_MS);
           result.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
@@ -2946,8 +2976,9 @@ async function handleSyncLots(response){
       const sw = state.sweep || (state.sweep = {});
       const hourUtc = new Date().getUTCHours();
       const dbHealthy = sbUp() && !(state.last_run && state.last_run.ok === false);
-      if(dbHealthy && !sw.active && !state.arch_backfilling && (!sw.done_at || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at)){   // самый первый обход — в любой час
-        state.sweep = {active:true, started_at:new Date().toISOString(), di:0, page:1, imported:0, stage:"crawl", deleted:0, done_at:sw.done_at || null};
+      const sweepStale = sw.active && sw.started_at && Date.now() - new Date(sw.started_at).getTime() > 26 * 3600e3;   // застрял в purge >26ч — обход нужен всё равно
+      if(dbHealthy && (!sw.active || sweepStale) && !state.arch_backfilling && (!sw.done_at || sweepStale || Date.now() - new Date(sw.done_at).getTime() > SWEEP_EVERY_MS) && (hourUtc <= 4 || !sw.done_at || sweepStale)){
+        state.sweep = {active:true, started_at:new Date().toISOString(), di:0, page:1, imported:0, stage:"crawl", deleted:sw.deleted || 0, done_at:sw.done_at || null, purge_cursor:sw.purge_cursor || null};
       }
       if(sw.aborted === "purge errors" && sw.started_at && Date.now() - new Date(sw.started_at).getTime() < 3 * 86400e3){
         // чистка прервалась по таймауту базы — продолжаем её меньшими пачками, обход заново не делаем
