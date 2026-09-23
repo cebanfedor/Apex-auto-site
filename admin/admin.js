@@ -230,6 +230,7 @@ async function refresh(){
   if(state.view === "dashboard") await loadDashboard();
   if(state.view === "vehicles") await loadVehicles();
   if(state.view === "guide") await loadGuide();
+  if(state.view === "analytics") await loadAnalytics();
   if(state.view === "customers") await loadCustomers();
   if(state.view === "leads"){
     await Promise.all([loadCustomers(), loadVehicles()]);
@@ -286,10 +287,89 @@ function bindTabs(){
       $$(".view").forEach(view => view.classList.remove("active"));
       document.getElementById(`${state.view}View`).classList.add("active");
       $("#viewTitle").textContent = button.textContent;
+      clearTimeout(analyticsTimer);
       await refresh().catch(error => showNotice(error.message));
     });
   });
 }
+
+
+// ── Аналитика: онлайн сейчас, посещаемость, популярные страницы, статистика уведомлений ──
+let analyticsDays = 7, analyticsTimer = null;
+const EV_NAMES = {fav_add:"Добавили в избранное", save_search:"Сохранили поиск", alert_search:"Нажали «Уведомлять о новых»", alert_lot:"Нажали «Следить за лотом»", alert_connected:"Подключили Telegram", lead_open:"Открыли форму заявки", calc_use:"Пользовались калькулятором"};
+const DEV_NAMES = {m:"Телефон", d:"Компьютер", t:"Планшет", "?":"Не определено"};
+const num = n => Number(n || 0).toLocaleString("ru-RU");
+function anTable(rows, cols){
+  if(!rows || !rows.length) return `<p class="muted">Пока нет данных</p>`;
+  return `<table class="anTableV1"><tbody>${rows.map(r => `<tr>${cols.map((c, i) => `<td class="${i ? "num" : ""}">${c(r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+function anBars(series, days){
+  if(!series.length) return `<p class="muted">Пока нет данных</p>`;
+  const map = new Map(series.map(x => [String(x.day).slice(0, 10), x]));
+  const list = [];
+  for(let i = days - 1; i >= 0; i--){
+    const d = new Date(Date.now() - i * 864e5);
+    const key = new Intl.DateTimeFormat("en-CA", {timeZone:"Europe/Chisinau"}).format(d);
+    list.push({key, ...(map.get(key) || {visitors:0, views:0})});
+  }
+  const max = Math.max(1, ...list.map(x => x.views));
+  return `<div class="anBarsV1">${list.map(x => `<div class="anBarV1" title="${x.key}: ${num(x.visitors)} посетителей, ${num(x.views)} просмотров"><div class="anBarColV1"><i style="height:${Math.round(x.views / max * 100)}%"><b style="height:${x.views ? Math.round(x.visitors / x.views * 100) : 0}%"></b></i></div><span>${x.key.slice(8)}.${x.key.slice(5, 7)}</span></div>`).join("")}</div>
+  <p class="muted anLegendV1"><i class="l1"></i> просмотры <i class="l2"></i> посетители</p>`;
+}
+function renderAnalytics(s){
+  const A = s.alerts || {};
+  const conv = A.links ? Math.round(A.bound / A.links * 100) : 0;
+  const per = s.period || {visitors:0, views:0};
+  const perV = per.visitors ? (per.views / per.visitors).toFixed(1) : "0";
+  const evRows = (s.events || []).map(e => ({name:EV_NAMES[e.ev] || e.ev, n:e.n, v:e.visitors}));
+  const lotLink = p => `<a href="${escapeHtml(p)}" target="_blank" rel="noopener">${escapeHtml(p.replace("/auctions/", ""))}</a>`;
+  return `
+  <div class="anGridV1">
+    <article class="anLive"><span>Сейчас на сайте</span><b>${num(s.online)}</b><small>${(s.online_pages || []).map(p => `${escapeHtml(p.path)} · ${p.n}`).join("<br>") || "никого"}</small></article>
+    <article><span>Сегодня</span><b>${num(s.today && s.today.visitors)}</b><small>посетителей · ${num(s.today && s.today.views)} просмотров</small></article>
+    <article><span>За период</span><b>${num(per.visitors)}</b><small>визитов (сумма по дням) · ${num(per.views)} просмотров</small></article>
+    <article><span>Глубина</span><b>${perV}</b><small>страниц за визит</small></article>
+  </div>
+  <div class="panel"><div class="panelHead"><h2>Посещаемость по дням</h2></div>${anBars(s.series || [], analyticsDays)}</div>
+  <div class="anTwoV1">
+    <div class="panel"><div class="panelHead"><h2>Популярные страницы</h2></div>${anTable(s.top_pages, [r => escapeHtml(r.page), r => num(r.views)])}</div>
+    <div class="panel"><div class="panelHead"><h2>Чаще всего смотрят лоты</h2></div>${anTable(s.top_lots, [r => lotLink(r.page), r => num(r.views)])}</div>
+    <div class="panel"><div class="panelHead"><h2>Откуда приходят</h2></div>${anTable(s.refs, [r => escapeHtml(r.ref), r => num(r.visitors)])}</div>
+    <div class="panel"><div class="panelHead"><h2>Страны и устройства</h2></div>${anTable(s.countries, [r => escapeHtml(r.c), r => num(r.visitors)])}<div class="anSepV1"></div>${anTable(s.devices, [r => escapeHtml(DEV_NAMES[r.d] || r.d), r => num(r.visitors)])}</div>
+  </div>
+  <div class="panel">
+    <div class="panelHead"><h2>Уведомления в Telegram</h2></div>
+    <div class="anGridV1">
+      <article><span>Нажали «Уведомлять»</span><b>${num(A.links)}</b><small>${num(A.links_period)} за период</small></article>
+      <article><span>Подключили Telegram</span><b>${num(A.bound)}</b><small>${conv}% дошли до Start · ${num(A.bound_period)} за период</small></article>
+      <article><span>Подписок на поиск</span><b>${num(A.search_subs)}</b><small>активных сейчас</small></article>
+      <article><span>Подписок на лот</span><b>${num(A.lot_subs)}</b><small>активных сейчас</small></article>
+    </div>
+    <div class="anTwoV1">
+      <div><h3 class="anH3V1">За лотами чаще всего следят</h3>${anTable(A.watched, [r => escapeHtml(r.lot), r => num(r.n)])}</div>
+      <div><h3 class="anH3V1">Действия клиентов (за период)</h3>${anTable(evRows, [r => escapeHtml(r.name), r => `${num(r.n)} · ${num(r.v)} чел.`])}</div>
+    </div>
+  </div>`;
+}
+async function loadAnalytics(){
+  const box = $("#analyticsBox");
+  try{
+    const data = await api(`/api/track?days=${analyticsDays}`);
+    box.innerHTML = renderAnalytics(data.stats || {});
+    $("#anUpdatedV1").textContent = "Обновлено " + new Date().toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+  }catch(error){
+    box.innerHTML = `<div class="panel"><p>${escapeHtml(error.message)}</p></div>`;
+  }
+  clearTimeout(analyticsTimer);
+  analyticsTimer = setTimeout(() => { if(state.view === "analytics") loadAnalytics(); }, 30000);
+}
+document.addEventListener("click", event => {
+  const b = event.target.closest("#anPeriodV1 button");
+  if(!b) return;
+  analyticsDays = Number(b.dataset.days) || 7;
+  $$("#anPeriodV1 button").forEach(x => x.classList.toggle("active", x === b));
+  loadAnalytics();
+});
 
 // ── Оценка лотов: импорт закрытой таблицы из Google Sheets (вставка TSV) ──
 // Строка «bmw g30 530e LCI 21-23 | плагин | … | K | база» → марка, ключевые слова, годы, топливо.

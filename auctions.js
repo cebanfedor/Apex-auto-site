@@ -193,12 +193,14 @@
     const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","sellerType","horsePower","generationName","keys","estimatedRetailValue","repairCost","airbags","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory","sellerReserve","sellerReserveAt"];
     const o = {}; keep.forEach(k => { if(lot[k] !== undefined) o[k] = lot[k]; }); return o;
   }
+  function track(ev){ try{ if(window.apexTrack) window.apexTrack(ev); }catch(e){} }
   function favToggle(lot){
     if(!lot || lot.id == null) return false;
     const map = favLoad();
     if(map[lot.id]) delete map[lot.id]; else map[lot.id] = favCompact(lot);
     favSave(map);
     updateFavCount();
+    if(map[lot.id]) track("fav_add");
     return !!favLoad()[lot.id];
   }
   function favList(){ return Object.values(favLoad()).reverse(); }
@@ -330,6 +332,7 @@
     savedStore(list);
     updateSavedCount();
     if(!document.getElementById("savedPanelV1")?.hidden) renderSavedPanel();
+    track("save_search");
     return true;
   }
   // ---- Telegram-уведомления: новые лоты по поиску и напоминания о торгах лота ----
@@ -385,12 +388,13 @@
       if(Date.now() > until){ clearInterval(alertPollTimer); return; }
       try{
         const st = await api(`/api/auctions?action=alertstatus&token=${encodeURIComponent(token)}`);
-        if(st.bound){ clearInterval(alertPollTimer); alertToast("ok", L("Готово — Telegram подключён. Подтверждение уже в чате.")); }
+        if(st.bound){ clearInterval(alertPollTimer); track("alert_connected"); alertToast("ok", L("Готово — Telegram подключён. Подтверждение уже в чате.")); }
       }catch(e){}
     }, 3000);
   }
   async function alertSubscribe(kind, data, onDone){
     alertToast("wait", L("Подключаем уведомления…"));
+    track(kind === "lot" ? "alert_lot" : "alert_search");
     try{
       const link = await alertEnsureLink();
       const res = await api("/api/auctions?action=alertsub", {method:"POST", body:{token:link.token, kind, ...data}});

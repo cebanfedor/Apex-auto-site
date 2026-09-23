@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>APEX AUTO CRM</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=admin-v172">
+  <link rel="stylesheet" href="/admin/admin.css?v=admin-v173">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -34,6 +34,7 @@
           <button data-view="vehicles">Автомобили</button>
           <button data-view="customers">Клиенты</button>
           <button data-view="leads">Заявки</button>
+          <button data-view="analytics">Аналитика</button>
           <button data-view="guide">Оценка лотов</button>
           <button data-view="content">Контент сайта</button>
         </nav>
@@ -211,6 +212,19 @@
           </div>
         </section>
 
+        <section id="analyticsView" class="view">
+          <div class="anTopV1">
+            <div class="anPeriodV1" id="anPeriodV1">
+              <button type="button" data-days="1">Сегодня</button>
+              <button type="button" data-days="7" class="active">7 дней</button>
+              <button type="button" data-days="30">30 дней</button>
+              <button type="button" data-days="90">90 дней</button>
+            </div>
+            <span class="muted" id="anUpdatedV1"></span>
+          </div>
+          <div id="analyticsBox"></div>
+        </section>
+
         <section id="guideView" class="view">
           <div class="panel">
             <h2>Таблица оценки — ориентир ставки</h2>
@@ -249,6 +263,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v174"></script>
+  <script src="/admin/admin.js?v=admin-v175"></script>
 </body>
 </html>
