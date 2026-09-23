@@ -40,3 +40,17 @@ create index concurrently if not exists idx_lots_buynow_act
 --    Синку хватает 15с (пачки по 100 строк пишутся за 1–4с).
 alter role service_role set statement_timeout = '15s';
 notify pgrst, 'reload config';
+
+-- 9) (23.09, 02:00) Что сейчас висит в базе: активные/ожидающие запросы. Если есть строки старше минуты в state='active'
+--    или 'idle in transaction' — это и тормозит всё остальное. Их можно снять (п.10).
+select pid, now() - query_start as age, state, wait_event_type, wait_event, left(query, 100) as query
+from pg_stat_activity
+where datname = current_database() and pid <> pg_backend_pid() and state <> 'idle'
+order by age desc;
+
+-- 10) Снять зависшие (подставить pid из п.9). Безопасно: это только наши запросы синка/каталога, они повторятся.
+-- select pg_terminate_backend(<pid>);
+
+-- 11) Мёртвые строки после ночи (если n_dead_tup у api_sync_state/api_cache в тысячах — повторить vacuum по одной команде):
+select relname, n_live_tup, n_dead_tup, last_autovacuum from pg_stat_user_tables
+where relname in ('api_lots','api_cache','api_sync_state');
