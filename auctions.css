@@ -1023,3 +1023,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .svAlertsV1 .atBtnV1 { align-self:center; }
 .atCloseV1 { flex:none; width:28px; height:28px; border:0; border-radius:50%; background:rgba(255,255,255,.14); color:#fff; font-size:18px; line-height:1; cursor:pointer; }
 @media (max-width:640px){ .alertToastV1 { left:16px; right:16px; bottom:14px; max-width:none; flex-wrap:wrap; } .atTxtV1 { flex:1 1 100%; } }
+
+.svPrefsV1 { display:flex; flex-wrap:wrap; gap:6px 14px; padding:4px 2px 8px; }
+.svPrefV1 { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--aInk2); cursor:pointer; }
+.svPrefV1 input { width:16px; height:16px; accent-color:#1d4ed8; }

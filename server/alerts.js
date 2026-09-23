@@ -12,7 +12,11 @@ const LOT_REMIND_MS = 60 * 60e3;
 const TXT = {
   ru: {
     subSearch: n => `🔔 Подписка включена: «${n}»`,
-    subLot: n => `🔔 Напомню о торгах: ${n}`,
+    subLot: n => `🔔 Слежу за лотом: ${n}`,
+    dateSet: d => `📅 Назначена дата аукциона: ${d}`,
+    timedOn: d => `⏳ Лот появился на Timed-торгах${d ? " · закрытие " + d : ""}`,
+    dayOf: (d, h) => `📆 Сегодня торги: ${d}${h ? " (через ~" + h + " ч)" : ""}`,
+    buyNow: p => `💰 Появился Buy Now: $${p}`,
     welcome: "✅ Уведомления Apex Auto подключены.",
     subsHead: "Ваши подписки:",
     none: "Пока подписок нет — добавьте их на сайте (кнопка «Уведомлять»).",
@@ -32,7 +36,11 @@ const TXT = {
   },
   ro: {
     subSearch: n => `🔔 Abonament activ: «${n}»`,
-    subLot: n => `🔔 Te anunț înainte de licitație: ${n}`,
+    subLot: n => `🔔 Urmăresc lotul: ${n}`,
+    dateSet: d => `📅 A fost stabilită data licitației: ${d}`,
+    timedOn: d => `⏳ Lotul a apărut la licitația Timed${d ? " · închidere " + d : ""}`,
+    dayOf: (d, h) => `📆 Astăzi licitația: ${d}${h ? " (peste ~" + h + " h)" : ""}`,
+    buyNow: p => `💰 A apărut Buy Now: $${p}`,
     welcome: "✅ Notificările Apex Auto sunt conectate.",
     subsHead: "Abonamentele tale:",
     none: "Nu ai abonamente — adaugă-le pe site (butonul „Notifică”).",
@@ -52,7 +60,11 @@ const TXT = {
   },
   en: {
     subSearch: n => `🔔 Subscription on: «${n}»`,
-    subLot: n => `🔔 I'll remind you before the auction: ${n}`,
+    subLot: n => `🔔 Watching the lot: ${n}`,
+    dateSet: d => `📅 Auction date set: ${d}`,
+    timedOn: d => `⏳ The lot is now on a Timed auction${d ? " · closes " + d : ""}`,
+    dayOf: (d, h) => `📆 Auction today: ${d}${h ? " (in ~" + h + " h)" : ""}`,
+    buyNow: p => `💰 Buy Now appeared: $${p}`,
     welcome: "✅ Apex Auto notifications are connected.",
     subsHead: "Your subscriptions:",
     none: "No subscriptions yet — add them on the site (the “Notify” button).",
@@ -197,7 +209,7 @@ function create(deps){
   // ---------- обработка подписок ----------
   async function linksFor(tokens){
     if(!tokens.length) return {};
-    const rows = await sb(`/alert_links?token=in.(${tokens.map(q).join(",")})&chat_id=not.is.null&select=token,chat_id,lang`).catch(() => []);
+    const rows = await sb(`/alert_links?token=in.(${tokens.map(q).join(",")})&chat_id=not.is.null&select=token,chat_id,lang,prefs`).catch(() => []);
     const out = {};
     for(const r of rows) out[r.token] = r;
     return out;
@@ -212,6 +224,10 @@ function create(deps){
     return `• <a href="${lotUrl(l.id)}">${esc(title)}</a>${bid}${when}`;
   }
 
+  const PREF_DEFAULT = {date:true, timed:true, day:true, hour:true, buynow:true, play:true};
+  const localYmd = ms => new Date(ms).toLocaleDateString("en-CA", {timeZone:"Europe/Chisinau"});
+  const localHour = ms => Number(new Date(ms).toLocaleString("en-GB", {timeZone:"Europe/Chisinau", hour:"2-digit", hour12:false}));
+
   async function processLots(now, out){
     const subs = await sb(`/alert_subs?kind=eq.lot&active=eq.true&select=*&order=sale_date.asc.nullslast&limit=300`).catch(() => []);
     if(!subs.length) return;
@@ -219,7 +235,7 @@ function create(deps){
     const live = subs.filter(s => links[s.token]);
     if(!live.length) return;
     const ids = [...new Set(live.map(s => s.lot_id))];
-    const rows = await sb(`/api_lots?id=in.(${ids.map(q).join(",")})&select=id,sale_date,status_id,final_bid,current_bid,archived,payload`).catch(() => []);
+    const rows = await sb(`/api_lots?id=in.(${ids.map(q).join(",")})&select=id,sale_date,status_id,final_bid,current_bid,buy_now,archived,payload`).catch(() => []);
     const byId = {}; for(const r of rows) byId[r.id] = r;
     // Продажа могла уйти в архивную копию, если лот выставили заново (id вида <lot>-sYYYYMMDD)
     const copyIds = live.filter(s => s.sale_date && Date.parse(s.sale_date) < now).map(s => `${s.lot_id}-s${ymd(s.sale_date)}`);
@@ -230,57 +246,104 @@ function create(deps){
     }
     for(const s of live){
       const link = links[s.token], lang = link.lang || "ru", T = tx(lang);
+      const prefs = {...PREF_DEFAULT, ...(link.prefs || {})};
       const row = byId[s.lot_id];
       const pl = (row && row.payload) || {};
-      const timed = !!pl.timed;
       const title = s.lot_title || pl.title || s.lot_id;
       const btn = [{text:T.openLot, url:lotUrl(s.lot_id)}];
       const head = `<b>${esc(title)}</b>\n`;
-      let saleMs = s.sale_date ? Date.parse(s.sale_date) : NaN;
-      let stage = Number(s.stage) || 0;
+      const st = {...(s.state || {})};                       // d: дата была, t: Timed был, b: Buy Now был, day/hour: ключи уже отправленных
+      const patch = {};
+      let dead = false;
+      const say = async (text, extra) => {
+        const r = await send(link.chat_id, `${head}${text}`, btn);
+        if(r.dead) dead = true;
+        patch.last_sent = new Date().toISOString();
+        if(extra) Object.assign(patch, extra);
+        return r;
+      };
 
-      // Лот перенесли на другую дату (в будущем) → сдвигаем ожидание и сообщаем
-      if(row && row.sale_date){
-        const rs = Date.parse(row.sale_date);
-        if(Number.isFinite(rs) && rs > now && (!Number.isFinite(saleMs) || Math.abs(rs - saleMs) > 6 * 3600e3)){
-          if(Number.isFinite(saleMs)) await send(link.chat_id, `${head}${T.moved(fmtDate(row.sale_date, lang))}`, btn);
-          await patchSub(s.id, {sale_date:row.sale_date, stage:0});
-          out.moved++;
-          continue;
-        }
-        if(!Number.isFinite(saleMs) && Number.isFinite(rs)){ saleMs = rs; await patchSub(s.id, {sale_date:row.sale_date}); }
-      }
-      if(!Number.isFinite(saleMs)) continue;
-
-      const copy = copies[`${s.lot_id}-s${ymd(s.sale_date)}`];
-      const soldFrom = (row && row.archived && Number(row.status_id) === 6 && Number(row.final_bid) > 0 && saleMs <= now) ? row
-        : (copy && Number(copy.status_id) === 6 && Number(copy.final_bid) > 0) ? copy : null;
-      if(soldFrom){
-        const r = await send(link.chat_id, `${head}${T.sold(money(soldFrom.final_bid))}`, btn);
-        await patchSub(s.id, {stage:3, active:false, last_sent:new Date().toISOString()});
-        if(r.dead) await sb(`/alert_subs?token=eq.${q(s.token)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({active:false})}).catch(() => {});
-        out.sold++;
+      if(!row){
+        // Лот исчез из базы: без даты ждём неделю, с датой — сутки после торгов
+        const age = now - Date.parse(s.created_at || 0);
+        const done = s.sale_date ? now - Date.parse(s.sale_date) > 24 * 3600e3 : age > 7 * 24 * 3600e3;
+        if(done) await patchSub(s.id, {active:false});
         continue;
       }
-      if(now >= saleMs){
-        if(stage < 2 && now - saleMs < 4 * 3600e3){
-          const r = await send(link.chat_id, `${head}${T.playing(timed)}`, btn);
-          await patchSub(s.id, {stage:2, last_sent:new Date().toISOString(), ...(r.dead ? {active:false} : {})});
-          out.playing++;
-        }else if(now - saleMs > 12 * 3600e3){
-          if(stage < 3 && row){
-            await send(link.chat_id, `${head}${T.notSold}`, btn);
-            out.notSold++;
-          }
-          await patchSub(s.id, {stage:3, active:false});
-        }
-      }else if(saleMs - now <= LOT_REMIND_MS && stage < 1){
-        const mins = Math.max(1, Math.round((saleMs - now) / 60000));
-        const bid = row && Number(row.current_bid) > 0 ? `\n${T.bid}: $${money(row.current_bid)}` : "";
-        const r = await send(link.chat_id, `${head}${T.soon(timed, mins)}\n${T.date}: ${fmtDate(s.sale_date, lang)}${bid}`, btn);
-        await patchSub(s.id, {stage:1, last_sent:new Date().toISOString(), ...(r.dead ? {active:false} : {})});
-        out.soon++;
+
+      const curTimed = !!pl.timed && /^iaai/.test(s.lot_id);
+      const curBuy = Number(row.buy_now) > 0 ? Number(row.buy_now) : 0;
+      let saleIso = row.sale_date || null;
+      let saleMs = saleIso ? Date.parse(saleIso) : NaN;
+      const storedMs = s.sale_date ? Date.parse(s.sale_date) : NaN;
+
+      // 1) появилась дата аукциона (раньше её не было)
+      if(!st.d && Number.isFinite(saleMs) && saleMs > now - 3600e3){
+        if(prefs.date) await say(T.dateSet(fmtDate(saleIso, lang)));
+        st.d = true; patch.sale_date = saleIso; patch.stage = 0; st.hour = null; st.day = null; out.dateSet++;
+      }else if(Number.isFinite(saleMs) && Number.isFinite(storedMs) && saleMs > now && Math.abs(saleMs - storedMs) > 6 * 3600e3){
+        // Лот перенесли на другую дату (в будущем)
+        if(prefs.play) await say(T.moved(fmtDate(saleIso, lang)));
+        patch.sale_date = saleIso; patch.stage = 0; st.hour = null; st.day = null; out.moved++;
+      }else if(Number.isFinite(saleMs) && !Number.isFinite(storedMs)){
+        patch.sale_date = saleIso;
       }
+      if(Number.isFinite(saleMs)) st.d = true;
+
+      // 2) IAAI: лот появился на Timed-торгах
+      if(curTimed && !st.t){
+        if(prefs.timed) await say(T.timedOn(Number.isFinite(saleMs) ? fmtDate(saleIso, lang) : ""));
+        out.timedOn++;
+      }
+      st.t = curTimed;
+
+      // 5) появился Buy Now
+      if(curBuy && !st.b){
+        if(prefs.buynow) await say(T.buyNow(money(curBuy)));
+        out.buyNow++;
+      }
+      st.b = curBuy;
+
+      if(Number.isFinite(saleMs)){
+        const copy = copies[`${s.lot_id}-s${ymd(s.sale_date)}`];
+        const soldFrom = (row.archived && Number(row.status_id) === 6 && Number(row.final_bid) > 0 && saleMs <= now) ? row
+          : (copy && Number(copy.status_id) === 6 && Number(copy.final_bid) > 0) ? copy : null;
+        const stage = Number(patch.stage != null ? patch.stage : s.stage) || 0;
+        if(soldFrom){
+          if(prefs.play) await say(T.sold(money(soldFrom.final_bid)));
+          patch.stage = 3; patch.active = false; out.sold++;
+        }else if(now >= saleMs){
+          if(stage < 2 && now - saleMs < 4 * 3600e3){
+            if(prefs.play) await say(T.playing(curTimed));
+            patch.stage = 2; out.playing++;
+          }else if(now - saleMs > 12 * 3600e3){
+            if(stage < 3 && prefs.play){ await say(T.notSold); out.notSold++; }
+            patch.stage = 3; patch.active = false;
+          }
+        }else{
+          const hourKey = saleIso;
+          // 3) день аукциона: утром (после 07:00 по Кишинёву) или при подписке в тот же день — если до торгов больше часа
+          if(st.day !== localYmd(saleMs) && localYmd(saleMs) === localYmd(now) && (localHour(now) >= 7) && saleMs - now > LOT_REMIND_MS){
+            if(prefs.day) await say(T.dayOf(fmtDate(saleIso, lang), Math.round((saleMs - now) / 3600e3)));
+            st.day = localYmd(saleMs); out.dayOf++;
+          }
+          // 4) за час
+          if(saleMs - now <= LOT_REMIND_MS && st.hour !== hourKey){
+            if(prefs.hour){
+              const mins = Math.max(1, Math.round((saleMs - now) / 60000));
+              const bid = Number(row.current_bid) > 0 ? `\n${T.bid}: $${money(row.current_bid)}` : "";
+              await say(`${T.soon(curTimed, mins)}\n${T.date}: ${fmtDate(saleIso, lang)}${bid}`);
+            }
+            st.hour = hourKey; patch.stage = Math.max(1, Number(s.stage) || 0); out.soon++;
+          }
+        }
+      }else if(s.created_at && now - Date.parse(s.created_at) > 60 * 24 * 3600e3){
+        patch.active = false;                                // без даты за 60 дней так и не появилась
+      }
+
+      patch.state = st;
+      if(dead){ await sb(`/alert_subs?token=eq.${q(s.token)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({active:false})}).catch(() => {}); continue; }
+      await patchSub(s.id, patch);
     }
   }
 
@@ -318,7 +381,7 @@ function create(deps){
   }
 
   async function tick(){
-    const out = {ok:true, soon:0, playing:0, sold:0, notSold:0, moved:0, newMsgs:0, searchErr:0};
+    const out = {ok:true, soon:0, playing:0, sold:0, notSold:0, moved:0, dateSet:0, timedOn:0, dayOf:0, buyNow:0, newMsgs:0, searchErr:0};
     if(!tgToken()){ out.ok = false; out.reason = "no_token"; return out; }
     if(!(await takeLock("tick", 45000))) return {ok:true, skipped:true};
     const started = Date.now();
@@ -366,15 +429,26 @@ function create(deps){
     if(action === "alertstatus"){
       const token = query.get("token");
       if(!okToken(token)){ sendJson(response, 400, {ok:false}, NO); return true; }
-      let links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id,lang&limit=1`).catch(() => null);
+      let links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id,lang,prefs&limit=1`).catch(() => null);
       if(!links || !links[0]){ sendJson(response, 200, {ok:true, exists:false}, NO); return true; }
       if(!links[0].chat_id){
         await pollUpdates().catch(() => {});      // Start нажат секунду назад — не ждём cron
-        links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id,lang&limit=1`).catch(() => links);
+        links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id,lang,prefs&limit=1`).catch(() => links);
       }
       const subs = await sb(`/alert_subs?token=eq.${q(token)}&active=eq.true&select=id,kind,name,lot_id,lot_title,sale_date,stage&order=created_at.desc&limit=60`).catch(() => []);
       const name = await botUsername();
-      sendJson(response, 200, {ok:true, exists:true, bound:!!(links[0] && links[0].chat_id), url:name ? `https://t.me/${name}?start=${token}` : "", subs}, NO);
+      sendJson(response, 200, {ok:true, exists:true, bound:!!(links[0] && links[0].chat_id), prefs:{...PREF_DEFAULT, ...((links[0] && links[0].prefs) || {})}, url:name ? `https://t.me/${name}?start=${token}` : "", subs}, NO);
+      return true;
+    }
+
+    if(action === "alertprefs"){
+      if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
+      const body = await readBody(request).catch(() => ({}));
+      if(!okToken(body.token)){ sendJson(response, 400, {ok:false}, NO); return true; }
+      const prefs = {};
+      for(const k of Object.keys(PREF_DEFAULT)) prefs[k] = body.prefs && body.prefs[k] === false ? false : true;
+      await sb(`/alert_links?token=eq.${q(body.token)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({prefs})});
+      sendJson(response, 200, {ok:true, prefs}, NO);
       return true;
     }
 
@@ -408,6 +482,16 @@ function create(deps){
           if(existing.some(e => e.kind === "lot" && e.lot_id === id)) continue;
           const sd = l.saleDate && Number.isFinite(Date.parse(l.saleDate)) ? new Date(l.saleDate).toISOString() : null;
           rows.push({token:body.token, kind:"lot", lot_id:id, lot_title:String(l.title || id).slice(0, 140), name:String(l.title || id).slice(0, 140), sale_date:sd, stage:0});
+        }
+      }
+      if(rows.length && body.kind === "lot"){
+        // Снимок текущего состояния лота: события («дата назначена», «Timed», «Buy Now») сработают только на ИЗМЕНЕНИЕ
+        const snap = await sb(`/api_lots?id=in.(${rows.map(r => q(r.lot_id)).join(",")})&select=id,sale_date,buy_now,payload`).catch(() => []);
+        const byId = {}; for(const r of snap) byId[r.id] = r;
+        for(const r of rows){
+          const row = byId[r.lot_id];
+          if(row && row.sale_date) r.sale_date = new Date(row.sale_date).toISOString();
+          r.state = {d:!!(row && row.sale_date) || !!r.sale_date, t:!!(row && row.payload && row.payload.timed) && /^iaai/.test(r.lot_id), b:row && Number(row.buy_now) > 0 ? Number(row.buy_now) : 0};
         }
       }
       if(!rows.length){ sendJson(response, 200, {ok:true, added:0, bound:!!links[0].chat_id}, NO); return true; }

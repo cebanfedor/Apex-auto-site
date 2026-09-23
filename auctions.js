@@ -296,7 +296,7 @@
     if(state.tab === "favorites"){
       const n = favList().filter(alertable).length;
       box.hidden = !n;
-      box.innerHTML = n ? `<button type="button" class="afBellV1" id="afFavBellV1">${dbIco("bell")}<span>${escapeHtml(L("Уведомлять о торгах избранного"))} (${n})</span></button>` : "";
+      box.innerHTML = n ? `<button type="button" class="afBellV1" id="afFavBellV1">${dbIco("bell")}<span>${escapeHtml(L("Следить за избранными"))} (${n})</span></button>` : "";
       return;
     }
     if(!activeChips.length){ box.hidden = true; box.innerHTML = ""; return; }
@@ -339,13 +339,17 @@
   function alertLots(){ try{ return new Set(JSON.parse(localStorage.getItem(ALERT_LOTS_KEY) || "[]")); }catch(e){ return new Set(); } }
   function alertLotMark(ids){ try{ const set = alertLots(); ids.forEach(i => set.add(i)); localStorage.setItem(ALERT_LOTS_KEY, JSON.stringify([...set].slice(-300))); }catch(e){} refreshBellMarks(); }
   function alertLang(){ const l = String(document.documentElement.getAttribute("lang") || "ru").slice(0, 2).toLowerCase(); return ["ru", "ro", "en"].includes(l) ? l : "ru"; }
-  function alertable(lot){ const t = Date.parse(lot && lot.auctionDate || ""); return Number.isFinite(t) && t > Date.now() && !(Number(lot.finalBid) > 0); }
+  function alertable(lot){
+    if(!lot || Number(lot.finalBid) > 0 || Number(lot.statusId) === 6) return false;
+    const t = Date.parse(lot.auctionDate || "");
+    return !Number.isFinite(t) || t > Date.now();      // без даты — тоже можно следить: уведомим, когда назначат
+  }
   function refreshBellMarks(){
     const set = alertLots();
     document.querySelectorAll("[data-alert-lot]").forEach(b => {
       const on = set.has(b.dataset.alertLot);
       b.classList.toggle("is-on", on);
-      const lab = b.querySelector("span"); if(lab) lab.textContent = L(on ? "Уведомление включено" : "Уведомить о торгах");
+      const lab = b.querySelector("span"); if(lab) lab.textContent = L(on ? "Слежу за лотом" : "Следить за лотом");
     });
   }
   let alertPollTimer = null;
@@ -410,7 +414,10 @@
       const st = await api(`/api/auctions?action=alertstatus&token=${encodeURIComponent(token)}`);
       if(!st.exists) return;
       const rows = (st.subs || []).map(x => `<div class="svRowV1"><span class="svKindV1">${escapeHtml(L(x.kind === "lot" ? "Торги лота" : "Новые лоты"))}</span><span class="svNameV1">${escapeHtml(x.name || x.lot_title || "")}</span><button type="button" class="svDelV1" data-al-del="${x.id}" aria-label="${escapeHtml(L("Удалить"))}" title="${escapeHtml(L("Удалить"))}">×</button></div>`).join("");
-      box.innerHTML = `<h4 class="svHeadV1">${escapeHtml(L("Уведомления в Telegram"))}</h4>`
+      const P = st.prefs || {};
+      const prefKeys = [["date", "Назначена дата аукциона"], ["timed", "Лот появился на Timed (IAAI)"], ["day", "В день торгов"], ["hour", "За час до торгов"], ["buynow", "Появился Buy Now"], ["play", "Ход торгов и итог"]];
+      const prefsHtml = `<div class="svPrefsV1">${prefKeys.map(([k, t]) => `<label class="svPrefV1"><input type="checkbox" data-pref="${k}"${P[k] === false ? "" : " checked"}><span>${escapeHtml(L(t))}</span></label>`).join("")}</div>`;
+      box.innerHTML = `<h4 class="svHeadV1">${escapeHtml(L("Уведомления в Telegram"))}</h4>` + prefsHtml
         + (st.bound ? "" : `<div class="svRowV1"><span class="svNameV1">${escapeHtml(L("Telegram не подключён"))}</span>${st.url ? `<a class="atBtnV1" href="${escapeHtml(st.url)}" target="_blank" rel="noopener">${escapeHtml(L("Подключить"))}</a>` : ""}</div>`)
         + (rows || `<p class="svEmptyV1">${escapeHtml(L("Подписок пока нет"))}</p>`);
     }catch(e){}
@@ -1175,7 +1182,7 @@
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         ${Number(priceVal) > 0 ? `<span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>` : ""}
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
-        ${alertable(lot) ? `<span class="dbBell${alertLots().has(String(lot.id)) ? " is-on" : ""}" role="button" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L("Уведомить о торгах"))}">${dbIco("bell")}</span>` : ""}
+        ${alertable(lot) ? `<span class="dbBell${alertLots().has(String(lot.id)) ? " is-on" : ""}" role="button" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L("Следить за лотом"))}">${dbIco("bell")}</span>` : ""}
         ${photos > 1 ? `<button class="dbSlideBtn dbSlidePrev" type="button" aria-label="Предыдущее фото" data-dir="-1">‹</button><button class="dbSlideBtn dbSlideNext" type="button" aria-label="Следующее фото" data-dir="1">›</button>` : ""}
       </div>
       <div class="dbBody">
@@ -2474,7 +2481,7 @@
           </div>
           <div class="dHeadActionsV1">
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
-            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Уведомление включено" : "Уведомить о торгах"))}</span></button>` : ""}
+            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Слежу за лотом" : "Следить за лотом"))}</span></button>` : ""}
             ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
           </div>
         </div>
@@ -3426,6 +3433,12 @@
       panel.hidden = !open;
       btn.classList.toggle("active", open);
       btn.setAttribute("aria-expanded", String(open));
+    });
+    document.getElementById("savedPanelV1")?.addEventListener("change", e => {
+      if(!e.target.closest("[data-pref]")) return;
+      const prefs = {};
+      document.querySelectorAll("#svAlertsV1 [data-pref]").forEach(c => { prefs[c.dataset.pref] = c.checked; });
+      api("/api/auctions?action=alertprefs", {method:"POST", body:{token:alertTokenGet(), prefs}}).catch(() => {});
     });
     document.getElementById("savedPanelV1")?.addEventListener("click", e => {
       const alDel = e.target.closest("[data-al-del]");

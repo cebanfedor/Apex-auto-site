@@ -45,4 +45,8 @@ alter table public.alert_meta  enable row level security;
 -- ADD COLUMN с DEFAULT now() в Postgres 11+ мгновенный, таблицу не переписывает.
 alter table public.api_lots add column if not exists first_seen timestamptz default now();
 
+-- Типы уведомлений: настройки клиента и снимок состояния лота (дата/Timed/Buy Now/отправленные события)
+alter table public.alert_links add column if not exists prefs jsonb;
+alter table public.alert_subs  add column if not exists state jsonb not null default '{}'::jsonb;
+
 notify pgrst, 'reload schema';
