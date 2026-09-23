@@ -1359,11 +1359,11 @@
   // Исключение — фильтры, которые применяются в браузере (статус продажи, диапазон дат): там
   // по-прежнему берём пачки по 100 и листаем загруженное.
   const SERVER_PAGE_SIZE = 30, MAX_SERVER_PAGES = 400;
-  function clientFilterActive(){
-    return !!(document.querySelector('input[name="saleStatus"]:checked')?.value
-      || document.querySelector('input[name="auctionDateFrom"]')?.value
-      || document.querySelector('input[name="auctionDateTo"]')?.value);
-  }
+  // 23.09.2026: статус продажи (Timed / без резерва / на утверждении) и диапазон дат фильтруются НА СЕРВЕРЕ по всей базе
+  // (searchFromDb), с честным total и пагинацией, а сортировка работает по всему отфильтрованному каталогу. Раньше эти фильтры
+  // шли «клиентскими»: тянули пачки по 100 лотов и сортировали только внутри загруженных — «сортировка по паре страниц».
+  // renderCards по-прежнему подстраховывает клиентским фильтром (live-фолбэк, когда база недоступна), но пагинация — серверная.
+  function clientFilterActive(){ return false; }
   function isServerPaging(){ return state.tab !== "favorites" && !clientFilterActive(); }
 
   function renderCards(){

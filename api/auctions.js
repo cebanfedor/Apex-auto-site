@@ -1961,6 +1961,32 @@ async function tabTotal(tab, auction, vtype){
 }
 // Датированные торги (как у DreamBid «current») — для сводки в count.
 async function datedTotal(auction){ return tabTotal("dated", auction); }
+// Счёт для выборок с «широкими» фильтрами (топливо, год, цена, повреждения, статус продажи, даты…). Оценка планировщика по ним
+// врёт в разы (timed и «без резерва» показывали одно и то же «2491»), а count=exact в одном запросе с выборкой держал ответ.
+// Поэтому считаем ОТДЕЛЬНЫМ параллельным запросом: точно (3.5с), не успели — оценка планировщика; результат кэшируем на 5 минут.
+const filteredCountCache = new Map();
+async function countRows(url, key, params){
+  const ck = params.toString();
+  const c = filteredCountCache.get(ck);
+  if(c && Date.now() - c.at < 5 * 60e3) return c.n;
+  const one = async (mode, ms) => {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
+    try{
+      const r = await fetch(`${url}/rest/v1/api_lots?${params}`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:`count=${mode}`, range:"0-0", "range-unit":"items"}, signal:ctrl.signal});
+      if(!(r.ok || r.status === 416)) throw new Error("HTTP " + r.status);
+      return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+    }finally{ clearTimeout(t); }
+  };
+  let n = 0, exact = true;
+  try{ n = await one("exact", 3500); }
+  catch(e){ exact = false; try{ n = await one("planned", 2500); }catch(e2){ n = 0; } }
+  if(n > 0){
+    filteredCountCache.set(ck, {n, at:exact ? Date.now() : Date.now() - 4 * 60e3});   // оценку держим ~1 мин, точный — 5
+    if(filteredCountCache.size > 300) filteredCountCache.delete(filteredCountCache.keys().next().value);
+  }
+  return n;
+}
+
 async function searchFromDb(query){
   const T = searchFromDb.t = {t0:Date.now()};
   if(!(await lotsDbReady())) return null;
@@ -2165,7 +2191,9 @@ async function searchFromDb(query){
   const dateFrom = query.get("auctionDateFrom");
   const dateTo = query.get("auctionDateTo");
   if(dateFrom && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) ands.push(`sale_date.gte.${dateFrom}T00:00:00Z`);
-  if(dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) ands.push(`sale_date.lte.${dateTo}T23:59:59Z`);
+  // dateTo приходит от клиента уже сдвинутым на +1 день (так нужно live-API) → верхняя граница ИСКЛЮЧАЮЩАЯ,
+  // иначе в выдачу попадал лишний день, а клиентский фильтр его срезал (страница < 30, total завышен).
+  if(dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) ands.push(`sale_date.lt.${dateTo}T00:00:00Z`);
   if(query.get("withoutSaleDate") === "1") p.set("sale_date", "is.null");
 
   if(ands.length) p.set("and", `(${ands.join(",")})`);
@@ -2192,9 +2220,26 @@ async function searchFromDb(query){
   // в «хвост» отдельным запросом (см. ниже) — «ORDER BY x DESC NULLS LAST» обычный индекс не
   // обслуживает, и сортировка 600k строк в памяти уходила в таймаут. Лоты при этом НЕ теряются.
   const sortQ = query.get("sort") || "";
-  const DESC_COL = {year_desc:"year", mileage_desc:"odometer_mi", buy_now_desc:"buy_now", price_desc:"current_bid"};
-  const nullTailCol = DESC_COL[sortQ] || "";
-  if(nullTailCol) ands.push(`${nullTailCol}.not.is.null`);
+  // Сортировка по значению идёт по РЕАЛЬНЫМ значениям всего каталога (Федор 23.09.2026: «сортировка из общего каталога»):
+  // «годные» лоты — в основном запросе, лоты без значения/с мусором (год 0 у 17k лотов, пробег 1.6 млрд миль, нет цены выкупа) —
+  // хвостом, после всех годных. Лоты не теряются (правило «каталог показывает всё»), но не стоят в начале сортировки:
+  // раньше «Цена выкупа 1-9» открывалась лотами вообще без выкупа, «Год 1-9» — лотами с годом 0.
+  const TAIL_SPEC = {
+    year_desc:   {ok:"year.not.is.null", miss:"year.is.null"},
+    year_asc:    {ok:"year.gt.0", miss:"or(year.is.null,year.lte.0)"},
+    mileage_desc:{ok:"odometer_mi.lte.1000000", miss:"or(odometer_mi.is.null,odometer_mi.gt.1000000)"},
+    buy_now_desc:{ok:"buy_now.not.is.null", miss:"buy_now.is.null"},
+    buy_now_asc: {ok:"buy_now.gt.0", miss:"or(buy_now.is.null,buy_now.lte.0)"},
+    price_desc:  {ok:"current_bid.not.is.null", miss:"current_bid.is.null"},
+    price_asc:   {ok:"current_bid.gt.0", miss:"or(current_bid.is.null,current_bid.lte.0)"},
+  };
+  const tailSpec = TAIL_SPEC[sortQ] || null;
+  const nullTailCol = tailSpec ? sortQ : "";
+  if(tailSpec) ands.push(tailSpec.ok);
+  // date_desc на общем каталоге: 11 лотов с «плейсхолдер»-датой 2030 года стояли первыми. Основной набор — до +120 дней,
+  // хвост (вместе с недатированными) — всё, что дальше.
+  const dateCap = (datedOnly && sortQ === "date_desc" && !query.get("auctionDateFrom") && !query.get("auctionDateTo")) ? new Date(Date.now() + 120 * 86400e3).toISOString() : "";
+  if(dateCap) ands.push(`sale_date.lte.${dateCap}`);
   if(ands.length) p.set("and", `(${ands.join(",")})`);
   p.set("order", `${sortMap[query.get("sort") || "soon"] || sortMap.soon},id.asc`);
 
@@ -2212,6 +2257,14 @@ async function searchFromDb(query){
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const offset = (page - 1) * perPage;
   const hasNarrowFilter = !!(query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
+  // «Широкий» фильтр = любой параметр кроме служебных (вкладка/площадка/сортировка/страница) и без марки/модели/поиска.
+  const NON_FILTER_KEYS = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action", "vehicleType", "debug"]);
+  const hasBroadFilter = !hasNarrowFilter && [...query.keys()].some(k => !NON_FILTER_KEYS.has(k));
+  let broadCountP = null;
+  if(hasBroadFilter){
+    const pc = new URLSearchParams(p); pc.delete("order"); pc.set("select", "id");
+    broadCountP = countRows(url, key, pc);
+  }
 
   const controller = new AbortController();
   // 8с: с индексами обычный запрос ~0.1–1.5с; но редкий тяжёлый (дефолтная
@@ -2231,7 +2284,7 @@ async function searchFromDb(query){
         // 23.09.2026 01:00: count=estimated у PostgREST = СНАЧАЛА точный count по всей выборке (600k строк → 5–15с!),
         // и только потом решение «взять оценку». Сам range-запрос без count — 165мс. Поэтому: без фильтров — только
         // оценка планировщика (planned, ~200мс), с маркой/моделью/поиском — точный count (выборка маленькая).
-        prefer:hasNarrowFilter ? "count=exact" : "count=planned",
+        prefer:hasNarrowFilter ? "count=exact" : hasBroadFilter ? "count=none" : "count=planned",
         range:`${offset}-${offset + perPage - 1}`,
         "range-unit":"items"
       },
@@ -2245,22 +2298,25 @@ async function searchFromDb(query){
   // за 15 минут в алерте Vercel 14.09.2026).
   const total416 = response.status === 416 ? (Number((response.headers.get("content-range") || "*/0").split("/").pop()) || 0) : 0;
   if(response.status === 416 && !datedOnly){
-    return {_db:true, items:[], total:total416, page, perPage, _source:"db"};
+    return {_db:true, items:[], total:total416 || (broadCountP ? await broadCountP.catch(() => 0) : 0), page, perPage, _source:"db"};
   }
   if(!response.ok && response.status !== 416) throw new Error(`lots db search failed: ${response.status}`);
   let rows = response.status === 416 ? [] : await response.json();
   let total = response.status === 416 ? total416 : (Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length);
+  if(broadCountP){ const n = await broadCountP.catch(() => 0); if(n > 0) total = n; }
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
-  const dateTail = (datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc|date_desc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/));
-  if(dateTail || nullTailCol){
+  // Явный диапазон дат — недатированные лоты в выдачу не подмешиваем (раньше хвост «без даты» шёл и при фильтре по датам).
+  const hasDateRange = !!(query.get("auctionDateFrom") || query.get("auctionDateTo"));
+  const dateTail = !hasDateRange && ((datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc|date_desc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/)));
+  if(dateTail || tailSpec){
     try{
       const p2 = new URLSearchParams(p);
       const ands2 = dateTail
         ? ands.filter(x => !x.startsWith("sale_date.gte.") && !x.startsWith("sale_date.lte."))
-        : ands.filter(x => x !== `${nullTailCol}.not.is.null`);
-      ands2.push(dateTail ? "sale_date.is.null" : `${nullTailCol}.is.null`);
+        : ands.filter(x => x !== tailSpec.ok);
+      ands2.push(dateTail ? (dateCap ? `or(sale_date.is.null,sale_date.gt.${dateCap})` : "sale_date.is.null") : tailSpec.miss);
       p2.set("and", `(${ands2.join(",")})`);
       p2.set("order", "id.asc");
       const need = Math.max(0, perPage - rows.length);
