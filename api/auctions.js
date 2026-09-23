@@ -3337,14 +3337,15 @@ module.exports = async function handler(request, response){
         return payload && payload.error ? payload.error : Number(payload.total ?? (meta && meta.total) ?? (payload.data && payload.data.total)) || 0;
       };
       const out = {ok:true, at:new Date().toISOString()};
+      const days = String(query.get("days") || "1,7,30,60").split(",").map(x => x.replace(/[^0-9]/g, "")).filter(Boolean).slice(0, 6);
       for(const [name, d] of [["copart", "3"], ["iaai", "1"]]){
-        out[name] = {
-          dated60:await one({domain_id:d, sale_date_in_days:"60", exclude_expired_auctions:"0"}),
-          dated60_live:await one({domain_id:d, sale_date_in_days:"60", exclude_expired_auctions:"1"}),
-          buy_now:await one({domain_id:d, buy_now:"1"}),
-          total:await one({domain_id:d}),
-          sold:await one({domain_id:d, status:"6"})
-        };
+        const o = {total:await one({domain_id:d}), sold:await one({domain_id:d, status:"6"}), buy_now:await one({domain_id:d, buy_now:"1"}),
+          next48h:await one({domain_id:d, next_hours_auction:"48"})};
+        for(const n of days){
+          o[`days${n}`] = await one({domain_id:d, sale_date_in_days:n, exclude_expired_auctions:"0"});
+          o[`days${n}_noexp`] = await one({domain_id:d, sale_date_in_days:n, exclude_expired_auctions:"1"});
+        }
+        out[name] = o;
       }
       setCached(ck, out, 600);
       sendJson(response, 200, out, {"cache-control":"no-store"});
