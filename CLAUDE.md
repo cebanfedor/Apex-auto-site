@@ -416,7 +416,7 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   каждые 3с), и кроном. Если на боте вставят webhook — getUpdates перестанет работать (`?action=alertdiag` покажет `webhook`).
 - Таблицы `alert_links / alert_subs / alert_meta` (миграция `supabase/migrations/20260924_alerts.sql`, RLS без политик) + колонка `api_lots.first_seen`
   (когда лот впервые попал в базу; синк её не перезаписывает) и индекс из п.13 `maintenance_20260923_db_health.sql`. Без миграции API отдаёт 500.
-- Нужен env `TELEGRAM_BOT_TOKEN` (тот же бот, что шлёт лиды Федору; иначе `error:"not_configured"`). Клиент показывает тост об ошибке.
+- Нужен env `ALERTS_BOT_TOKEN` (отдельный клиентский бот; фолбэк — `TELEGRAM_BOT_TOKEN`, бот для лидов; иначе `error:"not_configured"`). Клиент показывает тост об ошибке.
 - Cron `/api/cron/alerts` каждые 3 мин → `action=alerttick`: опрос Telegram + напоминания по лотам + до 8 поисков (не чаще раза в 30 мин на подписку,
   курсор `last_check` двигается только при удачном запросе к базе; новые лоты = `first_seen ≥ last_check` через `searchFromDb` c внутренним параметром
   `firstSeenFrom`). Заблокировавший бота (`blocked/deactivated`) → подписки выключаются. Лимит 30 подписок на токен, 10 новых токенов/час с IP.

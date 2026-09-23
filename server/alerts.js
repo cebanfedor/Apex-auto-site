@@ -103,7 +103,7 @@ function create(deps){
   const {sb, searchFromDb, sendJson, readBody, isAdmin} = deps;
   let botName = null, botNameAt = 0;
 
-  const tgToken = () => process.env.TELEGRAM_BOT_TOKEN || "";
+  const tgToken = () => process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || "";
   async function tg(method, body, ms = 8000){
     const token = tgToken();
     if(!token) return {ok:false, description:"no token"};
