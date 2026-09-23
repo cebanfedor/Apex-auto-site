@@ -3145,7 +3145,7 @@ module.exports = async function handler(request, response){
   // запись продажи и возвращаем финал/дату/историю. Не нашли → помечаем payload.repairTried, чтобы не крутить повторно.
   async function repairLostSales(budgetMs){
     const t0 = Date.now(); let fixed = 0, tried = 0;
-    const rows = await syncSbFetch(`/api_lots?archived=eq.true&status_id=eq.6&final_bid=eq.0&vin=not.is.null&payload-%3E%3ErepairTried=is.null&select=id,vin,auction,lot,payload&order=synced_at.desc&limit=160`).catch(() => null);
+    const rows = await syncSbFetch(`/api_lots?archived=eq.true&status_id=eq.6&final_bid=eq.0&vin=not.is.null&payload-%3E%3ErepairTried=is.null&select=id,vin,auction,lot,payload&order=synced_at.desc&limit=420`).catch(() => null);
     if(!Array.isArray(rows) || !rows.length) return {fixed, tried, empty:true};
     for(let i = 0; i < rows.length; i += 8){
       if(Date.now() - t0 > budgetMs) break;
