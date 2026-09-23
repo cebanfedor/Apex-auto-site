@@ -401,7 +401,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     date:p?.sale_date || "",
     status:safeName(p?.status),
     // Timed-раунд (Федор 23.09.2026): в истории показываем «Timed · не продан» и сумму.
-    timed:p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")),
+    timed:p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || looksTimed(p?.sale_date),
     lot:String(p?.lot || p?.lot_number || p?.lotNumber || p?.external_id || "").replace(/~.*/, "")
   })).filter(p => (p.bid || p.buyNow) && p.date && new Date(p.date).getTime() < Date.now());
   // Один аукцион — одна запись: дедуп по дню торгов, оставляем максимальную ставку.
@@ -1117,6 +1117,14 @@ async function fetchDetail(query){
 // История продаж ПО VIN: у перевыставленной машины каждый заход на аукцион — новый номер лота, и
 // /search-lot видит только историю текущего номера (Volvo XC60 69432156: «ранее не продавалась», хотя
 // под лотом 62957656 продана 25.08 за $7 600). /search-vin отдаёт все заходы — сливаем их в priceHistory.
+// Timed-раунд по времени закрытия: живые торги Copart/IAAI назначены на :00/:15/:30/:45 без секунд, а Timed
+// закрывается в произвольную минуту («28 авг., 20:32:16»). Флаг is_timed_auction у фида есть только у ТЕКУЩЕГО
+// захода, по прошлым раундам он не сохраняется — поэтому для истории признак выводим из времени.
+function looksTimed(dateStr){
+  const d = new Date(dateStr || "");
+  if(Number.isNaN(d.getTime())) return false;
+  return d.getUTCSeconds() !== 0 || d.getUTCMinutes() % 15 !== 0;
+}
 async function attachVinHistory(lot){
   try{
     if(!lot || !isValidVin(String(lot.vin || ""))) return lot;
@@ -1145,7 +1153,7 @@ async function attachVinHistory(lot){
         if(!(pb > 0 && pd && Date.parse(pd) < Date.now())) continue;
         if(p && typeof p === "object" && !attachVinHistory.rawKeys) attachVinHistory.rawKeys = {price:Object.keys(p), lot:Object.keys(l || {})};
         const pst = safeName(p?.status).toLowerCase() || st;
-        const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || lotTimed;
+        const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || (lotTimed && String(pd).slice(0, 10) === curDay) || looksTimed(pd);
         // пред-ставки текущих торгов (тот же день) — не история
         const cur = String(pd).slice(0, 10) === curDay;
         entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur, timed:ptimed});
