@@ -1415,9 +1415,13 @@ async function lotsDbReady(){
       });
     }finally{ clearTimeout(timer); }
     const rows = r.ok ? await r.json() : null;
-    dbReadyCache = {value:!!(rows && rows[0] && rows[0].v && rows[0].v.phase === "incr"), at:Date.now()};
+    const value = !!(rows && rows[0] && rows[0].v && rows[0].v.phase === "incr");
+    lotsDbReady.last = {at:new Date().toISOString(), status:r.status, value, phase:rows && rows[0] && rows[0].v && rows[0].v.phase};
+    // Отрицательный ответ держим 15с, положительный — 60с: раньше один сбой уводил инстанс в live на минуту.
+    dbReadyCache = {value, at:value ? Date.now() : Date.now() - 45e3};
   }catch(e){
-    dbReadyCache = {value:false, at:Date.now()};
+    lotsDbReady.last = {at:new Date().toISOString(), err:String(e && e.message || e).slice(0, 80)};
+    dbReadyCache = {value:false, at:Date.now() - 45e3};
   }
   return dbReadyCache.value;
 }
@@ -3436,7 +3440,7 @@ module.exports = async function handler(request, response){
       // Диагностика БД: доступность, фаза синка, счётчики (read-only).
       const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
       const skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-      const out = {ok:true, hasEnv:!!(url && skey), sbUp:sbUp(), lotsDbReady:await lotsDbReady().catch(() => false), sync:null, total:null, sold:null, error:null};
+      const out = {ok:true, hasEnv:!!(url && skey), sbUp:sbUp(), lotsDbReady:await lotsDbReady().catch(() => false), readyLast:lotsDbReady.last || null, sync:null, total:null, sold:null, error:null};
       if(url && skey){
         const H = {apikey:skey, authorization:`Bearer ${skey}`};
         // Короткий abort — иначе висящие запросы к БД упирались в лимит функции.
