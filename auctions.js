@@ -995,6 +995,7 @@
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot.lot)}
               ${lot.vin ? `<li class="dbVinRepV3">${dbIco("gem")}<a href="${detailHref(lot)}">Отчёт VIN</a></li>` : ""}
+              <li class="dbForecastV1 dbForecastLiV1" data-forecast="${escapeHtml(lot.id)}" hidden></li>
             </ul>
           </div>
         </div>
@@ -1013,7 +1014,6 @@
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
-          <div class="dbForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
         </div>
       </aside>
     </article>`;
@@ -1173,7 +1173,7 @@
       const {isSold} = lotSaleState(lot);
       if(!past.length){
         li.className = "dbCheck good";
-        li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${isSold ? L("Единственная продажа (по VIN)") : L("Ранее не продавалась (по VIN)")}</span>`;
+        li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${isSold ? L("Единственная продажа") : L("Ранее не продавалась")}</span>`;
         return;
       }
       if(pastSold.length){
@@ -1784,7 +1784,7 @@
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${lot.saleStatus && !isSold ? `<div class="calcSaleV2 ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
-      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b>${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<i>${L("ставка ниже резерва")}</i>` : ""}<p>${L("Если на Timed-аукционе резерв продавца не будет достигнут, машину снова выставят на онлайн-аукцион.")}</p></div>` : ""}
+      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b>${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<i>${L("ставка ниже резерва")}</i>` : ""}${lot.timed ? `<p>${L("Если на Timed-аукционе резерв продавца не будет достигнут, машину снова выставят на онлайн-аукцион.")}</p>` : ""}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
@@ -2171,7 +2171,7 @@
     const pastSold = pastHistory.filter(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const fmtHd = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : ""; };
     const histStr = histCount === 0
-      ? (lotSaleState(lot).isSold ? L("Единственная продажа (по VIN)") : L("Ранее не продавалась (по VIN)"))
+      ? (lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
       : pastSold.length ? `${L("Продавалась ранее")}: ${money(pastSold[0].bid)} · ${fmtHd(pastSold[0].date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}`
       : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
