@@ -881,6 +881,7 @@
     const rows = history.slice(0, 12).map(h => {
       const val = Number(h.bid || h.buyNow || 0);
       let [label, cls] = histStatusLabel(h.status);
+      if(!val && cls === "histUnsold") label = L("Не продан · без ставок");
       // Timed-раунд (по данным фида): «Timed · не продан $14 200» — сразу видно, что это ночной аукцион, а не живые торги.
       if(h.timed && (cls === "histUnsold" || cls === "histSold")) label = `Timed · ${label.toLowerCase()}`;
       const pct = Math.max(6, Math.round(val / max * 100));
@@ -888,7 +889,7 @@
         <span class="histDateV1">${escapeHtml(dbDate(h.date))}</span>
         <span class="histBarWrapV1"><span class="histBarV1" style="width:${pct}%"></span></span>
         <span class="histStatusV1 ${cls}">${escapeHtml(L(label))}</span>
-        <b class="histBidV1">${escapeHtml(fmt(val))}</b>
+        <b class="histBidV1">${val ? escapeHtml(fmt(val)) : "—"}</b>
       </div>`;
     }).join("");
     const range = bids.length ? `${fmt(min)} – ${fmt(hi)}` : "";

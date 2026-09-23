@@ -1150,7 +1150,8 @@ async function attachVinHistory(lot){
       if(soldReal) entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom, timed:lotTimed});
       for(const p of (Array.isArray(l?.prices) ? l.prices : [])){
         const pd = p?.sale_date || ""; const pb = safeNumber(p?.bid || p?.final_bid || p?.current_bid);
-        if(!(pb > 0 && pd && Date.parse(pd) < Date.now())) continue;
+        const noBidRound = !(pb > 0) && /not_sold/.test(safeName(p?.status).toLowerCase());
+        if(!((pb > 0 || noBidRound) && pd && Date.parse(pd) < Date.now())) continue;
         if(p && typeof p === "object" && !attachVinHistory.rawKeys) attachVinHistory.rawKeys = {price:Object.keys(p), lot:Object.keys(l || {})};
         const pst = safeName(p?.status).toLowerCase() || st;
         const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || (lotTimed && String(pd).slice(0, 10) === curDay) || looksTimed(pd);
@@ -1166,7 +1167,7 @@ async function attachVinHistory(lot){
     const bn = Number(lot.buyNow) || 0;
     const absurd = e => /not_sold/.test(e.status) && ((erv > 1 && e.bid > erv * 1.15) || (bn > 0 && e.bid > bn * 1.5));
     lot.priceHistory = entries
-      .filter(e => !(/not_sold/.test(e.status) && e.bid < cap))
+      .filter(e => !(/not_sold/.test(e.status) && e.bid > 0 && e.bid < cap))   // копеечные пребиды — шум; раунд БЕЗ ставки (0) показываем
       .filter(e => !absurd(e))
       // одна продажа, отданная и «заходом», и «раундом» на соседний день — одна запись
       .filter((e, i, arr) => !(e.status === "sold" && arr.some((o, j) => j < i && o.status === "sold" && o.lot === e.lot && o.bid === e.bid && Math.abs(Date.parse(o.date) - Date.parse(e.date)) < 3 * 864e5)))
@@ -2193,6 +2194,16 @@ async function searchFromDb(query){
   if(ands.length) p.set("and", `(${ands.join(",")})`);
   p.set("order", `${sortMap[query.get("sort") || "soon"] || sortMap.soon},id.asc`);
 
+  // Полный VIN (17 знаков): точное совпадение по индексу вместо ilike '%vin%' (seq-scan 600k строк → 8с → live-фолбэк с
+  // пустым ответом), и БЕЗ ограничений вкладки — покупатель ищет машину, показываем все её заходы: живые и проданные, новые первыми
+  // (Volvo XC60 YV4M12RC4T1297163: разобранной продана 25.08, собранной — 22.09 под другим номером лота).
+  const vinFull = String(query.get("vin") || query.get("q") || "").trim().toUpperCase();
+  if(/^[A-HJ-NPR-Z0-9]{17}$/.test(vinFull)){
+    for(const k of [...p.keys()]) if(k !== "select") p.delete(k);
+    p.set("vin", `eq.${vinFull}`);
+    p.set("order", "sale_date.desc.nullslast,id.asc");
+    datedOnly = false; pastTail = false;
+  }
   const perPage = Math.min(100, Math.max(1, Number(query.get("per_page") || query.get("limit") || 50) || 50));
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const offset = (page - 1) * perPage;
