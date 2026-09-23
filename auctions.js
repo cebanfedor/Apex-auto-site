@@ -868,7 +868,7 @@
     return [name ? name.replace(/_/g, " ") : "", "histPend"];
   }
 
-  function renderPriceHistory(rawHistory, isCad){
+  function renderPriceHistory(rawHistory, isCad, curLot){
     // Запись текущих торгов (h.current) — не история продаж: снапшоты
     // незавершённого аукциона не должны выглядеть как прошлые торги
     const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
@@ -885,8 +885,15 @@
       // Timed-раунд (по данным фида): «Timed · не продан $14 200» — сразу видно, что это ночной аукцион, а не живые торги.
       if(h.timed && (cls === "histUnsold" || cls === "histSold")) label = `Timed · ${label.toLowerCase()}`;
       const pct = Math.max(6, Math.round(val / max * 100));
+      // Номер лота в каждой записи — ссылкой на ту продажу (как DreamBid/BidCars): машина перевыставляется под новым
+      // номером (Volvo XC60: разобранной — лот 62957656, собранной — 69432156), по клику переходим к тому заходу.
+      const lotNo = String(h.lot || "").replace(/[^0-9A-Za-z-]/g, "");
+      const auc = String(h.auction || curLot?.auction || "").toLowerCase();
+      const isCur = curLot && lotNo && String(curLot.lot) === lotNo && (!h.auction || auc === String(curLot.auction).toLowerCase());
+      const lotHtml = lotNo ? (isCur ? `<span class="histLotV1 histLotCurV1">#${escapeHtml(lotNo)}</span>`
+        : `<a class="histLotV1" href="/auctions/${encodeURIComponent(auc || "copart")}-${encodeURIComponent(lotNo)}">#${escapeHtml(lotNo)}${auc ? ` · ${escapeHtml(auc === "iaai" ? "IAAI" : "Copart")}` : ""}</a>`) : "";
       return `<div class="histRowV1">
-        <span class="histDateV1">${escapeHtml(dbDate(h.date))}</span>
+        <span class="histDateV1">${escapeHtml(dbDate(h.date))}${lotHtml ? `<br>${lotHtml}` : ""}</span>
         <span class="histBarWrapV1"><span class="histBarV1" style="width:${pct}%"></span></span>
         <span class="histStatusV1 ${cls}">${escapeHtml(L(label))}</span>
         <b class="histBidV1">${val ? escapeHtml(fmt(val)) : "—"}</b>
