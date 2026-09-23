@@ -330,3 +330,11 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - ⚠️ **База слабая (Micro)**: после VACUUM 8 ГБ + purge простые range-запросы шли 8–16с (похоже на исчерпание burst-IO диска).
   Purge теперь ≤12с за прогон и только UTC 0–5. Если каталог «медленный/живой» днём — смотреть `dbstatus` (`cacheMs`, `syncMs`) и
   предлагать Федору апгрейд compute (его решение/деньги). Частые деплои сбивают тики Vercel Cron — не деплоить пачками.
+- **Две настоящие причины «каталог 8с → live» (найдены 01:00–01:10 UTC 23.09, `action=explain&q=`)**:
+  (1) `count=estimated` у PostgREST = сначала ТОЧНЫЙ count по всей выборке (600k строк, 5–15с), потом решение брать оценку →
+  теперь без узких фильтров `count=planned` (~200мс), с маркой/моделью/поиском — `count=exact` (`hasNarrowFilter`);
+  (2) явный `.asc.nullslast` в `order` → план без индекса (2.6с против 125мс на том же запросе) — для ASC в Postgres NULLS LAST
+  и так по умолчанию; **никогда не добавлять `.nullslast` к ASC**. Диагностика: `?action=explain` (PK/range тайминги; `&q=<postgrest-фильтр>`
+  гоняет произвольный read-only запрос к `api_lots`), `?action=search&debug=1` отдаёт `_t` (тайминги этапов) и `_dbErr/_dbDown`.
+- База (Micro) остаётся слабой: одиночные запросы 0.5–1с, при 3–4 параллельных или во время тиков кронов — до 10с и live-фолбэк.
+  Тяжёлые: `year_desc`/`mileage_asc` по «Все», архив по дате, «Купить сейчас» без индекса (SQL п.7 в maintenance-файле).
