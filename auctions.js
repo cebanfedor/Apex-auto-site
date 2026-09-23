@@ -3089,7 +3089,7 @@
         }).catch(() => {});
       });
     };
-    lazyDict("filterDamageV2", "damageMenuV2", "/api/auctions?action=usadict&dict=damages&v=2", v => { damages = v; });
+    lazyDict("filterDamageV2", "damageMenuV2", "/api/auctions?action=usadict&dict=damages&v=3", v => { damages = v; });
     lazyDict("filterColorV2",  "colorMenuV2",  "/api/auctions?action=usadict&dict=colors",  v => { colors  = v; });
     lazyDict("filterStateV2",  "stateMenuV2",  `/api/auctions?action=usadict&dict=states&country=${country}`, v => { states = v; });
   }

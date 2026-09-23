@@ -1454,8 +1454,39 @@ async function lotsDbReady(){
   return dbReadyCache.value;
 }
 
+// Группы повреждений для фильтра: пункт меню = метка, поиск = ИЛИ по подстрокам (ilike *term*) в поле damage лота.
+const DAMAGE_GROUPS = [
+  {label:"Front End", terms:["front"]},
+  {label:"Rear End", terms:["rear"]},
+  {label:"Side", terms:["side"]},
+  {label:"Minor / Normal Wear", terms:["minor dent", "normal wear", "scratches"]},
+  {label:"Water / Flood", terms:["water", "flood"]},
+  {label:"Burn / Fire", terms:["burn", "fire"]},
+  {label:"Hail / Storm", terms:["hail", "storm"]},
+  {label:"Rollover", terms:["rollover", "roll over"]},
+  {label:"Undercarriage", terms:["undercarriage", "under carriage"]},
+  {label:"Mechanical / Electrical", terms:["mechanical", "mech.", "electrical", "engine", "transmission", "suspension", "steering"]},
+  {label:"All Over", terms:["all over"]},
+  {label:"Roof / Top", terms:["roof", "top/"]},
+  {label:"Frame / Structural", terms:["frame", "structural"]},
+  {label:"Stripped", terms:["strip"]},
+  {label:"Vandalism / Theft", terms:["vandal", "theft"]},
+  {label:"Biohazard", terms:["biohazard", "bio hazard"]},
+  {label:"VIN Missing / Replaced", terms:["altered vin", "replaced vin"]},
+  {label:"Partial / Rejected Repair", terms:["partial repair", "rejected repair"]},
+  {label:"Glass / Windows", terms:["window"]}
+];
+const DAMAGE_GROUP_BY_LABEL = new Map(DAMAGE_GROUPS.map(g => [g.label.toLowerCase(), g.terms]));
+
 function damageTerms(raw){
-  return [...new Set(String(raw || "").split("|").map(x => x.replace(/[(),*%\\]/g, " ").trim()).filter(Boolean))].slice(0, 12);
+  const out = [];
+  for(const part of String(raw || "").split("|")){
+    const label = part.trim().toLowerCase();
+    if(DAMAGE_GROUP_BY_LABEL.has(label)){ out.push(...DAMAGE_GROUP_BY_LABEL.get(label)); continue; }
+    const t = part.replace(/[(),*%\\]/g, " ").trim();
+    if(t) out.push(t);
+  }
+  return [...new Set(out)].slice(0, 40);
 }
 
 function pgEscape(value){
@@ -3702,6 +3733,9 @@ module.exports = async function handler(request, response){
           seen.add(k);
           outItems.push({...it, name:n});
         }
+        // Всё, что покрыто группой, заменяем пунктом группы; в конце остаются только «одиночные» значения.
+        const covered = n => DAMAGE_GROUPS.some(g => g.terms.some(t => n.toLowerCase().includes(t)));
+        outItems = [...DAMAGE_GROUPS.map(g => ({id:null, name:g.label, code:""})), ...outItems.filter(it => !covered(it.name))];
       }
       const payload = {ok:true, items:outItems};
       setCached(key, payload);
