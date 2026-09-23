@@ -2162,6 +2162,7 @@
   }
 
   async function loadSimilarActive(lot){
+    console.warn("[DBG loadSimilarActive]", lot && lot.lot, new Error().stack);
     const box = document.getElementById("similarActiveLots");
     const sec = document.getElementById("similarActiveSection");
     if(!box || !sec) return;
@@ -2201,8 +2202,10 @@
     markResoldSimilar(box);
   }
 
+  window.__dbgRD = (window.__dbgRD || 0) + 0;
   function renderDetail(lot){
-    console.trace("[DBG renderDetail]", lot && lot.lot, lot && lot.auction);
+    window.__dbgRD = (window.__dbgRD || 0) + 1;
+    console.warn("[DBG renderDetail #" + window.__dbgRD + "]", lot && lot.lot, lot && lot.auction, new Error().stack);
     _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
