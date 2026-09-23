@@ -2299,7 +2299,7 @@
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
             </section>
-            ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot))}
+            ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot), lot)}
           </div>
           ${renderLotCalculator(lot)}
         </div>
