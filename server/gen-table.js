@@ -415,7 +415,7 @@ module.exports = {
   3090:[[2020,0,"P25"]], // McLaren GT
   3101:[[2018,0,"CA1"]], // Volkswagen Atlas
   3110:[[2021,0,"Gen I"]], // Ford Mustang Mach-E
-  3119:[[2020,0,"Gen I"]], // Tesla Model Y
+  3119:[[2020,2024,"Gen I"],[2025,0,"Juniper"]], // Tesla Model Y — рестайлинг Juniper с MY2025 (Федор 23.09.2026: 2026 — новое поколение, не смешивать с 2020–2024)
   3120:[[2024,0,"Gen I"]], // Tesla Cybertruck
   3135:[[2020,0,"4M8"]], // Audi RS Q8
   3138:[[2021,0,"JX1"]], // Genesis GV80

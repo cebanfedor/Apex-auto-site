@@ -2410,7 +2410,9 @@
       const cp = compsParamsFor(lot);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
       // Ставка или резерв продавца уже выше вилки → ориентир опровергнут рынком; на странице лота его не показываем.
-      const guideContradicted = cr && cr.ok && cr.comps && cr.comps.guide && (Number(lot.currentBid) > Number(cr.comps.p75) || Number(lot.sellerReserve) > Number(cr.comps.p75));
+      // …а также если ЭТА машина уже торговалась выше вилки (не продана за $26 750 при вилке $15–17k — оценка явно низкая).
+      const maxHistBid = Math.max(0, ...(Array.isArray(lot.priceHistory) ? lot.priceHistory.map(h => Number(h.bid) || 0) : [0]));
+      const guideContradicted = cr && cr.ok && cr.comps && cr.comps.guide && (Number(lot.currentBid) > Number(cr.comps.p75) || Number(lot.sellerReserve) > Number(cr.comps.p75) || maxHistBid > Number(cr.comps.p75));
       if(cr && cr.ok && cr.comps && cr.comps.guide && !guideContradicted){
         // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
         const c = cr.comps;
