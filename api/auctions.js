@@ -2144,18 +2144,20 @@ async function searchFromDb(query){
   if(ands.length) p.set("and", `(${ands.join(",")})`);
 
   const wantsPastTab = tab === "sold" || tab === "archived";
+  // ⚠️ Никаких «.asc.nullslast»: для ASC в Postgres NULLS LAST и так по умолчанию, а с явным NULLS LAST PostgREST
+  // получал план без индекса (замер 23.09.2026 01:08: 2.6с против 125мс на том же запросе). Это и было «каталог 8с → live».
   const sortMap = {
-    soon:wantsPastTab ? "sale_date.desc" : "sale_date.asc.nullslast",   // архив: только что сыгравшие — первыми
+    soon:wantsPastTab ? "sale_date.desc" : "sale_date.asc",   // архив: только что сыгравшие — первыми
     smart:wantsPastTab ? "sale_date.desc" : undefined,
     // date_desc: на общем каталоге набор уже без NULL (datedOnly) — «DESC NULLS LAST» индекс не обслуживает,
     // сортировка 600k строк в памяти → 8с-таймаут → live-фолбэк (782k «лотов» с Кореей). Недатированные — хвостом.
-    date_asc:"sale_date.asc.nullslast", date_desc:datedOnly ? "sale_date.desc" : "sale_date.desc.nullslast",
-    year_asc:"year.asc.nullslast", year_desc:"year.desc",
+    date_asc:"sale_date.asc", date_desc:datedOnly ? "sale_date.desc" : "sale_date.desc.nullslast",
+    year_asc:"year.asc", year_desc:"year.desc",
     // desc БЕЗ nullslast: NULL-ы уже отсечены фильтром выше, а «DESC NULLS LAST» обычный btree-индекс
     // обслужить не может → сортировка 600k строк в памяти → таймаут → live-фолбэк на 10 секунд.
-    mileage_asc:"odometer_mi.asc.nullslast", mileage_desc:"odometer_mi.desc",
-    price_asc:"current_bid.asc.nullslast", price_desc:"current_bid.desc",
-    buy_now_asc:"buy_now.asc.nullslast", buy_now_desc:"buy_now.desc"
+    mileage_asc:"odometer_mi.asc", mileage_desc:"odometer_mi.desc",
+    price_asc:"current_bid.asc", price_desc:"current_bid.desc",
+    buy_now_asc:"buy_now.asc", buy_now_desc:"buy_now.desc"
   };
   // В каталоге показываем ВСЁ, что даёт API (решение Федора, 22.09.2026): никаких отсечений по
   // «пробегу 0», «году 0», дешёвому Buy Now и т.п. — скрывать часть лотов можно только в
