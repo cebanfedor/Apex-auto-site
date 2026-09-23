@@ -954,13 +954,15 @@ body.leadModalOpenV1 { overflow:hidden; }
 .simCardV1 h4 { min-width:0; }
 
 /* Похожие лоты: цены как у DreamBid — выкуп красным, ставка синим, продано тёмным */
-.simBidsV1 { position:absolute; right:8px; bottom:8px; display:flex; gap:5px; }
-.simBidsV1 .simBidV1 { position:static; }
-.simBidBuyV1 { background:var(--aRed) !important; }
-.simBidCurV1 { background:#1a73e8 !important; }
-.simBidSoldV1 { background:rgba(11,13,16,.78) !important; }
+/* компактные пилюли с иконкой, как у DreamBid: 🏷 выкуп (красный), 🔨 ставка (синий), 🔨 продано (серый) */
+.simBidsV1 { position:absolute; right:6px; bottom:6px; display:flex; gap:4px; }
+.simBidsV1 .simBidV1 { position:static; display:inline-flex; align-items:center; gap:4px; padding:2px 7px 2px 6px; border-radius:5px; font-size:11px; font-weight:700; letter-spacing:.01em; line-height:1.5; }
+.simBidsV1 .simBidV1 .dbIco { width:12px; height:12px; color:#fff; stroke-width:2; }
+.simBidBuyV1 { background:#e5202b !important; }
+.simBidCurV1 { background:#1e7be6 !important; }
+.simBidSoldV1 { background:rgba(70,75,84,.9) !important; }
 /* Перекуп: VIN уже продавался под другим номером лота */
-.simResoldV1 { position:absolute; left:8px; top:8px; display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:7px; background:var(--aRed); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; z-index:2; box-shadow:0 2px 8px rgba(0,0,0,.25); }
-.simResoldV1 .dbIco { width:12px; height:12px; color:#fff; }
+.simResoldV1 { position:absolute; left:6px; top:6px; display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border-radius:5px; background:#e5202b; color:#fff; font-size:9.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; line-height:1.5; z-index:2; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+.simResoldV1 .dbIco { width:11px; height:11px; color:#fff; }
 .dbPhoto .dbResoldV1 { left:auto; right:56px; top:10px; }
 @media (max-width:640px){ .dbPhoto .dbResoldV1 { top:auto; bottom:12px; right:10px; left:auto; } }

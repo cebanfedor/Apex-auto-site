@@ -699,6 +699,9 @@
   }
 
   const DB_ICONS = {
+    // молоток (ставка) и ценник (выкуп) — для бейджей цен как у DreamBid
+    gavel:'<path d="M14 4l6 6"/><path d="M10 8l6 6"/><path d="M3 21l8-8"/><path d="M12 6l-4 4 6 6 4-4z"/>',
+    tag:'<path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
     engine:'<path d="M5 9h2l2-2h3v2h3l2 2h2v4h-2v2h-5l-2 2H9v-4H5z"/>',
     odo:'<circle cx="12" cy="13" r="7"/><path d="M12 13l3.5-2.5M12 4v1M5 13H4M20 13h-1"/>',
     damage:'<path d="M14.5 5.6a3.4 3.4 0 0 0-.7 3.8L5 18l1 1 8.6-8.6a3.4 3.4 0 0 0 3.8-.7 3.4 3.4 0 0 0 .8-3.6l-2 2-1.8-1.8 2-2a3.4 3.4 0 0 0-1.7.5z"/>',
@@ -2064,9 +2067,9 @@
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
     // Цены как у DreamBid: «Купить сейчас» — красный бейдж, текущая ставка — синий, продано — тёмный.
     const fmtB = v => findCanadaLocation(lot) ? moneyCad(v) : money(v);
-    const bidBadges = isSold && effectiveBid ? `<span class="simBidV1 simBidSoldV1" title="${L("Продано")}">${fmtB(effectiveBid)}</span>`
-      : [Number(lot.buyNow) > 0 ? `<span class="simBidV1 simBidBuyV1" title="${L("Купить сейчас")}">${fmtB(lot.buyNow)}</span>` : "",
-         Number(lot.currentBid) > 0 ? `<span class="simBidV1 simBidCurV1" title="${L("Текущая ставка")}">${fmtB(lot.currentBid)}</span>` : ""].join("");
+    const bidBadges = isSold && effectiveBid ? `<span class="simBidV1 simBidSoldV1" title="${L("Продано")}">${dbIco("gavel")}${fmtB(effectiveBid)}</span>`
+      : [Number(lot.buyNow) > 0 ? `<span class="simBidV1 simBidBuyV1" title="${L("Купить сейчас")}">${dbIco("tag")}${fmtB(lot.buyNow)}</span>` : "",
+         Number(lot.currentBid) > 0 ? `<span class="simBidV1 simBidCurV1" title="${L("Текущая ставка")}">${dbIco("gavel")}${fmtB(lot.currentBid)}</span>` : ""].join("");
     // Дата торгов/продажи: «26 сент.» (в другом году — «12 сент. 2025»). Формат MM/YY «09/26» читался как непонятно что (Федор 23.09.2026).
     const sd = Date.parse(lot.auctionDate || lot.saleDate || "");
     const dateMMYY = Number.isFinite(sd)
