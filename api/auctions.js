@@ -1905,9 +1905,11 @@ async function tabTotal(tab, auction){
     }catch(e){ tabTotal.debug = (tabTotal.debug || []).slice(-24).concat([{ck, q, mode, err:String(e.message || e).slice(0, 80)}]); throw e; }
     finally{ clearTimeout(t); }
   };
+  // Только оценка планировщика (EXPLAIN): точный счёт по 600k строк на этой базе шёл 5с+ и держал ответ каталога
+  // (00:50 23.09: «Все» отвечало 15с, из них ~10с — счётчики). После ANALYZE оценка совпадает с точной до долей процента.
   const cnt = async q => {
-    try{ return await one(q, "exact", 5000); }
-    catch(e){ tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return one(q, "planned", 4000); }
+    try{ return await one(q, "planned", 4000); }
+    catch(e){ tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return 0; }
   };
   const live = "or=(status_id.neq.6,status_id.is.null)";
   const grace = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
@@ -2242,7 +2244,15 @@ async function searchFromDb(query){
   // Вкладка без фильтров: единый счётчик, не зависящий от сортировки (см. tabTotal).
   const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
   const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now"].includes(tab);
-  if(unfiltered){ const t = await tabTotal(tab, query.get("auction")).catch(() => 0); if(t > 0) total = t; }
+  // Счётчик берём из кэша; нет в кэше — считаем В ФОНЕ (ответ не ждёт), этот ответ уйдёт с оценкой запроса.
+  if(unfiltered){
+    const ck = `${tab}|${query.get("auction") || "all"}`; const tc = tabTotalCache.get(ck);
+    if(tc && tc.n > 0 && Date.now() - tc.at < 10 * 60e3) total = tc.n;
+    else if(!tabTotal.inflight?.has(ck)){
+      (tabTotal.inflight = tabTotal.inflight || new Set()).add(ck);
+      tabTotal(tab, query.get("auction")).catch(() => 0).finally(() => tabTotal.inflight.delete(ck));
+    }
+  }
   return {
     _db:true,
     items:rows.map(r => r.payload).filter(Boolean).map(sanitizeStoredLot),
