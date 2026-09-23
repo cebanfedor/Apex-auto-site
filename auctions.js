@@ -995,7 +995,6 @@
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot.lot)}
               ${lot.vin ? `<li class="dbVinRepV3">${dbIco("gem")}<a href="${detailHref(lot)}">Отчёт VIN</a></li>` : ""}
-              <li class="dbForecastV1 dbForecastLiV1" data-forecast="${escapeHtml(lot.id)}" hidden></li>
             </ul>
           </div>
         </div>
@@ -1011,6 +1010,7 @@
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
             ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
+            <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
           </div>
           ${lot.saleStatus ? `<div class="dbSale ${saleClass(lot.saleStatus)}">${escapeHtml(lot.saleStatus)}</div>` : ""}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
