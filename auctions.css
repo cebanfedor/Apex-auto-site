@@ -903,7 +903,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 @media (max-width: 640px){ .lotPickV1 { grid-template-columns:1fr; } }
 
 /* Ориентир ставки — компактной строкой ВНУТРИ блока цены (рядом с ценой, карточка почти не растёт) */
-.dbPriceBox .dbForecastInPriceV1 { flex-direction:column; align-items:center; gap:1px; margin:6px 0 0; padding-top:6px; border-top:1px dashed var(--aLine2); width:100%; }
-.dbPriceBox .dbForecastInPriceV1 .dbForecastLabV1 { font-size:10px; white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
-.dbPriceBox .dbForecastInPriceV1 b { font-size:13px; }
+/* Ориентир часто приблизительный (Федор) — мелко, одной строкой, без акцента */
+.dbPriceBox .dbForecastInPriceV1 { flex-direction:row; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px; margin:3px 0 0; width:100%; }
+.dbPriceBox .dbForecastInPriceV1 .dbForecastLabV1 { font-size:10px; white-space:nowrap; letter-spacing:0; }
+.dbPriceBox .dbForecastInPriceV1 .dbIco { width:11px; height:11px; }
+.dbPriceBox .dbForecastInPriceV1 b { font-size:11px; font-weight:600; color:var(--aMuted); }
 .dbPriceBox .dbForecastInPriceV1[hidden] { display:none; }

@@ -994,7 +994,6 @@
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot.lot)}
-              ${lot.vin ? `<li class="dbVinRepV3">${dbIco("gem")}<a href="${detailHref(lot)}">Отчёт VIN</a></li>` : ""}
             </ul>
           </div>
         </div>
@@ -1207,7 +1206,7 @@
         const f = await forecastForLot(lot);
         if(!f || !document.body.contains(node)) return;
         const lo = f.guide ? f.lo : Math.floor(f.lo / 500) * 500, hi = f.guide ? f.hi : Math.max(round500(f.hi), lo + 500);
-        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Ориентир ставки")}</span><b>${money(lo)} – ${money(hi)}</b>`;
+        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Ориентир")}</span><b>${money(lo)} – ${money(hi)}</b>`;
         node.dataset.src = f.src;
         node.hidden = false;
       }));
