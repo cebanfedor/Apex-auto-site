@@ -2263,7 +2263,11 @@ async function searchFromDb(query){
   // Счётчик берём из кэша; нет в кэше — считаем В ФОНЕ (ответ не ждёт), этот ответ уйдёт с оценкой запроса.
   // tabTotal — только оценки планировщика (~200мс каждая), поэтому ждём: иначе первый ответ инстанса показывал
   // оценку основного запроса (564k), а следующий — tabTotal (599k), и число «прыгало» между инстансами.
-  if(unfiltered){ const t = await tabTotal(tab, query.get("auction")).catch(() => 0); if(t > 0) total = t; }
+  if(unfiltered){
+    const t = await tabTotal(tab, query.get("auction")).catch(() => 0);
+    // buy_now: оценка «без даты» у планировщика иногда 0 (частичного индекса под Buy Now пока нет) — не занижаем.
+    if(t > 0) total = tab === "buy_now" ? Math.max(t, total) : t;
+  }
   return {
     _db:true,
     items:rows.map(r => r.payload).filter(Boolean).map(sanitizeStoredLot),
