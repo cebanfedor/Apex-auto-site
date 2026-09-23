@@ -1170,7 +1170,8 @@ async function attachVinHistory(lot){
     const bn = Number(lot.buyNow) || 0;
     const absurd = e => /not_sold/.test(e.status) && ((erv > 1 && e.bid > erv * 1.15) || (bn > 0 && e.bid > bn * 1.5));
     lot.priceHistory = entries
-      .filter(e => !(/not_sold/.test(e.status) && e.bid > 0 && e.bid < cap))   // копеечные пребиды — шум; раунд БЕЗ ставки (0) показываем
+      // Копеечный пребид ($100 у Volvo 06.08) — это не ставка, но сам раунд был: показываем как «не продан · без ставок» (как DreamBid).
+      .map(e => (/not_sold/.test(e.status) && e.bid > 0 && e.bid < cap) ? {...e, bid:0, prebid:e.bid} : e)
       .filter(e => !absurd(e))
       // одна продажа, отданная и «заходом», и «раундом» на соседний день — одна запись
       .filter((e, i, arr) => !(e.status === "sold" && arr.some((o, j) => j < i && o.status === "sold" && o.lot === e.lot && o.bid === e.bid && Math.abs(Date.parse(o.date) - Date.parse(e.date)) < 3 * 864e5)))
