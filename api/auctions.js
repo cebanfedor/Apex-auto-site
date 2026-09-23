@@ -3399,7 +3399,7 @@ module.exports = async function handler(request, response){
       // Произвольный (read-only) запрос к api_lots для сравнения вариантов: только безопасные символы, только GET.
       const qq = String(query.get("q") || "");
       if(qq && /^[\w%().,:=&+*-]+$/.test(qq) && qq.length < 900){
-        out.custom = await timed(`/api_lots?${qq}`, query.get("planned") ? {prefer:"count=planned", range:"0-0", "range-unit":"items"} : {});
+        out.custom = await timed(`/api_lots?${qq}`, query.get("exact") ? {prefer:"count=exact", range:"0-0", "range-unit":"items"} : query.get("planned") ? {prefer:"count=planned", range:"0-0", "range-unit":"items"} : {});
         sendJson(response, 200, out, {"cache-control":"no-store"});
         return;
       }
