@@ -87,11 +87,12 @@ module.exports = async function handler(request, response){
     ];
     if(!hb) jobs.push(sb("/site_hits", {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify({vh, path, ref:ev ? null : (refHost(body.r) || null), dev, ctry, ev})}));
     await Promise.all(jobs);
+    response.setHeader("x-track", "ok");
 
     // Уборка: онлайн-строки старше суток и просмотры старше 120 дней (изредка, чтобы не нагружать каждый запрос)
     const roll = Math.random();
     if(roll < 0.004) sb(`/site_online?ts=lt.${encodeURIComponent(new Date(now - 864e5).toISOString())}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
     else if(roll < 0.005) sb(`/site_hits?ts=lt.${encodeURIComponent(new Date(now - 120 * 864e5).toISOString())}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
-  }catch(_){ /* аналитика не должна ломать сайт */ }
+  }catch(_){ try{ response.setHeader("x-track", "err"); }catch(e){} /* аналитика не должна ломать сайт */ }
   response.status(204).end();
 };
