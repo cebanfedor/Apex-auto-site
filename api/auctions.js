@@ -2410,13 +2410,21 @@ async function fetchSoldCompsFromDb(makeId, modelId){
 async function fetchSoldComps(makeId, modelId){
   const ck = `${makeId}:${modelId}`;
   const cc = soldPoolCache.get(ck);
-  if(cc && Date.now() - cc.at < SOLD_POOL_TTL) return cc.rows;
-  // 1) Полная история из нашей базы (лучший источник). 2) Тонкий живой /cars.
-  let rowsOut = null;
-  try{ rowsOut = await fetchSoldCompsFromDb(makeId, modelId); }catch(e){ rowsOut = null; }
-  if(!rowsOut) rowsOut = await fetchSoldCompsLive(makeId, modelId);
-  if(rowsOut) soldPoolCache.set(ck, {rows:rowsOut, at:Date.now()});
-  return rowsOut;
+  if(cc){
+    if(cc.promise) return cc.promise;   // уже в полёте (другой лот того же make+model в этом же батче) — ждём тот же промис
+    if(Date.now() - cc.at < SOLD_POOL_TTL) return cc.rows;
+  }
+  // Кладём промис в кэш ДО await: конкурентные вызовы для одного make+model (compsbatch по 30 лотам
+  // часто содержит несколько одной модели) не должны бить в базу N раз одновременно.
+  const p = (async () => {
+    let rowsOut = null;
+    try{ rowsOut = await fetchSoldCompsFromDb(makeId, modelId); }catch(e){ rowsOut = null; }
+    if(!rowsOut) rowsOut = await fetchSoldCompsLive(makeId, modelId);
+    soldPoolCache.set(ck, {rows:rowsOut, at:Date.now()});
+    return rowsOut;
+  })();
+  soldPoolCache.set(ck, {promise:p});
+  return p;
 }
 async function fetchSoldCompsLive(makeId, modelId){
   // Фолбэк: тонкий живой срез /cars?status=6, когда база не готова. Страница 100
@@ -2585,6 +2593,92 @@ function computeComps(rows, meta){
     match:{fuel:fuelMatched, year:yearMatched, mileage:!!odo, gen:hasGenRange},
     samples
   };
+}
+
+// Ориентир ставки по одному лоту, из объекта-like-URLSearchParams (q.get(key)) — используется и
+// одиночным action=comps, и пачкой action=compsbatch (см. ниже), чтобы не дублировать логику.
+async function computeCompsForQ(q){
+  const makeId = String(q.get("manufacturer_id") || q.get("make_id") || "").replace(/[^0-9]/g, "");
+  const modelId = String(q.get("model_id") || "").replace(/[^0-9]/g, "");
+  if(!makeId || !modelId) return null;
+  try{
+    const yearG = Number(String(q.get("year") || "").replace(/[^0-9]/g, "")) || 0;
+    const runG = String(q.get("run") || "");
+    const coef = priceGuide.conditionCoef({dmg:q.get("dmg"), dmg2:q.get("dmg2"), cond:q.get("cond"),
+      run:runG === "1" ? true : runG === "0" ? false : null, doc:q.get("doc")});
+    const hasCond = !!(q.get("dmg") || q.get("cond"));
+    const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:q.get("make_name"), model:q.get("model_name"),
+      title:q.get("title"), gen:q.get("gen"), year:yearG, fuel:q.get("fuel")}) : null;
+    const miF = priceGuide.mileageFactor(String(q.get("odometer") || "").replace(/[^0-9]/g, ""));
+    let band = row ? priceGuide.guideBand(row.base_price * miF, row.k, coef) : null, src = "guide";
+    if(!band && hasCond && yearG){
+      const pool = await fetchSoldComps(makeId, modelId);
+      const g = await resolveGenRange(modelId, yearG, "");
+      const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
+        fuelId:fuelTextToId(q.get("fuel")), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid")}) : null;
+      if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
+        const r100 = v => Math.round(v / 100) * 100;
+        band = {lo:r100(cc.p25), mid:r100(cc.median), hi:r100(Math.max(cc.p75, cc.p25 * 1.05))}; src = "data";
+      }else{
+        const base = dataGuideBase(pool, g, fuelTextToId(q.get("fuel")), yearG);
+        if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
+      }
+    }
+    if(band) return {guide:true, src, p25:band.lo, p75:band.hi, median:band.mid, trueMedian:band.mid, count:0, match:{gen:true, fuel:true}};
+  }catch(e){ /* ориентир не получился — ниже прежняя оценка по похожим продажам */ }
+  try{
+    const rows = await fetchSoldComps(makeId, modelId);
+    if(rows && rows.length){
+      const runQ = String(q.get("run") || "");
+      const run = runQ === "1" ? true : runQ === "0" ? false : null;
+      const yearQ = Number(String(q.get("year") || "").replace(/[^0-9]/g, "")) || 0;
+      let genIdQ = String(q.get("generation_id") || "").replace(/[^0-9]/g, "");
+      if(parseSynGen(genIdQ)) genIdQ = "";
+      const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
+      const cqQ = String(q.get("cq") || "");
+      const stats = computeComps(rows, {year:yearQ, odometer:q.get("odometer"), fuelId:fuelTextToId(q.get("fuel")), genId:genIdQ, genFrom, genTo, run, cq:cqQ});
+      if(stats) return stats;
+    }
+  }catch(e){ /* база недоступна — выше уровень (compsbatch) откатится на /statistics */ }
+  return null;
+}
+
+// Агрегат /statistics по make+model — дедуп + кэш 30 мин, как у fetchSoldComps (используется
+// компасбатчем как последний фолбэк, когда для лота нет ни строки в таблице Федора, ни похожих продаж).
+const statsRowsCache = new Map();
+const STATS_ROWS_TTL = 30 * 60e3;
+async function fetchStatsRows(makeId, modelId){
+  const ck = `${makeId}:${modelId}`;
+  const cc = statsRowsCache.get(ck);
+  if(cc){
+    if(cc.promise) return cc.promise;
+    if(Date.now() - cc.at < STATS_ROWS_TTL) return cc.rows;
+  }
+  const p = (async () => {
+    let rows = [];
+    try{
+      const p2 = new URLSearchParams({manufacturer_id:String(makeId), model_id:String(modelId)});
+      const data = await fetchJson(`${AUCTIONS_API_BASE}/statistics?${p2}`);
+      rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+    }catch(e){ rows = []; }
+    statsRowsCache.set(ck, {rows, at:Date.now()});
+    return rows;
+  })();
+  statsRowsCache.set(ck, {promise:p});
+  return p;
+}
+// Зеркало клиентского forecastFromRows (auctions.js) — взвешенное среднее /statistics по году±tol,
+// сужение по двигателю, если есть.
+function statsForecast(rows, yearQ, engineId, tol){
+  let scope = yearQ ? rows.filter(x => Math.abs(Number(x.year) - yearQ) <= tol) : rows;
+  if(!scope.length) return null;
+  const byEngine = engineId ? scope.filter(x => x.engine && Number(x.engine.id) === Number(engineId)) : [];
+  if(byEngine.length) scope = byEngine;
+  let sumW = 0, cnt = 0;
+  scope.forEach(x => { const c = Number(x.lot_count) || 0, avg = Number(x.avg_final_bid) || 0; if(avg > 0 && c > 0){ sumW += avg * c; cnt += c; } });
+  if(cnt < 2) return null;
+  const avg = sumW / cnt;
+  return {lo:Math.round(avg * 0.8 / 50) * 50, hi:Math.round(avg * 1.15 / 50) * 50};
 }
 
 // ================= Синхронизация каталога в Supabase (action=synclots) =================
@@ -3314,6 +3408,40 @@ module.exports = async function handler(request, response){
     finally{ await releaseSyncLock("closed", closedInfo); }
     return;
   }
+  // 23.09.2026: карточки каталога раньше тянули «Ориентир ставки» ПО ОДНОМУ запросу на лот (до 19
+  // запросов на страницу, каждый 300–700мс, потому что не батчились как vinhist/livebids) — почти 6с
+  // до появления оценок на последних карточках. compsbatch — один POST на всю видимую страницу; на
+  // сервере одинаковые make+model внутри батча делят один fetchSoldComps (дедуп через in-flight промис).
+  if(action === "compsbatch"){
+    if(request.method !== "POST"){ methodNotAllowed(response, ["POST"]); return; }
+    let body;
+    try{ body = await readBody(request); }catch(e){ sendJson(response, 400, {ok:false, error:"bad body"}); return; }
+    const items = Array.isArray(body?.items) ? body.items.slice(0, 40) : [];
+    const out = {};
+    await Promise.all(items.map(async it => {
+      const id = String(it?.id || "").slice(0, 80);
+      if(!id || typeof it !== "object") return;
+      const q = {get:k => (it[k] != null ? String(it[k]) : null)};
+      try{
+        const comps = await computeCompsForQ(q);
+        if(comps){ out[id] = comps; return; }
+        // Ни строки в таблице Федора, ни похожих продаж — фолбэк на агрегат /statistics
+        // (то же самое, что клиент раньше добирал вторым запросом через statsRowsFor).
+        const makeId = String(it.manufacturer_id || it.make_id || "").replace(/[^0-9]/g, "");
+        const modelId = String(it.model_id || "").replace(/[^0-9]/g, "");
+        if(makeId && modelId){
+          const rows = await fetchStatsRows(makeId, modelId);
+          const yearQ = Number(String(it.year || "").replace(/[^0-9]/g, "")) || 0;
+          const engineId = it.engine_id != null ? Number(it.engine_id) : 0;
+          const f = statsForecast(rows, yearQ, engineId, 0) || statsForecast(rows, yearQ, engineId, 1);
+          if(f) out[id] = {guide:false, src:"stats", p25:f.lo, p75:f.hi, median:Math.round((f.lo + f.hi) / 2), trueMedian:Math.round((f.lo + f.hi) / 2), count:0, match:{}};
+        }
+      }catch(e){ /* этот лот без оценки — остальные батча не страдают */ }
+    }));
+    sendJson(response, 200, {ok:true, items:out}, {"cache-control":"no-store"});
+    return;
+  }
+
   if(request.method !== "GET"){
     methodNotAllowed(response, ["GET","POST"]);
     return;
@@ -3579,7 +3707,9 @@ module.exports = async function handler(request, response){
           setCached(ck, r, 2 * 60e3); out[id] = r;
         }catch(e){ out[id] = null; }
       };
-      for(let i = 0; i < ids.length; i += 6) await Promise.all(ids.slice(i, i + 6).map(one));
+      // 6 → 10: паучок был лишним ограничением (upstream — платный тариф без задокументированного
+      // лимита в секунду), 30 лотов теперь ~3 волны вместо 5 (23.09.2026, замер: 2с → ~1.2с).
+      for(let i = 0; i < ids.length; i += 10) await Promise.all(ids.slice(i, i + 10).map(one));
       sendJson(response, 200, {ok:true, items:out}, {"cache-control":"public, s-maxage=120, stale-while-revalidate=60"});
       return;
     }
@@ -3603,7 +3733,7 @@ module.exports = async function handler(request, response){
           out[vin] = r;
         }catch(e){ out[vin] = null; }
       };
-      for(let i = 0; i < vins.length; i += 6) await Promise.all(vins.slice(i, i + 6).map(one));
+      for(let i = 0; i < vins.length; i += 10) await Promise.all(vins.slice(i, i + 10).map(one));
       sendJson(response, 200, {ok:true, items:out}, {"cache-control":"public, s-maxage=3600, stale-while-revalidate=21600"});
       return;
     }
@@ -3729,83 +3859,12 @@ module.exports = async function handler(request, response){
     }
 
     if(action === "comps"){
-      // Оценка по реальным проданным лотам с учётом топлива, года и пробега.
-      const makeId = String(query.get("manufacturer_id") || query.get("make_id") || "").replace(/[^0-9]/g, "");
-      const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
-      // ---- Ориентир ставки по формуле Федора: база × K × коэффициент состояния ----
-      // 1) модель есть в его закрытой таблице → база оттуда; 2) нет → та же формула, но база =
-      // средняя цена продаж кузова+топлива из нашей истории. Наружу — только вилка, без базы и K.
-      if(makeId && modelId){
-        try{
-          const yearG = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
-          const runG = String(query.get("run") || "");
-          const coef = priceGuide.conditionCoef({dmg:query.get("dmg"), dmg2:query.get("dmg2"), cond:query.get("cond"),
-            run:runG === "1" ? true : runG === "0" ? false : null, doc:query.get("doc")});
-          const hasCond = !!(query.get("dmg") || query.get("cond"));
-          const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:query.get("make_name"), model:query.get("model_name"),
-            title:query.get("title"), gen:query.get("gen"), year:yearG, fuel:query.get("fuel")}) : null;
-          const miF = priceGuide.mileageFactor(String(query.get("odometer") || "").replace(/[^0-9]/g, ""));
-          let band = row ? priceGuide.guideBand(row.base_price * miF, row.k, coef) : null, src = "guide";
-          if(!band && hasCond && yearG){
-            const pool = await fetchSoldComps(makeId, modelId);
-            const g = await resolveGenRange(modelId, yearG, "");
-            // 23.09.2026 (Tesla Model Y 2026): усреднённая база «год ±1» смешивала 2025 ($8–14k) и 2026 ($19–29k) и не видела
-            // пробег → «$15–17k» при ставке $22.5k. Сначала — продажи того же кузова, ВЗВЕШЕННЫЕ по близости года и пробега,
-            // с перцентилем по состоянию (cq); усечённая база — только если похожих продаж мало.
-            const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(query.get("odometer") || "").replace(/[^0-9]/g, ""),
-              fuelId:fuelTextToId(query.get("fuel")), genFrom:g.genFrom, genTo:g.genTo, cq:String(query.get("cq") || "mid")}) : null;
-            if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
-              const r100 = v => Math.round(v / 100) * 100;
-              band = {lo:r100(cc.p25), mid:r100(cc.median), hi:r100(Math.max(cc.p75, cc.p25 * 1.05))}; src = "data";
-            }else{
-              const base = dataGuideBase(pool, g, fuelTextToId(query.get("fuel")), yearG);
-              if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
-            }
-          }
-          if(band){
-            const payload = {ok:true, comps:{guide:true, src, p25:band.lo, p75:band.hi, median:band.mid, trueMedian:band.mid, count:0, match:{gen:true, fuel:true}}};
-            setCached(key, payload);
-            sendJson(response, 200, payload, COMPS_EDGE_CACHE);
-            return;
-          }
-        }catch(e){ /* ориентир не получился — ниже прежняя оценка по похожим продажам */ }
-      }
-      if(makeId && modelId){
-        try{
-          const rows = await fetchSoldComps(makeId, modelId);
-          if(rows && rows.length){
-            // run приходит с клиента как 1/0 (клиент классифицирует состояние лота
-            // однозначно); пусто → не фильтруем по состоянию.
-            const runQ = String(query.get("run") || "");
-            const run = runQ === "1" ? true : runQ === "0" ? false : null;
-            const yearQ = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
-            let genIdQ = String(query.get("generation_id") || "").replace(/[^0-9]/g, "");
-            if(parseSynGen(genIdQ)) genIdQ = "";
-            // Поколение = кузов (нельзя мешать 2024 новый с 2021 старым). Границы
-            // берём из зашитых overrides (справочник API врёт), иначе — из API.
-            const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
-            const cqQ = String(query.get("cq") || "");   // качество состояния лота: good|mid|poor
-            const stats = computeComps(rows, {
-              year:yearQ,
-              odometer:query.get("odometer"),
-              fuelId:fuelTextToId(query.get("fuel")),
-              genId:genIdQ,
-              genFrom, genTo,
-              run,
-              cq:cqQ
-            });
-            if(stats){
-              const payload = {ok:true, comps:stats};
-              setCached(key, payload);
-              // Edge-кэш Vercel: тот же лот при повторном открытии отдаётся с CDN
-              // мгновенно, без вызова функции. Данные меняются медленно.
-              sendJson(response, 200, payload, COMPS_EDGE_CACHE);
-              return;
-            }
-          }
-        }catch(e){ /* база недоступна — отдаём ok:false, клиент откатится на /statistics */ }
-      }
-      sendJson(response, 200, {ok:false}, COMPS_EDGE_CACHE);
+      // Оценка по реальным проданным лотам с учётом топлива, года и пробега (общая логика — computeCompsForQ,
+      // делится с action=compsbatch ниже).
+      const comps = await computeCompsForQ(query);
+      const payload = comps ? {ok:true, comps} : {ok:false};
+      setCached(key, payload);
+      sendJson(response, 200, payload, COMPS_EDGE_CACHE);
       return;
     }
 

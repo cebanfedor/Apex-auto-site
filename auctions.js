@@ -1205,6 +1205,16 @@
 
   // Прогноз только для 2017+ (старше — не интересно) и только для непроданных.
   const FORECAST_MIN_YEAR = 2017;
+  // Поля для оценки лота — то же, что compsParamsFor, но ПЛОСКИМ объектом (для JSON-батча).
+  function compsFieldsFor(lot){
+    const cp = compsParamsFor(lot);
+    const o = {}; for(const [k, v] of cp.entries()) o[k] = v;
+    if(lot.engineId) o.engine_id = String(lot.engineId);
+    return o;
+  }
+  // 23.09.2026: раньше каждая карточка тянула /api/auctions?action=comps СВОИМ запросом — на
+  // странице с 30 лотами это до 19 живых HTTP-запросов подряд (~6с, пока не досчитаются все).
+  // Один POST на весь видимый экран — как уже сделано для vinhist/livebids.
   async function updateCardForecasts(){
     const nodes = [...document.querySelectorAll("[data-forecast]")];
     if(!nodes.length) return;
@@ -1217,19 +1227,28 @@
       if(lotSaleState(lot).isSold) return;
       jobs.push({node, lot});
     });
-    // Пачками по 4, чтобы не бомбить API; comps кэшируется на edge и по пулу продаж.
-    for(let i = 0; i < jobs.length; i += 4){
-      await Promise.all(jobs.slice(i, i + 4).map(async ({node, lot}) => {
-        const f = await forecastForLot(lot);
-        if(!f || !document.body.contains(node)) return;
-        const lo = f.guide ? f.lo : Math.floor(f.lo / 500) * 500, hi = f.guide ? f.hi : Math.max(round500(f.hi), lo + 500);
-        // Ставка или резерв продавца уже выше вилки → оценка опровергнута рынком, не показываем (2026 Tesla: ставка $22.5k при «$15–17k»).
-        if(Number(lot.currentBid) > hi || Number(lot.sellerReserve) > hi) return;
-        node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Ориентир")}</span><b>${money(lo)} – ${money(hi)}</b>`;
-        node.dataset.src = f.src;
-        node.hidden = false;
-      }));
-    }
+    if(!jobs.length) return;
+    const items = jobs.map(({lot}) => ({id:String(lot.id), ...compsFieldsFor(lot)}));
+    let results = {};
+    try{
+      const r = await api("/api/auctions?action=compsbatch", {method:"POST", body:{items}});
+      results = (r && r.items) || {};
+    }catch(e){ return; }
+    jobs.forEach(({node, lot}) => {
+      const c = results[String(lot.id)]; if(!c || !document.body.contains(node)) return;
+      // Зеркало старого forecastForLot: guide (таблица Федора) → comps (похожие продажи) → stats (агрегат).
+      const f = (c.guide && c.p25 > 0) ? {lo:c.p25, hi:c.p75, src:"guide", guide:true}
+        : c.src === "stats" ? {lo:c.p25, hi:c.p75, src:"stats"}
+        : (c.count && c.p25 > 0 && c.p75 >= c.p25) ? {lo:c.p25, hi:c.p75, src:"comps"}
+        : null;
+      if(!f || !(f.hi >= f.lo)) return;
+      const lo = f.guide ? f.lo : Math.floor(f.lo / 500) * 500, hi = f.guide ? f.hi : Math.max(round500(f.hi), lo + 500);
+      // Ставка или резерв продавца уже выше вилки → оценка опровергнута рынком, не показываем (2026 Tesla: ставка $22.5k при «$15–17k»).
+      if(Number(lot.currentBid) > hi || Number(lot.sellerReserve) > hi) return;
+      node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Ориентир")}</span><b>${money(lo)} – ${money(hi)}</b>`;
+      node.dataset.src = f.src;
+      node.hidden = false;
+    });
   }
 
   // ---- Счётчики лотов на вкладках (как у BidCars) ----
