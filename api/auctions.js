@@ -2806,11 +2806,11 @@ async function syncSetState(v){
 }
 
 // Свой фетч с таймаутом 30с: страницы по 1000 лотов тяжелее обычных запросов.
-async function syncApiFetch(url){
+async function syncApiFetch(url, timeoutMs){
   const key = process.env.AUCTIONS_API_KEY;
   if(!key) throw new Error("AUCTIONS_API_KEY is not configured");
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs || 30000);
   try{
     const res = await fetch(url, {headers:{"x-api-key":key, accept:"application/json"}, signal:controller.signal});
     const payload = await res.json().catch(() => null);
@@ -2927,6 +2927,11 @@ function upsertClosedLot(lot){
 // Ключевые поля строки: если в базе они те же — строку не переписываем (upsert = переписать 12 индексов + TOAST payload).
 const ROW_KEY_FIELDS = ["sale_date", "current_bid", "buy_now", "final_bid", "status_id", "odometer_mi", "archived"];
 function sameKeyFields(a, b){
+  // Timed и резерв продавца живут в payload: лот, перешедший на Timed-аукцион без смены даты/ставки, раньше считался
+  // «неизменившимся» и его признак Timed в базе застревал (DreamBid: 4334 Timed, у нас были сотни).
+  const pl = a.payload || {};
+  if(("tm" in b) && (!!pl.timed) !== (b.tm === "true")) return false;
+  if(("sr" in b) && (Number(pl.sellerReserve) || 0) !== (Number(b.sr) || 0)) return false;
   for(const f of ROW_KEY_FIELDS){
     let x = a[f], y = b[f];
     if(f === "sale_date"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
@@ -2954,7 +2959,7 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
-    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${ROW_KEY_FIELDS.join(",")}`);
+    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${ROW_KEY_FIELDS.join(",")},tm:payload->>timed,sr:payload->>sellerReserve`);
     if(Array.isArray(ex)){
       const map = new Map(ex.map(r => [r.id, r]));
       // Строку-продажу нельзя ухудшить: входящая без финала и без БУДУЩИХ торгов (sold без даты, not_sold-раунд
@@ -3003,7 +3008,10 @@ async function syncUpsertRows(rows, deadline, opts = {}){
 async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, deadline, upsertOpts = {}){
   const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
   const tA = Date.now();
-  const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`);
+  // Ожидание фида — не дольше остатка бюджета прогона: зависший запрос (30с) вместе с записью выходил за лимит функции 60с,
+  // прогон убивался, а курсор обхода не сохранялся → обход вставал на месте (23.09: «ближайшие торги» стояли на странице 22).
+  const feedTimeout = deadline ? Math.max(4000, Math.min(30000, deadline - Date.now() - 3000)) : 30000;
+  const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`, feedTimeout);
   const items = findItems(payload) || [];
   const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
   syncImportPage.lastFetchMs = Date.now() - tA;
@@ -3126,8 +3134,8 @@ async function handleSyncLots(response){
         // Окно изменений фида (3ч) — по курсору, чтобы за час пройти его ЦЕЛИКОМ, а не первые 3 страницы:
         // фид меняет десятки тысяч лотов в час, и новые лоты попадали в базу только ночным обходом.
         // Днём (UTC 6–20) база нужна посетителям: короче окна записи; ночью — полные.
-        const daytime = (h => h >= 6 && h < 20)(new Date().getUTCHours());
-        const CH_BUDGET_MS = daytime ? 9000 : 18000;
+        // Днём урезание бюджета убрано (Medium-база держит запись): обход 160 страниц должен проходиться за ~20–30 минут.
+        const CH_BUDGET_MS = 12000;
         const ch = state.changes || (state.changes = {di:0, page:1});
         result.chSteps = [];
         result.stage = "changes";
@@ -3138,9 +3146,10 @@ async function handleSyncLots(response){
           result.chSteps.push(`ch d${SYNC_DOMAINS[ch.di]} p${ch.page}: ${got} (same ${syncImportPage.lastUnchanged}, kept ${syncUpsertRows.preserved || 0}) in ${stepT() - t0}ms`);
           if(got && !syncImportPage.lastComplete) break;
           if(got < SYNC_PER_PAGE || ch.page >= 40){ ch.di += 1; ch.page = 1; } else { ch.page += 1; }
+          await syncSetState(state).catch(() => {});   // курсор — сразу: если прогон убьют по лимиту, прогресс не потеряется
         }
         if(ch.di >= SYNC_DOMAINS.length){ ch.di = 0; ch.page = 1; ch.done_at = new Date().toISOString(); }
-        const UP_BUDGET_MS = daytime ? 20000 : 40000;
+        const UP_BUDGET_MS = 42000;
         const up = state.upcoming || (state.upcoming = {di:0, page:1, cycles:0});
         result.upSteps = [];
         result.stage = "upcoming";
@@ -3151,6 +3160,7 @@ async function handleSyncLots(response){
           result.upSteps.push(`up d${SYNC_DOMAINS[up.di]} p${up.page}: ${got} (same ${syncImportPage.lastUnchanged}) in ${stepT() - t0}ms`);
           if(got && !syncImportPage.lastComplete) break;          // не дописали страницу — повторим её
           if(got < SYNC_PER_PAGE){ up.di += 1; up.page = 1; } else { up.page += 1; }
+          await syncSetState(state).catch(() => {});
         }
         if(up.di >= SYNC_DOMAINS.length){ up.di = 0; up.page = 1; up.cycles += 1; up.done_at = new Date().toISOString(); }
       }

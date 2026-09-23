@@ -3,9 +3,9 @@
     "api/auctions.js": { "maxDuration": 60 }
   },
   "crons": [
-    { "path": "/api/cron/sync", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/sync", "schedule": "1-59/2 * * * *" },
     { "path": "/api/cron/closed", "schedule": "*/10 * * * *" },
-    { "path": "/api/cron/settle", "schedule": "5-59/10 * * * *" }
+    { "path": "/api/cron/settle", "schedule": "6-59/10 * * * *" }
   ],
   "redirects": [
     { "source": "/server/:path*", "destination": "/404", "permanent": false },
