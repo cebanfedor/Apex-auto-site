@@ -3278,6 +3278,30 @@ module.exports = async function handler(request, response){
     // Живые ставка/резерв/статус продажи пачкой для карточек (≤30 id, параллельно по 6, кэш 2 мин).
     // Диагностика (read-only, кэш 10 мин): сколько лотов у ФИДА по площадкам — с датой торгов в 60 дней и всего.
     // Нужна, чтобы сверять счётчик каталога с источником, а не с DreamBid.
+    // Диагностика планов (read-only): план запроса вкладки «Сегодня и завтра» через PostgREST (если db-plan включён),
+    // плюс тайминги: чтение по PK, range-запрос без count, тот же с count=planned.
+    if(action === "explain"){
+      const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+      const skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+      const H = {apikey:skey, authorization:`Bearer ${skey}`};
+      const grace = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+      const to = encodeURIComponent(new Date(Date.now() + 48 * 3600e3).toISOString());
+      const q = `/api_lots?select=id&archived=eq.false&and=(sale_date.gte.${grace},sale_date.lte.${to},or(status_id.neq.6,status_id.is.null))&order=sale_date.asc,id.asc&limit=1`;
+      const timed = async (path, extra) => {
+        const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 9000); const t0 = Date.now();
+        try{ const r = await fetch(`${url}/rest/v1${path}`, {headers:{...H, ...(extra || {})}, signal:ctrl.signal}); const txt = await r.text(); return {ms:Date.now() - t0, status:r.status, body:txt.slice(0, 1500), cr:r.headers.get("content-range")}; }
+        catch(e){ return {ms:Date.now() - t0, err:String(e.message || e).slice(0, 80)}; }
+        finally{ clearTimeout(t); }
+      };
+      const out = {ok:true};
+      out.pk = await timed(`/api_lots?select=id,sale_date&id=eq.iaai-44682632`);
+      out.range = await timed(q);
+      out.rangePlanned = await timed(q, {prefer:"count=planned", range:"0-0", "range-unit":"items"});
+      out.plan = await timed(q, {accept:"application/vnd.pgrst.plan+text; options=analyze"});
+      out.planAll = await timed(`/api_lots?select=id&archived=eq.false&and=(sale_date.gte.${grace},or(status_id.neq.6,status_id.is.null),or(country.neq.kr,country.is.null))&order=sale_date.asc,id.asc&limit=1`, {accept:"application/vnd.pgrst.plan+text; options=analyze"});
+      sendJson(response, 200, out, {"cache-control":"no-store"});
+      return;
+    }
     if(action === "feedcount"){
       const ck = "feedcount"; const c = getCached(ck);
       if(c){ sendJson(response, 200, c, {"cache-control":"no-store"}); return; }
