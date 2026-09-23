@@ -3686,6 +3686,17 @@ module.exports = async function handler(request, response){
         if([...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now"].includes(tab0)){
           const tc = tabTotalCache.get(`${tab0}|${query.get("auction") || "all"}`);
           if(tc && tc.n > 0) result = {...result, total:tc.n};
+          else if((query.get("auction") || "all") === "all"){
+            // Базы нет и счётчика из неё нет: фид по площадкам отдельно (без Кореи), кэш 10 мин на инстанс.
+            const lk = `live|${tab0}`; const lc = tabTotalCache.get(lk);
+            let n = lc && Date.now() - lc.at < 10 * 60e3 ? lc.n : 0;
+            if(!n){
+              const [c, i] = await Promise.all(["copart", "iaai"].map(a => fetchSearch(new URLSearchParams({tab:tab0, auction:a, per_page:"1"})).catch(() => null)));
+              n = ((c && c.total) || 0) + ((i && i.total) || 0);
+              if(n > 0) tabTotalCache.set(lk, {n, at:Date.now()});
+            }
+            if(n > 0) result = {...result, total:n};
+          }
         }
       }
       if(dbErr) console.error("searchFromDb fallback:", dbErr);
