@@ -2202,6 +2202,7 @@
   }
 
   function renderDetail(lot){
+    console.trace("[DBG renderDetail]", lot && lot.lot, lot && lot.auction);
     _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
