@@ -1187,6 +1187,8 @@
       }
       if(pastSold.length){
         const last = pastSold[0];
+        const ph = card.querySelector(".dbPhoto");
+        if(ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${L("Продан ранее")}</span>`);
         li.className = "dbCheck bad";
         li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продавалась ранее")}: ${money(last.bid)} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}</span>`;
       }else{
@@ -2058,13 +2060,18 @@
     const odoShort = miNum ? `${Math.round(miNum * 1.609 / 1000)} ${L("тыс. км")}` : "";
     const {isSold, finalBid: effectiveBid} = lotSaleState(lot);
     const bid = isSold && effectiveBid ? effectiveBid : (lot.currentBid || lot.buyNow);
+    // Цены как у DreamBid: «Купить сейчас» — красный бейдж, текущая ставка — синий, продано — тёмный.
+    const fmtB = v => findCanadaLocation(lot) ? moneyCad(v) : money(v);
+    const bidBadges = isSold && effectiveBid ? `<span class="simBidV1 simBidSoldV1" title="${L("Продано")}">${fmtB(effectiveBid)}</span>`
+      : [Number(lot.buyNow) > 0 ? `<span class="simBidV1 simBidBuyV1" title="${L("Купить сейчас")}">${fmtB(lot.buyNow)}</span>` : "",
+         Number(lot.currentBid) > 0 ? `<span class="simBidV1 simBidCurV1" title="${L("Текущая ставка")}">${fmtB(lot.currentBid)}</span>` : ""].join("");
     // Дата торгов/продажи: «26 сент.» (в другом году — «12 сент. 2025»). Формат MM/YY «09/26» читался как непонятно что (Федор 23.09.2026).
     const sd = Date.parse(lot.auctionDate || lot.saleDate || "");
     const dateMMYY = Number.isFinite(sd)
       ? dbDate(new Date(sd).toISOString()).replace(/^[^,]+,\s*/, "").replace(/,?\s*\d{1,2}:\d{2}$/, "") + (new Date(sd).getFullYear() !== new Date().getFullYear() ? ` ${new Date(sd).getFullYear()}` : "")
       : "";
-    return `<a class="simCardV1" href="${detailHref(lot)}">
-      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${Number(bid) > 0 ? `<span class="simBidV1">${findCanadaLocation(lot) ? moneyCad(bid) : money(bid)}</span>` : ""}</div>
+    return `<a class="simCardV1" href="${detailHref(lot)}" data-sim-vin="${escapeHtml(lot.vin || "")}" data-sim-lot="${escapeHtml(String(lot.lot || ""))}">
+      <div class="simPhotoV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}${bidBadges ? `<span class="simBidsV1">${bidBadges}</span>` : ""}</div>
       <h4>${escapeHtml(title)}</h4>
       <span class="simVinV1">${dbIco("vin")}${escapeHtml(lot.vin || "—")}${dateMMYY ? ` · ${dateMMYY}` : ""}</span>
       <span>${dbIco("engine")}${escapeHtml(specLine || "—")}</span>
@@ -2140,6 +2147,23 @@
     if(!items.length) return;
     box.innerHTML = items.map(renderSimilarCard).join("");
     sec.hidden = false;
+    markResoldSimilar(box);
+  }
+
+  // Перекуп: машина уже продавалась под ДРУГИМ номером лота (VIN тот же) — красная метка на фото, чтобы клиент видел сразу.
+  async function markResoldSimilar(box){
+    try{
+      const cards = [...box.querySelectorAll(".simCardV1[data-sim-vin]")].filter(c => (c.dataset.simVin || "").length === 17);
+      const vins = [...new Set(cards.map(c => c.dataset.simVin))].slice(0, 30);
+      if(!vins.length) return;
+      const r = await api(`/api/auctions?action=vinhist&vins=${encodeURIComponent(vins.join(","))}`);
+      const items = r && r.items || {};
+      cards.forEach(c => {
+        const h = items[c.dataset.simVin]; if(!h || !Array.isArray(h.entries)) return;
+        const resold = h.entries.some(e => e.status === "sold" && e.lot && String(e.lot) !== String(c.dataset.simLot));
+        if(resold && !c.querySelector(".simResoldV1")) c.querySelector(".simPhotoV1")?.insertAdjacentHTML("beforeend", `<span class="simResoldV1">${dbIco("warn")}${L("Продан ранее")}</span>`);
+      });
+    }catch(e){}
   }
 
   async function loadSimilarArchived(lot){
@@ -2150,6 +2174,7 @@
     if(!items.length) return;
     box.innerHTML = items.map(renderSimilarCard).join("");
     sec.hidden = false;
+    markResoldSimilar(box);
   }
 
   function renderDetail(lot){

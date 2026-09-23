@@ -952,3 +952,15 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* похожие лоты: сама карточка не растягивается контентом (grid-элемент min-width:0), иначе ellipsis не срабатывал */
 .simCardV1 { min-width:0; overflow:hidden; }
 .simCardV1 h4 { min-width:0; }
+
+/* Похожие лоты: цены как у DreamBid — выкуп красным, ставка синим, продано тёмным */
+.simBidsV1 { position:absolute; right:8px; bottom:8px; display:flex; gap:5px; }
+.simBidsV1 .simBidV1 { position:static; }
+.simBidBuyV1 { background:var(--aRed) !important; }
+.simBidCurV1 { background:#1a73e8 !important; }
+.simBidSoldV1 { background:rgba(11,13,16,.78) !important; }
+/* Перекуп: VIN уже продавался под другим номером лота */
+.simResoldV1 { position:absolute; left:8px; top:8px; display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:7px; background:var(--aRed); color:#fff; font-size:10.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; z-index:2; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+.simResoldV1 .dbIco { width:12px; height:12px; color:#fff; }
+.dbPhoto .dbResoldV1 { left:auto; right:56px; top:10px; }
+@media (max-width:640px){ .dbPhoto .dbResoldV1 { top:auto; bottom:12px; right:10px; left:auto; } }
