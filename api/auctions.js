@@ -3686,7 +3686,24 @@ module.exports = async function handler(request, response){
         name:safeName(d.name || d.title || d.damage || d),
         code:d.state_code || d.code || d.abbr || ""
       })).filter(d => d.name);
-      const payload = {ok:true, items};
+      let outItems = items;
+      if(dict === "damages"){
+        // Справочник фида: ~2300 служебных кодов продавцов («Dp1142») + однобуквенные обрывки — в фильтре им не место.
+        // «Front End Damage» покрывается подстрокой «Front End» (фильтр ilike *x*), поэтому дубли с суффиксом « Damage» убираем.
+        const seen = new Set();
+        outItems = [];
+        for(const it of items){
+          let n = String(it.name).trim();
+          if(/^[A-Za-z]{1,3}\d{2,}$/.test(n) || n.length < 4) continue;
+          n = n.replace(/\s+Damage$/i, "").trim();
+          if(n.length < 4) continue;
+          const k = n.toLowerCase();
+          if(seen.has(k)) continue;
+          seen.add(k);
+          outItems.push({...it, name:n});
+        }
+      }
+      const payload = {ok:true, items:outItems};
       setCached(key, payload);
       sendJson(response, 200, payload);
       return;
