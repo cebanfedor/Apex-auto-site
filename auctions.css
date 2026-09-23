@@ -966,3 +966,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .simResoldV1 .dbIco { width:11px; height:11px; color:#fff; }
 .dbPhoto .dbResoldV1 { left:auto; right:56px; top:10px; }
 @media (max-width:640px){ .dbPhoto .dbResoldV1 { top:auto; bottom:12px; right:10px; left:auto; } }
+
+/* «Продан ранее»: правило .simCardV1 span (серый текст) перебивало цвет — белый принудительно */
+.simCardV1 .simResoldV1, .dbPhoto .simResoldV1 { color:#fff !important; font-weight:800; opacity:1; }
+.simCardV1 .simResoldV1 .dbIco, .dbPhoto .simResoldV1 .dbIco { color:#fff; stroke:#fff; stroke-width:2.2; }
