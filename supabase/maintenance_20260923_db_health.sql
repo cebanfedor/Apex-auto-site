@@ -29,3 +29,8 @@ notify pgrst, 'reload config';
 --    удалять только те, где idx_scan = 0 ПОСЛЕ нескольких дней работы:
 -- drop index concurrently if exists public.idx_api_lots_bid;
 -- drop index concurrently if exists public.idx_api_lots_lot;
+
+-- 7) (23.09, ночь) Вкладка «Купить сейчас» и её счётчик: частичный индекс под Buy Now-лоты.
+--    Запускать ОДНОЙ командой в пустом редакторе (CONCURRENTLY, как и VACUUM, не работает в транзакции). ~1–3 мин.
+create index concurrently if not exists idx_lots_buynow_act
+  on public.api_lots (sale_date, id) where archived = false and buy_now > 0;

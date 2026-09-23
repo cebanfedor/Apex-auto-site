@@ -1913,7 +1913,8 @@ async function tabTotal(tab, auction){
     n = await cnt(`sale_date=gte.${grace}&sale_date=lte.${to}&${live}`);
   }else if(tab === "buy_now"){
     const dayAgo = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
-    n = (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=gte.${dayAgo}`)) + (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=is.null`));
+    // Недатированные Buy Now: только оценка планировщика — точный счёт идёт по 500k NULL-записей индекса.
+    n = (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=gte.${dayAgo}`)) + (await one(`buy_now=gt.0&status_id=neq.6&sale_date=is.null`, "planned", 6000).catch(() => 0));
   }else if(tab === "dated"){
     n = await cnt(`sale_date=gte.${grace}&${live}`);
   }else{
@@ -1950,7 +1951,15 @@ async function searchFromDb(query){
     p.set("buy_now", "gt.0");
     p.set("status_id", "neq.6");
     const dayAgo = new Date(Date.now() - 24 * 3600e3).toISOString();
-    ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
+    // Как у «Все»: OR по sale_date не даёт индексу range-scan (вкладка отвечала 11–18с) → для сортировок
+    // по дате берём датированные range-scan'ом, недатированные Buy Now — хвостом (dateTail).
+    const dateSortedBN = /^(|soon|smart|date_asc|date_desc)$/.test(query.get("sort") || "");
+    if(!dateSortedBN || query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
+      ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
+    }else{
+      ands.push(`sale_date.gte.${dayAgo}`);
+      datedOnly = true;
+    }
   }
   else if(tab === "soon"){
     // «Сегодня и завтра»: торги в ближайшие 48 часов (плюс идущие сейчас). Чистый range по
