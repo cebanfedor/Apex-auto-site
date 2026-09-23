@@ -404,3 +404,19 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - Timed есть ТОЛЬКО у IAAI (`auction_type.name=timed`, ~23% лотов окна 72ч, ≈4–5 тыс.); у Copart 0 (там minimum_bid/pure_sale/on_approval/live). DreamBid «Timed 4 334» совпадает.
 - В базе Timed было 171 не из-за фильтров, а потому что обход `upcoming` ещё не дошёл до IAAI (домен 3 → потом 1). После первого полного цикла (~30–40 мин) ~4k.
 - Диагностика: `?action=feedcount&timedscan=iaai|copart&hours=72&from=1&n=4` — листает окно фида и считает Timed по страницам. Проверка нашей базы: `action=search&saleStatus=timed&per_page=1` → `total`.
+
+## Уведомления в Telegram (24.09.2026) — `server/alerts.js`, actions `alert*` в `api/auctions.js`
+- Два вида подписки: **search** («Уведомлять о новых» в строке активных фильтров → новые лоты по фильтрам) и **lot** (колокольчик на карточке /
+  странице лота / «избранное» → сообщения: за 1 час до торгов, «торги идут сейчас» (для Timed — «закрываются»), итог «продан за $X» /
+  «не продан», перенос даты). Сообщения RU/RO/EN по языку сайта в момент подписки.
+- Подключение без аккаунтов: секретный токен в `localStorage` (`apexAlertTokenV1`) → deep-link `t.me/<бот>?start=<токен>` → бот получает /start,
+  `pollUpdates()` (getUpdates, БЕЗ вебхука; лок `alert_meta.tg_poll` 4с) привязывает `chat_id`. Опрос вызывается и по `alertstatus` (клиент дёргает
+  каждые 3с), и кроном. Если на боте вставят webhook — getUpdates перестанет работать (`?action=alertdiag` покажет `webhook`).
+- Таблицы `alert_links / alert_subs / alert_meta` (миграция `supabase/migrations/20260924_alerts.sql`, RLS без политик) + колонка `api_lots.first_seen`
+  (когда лот впервые попал в базу; синк её не перезаписывает) и индекс из п.13 `maintenance_20260923_db_health.sql`. Без миграции API отдаёт 500.
+- Нужен env `TELEGRAM_BOT_TOKEN` (тот же бот, что шлёт лиды Федору; иначе `error:"not_configured"`). Клиент показывает тост об ошибке.
+- Cron `/api/cron/alerts` каждые 3 мин → `action=alerttick`: опрос Telegram + напоминания по лотам + до 8 поисков (не чаще раза в 30 мин на подписку,
+  курсор `last_check` двигается только при удачном запросе к базе; новые лоты = `first_seen ≥ last_check` через `searchFromDb` c внутренним параметром
+  `firstSeenFrom`). Заблокировавший бота (`blocked/deactivated`) → подписки выключаются. Лимит 30 подписок на токен, 10 новых токенов/час с IP.
+- Команды бота: `/list`, `/stop` (выключает все подписки). Диагностика — `?action=alertdiag` (только админ).
+- Клиент: `auctions.js` (`alertSubscribe`, тост `#alertToastV1`, раздел «Уведомления в Telegram» в панели «Сохранённые поиски»).
