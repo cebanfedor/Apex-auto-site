@@ -1927,7 +1927,9 @@ async function tabTotal(tab, auction){
     // SQL п.7 на утро), из-за чего бейдж показывал 7k вместо ~55k. Прошедшие сутки чуть завышают — терпимо.
     n = await cnt(`buy_now=gt.0&status_id=neq.6`);
   }else if(tab === "archived"){
-    n = await one(`archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=lte.${encodeURIComponent(new Date().toISOString())}`.replace("archived=eq.true", "archived=eq.true"), "planned", 4000).catch(() => 0);
+    // Архив: точный счёт по частичному индексу (archived=true, status 6 → ~50k строк, <1с); оценка планировщика тут
+    // врёт на порядки (28 вместо 52k). Не успели — лучше пусто, чем «28».
+    n = await one(`archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=lte.${encodeURIComponent(new Date().toISOString())}`, "exact", 6000).catch(() => 0);
   }else if(tab === "dated"){
     n = await cnt(`sale_date=gte.${grace}&${live}`);
   }else{
