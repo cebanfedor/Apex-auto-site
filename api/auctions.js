@@ -1978,7 +1978,7 @@ async function countRows(url, key, params){
     }finally{ clearTimeout(t); }
   };
   let n = 0, exact = true;
-  try{ n = await one("exact", 3500); }
+  try{ n = await one("exact", 2500); }
   catch(e){ exact = false; try{ n = await one("planned", 2500); }catch(e2){ n = 0; } }
   if(n > 0){
     filteredCountCache.set(ck, {n, at:exact ? Date.now() : Date.now() - 4 * 60e3});   // оценку держим ~1 мин, точный — 5
@@ -2226,8 +2226,8 @@ async function searchFromDb(query){
   // раньше «Цена выкупа 1-9» открывалась лотами вообще без выкупа, «Год 1-9» — лотами с годом 0.
   const TAIL_SPEC = {
     year_desc:   {ok:"year.not.is.null", miss:"year.is.null"},
-    year_asc:    {ok:"year.gt.0", miss:"or(year.is.null,year.lte.0)"},
-    mileage_desc:{ok:"odometer_mi.lte.1000000", miss:"or(odometer_mi.is.null,odometer_mi.gt.1000000)"},
+    year_asc:    {ok:"year.gte.1940", miss:"or(year.is.null,year.lt.1940)"},   // год 0/1/76/206/1900 — мусор фида (17k лотов)
+    mileage_desc:{ok:"odometer_mi.lte.500000", miss:"or(odometer_mi.is.null,odometer_mi.gt.500000)"},   // >500k миль (~2k лотов) — мусор/заглушки (999999)
     buy_now_desc:{ok:"buy_now.not.is.null", miss:"buy_now.is.null"},
     buy_now_asc: {ok:"buy_now.gt.0", miss:"or(buy_now.is.null,buy_now.lte.0)"},
     price_desc:  {ok:"current_bid.not.is.null", miss:"current_bid.is.null"},

@@ -54,3 +54,11 @@ order by age desc;
 -- 11) Мёртвые строки после ночи (если n_dead_tup у api_sync_state/api_cache в тысячах — повторить vacuum по одной команде):
 select relname, n_live_tup, n_dead_tup, last_autovacuum from pg_stat_user_tables
 where relname in ('api_lots','api_cache','api_sync_state');
+
+-- 12) (23.09, вечер) Фильтры «статус продажи»: Timed и «без резерва» ищут по jsonb (payload->>'timed', payload->>'saleStatusKey') —
+--     без индекса это полный проход по payload 600k лотов (точный счёт 4с+). Индексы по выражению делают их мгновенными.
+--     Каждую команду — отдельным запросом в пустом редакторе (CONCURRENTLY не работает в транзакции). ~1–3 мин каждая.
+create index concurrently if not exists idx_lots_timed_act
+  on public.api_lots ((payload->>'timed')) where archived = false;
+create index concurrently if not exists idx_lots_salekey_act
+  on public.api_lots ((payload->>'saleStatusKey')) where archived = false;
