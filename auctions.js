@@ -1220,6 +1220,23 @@
     const seq = ++tabCountSeq;
     const base = formParams();
     base.delete("tab"); base.delete("page"); base.set("per_page", "1");
+    const setBadge = (tab, total) => {
+      const btn = document.querySelector(`[data-tab="${tab}"]`);
+      if(!btn) return;
+      let badge = btn.querySelector(".tabCountV1");
+      if(!badge){ badge = document.createElement("span"); badge.className = "tabCountV1"; btn.appendChild(badge); }
+      badge.textContent = total ? (total > 999 ? `${Math.round(total / 1000)}k` : String(total)) : "";
+    };
+    // Без фильтров и по всем площадкам — одним запросом action=count (те же числа, что в заголовке),
+    // вместо трёх поисков: меньше нагрузки на базу, и вкладки не расходятся с заголовком.
+    const fp = new URLSearchParams(base); ["auction","sort","per_page"].forEach(k => fp.delete(k));
+    if(![...fp.keys()].length && (base.get("auction") || "all") === "all"){
+      try{
+        const c = await api("/api/auctions?action=count");
+        if(seq !== tabCountSeq) return;
+        if(c && c.total > 0){ setBadge("soon", Number(c.soon) || 0); setBadge("buy_now", Number(c.buyNow) || 0); setBadge("archived", Number(c.archived) || 0); return; }
+      }catch(e){ /* ниже — обычный путь */ }
+    }
     await Promise.all(["soon","buy_now","archived"].map(async tab => {   // «Завершенные» убраны 15.09.2026: 99% совпадали с архивом
       try{
         const p = new URLSearchParams(base);

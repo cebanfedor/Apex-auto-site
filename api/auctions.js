@@ -3359,10 +3359,13 @@ module.exports = async function handler(request, response){
         // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
         return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
       };
-      let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0;
+      let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0, soon = 0, archivedN = 0;
       if(sbUp() && await lotsDbReady().catch(() => false)){
-        // Те же числа, что у вкладки «Все» (tabTotal) — заголовок и вкладка не расходятся.
-        [all, copart, iaai, dated, buyNow] = await Promise.all([tabTotal("all", "all"), tabTotal("all", "copart"), tabTotal("all", "iaai"), datedTotal("all"), tabTotal("buy_now", "all")].map(p => p.catch(() => 0)));
+        // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
+        // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
+        const t = async (a, b) => { try{ return await tabTotal(a, b); }catch(e){ return 0; } };
+        all = await t("all", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
+        dated = await t("dated", "all"); buyNow = await t("buy_now", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all");
       }
       if(!(all > 0)){
         // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
@@ -3377,7 +3380,7 @@ module.exports = async function handler(request, response){
           }
         }catch(e){}
       }
-      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
+      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, soon, archived:archivedN, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
       setCached(ck, payload, 10 * 60e3);
       sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
       return;
