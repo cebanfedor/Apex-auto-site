@@ -1187,10 +1187,12 @@
       }
       if(pastSold.length){
         const last = pastSold[0];
+        // Продажа под другим лотом ПОЗЖЕ этих торгов (старый заход разобранной машины в архиве) — это «перевыставлена», не «ранее».
+        const laterSale = curDay && String(last.date).slice(0, 10) > curDay;
         const ph = card.querySelector(".dbPhoto");
-        if(ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${L("Продан ранее")}</span>`);
+        if(ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
         li.className = "dbCheck bad";
-        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продавалась ранее")}: ${money(last.bid)} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}</span>`;
+        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${laterSale ? L("Продана позже под другим лотом") : L("Продавалась ранее")}: ${money(last.bid)} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}</span>`;
       }else{
         li.className = "dbCheck neutral";
         li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")}: ${past.length} ${recordsWord(past.length)}, ${L("не продана")}</span>`;
