@@ -2667,7 +2667,9 @@ function syncRowFromItem(item, {archived = false} = {}){
   // Архив = ТОЛЬКО продан (6) и торги прошли. «Не продан» (8) и флаг archived из /archived-lots без продажи —
   // непроданный раунд: лот перевыставляют (RAV4 62012166: 17 раундов not_sold, «Купить сейчас», торги 23.09 —
   // а в архиве висел «продан $7 500»). Такие пишем как живые; finalBid у живых — 0.
-  const isSold = statusId === 6 && !isFutureSale;
+  // 23.09.2026: фид отдаёт «sold» БЕЗ даты торгов и без финала (только текущая ставка) — это не продажа. Раньше такие
+  // записи уходили в архив с final_bid=0 и ЗАТИРАЛИ настоящие продажи (за ночь потеряно ~25k записей архива).
+  const isSold = statusId === 6 && !isFutureSale && !!saleDate;
   const isArchived = isSold;
   if(!isSold){ normalized.finalBid = 0; if(normalized.statusId === 6 || normalized.statusId === 8){ normalized.statusId = 3; normalized.lotStatus = "sale"; normalized.statusName = "sale"; } }
   return {
@@ -2769,8 +2771,13 @@ async function syncUpsertRows(rows, deadline, opts = {}){
     const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${ROW_KEY_FIELDS.join(",")}`);
     if(Array.isArray(ex)){
       const map = new Map(ex.map(r => [r.id, r]));
+      // Строку-продажу нельзя ухудшить: входящая без финала и без БУДУЩИХ торгов (sold без даты, not_sold-раунд
+      // без новой даты) просто отбрасывается — продажа остаётся как есть.
+      const degrading = r => { const e = map.get(r.id); return isSaleRow(e) && !(Number(r.final_bid) > 0) && !(r.sale_date && Date.parse(r.sale_date) > Date.now()); };
+      const before0 = rows.length; rows = rows.filter(r => !degrading(r)); syncUpsertRows.skippedDegrading = before0 - rows.length;
       const toPreserve = rows.filter(r => { const e = map.get(r.id); return isSaleRow(e) && (r.archived !== true || Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) > 3600e3); }).map(r => r.id);
       if(toPreserve.length) syncUpsertRows.preserved = await preserveSoldCopies(toPreserve);
+      if(!rows.length){ syncUpsertRows.written = before0; return; }
       if(!opts.force){
         const before = rows.length;
         rows = rows.filter(r => { const e = map.get(r.id); return !e || !sameKeyFields(r, e); });
@@ -3134,6 +3141,36 @@ module.exports = async function handler(request, response){
   }
   // Сыгравшие, которых /archived-lots не отдал: лоты с прошедшей датой торгов (последние 3ч), в базе ещё не архив →
   // точечный /search-lot по каждому, проданные тут же в архив. Каждые 10 мин из GitHub Actions вместе с syncclosed.
+  // Восстановление затёртых продаж (23.09.2026): archived=true, status 6, final_bid=0 → по VIN (/search-vin) находим
+  // запись продажи и возвращаем финал/дату/историю. Не нашли → помечаем payload.repairTried, чтобы не крутить повторно.
+  async function repairLostSales(budgetMs){
+    const t0 = Date.now(); let fixed = 0, tried = 0;
+    const rows = await syncSbFetch(`/api_lots?archived=eq.true&status_id=eq.6&final_bid=eq.0&vin=not.is.null&payload-%3E%3ErepairTried=is.null&select=id,vin,auction,lot,payload&order=synced_at.desc&limit=160`).catch(() => null);
+    if(!Array.isArray(rows) || !rows.length) return {fixed, tried, empty:true};
+    for(let i = 0; i < rows.length; i += 8){
+      if(Date.now() - t0 > budgetMs) break;
+      await Promise.all(rows.slice(i, i + 8).map(async r => {
+        tried++;
+        try{
+          const stub = {vin:r.vin, lot:String(r.lot || ""), auction:r.auction, auctionDate:"", finalBid:0, priceHistory:[], statusId:6};
+          await attachVinHistory(stub);
+          const sale = (stub.priceHistory || []).filter(h => /sold|approval/i.test(String(h.status || "")) && !/not_sold/i.test(String(h.status || "")) && Number(h.bid) > 0 && h.date)
+            .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))[0];
+          const base = r.payload && typeof r.payload === "object" ? r.payload : {};
+          if(sale){
+            const sd = new Date(Date.parse(sale.date)).toISOString();
+            await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(r.id)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
+              body:JSON.stringify({final_bid:Math.round(Number(sale.bid)), sale_date:sd, status_id:6, archived:true,
+                payload:{...base, finalBid:Math.round(Number(sale.bid)), auctionDate:sd, statusId:6, statusName:"sold", priceHistory:stub.priceHistory || [], repairedAt:new Date().toISOString()}})});
+            fixed++;
+          }else{
+            await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(r.id)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({payload:{...base, repairTried:true}})});
+          }
+        }catch(e){}
+      }));
+    }
+    return {fixed, tried, ms:Date.now() - t0};
+  }
   if(action === "syncsettle"){
     response.setHeader("cache-control", "no-store");
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
@@ -3157,8 +3194,9 @@ module.exports = async function handler(request, response){
           }catch(e){}
         }));
       }
-      response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, ms:Date.now() - started}));
-      settleInfo = {candidates:(rows || []).length, checked, closed, ms:Date.now() - started};
+      const repair = await repairLostSales(Math.max(5000, 42000 - (Date.now() - started))).catch(e => ({error:String(e.message || e).slice(0, 80)}));
+      response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, repair, ms:Date.now() - started}));
+      settleInfo = {candidates:(rows || []).length, checked, closed, repair, ms:Date.now() - started};
     }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); settleInfo = {error:String(e.message || e).slice(0, 120)}; }
     finally{ await releaseSyncLock("settle", settleInfo); }
     return;
