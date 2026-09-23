@@ -13,7 +13,8 @@ const DAY_NOTIFY_HOUR = 10;              // «в день торгов» — в 
 const TXT = {
   ru: {
     subSearch: n => `🔔 Подписка включена: «${n}»`,
-    subLot: n => `🔔 Слежу за лотом: ${n}`,
+    subLot: "🔔 Слежу за лотом:",
+    subLots: n => `🔔 Слежу за лотами (${n}):`,
     dateSet: d => `📅 Назначена дата аукциона: ${d}`,
     timedOn: d => `⏳ Лот появился на Timed-торгах${d ? " · закрытие " + d : ""}`,
     dayOf: (d, h) => `📆 Сегодня торги: ${d}${h ? " (через ~" + h + " ч)" : ""}`,
@@ -37,7 +38,8 @@ const TXT = {
   },
   ro: {
     subSearch: n => `🔔 Abonament activ: «${n}»`,
-    subLot: n => `🔔 Urmăresc lotul: ${n}`,
+    subLot: "🔔 Urmăresc lotul:",
+    subLots: n => `🔔 Urmăresc loturile (${n}):`,
     dateSet: d => `📅 A fost stabilită data licitației: ${d}`,
     timedOn: d => `⏳ Lotul a apărut la licitația Timed${d ? " · închidere " + d : ""}`,
     dayOf: (d, h) => `📆 Astăzi licitația: ${d}${h ? " (peste ~" + h + " h)" : ""}`,
@@ -61,7 +63,8 @@ const TXT = {
   },
   en: {
     subSearch: n => `🔔 Subscription on: «${n}»`,
-    subLot: n => `🔔 Watching the lot: ${n}`,
+    subLot: "🔔 Watching the lot:",
+    subLots: n => `🔔 Watching lots (${n}):`,
     dateSet: d => `📅 Auction date set: ${d}`,
     timedOn: d => `⏳ The lot is now on a Timed auction${d ? " · closes " + d : ""}`,
     dayOf: (d, h) => `📆 Auction today: ${d}${h ? " (in ~" + h + " h)" : ""}`,
@@ -96,6 +99,10 @@ function fmtDate(iso, lang){
   }catch(_){ return d.toISOString().slice(0, 16).replace("T", " "); }
 }
 
+function lotBlock(title, id, vin, lotNo){
+  const meta = [vin ? `VIN <code>${esc(vin)}</code>` : "", lotNo ? `Lot ${esc(lotNo)}` : ""].filter(Boolean).join(" · ");
+  return `<b>${esc(title)}</b>\n${meta ? meta + "\n" : ""}${lotUrl(id)}`;
+}
 function lotUrl(id){ return `${SITE}/auctions/${encodeURIComponent(id)}`; }
 function ymd(iso){ const d = new Date(iso); return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10).replace(/-/g, ""); }
 
@@ -158,9 +165,11 @@ function create(deps){
   // ---------- привязка: обработка сообщений боту ----------
   async function subsSummary(token, lang){
     const T = tx(lang);
-    const subs = await sb(`/alert_subs?token=eq.${q(token)}&active=eq.true&select=kind,name,lot_title&order=created_at.desc&limit=15`).catch(() => []);
+    const subs = await sb(`/alert_subs?token=eq.${q(token)}&active=eq.true&select=kind,name,lot_title,lot_id,state&order=created_at.desc&limit=15`).catch(() => []);
     if(!subs.length) return T.none;
-    return `${T.subsHead}\n` + subs.map(s => `• ${s.kind === "lot" ? "🔨" : "🆕"} ${esc(s.name || s.lot_title || "")}`).join("\n");
+    return `${T.subsHead}\n` + subs.map(s => s.kind === "lot"
+      ? `• 🔨 ${esc(s.name || s.lot_title || "")}${s.state && s.state.v ? ` · <code>${esc(s.state.v)}</code>` : ""}\n${lotUrl(s.lot_id)}`
+      : `• 🆕 ${esc(s.name || "")}`).join("\n");
   }
   async function pollUpdates(){
     if(!tgToken()) return {ok:false, reason:"no_token"};
@@ -222,7 +231,7 @@ function create(deps){
     const title = l.title || [l.year, l.make, l.model].filter(Boolean).join(" ") || l.id;
     const bid = Number(l.currentBid) > 0 ? ` · ${T.bid} $${money(l.currentBid)}` : "";
     const when = l.auctionDate ? ` · ${fmtDate(l.auctionDate, lang)}` : "";
-    return `• <a href="${lotUrl(l.id)}">${esc(title)}</a>${bid}${when}`;
+    return `• <a href="${lotUrl(l.id)}">${esc(title)}</a>${l.vin ? ` · <code>${esc(l.vin)}</code>` : ""}${bid}${when}`;
   }
 
   const PREF_DEFAULT = {date:true, timed:true, day:true, hour:true, buynow:true, play:true};
@@ -236,7 +245,7 @@ function create(deps){
     const live = subs.filter(s => links[s.token]);
     if(!live.length) return;
     const ids = [...new Set(live.map(s => s.lot_id))];
-    const rows = await sb(`/api_lots?id=in.(${ids.map(q).join(",")})&select=id,sale_date,status_id,final_bid,current_bid,buy_now,archived,payload`).catch(() => []);
+    const rows = await sb(`/api_lots?id=in.(${ids.map(q).join(",")})&select=id,sale_date,status_id,final_bid,current_bid,buy_now,archived,vin,lot,payload`).catch(() => []);
     const byId = {}; for(const r of rows) byId[r.id] = r;
     // Продажа могла уйти в архивную копию, если лот выставили заново (id вида <lot>-sYYYYMMDD)
     const copyIds = live.filter(s => s.sale_date && Date.parse(s.sale_date) < now).map(s => `${s.lot_id}-s${ymd(s.sale_date)}`);
@@ -252,7 +261,7 @@ function create(deps){
       const pl = (row && row.payload) || {};
       const title = s.lot_title || pl.title || s.lot_id;
       const btn = [{text:T.openLot, url:lotUrl(s.lot_id)}];
-      const head = `<b>${esc(title)}</b>\n`;
+      const head = `${lotBlock(title, s.lot_id, (row && row.vin) || (s.state && s.state.v) || "", (row && row.lot) || (s.state && s.state.n) || "")}\n\n`;
       const st = {...(s.state || {})};                       // d: дата была, t: Timed был, b: Buy Now был, day/hour: ключи уже отправленных
       const patch = {};
       let dead = false;
@@ -482,27 +491,29 @@ function create(deps){
           if(!/^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/.test(id)) continue;
           if(existing.some(e => e.kind === "lot" && e.lot_id === id)) continue;
           const sd = l.saleDate && Number.isFinite(Date.parse(l.saleDate)) ? new Date(l.saleDate).toISOString() : null;
-          rows.push({token:body.token, kind:"lot", lot_id:id, lot_title:String(l.title || id).slice(0, 140), name:String(l.title || id).slice(0, 140), sale_date:sd, stage:0});
+          rows.push({token:body.token, kind:"lot", vin_hint:/^[A-HJ-NPR-Z0-9]{17}$/i.test(String(l.vin || "")) ? String(l.vin).toUpperCase() : "", lot_id:id, lot_title:String(l.title || id).slice(0, 140), name:String(l.title || id).slice(0, 140), sale_date:sd, stage:0});
         }
       }
       if(rows.length && body.kind === "lot"){
         // Снимок текущего состояния лота: события («дата назначена», «Timed», «Buy Now») сработают только на ИЗМЕНЕНИЕ
-        const snap = await sb(`/api_lots?id=in.(${rows.map(r => q(r.lot_id)).join(",")})&select=id,sale_date,buy_now,payload`).catch(() => []);
+        const snap = await sb(`/api_lots?id=in.(${rows.map(r => q(r.lot_id)).join(",")})&select=id,sale_date,buy_now,vin,lot,payload`).catch(() => []);
         const byId = {}; for(const r of snap) byId[r.id] = r;
         for(const r of rows){
           const row = byId[r.lot_id];
           if(row && row.sale_date) r.sale_date = new Date(row.sale_date).toISOString();
-          r.state = {d:!!(row && row.sale_date) || !!r.sale_date, t:!!(row && row.payload && row.payload.timed) && /^iaai/.test(r.lot_id), b:row && Number(row.buy_now) > 0 ? Number(row.buy_now) : 0};
+          r.state = {v:(row && row.vin) || r.vin_hint || "", n:(row && row.lot) || String(r.lot_id).replace(/^[a-z]+-/, ""), d:!!(row && row.sale_date) || !!r.sale_date, t:!!(row && row.payload && row.payload.timed) && /^iaai/.test(r.lot_id), b:row && Number(row.buy_now) > 0 ? Number(row.buy_now) : 0};
         }
       }
       if(!rows.length){ sendJson(response, 200, {ok:true, added:0, bound:!!links[0].chat_id}, NO); return true; }
       if(room < rows.length){ sendJson(response, 200, {ok:false, error:"limit", max:MAX_SUBS_PER_TOKEN}, NO); return true; }
-      await sb(`/alert_subs`, {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify(rows)});
+      const insertRows = rows.map(({vin_hint, ...rest}) => rest);
+      await sb(`/alert_subs`, {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify(insertRows)});
       // Уже подключён к Telegram — подтверждаем сразу, чтобы клиент видел, что всё работает
       if(links[0].chat_id){
         const lk = await sb(`/alert_links?token=eq.${q(body.token)}&select=lang&limit=1`).catch(() => []);
         const T = tx((lk[0] && lk[0].lang) || "ru");
-        const msg = body.kind === "search" ? T.subSearch(esc(rows[0].name)) : rows.length === 1 ? T.subLot(esc(rows[0].name)) : T.subLot(`${rows.length}`);
+        const lotsTxt = rows.slice(0, 10).map(r => rows.length === 1 ? lotBlock(r.lot_title, r.lot_id, r.state && r.state.v, r.state && r.state.n) : `• <a href="${lotUrl(r.lot_id)}">${esc(r.lot_title)}</a>${r.state && r.state.v ? ` · <code>${esc(r.state.v)}</code>` : ""}`).join("\n");
+        const msg = body.kind === "search" ? T.subSearch(esc(rows[0].name)) : `${rows.length === 1 ? T.subLot : T.subLots(rows.length)}\n${lotsTxt}`;
         await send(links[0].chat_id, msg);
       }
       sendJson(response, 200, {ok:true, added:rows.length, bound:!!links[0].chat_id}, NO);

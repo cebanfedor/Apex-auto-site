@@ -3413,7 +3413,7 @@
       if(e.target.closest("#afClearV1")){ $("#resetFiltersBtn").click(); return; }
       if(e.target.closest("#afBellV1")){ alertSubscribe("search", {qs:location.search.replace(/^\?/, ""), name:searchAlertName()}); return; }
       if(e.target.closest("#afFavBellV1")){
-        const lots = favList().filter(alertable).map(l => ({id:l.id, title:lotTitle(l), saleDate:l.auctionDate}));
+        const lots = favList().filter(alertable).map(l => ({id:l.id, title:lotTitle(l), saleDate:l.auctionDate, vin:l.vin || ""}));
         alertSubscribe("lot", {lots}, () => alertLotMark(lots.map(l => l.id)));
         return;
       }
@@ -3576,7 +3576,7 @@
         event.stopPropagation();
         const id = bellBtn.dataset.alertLot;
         const lot = state.items.find(l => String(l.id) === String(id)) || (state.selectedLot && String(state.selectedLot.id) === String(id) ? state.selectedLot : null);
-        if(lot) alertSubscribe("lot", {lots:[{id:String(lot.id), title:lotTitle(lot), saleDate:lot.auctionDate}]}, () => alertLotMark([String(lot.id)]));
+        if(lot) alertSubscribe("lot", {lots:[{id:String(lot.id), title:lotTitle(lot), saleDate:lot.auctionDate, vin:lot.vin || ""}]}, () => alertLotMark([String(lot.id)]));
         return;
       }
       const favBtn = event.target.closest("[data-fav]");
