@@ -394,11 +394,14 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // История цены = только реальные прошлые аукционы (по sale_date).
   // final_bid_updated_at — это время обновления записи в API, не дата торгов:
   // с ним снапшоты ставок выглядели как «2 аукциона за ночь с разницей 7 минут».
+  if(rawHistory[0] && typeof rawHistory[0] === "object") normalizeLot.lastRawHistKeys = Object.keys(rawHistory[0]);
   const priceHistoryRaw = rawHistory.map(p => ({
     bid:safeNumber(p?.bid || p?.final_bid || p?.current_bid),
     buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
     date:p?.sale_date || "",
     status:safeName(p?.status),
+    // Timed-раунд (Федор 23.09.2026): в истории показываем «Timed · не продан» и сумму.
+    timed:p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")),
     lot:String(p?.lot || p?.lot_number || p?.lotNumber || p?.external_id || "").replace(/~.*/, "")
   })).filter(p => (p.bid || p.buyNow) && p.date && new Date(p.date).getTime() < Date.now());
   // Один аукцион — одна запись: дедуп по дню торгов, оставляем максимальную ставку.
@@ -1134,14 +1137,18 @@ async function attachVinHistory(lot){
       const sd = l?.sale_date || l?.auction_date || "";
       const past = sd && Date.parse(sd) < Date.now();
       const soldReal = past && fb > 0 && (sid === 6 || (/sold/.test(st) && !/not/.test(st)));
-      if(soldReal) entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom});
+      // Timed-раунд по данным фида: флаг на заходе (lot) или на записи цены.
+      const lotTimed = l?.is_timed_auction === true || /timed/i.test(String(l?.auction_type || l?.sale_type || ""));
+      if(soldReal) entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom, timed:lotTimed});
       for(const p of (Array.isArray(l?.prices) ? l.prices : [])){
         const pd = p?.sale_date || ""; const pb = safeNumber(p?.bid || p?.final_bid || p?.current_bid);
         if(!(pb > 0 && pd && Date.parse(pd) < Date.now())) continue;
+        if(p && typeof p === "object" && !attachVinHistory.rawKeys) attachVinHistory.rawKeys = {price:Object.keys(p), lot:Object.keys(l || {})};
         const pst = safeName(p?.status).toLowerCase() || st;
+        const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || lotTimed;
         // пред-ставки текущих торгов (тот же день) — не история
         const cur = String(pd).slice(0, 10) === curDay;
-        entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur});
+        entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur, timed:ptimed});
       }
     }
     if(!lotsArr.length) return lot;   // VIN не найден — оставляем как есть
@@ -3406,7 +3413,7 @@ module.exports = async function handler(request, response){
       await attachVinHistory(lot);
       await attachGenRange(lot);
       upsertClosedLot(lot);
-      const payload = {ok:true,lot};
+      const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null} : {})};
       setCached(key, payload);
       setDbCache(key, payload, "detail");
       sendJson(response, 200, payload);
