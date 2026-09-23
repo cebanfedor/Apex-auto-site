@@ -1896,7 +1896,7 @@ async function tabTotal(tab, auction){
   const one = async (q, mode, ms) => {
     const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
     try{
-      const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false${auc}&${q}`,
+      const r = await fetch(`${url}/rest/v1/api_lots?select=id&${q.startsWith("archived=") ? "" : "archived=eq.false&"}${q}${auc}`,
         {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:`count=${mode}`, range:"0-0", "range-unit":"items"}, signal:ctrl.signal});
       if(!(r.ok || r.status === 416)) throw new Error(`HTTP ${r.status} ${(await r.text().catch(() => "")).slice(0, 80)}`);
       const n = Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0;
@@ -1921,6 +1921,8 @@ async function tabTotal(tab, auction){
     const dayAgo = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
     // Недатированные Buy Now: только оценка планировщика — точный счёт идёт по 500k NULL-записей индекса.
     n = (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=gte.${dayAgo}`)) + (await one(`buy_now=gt.0&status_id=neq.6&sale_date=is.null`, "planned", 6000).catch(() => 0));
+  }else if(tab === "archived"){
+    n = await one(`archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=lte.${encodeURIComponent(new Date().toISOString())}`.replace("archived=eq.true", "archived=eq.true"), "planned", 4000).catch(() => 0);
   }else if(tab === "dated"){
     n = await cnt(`sale_date=gte.${grace}&${live}`);
   }else{
@@ -2168,6 +2170,7 @@ async function searchFromDb(query){
   const perPage = Math.min(100, Math.max(1, Number(query.get("per_page") || query.get("limit") || 50) || 50));
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const offset = (page - 1) * perPage;
+  const hasNarrowFilter = !!(query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
 
   const controller = new AbortController();
   // 8с: с индексами обычный запрос ~0.1–1.5с; но редкий тяжёлый (дефолтная
@@ -2183,7 +2186,10 @@ async function searchFromDb(query){
         authorization:`Bearer ${key}`,
         // Архив: точный счётчик — выборка ограничена проданными (~50k, частичный индекс), а estimated после
         // массовой чистки без ANALYZE врал в 50 раз («Архив 1k» при 49k продаж).
-        prefer:tab === "archived" ? "count=exact" : "count=estimated",
+        // 23.09.2026 01:00: count=estimated у PostgREST = СНАЧАЛА точный count по всей выборке (600k строк → 5–15с!),
+        // и только потом решение «взять оценку». Сам range-запрос без count — 165мс. Поэтому: без фильтров — только
+        // оценка планировщика (planned, ~200мс), с маркой/моделью/поиском — точный count (выборка маленькая).
+        prefer:hasNarrowFilter ? "count=exact" : "count=planned",
         range:`${offset}-${offset + perPage - 1}`,
         "range-unit":"items"
       },
@@ -2227,7 +2233,7 @@ async function searchFromDb(query){
       let r2;
       try{
         r2 = await fetch(`${url}/rest/v1/api_lots?${p2}`, {
-          headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=estimated",
+          headers:{apikey:key, authorization:`Bearer ${key}`, prefer:hasNarrowFilter ? "count=exact" : "count=planned",
             range:`${off2}-${off2 + Math.max(need, 1) - 1}`, "range-unit":"items"},
           signal:ctrl2.signal
         });
@@ -2243,7 +2249,7 @@ async function searchFromDb(query){
   }
   // Вкладка без фильтров: единый счётчик, не зависящий от сортировки (см. tabTotal).
   const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
-  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now"].includes(tab);
+  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab);
   // Счётчик берём из кэша; нет в кэше — считаем В ФОНЕ (ответ не ждёт), этот ответ уйдёт с оценкой запроса.
   if(unfiltered){
     const ck = `${tab}|${query.get("auction") || "all"}`; const tc = tabTotalCache.get(ck);
