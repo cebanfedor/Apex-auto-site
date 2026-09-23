@@ -2291,13 +2291,14 @@ async function searchFromDb(query){
   }
   T.tail = Date.now() - T.t0;
   // Вкладка без фильтров: единый счётчик, не зависящий от сортировки (см. tabTotal).
-  const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
-  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab);
-  // Счётчик берём из кэша; нет в кэше — считаем В ФОНЕ (ответ не ждёт), этот ответ уйдёт с оценкой запроса.
+  // vehicleType — тоже «без фильтров»: список «Автомобили» берёт то же число, что витрина (533k), а не оценку своего запроса (511k).
+  const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action", "vehicleType"]);
+  const vtQ = String(query.get("vehicleType") || "").replace(/[^0-9]/g, "");
+  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab) && (!vtQ || tab === "all");
   // tabTotal — только оценки планировщика (~200мс каждая), поэтому ждём: иначе первый ответ инстанса показывал
   // оценку основного запроса (564k), а следующий — tabTotal (599k), и число «прыгало» между инстансами.
   if(unfiltered){
-    const t = await tabTotal(tab, query.get("auction")).catch(() => 0);
+    const t = await tabTotal(tab, query.get("auction"), vtQ || undefined).catch(() => 0);
     // buy_now: оценка «без даты» у планировщика иногда 0 (частичного индекса под Buy Now пока нет) — не занижаем.
     if(t > 0) total = tab === "buy_now" ? Math.max(t, total) : t;
   }
