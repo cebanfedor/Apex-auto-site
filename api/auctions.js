@@ -2198,6 +2198,17 @@ async function searchFromDb(query){
 
   if(ands.length) p.set("and", `(${ands.join(",")})`);
 
+  // «Статус продажи» (Timed / без резерва / на утверждении) относится к ТОРГАМ — только лоты с назначенной датой. Недатированный
+  // сток «на площадке» (295k лотов Copart pure_sale) под «Без резерва» — не аукцион и делал счёт неподъёмным (точный count 9с,
+  // оценка планировщика 2321 при реальных ~295k); Timed всегда датирован. Заменяем «дата ИЛИ без даты» на просто «дата ≥ …».
+  const hasSaleStatus = !!query.get("saleStatus");
+  if(hasSaleStatus){
+    for(let i = 0; i < ands.length; i++){
+      const m = ands[i].match(/^or\(sale_date\.gte\.([^,]+),sale_date\.is\.null\)$/);
+      if(m) ands[i] = `sale_date.gte.${m[1]}`;
+    }
+    datedOnlyFull = null;
+  }
   const wantsPastTab = tab === "sold" || tab === "archived";
   // ⚠️ Никаких «.asc.nullslast»: для ASC в Postgres NULLS LAST и так по умолчанию, а с явным NULLS LAST PostgREST
   // получал план без индекса (замер 23.09.2026 01:08: 2.6с против 125мс на том же запросе). Это и было «каталог 8с → live».
@@ -2314,7 +2325,7 @@ async function searchFromDb(query){
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
   // Явный диапазон дат — недатированные лоты в выдачу не подмешиваем (раньше хвост «без даты» шёл и при фильтре по датам).
   const hasDateRange = !!(query.get("auctionDateFrom") || query.get("auctionDateTo"));
-  const dateTail = !hasDateRange && ((datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc|date_desc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/)));
+  const dateTail = !hasDateRange && !hasSaleStatus && ((datedOnly && (query.get("sort") || "soon").match(/^(soon|smart|date_asc|date_desc)$/)) || (pastTail && (query.get("sort") || "soon").match(/^(soon|smart|date_desc)$/)));
   if(dateTail || tailSpec){
     try{
       const p2 = new URLSearchParams(p);
