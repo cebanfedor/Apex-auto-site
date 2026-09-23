@@ -2143,15 +2143,15 @@
         .then(r => (r.items || []).filter(x => String(x.id) !== String(lot.id)))
         .catch(() => []);
     };
-    // Тот же КУЗОВ (диапазон лет поколения), любое топливо — база «похожих».
-    const genAll = await query(false);
+    // Топливо — НЕ жёсткий фильтр, а приоритет: тот же тип (гибрид/бензин) идёт первым, дальше
+    // добираем другими из того же поколения. Иначе, когда своего топлива в фиде мало (напр. 1
+    // гибрид), показывалась одна одинокая карточка, хотя того же кузова десяток.
+    // 23.09.2026: оба запроса (любое топливо + то же топливо) независимы — раньше шли последовательно
+    // (await, потом await), удваивая время ответа секции «Похожие» без всякой пользы; genAll пустым
+    // бывает крайне редко, так что запускаем оба сразу.
+    const [genAll, sameFuel] = await Promise.all([query(false), lot.fuel ? query(true) : Promise.resolve([])]);
     if(!genAll.length) return [];
-    // Топливо — НЕ жёсткий фильтр, а приоритет: тот же тип (гибрид/бензин) идёт
-    // первым, дальше добираем другими из того же поколения. Иначе, когда своего
-    // топлива в фиде мало (напр. 1 гибрид), показывалась одна одинокая карточка,
-    // хотя того же кузова десяток.
     if(!lot.fuel) return genAll.slice(0, 12);
-    const sameFuel = await query(true);
     const seen = new Set(), out = [];
     for(const x of [...sameFuel, ...genAll]){
       const k = String(x.id);
@@ -2162,7 +2162,6 @@
   }
 
   async function loadSimilarActive(lot){
-    console.warn("[DBG loadSimilarActive]", lot && lot.lot, new Error().stack);
     const box = document.getElementById("similarActiveLots");
     const sec = document.getElementById("similarActiveSection");
     if(!box || !sec) return;
@@ -2202,10 +2201,7 @@
     markResoldSimilar(box);
   }
 
-  window.__dbgRD = (window.__dbgRD || 0) + 0;
   function renderDetail(lot){
-    window.__dbgRD = (window.__dbgRD || 0) + 1;
-    console.warn("[DBG renderDetail #" + window.__dbgRD + "]", lot && lot.lot, lot && lot.auction, new Error().stack);
     _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
