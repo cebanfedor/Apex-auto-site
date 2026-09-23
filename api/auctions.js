@@ -1924,7 +1924,8 @@ async function tabTotal(tab, auction){
   }else{
     n = (await cnt(`sale_date=gte.${grace}&${live}`)) + (await cnt(`sale_date=is.null&${live}`));
   }
-  if(n > 0){ tabTotalCache.set(ck, {n, at:Date.now()}); }
+  // n=0 (таймауты) тоже кэшируем, но на 2 мин — иначе каждый запрос каталога заново гонял точные счёты по 5с.
+  tabTotalCache.set(ck, {n, at:n > 0 ? Date.now() : Date.now() - 8 * 60e3});
   return n;
 }
 // Датированные торги (как у DreamBid «current») — для сводки в count.
@@ -2891,13 +2892,18 @@ async function handleSyncLots(response){
         result.sweep = {stage:sweep.stage, di:sweep.di, page:sweep.page, imported:sweep.imported};
         if(sweep.active) result.continue = true;
       }
-      if(sweep.active && sweep.stage === "purge" && dbHealthy && Date.now() - started < SYNC_RUN_BUDGET_MS - (skipIncr ? 5000 : 15000)){
+      // 23.09.2026 00:20: purge на 45с каждые 5 мин исчерпал IO-кредиты Micro-инстанса — простые range-запросы каталога
+      // уходили за 8с. Чистка теперь короткая (≤12с за прогон) и только ночью UTC 0–5.
+      const PURGE_BUDGET_MS = 12000;
+      const purgeHour = new Date().getUTCHours() <= 5;
+      if(sweep.active && sweep.stage === "purge" && dbHealthy && purgeHour && Date.now() - started < SYNC_RUN_BUDGET_MS - (skipIncr ? 5000 : 15000)){
+        const purgeStart = Date.now();
         result.stage = "purge";
         // Час запаса: лот, обновлённый инкрементом прямо перед стартом обхода, не трогаем.
         const cutoff = new Date(new Date(sweep.started_at).getTime() - 3600e3).toISOString();
         let left = true;
         try{
-        while(Date.now() - started < SYNC_RUN_BUDGET_MS){
+        while(Date.now() - started < SYNC_RUN_BUDGET_MS && Date.now() - purgeStart < PURGE_BUDGET_MS){
           // Окно по synced_at (индекс): [cursor, cursor+6ч) — узкий диапазон, без сортировки всей таблицы.
           const cur = sweep.purge_cursor || "2020-01-01T00:00:00.000Z";
           const hi = new Date(Math.min(new Date(cur).getTime() + 6 * 3600e3, new Date(cutoff).getTime())).toISOString();
@@ -2973,7 +2979,7 @@ async function handleSyncLots(response){
     const cut = Date.now() - 3600e3;
     let cur = state.cache_purge_cursor ? new Date(state.cache_purge_cursor).getTime() : Date.parse("2026-06-01T00:00:00Z");
     const t0 = Date.now(); let cleaned = 0;
-    while(Date.now() - t0 < 8000 && cur < cut){
+    while(Date.now() - t0 < 3000 && cur < cut){
       const hi = Math.min(cur + 6 * 3600e3, cut);
       await syncSbFetch(`/api_cache?expires_at=gte.${new Date(cur).toISOString()}&expires_at=lt.${new Date(hi).toISOString()}`, {method:"DELETE", headers:{prefer:"return=minimal"}});
       cleaned++; cur = hi;
