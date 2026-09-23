@@ -1237,6 +1237,9 @@
         if(c && c.total > 0){ setBadge("soon", Number(c.soon) || 0); setBadge("buy_now", Number(c.buyNow) || 0); setBadge("archived", Number(c.archived) || 0); return; }
       }catch(e){ /* ниже — обычный путь */ }
     }
+    // С фильтрами/площадкой бейджи не считаем: три отдельных запроса шли из разных источников (база/живой фид)
+    // и давали «Архив 168» рядом с «170 903» в шапке. Убираем бейджи, чтобы не врать.
+    if(true){ ["soon","buy_now","archived"].forEach(tab => { const b = document.querySelector(`[data-tab="${tab}"] .tabCountV1`); if(b) b.remove(); }); return; }
     await Promise.all(["soon","buy_now","archived"].map(async tab => {   // «Завершенные» убраны 15.09.2026: 99% совпадали с архивом
       try{
         const p = new URLSearchParams(base);
@@ -1441,9 +1444,13 @@
     setMessage("");
     if(!state.items.length) $("#auctionCards").innerHTML = skeletonCards(6);
     try{
-      const results = await Promise.all(SHOWCASE_TYPES.map(([id]) =>
-        api(`/api/auctions?action=search&per_page=30&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null)));
+      // Счётчики (шапка и «Автомобили N») — из ОДНОГО источника action=count; витринные запросы дают только карточки.
+      const [results, cr] = await Promise.all([
+        Promise.all(SHOWCASE_TYPES.map(([id]) => api(`/api/auctions?action=search&per_page=30&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null))),
+        api("/api/auctions?action=count").catch(() => null)
+      ]);
       if(reqId !== state.loadSeq || !discoveryMode) return;
+      const typeN = id => cr && cr.types && Number(cr.types[String(id)]) > 0 ? Number(cr.types[String(id)]) : 0;
       let totalAll = 0, html = "";
       const shown = [];
       results.forEach((r, i) => {
@@ -1456,7 +1463,7 @@
         const cards = pool.slice(0, 5);
         shown.push(...cards);
         html += `<section class="showcaseSecV1">
-          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b>${(r.total || 0).toLocaleString("ru-RU")}</b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
+          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}${typeN(id) ? `<b>${typeN(id).toLocaleString("ru-RU")}</b>` : ""}</h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
           <div class="showcaseGridV1">${cards.map(renderShowcaseCard).join("")}</div>
         </section>`;
       });
@@ -1464,7 +1471,7 @@
       state.items = shown;
       // Счётчик заголовка: реальное число текущих лотов из базы (одним запросом), а не сумма
       // «total» витрин по типам — фид считает их по-разному, сумма врала (60k против 120k у DreamBid).
-      try{ const cr = await api("/api/auctions?action=count"); if(cr && cr.total > 0) totalAll = cr.total; }catch(e){}
+      if(cr && cr.total > 0) totalAll = cr.total;
       state.total = totalAll;
       $("#auctionCards").innerHTML = html;
       $("#auctionResultCount").textContent = totalAll.toLocaleString("ru-RU");

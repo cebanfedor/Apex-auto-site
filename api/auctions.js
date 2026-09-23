@@ -1887,14 +1887,14 @@ const undatedCountCache = new Map();
 // Раньше total = оценка планировщика по конкретному запросу: у сортировок разные предикаты
 // («year.not.is.null», хвост без даты…) → «Все» показывало 526k / 164k / 483k при смене сортировки.
 const tabTotalCache = new Map();
-async function tabTotal(tab, auction){
-  const ck = `${tab}|${auction || "all"}`;
+async function tabTotal(tab, auction, vtype){
+  const ck = `${tab}|${auction || "all"}${vtype ? "|t" + vtype : ""}`;
   const c = tabTotalCache.get(ck);
   if(c && Date.now() - c.at < 10 * 60e3) return c.n;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return 0;
-  const auc = auction && auction !== "all" ? `&auction=eq.${pgEscape(auction).toLowerCase()}` : "";
+  const auc = (auction && auction !== "all" ? `&auction=eq.${pgEscape(auction).toLowerCase()}` : "") + (vtype ? `&vehicle_type_id=eq.${String(vtype).replace(/[^0-9]/g, "")}` : "");
   // Точный счёт (частичные индексы where archived=false держат его в ~1с даже на 500k), при
   // таймауте — оценка планировщика. Ошибки не глотаем молча: tabTotal.lastError для диагностики.
   const one = async (q, mode, ms) => {
@@ -2932,7 +2932,9 @@ async function handleSyncLots(response){
       if(skipIncr){
         // Окно изменений фида (3ч) — по курсору, чтобы за час пройти его ЦЕЛИКОМ, а не первые 3 страницы:
         // фид меняет десятки тысяч лотов в час, и новые лоты попадали в базу только ночным обходом.
-        const CH_BUDGET_MS = 18000;
+        // Днём (UTC 6–20) база нужна посетителям: короче окна записи; ночью — полные.
+        const daytime = (h => h >= 6 && h < 20)(new Date().getUTCHours());
+        const CH_BUDGET_MS = daytime ? 9000 : 18000;
         const ch = state.changes || (state.changes = {di:0, page:1});
         result.chSteps = [];
         result.stage = "changes";
@@ -2945,7 +2947,7 @@ async function handleSyncLots(response){
           if(got < SYNC_PER_PAGE || ch.page >= 40){ ch.di += 1; ch.page = 1; } else { ch.page += 1; }
         }
         if(ch.di >= SYNC_DOMAINS.length){ ch.di = 0; ch.page = 1; ch.done_at = new Date().toISOString(); }
-        const UP_BUDGET_MS = 40000;
+        const UP_BUDGET_MS = daytime ? 20000 : 40000;
         const up = state.upcoming || (state.upcoming = {di:0, page:1, cycles:0});
         result.upSteps = [];
         result.stage = "upcoming";
@@ -3442,7 +3444,7 @@ module.exports = async function handler(request, response){
         // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
         return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
       };
-      let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0, soon = 0, archivedN = 0;
+      let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0, soon = 0, archivedN = 0, types = null;
       if(sbUp() && await lotsDbReady().catch(() => false)){
         // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
         // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
@@ -3451,6 +3453,9 @@ module.exports = async function handler(request, response){
         const t = async (a, b) => { if(Date.now() > deadline) return 0; try{ return await tabTotal(a, b); }catch(e){ return 0; } };
         all = await t("all", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all"); buyNow = await t("buy_now", "all");
         dated = await t("dated", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
+        // Витрина по типам кузова — те же числа, что в заголовке (раньше витрина брала оценки своих 4 запросов: 524k «Автомобили» при 192k в шапке).
+        types = {};
+        for(const vt of ["1", "2", "5", "7"]){ const n = await (async () => { if(Date.now() > deadline + 4000) return 0; try{ return await tabTotal("all", "all", vt); }catch(e){ return 0; } })(); if(n > 0) types[vt] = n; }
       }
       if(!(all > 0)){
         // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
@@ -3465,7 +3470,7 @@ module.exports = async function handler(request, response){
           }
         }catch(e){}
       }
-      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, soon, archived:archivedN, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
+      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, soon, archived:archivedN, types, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
       const complete = all > 0 && soon > 0 && buyNow > 0 && archivedN > 0;
       // Неполный набор (база не успела) — кэшируем коротко, чтобы бейджи не зависли пустыми на 10 мин.
       setCached(ck, payload, complete ? 10 * 60e3 : 60e3);

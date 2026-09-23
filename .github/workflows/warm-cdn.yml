@@ -1,0 +1,22 @@
+# После каждого деплоя Vercel сбрасывает CDN-кэш → первый посетитель ждал холодные запросы к базе (до 10с).
+# Через 2.5 минуты после push прогреваем ровно те адреса, что запрашивает страница каталога.
+name: Warm CDN after deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Wait for Vercel build
+        run: sleep 150
+      - name: Warm catalog endpoints
+        run: |
+          for id in 1 2 5 7; do
+            curl -s -o /dev/null -w "type=$id %{time_total}s\n" "https://apexauto.md/api/auctions?action=search&per_page=30&vehicleType=$id&sort=smart&auction=all&tab=all"
+            sleep 3
+          done
+          curl -s -o /dev/null -w "count %{time_total}s\n" "https://apexauto.md/api/auctions?action=count"
+          curl -s -o /dev/null -w "list %{time_total}s\n" "https://apexauto.md/api/auctions?action=search&auction=all&tab=all&sort=soon&page=1&per_page=30"
+          curl -s -o /dev/null -w "manufacturers %{time_total}s\n" "https://apexauto.md/api/auctions?action=manufacturers"
