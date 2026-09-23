@@ -943,8 +943,10 @@ body.leadModalOpenV1 { overflow:hidden; }
   .scPriceV1 span { font-size:9.5px; white-space:nowrap; }
 }
 /* похожие лоты: строки не вылезают за карточку (было «2.0 Turbo • 247 л.с. • AV|») */
-.simCardV1 > span { display:flex; align-items:center; gap:5px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.simCardV1 > span > .dbIco { flex:none; }
+/* text-overflow:ellipsis не работает на flex-контейнере — строка блочная, иконка инлайн */
+.simCardV1 > span { display:block; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.5; }
+.simCardV1 > span > .dbIco { display:inline-block; vertical-align:-2px; margin-right:5px; }
+@media (max-width:640px){ .simCardV1 > span { font-size:11px; } .simCardV1 h4 { font-size:13px; } }
 .simCardV1 > span > span, .simCardV1 > span > i { min-width:0; overflow:hidden; text-overflow:ellipsis; }
 
 /* похожие лоты: сама карточка не растягивается контентом (grid-элемент min-width:0), иначе ellipsis не срабатывал */
