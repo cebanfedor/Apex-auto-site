@@ -1136,6 +1136,9 @@ async function attachVinHistory(lot){
     // берём всё, что фид знает по этому VIN, включая текущий заход, и пересобираем с нуля.
     const entries = [];
     const curDay = String(lot.auctionDate || "").slice(0, 10);
+    // Диагностика (detail&debug=1): сырые заходы и раунды по VIN — чтобы видеть, что именно отдаёт фид.
+    attachVinHistory.lastRaw = lotsArr.slice(0, 6).map(l => ({lot:l?.lot, sale_date:l?.sale_date, status:safeName(l?.status), final_bid:l?.final_bid, bid:l?.bid, timed:l?.is_timed_auction,
+      prices:(Array.isArray(l?.prices) ? l.prices : []).slice(0, 8).map(p => ({sale_date:p?.sale_date, status:safeName(p?.status), bid:p?.bid, buy_now:p?.buy_now_price}))}));
     for(const l of lotsArr){
       const lotNo = String(l?.lot || l?.lot_number || l?.external_id || "").replace(/~.*/, "");
       const dom = normalizeAuction(l?.domain || payload?.domain || lot.auction);
@@ -3432,7 +3435,7 @@ module.exports = async function handler(request, response){
       await attachVinHistory(lot);
       await attachGenRange(lot);
       upsertClosedLot(lot);
-      const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null} : {})};
+      const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};
       setCached(key, payload);
       setDbCache(key, payload, "detail");
       sendJson(response, 200, payload);
