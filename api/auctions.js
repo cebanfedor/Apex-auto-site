@@ -2987,7 +2987,10 @@ async function handleSyncLots(response){
         Object.assign(sw, {active:true, stage:"purge", errors:0, aborted:null});
       }
       const sweep = state.sweep;
-      if(sweep.active && sweep.stage === "crawl"){
+      // Полный обход (743 страницы принудительной записи) — ТОЛЬКО ночью UTC 0–5: днём он перегружал Micro-базу,
+      // и каталог для посетителей отвечал по 10–16с (23.09 09:00).
+      const nightNow = new Date().getUTCHours() <= 5;
+      if(sweep.active && sweep.stage === "crawl" && nightNow){
         while(Date.now() - started < SYNC_RUN_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
           const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, started + SYNC_RUN_BUDGET_MS, {force:true});
           if(got && !syncImportPage.lastComplete) break;   // не успели записать страницу — повторим её в следующем вызове
