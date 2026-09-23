@@ -30,7 +30,7 @@
     var d = new Date(iso);
     if (isNaN(d)) return "";
     // «26 сент.» вместо «09/26» (Федор 23.09.2026: MM/YY читался как непонятно что)
-    var t = d.toLocaleDateString("ru-RU", {day:"numeric", month:"short"});
+    var t = d.toLocaleDateString("ru-RU", {day:"numeric", month:"short"}).replace(/ /g, "\u00a0");
     return d.getFullYear() !== new Date().getFullYear() ? t + " " + d.getFullYear() : t;
   }
   function specLine(it) {

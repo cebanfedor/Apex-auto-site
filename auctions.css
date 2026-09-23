@@ -946,3 +946,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .simCardV1 > span { display:flex; align-items:center; gap:5px; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .simCardV1 > span > .dbIco { flex:none; }
 .simCardV1 > span > span, .simCardV1 > span > i { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+
+/* похожие лоты: сама карточка не растягивается контентом (grid-элемент min-width:0), иначе ellipsis не срабатывал */
+.simCardV1 { min-width:0; overflow:hidden; }
+.simCardV1 h4 { min-width:0; }

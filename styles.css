@@ -1590,3 +1590,10 @@ details > summary::-webkit-details-marker { display: none; }
   .homeLotAucV1 { top:8px; bottom:auto; }
   .homeLotPriceV1 { right:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12.5px; }
 }
+
+@media (max-width:640px){
+  /* цена на карточке главной — двумя строками (подпись + сумма), без обрезания «$36,…» */
+  .homeLotPriceV1 { display:flex; flex-direction:column; align-items:flex-start; gap:0; line-height:1.15; padding:5px 9px; }
+  .homeLotPriceV1 small { margin:0; font-size:9.5px; letter-spacing:.02em; text-transform:uppercase; }
+  .homeLotSubV1 { white-space:nowrap; }
+}
