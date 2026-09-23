@@ -34,3 +34,9 @@ notify pgrst, 'reload config';
 --    Запускать ОДНОЙ командой в пустом редакторе (CONCURRENTLY, как и VACUUM, не работает в транзакции). ~1–3 мин.
 create index concurrently if not exists idx_lots_buynow_act
   on public.api_lots (sale_date, id) where archived = false and buy_now > 0;
+
+-- 8) (23.09, 01:30) Лимит времени запроса для сервисной роли: 60с оказалось МНОГО — брошенные клиентом (8с-аборт) тяжёлые
+--    запросы продолжали жить до 60с и занимали пул соединений PostgREST (на Micro он маленький), остальные запросы ждали.
+--    Синку хватает 15с (пачки по 100 строк пишутся за 1–4с).
+alter role service_role set statement_timeout = '15s';
+notify pgrst, 'reload config';
