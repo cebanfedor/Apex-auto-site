@@ -3304,6 +3304,13 @@ module.exports = async function handler(request, response){
         finally{ clearTimeout(t); }
       };
       const out = {ok:true};
+      // Произвольный (read-only) запрос к api_lots для сравнения вариантов: только безопасные символы, только GET.
+      const qq = String(query.get("q") || "");
+      if(qq && /^[\w%().,:=&+*-]+$/.test(qq) && qq.length < 900){
+        out.custom = await timed(`/api_lots?${qq}`, query.get("planned") ? {prefer:"count=planned", range:"0-0", "range-unit":"items"} : {});
+        sendJson(response, 200, out, {"cache-control":"no-store"});
+        return;
+      }
       out.pk = await timed(`/api_lots?select=id,sale_date&id=eq.iaai-44682632`);
       out.range = await timed(q);
       out.rangePlanned = await timed(q, {prefer:"count=planned", range:"0-0", "range-unit":"items"});
