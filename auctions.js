@@ -2185,7 +2185,7 @@
     const fmtHd = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : ""; };
     const histStr = histCount === 0
       ? (lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
-      : pastSold.length ? `${L("Продавалась ранее")}: ${money(pastSold[0].bid)} · ${fmtHd(pastSold[0].date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}`
+      : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L("Был продан ранее!")}`
       : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
@@ -2229,6 +2229,22 @@
           <div class="detailGalleryV1">
             <div class="dGalMainV2" data-lb-open role="button" tabindex="0" aria-label="Открыть фото в HD">
               <img id="detailMainImage" class="detailMainImageV1" src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(title)}">
+              ${(() => {
+                // Предупреждение как у DreamBid: машина уже продавалась под другим номером лота — показываем дату и ссылку на тот заход.
+                const ps = pastSold[0];
+                if(!ps) return "";
+                try{ if(sessionStorage.getItem("soldWarnHide:" + (lot.vin || lot.id))) return ""; }catch(e){}
+                const d = new Date(ps.date); const dd = Number.isFinite(d.getTime()) ? `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}` : "";
+                const pa = String(ps.auction || lot.auction || "copart").toLowerCase(); const pl = String(ps.lot || "").replace(/[^0-9A-Za-z-]/g, "");
+                return `<div class="dSoldWarnV1" data-sold-warn>
+                  <b>${L("Предупреждение!")}</b>
+                  <p>${L("Этот автомобиль был продан на другом аукционе")} ${escapeHtml(dd)}${ps.bid ? ` · ${money(ps.bid)}` : ""}</p>
+                  <div class="dSoldWarnBtnsV1">
+                    <button type="button" class="dSoldHideV1" data-sold-hide="${escapeHtml(lot.vin || lot.id)}">${L("Скрыть информацию")}</button>
+                    ${pl ? `<a class="dSoldPrevV1" href="/auctions/${encodeURIComponent(pa)}-${encodeURIComponent(pl)}" data-sold-prev>${L("Предыдущий аукцион")}</a>` : ""}
+                  </div>
+                </div>`;
+              })()}
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
               ${images.length > 1 ? `
               <button class="dGalNavV1 dGalPrevV1" type="button" data-gal-step="-1" aria-label="Предыдущее фото">‹</button>
@@ -3171,6 +3187,13 @@
     $("#searchSettingsBtn")?.addEventListener("click", openFiltersDrawer);
     $("#closeFiltersBtn").addEventListener("click", closeFiltersDrawer);
     document.addEventListener("click", event => {
+      const warn = event.target.closest("[data-sold-warn]");
+      if(warn){
+        event.stopPropagation();
+        const hide = event.target.closest("[data-sold-hide]");
+        if(hide){ event.preventDefault(); try{ sessionStorage.setItem("soldWarnHide:" + hide.dataset.soldHide, "1"); }catch(e){} warn.remove(); }
+        return;   // ссылка «Предыдущий аукцион» — обычный переход
+      }
       const slideBtn = event.target.closest(".dbSlideBtn");
       if(slideBtn){
         event.preventDefault();
