@@ -970,3 +970,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* «Продан ранее»: правило .simCardV1 span (серый текст) перебивало цвет — белый принудительно */
 .simCardV1 .simResoldV1, .dbPhoto .simResoldV1 { color:#fff !important; font-weight:800; opacity:1; }
 .simCardV1 .simResoldV1 .dbIco, .dbPhoto .simResoldV1 .dbIco { color:#fff; stroke:#fff; stroke-width:2.2; }
+
+.dmgChipsV1 { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.dmgChipsV1:empty { display:none; }
+.dmgChipV1 { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--aLine); border-radius:999px; background:var(--aSoft); color:var(--aInk); font-weight:600; font-size:12px; line-height:1.2; font-family:inherit; cursor:pointer; }
+.dmgChipV1 span { font-size:15px; line-height:1; color:#ed0012; }
+.dmgChipV1:hover { border-color:#ed0012; background:#fff; }

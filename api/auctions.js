@@ -621,7 +621,8 @@ function buildSearchParams(query){
     lotStatus:"status"
   };
   for(const [from, to] of Object.entries(map)){
-    const value = query.get(from);
+    let value = query.get(from);
+    if(from === "damage" && value) value = damageTerms(value)[0] || "";
     if(value) params.set(to, value);
   }
   const fuelCsv = String(query.get("fuel") || "");
@@ -989,6 +990,13 @@ async function fetchSearch(query){
         // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
         // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
         .filter(lot => query.get("saleStatus") !== "timed" || lot.timed)
+        // Мультивыбор повреждений (live): фид принимает одно значение (первое), остальные — ИЛИ здесь
+        .filter(lot => {
+          const t = damageTerms(query.get("damage"));
+          if(t.length < 2) return true;
+          const d = String(lot.damage || "").toLowerCase();
+          return t.some(x => d.includes(x.toLowerCase()));
+        })
         // Мультивыбор топлива (live): список id → фильтр по нормализованному fuel
         .filter(lot => {
           const ids = String(query.get("fuel") || "").split(",").filter(x => /^\d+$/.test(x));
@@ -1444,6 +1452,10 @@ async function lotsDbReady(){
     dbReadyCache = {value:false, at:Date.now() - 45e3};
   }
   return dbReadyCache.value;
+}
+
+function damageTerms(raw){
+  return [...new Set(String(raw || "").split("|").map(x => x.replace(/[(),*%\\]/g, " ").trim()).filter(Boolean))].slice(0, 12);
 }
 
 function pgEscape(value){
@@ -2162,8 +2174,9 @@ async function searchFromDb(query){
     }
   }
 
-  const damage = query.get("damage");
-  if(damage) p.set("damage", `ilike.*${pgEscape(damage)}*`);
+  const dmgTerms = damageTerms(query.get("damage"));
+  if(dmgTerms.length === 1) p.set("damage", `ilike.*${dmgTerms[0]}*`);
+  else if(dmgTerms.length > 1) ands.push(`or(${dmgTerms.map(t => `damage.ilike.*${t}*`).join(",")})`);
   const doc = query.get("document");
   if(doc) p.set("document", `ilike.*${pgEscape(doc)}*`);
   const state = query.get("state");

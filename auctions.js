@@ -220,6 +220,18 @@
     const qs = p.toString();
     try{ history.replaceState(null, "", qs ? `${location.pathname}?${qs}` : location.pathname); }catch(e){}
   }
+  // Мультивыбор повреждений: значения в скрытом поле через «|», чипсы под полем.
+  function damageList(){
+    const h = document.getElementById("filterDamageValV2");
+    return h && h.value ? h.value.split("|").filter(Boolean) : [];
+  }
+  function setDamageList(list){
+    const h = document.getElementById("filterDamageValV2");
+    if(h) h.value = [...new Set(list)].join("|");
+    const box = document.getElementById("damageChipsV1");
+    if(!box) return;
+    box.innerHTML = damageList().map((d, i) => `<button type="button" class="dmgChipV1" data-i="${i}" title="Убрать">${escapeHtml(d)} <span aria-hidden="true">×</span></button>`).join("");
+  }
   function restoreFromUrl(){
     const p = new URLSearchParams(location.search);
     if(!Array.from(p.keys()).length) return;
@@ -250,6 +262,7 @@
         try{ form.elements[k].value = v; }catch(e){}
       }
     }
+    setDamageList(damageList());
     document.querySelectorAll("[data-range]").forEach(r => { if(r._applyNums) r._applyNums(); else if(r._refresh) r._refresh(); });
   }
 
@@ -350,6 +363,11 @@
       params.delete(name);
       if(vals.length) params.set(name, vals.join(","));
     }
+    // Повреждения: выбранные чипсы + набранный, но не выбранный из списка текст.
+    const dmgTyped = (document.getElementById("filterDamageV2")?.value || "").trim();
+    const dmgAll = damageList();
+    if(dmgTyped && !dmgAll.some(d => d.toLowerCase() === dmgTyped.toLowerCase())) dmgAll.push(dmgTyped.replace(/\|/g, " "));
+    if(dmgAll.length) params.set("damage", dmgAll.join("|")); else params.delete("damage");
     // Top smart search: VIN → vin, lot number → search_query, text → "name" (title search).
     const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
     if(smart.vin) params.set("vin", smart.vin);
@@ -3032,7 +3050,16 @@
     let states  = [];
 
     // Damage: sent as text (confirmed filterable by API)
-    setupCombo("filterDamageV2", "damageMenuV2", () => damages);
+    setupCombo("filterDamageV2", "damageMenuV2", () => damages.filter(d => !damageList().includes(typeof d === "string" ? d : d.name)), opt => {
+      const input = document.getElementById("filterDamageV2");
+      if(input) input.value = "";
+      setDamageList([...damageList(), opt.name]);
+    });
+    document.getElementById("damageChipsV1")?.addEventListener("click", e => {
+      const b = e.target.closest(".dmgChipV1");
+      if(!b) return;
+      const l = damageList(); l.splice(Number(b.dataset.i), 1); setDamageList(l);
+    });
 
     // Color: no hidden id — text value goes directly to API
     setupCombo("filterColorV2", "colorMenuV2", () => colors);
@@ -3187,6 +3214,8 @@
         const el = document.getElementById(id);
         if(el) el.value = "";
       });
+      setDamageList([]);
+      const dInp = document.getElementById("filterDamageV2"); if(dInp) dInp.value = "";
       ["#auctionSmartSearch"].forEach(selector => {
         const input = $(selector);
         if(input) input.value = "";

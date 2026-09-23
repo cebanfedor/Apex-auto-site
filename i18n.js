@@ -2365,6 +2365,8 @@
       "Выбрать марку":"Alegeți marca",
       "Выбрать цвет":"Alegeți culoarea",
       "Выбрать повреждение":"Alegeți avaria",
+      "Выбрать повреждения (можно несколько)":"Alegeți avariile (mai multe)",
+      "Убрать":"Elimină",
       "Штат США или провинция Канады":"Stat SUA sau provincie Canada"
     },
     en:{
@@ -2405,6 +2407,8 @@
       "Выбрать марку":"Select make",
       "Выбрать цвет":"Select color",
       "Выбрать повреждение":"Select damage",
+      "Выбрать повреждения (можно несколько)":"Select damage (multiple)",
+      "Убрать":"Remove",
       "Штат США или провинция Канады":"US state or Canadian province"
     }
   };

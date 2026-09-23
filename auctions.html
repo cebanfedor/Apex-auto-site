@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v437">
-  <link rel="stylesheet" href="/auctions.css?v=v475">
+  <link rel="stylesheet" href="/auctions.css?v=v476">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -290,9 +290,11 @@
             </details>
             <details class="fSecV2"><summary>Повреждение</summary>
               <div class="comboV2">
-                <input name="damage" id="filterDamageV2" class="fInputV2" placeholder="Выбрать повреждение" autocomplete="off">
+                <input id="filterDamageV2" class="fInputV2" placeholder="Выбрать повреждения (можно несколько)" autocomplete="off">
+                <input type="hidden" name="damage" id="filterDamageValV2">
                 <div class="comboMenuV2" id="damageMenuV2" hidden></div>
               </div>
+              <div class="dmgChipsV1" id="damageChipsV1"></div>
             </details>
             <details class="fSecV2"><summary>Штат / провинция</summary>
               <div class="comboV2">
@@ -415,7 +417,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v474" defer></script>
-  <script src="/auctions.js?v=auctions-v229" defer></script>
+  <script src="/auctions.js?v=auctions-v230" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->
