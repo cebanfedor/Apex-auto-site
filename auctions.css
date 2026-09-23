@@ -976,3 +976,25 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dmgChipV1 { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border:1px solid var(--aLine); border-radius:999px; background:var(--aSoft); color:var(--aInk); font-weight:600; font-size:12px; line-height:1.2; font-family:inherit; cursor:pointer; }
 .dmgChipV1 span { font-size:15px; line-height:1; color:#ed0012; }
 .dmgChipV1:hover { border-color:#ed0012; background:#fff; }
+
+.activeFiltersV1 { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; }
+.activeFiltersV1[hidden], .savedPanelV1[hidden] { display:none; }
+.afChipV1 { display:inline-flex; align-items:center; gap:8px; max-width:100%; padding:8px 14px; border:0; border-radius:999px; background:#e9eef5; color:var(--aInk); font-family:inherit; font-weight:600; font-size:13px; line-height:1.2; cursor:pointer; text-align:left; }
+.afChipV1 span { font-size:17px; line-height:1; color:#5b6472; }
+.afChipV1:hover { background:#dde5f0; }
+.afChipV1:hover span { color:#ed0012; }
+.afSaveV1, .afClearV1 { padding:8px 14px; border-radius:999px; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; }
+.afSaveV1 { border:1px solid #ed0012; background:#ed0012; color:#fff; }
+.afSaveV1:hover { background:#c9000f; }
+.afClearV1 { border:1px solid var(--aLine); background:#fff; color:var(--aInk2); }
+.afClearV1:hover { border-color:var(--aMuted); }
+.auctionTabsV1 button.savedTabV1 { color:#1d4ed8; border-color:#c9d8f5; background:#f3f7ff; }
+.auctionTabsV1 button.savedTabV1:hover { border-color:#1d4ed8; }
+.auctionTabsV1 button.savedTabV1.active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+.savedPanelV1 { display:flex; flex-direction:column; gap:6px; margin:0 0 14px; padding:10px; border:1px solid var(--aLine); border-radius:12px; background:#fff; }
+.svRowV1 { display:flex; align-items:stretch; gap:6px; }
+.svOpenV1 { flex:1; min-width:0; padding:10px 12px; border:0; border-radius:8px; background:var(--aSoft); color:var(--aInk); font-family:inherit; font-weight:600; font-size:13px; text-align:left; cursor:pointer; overflow-wrap:anywhere; }
+.svOpenV1:hover { background:#e4e9f1; }
+.svDelV1 { width:38px; border:0; border-radius:8px; background:transparent; color:#5b6472; font-size:20px; cursor:pointer; }
+.svDelV1:hover { background:#fff0f0; color:#ed0012; }
+.svEmptyV1 { margin:0; padding:6px 4px; font-size:13px; color:var(--aMuted); }

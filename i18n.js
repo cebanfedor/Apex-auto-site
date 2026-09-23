@@ -2366,6 +2366,13 @@
       "Выбрать цвет":"Alegeți culoarea",
       "Выбрать повреждение":"Alegeți avaria",
       "Выбрать повреждения (можно несколько)":"Alegeți avariile (mai multe)",
+      "Сохранить поиск":"Salvează căutarea",
+      "Очистить всё":"Șterge tot",
+      "Сохранённые поиски":"Căutări salvate",
+      "Сохранено ✓":"Salvat ✓",
+      "Удалить":"Șterge",
+      "до":"până la",
+      "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"Nu ai căutări salvate. Alege filtrele și apasă „Salvează căutarea”.",
       "Убрать":"Elimină",
       "Штат США или провинция Канады":"Stat SUA sau provincie Canada"
     },
@@ -2408,6 +2415,13 @@
       "Выбрать цвет":"Select color",
       "Выбрать повреждение":"Select damage",
       "Выбрать повреждения (можно несколько)":"Select damage (multiple)",
+      "Сохранить поиск":"Save search",
+      "Очистить всё":"Clear all",
+      "Сохранённые поиски":"Saved searches",
+      "Сохранено ✓":"Saved ✓",
+      "Удалить":"Delete",
+      "до":"to",
+      "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"No saved searches yet. Pick filters and press “Save search”.",
       "Убрать":"Remove",
       "Штат США или провинция Канады":"US state or Canadian province"
     }

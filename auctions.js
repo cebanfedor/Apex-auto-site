@@ -219,6 +219,7 @@
     if(p.get("tab") === "all") p.delete("tab");
     const qs = p.toString();
     try{ history.replaceState(null, "", qs ? `${location.pathname}?${qs}` : location.pathname); }catch(e){}
+    try{ renderActiveFilters(); }catch(e){}
   }
   // Мультивыбор повреждений: значения в скрытом поле через «|», чипсы под полем.
   function damageList(){
@@ -231,6 +232,95 @@
     const box = document.getElementById("damageChipsV1");
     if(!box) return;
     box.innerHTML = damageList().map((d, i) => `<button type="button" class="dmgChipV1" data-i="${i}" title="Убрать">${escapeHtml(d)} <span aria-hidden="true">×</span></button>`).join("");
+  }
+  // ---- Активные фильтры сверху (удаление по одному) + сохранённые поиски (localStorage) ----
+  const SAVED_KEY = "apexSavedSearchesV1";
+  function savedLoad(){ try{ const a = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]"); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
+  function savedStore(list){ try{ localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, 30))); }catch(e){} }
+  let activeChips = [];
+  function activeFilterChips(){
+    const form = $("#auctionFiltersForm");
+    if(!form) return [];
+    const chips = [];
+    const add = (label, remove) => chips.push({label, remove});
+    const byId = id => document.getElementById(id);
+    const val = n => String(form.elements[n] && form.elements[n].value || "").trim();
+    const clear = (...els) => els.forEach(e => { if(e) e.value = ""; });
+    const smart = String($("#auctionSmartSearch")?.value || "").trim();
+    if(smart) add(`${L("Поиск")}: ${smart}`, () => { $("#auctionSmartSearch").value = ""; });
+    if(val("q")) add(`${L("Поиск")}: ${val("q")}`, () => { form.elements.q.value = ""; });
+    const mk = byId("filterMakeV2"), md = byId("filterModelV2"), gn = byId("filterGenV2");
+    const mkId = byId("filterMakeIdV2"), mdId = byId("filterModelIdV2"), gnId = byId("filterGenIdV2");
+    const resetGen = () => { clear(gn, gnId); if(gn) setPhV1(gn, "Сначала выберите модель"); };
+    const resetModel = () => { clear(md, mdId); if(md) setPhV1(md, "Сначала выберите марку"); resetGen(); };
+    if(mkId && mkId.value) add(`${L("Марка")}: ${(mk && mk.value) || mkId.value}`, () => { clear(mk, mkId); resetModel(); });
+    if(mdId && mdId.value) add(`${L("Модель")}: ${(md && md.value) || mdId.value}`, resetModel);
+    if(gnId && gnId.value) add(`${L("Поколение")}: ${(gn && gn.value) || gnId.value}`, resetGen);
+    const range = (title, a, b, fmt) => {
+      const x = val(a), y = val(b);
+      if(!x && !y) return;
+      const t = x && y ? `${fmt(x)}–${fmt(y)}` : x ? `${L("от")} ${fmt(x)}` : `${L("до")} ${fmt(y)}`;
+      add(`${L(title)}: ${t}`, () => { clear(form.elements[a], form.elements[b]); const r = form.elements[a].closest("[data-range]"); if(r && r._applyNums) r._applyNums(); });
+    };
+    const num = n => Number(n).toLocaleString("ru-RU");
+    const unit = document.querySelector("[data-odo-unit].active")?.dataset.odoUnit === "km" ? "км" : "mi";
+    range("Год", "yearFrom", "yearTo", n => n);
+    range("Пробег", "mileageFrom", "mileageTo", n => `${num(n)} ${unit}`);
+    range("Цена (ставка)", "bidFrom", "bidTo", n => `$${num(n)}`);
+    range("Цена «Купить сейчас»", "buyNowFrom", "buyNowTo", n => `$${num(n)}`);
+    const optText = el => (el.closest("label")?.textContent || el.value).trim();
+    const boxes = (name, title) => form.querySelectorAll(`input[name="${name}"]:checked`).forEach(cb => add(`${L(title)}: ${optText(cb)}`, () => { cb.checked = false; }));
+    const radio = (name, title) => {
+      const r = form.querySelector(`input[name="${name}"]:checked`);
+      if(r && r.value) add(`${L(title)}: ${optText(r)}`, () => { const any = form.querySelector(`input[name="${name}"][value=""]`); if(any) any.checked = true; else r.checked = false; });
+    };
+    boxes("fuel", "Топливо");
+    radio("body", "Кузов"); radio("vehicleType", "Тип техники"); radio("drive", "Привод"); radio("transmission", "Коробка");
+    radio("cylinders", "Цилиндры"); radio("country", "Страна"); radio("condition", "Состояние");
+    if(val("color")) add(`${L("Цвет")}: ${val("color")}`, () => { form.elements.color.value = ""; });
+    damageList().forEach((d, i) => add(`${L("Повреждение")}: ${d}`, () => { const l = damageList(); l.splice(i, 1); setDamageList(l); }));
+    const dTyped = String(byId("filterDamageV2")?.value || "").trim();
+    if(dTyped && !damageList().some(d => d.toLowerCase() === dTyped.toLowerCase())) add(`${L("Повреждение")}: ${dTyped}`, () => { byId("filterDamageV2").value = ""; });
+    const st = byId("filterStateIdV2");
+    if(st && st.value) add(`${L("Штат / провинция")}: ${byId("filterStateV2")?.value || st.value}`, () => { clear(st, byId("filterStateV2")); });
+    boxes("lotStatus", "Статус лота");
+    radio("saleStatus", "Статус продажи");
+    const d1 = val("auctionDateFrom"), d2 = val("auctionDateTo");
+    if(d1 || d2) add(`${L("Дата аукциона")}: ${d1 || "…"} – ${d2 || "…"}`, () => { clear(form.elements.auctionDateFrom, form.elements.auctionDateTo); document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active")); });
+    return chips;
+  }
+  function renderActiveFilters(){
+    const box = document.getElementById("activeFiltersV1");
+    if(!box) return;
+    activeChips = activeFilterChips();
+    if(!activeChips.length){ box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    box.innerHTML = activeChips.map((c, i) => `<button type="button" class="afChipV1" data-af="${i}" title="${escapeHtml(L("Убрать"))}">${escapeHtml(c.label)} <span aria-hidden="true">×</span></button>`).join("")
+      + `<button type="button" class="afSaveV1" id="afSaveV1">${escapeHtml(L("Сохранить поиск"))}</button><button type="button" class="afClearV1" id="afClearV1">${escapeHtml(L("Очистить всё"))}</button>`;
+  }
+  function updateSavedCount(){
+    const n = savedLoad().length;
+    const el = document.getElementById("savedCount");
+    if(el) el.textContent = n ? ` (${n})` : "";
+  }
+  function renderSavedPanel(){
+    const box = document.getElementById("savedPanelV1");
+    if(!box) return;
+    const list = savedLoad();
+    box.innerHTML = list.length
+      ? list.map((x, i) => `<div class="svRowV1"><button type="button" class="svOpenV1" data-sv-open="${i}">${escapeHtml(x.name)}</button><button type="button" class="svDelV1" data-sv-del="${i}" aria-label="${escapeHtml(L("Удалить"))}" title="${escapeHtml(L("Удалить"))}">×</button></div>`).join("")
+      : `<p class="svEmptyV1">${escapeHtml(L("Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск»."))}</p>`;
+  }
+  function saveCurrentSearch(){
+    const qs = location.search.replace(/^\?/, "");
+    if(!qs || !activeChips.length) return false;
+    const list = savedLoad().filter(x => x.qs !== qs);
+    const name = activeChips.map(c => c.label).join(" · ");
+    list.unshift({id:Date.now(), name:name.length > 110 ? name.slice(0, 107) + "…" : name, qs});
+    savedStore(list);
+    updateSavedCount();
+    if(!document.getElementById("savedPanelV1")?.hidden) renderSavedPanel();
+    return true;
   }
   function restoreFromUrl(){
     const p = new URLSearchParams(location.search);
@@ -3040,7 +3130,7 @@
         if(g) genInput.value = g.name;
       }
     }
-    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; hydrateNamesFromIds(); }).catch(() => {
+    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; Promise.resolve(hydrateNamesFromIds()).then(() => renderActiveFilters()).catch(() => {}); }).catch(() => {
       manufacturers = (data.makes || []).map(n => ({id:null, name:n}));
     });
 
@@ -3207,6 +3297,42 @@
       }
       loadLots();
     });
+    document.getElementById("activeFiltersV1")?.addEventListener("click", e => {
+      const chip = e.target.closest(".afChipV1");
+      if(chip){
+        const c = activeChips[Number(chip.dataset.af)];
+        if(!c) return;
+        c.remove();
+        state.page = 1; state.displayPage = 1;
+        loadLots();
+        return;
+      }
+      if(e.target.closest("#afClearV1")){ $("#resetFiltersBtn").click(); return; }
+      const sv = e.target.closest("#afSaveV1");
+      if(sv){
+        const ok = saveCurrentSearch();
+        const old = sv.textContent;
+        sv.textContent = ok ? L("Сохранено ✓") : old;
+        setTimeout(() => { sv.textContent = old; }, 1600);
+      }
+    });
+    document.getElementById("savedBtnV1")?.addEventListener("click", () => {
+      const panel = document.getElementById("savedPanelV1"), btn = document.getElementById("savedBtnV1");
+      if(!panel) return;
+      const open = panel.hidden;
+      if(open) renderSavedPanel();
+      panel.hidden = !open;
+      btn.classList.toggle("active", open);
+      btn.setAttribute("aria-expanded", String(open));
+    });
+    document.getElementById("savedPanelV1")?.addEventListener("click", e => {
+      const del = e.target.closest("[data-sv-del]");
+      const list = savedLoad();
+      if(del){ list.splice(Number(del.dataset.svDel), 1); savedStore(list); updateSavedCount(); renderSavedPanel(); return; }
+      const open = e.target.closest("[data-sv-open]");
+      if(open && list[Number(open.dataset.svOpen)]) location.href = `${location.pathname}?${list[Number(open.dataset.svOpen)].qs}`;
+    });
+    updateSavedCount();
     $("#resetFiltersBtn").addEventListener("click", () => {
       $("#auctionFiltersForm").reset();
       // Скрытые ID комбо-фильтров form.reset() не чистит — фильтр «залипал»

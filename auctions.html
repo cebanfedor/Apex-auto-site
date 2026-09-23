@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v437">
-  <link rel="stylesheet" href="/auctions.css?v=v476">
+  <link rel="stylesheet" href="/auctions.css?v=v477">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -107,6 +107,7 @@
           <button type="button" data-tab="buy_now">Купить сейчас</button>
           <button type="button" class="archiveTabV2" data-tab="archived">Архив</button>
           <button type="button" class="favTabV2" data-tab="favorites">★ Избранное<span id="favCount"></span></button>
+          <button type="button" class="savedTabV1" id="savedBtnV1" aria-expanded="false">Сохранённые поиски<span id="savedCount"></span></button>
         </section>
         <div class="auctionToolRightV2">
           <div class="auctionSwitchV1" role="group" aria-label="Аукцион">
@@ -344,6 +345,8 @@
             <button id="auctionSearchBtn" type="button">Найти</button>
             <button id="searchSettingsBtn" class="filterDrawerBtnV1 desktopSettingsV1" type="button">Настройки</button>
           </div>
+          <div id="activeFiltersV1" class="activeFiltersV1" hidden></div>
+          <div id="savedPanelV1" class="savedPanelV1" hidden></div>
           <div id="auctionMessage" class="auctionMessageV1" hidden></div>
           <div id="auctionCards" class="auctionCardsV1"></div>
           <div id="paginationV1" class="paginationV1" hidden></div>
@@ -416,8 +419,8 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v475" defer></script>
-  <script src="/auctions.js?v=auctions-v232" defer></script>
+  <script src="/i18n.js?v=multilang-v476" defer></script>
+  <script src="/auctions.js?v=auctions-v233" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->
