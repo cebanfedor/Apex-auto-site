@@ -2000,7 +2000,7 @@ async function searchFromDb(query){
   ands.push("or(country.neq.kr,country.is.null)");
 
   const tab = query.get("tab") || "all";
-  let datedOnly = false;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
+  let datedOnly = false, datedOnlyFull = null;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
   // Архив = только СОСТОЯВШИЕСЯ торги. Фид помечает sold/archived и лоты с будущей датой,
   // где final_bid — всего лишь пред-ставка: они вставали первыми («23 сент., финальная $975»).
   let pastTail = false;
@@ -2022,7 +2022,7 @@ async function searchFromDb(query){
       ands.push(`or(sale_date.gte.${dayAgo},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${dayAgo}`);
-      datedOnly = true;
+      datedOnly = true; datedOnlyFull = [`sale_date.gte.${dayAgo}`, `or(sale_date.gte.${dayAgo},sale_date.is.null)`];
     }
   }
   else if(tab === "soon"){
@@ -2053,7 +2053,7 @@ async function searchFromDb(query){
       ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${grace}`);
-      datedOnly = true;
+      datedOnly = true; datedOnlyFull = [`sale_date.gte.${grace}`, `or(sale_date.gte.${grace},sale_date.is.null)`];
     }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }else{
@@ -2080,7 +2080,7 @@ async function searchFromDb(query){
       ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
     }else{
       ands.push(`sale_date.gte.${grace}`);
-      datedOnly = true;
+      datedOnly = true; datedOnlyFull = [`sale_date.gte.${grace}`, `or(sale_date.gte.${grace},sale_date.is.null)`];
     }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }
@@ -2262,7 +2262,11 @@ async function searchFromDb(query){
   const hasBroadFilter = !hasNarrowFilter && [...query.keys()].some(k => !NON_FILTER_KEYS.has(k));
   let broadCountP = null;
   if(hasBroadFilter){
-    const pc = new URLSearchParams(p); pc.delete("order"); pc.set("select", "id");
+    // Счёт НЕ зависит от сортировки: убираем предикаты сортировки (годные значения, потолок даты) и возвращаем полный
+    // предикат вкладки вместо «только датированные». Иначе total менялся при смене сортировки (167 → 277 у Timed).
+    const cAnds = ands.filter(x => !(tailSpec && x === tailSpec.ok) && !(dateCap && x === `sale_date.lte.${dateCap}`))
+      .map(x => (datedOnlyFull && x === datedOnlyFull[0]) ? datedOnlyFull[1] : x);
+    const pc = new URLSearchParams(p); pc.delete("order"); pc.set("select", "id"); pc.set("and", `(${cAnds.join(",")})`);
     broadCountP = countRows(url, key, pc);
   }
 
@@ -2303,7 +2307,8 @@ async function searchFromDb(query){
   if(!response.ok && response.status !== 416) throw new Error(`lots db search failed: ${response.status}`);
   let rows = response.status === 416 ? [] : await response.json();
   let total = response.status === 416 ? total416 : (Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length);
-  if(broadCountP){ const n = await broadCountP.catch(() => 0); if(n > 0) total = n; }
+  let totalIsFull = false;
+  if(broadCountP){ const n = await broadCountP.catch(() => 0); if(n > 0){ total = n; totalIsFull = true; } }
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
@@ -2325,7 +2330,7 @@ async function searchFromDb(query){
       // (ключ = набор фильтров) — иначе второй запрос добавлял 1–4с к каждой странице.
       const tailKey = p2.toString();
       const tc = undatedCountCache.get(tailKey);
-      if(need === 0 && tc && Date.now() - tc.at < 6 * 3600e3){ total += tc.n; throw null; }
+      if(need === 0 && tc && Date.now() - tc.at < 6 * 3600e3){ if(!totalIsFull) total += tc.n; throw null; }
       const ctrl2 = new AbortController();
       const t2 = setTimeout(() => ctrl2.abort(), 3000);
       let r2;
@@ -2339,7 +2344,7 @@ async function searchFromDb(query){
       if(r2 && (r2.ok || r2.status === 416)){
         const undated = Number((r2.headers.get("content-range") || "*/0").split("/").pop()) || 0;
         if(r2.ok && need > 0){ const extra = await r2.json(); rows = rows.concat(extra.slice(0, need)); }
-        total += undated;
+        if(!totalIsFull) total += undated;
         undatedCountCache.set(tailKey, {n:undated, at:Date.now()});
         if(undatedCountCache.size > 200) undatedCountCache.delete(undatedCountCache.keys().next().value);
       }
@@ -3716,6 +3721,17 @@ module.exports = async function handler(request, response){
         return payload && payload.error ? payload.error : Number(payload.total ?? (meta && meta.total) ?? (payload.data && payload.data.total)) || 0;
       };
       const out = {ok:true, at:new Date().toISOString()};
+      // Диагностика: свой набор параметров /cars (только безопасные ключи) — «сколько у фида таких лотов».
+      if(query.get("probe")){
+        const okKeys = new Set(["domain_id", "is_timed_auction", "timed", "next_hours_auction", "sale_date_in_days", "buy_now", "status", "exclude_expired_auctions", "auction_type", "with_reserve", "reserve"]);
+        const pp = {}; for(const kv of String(query.get("probe")).split(",")){ const [k, v] = kv.split(":"); if(okKeys.has(k) && /^[\w-]{1,20}$/.test(v || "")) pp[k] = v; }
+        const p = new URLSearchParams({per_page:"2", page:"1", simple_paginate:"0", prices_history:"0", ...pp});
+        const data = await fetchJson(`${AUCTIONS_API_BASE}/cars?${p}`).catch(e => ({error:String(e.message || e).slice(0, 100)}));
+        const its = findItems(data) || [];
+        out.probe = {params:pp, total:Number(data?.total ?? data?.meta?.total ?? data?.data?.total) || 0, keys:its[0] ? Object.keys(((its[0].lots||[])[0]) || its[0]).slice(0, 60) : [], sample:its.slice(0, 2).map(it => { const l = (it.lots||[])[0] || it; return {lot:l.lot, is_timed:l.is_timed_auction, type:l.auction_type, reserve:l.seller_reserve, sale_date:l.sale_date}; }), error:data?.error || null};
+        sendJson(response, 200, out, {"cache-control":"no-store"});
+        return;
+      }
       const days = String(query.get("days") || "1,7,30,60").split(",").map(x => x.replace(/[^0-9]/g, "")).filter(Boolean).slice(0, 6);
       for(const [name, d] of [["copart", "3"], ["iaai", "1"]]){
         const o = {total:await one({domain_id:d}), sold:await one({domain_id:d, status:"6"}), buy_now:await one({domain_id:d, buy_now:"1"}),
