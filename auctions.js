@@ -1376,7 +1376,7 @@
     const start = (state.displayPage - 1) * state.displayPageSize;
     const pageItems = filtered.slice(start, start + state.displayPageSize);
     box.innerHTML = pageItems.map(renderCard).join("");
-    if(sale){
+    if(sale && !isServerPaging()){
       setResultNum("");
       $("#auctionResultLabel").textContent = `${L("Показано")} ${filtered.length} (${L("фильтр статуса продажи")})`;
     }
