@@ -122,7 +122,11 @@ async function setDbCache(key, data, action){
   try{
     const ttl = DB_TTL[action] || DB_TTL._default;
     const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
-    await sbGuard(supabase.upsert("api_cache", {cache_key:key, data, expires_at:expiresAt}, "cache_key"), 4000);
+    // Запись — best-effort: медленный upsert большого ответа не должен выбивать базу на 3 мин для всех чтений.
+    await Promise.race([
+      supabase.upsert("api_cache", {cache_key:key, data, expires_at:expiresAt}, "cache_key"),
+      new Promise(resolve => setTimeout(resolve, 4000))
+    ]);
   }catch(_){}
 }
 
@@ -2963,6 +2967,20 @@ async function handleSyncLots(response){
     result.failedAt = (result.stage || "before first import") + ((result.steps && result.steps.length) ? " · after: " + result.steps[result.steps.length - 1] : "");
     result.continue = false;
   }
+  // Протухший api_cache: таблица не чистилась с июля → сотни тысяч строк, тяжёлые upsert'ы. Окна по expires_at
+  // (индекс), ≤8с за прогон, курсор в состоянии; дошли до «сейчас − 1ч» → начинаем заново с давнего.
+  try{
+    const cut = Date.now() - 3600e3;
+    let cur = state.cache_purge_cursor ? new Date(state.cache_purge_cursor).getTime() : Date.parse("2026-06-01T00:00:00Z");
+    const t0 = Date.now(); let cleaned = 0;
+    while(Date.now() - t0 < 8000 && cur < cut){
+      const hi = Math.min(cur + 6 * 3600e3, cut);
+      await syncSbFetch(`/api_cache?expires_at=gte.${new Date(cur).toISOString()}&expires_at=lt.${new Date(hi).toISOString()}`, {method:"DELETE", headers:{prefer:"return=minimal"}});
+      cleaned++; cur = hi;
+    }
+    state.cache_purge_cursor = cur >= cut ? new Date(cut - 7 * 86400e3).toISOString() : new Date(cur).toISOString();
+    result.cacheWindows = cleaned;
+  }catch(e){ result.cacheCleanErr = String(e.message || e).slice(0, 80); }
   state.lock_at = null; // шаг завершён — следующий вызов может стартовать сразу
   state.last_run = {at:new Date().toISOString(), ...result};
   try{ await syncSetState(state); }catch(e){ /* прогресс потеряем на один шаг — не критично */ }
@@ -3378,6 +3396,10 @@ module.exports = async function handler(request, response){
         out.syncMs = err ? null : ms;
         out.total = await count("");
         out.sold = await count("status_id=eq.6");
+        const cr = await withTimeout(`/api_cache?select=cache_key&cache_key=eq.__probe__`, {}, 3500);
+        out.cacheMs = cr.err || cr.ms;
+        const cc = await withTimeout(`/api_cache?select=cache_key`, {prefer:"count=planned", range:"0-0", "range-unit":"items"}, 3500);
+        out.cacheRows = cc.err || (cc.r && (cc.r.ok || cc.r.status === 416) ? Number((cc.r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${cc.r && cc.r.status}`);
       }
       sendJson(response, 200, out);
       return;
