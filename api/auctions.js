@@ -3750,6 +3750,24 @@ module.exports = async function handler(request, response){
       };
       const out = {ok:true, at:new Date().toISOString()};
       // Диагностика: свой набор параметров /cars (только безопасные ключи) — «сколько у фида таких лотов».
+      // Сколько лотов у фида в Timed: листаем окно ближайших торгов постранично и считаем is_timed_auction (фильтра по нему в /cars нет).
+      if(query.get("timedscan")){
+        const dom = query.get("timedscan") === "iaai" ? "1" : "3";
+        const hours = String(query.get("hours") || "72").replace(/[^0-9]/g, "") || "72";
+        const from = Math.max(1, Number(query.get("from") || 1) || 1), n = Math.min(6, Math.max(1, Number(query.get("n") || 4) || 4));
+        const rep = {domain:dom, hours, pages:[], timed:0, seen:0, byType:{}};
+        for(let pg = from; pg < from + n; pg++){
+          const p = new URLSearchParams({per_page:"1000", page:String(pg), simple_paginate:"1", prices_history:"0", next_hours_auction:hours, domain_id:dom});
+          const data = await fetchJson(`${AUCTIONS_API_BASE}/cars?${p}`).catch(e => ({error:String(e.message || e).slice(0, 80)}));
+          const its = findItems(data) || [];
+          let t = 0;
+          for(const it of its){ const l = (it.lots || [])[0] || it; const isT = l.is_timed_auction === true || it.is_timed_auction === true; if(isT) t++; const ty = (l.auction_type && l.auction_type.name) || String(l.auction_type || "?"); rep.byType[ty] = (rep.byType[ty] || 0) + 1; }
+          rep.pages.push({pg, n:its.length, timed:t}); rep.timed += t; rep.seen += its.length;
+          if(its.length < 1000) break;
+        }
+        sendJson(response, 200, {ok:true, ...rep}, {"cache-control":"no-store"});
+        return;
+      }
       if(query.get("probe")){
         const okKeys = new Set(["domain_id", "is_timed_auction", "timed", "next_hours_auction", "sale_date_in_days", "buy_now", "status", "exclude_expired_auctions", "auction_type", "with_reserve", "reserve"]);
         const pp = {}; for(const kv of String(query.get("probe")).split(",")){ const [k, v] = kv.split(":"); if(okKeys.has(k) && /^[\w-]{1,20}$/.test(v || "")) pp[k] = v; }
