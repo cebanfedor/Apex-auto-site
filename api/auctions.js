@@ -2261,14 +2261,9 @@ async function searchFromDb(query){
   const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
   const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab);
   // Счётчик берём из кэша; нет в кэше — считаем В ФОНЕ (ответ не ждёт), этот ответ уйдёт с оценкой запроса.
-  if(unfiltered){
-    const ck = `${tab}|${query.get("auction") || "all"}`; const tc = tabTotalCache.get(ck);
-    if(tc && tc.n > 0 && Date.now() - tc.at < 10 * 60e3) total = tc.n;
-    else if(!tabTotal.inflight?.has(ck)){
-      (tabTotal.inflight = tabTotal.inflight || new Set()).add(ck);
-      tabTotal(tab, query.get("auction")).catch(() => 0).finally(() => tabTotal.inflight.delete(ck));
-    }
-  }
+  // tabTotal — только оценки планировщика (~200мс каждая), поэтому ждём: иначе первый ответ инстанса показывал
+  // оценку основного запроса (564k), а следующий — tabTotal (599k), и число «прыгало» между инстансами.
+  if(unfiltered){ const t = await tabTotal(tab, query.get("auction")).catch(() => 0); if(t > 0) total = t; }
   return {
     _db:true,
     items:rows.map(r => r.payload).filter(Boolean).map(sanitizeStoredLot),
