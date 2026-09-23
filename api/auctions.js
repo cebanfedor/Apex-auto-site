@@ -3363,9 +3363,11 @@ module.exports = async function handler(request, response){
       if(sbUp() && await lotsDbReady().catch(() => false)){
         // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
         // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
-        const t = async (a, b) => { try{ return await tabTotal(a, b); }catch(e){ return 0; } };
-        all = await t("all", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
-        dated = await t("dated", "all"); buyNow = await t("buy_now", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all");
+        // Общий лимит 6с на весь набор: при медленной базе 7 последовательных оценок тянули ответ до 37с (504).
+        const deadline = Date.now() + 6000;
+        const t = async (a, b) => { if(Date.now() > deadline) return 0; try{ return await tabTotal(a, b); }catch(e){ return 0; } };
+        all = await t("all", "all"); soon = await t("soon", "all"); buyNow = await t("buy_now", "all"); archivedN = await t("archived", "all");
+        dated = await t("dated", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
       }
       if(!(all > 0)){
         // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
@@ -3381,8 +3383,10 @@ module.exports = async function handler(request, response){
         }catch(e){}
       }
       const payload = {ok:true, total:all, copart, iaai, dated, buyNow, soon, archived:archivedN, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
-      setCached(ck, payload, 10 * 60e3);
-      sendJson(response, 200, payload, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"});
+      const complete = all > 0 && soon > 0 && buyNow > 0 && archivedN > 0;
+      // Неполный набор (база не успела) — кэшируем коротко, чтобы бейджи не зависли пустыми на 10 мин.
+      setCached(ck, payload, complete ? 10 * 60e3 : 60e3);
+      sendJson(response, 200, payload, {"cache-control":complete ? "public, s-maxage=600, stale-while-revalidate=3600" : "public, s-maxage=60, stale-while-revalidate=300"});
       return;
     }
     if(action === "livebids"){
