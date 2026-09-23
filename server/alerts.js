@@ -8,6 +8,7 @@ const MAX_SUBS_PER_TOKEN = 30;
 const SEARCH_MIN_GAP_MS = 30 * 60e3;   // не чаще одного сообщения по поиску раз в 30 мин (накапливаем)
 const SEARCH_CHECK_GAP_MS = 5 * 60e3;
 const LOT_REMIND_MS = 60 * 60e3;
+const DAY_NOTIFY_HOUR = 10;              // «в день торгов» — в 10:00 по Кишинёву
 
 const TXT = {
   ru: {
@@ -322,8 +323,8 @@ function create(deps){
           }
         }else{
           const hourKey = saleIso;
-          // 3) день аукциона: утром (после 07:00 по Кишинёву) или при подписке в тот же день — если до торгов больше часа
-          if(st.day !== localYmd(saleMs) && localYmd(saleMs) === localYmd(now) && (localHour(now) >= 7) && saleMs - now > LOT_REMIND_MS){
+          // 3) день аукциона: в 10:00 по Кишинёву (или при подписке позже в тот же день) — если до торгов больше часа
+          if(st.day !== localYmd(saleMs) && localYmd(saleMs) === localYmd(now) && (localHour(now) >= DAY_NOTIFY_HOUR) && saleMs - now > LOT_REMIND_MS){
             if(prefs.day) await say(T.dayOf(fmtDate(saleIso, lang), Math.round((saleMs - now) / 3600e3)));
             st.day = localYmd(saleMs); out.dayOf++;
           }
