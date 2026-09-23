@@ -3122,7 +3122,10 @@ module.exports = async function handler(request, response){
 
   // Supabase persistent cache — shared across all serverless instances.
   // Checked only for actions that consume the auctionsapi.com quota.
-  const dbCacheActions = new Set(["search","detail","vin","archived","manufacturers","models","generations","usadict","statistics"]);
+  // 23.09.2026: search/archived ИСКЛЮЧЕНЫ — живой ответ каталога (100 лотов с payload) весил мегабайты, его чтение
+  // из api_cache шло >2.5с и выбивало circuit breaker на 3 мин для всех запросов (каталог уходил в live по кругу).
+  // Каталогу хватает памяти инстанса + CDN (s-maxage=180).
+  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics"]);
   // Словарь повреждений теперь статический (не тратит квоту API) — Supabase-кэш
   // для него лишний round-trip, пропускаем (memory + edge-кэш достаточно). P3-16.
   const isStaticDamages = action === "usadict" && String(query.get("dict") || "").toLowerCase() === "damages";
@@ -3684,7 +3687,7 @@ module.exports = async function handler(request, response){
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab}), ...(dbErr ? {_dbErr:dbErr} : {}), ...(!result._source && !sbUp() ? {_dbDown:true} : {})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : 3 * 60 * 1000);
-      if(!result._fallback && !result._source) setDbCache(key, payload, "search");
+      // api_cache для search не пишем (см. dbCacheActions).
       sendJson(response, 200, payload);
       return;
     }
