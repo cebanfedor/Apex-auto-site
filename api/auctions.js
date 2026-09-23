@@ -3701,8 +3701,18 @@ module.exports = async function handler(request, response){
           if(!band && hasCond && yearG){
             const pool = await fetchSoldComps(makeId, modelId);
             const g = await resolveGenRange(modelId, yearG, "");
-            const base = dataGuideBase(pool, g, fuelTextToId(query.get("fuel")), yearG);
-            if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
+            // 23.09.2026 (Tesla Model Y 2026): усреднённая база «год ±1» смешивала 2025 ($8–14k) и 2026 ($19–29k) и не видела
+            // пробег → «$15–17k» при ставке $22.5k. Сначала — продажи того же кузова, ВЗВЕШЕННЫЕ по близости года и пробега,
+            // с перцентилем по состоянию (cq); усечённая база — только если похожих продаж мало.
+            const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(query.get("odometer") || "").replace(/[^0-9]/g, ""),
+              fuelId:fuelTextToId(query.get("fuel")), genFrom:g.genFrom, genTo:g.genTo, cq:String(query.get("cq") || "mid")}) : null;
+            if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
+              const r100 = v => Math.round(v / 100) * 100;
+              band = {lo:r100(cc.p25), mid:r100(cc.median), hi:r100(Math.max(cc.p75, cc.p25 * 1.05))}; src = "data";
+            }else{
+              const base = dataGuideBase(pool, g, fuelTextToId(query.get("fuel")), yearG);
+              if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
+            }
           }
           if(band){
             const payload = {ok:true, comps:{guide:true, src, p25:band.lo, p75:band.hi, median:band.mid, trueMedian:band.mid, count:0, match:{gen:true, fuel:true}}};
