@@ -3659,7 +3659,7 @@ module.exports = async function handler(request, response){
       }
       if(dbErr) console.error("searchFromDb fallback:", dbErr);
       const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
-      const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab})};
+      const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab}), ...(dbErr ? {_dbErr:dbErr} : {}), ...(!result._source && !sbUp() ? {_dbDown:true} : {})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : 3 * 60 * 1000);
       if(!result._fallback && !result._source) setDbCache(key, payload, "search");
