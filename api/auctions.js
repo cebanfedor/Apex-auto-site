@@ -3143,6 +3143,48 @@ async function handleSyncLots(response){
   response.end(JSON.stringify(result));
 }
 
+// Счётчики каталога (шапка, бейджи вкладок, типы витрины) — один набор оценок; вызывается из action=count и в фоне.
+async function computeCatalogCount(){
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
+  const cnt = async extra => {
+    const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
+      {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
+    // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
+    return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
+  };
+  let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0, soon = 0, archivedN = 0, types = null;
+  if(sbUp() && await lotsDbReady().catch(() => false)){
+    // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
+    // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
+    // Общий лимит 6с на весь набор: при медленной базе 7 последовательных оценок тянули ответ до 37с (504).
+    const deadline = Date.now() + 9000;
+    const t = async (a, b) => { if(Date.now() > deadline) return 0; try{ return await tabTotal(a, b); }catch(e){ return 0; } };
+    all = await t("all", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all"); buyNow = await t("buy_now", "all");
+    dated = await t("dated", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
+    // Витрина по типам кузова — те же числа, что в заголовке (раньше витрина брала оценки своих 4 запросов: 524k «Автомобили» при 192k в шапке).
+    types = {};
+    for(const vt of ["1", "2", "5", "7"]){ const n = await (async () => { if(Date.now() > deadline + 4000) return 0; try{ return await tabTotal("all", "all", vt); }catch(e){ return 0; } })(); if(n > 0) types[vt] = n; }
+  }
+  if(!(all > 0)){
+    // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
+    try{
+      const tc = k => { const x = tabTotalCache.get(k); return x && x.n > 0 ? x.n : 0; };
+      [all, copart, iaai] = [tc("all|all"), tc("all|copart"), tc("all|iaai")];   // последнее известное из базы
+      if(!(all > 0)){
+        const [c, i] = await Promise.all([
+          fetchSearch(new URLSearchParams({tab:"all", auction:"copart", per_page:"1"})).catch(() => null),
+          fetchSearch(new URLSearchParams({tab:"all", auction:"iaai", per_page:"1"})).catch(() => null)]);
+        copart = (c && c.total) || 0; iaai = (i && i.total) || 0; all = copart + iaai;   // без «all»: там и Корея
+      }
+    }catch(e){}
+  }
+  const payload = {ok:true, total:all, copart, iaai, dated, buyNow, soon, archived:archivedN, types, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null};
+  payload._complete = all > 0 && soon > 0 && buyNow > 0 && archivedN > 0;
+  return payload;
+}
+
 module.exports = async function handler(request, response){
   const query = getQuery(request);
   const action = query.get("action") || "search";
@@ -3506,45 +3548,20 @@ module.exports = async function handler(request, response){
     if(action === "count"){
       const ck = "catalog-count"; const c = getCached(ck);
       if(c){ sendJson(response, 200, c, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"}); return; }
-      const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
-      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-      const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
-      const cnt = async extra => {
-        const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
-          {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
-        // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
-        return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
-      };
-      let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0, soon = 0, archivedN = 0, types = null;
-      if(sbUp() && await lotsDbReady().catch(() => false)){
-        // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
-        // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
-        // Общий лимит 6с на весь набор: при медленной базе 7 последовательных оценок тянули ответ до 37с (504).
-        const deadline = Date.now() + 9000;
-        const t = async (a, b) => { if(Date.now() > deadline) return 0; try{ return await tabTotal(a, b); }catch(e){ return 0; } };
-        all = await t("all", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all"); buyNow = await t("buy_now", "all");
-        dated = await t("dated", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
-        // Витрина по типам кузова — те же числа, что в заголовке (раньше витрина брала оценки своих 4 запросов: 524k «Автомобили» при 192k в шапке).
-        types = {};
-        for(const vt of ["1", "2", "5", "7"]){ const n = await (async () => { if(Date.now() > deadline + 4000) return 0; try{ return await tabTotal("all", "all", vt); }catch(e){ return 0; } })(); if(n > 0) types[vt] = n; }
+      // Протухшее значение (до 30 мин) отдаём сразу, пересчёт — в фоне: холодный count занимал до 9с.
+      const stale = cache.get(ck + ":stale");
+      if(stale && Date.now() - stale.at < 30 * 60e3 && !cache.get(ck + ":busy")){
+        cache.set(ck + ":busy", {value:1, expires:Date.now() + 60e3});
+        computeCatalogCount().then(p => { if(p){ setCached(ck, p, p._complete ? 10 * 60e3 : 60e3); cache.set(ck + ":stale", {value:p, at:Date.now(), expires:Date.now() + 3600e3}); } }).catch(() => {}).finally(() => cache.delete(ck + ":busy"));
+        sendJson(response, 200, {...stale.value, stale:true}, {"cache-control":"public, s-maxage=120, stale-while-revalidate=600"});
+        return;
       }
-      if(!(all > 0)){
-        // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
-        try{
-          const tc = k => { const x = tabTotalCache.get(k); return x && x.n > 0 ? x.n : 0; };
-          [all, copart, iaai] = [tc("all|all"), tc("all|copart"), tc("all|iaai")];   // последнее известное из базы
-          if(!(all > 0)){
-            const [c, i] = await Promise.all([
-              fetchSearch(new URLSearchParams({tab:"all", auction:"copart", per_page:"1"})).catch(() => null),
-              fetchSearch(new URLSearchParams({tab:"all", auction:"iaai", per_page:"1"})).catch(() => null)]);
-            copart = (c && c.total) || 0; iaai = (i && i.total) || 0; all = copart + iaai;   // без «all»: там и Корея
-          }
-        }catch(e){}
-      }
-      const payload = {ok:true, total:all, copart, iaai, dated, buyNow, soon, archived:archivedN, types, src:sbUp() ? "db" : "live", at:new Date().toISOString(), lastError:tabTotal.lastError || null, ...(query.get("debug") ? {debug:tabTotal.debug || []} : {})};
-      const complete = all > 0 && soon > 0 && buyNow > 0 && archivedN > 0;
+      const payload = await computeCatalogCount();
+      if(query.get("debug")) payload.debug = tabTotal.debug || [];
+      const complete = !!payload._complete;
       // Неполный набор (база не успела) — кэшируем коротко, чтобы бейджи не зависли пустыми на 10 мин.
       setCached(ck, payload, complete ? 10 * 60e3 : 60e3);
+      cache.set(ck + ":stale", {value:payload, at:Date.now(), expires:Date.now() + 3600e3});
       sendJson(response, 200, payload, {"cache-control":complete ? "public, s-maxage=600, stale-while-revalidate=3600" : "public, s-maxage=60, stale-while-revalidate=300"});
       return;
     }

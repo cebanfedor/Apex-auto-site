@@ -1456,12 +1456,11 @@
     if(!state.items.length) $("#auctionCards").innerHTML = skeletonCards(6);
     try{
       // Счётчики (шапка и «Автомобили N») — из ОДНОГО источника action=count; витринные запросы дают только карточки.
-      const [results, cr] = await Promise.all([
-        Promise.all(SHOWCASE_TYPES.map(([id]) => api(`/api/auctions?action=search&per_page=30&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null))),
-        api("/api/auctions?action=count").catch(() => null)
-      ]);
+      // Страница НЕ ждёт счётчики: карточки рисуем сразу, числа (шапка, «Автомобили N») подставляем, когда придёт count.
+      // Раньше Promise.all ждал count до 9с (7 оценок + точный счёт архива) — страница «висела» с пустым экраном.
+      const crP = api("/api/auctions?action=count").catch(() => null);
+      const results = await Promise.all(SHOWCASE_TYPES.map(([id]) => api(`/api/auctions?action=search&per_page=30&vehicleType=${id}&sort=smart&auction=all&tab=all`).catch(() => null)));
       if(reqId !== state.loadSeq || !discoveryMode) return;
-      const typeN = id => cr && cr.types && Number(cr.types[String(id)]) > 0 ? Number(cr.types[String(id)]) : 0;
       let totalAll = 0, html = "";
       const shown = [];
       results.forEach((r, i) => {
@@ -1474,7 +1473,7 @@
         const cards = pool.slice(0, 5);
         shown.push(...cards);
         html += `<section class="showcaseSecV1">
-          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}${typeN(id) ? `<b>${typeN(id).toLocaleString("ru-RU")}</b>` : ""}</h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
+          <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b class="scTypeNumV1" data-type-num="${id}"></b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
           <div class="showcaseGridV1">${cards.map(renderShowcaseCard).join("")}</div>
         </section>`;
       });
@@ -1482,11 +1481,17 @@
       state.items = shown;
       // Счётчик заголовка: реальное число текущих лотов из базы (одним запросом), а не сумма
       // «total» витрин по типам — фид считает их по-разному, сумма врала (60k против 120k у DreamBid).
-      if(cr && cr.total > 0) totalAll = cr.total;
-      state.total = totalAll;
+      state.total = 0;
       $("#auctionCards").innerHTML = html;
-      $("#auctionResultCount").textContent = totalAll.toLocaleString("ru-RU");
-      setResultNum(totalAll.toLocaleString("ru-RU"));
+      $("#auctionResultCount").textContent = "…";
+      setResultNum("");
+      crP.then(cr => {
+        if(reqId !== state.loadSeq || !discoveryMode || !cr || !(cr.total > 0)) return;
+        state.total = cr.total;
+        $("#auctionResultCount").textContent = cr.total.toLocaleString("ru-RU");
+        setResultNum(cr.total.toLocaleString("ru-RU"));
+        document.querySelectorAll(".scTypeNumV1[data-type-num]").forEach(b => { const n = cr.types && Number(cr.types[b.dataset.typeNum]) || 0; b.textContent = n ? n.toLocaleString("ru-RU") : ""; });
+      });
       $("#auctionResultLabel").textContent = "лотов доступно на аукционах";
       const pg = document.getElementById("paginationV1");
       if(pg) pg.hidden = true;
@@ -1567,13 +1572,8 @@
       }
       // Вкладка «Все» без фильтров: total из базы включает лоты без даты торгов (сток «на площадке») —
       // в заголовке показываем реальное число лотов С торгами (action=count), как DreamBid.
-      if(state.tab === "all" && !clientFilterActive()){
-        const fp = formParams(); ["auction","tab","sort","page","per_page"].forEach(k => fp.delete(k));
-        if(![...fp.keys()].length){
-          const cr = await api("/api/auctions?action=count").catch(() => null);
-          if(cr && cr.total > 0 && reqId === state.loadSeq) state.total = state.auction === "copart" ? cr.copart : state.auction === "iaai" ? cr.iaai : cr.total;
-        }
-      }
+      // total поиска без фильтров уже берётся из tabTotal (тот же источник, что у count) — отдельный запрос count
+      // здесь не нужен: он блокировал отрисовку списка до 9с.
       $("#auctionResultCount").textContent = state.total
         ? state.total.toLocaleString("ru-RU")
         : state.items.length;
