@@ -62,3 +62,6 @@ create index concurrently if not exists idx_lots_timed_act
   on public.api_lots ((payload->>'timed')) where archived = false;
 create index concurrently if not exists idx_lots_salekey_act
   on public.api_lots ((payload->>'saleStatusKey')) where archived = false;
+
+-- 13. Уведомления «новые лоты» (24.09.2026): индекс по first_seen. Выполнять ОТДЕЛЬНЫМ запуском, после миграции 20260924_alerts.sql.
+-- create index concurrently if not exists idx_api_lots_first_seen on public.api_lots (first_seen desc) where archived = false;

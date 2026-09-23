@@ -2042,6 +2042,10 @@ async function searchFromDb(query){
   // Страховка от Encar/Кореи, попавшей в базу до доменного фильтра синка
   ands.push("or(country.neq.kr,country.is.null)");
 
+  // Внутреннее: «новые лоты» для уведомлений (first_seen проставляет БД при первой вставке лота)
+  const firstSeenFrom = query.get("firstSeenFrom");
+  if(firstSeenFrom && Number.isFinite(Date.parse(firstSeenFrom))) ands.push(`first_seen.gte.${new Date(firstSeenFrom).toISOString()}`);
+
   const tab = query.get("tab") || "all";
   let datedOnly = false, datedOnlyFull = null;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
   // Архив = только СОСТОЯВШИЕСЯ торги. Фид помечает sold/archived и лоты с будущей датой,
@@ -3418,6 +3422,13 @@ module.exports = async function handler(request, response){
   const action = query.get("action") || "search";
 
   if(action === "lead") return handleLead(request, response);
+  if(action.startsWith("alert")){
+    const alerts = require("../server/alerts").create({
+      sb:syncSbFetch, searchFromDb, sendJson, readBody,
+      isAdmin:req => { try{ return require("../server/auth").isAuthenticated(req); }catch(_){ return false; } }
+    });
+    if(await alerts.handle(action, request, response, query).catch(e => { sendJson(response, 500, {ok:false, error:String(e.message || e).slice(0, 160)}); return true; })) return;
+  }
   if(action === "synclots") return handleSyncLots(response);
   // Быстрый синк ЗАКРЫТЫХ торгов (каждые 10 мин из GitHub Actions): только /archived-lots за последние 90 минут.
   // Даёт правило «сыгралась → сразу в архив»: лаг ≤10 мин вместо часа. Полный инкремент остаётся часовым.
