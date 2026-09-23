@@ -1206,6 +1206,8 @@
         const f = await forecastForLot(lot);
         if(!f || !document.body.contains(node)) return;
         const lo = f.guide ? f.lo : Math.floor(f.lo / 500) * 500, hi = f.guide ? f.hi : Math.max(round500(f.hi), lo + 500);
+        // Ставка или резерв продавца уже выше вилки → оценка опровергнута рынком, не показываем (2026 Tesla: ставка $22.5k при «$15–17k»).
+        if(Number(lot.currentBid) > hi || Number(lot.sellerReserve) > hi) return;
         node.innerHTML = `<span class="dbForecastLabV1">${dbIco("chart")}${L("Ориентир")}</span><b>${money(lo)} – ${money(hi)}</b>`;
         node.dataset.src = f.src;
         node.hidden = false;
@@ -2407,7 +2409,9 @@
       // Параметры те же, что у карточек каталога (один источник правды — compsParamsFor).
       const cp = compsParamsFor(lot);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
-      if(cr && cr.ok && cr.comps && cr.comps.guide){
+      // Ставка или резерв продавца уже выше вилки → ориентир опровергнут рынком; на странице лота его не показываем.
+      const guideContradicted = cr && cr.ok && cr.comps && cr.comps.guide && (Number(lot.currentBid) > Number(cr.comps.p75) || Number(lot.sellerReserve) > Number(cr.comps.p75));
+      if(cr && cr.ok && cr.comps && cr.comps.guide && !guideContradicted){
         // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
         const c = cr.comps;
         const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
@@ -3165,6 +3169,15 @@
         const img = card.querySelector(".dbSlideImg");
         const counter = card.querySelector(".dbPhotoCount");
         const dir = parseInt(slideBtn.dataset.dir) || 1;
+        // В базе у лота хранятся только 4 фото (экономия места), а счётчик показывал 1/19 —
+        // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
+        if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length){
+          lot._fullImgs = "loading";
+          api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
+            .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
+              const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${lot.images.length}`; })
+            .catch(() => { lot._fullImgs = "done"; });
+        }
         let idx = parseInt(img?.dataset.slide || "0");
         idx = (idx + dir + lot.images.length) % lot.images.length;
         if(img){ img.src = lot.images[idx]; img.dataset.slide = idx; }
