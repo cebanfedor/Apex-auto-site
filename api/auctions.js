@@ -1935,7 +1935,9 @@ async function tabTotal(tab, auction){
 // Датированные торги (как у DreamBid «current») — для сводки в count.
 async function datedTotal(auction){ return tabTotal("dated", auction); }
 async function searchFromDb(query){
+  const T = searchFromDb.t = {t0:Date.now()};
   if(!(await lotsDbReady())) return null;
+  T.ready = Date.now() - T.t0;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const p = new URLSearchParams();
@@ -2179,6 +2181,7 @@ async function searchFromDb(query){
   // уйти на неполный live-API и заодно трипнуть circuit breaker.
   const timer = setTimeout(() => controller.abort(), 8000);
   let response;
+  T.q = p.toString().slice(0, 400); T.mainStart = Date.now() - T.t0;
   try{
     response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
       headers:{
@@ -2195,7 +2198,7 @@ async function searchFromDb(query){
       },
       signal:controller.signal
     });
-  }finally{ clearTimeout(timer); }
+  }finally{ clearTimeout(timer); T.main = Date.now() - T.t0; }
   // 416 = PostgREST «диапазон вне результата»: запрошена страница дальше конца
   // выборки (мало лотов по фильтру, клиент листает). Это НЕ сбой базы — отдаём
   // корректную пустую страницу с total из Content-Range. Раньше бросали ошибку →
@@ -2247,6 +2250,7 @@ async function searchFromDb(query){
       }
     }catch(e){ /* без хвоста — отдаём датированные (null = взяли счётчик из кэша) */ }
   }
+  T.tail = Date.now() - T.t0;
   // Вкладка без фильтров: единый счётчик, не зависящий от сортировки (см. tabTotal).
   const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action"]);
   const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab);
@@ -3741,7 +3745,7 @@ module.exports = async function handler(request, response){
       }
       if(dbErr) console.error("searchFromDb fallback:", dbErr);
       const pastTab = (query.get("tab") === "sold" || query.get("tab") === "archived");
-      const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab}), ...(dbErr ? {_dbErr:dbErr} : {}), ...(!result._source && !sbUp() ? {_dbDown:true} : {})};
+      const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab}), ...(dbErr ? {_dbErr:dbErr} : {}), ...(!result._source && !sbUp() ? {_dbDown:true} : {}), ...(query.get("debug") ? {_t:searchFromDb.t} : {})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : 3 * 60 * 1000);
       // api_cache для search не пишем (см. dbCacheActions).
