@@ -399,3 +399,8 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   страницы, ожидание фида ≤ остатка бюджета; (2) лот, перешедший на Timed без смены даты/ставки, считался «неизменившимся» → `sameKeyFields` теперь
   сравнивает `payload.timed` и `sellerReserve`. Sync-крон — каждые 2 мин (нечётные минуты), closed — `*/10`, settle — `6-59/10` (чётные, без столкновения за лок).
   Фид флаг Timed отдаёт только как `is_timed_auction` у лота (фильтра по нему в /cars нет); `auction_type` = {name: pure_sale|live|…}.
+
+## Timed-аукционы: где они в фиде (23.09.2026)
+- Timed есть ТОЛЬКО у IAAI (`auction_type.name=timed`, ~23% лотов окна 72ч, ≈4–5 тыс.); у Copart 0 (там minimum_bid/pure_sale/on_approval/live). DreamBid «Timed 4 334» совпадает.
+- В базе Timed было 171 не из-за фильтров, а потому что обход `upcoming` ещё не дошёл до IAAI (домен 3 → потом 1). После первого полного цикла (~30–40 мин) ~4k.
+- Диагностика: `?action=feedcount&timedscan=iaai|copart&hours=72&from=1&n=4` — листает окно фида и считает Timed по страницам. Проверка нашей базы: `action=search&saleStatus=timed&per_page=1` → `total`.
