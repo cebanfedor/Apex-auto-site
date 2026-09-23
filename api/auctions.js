@@ -1923,8 +1923,9 @@ async function tabTotal(tab, auction){
     n = await cnt(`sale_date=gte.${grace}&sale_date=lte.${to}&${live}`);
   }else if(tab === "buy_now"){
     const dayAgo = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
-    // Недатированные Buy Now: только оценка планировщика — точный счёт идёт по 500k NULL-записей индекса.
-    n = (await cnt(`buy_now=gt.0&status_id=neq.6&sale_date=gte.${dayAgo}`)) + (await one(`buy_now=gt.0&status_id=neq.6&sale_date=is.null`, "planned", 6000).catch(() => 0));
+    // Одна оценка планировщика без предиката по дате: с «sale_date is null» планировщик давал 0 (нет индекса под Buy Now,
+    // SQL п.7 на утро), из-за чего бейдж показывал 7k вместо ~55k. Прошедшие сутки чуть завышают — терпимо.
+    n = await cnt(`buy_now=gt.0&status_id=neq.6`);
   }else if(tab === "archived"){
     n = await one(`archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=lte.${encodeURIComponent(new Date().toISOString())}`.replace("archived=eq.true", "archived=eq.true"), "planned", 4000).catch(() => 0);
   }else if(tab === "dated"){
@@ -3364,9 +3365,9 @@ module.exports = async function handler(request, response){
         // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
         // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
         // Общий лимит 6с на весь набор: при медленной базе 7 последовательных оценок тянули ответ до 37с (504).
-        const deadline = Date.now() + 6000;
+        const deadline = Date.now() + 9000;
         const t = async (a, b) => { if(Date.now() > deadline) return 0; try{ return await tabTotal(a, b); }catch(e){ return 0; } };
-        all = await t("all", "all"); soon = await t("soon", "all"); buyNow = await t("buy_now", "all"); archivedN = await t("archived", "all");
+        all = await t("all", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all"); buyNow = await t("buy_now", "all");
         dated = await t("dated", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
       }
       if(!(all > 0)){
