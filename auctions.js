@@ -276,6 +276,7 @@
       const r = form.querySelector(`input[name="${name}"]:checked`);
       if(r && r.value) add(`${L(title)}: ${optText(r)}`, () => { const any = form.querySelector(`input[name="${name}"][value=""]`); if(any) any.checked = true; else r.checked = false; });
     };
+    if(form.querySelector('input[name="smart"]:checked')) add("Feduk SmartSelect™", () => { form.querySelector('input[name="smart"]').checked = false; });
     boxes("fuel", "Топливо");
     radio("body", "Кузов"); radio("vehicleType", "Тип техники"); radio("drive", "Привод"); radio("transmission", "Коробка");
     radio("cylinders", "Цилиндры"); radio("country", "Страна"); radio("condition", "Состояние");
@@ -3418,6 +3419,7 @@
       }
       loadLots();
     });
+    document.getElementById("smartSelV1")?.addEventListener("change", () => { $("#auctionFiltersForm").requestSubmit(); });
     document.getElementById("activeFiltersV1")?.addEventListener("click", e => {
       const chip = e.target.closest(".afChipV1");
       if(chip){

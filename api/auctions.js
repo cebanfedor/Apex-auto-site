@@ -1179,6 +1179,7 @@ async function attachVinHistory(lot){
         entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur, timed:ptimed});
       }
     }
+    try{ Object.defineProperty(lot, "_vinOk", {value:true, enumerable:false, configurable:true}); }catch(_){}   // запрос к фиду прошёл (отличаем «VIN не найден» от сбоя)
     if(!lotsArr.length) return lot;   // VIN не найден — оставляем как есть
     // «не продан» за копейки (перенос без ставок) — не история
     const erv = Number(lot.estimatedRetailValue) || 0, cap = Math.max(300, erv * 0.02);
@@ -2053,6 +2054,9 @@ async function searchFromDb(query){
   // Внутреннее: «новые лоты» для уведомлений (first_seen проставляет БД при первой вставке лота)
   const firstSeenFrom = query.get("firstSeenFrom");
   if(firstSeenFrom && Number.isFinite(Date.parse(firstSeenFrom))) ands.push(`first_seen.gte.${new Date(firstSeenFrom).toISOString()}`);
+
+  // Feduk SmartSelect: без перекупов (resale: 1 — многократно выставлялся, 2 — уже продавался). Непроверенные (null) показываем.
+  if(query.get("smart") === "1") ands.push("or(resale.is.null,resale.eq.0)");
 
   const tab = query.get("tab") || "all";
   let datedOnly = false, datedOnlyFull = null;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
@@ -3425,11 +3429,72 @@ async function computeCatalogCount(){
   return payload;
 }
 
+
+// ---- Feduk SmartSelect: фоновая пометка «перекупских» лотов (api_lots.resale: 0 чистый · 1 многократно выставлялся · 2 уже продавался) ----
+// История по VIN — тот же attachVinHistory, что на странице лота (правила едины). За тик — сотни лотов, ближайшие торги первыми.
+const resaleFailedVins = new Map();
+async function takeMetaLock(k, ms){
+  await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=ignore-duplicates,return=minimal"}, body:JSON.stringify({k, v:{}, updated_at:new Date(0).toISOString()})}).catch(() => {});
+  const now = Date.now();
+  const rows = await syncSbFetch(`/alert_meta?k=eq.${encodeURIComponent(k)}&updated_at=lt.${encodeURIComponent(new Date(now - ms).toISOString())}`, {
+    method:"PATCH", headers:{prefer:"return=representation"}, body:JSON.stringify({updated_at:new Date(now).toISOString()})
+  }).catch(() => null);
+  return Array.isArray(rows) && rows.length === 1;
+}
+function resaleLevel(stub, lotNo, saleIso){
+  const curDay = String(saleIso || "").slice(0, 10);
+  const past = (stub.priceHistory || []).filter(e => !e.current && !(curDay && String(e.date).slice(0, 10) === curDay) && !(Date.parse(e.date) > Date.now()));
+  const soldBefore = past.some(e => e.status === "sold");
+  const lots = new Set(past.map(e => e.lot).filter(Boolean)); lots.add(String(lotNo));
+  return soldBefore ? 2 : (past.length >= 8 || lots.size >= 3) ? 1 : 0;
+}
+async function runResaleCheck(budgetMs){
+  const t0 = Date.now();
+  const out = {ok:true, checked:0, clean:0, relisted:0, resold:0, skipped:0, fail:0};
+  if(!(await takeMetaLock("resale", 50000))) return {ok:true, lockedOut:true};
+  const since = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+  let rows;
+  try{
+    rows = await syncSbFetch(`/api_lots?archived=eq.false&resale_at=is.null&vin=not.is.null&sale_date=gte.${since}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue&order=sale_date.asc&limit=300`);
+  }catch(e){ return {ok:false, error:String(e.message || e).slice(0, 160)}; }
+  const buckets = {0:[], 1:[], 2:[]};
+  let idx = 0, stop = false;
+  const worker = async () => {
+    while(!stop && Date.now() - t0 < budgetMs){
+      const r = rows[idx++]; if(!r) return;
+      const vin = String(r.vin || "").toUpperCase();
+      if(!isValidVin(vin)){ buckets[0].push(r.id); continue; }
+      if((resaleFailedVins.get(vin) || 0) > Date.now()){ out.skipped++; continue; }
+      const stub = {vin, lot:String(r.lot || ""), auctionDate:r.sale_date || "", estimatedRetailValue:Number(r.erv) || 0, buyNow:Number(r.buy_now) || 0, priceHistory:[]};
+      await attachVinHistory(stub);
+      if(!stub._vinOk){ out.fail++; resaleFailedVins.set(vin, Date.now() + 10 * 60e3); if(out.fail >= 4) stop = true; continue; }
+      buckets[resaleLevel(stub, r.lot, r.sale_date)].push(r.id);
+    }
+  };
+  await Promise.all(Array.from({length:6}, worker));
+  const stamp = new Date().toISOString();
+  for(const level of [0, 1, 2]){
+    const ids = buckets[level];
+    for(let i = 0; i < ids.length; i += 60){
+      const chunk = ids.slice(i, i + 60);
+      await syncSbFetch(`/api_lots?id=in.(${chunk.map(encodeURIComponent).join(",")})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale:level, resale_at:stamp})}).catch(() => { out.fail++; });
+    }
+    out.checked += ids.length;
+  }
+  out.clean = buckets[0].length; out.relisted = buckets[1].length; out.resold = buckets[2].length;
+  out.queue = rows.length; out.ms = Date.now() - t0;
+  return out;
+}
+
 module.exports = async function handler(request, response){
   const query = getQuery(request);
   const action = query.get("action") || "search";
 
   if(action === "lead") return handleLead(request, response);
+  if(action === "resalecheck"){
+    sendJson(response, 200, await runResaleCheck(42000).catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
+    return;
+  }
   if(action.startsWith("alert")){
     const alerts = require("../server/alerts").create({
       sb:syncSbFetch, searchFromDb, sendJson, readBody,

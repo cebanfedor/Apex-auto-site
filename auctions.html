@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v437">
-  <link rel="stylesheet" href="/auctions.css?v=v480">
+  <link rel="stylesheet" href="/auctions.css?v=v481">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -158,6 +158,14 @@
             <button id="closeFiltersBtn" type="button">×</button>
           </div>
           <form id="auctionFiltersForm">
+            <div class="smartSelV1">
+              <div class="smartSelTxtV1">
+                <b>Feduk SmartSelect™</b>
+                <span>Без перекупов и перепродаж: только чистые лоты</span>
+              </div>
+              <label class="smartSwV1" aria-label="Feduk SmartSelect"><input type="checkbox" name="smart" value="1" id="smartSelV1"><i></i></label>
+            </div>
+            <p class="smartNoteV1">Скрываем лоты, которые уже продавались под другим номером лота, и машины, которые перекупы выставляют по многу раз. История проверяется по VIN; новые лоты проверяются в течение часа.</p>
             <details class="fSecV2"><summary>Поиск</summary>
               <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
@@ -419,8 +427,8 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v479" defer></script>
-  <script src="/auctions.js?v=auctions-v238" defer></script>
+  <script src="/i18n.js?v=multilang-v480" defer></script>
+  <script src="/auctions.js?v=auctions-v239" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->
