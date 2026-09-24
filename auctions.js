@@ -278,7 +278,6 @@
     boxes("fuel", "Топливо");
     boxes("body", "Кузов"); boxes("vehicleType", "Тип техники"); boxes("drive", "Привод"); boxes("transmission", "Коробка");
     boxes("cylinders", "Цилиндры"); boxes("country", "Страна"); boxes("condition", "Состояние");
-    if(val("color")) add(`${L("Цвет")}: ${val("color")}`, () => { form.elements.color.value = ""; });
     damageList().forEach((d, i) => add(`${L("Повреждение")}: ${d}`, () => { const l = damageList(); l.splice(i, 1); setDamageList(l); }));
     const dTyped = String(byId("filterDamageV2")?.value || "").trim();
     if(dTyped && !damageList().some(d => d.toLowerCase() === dTyped.toLowerCase())) add(`${L("Повреждение")}: ${dTyped}`, () => { byId("filterDamageV2").value = ""; });
@@ -3290,9 +3289,8 @@
     }
     api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; Promise.resolve(hydrateNamesFromIds()).then(() => renderActiveFilters()).catch(() => {}); }).catch(() => { manufacturers = []; renderMakes(); });
 
-    // Damage, color, state: mutable arrays — filled from API on load
+    // Damage, state: mutable arrays — filled from API on load
     let damages = [];
-    let colors  = [];
     let states  = [];
 
     // Damage: sent as text (confirmed filterable by API)
@@ -3307,8 +3305,6 @@
       const l = damageList(); l.splice(Number(b.dataset.i), 1); setDamageList(l);
     });
 
-    // Color: no hidden id — text value goes directly to API
-    setupCombo("filterColorV2", "colorMenuV2", () => colors);
 
     // State: store state_code (e.g. "CA"), NOT numeric id
     const stateId = document.getElementById("filterStateIdV2");
@@ -3337,7 +3333,6 @@
       });
     };
     lazyDict("filterDamageV2", "damageMenuV2", "/api/auctions?action=usadict&dict=damages&v=3", v => { damages = v; });
-    lazyDict("filterColorV2",  "colorMenuV2",  "/api/auctions?action=usadict&dict=colors",  v => { colors  = v; });
     lazyDict("filterStateV2",  "stateMenuV2",  `/api/auctions?action=usadict&dict=states&country=${country}`, v => { states = v; });
   }
 
