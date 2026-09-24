@@ -21,14 +21,14 @@ begin
   if jsonb_array_length(coalesce(p->'vtype', '[]'::jsonb)) > 0 then
     w := w || format('vehicle_type_id = any(%L::int[])', public._facet_ints(p->'vtype'));
   else
-    w := w || 'vehicle_type_id is distinct from 3';
+    w := w || 'vehicle_type_id is distinct from 3'::text;
   end if;
 
   if jsonb_array_length(coalesce(p->'sale', '[]'::jsonb)) > 0 then
     for s in select jsonb_array_elements_text(p->'sale') loop
-      if s = 'timed' then sales := sales || '(payload->>''timed'') = ''true''';
-      elsif s = 'no_reserve' then sales := sales || '(payload->>''saleStatusKey'') = ''no_reserve''';
-      elsif s = 'on_approval' then sales := sales || 'status_id = 4';
+      if s = 'timed' then sales := sales || '(payload->>''timed'') = ''true'''::text;
+      elsif s = 'no_reserve' then sales := sales || '(payload->>''saleStatusKey'') = ''no_reserve'''::text;
+      elsif s = 'on_approval' then sales := sales || 'status_id = 4'::text;
       end if;
     end loop;
     if coalesce(array_length(sales, 1), 0) > 0 then
@@ -38,9 +38,9 @@ begin
   end if;
 
   if tab = 'archived' then
-    w := w || 'archived = true and status_id = 6 and final_bid > 0 and sale_date <= now()';
+    w := w || 'archived = true and status_id = 6 and final_bid > 0 and sale_date <= now()'::text;
   elsif tab = 'buy_now' then
-    w := w || 'archived = false and buy_now > 0 and status_id is distinct from 6 and (sale_date >= now() - interval ''24 hours'' or sale_date is null)';
+    w := w || 'archived = false and buy_now > 0 and status_id is distinct from 6 and (sale_date >= now() - interval ''24 hours'' or sale_date is null)'::text;
   elsif tab = 'soon' then
     w := w || ('archived = false and status_id is distinct from 6 and sale_date <= now() + interval ''48 hours'' and ' || live);
   else
@@ -65,11 +65,11 @@ begin
   if p->>'odo_from' is not null then w := w || format('odometer_mi >= %s', (p->>'odo_from')::int); end if;
   if p->>'odo_to' is not null then w := w || format('odometer_mi <= %s', (p->>'odo_to')::int); end if;
   if p->>'eng_from' is not null or p->>'eng_to' is not null then
-    w := w || 'engine_l > 0';
+    w := w || 'engine_l > 0'::text;
     if p->>'eng_from' is not null then w := w || format('engine_l >= %s', (p->>'eng_from')::numeric); end if;
     if p->>'eng_to' is not null then w := w || format('engine_l <= %s', (p->>'eng_to')::numeric); end if;
   end if;
-  if coalesce(p->>'smart', '') = '1' then w := w || '(resale is null or resale = 0)'; end if;
+  if coalesce(p->>'smart', '') = '1' then w := w || '(resale is null or resale = 0)'::text; end if;
 
   return query execute 'select make_id, model_id, count(*)::bigint from public.api_lots where ' || array_to_string(w, ' and ') || ' group by 1, 2';
 end $$;
