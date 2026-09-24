@@ -3812,15 +3812,30 @@ module.exports = async function handler(request, response){
   // при прогреве раз в 3 минуты посетитель всегда получает готовый ответ (иначе при малом трафике попадал на «холодный» 2–6с).
   if(action === "warm"){
     const base = "https://apexauto.md", t0 = Date.now(), out = [];
-    const paths = ["/api/auctions?action=manufacturers", "/api/content?rates=1", "/api/auctions?action=count", "/api/content",
-      ...["1", "2", "5", "7"].map(t => `/api/auctions?action=search&per_page=30&vehicleType=${t}&sort=smart&auction=all&tab=all`)];
-    for(const path of paths){
-      if(Date.now() - t0 > 45000) break;
-      const st = Date.now();
-      try{ const r = await fetch(base + path, {headers:{"user-agent":"apex-cache-warm"}}); await r.arrayBuffer(); out.push(`${path.slice(12, 60)} ${r.status} ${r.headers.get("x-vercel-cache") || "-"} ${Date.now() - st}ms`); }
-      catch(e){ out.push(`${path.slice(12, 60)} err`); }
-    }
-    sendJson(response, 200, {ok:true, out, ms:Date.now() - t0}, {"cache-control":"no-store"});
+    const S = "/api/auctions?action=search&";
+    // Каждый раз: то, что грузит страница без фильтров. Остальное — по кругу (1/3 за тик, полный круг ≈ 9 мин < 13 мин жизни кэша: 180 с + swr 600 с).
+    const always = ["/api/auctions?action=manufacturers", "/api/content?rates=1", "/api/auctions?action=count", "/api/content",
+      ...["1", "2", "5", "7"].map(t => `${S}per_page=30&vehicleType=${t}&sort=smart&auction=all&tab=all`)];
+    const tabs = []; for(const tab of ["all", "soon", "buy_now", "archived"]) for(const a of ["all", "copart", "iaai"]) tabs.push(`${S}auction=${a}&tab=${tab}&sort=smart&page=1&per_page=30`);
+    const types = ["1", "2", "5", "7"].map(t => `${S}vehicleType=${t}&auction=all&tab=all&sort=smart&page=1&per_page=30`);
+    let makes = [];
+    try{
+      const mr = await fetch(base + "/api/auctions?action=manufacturers", {headers:{"user-agent":"apex-cache-warm"}}).then(r => r.json());
+      makes = (mr.items || []).slice().sort((a, b) => (b.qty || 0) - (a.qty || 0)).slice(0, 12).map(m => `${S}make=${m.id}&auction=all&tab=all&sort=soon&page=1&per_page=30`);
+    }catch(_){}
+    const rest = [...tabs, ...types, ...makes];
+    const phase = Math.floor(Date.now() / 180e3) % 3;
+    const paths = [...always, ...rest.filter((_, i) => i % 3 === phase)];
+    let idx = 0;
+    const worker = async () => {
+      while(idx < paths.length && Date.now() - t0 < 45000){
+        const path = paths[idx++], st = Date.now();
+        try{ const r = await fetch(base + path, {headers:{"user-agent":"apex-cache-warm"}}); await r.arrayBuffer(); out.push(`${path.slice(12, 90)} ${r.status} ${r.headers.get("x-vercel-cache") || "-"} ${Date.now() - st}ms`); }
+        catch(e){ out.push(`${path.slice(12, 60)} err`); }
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    sendJson(response, 200, {ok:true, n:out.length, of:paths.length, phase, out, ms:Date.now() - t0}, {"cache-control":"no-store"});
     return;
   }
   if(action === "enginefill"){

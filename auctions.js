@@ -1884,6 +1884,44 @@
   }
   // Снимок последней выдачи (sessionStorage, ≤2 запроса, 20 мин): «Вернуться в каталог» и обновление страницы показывают список мгновенно,
   // а свежие данные подтягиваются следом (stale-while-revalidate на клиенте).
+  // Предзагрузка: следующая страница списка (мгновенная пагинация) и лот при наведении (прогрев кэша перед открытием).
+  const prefetchStore = new Map(), prefetchedLots = new Set();
+  const saveData = () => { try{ return !!(navigator.connection && navigator.connection.saveData); }catch(e){ return false; } };
+  function prefetchNextPage(){
+    try{
+      if(saveData() || discoveryMode || !isServerPaging() || state.loading) return;
+      const perPage = state.perPage || SERVER_PAGE_SIZE;
+      const pages = Math.min(MAX_SERVER_PAGES, Math.ceil((state.total || 0) / perPage));
+      if(state.page >= pages) return;
+      const p = formParams(); p.set("page", String(state.page + 1));
+      const url = `/api/auctions?action=search&${p}`;
+      if(prefetchStore.has(url)) return;
+      prefetchStore.set(url, {t:Date.now(), promise:api(url)});
+      prefetchStore.get(url).promise.catch(() => prefetchStore.delete(url));
+      if(prefetchStore.size > 4) prefetchStore.delete(prefetchStore.keys().next().value);
+    }catch(e){}
+  }
+  let hoverTimer = null;
+  function prefetchLotOnHover(event){
+    if(saveData() || !event.target.closest) return;
+    let auction = "", lotNo = "";
+    const sc = event.target.closest(".scCardV1");
+    if(sc){ const m = /\/auctions\/(copart|iaai)-(\d+)/.exec(sc.getAttribute("href") || ""); if(m){ auction = m[1]; lotNo = m[2]; } }
+    else if(event.target.closest(".dbTitle, .dbPhoto")){
+      const card = event.target.closest(".dbCard");
+      const lid = card && card.querySelector(".dbPhoto")?.dataset.lid;
+      const lot = lid && state.items.find(l => String(l.id) === String(lid));
+      if(lot){ auction = lot.auction; lotNo = String(lot.lot); }
+    }
+    if(!auction || !lotNo || prefetchedLots.has(auction + lotNo)) return;
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => {
+      prefetchedLots.add(auction + lotNo);
+      fetch(`/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotNo)}`, {credentials:"same-origin", priority:"low"}).catch(() => {});
+    }, 120);
+  }
+  document.addEventListener("mouseover", prefetchLotOnHover, {passive:true});
+  document.addEventListener("touchstart", prefetchLotOnHover, {passive:true});
   const SNAP_KEY = "apexCatSnapV1";
   function snapRead(key){
     try{ const a = JSON.parse(sessionStorage.getItem(SNAP_KEY) || "[]"); return a.find(x => x.k === key && Date.now() - x.t < 20 * 60e3) || null; }catch(e){ return null; }
@@ -1921,7 +1959,10 @@
     else $("#auctionCards").classList.add("lotsRefreshingV1");
     const archived = state.tab === "archived";
     try{
-      const payload = await api(`/api/auctions?action=search&${formParams()}`);
+      const reqUrl = `/api/auctions?action=search&${formParams()}`;
+      const pf = prefetchStore.get(reqUrl);
+      prefetchStore.delete(reqUrl);
+      const payload = (pf && Date.now() - pf.t < 90e3) ? await pf.promise.catch(() => api(reqUrl)) : await api(reqUrl);
       if(reqId !== state.loadSeq) return; // уже запрошено что-то новее
       const nextItems = payload.items || [];
       if(!append && nextItems.length) snapWrite(snapKey, payload);
@@ -1953,6 +1994,7 @@
       idle(updateCardForecasts);
       if(!append) idle(updateTabCounts);
       if(!append) idle(updateArchiveStats);
+      idle(prefetchNextPage);
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам. Ищете конкретную машину? Введите её VIN в поиск — история продаж находится по полной базе аукционов." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
     }catch(error){
