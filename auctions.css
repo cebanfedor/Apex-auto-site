@@ -1061,3 +1061,5 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dRelistV1 span { display:block; margin-top:3px; font-size:13px; color:var(--aInk2); }
 .dRelistBtnV1 { flex:none; padding:10px 16px; border-radius:999px; background:#ed0012; color:#fff; font-weight:700; font-size:13px; text-decoration:none; }
 .dRelistBtnV1:hover { background:#c9000f; }
+
+.calcBidLabelV2 b.calcNoDateBV1 { font-size:17px; line-height:1.3; color:var(--aInk2); }

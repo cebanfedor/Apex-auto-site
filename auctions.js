@@ -958,7 +958,7 @@
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
   }
   function dbDate(value, withYear){
-    if(!value) return L("Дата уточняется");
+    if(!value) return L("Дата аукциона не назначена");
     const d = new Date(value);
     if(Number.isNaN(d.getTime())) return String(value).slice(0, 16);
     const lang = window.APEX_LANG || "ru";
@@ -1223,7 +1223,7 @@
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
-          <span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>
+          ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
         </div>
         <div class="dbCols">
@@ -1265,7 +1265,7 @@
         <div class="dbPriceWrap">
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
-            ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
+            ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L(lot.auctionDate || isSold ? "ставок пока нет" : "Дата аукциона не назначена")}</b>`}
             <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
           </div>
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
@@ -1748,7 +1748,7 @@
     const tl = timeLeftLabel(lot.auctionDate);
     const priceBar = price || buyNow
       ? `<span class="scPriceV1"><span>${buyNow && !price ? L("Купить сейчас") : L("Ставка")}</span><b>${money(price || buyNow)}</b></span>`
-      : `<span class="scPriceV1 scPriceEmptyV1"><span>${L("Ставок пока нет")}</span></span>`;
+      : `<span class="scPriceV1 scPriceEmptyV1"><span>${L(lot.auctionDate ? "Ставок пока нет" : "Дата аукциона не назначена")}</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
       <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
@@ -2099,7 +2099,7 @@
 ` : `
       <div class="calcTopV2">
         ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
-        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1">${topBidValue ? fmtBid(topBidValue) : "—"}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Дата аукциона не назначена"))}</b>${usdHint(topBidValue)}</div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
       ${isSold ? `<div class="soldPitchV1">
@@ -2669,7 +2669,7 @@
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus) + (lot.timed && !lotSaleState(lot).finalBid ? ` <i class="dTimedHintV1">не продан на timed — выйдет на live-торги</i>` : "")) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
-              ${dPlain("Дата аукциона", escapeHtml(dbDate(lot.auctionDate, true)))}
+              ${dPlain("Дата аукциона", escapeHtml(lot.auctionDate ? dbDate(lot.auctionDate, true) : L("Не назначена")))}
               ${dPlain("Локация", escapeHtml(lotLocationText(lot)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
               ${lot.repairCost ? dPlain("Оценка ремонта", caMoney(lot.repairCost)) : ""}
