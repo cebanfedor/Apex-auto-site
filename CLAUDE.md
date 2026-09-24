@@ -472,3 +472,11 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   берут его дату/статус вместо базы (иначе подписчик получил бы «через час торги» по проданному лоту).
 - Фоновой сверки всех ~100k активных лотов НЕТ (дорого, расхождения редки): исправляется по факту просмотра карточки/страницы или подписки. Если расхождения окажутся массовыми — добавить кроном проверку
   лотов «sold/future» из `/cars?status=6&next_hours_auction=…` (≈2300 лотов на 72ч) через `/search-lot`.
+
+## Ссылки с названием и VIN (24.09.2026, `server/slug.js`)
+- Лот: `/auctions/<площадка>-<лот>-<название>-<vin>` (`iaai-45987487-2021-chevrolet-malibu-fwd-lt-1g1zd5st3mf072564`), объявление в пути: `/in-transit/<id>-<название>-<vin>`.
+  Алгоритм ОДИН на сервере (`lotSlug`/`transitSlug`) и в клиенте (`lotSlug` в auctions.js, `transitHref` в transit.js/home-transit.js, `lotSlugV` в home-lots.js/hot.js) — менять синхронно.
+  Название берётся из `lot.title` (нормализованное), VIN — только валидный 17-значный, в нижнем регистре, без не-ASCII.
+- Парсинг: `parseLotSlug`/`parseSlug` — `^(copart|iaai)-(\d{5,12})(?:-.*)?$`, иначе старое правило. Старые ссылки (`/auctions/iaai-123`, `/in-transit/3`, `?id=3`) → SSR-страницы отвечают 301 на канонический адрес
+  (`lot-page.js`, `transit-page.js`; только когда лот/объявление найдены). Каноникал/OG/JSON-LD — на новый адрес. Rewrite `/in-transit/:slug(\d[^/]*)` → `transit-page?slug=`.
+- Клиент не плодит записи истории при совпадении лота и отличии хвоста (`replaceState`); ссылки в Telegram-уведомлениях — тоже новые (`lotUrl(id,title,vin)`).
