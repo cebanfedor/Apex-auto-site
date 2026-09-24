@@ -1269,7 +1269,7 @@
             const fact = (icon, label, main, sub) => `<div class="dbFactV1"><small>${dbIco(icon)}${escapeHtml(label)}</small><b${main ? "" : ' class="dbFactNoneV1"'}>${main ? main : "—"}</b><i>${sub ? sub : "&nbsp;"}</i></div>`;
             const fuelTxt = lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "";
             return [
-              fact("odo", L("Пробег"), cut > 0 ? odoStr.slice(0, cut) : odoStr, cut > 0 ? odoStr.slice(cut + 1) : ""),
+              (cut < 0 && odoStr === L("Пробег не указан")) ? fact("odo", L("Пробег"), "", L("не указан")) : fact("odo", L("Пробег"), cut > 0 ? odoStr.slice(0, cut) : odoStr, cut > 0 ? odoStr.slice(cut + 1) : ""),
               fact("engine", L("Двигатель"), escapeHtml(cleanEngine(lot.engine) || ""), escapeHtml(hpStr)),
               fact("drive", L("Привод"), escapeHtml(upAbbr(lot.drive) || ""), escapeHtml([cleanTrans(lot.transmission), fuelTxt].filter(Boolean).join(" · ")))
             ].join("");
