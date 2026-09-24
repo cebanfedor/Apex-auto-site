@@ -1102,3 +1102,5 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionSearchRowV2 #auctionSearchBtn { flex:0 0 auto; height:44px; padding:0 20px; }
   .auctionsSubV3 { display:none; }                         /* число уже в заголовке */
 }
+
+.dbCardGoneV1 { opacity:0; max-height:0; overflow:hidden; margin:0; padding:0; border-width:0; transition:opacity .3s, max-height .35s; }

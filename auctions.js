@@ -1413,7 +1413,15 @@
       const dateMoved = Number.isFinite(liveMs) && Number.isFinite(listMs) && Math.abs(liveMs - listMs) > 2 * 3600e3;
       if(lv.sold || dateMoved){
         Object.assign(lot, {auctionDate:lv.auctionDate || lot.auctionDate}, lv.sold ? {statusId:6, statusName:"sold", lotStatus:"sold", finalBid:lv.finalBid || lv.currentBid} : {});
-        try{ cd.insertAdjacentHTML("afterend", renderCard(lot)); cd.remove(); }catch(e){}
+        // Текущие вкладки показывают только актуальные торги: сыгравший лот убираем (в «Архиве»/«Избранном» и при поиске по VIN/номеру — оставляем как «продан»).
+        const keepSold = ["archived", "favorites"].includes(state.tab) || !!String($("#auctionSmartSearch")?.value || "").trim();
+        if(lv.sold && !keepSold){
+          cd.classList.add("dbCardGoneV1");
+          setTimeout(() => { try{ cd.remove(); }catch(e){} }, 350);
+          const ix = state.items.indexOf(lot); if(ix >= 0) state.items.splice(ix, 1);
+        }else{
+          try{ cd.insertAdjacentHTML("afterend", renderCard(lot)); cd.remove(); }catch(e){}
+        }
         api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&fresh=1`).catch(() => {});
         healed = true;
         return;
