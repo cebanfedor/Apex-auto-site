@@ -1605,3 +1605,7 @@ details > summary::-webkit-details-marker { display: none; }
   .apexReviewsGridV212 > .apexReviewCardV212 { flex:0 0 84%; scroll-snap-align:center; }
   #homeTransitV1 .transitGridV1 > .transitCardV1 { flex:0 0 82%; scroll-snap-align:center; }
 }
+@media (max-width: 640px){
+  .transitBackV1, .transitShareV1, .transitWhereV1 a { display:inline-flex; align-items:center; min-height:44px; }
+  .footerNavV1 a, .siteFooter a { min-height:36px; display:inline-flex; align-items:center; }
+}
