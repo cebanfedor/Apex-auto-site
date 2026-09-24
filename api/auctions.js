@@ -2156,6 +2156,13 @@ async function searchFromDb(query){
   if(make && /^[\d,]+$/.test(make)) p.set("make_id", make.includes(",") ? `in.(${make})` : `eq.${make}`);
   const model = query.get("model");
   if(model && /^[\d,]+$/.test(model)) p.set("model_id", model.includes(",") ? `in.(${model.replace(/^,+|,+$/g, "")})` : `eq.${model}`);
+  // Марки без выбранных моделей берём целиком: (model_id ∈ выбранные) ИЛИ (make_id ∈ марки без моделей)
+  const makeAny = String(query.get("makeAny") || "").replace(/[^0-9,]/g, "").replace(/^,+|,+$/g, "");
+  if(makeAny && p.get("model_id")){
+    const mv = p.get("model_id");
+    p.delete("model_id"); p.delete("make_id");
+    ands.push(`or(model_id.${mv},make_id.in.(${makeAny}))`);
+  }
   const generation = query.get("generation");
   const synGen = parseSynGen(generation);
   if(synGen){

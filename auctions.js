@@ -560,6 +560,11 @@
       params.delete(name);
       if(vals.length) params.set(name, vals.join(","));
     }
+    // Марка без выбранных моделей = все её модели: «Toyota (Highlander, Tacoma) + Honda» → Honda целиком.
+    if(ms.models.length){
+      const bare = ms.makes.filter(m => !ms.models.some(x => x.makeId === m.id)).map(m => m.id);
+      if(bare.length) params.set("makeAny", bare.join(","));
+    }
     // Повреждения: выбранные чипсы + набранный, но не выбранный из списка текст.
     const dmgTyped = (document.getElementById("filterDamageV2")?.value || "").trim();
     const dmgAll = damageList();
