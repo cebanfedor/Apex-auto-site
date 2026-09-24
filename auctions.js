@@ -1091,7 +1091,7 @@
   }
   function dbCheckHistory(rawHistory, currentLot, noPending = false){
     // Пока VIN-история не пришла, показываем ТОЛЬКО заглушку (данные списка — предварительные и потом меняются: карточка «мигала»).
-    if(!noPending && currentLot && String(currentLot.vin || "").length === 17 && vinHistCache[currentLot.vin] === undefined)
+    if(!noPending && currentLot && enrichable(currentLot) && String(currentLot.vin || "").length === 17 && vinHistCache[currentLot.vin] === undefined)
       return `<li class="dbCheck neutral dbHistPendingV1">${dbIco("dot")}<span><b>${L("История:")}</b> <i class="dbPendTxtV1">${L("проверяем…")}</i></span></li>`;
     // Запись текущих торгов (h.current) — не история продаж
     const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
@@ -1402,7 +1402,7 @@
   async function updateCardLiveBids(){
     const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
     const byId = new Map(state.items.map(l => [String(l.id), l]));
-    const ids = cards.map(cd => cd.querySelector(".dbPhoto")?.dataset.lid).filter(id => byId.has(String(id)) && !lotSaleState(byId.get(String(id))).isSold);
+    const ids = cards.map(cd => cd.querySelector(".dbPhoto")?.dataset.lid).filter(id => byId.has(String(id)) && enrichable(byId.get(String(id))) && !lotSaleState(byId.get(String(id))).isSold);
     if(!ids.length) return;
     let live = {};
     try{ const r = await api(`/api/auctions?action=livebids&ids=${encodeURIComponent(ids.slice(0, 30).join(","))}`); live = r.items || {}; }catch(e){ return; }
@@ -1475,7 +1475,7 @@
     cards.forEach(card => {
       const lid = card.querySelector(".dbPhoto")?.dataset.lid;
       const lot = byId.get(String(lid));
-      if(lot && lot.vin && lot.vin.length === 17 && vinHistCache[lot.vin] === undefined) need.push(lot.vin);
+      if(lot && enrichable(lot) && lot.vin && lot.vin.length === 17 && vinHistCache[lot.vin] === undefined) need.push(lot.vin);
     });
     const uniq = [...new Set(need)];
     for(let i = 0; i < uniq.length; i += 30){
@@ -1490,7 +1490,7 @@
     if(retry.length) setTimeout(() => { retry.forEach(v => { delete vinHistCache[v]; }); updateCardVinHistory(); }, 6000);
     cards.forEach(card => {
       const lid = card.querySelector(".dbPhoto")?.dataset.lid;
-      const lot = byId.get(String(lid)); if(!lot || !lot.vin) return;
+      const lot = byId.get(String(lid)); if(!lot || !lot.vin || !enrichable(lot)) return;
       const h = vinHistCache[lot.vin];
       if(!h){
         if(h === null && (vinRetryN[lot.vin] || 0) > 2){
@@ -1530,6 +1530,8 @@
 
   // Прогноз только для 2017+ (старше — не интересно) и только для непроданных.
   const FORECAST_MIN_YEAR = 2017;
+  // Федор (25.09.2026): интересуют лоты 2017 г. и свежее; старше — без фоновых проверок (история VIN, оценка, live-ставки), только на странице лота.
+  function enrichable(lot){ return (Number(lot && lot.year) || 0) >= FORECAST_MIN_YEAR; }
   // Поля для оценки лота — то же, что compsParamsFor, но ПЛОСКИМ объектом (для JSON-батча).
   function compsFieldsFor(lot){
     const cp = compsParamsFor(lot);
@@ -1556,7 +1558,7 @@
   async function enrichBeforeRender(list){
     const lots = (list || []).slice(0, 60);
     const fc = lots.filter(forecastPending).map(lot => ({id:String(lot.id), ...compsFieldsFor(lot)}));
-    const vins = [...new Set(lots.map(l => String(l.vin || "")).filter(v => v.length === 17 && vinHistCache[v] === undefined))];
+    const vins = [...new Set(lots.filter(enrichable).map(l => String(l.vin || "")).filter(v => v.length === 17 && vinHistCache[v] === undefined))];
     const jobs = [];
     if(fc.length) jobs.push(forecastBatch(fc).catch(() => {}));
     for(let i = 0; i < vins.length; i += 30){
@@ -1956,7 +1958,7 @@
       const card = event.target.closest(".dbCard");
       const lid = card && card.querySelector(".dbPhoto")?.dataset.lid;
       const lot = lid && state.items.find(l => String(l.id) === String(lid));
-      if(lot){ auction = lot.auction; lotNo = String(lot.lot); }
+      if(lot && enrichable(lot)){ auction = lot.auction; lotNo = String(lot.lot); }
     }
     if(!auction || !lotNo || prefetchedLots.has(auction + lotNo)) return;
     clearTimeout(hoverTimer);
