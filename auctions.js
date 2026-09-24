@@ -1099,19 +1099,18 @@
     if(count === 0){
       // В списке фид отдаёт историю только ТЕКУЩЕГО номера лота; перевыставленные машины (новый номер после
       // продажи) выглядели «ранее не продавалась». Полная история по VIN — на странице лота.
-      return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span></li>`;
+      return `<li class="dbCheck neutral" title="${escapeHtml(L("Полная история по VIN — на странице лота"))}">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Не проверена")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     // «Переставлялся» = были прошлые заходы на торги (по VIN). Номера лотов не сравниваем — они не идентификатор машины.
     const relisted = history.length > 0;
-    const records = `${count} ${recordsWord(count)}`;
     if(wasSold){
-      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${escapeHtml(records)} • ${L("Был продан ранее!")}</span></li>`;
+      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продавалась ранее")}</span></li>`;
     }
     if(relisted){
-      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${escapeHtml(records)} • ${L("Переставлялся!")}</span></li>`;
+      return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${count})</span></li>`;
     }
-    return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${escapeHtml(records)}</span></li>`;
+    return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Не проверена")}</span></li>`;
   }
 
   function histStatusLabel(name){
@@ -1521,10 +1520,10 @@
         const ph = card.querySelector(".dbPhoto");
         if(ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
         li.className = "dbCheck bad";
-        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${laterSale ? L("Продана позже под другим лотом") : L("Продавалась ранее")}: ${last.bid ? money(last.bid) : L("цена не указана")} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}${!laterSale && !sellerIsInsurance(lot) ? ` · ${L("Перекуп")}` : ""}</span>`;
+        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${laterSale ? L("Перепродана позже") : L("Продавалась ранее")}${last.bid ? ` · ${money(last.bid)}` : ""}${pastSold.length > 1 ? ` (×${pastSold.length})` : ""}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }else{
         li.className = "dbCheck neutral";
-        li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")}: ${past.length} ${recordsWord(past.length)}, ${L("не продана")}</span>`;
+        li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})</span>`;
       }
     });
   }
