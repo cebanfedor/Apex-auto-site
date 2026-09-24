@@ -3564,6 +3564,12 @@
       if(seq !== facetSeq) return;
       facet = next; facetKey = next ? key : "";
       renderMakes(); renderModels();
+      // Без марки/модели сумма фасетов = точное число лотов по фильтрам (у поиска число — оценка планировщика и может расходиться): показываем его.
+      if(next && !ms.makes.length && !ms.models.length && Number(next.total) > 0 && isServerPaging() && !state.loading){
+        const tot = Number(next.total); state.total = tot;
+        $("#auctionResultCount").textContent = tot.toLocaleString("ru-RU"); setResultNum(tot.toLocaleString("ru-RU"));
+        try{ renderPagination(); }catch(e){}
+      }
     }
     msApi.refreshFacets = refreshFacets;
     function renderMakes(){

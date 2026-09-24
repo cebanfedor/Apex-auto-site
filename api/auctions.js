@@ -3827,7 +3827,9 @@ module.exports = async function handler(request, response){
       const mr = await fetch(base + "/api/auctions?action=manufacturers", {headers:{"user-agent":"apex-cache-warm"}}).then(r => r.json());
       makes = (mr.items || []).slice().sort((a, b) => (b.qty || 0) - (a.qty || 0)).slice(0, 12).map(m => `${S}make=${m.id}&auction=all&tab=all&sort=soon&page=1&per_page=30`);
     }catch(_){}
-    const rest = [...tabs, ...types, ...makes];
+    // Фасеты (счётчики марок по фильтрам): холодный расчёт 4–8 с — греем самые частые наборы, в том же порядке ключей, что шлёт клиент.
+    const facetUrls = ["saleStatus=timed&auction=all&tab=all", "auction=all&tab=soon", "auction=copart&tab=soon", "auction=iaai&tab=soon", "auction=all&tab=buy_now", "auction=all&tab=archived"].map(q => `/api/auctions?action=facets&${q}`);
+    const rest = [...tabs, ...types, ...makes, ...facetUrls];
     const phase = Math.floor(Date.now() / 180e3) % 3;
     const paths = [...always, ...rest.filter((_, i) => i % 3 === phase)];
     let idx = 0;
