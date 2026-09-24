@@ -3086,8 +3086,6 @@ function syncRowFromItem(item, {archived = false} = {}){
     sale_date:saleDate,
     status_id:statusId != null && Number.isFinite(Number(statusId)) ? Number(statusId) : null,
     archived:isArchived,
-    // Copart нумерует лоты линии как 2001…2140 (позиция = номер % 1000), IAAI — с 1; 1 лот ≈ 1 минута (решение Федора) + 15 мин запаса.
-    live_until:(normalized.runNo && saleDate && Number.isFinite(Date.parse(saleDate))) ? new Date(Date.parse(saleDate) + ((Math.min(600, normalized.runNo % 1000 || normalized.runNo)) + 15) * 60e3).toISOString() : null,
     lane:normalized.laneKey || null,
     run_no:normalized.runNo || null,
     payload:normalized,
@@ -3179,10 +3177,8 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   syncUpsertRows.written = 0; syncUpsertRows.unchanged = 0; syncUpsertRows.preserved = 0;
   if(!rows.length) return;
   const hasRun = await runColsReady();
-  const hasLive = await liveColReady();
   if(!hasRun) rows.forEach(r => { delete r.lane; delete r.run_no; });
-  if(!hasLive) rows.forEach(r => { delete r.live_until; });
-  const keyFields = [...ROW_KEY_FIELDS, ...(hasRun ? ["run_no", "lane"] : []), ...(hasLive ? ["live_until"] : [])];
+  const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no", "lane"] : ROW_KEY_FIELDS;
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
@@ -3630,6 +3626,8 @@ async function runEngineFill(){
       if(!(Number(n) >= 2500)) break;
     }
   }catch(e){ out.ok = false; out.error = String(e.message || e).slice(0, 160); }
+  // Тот же тик пересчитывает live_until идущих аукционов (SQL-функция refresh_live_until: позиция лота в линии + 15 мин)
+  try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:"{}"})) || 0; }catch(e){ out.liveErr = String(e.message || e).slice(0, 100); }
   out.ms = Date.now() - t0;
   return out;
 }
