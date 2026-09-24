@@ -2912,7 +2912,7 @@
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
             ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco("warn")}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
-            <div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>
+            ${exportBan(lot) ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">
               <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
