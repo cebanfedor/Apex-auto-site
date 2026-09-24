@@ -2006,7 +2006,7 @@
     const card = e.target.closest && e.target.closest("#auctionCards .dbCard"); const ph = card && card.querySelector(".dbPhoto"); if(!ph || ph.dataset.hovInit) return;
     const lot = lotOfPhoto(ph); if(!lot || saveData()) return;
     ph.dataset.hovInit = "1";
-    ensureFullImages(lot).then(() => { (lot.images || []).slice(0, 10).forEach(u => { const im = new Image(); im.decoding = "async"; im.src = cardImg(u); }); });
+    ensureFullImages(lot).then(() => { (lot.images || []).slice(0, 10).forEach(u => { const im = new Image(); im.decoding = "async"; im.src = cardImg(u); }); if(ph.dataset.hov != null && ph.dataset.hov !== "") showCardPhoto(ph, lot, Number(ph.dataset.hov)); });
   }, {passive:true});
   document.addEventListener("mousemove", e => {
     if(!finePointer()) return;
