@@ -1288,7 +1288,7 @@
         <div class="dbPriceWrap">
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
-            ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L(lot.auctionDate || isSold ? "ставок пока нет" : "Дата аукциона не назначена")}</b>`}
+            ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
             <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
           </div>
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
@@ -1779,7 +1779,7 @@
     const tl = timeLeftLabel(lot.auctionDate);
     const priceBar = price || buyNow
       ? `<span class="scPriceV1"><span>${buyNow && !price ? L("Купить сейчас") : L("Ставка")}</span><b>${money(price || buyNow)}</b></span>`
-      : `<span class="scPriceV1 scPriceEmptyV1"><span>${L(lot.auctionDate ? "Ставок пока нет" : "Дата аукциона не назначена")}</span></span>`;
+      : `<span class="scPriceV1 scPriceEmptyV1"><span>${L("Ставок пока нет")}</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
       <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
@@ -2196,7 +2196,7 @@
 ` : `
       <div class="calcTopV2">
         ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
-        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Дата аукциона не назначена"))}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Ставок пока нет"))}</b>${usdHint(topBidValue)}</div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
       ${!isSold ? `<div id="lotQueueV1" class="lotQueueV1" hidden></div>` : ""}
