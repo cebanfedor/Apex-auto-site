@@ -140,7 +140,7 @@
 .pgLoadMoreBtnV1:disabled { opacity:.5; cursor:default; }
 
 /* Card (row) — DreamBid-style */
-.dbCard { display:grid; grid-template-columns:clamp(240px, 21vw, 300px) minmax(0,1fr) 210px; gap:18px; padding:14px 16px; border-bottom:1px solid var(--aLine2); transition:background .15s; }
+.dbCard { display:grid; grid-template-columns:clamp(228px, 18vw, 258px) minmax(0,1fr) 220px; gap:18px; padding:14px 16px; border-bottom:1px solid var(--aLine2); transition:background .15s; }
 .dbCard:last-child { border-bottom:none; }
 .dbCard:hover { background:#fafbfc; }
 
@@ -227,7 +227,7 @@
 .dbNew { background:#eaf1ff; color:#1f6bff; font-weight:700; font-size:10.5px; padding:2px 8px; border-radius:6px; }
 .dbIco { width:15px; height:15px; flex:none; }
 
-.dbCols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px 16px; }
+.dbCols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px 22px; }
 .dbSpecs, .dbChecks { list-style:none; display:flex; flex-direction:column; gap:6px; margin:0; padding:0; }
 .dbSpecs li, .dbChecks li { display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--aInk2); line-height:1.3; }
 .dbSpecs .dbIco { color:var(--aMuted); margin-top:1px; }
