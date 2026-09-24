@@ -1992,18 +1992,23 @@
     state.loading = true;
     setMessage("");
     const snapKey = append ? "" : formParams().toString();
+    let fromSnap = false;
     if(!append && state.items.length === 0){
       const sn = snapRead(snapKey);
       if(sn && Array.isArray(sn.items) && sn.items.length){
         state.items = sn.items; state.total = sn.total || 0; state.hasMore = !!sn.hasMore; state.displayPage = 1;
         $("#auctionResultCount").textContent = state.total ? state.total.toLocaleString("ru-RU") : state.items.length;
         setResultNum(state.total ? state.total.toLocaleString("ru-RU") : "");
-        try{ renderCards(); }catch(e){}
+        try{ renderCards(); fromSnap = true; }catch(e){}
       }
     }
     // Stale-while-revalidate: dim existing cards on page change, skeleton on first load
     if(state.items.length === 0) $("#auctionCards").innerHTML = skeletonCards(6);
-    else $("#auctionCards").classList.add("lotsRefreshingV1");
+    else if(!fromSnap){
+      // Приглушаем старые карточки только если загрузка затянулась (>450 мс), и лишь при действии пользователя — не на «серую вспышку» при обновлении страницы.
+      clearTimeout(state.dimTimer);
+      state.dimTimer = setTimeout(() => { if(reqId === state.loadSeq && state.loading) $("#auctionCards").classList.add("lotsRefreshingV1"); }, 450);
+    }
     const archived = state.tab === "archived";
     try{
       const reqUrl = `/api/auctions?action=search&${formParams()}`;
@@ -2074,6 +2079,7 @@
     }finally{
       if(reqId === state.loadSeq){
         state.loading = false;
+        clearTimeout(state.dimTimer);
         $("#auctionCards").classList.remove("lotsRefreshingV1");
         syncUrl();
         if(pendingScrollRestore != null){
