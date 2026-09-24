@@ -1540,6 +1540,35 @@
   // 23.09.2026: раньше каждая карточка тянула /api/auctions?action=comps СВОИМ запросом — на
   // странице с 30 лотами это до 19 живых HTTP-запросов подряд (~6с, пока не досчитаются все).
   // Один POST на весь видимый экран — как уже сделано для vinhist/livebids.
+  // Оценки лотов кэшируем на клиенте (10 мин): предзагрузка до отрисовки списка → карточки появляются сразу с «Ориентиром».
+  const forecastCache = new Map();
+  async function forecastBatch(items){
+    const fresh = it => { const e = forecastCache.get(it.id); return e && Date.now() - e.t < 10 * 60e3; };
+    const need = items.filter(it => !fresh(it));
+    if(need.length){
+      const r = await api("/api/auctions?action=compsbatch", {method:"POST", body:{items:need}});
+      const got = (r && r.items) || {};
+      need.forEach(it => forecastCache.set(it.id, {c:got[it.id] || null, t:Date.now()}));
+    }
+    const out = {}; items.forEach(it => { const e = forecastCache.get(it.id); if(e && e.c) out[it.id] = e.c; });
+    return out;
+  }
+  async function enrichBeforeRender(list){
+    const lots = (list || []).slice(0, 60);
+    const fc = lots.filter(forecastPending).map(lot => ({id:String(lot.id), ...compsFieldsFor(lot)}));
+    const vins = [...new Set(lots.map(l => String(l.vin || "")).filter(v => v.length === 17 && vinHistCache[v] === undefined))];
+    const jobs = [];
+    if(fc.length) jobs.push(forecastBatch(fc).catch(() => {}));
+    for(let i = 0; i < vins.length; i += 30){
+      const part = vins.slice(i, i + 30);
+      jobs.push(api(`/api/auctions?action=vinhist&vins=${encodeURIComponent(part.join(","))}`)
+        .then(r => { Object.assign(vinHistCache, r.items || {}); part.forEach(v => { if(vinHistCache[v] === undefined) vinHistCache[v] = null; }); })
+        .catch(() => {}));
+    }
+    if(!jobs.length) return;
+    // Ждём не дольше 1.1 с: успели — карточки рисуются сразу готовыми, нет — с заглушками (см. dbHistPendingV1 / dbForecastSkelV1).
+    await Promise.race([Promise.all(jobs), new Promise(r => setTimeout(r, 1100))]);
+  }
   // Карточка, у которой ожидается «Ориентир»: резервируем место со скелетоном (иначе блок цены вырастал, когда оценка приходила).
   function forecastPending(lot){
     try{ return !!(lot && lot.makeId && lot.modelId && (Number(lot.year) || 0) >= FORECAST_MIN_YEAR && !lotSaleState(lot).isSold); }catch(e){ return false; }
@@ -1562,10 +1591,7 @@
     if(!jobs.length){ clearForecastSkeletons(); return; }
     const items = jobs.map(({lot}) => ({id:String(lot.id), ...compsFieldsFor(lot)}));
     let results = {};
-    try{
-      const r = await api("/api/auctions?action=compsbatch", {method:"POST", body:{items}});
-      results = (r && r.items) || {};
-    }catch(e){ clearForecastSkeletons(); return; }
+    try{ results = await forecastBatch(items); }catch(e){ clearForecastSkeletons(); return; }
     jobs.forEach(({node, lot}) => {
       node.removeAttribute("data-pending"); node.innerHTML = ""; node.hidden = true;
       const c = results[String(lot.id)]; if(!c || !document.body.contains(node)) return;
@@ -1985,6 +2011,8 @@
       if(reqId !== state.loadSeq) return; // уже запрошено что-то новее
       const nextItems = payload.items || [];
       if(!append && nextItems.length) snapWrite(snapKey, payload);
+      await enrichBeforeRender(nextItems);
+      if(reqId !== state.loadSeq) return;
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
       if(append){
