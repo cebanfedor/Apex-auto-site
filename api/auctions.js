@@ -3808,6 +3808,21 @@ module.exports = async function handler(request, response){
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}); }
     return;
   }
+  // Прогрев CDN: те же адреса, что запрашивает страница «Аукционы» при открытии. Кэш 180с + stale-while-revalidate 600с →
+  // при прогреве раз в 3 минуты посетитель всегда получает готовый ответ (иначе при малом трафике попадал на «холодный» 2–6с).
+  if(action === "warm"){
+    const base = "https://apexauto.md", t0 = Date.now(), out = [];
+    const paths = ["/api/auctions?action=manufacturers", "/api/content?rates=1", "/api/auctions?action=count", "/api/content",
+      ...["1", "2", "5", "7"].map(t => `/api/auctions?action=search&per_page=30&vehicleType=${t}&sort=smart&auction=all&tab=all`)];
+    for(const path of paths){
+      if(Date.now() - t0 > 45000) break;
+      const st = Date.now();
+      try{ const r = await fetch(base + path, {headers:{"user-agent":"apex-cache-warm"}}); await r.arrayBuffer(); out.push(`${path.slice(12, 60)} ${r.status} ${r.headers.get("x-vercel-cache") || "-"} ${Date.now() - st}ms`); }
+      catch(e){ out.push(`${path.slice(12, 60)} err`); }
+    }
+    sendJson(response, 200, {ok:true, out, ms:Date.now() - t0}, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "enginefill"){
     sendJson(response, 200, await runEngineFill(), {"cache-control":"no-store"});
     return;

@@ -8,7 +8,8 @@
     { "path": "/api/cron/settle", "schedule": "6-59/10 * * * *" },
     { "path": "/api/cron/alerts", "schedule": "*/3 * * * *" },
     { "path": "/api/cron/resale", "schedule": "*/2 * * * *" },
-    { "path": "/api/cron/engine", "schedule": "*/3 * * * *" }
+    { "path": "/api/cron/engine", "schedule": "*/3 * * * *" },
+    { "path": "/api/cron/warm", "schedule": "*/3 * * * *" }
   ],
   "redirects": [
     { "source": "/server/:path*", "destination": "/404", "permanent": false },
@@ -26,6 +27,7 @@
     { "source": "/api/cron/alerts", "destination": "/api/auctions?action=alerttick&source=cron" },
     { "source": "/api/cron/resale", "destination": "/api/auctions?action=resalecheck&source=cron" },
     { "source": "/api/cron/engine", "destination": "/api/auctions?action=enginefill&source=cron" },
+    { "source": "/api/cron/warm", "destination": "/api/auctions?action=warm&source=cron" },
     { "source": "/api/sync-lots", "destination": "/api/auctions?action=synclots" },
     { "source": "/api/calc", "destination": "/api/content?calc=1" },
     { "source": "/api/locations", "destination": "/api/content?calc=1&locations=" },
