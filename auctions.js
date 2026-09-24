@@ -1232,7 +1232,7 @@
       : showBuyNow ? "Купить сейчас" : "Текущая цена";
     // Канадские площадки торгуют в CAD
     const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
-    const photos = lot.photoCount || lot.images?.length || 1;
+    const photos = Math.min(CARD_PHOTO_MAX, lot.photoCount || lot.images?.length || 1);
     return `<article class="dbCard">
       <div class="dbPhoto" data-lid="${escapeHtml(String(lot.id))}">
         <a class="dbPhotoLink" href="${detailHref(lot)}">
@@ -1950,10 +1950,11 @@
     }catch(e){}
   }
   // Карточка каталога (компьютер): фото листается движением мыши влево-вправо (полоска позиции внизу), клик по фото — большое фото, а не страница лота.
+  const CARD_PHOTO_MAX = 10;   // Федор 25.09.2026: в карусели карточки каталога не больше 10 фото (остальные — на странице лота)
   const finePointer = () => { try{ return window.matchMedia("(hover:hover) and (pointer:fine)").matches; }catch(e){ return false; } };
   function ensureFullImages(lot){
     if(lot._fullPromise) return lot._fullPromise;
-    if(Number(lot.photoCount) <= (lot.images || []).length){ lot._fullPromise = Promise.resolve(); return lot._fullPromise; }
+    if(Number(lot.photoCount) <= (lot.images || []).length || (lot.images || []).length >= CARD_PHOTO_MAX){ lot._fullPromise = Promise.resolve(); return lot._fullPromise; }
     lot._fullImgs = lot._fullImgs || "loading";
     lot._fullPromise = api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
       .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done"; })
@@ -1962,10 +1963,10 @@
   }
   const lotOfPhoto = ph => ph && state.items.find(l => String(l.id) === String(ph.dataset.lid));
   function showCardPhoto(ph, lot, i){
-    const imgs = lot.images || []; if(i < 0 || i >= imgs.length) return;
+    const imgs = (lot.images || []).slice(0, CARD_PHOTO_MAX); if(i < 0 || i >= imgs.length) return;
     const img = ph.querySelector(".dbSlideImg"); if(!img) return;
     img.src = cardImg(imgs[i]); img.dataset.full = imgs[i]; img.dataset.slide = i; ph.dataset.hov = String(i);
-    const total = Math.max(imgs.length, Number(lot.photoCount) || 0);
+    const total = Math.min(CARD_PHOTO_MAX, Math.max(imgs.length, Number(lot.photoCount) || 0));
     const cnt = ph.querySelector(".dbPhotoCount"); if(cnt) cnt.textContent = `${i + 1}/${total}`;
     const bar = ph.querySelector(".dbPhotoBarV1 i"); if(bar){ bar.style.width = (100 / imgs.length).toFixed(3) + "%"; bar.style.left = (i * 100 / imgs.length).toFixed(3) + "%"; }
   }
@@ -1980,7 +1981,7 @@
   document.addEventListener("mousemove", e => {
     if(!finePointer()) return;
     const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto"); if(!ph || noScrub(e.target)) return;
-    const lot = lotOfPhoto(ph); const n = lot && lot.images ? lot.images.length : 0; if(n < 2) return;
+    const lot = lotOfPhoto(ph); const n = lot && lot.images ? Math.min(CARD_PHOTO_MAX, lot.images.length) : 0; if(n < 2) return;
     const r = ph.getBoundingClientRect();
     const i = Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * n)));
     if(ph.dataset.hov === String(i)) return;
@@ -2000,8 +2001,8 @@
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     const href = a.getAttribute("href") || "";
     const idx = Number(ph.dataset.hov) || Number(ph.querySelector(".dbSlideImg")?.dataset.slide) || 0;
-    openLightbox(lot.images, idx, href, String(lot.id));
-    ensureFullImages(lot).then(() => { if(lb.lotId === String(lot.id) && !document.getElementById("lotLightbox").hidden && lot.images.length > lb.images.length){ lb.images = lot.images.map(m => typeof m === "string" ? {type:"image", src:m} : m); renderLightbox(); } });
+    openLightbox(lot.images.slice(0, CARD_PHOTO_MAX), idx, href, String(lot.id));
+    ensureFullImages(lot).then(() => { if(lb.lotId === String(lot.id) && !document.getElementById("lotLightbox").hidden && Math.min(CARD_PHOTO_MAX, lot.images.length) > lb.images.length){ lb.images = lot.images.slice(0, CARD_PHOTO_MAX).map(m => typeof m === "string" ? {type:"image", src:m} : m); renderLightbox(); } });
   }, true);
   let hoverTimer = null;
   function prefetchLotOnHover(event){
@@ -4046,17 +4047,17 @@
         const dir = parseInt(slideBtn.dataset.dir) || 1;
         // В базе у лота хранятся только 4 фото (экономия места), а счётчик показывал 1/19 —
         // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
-        if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length){
+        if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length && lot.images.length < CARD_PHOTO_MAX){
           lot._fullImgs = "loading";
           api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
             .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
-              const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${lot.images.length}`; })
+              const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`; })
             .catch(() => { lot._fullImgs = "done"; });
         }
         let idx = parseInt(img?.dataset.slide || "0");
-        idx = (idx + dir + lot.images.length) % lot.images.length;
+        { const cnt = Math.min(CARD_PHOTO_MAX, lot.images.length); idx = (idx + dir + cnt) % cnt; }
         if(img){ img.dataset.full = lot.images[idx]; img.src = cardImg(lot.images[idx]); img.dataset.slide = idx; }
-        if(counter) counter.textContent = `${idx + 1}/${lot.images.length}`;
+        if(counter) counter.textContent = `${idx + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`;
         return;
       }
       const copyEl = event.target.closest("[data-copy]");
