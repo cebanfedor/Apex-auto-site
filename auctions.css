@@ -964,8 +964,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Перекуп: VIN уже продавался под другим номером лота */
 .simResoldV1 { position:absolute; left:6px; top:6px; display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border-radius:5px; background:#e5202b; color:#fff; font-size:9.5px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; line-height:1.5; z-index:2; box-shadow:0 1px 4px rgba(0,0,0,.25); }
 .simResoldV1 .dbIco { width:11px; height:11px; color:#fff; }
-.dbPhoto .dbResoldV1 { left:auto; right:56px; top:10px; }
-@media (max-width:640px){ .dbPhoto .dbResoldV1 { top:auto; bottom:12px; right:10px; left:auto; } }
+.dbPhoto .dbResoldV1 { left:8px; right:auto; top:8px; padding:2px 6px; font-size:9px; border-radius:5px; }
+.dbPhoto .dbResoldV1 .dbIco { width:10px; height:10px; }
+@media (max-width:640px){ .dbPhoto .dbResoldV1 { left:6px; top:6px; right:auto; bottom:auto; } }
 
 /* «Продан ранее»: правило .simCardV1 span (серый текст) перебивало цвет — белый принудительно */
 .simCardV1 .simResoldV1, .dbPhoto .simResoldV1 { color:#fff !important; font-weight:800; opacity:1; }
