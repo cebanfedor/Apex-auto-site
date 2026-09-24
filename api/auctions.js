@@ -2160,6 +2160,12 @@ async function searchFromDb(query){
   if(query.get("smart") === "1") ands.push("or(resale.is.null,resale.eq.0)");
 
   const tab = query.get("tab") || "all";
+  // Лоты идущих сейчас аукционов: показываем, пока до них не дошла очередь (live_until = старт + позиция в линии + 15 мин),
+  // у остальных — окно 30 мин после старта. wide — только «драйвер» диапазона для индекса по sale_date.
+  const liveOk = await liveColReady();
+  const _now = new Date().toISOString(), _wide = new Date(Date.now() - 6 * 3600e3).toISOString(), _grace = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
+  const datedLive = () => liveOk ? `and(sale_date.gte.${_wide},or(sale_date.gte.${_now},live_until.gte.${_now},and(live_until.is.null,sale_date.gte.${_grace})))` : `sale_date.gte.${_grace}`;
+  const datedOrNull = () => liveOk ? `or(sale_date.gte.${_now},live_until.gte.${_now},and(live_until.is.null,sale_date.gte.${_grace}),sale_date.is.null)` : `or(sale_date.gte.${_grace},sale_date.is.null)`;
   let datedOnly = false, datedOnlyFull = null;   // общий каталог: основная выборка — только назначенные торги (см. ниже)
   // Архив = только СОСТОЯВШИЕСЯ торги. Фид помечает sold/archived и лоты с будущей датой,
   // где final_bid — всего лишь пред-ставка: они вставали первыми («23 сент., финальная $975»).
@@ -2192,7 +2198,7 @@ async function searchFromDb(query){
     p.set("archived", "eq.false");
     const from = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
     const to = new Date(Date.now() + 48 * 3600e3).toISOString();
-    ands.push(`sale_date.gte.${from}`);
+    ands.push(datedLive());
     ands.push(`sale_date.lte.${to}`);
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }
@@ -2210,10 +2216,10 @@ async function searchFromDb(query){
     // range-scan по дате не нужен — сортируем весь каталог, включая лоты без даты.
     const dateSorted = /^(|soon|smart|date_asc|date_desc)$/.test(query.get("sort") || "");
     if(!dateSorted || query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
-      ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+      ands.push(datedOrNull());
     }else{
-      ands.push(`sale_date.gte.${grace}`);
-      datedOnly = true; datedOnlyFull = [`sale_date.gte.${grace}`, `or(sale_date.gte.${grace},sale_date.is.null)`];
+      ands.push(datedLive());
+      datedOnly = true; datedOnlyFull = [datedLive(), datedOrNull()];
     }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }else{
@@ -2237,10 +2243,10 @@ async function searchFromDb(query){
     // range-scan по дате не нужен — сортируем весь каталог, включая лоты без даты.
     const dateSorted = /^(|soon|smart|date_asc|date_desc)$/.test(query.get("sort") || "");
     if(!dateSorted || query.get("make") || query.get("model") || query.get("name") || query.get("vin")){
-      ands.push(`or(sale_date.gte.${grace},sale_date.is.null)`);
+      ands.push(datedOrNull());
     }else{
-      ands.push(`sale_date.gte.${grace}`);
-      datedOnly = true; datedOnlyFull = [`sale_date.gte.${grace}`, `or(sale_date.gte.${grace},sale_date.is.null)`];
+      ands.push(datedLive());
+      datedOnly = true; datedOnlyFull = [datedLive(), datedOrNull()];
     }
     ands.push("or(status_id.neq.6,status_id.is.null)");
   }
@@ -3080,6 +3086,8 @@ function syncRowFromItem(item, {archived = false} = {}){
     sale_date:saleDate,
     status_id:statusId != null && Number.isFinite(Number(statusId)) ? Number(statusId) : null,
     archived:isArchived,
+    // Copart нумерует лоты линии как 2001…2140 (позиция = номер % 1000), IAAI — с 1; 1 лот ≈ 1 минута (решение Федора) + 15 мин запаса.
+    live_until:(normalized.runNo && saleDate && Number.isFinite(Date.parse(saleDate))) ? new Date(Date.parse(saleDate) + ((Math.min(600, normalized.runNo % 1000 || normalized.runNo)) + 15) * 60e3).toISOString() : null,
     lane:normalized.laneKey || null,
     run_no:normalized.runNo || null,
     payload:normalized,
@@ -3131,6 +3139,15 @@ async function runColsReady(){
   runColsState = {ok, at:Date.now()};
   return ok;
 }
+let liveColState = {ok:false, at:0};
+async function liveColReady(){
+  const ttl = liveColState.ok ? 600e3 : 60e3;
+  if(Date.now() - liveColState.at < ttl) return liveColState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=live_until&limit=1`); ok = true; }catch(_){ ok = false; }
+  liveColState = {ok, at:Date.now()};
+  return ok;
+}
 function sameKeyFields(a, b, keyFields = ROW_KEY_FIELDS){
   // Timed и резерв продавца живут в payload: лот, перешедший на Timed-аукцион без смены даты/ставки, раньше считался
   // «неизменившимся» и его признак Timed в базе застревал (DreamBid: 4334 Timed, у нас были сотни).
@@ -3139,7 +3156,7 @@ function sameKeyFields(a, b, keyFields = ROW_KEY_FIELDS){
   if(("sr" in b) && (Number(pl.sellerReserve) || 0) !== (Number(b.sr) || 0)) return false;
   for(const f of keyFields){
     let x = a[f], y = b[f];
-    if(f === "sale_date"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
+    if(f === "sale_date" || f === "live_until"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
     if((x ?? null) !== (y ?? null) && !(Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && Number(x) === Number(y))) return false;
   }
   return true;
@@ -3162,8 +3179,10 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   syncUpsertRows.written = 0; syncUpsertRows.unchanged = 0; syncUpsertRows.preserved = 0;
   if(!rows.length) return;
   const hasRun = await runColsReady();
+  const hasLive = await liveColReady();
   if(!hasRun) rows.forEach(r => { delete r.lane; delete r.run_no; });
-  const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no", "lane"] : ROW_KEY_FIELDS;
+  if(!hasLive) rows.forEach(r => { delete r.live_until; });
+  const keyFields = [...ROW_KEY_FIELDS, ...(hasRun ? ["run_no", "lane"] : []), ...(hasLive ? ["live_until"] : [])];
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
@@ -3944,7 +3963,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "25";
+  const SEARCH_CACHE_VER = "26";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g13" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
