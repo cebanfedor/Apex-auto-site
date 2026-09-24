@@ -1087,3 +1087,18 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionCrumbsV1 a { display:inline-block; padding:6px 0; }
   .crumbChevV1 { width:32px; height:32px; }
 }
+
+/* ---- Мобильный каталог: компактная шапка управления (было ~500px до первой карточки) ---- */
+@media (max-width:640px){
+  .auctionToolbarV2 { gap:8px; margin-bottom:8px; }
+  .auctionToolRightV2 { display:grid; grid-template-columns:1fr auto; gap:8px; width:100%; }
+  .auctionSwitchV1 { grid-column:1 / -1; display:flex; }
+  .auctionSwitchV1 button { flex:1; padding:0 8px; }
+  .sortDropV1 { grid-column:1; min-width:0; }
+  .sortDropTrigV1 { width:100%; }
+  #openFiltersBtn { grid-column:2; height:40px; padding:0 18px; }
+  .auctionSearchRowV2 { flex-wrap:nowrap; margin-bottom:10px; }
+  .auctionSearchRowV2 input { flex:1 1 0; min-width:0; height:44px; }
+  .auctionSearchRowV2 #auctionSearchBtn { flex:0 0 auto; height:44px; padding:0 20px; }
+  .auctionsSubV3 { display:none; }                         /* число уже в заголовке */
+}
