@@ -264,7 +264,7 @@
     const range = (title, a, b, fmt) => {
       const x = val(a), y = val(b);
       if(!x && !y) return;
-      const t = x && y ? `${fmt(x)}–${fmt(y)}` : x ? `${L("от")} ${fmt(x)}` : `${L("до")} ${fmt(y)}`;
+      const t = x && y ? (x === y ? `${fmt(x)}` : `${fmt(x)}–${fmt(y)}`) : x ? `${L("от")} ${fmt(x)}` : `${L("до")} ${fmt(y)}`;
       add(`${L(title)}: ${t}`, () => { clear(form.elements[a], form.elements[b]); const r = form.elements[a].closest("[data-range]"); if(r && r._applyNums) r._applyNums(); });
     };
     const num = n => Number(n).toLocaleString("ru-RU");
@@ -4176,7 +4176,7 @@
     $("#resetFiltersBtn").addEventListener("click", () => {
       $("#auctionFiltersForm").reset();
       // Скрытые ID комбо-фильтров form.reset() не чистит — фильтр «залипал»
-      ["filterMakeIdV2","filterModelIdV2","filterGenIdV2","filterMakeV2","filterModelV2","filterGenV2"].forEach(id => {
+      ["filterMakeIdV2","filterModelIdV2","filterGenIdV2","filterMakeV2","filterModelV2","filterGenV2","filterStateIdV2","filterStateV2"].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = "";
       });
@@ -4189,6 +4189,8 @@
       });
       document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active"));
       document.querySelectorAll("[data-range]").forEach(range => { if(range._refresh) range._refresh(); });
+      state.auction = "all";
+      document.querySelectorAll("[data-auction-switch]").forEach(b => b.classList.toggle("active", b.getAttribute("data-auction-switch") === "all"));
       state.page = 1; state.displayPage = 1;
       loadLots();
     });
