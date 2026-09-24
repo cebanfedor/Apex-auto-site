@@ -3249,6 +3249,8 @@
       const min = Number(range.dataset.min), max = Number(range.dataset.max);
       const lo = range.querySelector(".rLoV2"), hi = range.querySelector(".rHiV2"), fill = range.querySelector(".rangeFillV2");
       const nums = range.querySelectorAll(".rangeNumsV2 input"), numLo = nums[0], numHi = nums[1];
+      const rangeTitle = (range.closest("details")?.querySelector("summary")?.textContent || "").trim();
+      lo.setAttribute("aria-label", rangeTitle + " — от"); hi.setAttribute("aria-label", rangeTitle + " — до");
       const pct = v => ((v - min) / (max - min)) * 100;
       const paint = () => {
         const a = Math.min(Number(lo.value), Number(hi.value)), b = Math.max(Number(lo.value), Number(hi.value));
