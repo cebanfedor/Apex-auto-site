@@ -1053,9 +1053,10 @@ body.leadModalOpenV1 { overflow:hidden; }
 .msRowV1:hover { background:var(--aSoft); }
 .msRowV1 input { flex:none; width:17px; height:17px; margin:0; accent-color:#1d4ed8; cursor:pointer; }
 .msLogoV1 { flex:none; width:24px; height:24px; object-fit:contain; }
-.msNameV1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.msNameV1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+.msRowV1.isOnV1 .msNameV1 { font-weight:600; }
 .msNameV1 small { display:block; font-size:11px; font-weight:500; color:var(--aMuted); }
-.msRowV1 i { flex:none; font-style:normal; font-size:12px; color:var(--aMuted); }
+.msRowV1 i { flex:none; font-style:normal; font-size:12px; font-weight:400; color:var(--aMuted); font-variant-numeric:tabular-nums; }
 .msRowV1.isOnV1 { background:#f3f7ff; }
 .msEmptyV1 { margin:0; padding:10px 8px; font-size:13px; color:var(--aMuted); }
 
