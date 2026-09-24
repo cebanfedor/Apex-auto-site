@@ -943,7 +943,9 @@
 
   // Пустая выдача: вместо тупика — кнопки «убрать этот фильтр» по каждому активному чипу
   function showRecovery(){
-    const box = $("#auctionMessage"); if(!box || !activeChips.length || state.tab === "favorites") return;
+    const box = $("#auctionMessage"); if(!box || state.tab === "favorites") return;
+    try{ activeChips = activeFilterChips(); }catch(e){}
+    if(!activeChips.length) return;
     const btns = activeChips.map((c, i) => `<button type="button" class="rcChipV1" data-rc="${i}">${escapeHtml(c.label)} <span aria-hidden="true">×</span></button>`).join("");
     const hint = document.createElement("div"); hint.className = "rcBoxV1";
     hint.innerHTML = `<div class="rcHeadV1">${escapeHtml(L("Попробуйте убрать условие:"))}</div><div class="rcChipsV1">${btns}<button type="button" class="rcResetV1" data-rc="all">${escapeHtml(L("Сбросить всё"))}</button></div>`;
@@ -3858,7 +3860,7 @@
       // --- «до N» / «от N»: год, если число похоже на год и нет валюты; иначе ставка ---
       const dirPrice = (from) => sweep(smRe(`${SM_PRE}(${from ? SM_FROM : SM_TO})\\s*(\\$)?\\s*${SMN}\\s*(\\$|usd|долл[а-я]*)?`), (m, g) => {
         const v = smParseNum(g[2], g[3]), cur = !!(g[1] || g[4]);
-        if(!cur && !g[3] && smIsYear(v)){ push("year", `${L("Год")}: ${from ? L("от") : L("до")} ${v}`, () => smSetNum(from ? "yearFrom" : "yearTo", v)); return true; }
+        if(!cur && !g[3] && smIsYear(v) && (from || v >= 2010)){ push("year", `${L("Год")}: ${from ? L("от") : L("до")} ${v}`, () => smSetNum(from ? "yearFrom" : "yearTo", v)); return true; }
         if(v < 100 && !cur) return false;
         push("bid", `${L("Ставка")}: ${from ? L("от") : L("до")} ${smMoney(v)}`, () => smSetNum(from ? "bidFrom" : "bidTo", v)); return true;
       });
