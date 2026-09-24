@@ -274,14 +274,10 @@
     range("Цена «Купить сейчас»", "buyNowFrom", "buyNowTo", n => `$${num(n)}`);
     const optText = el => (el.closest("label")?.textContent || el.value).trim();
     const boxes = (name, title) => form.querySelectorAll(`input[name="${name}"]:checked`).forEach(cb => add(`${L(title)}: ${optText(cb)}`, () => { cb.checked = false; }));
-    const radio = (name, title) => {
-      const r = form.querySelector(`input[name="${name}"]:checked`);
-      if(r && r.value) add(`${L(title)}: ${optText(r)}`, () => { const any = form.querySelector(`input[name="${name}"][value=""]`); if(any) any.checked = true; else r.checked = false; });
-    };
     if(form.querySelector('input[name="smart"]:checked')) add("Feduk Clean Select™", () => { form.querySelector('input[name="smart"]').checked = false; });
     boxes("fuel", "Топливо");
-    radio("body", "Кузов"); radio("vehicleType", "Тип техники"); radio("drive", "Привод"); radio("transmission", "Коробка");
-    radio("cylinders", "Цилиндры"); radio("country", "Страна"); radio("condition", "Состояние");
+    boxes("body", "Кузов"); boxes("vehicleType", "Тип техники"); boxes("drive", "Привод"); boxes("transmission", "Коробка");
+    boxes("cylinders", "Цилиндры"); boxes("country", "Страна"); boxes("condition", "Состояние");
     if(val("color")) add(`${L("Цвет")}: ${val("color")}`, () => { form.elements.color.value = ""; });
     damageList().forEach((d, i) => add(`${L("Повреждение")}: ${d}`, () => { const l = damageList(); l.splice(i, 1); setDamageList(l); }));
     const dTyped = String(byId("filterDamageV2")?.value || "").trim();
@@ -289,7 +285,7 @@
     const st = byId("filterStateIdV2");
     if(st && st.value) add(`${L("Штат / провинция")}: ${byId("filterStateV2")?.value || st.value}`, () => { clear(st, byId("filterStateV2")); });
     boxes("lotStatus", "Статус лота");
-    radio("saleStatus", "Статус продажи");
+    boxes("saleStatus", "Статус продажи");
     const d1 = val("auctionDateFrom"), d2 = val("auctionDateTo");
     if(d1 || d2) add(`${L("Дата аукциона")}: ${d1 || "…"} – ${d2 || "…"}`, () => { clear(form.elements.auctionDateFrom, form.elements.auctionDateTo); document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active")); });
     return chips;
@@ -555,7 +551,7 @@
     const form = $("#auctionFiltersForm");
     const params = new URLSearchParams(new FormData(form));
     // Мультивыбор (топливо, статус лота): чекбоксы одного имени → «4,3» одним параметром.
-    for(const name of ["fuel", "lotStatus"]){
+    for(const name of ["fuel", "lotStatus", "body", "vehicleType", "drive", "transmission", "cylinders", "country", "condition", "saleStatus"]){
       const vals = params.getAll(name).filter(Boolean);
       params.delete(name);
       if(vals.length) params.set(name, vals.join(","));
@@ -1531,10 +1527,11 @@
   }
 
   function matchSale(lot, sale){
-    if(!sale) return true;
-    if(sale === "timed") return !!lot.timed;
-    if(sale === "on_approval") return lot.statusId === 4 || /approval/i.test(lot.statusName || "");
-    return lot.saleStatusKey === sale;
+    const list = Array.isArray(sale) ? sale : (sale ? String(sale).split(",") : []);
+    if(!list.length) return true;
+    return list.some(x => x === "timed" ? !!lot.timed
+      : x === "on_approval" ? (lot.statusId === 4 || /approval/i.test(lot.statusName || ""))
+      : lot.saleStatusKey === x);
   }
 
   function matchDateRange(lot, dateFrom, dateTo){
@@ -1605,7 +1602,7 @@
 
   function renderCards(){
     const box = $("#auctionCards");
-    const sale     = document.querySelector('input[name="saleStatus"]:checked')?.value || "";
+    const sale     = [...document.querySelectorAll('input[name="saleStatus"]:checked')].map(x => x.value);
     const dateFrom = document.querySelector('input[name="auctionDateFrom"]')?.value || "";
     const dateTo   = document.querySelector('input[name="auctionDateTo"]')?.value || "";
     const filtered = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo));
@@ -1613,7 +1610,7 @@
     const start = (state.displayPage - 1) * state.displayPageSize;
     const pageItems = filtered.slice(start, start + state.displayPageSize);
     box.innerHTML = pageItems.map(renderCard).join("");
-    if(sale && !isServerPaging()){
+    if(sale.length && !isServerPaging()){
       setResultNum("");
       $("#auctionResultLabel").textContent = `${L("Показано")} ${filtered.length} (${L("фильтр статуса продажи")})`;
     }
@@ -2849,8 +2846,7 @@
     const all = event.target.closest("[data-showcase-type]");
     if(all){
       exitDiscovery();
-      const r = document.querySelector(`input[name="vehicleType"][value="${all.dataset.showcaseType}"]`);
-      if(r) r.checked = true;
+      document.querySelectorAll('input[name="vehicleType"]').forEach(x => { x.checked = x.value === all.dataset.showcaseType; });
       state.page = 1; state.displayPage = 1;
       window.scrollTo({top:0, behavior:"smooth"});
       loadLots();
@@ -3208,7 +3204,7 @@
     const makeList = document.getElementById("makeListV1"), modelList = document.getElementById("modelListV1");
     const modelsCache = {};
     let applyTimer = null;
-    const queueApply = () => { clearTimeout(applyTimer); applyTimer = setTimeout(() => { state.page = 1; state.displayPage = 1; exitDiscovery(); $("#auctionFiltersForm").requestSubmit(); }, 350); };
+    const queueApply = () => { if(window.matchMedia("(max-width:1100px)").matches) return; clearTimeout(applyTimer); applyTimer = setTimeout(() => { state.page = 1; state.displayPage = 1; exitDiscovery(); $("#auctionFiltersForm").requestSubmit(); }, 350); };
     const syncHidden = () => { if(makeId) makeId.value = ms.makes.map(m => m.id).join(","); if(modelId) modelId.value = ms.models.map(m => m.id).join(","); };
     async function ensureModels(mid){
       if(!modelsCache[mid]){
@@ -3324,7 +3320,8 @@
     // Словари грузим ЛЕНИВО — только при первом открытии соответствующего
     // фильтра, а не веером на старте. Раньше dict=damages тянул все страницы
     // live-API (~6с) прямо на критическом пути каталога и тормозил первый экран.
-    const country = document.querySelector('input[name="country"]:checked')?.value || "US";
+    const pickedCountries = [...document.querySelectorAll('input[name="country"]:checked')].map(x => x.value);
+    const country = pickedCountries.length === 1 ? pickedCountries[0] : "US";
     const lazyDict = (inputId, menuId, url, assign) => {
       const input = document.getElementById(inputId);
       const menu = document.getElementById(menuId);
@@ -3448,8 +3445,8 @@
       // Как только пользователь применил любой фильтр — сортируем по ближайшим торгам.
       const fp = formParams(); ["auction","tab","sort","page","per_page"].forEach(k => fp.delete(k));
       const anyFilter = [...fp.keys()].length > 0;
-      const saleVal = document.querySelector('input[name="saleStatus"]:checked')?.value;
-      if((anyFilter || saleVal === "timed") && $("#auctionSort").value === "smart"){
+      const saleVal = [...document.querySelectorAll('input[name="saleStatus"]:checked')].some(x => x.value === "timed");
+      if((anyFilter || saleVal) && $("#auctionSort").value === "smart"){
         $("#auctionSort").value = "soon";
         const lbl = document.getElementById("sortDropLabelV1");
         if(lbl) lbl.textContent = "Скоро торги";
@@ -3458,6 +3455,13 @@
       loadLots();
     });
     document.getElementById("smartSelV1")?.addEventListener("change", () => { $("#auctionFiltersForm").requestSubmit(); });
+    // Галочки фильтров (топливо, кузов, привод…) на десктопе применяются сразу; на телефоне — кнопкой «Показать» (панель-шторка).
+    let optTimer = null;
+    $("#auctionFiltersForm").addEventListener("change", e => {
+      if(!e.target.closest(".optV2") || e.target.name === "smart" || window.matchMedia("(max-width:1100px)").matches) return;
+      clearTimeout(optTimer);
+      optTimer = setTimeout(() => { state.page = 1; state.displayPage = 1; exitDiscovery(); $("#auctionFiltersForm").requestSubmit(); }, 450);
+    });
     document.getElementById("activeFiltersV1")?.addEventListener("click", e => {
       const chip = e.target.closest(".afChipV1");
       if(chip){

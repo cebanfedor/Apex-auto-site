@@ -641,12 +641,13 @@ function buildSearchParams(query){
   if(model && /^\d+$/.test(model)) params.set("model_id", model);
   // Sale status (reserve type) is not a server-side filter on /cars — applied
   // client-side over loaded lots. "На утверждении" maps to the status param.
-  if(query.get("saleStatus") === "on_approval") params.set("status", "4");
+  const saleList = parseSaleList(query);
+  if(saleList.length === 1 && saleList[0] === "on_approval") params.set("status", "4");
   // Timed-аукционы: у /cars нет фильтра по auction_type (проверено по доке
   // и живым запросам), но timed-лоты — это торги ближайших дней (IAAI гоняет
   // их тысячами ежедневно). Сужаем окно до 72 часов — в нём доля timed ~100%,
   // а остаток отфильтровывается после нормализации (см. fetchSearch).
-  if(query.get("saleStatus") === "timed" && !query.get("nextHours") && !query.get("daysAhead")){
+  if(saleList.length === 1 && saleList[0] === "timed" && !query.get("nextHours") && !query.get("daysAhead")){
     params.set("next_hours_auction", "30");
   }
   const tab = query.get("tab");
@@ -989,7 +990,7 @@ async function fetchSearch(query){
         .filter(lot => !wantsPast || !(Date.parse(lot.auctionDate || "") > Date.now()))
         // Timed-фильтр: /cars не умеет auction_type — дофильтровываем сами
         // (окно next_hours=30ч сужено в buildSearchParams — timed-торги идут ежедневно)
-        .filter(lot => query.get("saleStatus") !== "timed" || lot.timed)
+        .filter(lot => { const sl = parseSaleList(query); return !sl.length || sl.some(x => x === "timed" ? lot.timed : x === "on_approval" ? Number(lot.statusId) === 4 : lot.saleStatusKey === x); })
         // Мультивыбор повреждений (live): фид принимает одно значение (первое), остальные — ИЛИ здесь
         .filter(lot => {
           const t = damageTerms(query.get("damage"));
@@ -1491,6 +1492,11 @@ const DAMAGE_GROUPS = [
   {label:"Glass / Windows", terms:["window"]}
 ];
 const DAMAGE_GROUP_BY_LABEL = new Map(DAMAGE_GROUPS.map(g => [g.label.toLowerCase(), g.terms]));
+
+// «Статус продажи» — мультивыбор: no_reserve,timed,on_approval через запятую
+function parseSaleList(query){
+  return String(query.get("saleStatus") || "").split(",").map(x => x.trim()).filter(x => x === "timed" || x === "no_reserve" || x === "on_approval");
+}
 
 function damageTerms(raw){
   const out = [];
@@ -2240,17 +2246,23 @@ async function searchFromDb(query){
   if(doc) p.set("document", `ilike.*${pgEscape(doc)}*`);
   const state = query.get("state");
   if(state) p.set("state_code", `eq.${pgEscape(state).toLowerCase()}`);
-  const country = query.get("country");
-  if(country) p.set("country", `eq.${pgEscape(country).toLowerCase()}`);
+  const countries = [...new Set(String(query.get("country") || "").toLowerCase().split(",").map(x => x.replace(/[^a-z]/g, "")).filter(x => x === "us" || x === "ca"))];
+  if(countries.length === 1) p.set("country", `eq.${countries[0]}`);
 
   // Трейлеры убраны с сайта: исключаем из любых выдач без явного выбора типа
   if(!query.get("vehicleType")) ands.push("or(vehicle_type_id.neq.3,vehicle_type_id.is.null)");
 
   // Статусы продажи фильтруем по нормализованному payload.
   // JSON-путь внутри and=() PostgREST не принимает — только отдельным параметром.
-  if(query.get("saleStatus") === "timed") p.set("payload->>timed", "eq.true");
-  if(query.get("saleStatus") === "no_reserve") p.set("payload->>saleStatusKey", "eq.no_reserve");
-  if(query.get("saleStatus") === "on_approval") p.set("status_id", "eq.4");
+  const saleSel = parseSaleList(query);
+  if(saleSel.length === 1){
+    if(saleSel[0] === "timed") p.set("payload->>timed", "eq.true");
+    if(saleSel[0] === "no_reserve") p.set("payload->>saleStatusKey", "eq.no_reserve");
+    if(saleSel[0] === "on_approval") p.set("status_id", "eq.4");
+  }else if(saleSel.length > 1){
+    // Несколько статусов = ИЛИ; JSON-путь работает в верхнеуровневом or=(…) (в and=(…) — нет)
+    p.set("or", `(${saleSel.map(x => x === "timed" ? "payload->>timed.eq.true" : x === "no_reserve" ? "payload->>saleStatusKey.eq.no_reserve" : "status_id.eq.4").join(",")})`);
+  }
 
   const q = query.get("q");
   const vin = query.get("vin");
