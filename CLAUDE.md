@@ -515,7 +515,7 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 ## Очередь онлайн-торгов Copart (24.09.2026)
 - Фид отдаёт `lots[0].line = "B/2113"` (линия/номер лота в зале) ТОЛЬКО у Copart; у IAAI `tbd`. Нормализатор: `lane`, `runNo`; колонки `api_lots.lane text, run_no int` (миграция `20260924_run_line.sql`, индекс sale_date+lane+run_no).
   Синк пишет их только когда колонки есть (`runColsReady`, проба раз в 1–10 мин; иначе поля вырезаются, upsert не падает). `run_no` входит в сравнение неизменившихся строк (`keyFields`) — старые строки перезапишутся при обходе ближайших торгов.
-- `action=queue&lot=<номер>` (CDN 15с, отдельное правило в `vercel.json`): лотов в линии до нашего (`before`), уже проданных из них в базе (`soldBefore`), время с начала торгов линии / 25 с (`PACE`) → `ahead = before − max(soldBefore, byTime)`, `etaSec`, состояния
+- `action=queue&lot=<номер>` (CDN 15с, отдельное правило в `vercel.json`): лотов в линии до нашего (`before`), уже проданных из них в базе (`soldBefore`), время с начала торгов линии / 60 с (`PACE`, решение Федора: 1 машина Copart = 1 минута) → `ahead = before − max(soldBefore, byTime)`, `etaSec`, состояния
   before/queue/now/sold, последние 3 проданных и 3 следующих лота линии. «Текущего лота в эфире» и ставок в реальном времени фид НЕ отдаёт (bid обновляется редко, `bid_updated_at`) — поэтому «≈».
 - Клиент: `startQueueWatch` в `auctions.js`, блок `#lotQueueV1` над калькулятором лота (только Copart, торги в окне −5ч…+30ч), опрос каждые 20 с.
 - Временная диагностика `action=rawfields&auction=&lot=` — поля сырого лота фида без картинок (можно удалить).

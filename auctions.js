@@ -2831,7 +2831,7 @@
         <div class="lqBarV1"><i style="width:${Math.min(100, pct)}%"></i></div>
         ${r.recent && r.recent.length ? `<div class="lqSubV1">${L("Только что продано")}</div><ul class="lqListV1">${r.recent.map(lotRow).join("")}</ul>` : ""}
         ${r.next && r.next.length ? `<div class="lqSubV1">${L("Следом")}</div><ul class="lqListV1">${r.next.map(lotRow).join("")}</ul>` : ""}
-        <p class="lqNoteV1">${L("Оценка по номеру лота в зале и ≈25 с на лот. Реальный темп аукциона может отличаться.")}</p>`;
+        <p class="lqNoteV1">${L("Оценка по номеру лота в зале, считаем 1 лот ≈ 1 минута. Реальный темп аукциона может отличаться.")}</p>`;
     };
     tick();
     queueTimer = setInterval(tick, 20e3);

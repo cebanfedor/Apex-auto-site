@@ -3697,7 +3697,7 @@ module.exports = async function handler(request, response){
     return;
   }
   // Очередь онлайн-торгов Copart: линия и номер лота в зале (lots[0].line = "B/2113") → сколько лотов впереди и ориентировочное время.
-  // Фид не отдаёт «текущий лот» в эфире: считаем по времени (≈25 с на лот с начала торгов линии), нижняя граница — уже проданные в базе.
+  // Фид не отдаёт «текущий лот» в эфире: считаем по времени (≈1 мин на лот с начала торгов линии), нижняя граница — уже проданные в базе.
   if(action === "queue"){
     const lotNo = String(query.get("lot") || "").replace(/[^\d]/g, "");
     const ck = "queue:" + lotNo, hit = getCached(ck);
@@ -3717,7 +3717,7 @@ module.exports = async function handler(request, response){
       const soldBefore = await count(`&run_no=lt.${me.run_no}&status_id=eq.6`);
       const recent = await syncSbFetch(`${base}&run_no=lt.${me.run_no}&status_id=eq.6&order=run_no.desc&limit=3&select=lot,title,final_bid,run_no,img:payload->images->>0`);
       const next = await syncSbFetch(`${base}&run_no=gt.${me.run_no}&order=run_no.asc&limit=3&select=lot,title,run_no,img:payload->images->>0`);
-      const PACE = 25;
+      const PACE = 60;
       const elapsed = (Date.now() - Date.parse(me.sale_date)) / 1000;
       const byTime = elapsed > 0 ? Math.floor(elapsed / PACE) : 0;
       const processed = Math.min(before, Math.max(soldBefore, byTime));
