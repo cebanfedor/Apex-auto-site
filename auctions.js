@@ -1247,45 +1247,34 @@
         ${photos > 1 ? `<button class="dbSlideBtn dbSlidePrev" type="button" aria-label="Предыдущее фото" data-dir="-1">‹</button><button class="dbSlideBtn dbSlideNext" type="button" aria-label="Следующее фото" data-dir="1">›</button>` : ""}
       </div>
       <div class="dbBody">
-        <div class="dbHeadRowV1">
-          <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
-          ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
-        </div>
+        <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
         </div>
-        <div class="dbIdRowV1">
-          <div class="dbIds">${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}</div>
-          <div class="dbLotRowV1">
-            ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
-            ${aucLinkBadge(lot)}
-          </div>
-        </div>
-        <div class="dbFactsV1">
-          ${(() => {
-            const odoStr = String(dbOdo(lot.odometerText) || ""); const cut = odoStr.indexOf(" ≈ ");
-            const fact = (icon, label, main, sub) => `<div class="dbFactV1"><small>${dbIco(icon)}${escapeHtml(label)}</small><b${main ? "" : ' class="dbFactNoneV1"'}>${main ? main : "—"}</b><i>${sub ? sub : "&nbsp;"}</i></div>`;
-            const fuelTxt = lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "";
-            return [
-              fact("odo", L("Пробег"), cut > 0 ? odoStr.slice(0, cut) : odoStr, cut > 0 ? odoStr.slice(cut + 1) : ""),
-              fact("engine", L("Двигатель"), escapeHtml(cleanEngine(lot.engine) || ""), escapeHtml(hpStr)),
-              fact("drive", L("Привод"), escapeHtml(upAbbr(lot.drive) || ""), escapeHtml([cleanTrans(lot.transmission), fuelTxt].filter(Boolean).join(" · ")))
-            ].join("");
-          })()}
-        </div>
         <div class="dbCols">
           <div class="dbLeftCol">
+            <div class="dbIds">
+              ${copyChip(lot.vin, "Скопировать VIN", "dbVin", "vin")}
+              ${isNew ? `<span class="dbNew">Новый лот</span>` : ""}
+            </div>
             <ul class="dbSpecs">
+              ${dbSpec("engine", escapeHtml(engineLine))}
+              ${dbSpec("odo", dbOdo(lot.odometerText))}
               ${dbSpec("damage", escapeHtml(ruDamage(lot.damage)))}
               ${dbSpec("doc", escapeHtml(docShort(lot.document)))}
               ${dbSpec("pin", escapeHtml(lotLocationText(lot)))}
             </ul>
           </div>
           <div class="dbChecksCol">
+            <div class="dbLotRowV1">
+              ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
+              ${aucLinkBadge(lot)}
+            </div>
             <ul class="dbChecks">
               ${dbCondition(lot.condition)}
+              ${dbCheckFuel(lot.fuel)}
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot)}
@@ -1309,7 +1298,6 @@
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
         </div>
-        <a class="dbCtaV1" href="${detailHref(lot)}">${L("Смотреть лот")}<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </aside>
     </article>`;
   }
