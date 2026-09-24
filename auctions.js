@@ -1099,13 +1099,13 @@
     if(count === 0){
       // В списке фид отдаёт историю только ТЕКУЩЕГО номера лота; перевыставленные машины (новый номер после
       // продажи) выглядели «ранее не продавалась». Полная история по VIN — на странице лота.
-      return `<li class="dbCheck neutral" title="${escapeHtml(L("Полная история по VIN — на странице лота"))}">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Не проверена")}</span></li>`;
+      return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Не проверена")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     // «Переставлялся» = были прошлые заходы на торги (по VIN). Номера лотов не сравниваем — они не идентификатор машины.
     const relisted = history.length > 0;
     if(wasSold){
-      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продавалась ранее")}</span></li>`;
+      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продаж")}: ${history.filter(h => { const t = String(h.status || "").toLowerCase(); return t.includes("sold") && !t.includes("not"); }).length}</span></li>`;
     }
     if(relisted){
       return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${count})</span></li>`;
@@ -1513,14 +1513,19 @@
         li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${isSold ? L("Единственная продажа") : L("Ранее не продавалась")}</span>`;
         return;
       }
-      if(pastSold.length){
+      // Правило Федора (25.09.2026): менялся номер лота или была продажа — машина подозрительная (перекуп, особенно при неизвестном продавце);
+      // страховая выставляет тот же лот 2–4 раза без продаж — обычная машина.
+      const lotChanged = past.some(e => e.lot && String(e.lot) !== String(lot.lot));
+      const ph = card.querySelector(".dbPhoto");
+      if(pastSold.length || lotChanged){
         const last = pastSold[0];
-        // Продажа под другим лотом ПОЗЖЕ этих торгов (старый заход разобранной машины в архиве) — это «перевыставлена», не «ранее».
-        const laterSale = curDay && String(last.date).slice(0, 10) > curDay;
-        const ph = card.querySelector(".dbPhoto");
-        if(ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
+        const laterSale = !!last && curDay && String(last.date).slice(0, 10) > curDay;
+        if(pastSold.length && ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
+        const txt = pastSold.length
+          ? `${laterSale ? L("Перепродана позже") : L("Продаж")}${laterSale ? "" : `: ${pastSold.length}`}${last.bid ? ` · ${money(last.bid)}` : ""}`
+          : `${L("Менялся лот")}: ${new Set(past.map(e => String(e.lot))).size}`;
         li.className = "dbCheck bad";
-        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${laterSale ? L("Перепродана позже") : L("Продавалась ранее")}${last.bid ? ` · ${money(last.bid)}` : ""}${pastSold.length > 1 ? ` (×${pastSold.length})` : ""}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
+        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${txt}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }else{
         li.className = "dbCheck neutral";
         li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})</span>`;
