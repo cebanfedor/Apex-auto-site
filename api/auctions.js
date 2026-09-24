@@ -3752,9 +3752,14 @@ module.exports = async function handler(request, response){
         };
         let soldIdx = -1; laneRows.forEach((x, i) => { if(Number(x.status_id) === 6) soldIdx = i; });
         let L = soldIdx + 1, R = total;
-        for(let round = 0; round < 4 && R - L > 0; round++){
-          const pts = [...new Set(Array.from({length:8}, (_, k) => L + Math.floor((R - L) * (k + 1) / 9)).filter(x => x >= L && x < R))];
-          if(!pts.length) pts.push(L);
+        const est = Math.floor(elapsed / 76);   // типичный темп → первая волна проб вокруг ожидаемой границы
+        const tProbe = Date.now();
+        for(let round = 0; round < 3 && R - L > 0 && Date.now() - tProbe < 14000; round++){
+          let pts = round === 0
+            ? [-30, -20, -12, -7, -3, 0, 3, 7, 12, 20, 30].map(d => est + d).filter(x => x >= L && x < R)
+            : Array.from({length:12}, (_, k) => L + Math.floor((R - L) * (k + 1) / 13)).filter(x => x >= L && x < R);
+          pts = [...new Set(pts)];
+          if(!pts.length) pts = [Math.min(R - 1, Math.max(L, est))];
           const res = await Promise.all(pts.map(async x => [x, await isDone(x)]));
           let nl = L, nr = R;
           for(const [x, d] of res){ if(d) nl = Math.max(nl, x + 1); }
