@@ -1136,3 +1136,4 @@ body.leadModalOpenV1 { overflow:hidden; }
 .auctionTabsV1 button.timedTabV2 { color:#b45309; border-color:#f6d3a1; background:#fff8ee; }
 .auctionTabsV1 button.timedTabV2:hover { border-color:#e79a2a; }
 .auctionTabsV1 button.timedTabV2.active { background:#d97706; color:#fff; border-color:#d97706; }
+.msLogoLetterV1 { display:grid; place-items:center; border-radius:50%; background:#e9edf3; color:var(--aInk2); font-weight:800; font-size:12px; line-height:1; }

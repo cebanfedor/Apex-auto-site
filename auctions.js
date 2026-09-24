@@ -3540,7 +3540,7 @@
       }
       return modelsCache[mid];
     }
-    const rowHtml = (kind, id, name, image, qty, checked, sub) => `<label class="msRowV1${checked ? " isOnV1" : ""}"><input type="checkbox" data-ms-${kind}="${escapeHtml(String(id))}"${checked ? " checked" : ""}>${image ? `<img class="msLogoV1" src="${escapeHtml(image)}" alt="" loading="lazy">` : ""}<span class="msNameV1">${escapeHtml(name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span>${qty ? `<i>${escapeHtml(String(qty))}</i>` : ""}</label>`;
+    const rowHtml = (kind, id, name, image, qty, checked, sub) => `<label class="msRowV1${checked ? " isOnV1" : ""}"><input type="checkbox" data-ms-${kind}="${escapeHtml(String(id))}"${checked ? " checked" : ""}>${image ? `<img class="msLogoV1" src="${escapeHtml(image)}" alt="" loading="lazy">` : (kind === "make" ? `<span class="msLogoV1 msLogoLetterV1" aria-hidden="true">${escapeHtml(String(name || "?").trim().charAt(0).toUpperCase())}</span>` : "")}<span class="msNameV1">${escapeHtml(name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span>${qty ? `<i>${escapeHtml(String(qty))}</i>` : ""}</label>`;
     // Фасеты: счётчики марок/моделей по ТЕКУЩИМ фильтрам (action=facets). Без фильтров или с неподдерживаемыми — глобальные числа из справочника.
     let facet = null, facetKey = "", facetSeq = 0;
     const FACET_KEYS = new Set(["tab", "auction", "saleStatus", "vehicleType", "fuel", "body", "drive", "transmission", "cylinders", "condition", "country", "state", "yearFrom", "yearTo", "bidFrom", "bidTo", "buyNowFrom", "buyNowTo", "mileageFrom", "mileageTo", "mileageFromKm", "mileageToKm", "engineFrom", "engineTo", "smart"]);
@@ -3572,6 +3572,13 @@
       }
     }
     msApi.refreshFacets = refreshFacets;
+    // У редких марок логотипа на стороне поставщика нет (битая иконка) — заменяем круглым значком с первой буквой.
+    const letterLogo = img => {
+      const nm = (img.closest("label")?.querySelector(".msNameV1")?.textContent || "?").trim().charAt(0).toUpperCase();
+      const sp = document.createElement("span"); sp.className = "msLogoV1 msLogoLetterV1"; sp.setAttribute("aria-hidden", "true"); sp.textContent = nm; img.replaceWith(sp);
+    };
+    if(makeList) makeList.addEventListener("error", e => { if(e.target && e.target.classList && e.target.classList.contains("msLogoV1") && e.target.tagName === "IMG") letterLogo(e.target); }, true);
+    const fixBrokenLogos = () => { if(makeList) makeList.querySelectorAll("img.msLogoV1").forEach(img => { if(img.complete && img.naturalWidth === 0) letterLogo(img); }); };
     function renderMakes(){
       if(!makeList) return;
       if(!manufacturers.length){ makeList.innerHTML = `<p class="msEmptyV1">${escapeHtml(L("Список марок недоступен"))}</p>`; return; }
@@ -3584,6 +3591,7 @@
         .map(m => FM ? {...m, qty:FM[m.id] || 0} : m);
       const rows = [...list.filter(m => on.has(String(m.id))), ...list.filter(m => !on.has(String(m.id)))];
       makeList.innerHTML = rows.length ? rows.map(m => rowHtml("make", m.id, m.name, m.image, m.qty, on.has(String(m.id)))).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
+      setTimeout(fixBrokenLogos, 400);
     }
     function renderModels(){
       if(!modelList) return;
