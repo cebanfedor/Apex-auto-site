@@ -1138,3 +1138,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 .auctionTabsV1 button.timedTabV2:hover { border-color:#e79a2a; }
 .auctionTabsV1 button.timedTabV2.active { background:#d97706; color:#fff; border-color:#d97706; }
 .msLogoLetterV1 { display:grid; place-items:center; border-radius:50%; background:#e9edf3; color:var(--aInk2); font-weight:800; font-size:12px; line-height:1; }
+
+.dbPhotoBarV1 { position:absolute; left:10px; right:10px; bottom:8px; height:3px; border-radius:2px; background:rgba(255,255,255,.35); opacity:0; transition:opacity .15s; pointer-events:none; overflow:hidden; }
+.dbPhotoBarV1 i { position:absolute; top:0; bottom:0; left:0; border-radius:2px; background:#3b82f6; transition:left .08s linear; }
+@media (hover:hover) and (pointer:fine){ .dbPhoto:hover .dbPhotoBarV1 { opacity:1; } .dbPhoto .dbPhotoLink { cursor:zoom-in; } }
+.lbLotV1 { text-decoration:none; display:inline-flex; align-items:center; }

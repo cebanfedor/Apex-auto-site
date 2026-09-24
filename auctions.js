@@ -1240,6 +1240,7 @@
         </a>
         <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
+        ${photos > 1 ? `<span class="dbPhotoBarV1" aria-hidden="true"><i style="width:${(100 / photos).toFixed(3)}%"></i></span>` : ""}
         ${Number(priceVal) > 0 ? `<span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>` : ""}
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
         ${alertable(lot) ? `<span class="dbBell${alertLots().has(String(lot.id)) ? " is-on" : ""}" role="button" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L("Следить за лотом"))}">${dbIco("bell")}</span>` : ""}
@@ -1948,6 +1949,60 @@
       if(prefetchStore.size > 4) prefetchStore.delete(prefetchStore.keys().next().value);
     }catch(e){}
   }
+  // Карточка каталога (компьютер): фото листается движением мыши влево-вправо (полоска позиции внизу), клик по фото — большое фото, а не страница лота.
+  const finePointer = () => { try{ return window.matchMedia("(hover:hover) and (pointer:fine)").matches; }catch(e){ return false; } };
+  function ensureFullImages(lot){
+    if(lot._fullPromise) return lot._fullPromise;
+    if(Number(lot.photoCount) <= (lot.images || []).length){ lot._fullPromise = Promise.resolve(); return lot._fullPromise; }
+    lot._fullImgs = lot._fullImgs || "loading";
+    lot._fullPromise = api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
+      .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done"; })
+      .catch(() => { lot._fullImgs = "done"; });
+    return lot._fullPromise;
+  }
+  const lotOfPhoto = ph => ph && state.items.find(l => String(l.id) === String(ph.dataset.lid));
+  function showCardPhoto(ph, lot, i){
+    const imgs = lot.images || []; if(i < 0 || i >= imgs.length) return;
+    const img = ph.querySelector(".dbSlideImg"); if(!img) return;
+    img.src = cardImg(imgs[i]); img.dataset.full = imgs[i]; img.dataset.slide = i; ph.dataset.hov = String(i);
+    const total = Math.max(imgs.length, Number(lot.photoCount) || 0);
+    const cnt = ph.querySelector(".dbPhotoCount"); if(cnt) cnt.textContent = `${i + 1}/${total}`;
+    const bar = ph.querySelector(".dbPhotoBarV1 i"); if(bar){ bar.style.width = (100 / imgs.length).toFixed(3) + "%"; bar.style.left = (i * 100 / imgs.length).toFixed(3) + "%"; }
+  }
+  const noScrub = t => t.closest(".dbFav, .dbBell, .dbSlideBtn, .dbResoldV1, [data-sold-warn]");
+  document.addEventListener("mouseover", e => {
+    if(!finePointer()) return;
+    const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto"); if(!ph || ph.dataset.hovInit) return;
+    const lot = lotOfPhoto(ph); if(!lot || saveData()) return;
+    ph.dataset.hovInit = "1";
+    ensureFullImages(lot).then(() => { (lot.images || []).slice(0, 10).forEach(u => { const im = new Image(); im.decoding = "async"; im.src = cardImg(u); }); });
+  }, {passive:true});
+  document.addEventListener("mousemove", e => {
+    if(!finePointer()) return;
+    const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto"); if(!ph || noScrub(e.target)) return;
+    const lot = lotOfPhoto(ph); const n = lot && lot.images ? lot.images.length : 0; if(n < 2) return;
+    const r = ph.getBoundingClientRect();
+    const i = Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * n)));
+    if(ph.dataset.hov === String(i)) return;
+    showCardPhoto(ph, lot, i);
+  }, {passive:true});
+  document.addEventListener("mouseout", e => {
+    if(!finePointer()) return;
+    const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto"); if(!ph) return;
+    if(e.relatedTarget && ph.contains(e.relatedTarget)) return;
+    const lot = lotOfPhoto(ph); if(lot && ph.dataset.hov && ph.dataset.hov !== "0") showCardPhoto(ph, lot, 0);
+    delete ph.dataset.hov;
+  }, {passive:true});
+  document.addEventListener("click", e => {
+    if(!finePointer() || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    const a = e.target.closest && e.target.closest("#auctionCards .dbPhotoLink"); if(!a) return;
+    const ph = a.closest(".dbPhoto"); const lot = lotOfPhoto(ph); if(!lot || !(lot.images || []).length) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const href = a.getAttribute("href") || "";
+    const idx = Number(ph.dataset.hov) || Number(ph.querySelector(".dbSlideImg")?.dataset.slide) || 0;
+    openLightbox(lot.images, idx, href, String(lot.id));
+    ensureFullImages(lot).then(() => { if(lb.lotId === String(lot.id) && !document.getElementById("lotLightbox").hidden && lot.images.length > lb.images.length){ lb.images = lot.images.map(m => typeof m === "string" ? {type:"image", src:m} : m); renderLightbox(); } });
+  }, true);
   let hoverTimer = null;
   function prefetchLotOnHover(event){
     if(saveData() || !event.target.closest) return;
@@ -2466,6 +2521,7 @@
       <div class="lbTopV1">
         <span id="lbCount" class="lbCountV1"></span>
         <div class="lbActionsV1">
+          <a class="lbBtnV1 lbLotV1" data-lb-lot href="#" hidden>Открыть лот →</a>
           <button class="lbBtnV1" type="button" data-lb-copy>Скопировать ссылку</button>
           <button class="lbBtnV1 lbCloseV1" type="button" data-lb-close aria-label="Закрыть">✕</button>
         </div>
@@ -2492,8 +2548,10 @@
     const multi = lb.images.length > 1;
     document.querySelectorAll(".lbNavV1").forEach(b => b.style.display = multi ? "" : "none");
   }
-  function openLightbox(images, index){
+  function openLightbox(images, index, lotHref, lotId){
     if(!images || !images.length) return;
+    lb.lotId = lotId || "";
+    { const el0 = ensureLightbox(); const a = el0.querySelector("[data-lb-lot]"); if(a){ a.hidden = !lotHref; if(lotHref) a.setAttribute("href", lotHref); } }
     // Принимаем и строки-URL (старые вызовы), и медиа-объекты {type, src, poster}
     lb.images = images.map(m => typeof m === "string" ? {type:"image", src:m} : m);
     lb.index = Math.max(0, Math.min(index || 0, images.length - 1));
