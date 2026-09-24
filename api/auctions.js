@@ -3662,6 +3662,24 @@ module.exports = async function handler(request, response){
     sendJson(response, 200, out, {"cache-control":"no-store"});
     return;
   }
+  // ВРЕМЕННО: поля сырого лота фида (без картинок) — ищем номер лота в зале / очередь торгов.
+  if(action === "rawfields"){
+    try{
+      const auction = normalizeAuction(query.get("auction")), lot = String(query.get("lot") || "").replace(/[^\w-]/g, "");
+      const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${auctionsApiDomain(auction)}?prices_history=1`);
+      const out = {};
+      const walk = (o, path, depth) => {
+        if(depth > 4 || o == null) return;
+        if(Array.isArray(o)){ if(o.length) walk(o[0], path + "[0]", depth + 1); return; }
+        if(typeof o === "object"){ for(const [k, v] of Object.entries(o)) walk(v, path ? path + "." + k : k, depth + 1); return; }
+        if(/image|photo|thumb|url|link|video/i.test(path)) return;
+        out[path] = String(o).slice(0, 60);
+      };
+      walk(payload, "", 0);
+      sendJson(response, 200, {ok:true, fields:out}, {"cache-control":"no-store"});
+    }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 160)}); }
+    return;
+  }
   if(action === "enginefill"){
     sendJson(response, 200, await runEngineFill(), {"cache-control":"no-store"});
     return;
