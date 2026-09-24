@@ -2,6 +2,7 @@
 // Клиент получает секретный токен (localStorage) → «Start» у бота (deep-link) → cron/опрос getUpdates привязывает chat_id.
 // Таблицы: alert_links / alert_subs / alert_meta (supabase/migrations/20260924_alerts.sql). Доступ только сервисным ключом.
 const crypto = require("crypto");
+const {lotSlug} = require("./slug");
 
 const SITE = "https://apexauto.md";
 const MAX_SUBS_PER_TOKEN = 30;
@@ -101,9 +102,13 @@ function fmtDate(iso, lang){
 
 function lotBlock(title, id, vin, lotNo){
   const meta = [vin ? `VIN <code>${esc(vin)}</code>` : "", lotNo ? `Lot ${esc(lotNo)}` : ""].filter(Boolean).join(" · ");
-  return `<b>${esc(title)}</b>\n${meta ? meta + "\n" : ""}${lotUrl(id)}`;
+  return `<b>${esc(title)}</b>\n${meta ? meta + "\n" : ""}${lotUrl(id, title, vin)}`;
 }
-function lotUrl(id){ return `${SITE}/auctions/${encodeURIComponent(id)}`; }
+function lotUrl(id, title, vin){
+  const m = String(id).match(/^(copart|iaai)-(.+)$/i);
+  if(m && (title || vin)) return `${SITE}/auctions/${encodeURIComponent(lotSlug({auction:m[1], lot:m[2], title, vin}))}`;
+  return `${SITE}/auctions/${encodeURIComponent(id)}`;
+}
 function ymd(iso){ const d = new Date(iso); return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10).replace(/-/g, ""); }
 
 function create(deps){

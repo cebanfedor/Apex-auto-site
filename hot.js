@@ -1,4 +1,10 @@
 (function(){
+  function lotSlugV(lot){
+    function w(s, m){ return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, m).replace(/-+$/g, ""); }
+    var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toLowerCase() : "";
+    return [String(lot.auction || "").toLowerCase() + "-" + lot.lot, w(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60), vin].filter(Boolean).join("-");
+  }
+
   "use strict";
 
   // Экранирование: данные лота приходят из стороннего auction API и из
@@ -162,7 +168,7 @@
     var auc = lot.auction || "copart";
     var badgeCls = auc === "iaai" ? "hotApiBadgeIAAIV351" : "hotApiBadgeCopartV351";
     var badgeLabel = auc === "iaai" ? "IAAI" : "Copart";
-    var href = lot.lot ? "/auctions/" + esc(auc) + "-" + esc(lot.lot) : "#";
+    var href = lot.lot ? "/auctions/" + esc(lotSlugV({auction:auc, lot:lot.lot, title:lot.title, year:lot.year, make:lot.make, model:lot.model, vin:lot.vin})) : "#";
     var bid = fmtP(lot.currentBid);
     var bn  = fmtP(lot.buyNow);
     var priceVal   = bid || bn || "—";

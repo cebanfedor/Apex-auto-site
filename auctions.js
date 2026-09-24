@@ -503,8 +503,17 @@
     return m.replace(/-klasse\b/i, "-Class");
   }
 
+  // Ссылка = площадка-лот + название + VIN (тот же алгоритм на сервере: server/slug.js)
+  function slugWords(s, max){
+    return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
+  }
+  function lotSlug(lot){
+    const title = slugWords(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60);
+    const vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toLowerCase() : "";
+    return [`${String(lot.auction || "").toLowerCase()}-${lot.lot}`, title, vin].filter(Boolean).join("-");
+  }
   function detailHref(lot){
-    return `/auctions/${encodeURIComponent(lot.auction)}-${encodeURIComponent(lot.lot)}`;
+    return `/auctions/${encodeURIComponent(lotSlug(lot))}`;
   }
 
   function calcHref(lot){
@@ -1934,7 +1943,8 @@
   }
 
   function parseSlug(slug){
-    const match = String(slug || "").match(/^(copart|iaai)-(.+)$/i);
+    const s = String(slug || "");
+    const match = s.match(/^(copart|iaai)-(\d{5,12})(?:-.*)?$/i) || s.match(/^(copart|iaai)-(.+)$/i);
     return match ? {auction:match[1].toLowerCase(), lot:match[2]} : null;
   }
 
@@ -2243,7 +2253,7 @@
     const place = String(lot.location || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase());
     const landRoute = calc.canada ? calc.dispatchRoute : calc.landRoute;
     const locParts = [place, landRoute && landRoute !== place ? landRoute : ""].filter(Boolean);
-    const siteUrl = `${location.origin}/auctions/${lot.id}`;
+    const siteUrl = `${location.origin}${detailHref(lot)}`;
     const aucName = String(lot.auction || "").toLowerCase() === "iaai" ? "IAAI" : "Copart";
     return [
       `APEX AUTO | ${L("Расчёт под ключ")}`, "",
@@ -2503,7 +2513,12 @@
     try{
       if(lot && lot.auction && lot.lot){
         const href = detailHref(lot);
-        if(location.pathname !== href) history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", href);
+        // тот же лот, отличается только «хвост» ссылки (название/VIN) — заменяем адрес, а не плодим записи в истории
+        const sameLot = decodeURIComponent(location.pathname).startsWith(`/auctions/${lot.auction}-${lot.lot}`);
+        if(location.pathname !== href){
+          if(sameLot) history.replaceState(history.state, "", href);
+          else history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", href);
+        }
       }
     }catch(e){}
     const images = lot.images?.length ? lot.images : [lot.image].filter(Boolean);

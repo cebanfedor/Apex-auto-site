@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const {transitSlug} = require("../server/slug");
 
 // SSR-обёртка объявления «Продажа авто в пути»: /in-transit/<id>.
 // Зачем: (1) превью ссылки в WhatsApp/Telegram — фото машины, название и цена вместо
@@ -27,7 +28,8 @@ function escHtml(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").re
 function money(n){ return n ? "$" + Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : ""; }
 
 module.exports = async function(req, res){
-  const id = String(req.query.id || "").replace(/[^0-9]/g, "").slice(0, 12);
+  const rawSlug = String(req.query.slug || req.query.id || "").replace(/[^a-zA-Z0-9-]/g, "");
+  const id = ((rawSlug.match(/^\d+/) || [""])[0]).slice(0, 12);
   let html;
   try{
     html = fs.readFileSync(path.join(__dirname, "../in-transit.html"), "utf8");
@@ -56,7 +58,15 @@ module.exports = async function(req, res){
 
   const langQ = String(req.query.lang || "").toLowerCase();
   const lang = langQ.startsWith("ro") ? "ro" : langQ.startsWith("en") ? "en" : "ru";
-  const baseUrl = `https://apexauto.md/in-transit/${id}`;
+  // Ссылка = номер + название + VIN; старые /in-transit/3 и ?id=3 ведём на неё 301-м
+  const pretty = transitSlug(it);
+  if(rawSlug !== pretty){
+    res.setHeader("Cache-Control", "public, s-maxage=600, max-age=60");
+    res.setHeader("Location", `/in-transit/${pretty}${lang === "ru" ? "" : `?lang=${lang}`}`);
+    res.status(301).end();
+    return;
+  }
+  const baseUrl = `https://apexauto.md/in-transit/${pretty}`;
   const url = lang === "ru" ? baseUrl : `${baseUrl}?lang=${lang}`;
   const W = {ru:{tag:"авто в пути", forP:" за ", sold:" — продан", go:" — едет в Молдову, можно забронировать"},
     ro:{tag:"auto în tranzit", forP:" la ", sold:" — vândut", go:" — în drum spre Moldova, se poate rezerva"},

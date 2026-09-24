@@ -15,7 +15,16 @@
   var ITEMS = [];
 
   // Всё, что пришло из админки, экранируем (описание/марка — свободный текст).
-  function esc(s){
+    /* Ссылка = номер + название + VIN: /in-transit/3-2019-lincoln-mkz-rezerve-ii-3ln6l5mu7kr624453 (тот же алгоритм — server/slug.js) */
+  function slugWords(s, max){
+    return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
+  }
+  function transitHref(it){
+    var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(it.vin || "").trim()) ? String(it.vin).trim().toLowerCase() : "";
+    return "/in-transit/" + [String(it.id), slugWords(it.title, 60), vin].filter(Boolean).join("-");
+  }
+
+function esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
@@ -51,7 +60,7 @@
     var img = it.photos[0]
       ? '<img src="' + esc(it.photos[0]) + '" alt="' + esc(it.title) + '" loading="lazy">'
       : '<div class="transitNoImgV1"></div>';
-    return '<a class="transitCardV1' + (it.sold ? " isSoldV1" : "") + '" href="/in-transit/' + encodeURIComponent(it.id) + '" data-transit-id="' + esc(it.id) + '">'
+    return '<a class="transitCardV1' + (it.sold ? " isSoldV1" : "") + '" href="' + transitHref(it) + '" data-transit-id="' + esc(it.id) + '">'
       + '<div class="transitCardImgV1">' + img
         + '<span class="transitBadgeV1">' + esc(T(it.sold ? "Продан" : "В пути")) + '</span>'
         + (it.photos.length > 1 ? '<span class="transitPhotoCntV1">' + it.photos.length + ' ' + esc(T("фото")) + '</span>' : "")
@@ -94,7 +103,7 @@
     var text = (lang() === "ro" ? "Bună ziua! Mă interesează auto în tranzit: "
       : lang() === "en" ? "Hello! I'm interested in the car in transit: "
       : "Здравствуйте! Интересует авто в пути: ")
-      + it.title + (it.price ? " — " + money(it.price) : "") + " " + location.origin + "/in-transit/" + it.id;
+      + it.title + (it.price ? " — " + money(it.price) : "") + " " + location.origin + transitHref(it);
     // Не wa.me: site-content.js переписывает все ссылки wa.me (href и текст) на общий контакт —
     // терялся заготовленный текст про конкретное авто, а кнопка превращалась в «WhatsApp: 068…».
     return "https://api.whatsapp.com/send?phone=" + PHONE.replace(/\D/g, "") + "&text=" + encodeURIComponent(text);
@@ -183,7 +192,7 @@
       if(t.dataset.gal){ show(idx + Number(t.dataset.gal)); }
       else if(t.dataset.thumb != null && t.hasAttribute("data-thumb")){ show(Number(t.dataset.thumb)); }
       else if(t.dataset.transitShare){
-        var url = location.origin + "/in-transit/" + it.id;
+        var url = location.origin + transitHref(it);
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){
           t.textContent = T("Ссылка скопирована");
         }).catch(function(){ window.prompt("", url); });
@@ -211,7 +220,7 @@
         method:"POST", headers:{"content-type":"application/json"},
         body:JSON.stringify({
           name:name, phone:phone, hp_website:form.hp_website.value, source:"Авто в пути", vin:it.vin || "",
-          comment:"Объявление #" + it.id + ": " + it.title + (it.price ? " — " + money(it.price) : "") + " · " + location.origin + "/in-transit/" + it.id
+          comment:"Объявление #" + it.id + ": " + it.title + (it.price ? " — " + money(it.price) : "") + " · " + location.origin + transitHref(it)
         })
       }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return r.ok && d.ok; }); })
         .catch(function(){ return false; })

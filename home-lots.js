@@ -5,6 +5,12 @@
    пересборка на всех). Клиент только рисует компактные карточки. Русский текст;
    RO/EN подхватывает i18n (MutationObserver + словарь). */
 (function () {
+  function lotSlugV(lot){
+    function w(s, m){ return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, m).replace(/-+$/g, ""); }
+    var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toLowerCase() : "";
+    return [String(lot.auction || "").toLowerCase() + "-" + lot.lot, w(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60), vin].filter(Boolean).join("-");
+  }
+
   "use strict";
   var grid = document.getElementById("homeLotsGrid");
   var sec = document.getElementById("homeLots");
@@ -60,7 +66,7 @@
     var date = shortDate(it.auctionDate || it.saleDate);
     var sub = [km, date].filter(Boolean).map(esc).join(" · ");
     return (
-      '<a class="homeLotCardV1" href="/auctions/' + esc(it.id) + '">' +
+      '<a class="homeLotCardV1" href="/auctions/' + esc(it.auction && it.lot ? lotSlugV(it) : it.id) + '">' +
       '<div class="homeLotImgV1">' +
       (img ? '<img src="' + esc(img) + '" alt="' + esc(title) + '" loading="lazy" onerror="this.style.display=\'none\'">' : "") +
       (p ? '<span class="homeLotPriceV1"><small>' + esc(T(p.label)) + "</small> " + esc(money(p.v)) + "</span>"

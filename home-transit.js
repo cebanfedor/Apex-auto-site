@@ -1,6 +1,16 @@
 /* Главная: блок «Авто в пути — в продаже». Показывается, только если есть активные
    объявления (админка → Автомобили → «Продаётся в пути»). Карточки — те же, что на /in-transit. */
 (function(){
+  /* Ссылка = номер + название + VIN: /in-transit/3-2019-lincoln-mkz-rezerve-ii-3ln6l5mu7kr624453 (тот же алгоритм — server/slug.js) */
+  function slugWords(s, max){
+    return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
+  }
+  function transitHref(it){
+    var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(it.vin || "").trim()) ? String(it.vin).trim().toLowerCase() : "";
+    return "/in-transit/" + [String(it.id), slugWords(it.title, 60), vin].filter(Boolean).join("-");
+  }
+
+
   "use strict";
   var sec = document.getElementById("homeTransitV1");
   var grid = document.getElementById("homeTransitGridV1");
@@ -14,7 +24,7 @@
   function money(n){ return n ? "$" + Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : ""; }
   function card(it){
     var chips = [it.mileage, it.fuel, it.damage].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
-    return '<a class="transitCardV1" href="/in-transit/' + encodeURIComponent(it.id) + '">'
+    return '<a class="transitCardV1" href="' + transitHref(it) + '">'
       + '<div class="transitCardImgV1">'
         + (it.photos[0] ? '<img src="' + esc(it.photos[0]) + '" alt="' + esc(it.title) + '" loading="lazy">' : '<div class="transitNoImgV1"></div>')
         + '<span class="transitBadgeV1">' + esc(T("В пути")) + '</span>'

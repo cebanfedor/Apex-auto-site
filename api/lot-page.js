@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const {lotSlug, parseLotSlug} = require("../server/slug");
 
 // SSR-обёртка страницы лота: OG-теги для шаринга + данные лота, вшитые
 // в HTML (window.__ssrLot) — фронт рендерит мгновенно, без второго запроса.
@@ -57,7 +58,8 @@ module.exports = async function(req, res){
   let ogDesc = TXT.d;
   let ogImage = "https://apexauto.md/assets/hot/bmw-530e.jpg";
 
-  const match = slug.match(/^(iaai|copart)-(.+)$/i);
+  const parsed = parseLotSlug(slug);
+  const match = parsed ? [null, parsed.auction, parsed.lot] : null;
   let lot = null;
   let notFound = false;
   let debugError = null;
@@ -81,6 +83,17 @@ module.exports = async function(req, res){
   }else{
     debugError = "slug did not match";
     notFound = true;
+  }
+
+  // Канонический адрес со ссылкой-описанием (название + VIN): старые ссылки /auctions/iaai-123 ведём на него 301-м
+  if(lot && lot.lot && lot.auction){
+    const pretty = lotSlug(lot);
+    if(pretty && slug !== pretty && req.query.debug !== "1"){
+      res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=300");
+      res.setHeader("Location", `/auctions/${pretty}${lang === "ru" ? "" : `?lang=${lang}`}`);
+      res.status(301).end();
+      return;
+    }
   }
 
   if(req.query.debug === "1"){
