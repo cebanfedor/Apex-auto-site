@@ -2799,13 +2799,14 @@
   }
 
   // Очередь онлайн-торгов Copart: линия/номер лота → сколько лотов впереди и ≈ время. Обновление раз в 20 с.
-  let queueTimer = null;
+  let queueTimer = null, queueSeq = 0;
   function fmtEta(sec){
     const m = Math.max(1, Math.round(sec / 60));
     return m >= 60 ? `${Math.floor(m / 60)} ${L("ч")} ${m % 60} ${L("мин")}` : `${m} ${L("мин")}`;
   }
   function startQueueWatch(lot){
-    if(queueTimer){ clearInterval(queueTimer); queueTimer = null; }
+    if(queueTimer){ clearTimeout(queueTimer); queueTimer = null; }
+    const seq = ++queueSeq;
     if(!lot || !document.getElementById("lotQueueV1")) return;
     const t = Date.parse(lot.auctionDate || "");
     if(!Number.isFinite(t) || lotSaleState(lot).isSold) return;
@@ -2814,10 +2815,20 @@
     const lotRow = x => `<li><span class="lqNoV1">#${x.runNo}</span><span class="lqTitleV1">${escapeHtml(x.title || "")}</span>${x.finalBid ? `<b>${money(x.finalBid)}</b>` : ""}</li>`;
     const tick = async () => {
       const box = document.getElementById("lotQueueV1");
-      if(!box){ clearInterval(queueTimer); queueTimer = null; return; }
-      if(document.hidden) return;
-      let r; try{ r = await api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`); }catch(e){ return; }
-      if(!r || !r.available){ box.hidden = true; return; }
+      if(seq !== queueSeq) return;
+      if(!box){ stopped = true; queueTimer = null; return; }
+      if(document.hidden){ schedule(20e3); return; }
+      let r; try{ r = await api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`); }catch(e){ schedule(60e3); return; }
+      if(!r || !r.available){
+        // IAAI назначает линию и номер лота в день аукциона, за пару часов до торгов: до этого объясняем, а не прячем блок.
+        if(lot.auction === "iaai" && Date.parse(lot.auctionDate || "") > Date.now() - 3600e3){
+          box.hidden = false;
+          box.innerHTML = `<div class="lqHeadV1"><span>${L("Очередь торгов")}</span></div><p class="lqNoteV1">${L("IAAI назначает линию и номер лота в день аукциона, примерно за 2 часа до торгов. Очередь появится здесь автоматически.")}</p>`;
+        }else box.hidden = true;
+        schedule(300e3);
+        return;
+      }
+      schedule(20e3);
       const startTime = new Date(r.startsAt).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
       let main;
       if(r.state === "sold") main = `<div class="lqBigV1"><b>${L("Лот продан")}</b></div>`;
@@ -2833,8 +2844,9 @@
         ${r.next && r.next.length ? `<div class="lqSubV1">${L("Следом")}</div><ul class="lqListV1">${r.next.map(lotRow).join("")}</ul>` : ""}
         <p class="lqNoteV1">${L("Оценка по номеру лота в зале, считаем 1 лот ≈ 1 минута. Реальный темп аукциона может отличаться.")}</p>`;
     };
+    let stopped = false;
+    const schedule = ms => { if(seq !== queueSeq) return; if(queueTimer) clearTimeout(queueTimer); queueTimer = stopped ? null : setTimeout(tick, ms); };
     tick();
-    queueTimer = setInterval(tick, 20e3);
   }
 
   // Живой отсчёт до торгов в сайдбаре (обновление раз в 30 сек)
