@@ -941,6 +941,21 @@
     };
   }
 
+  // Пустая выдача: вместо тупика — кнопки «убрать этот фильтр» по каждому активному чипу
+  function showRecovery(){
+    const box = $("#auctionMessage"); if(!box || !activeChips.length || state.tab === "favorites") return;
+    const btns = activeChips.map((c, i) => `<button type="button" class="rcChipV1" data-rc="${i}">${escapeHtml(c.label)} <span aria-hidden="true">×</span></button>`).join("");
+    const hint = document.createElement("div"); hint.className = "rcBoxV1";
+    hint.innerHTML = `<div class="rcHeadV1">${escapeHtml(L("Попробуйте убрать условие:"))}</div><div class="rcChipsV1">${btns}<button type="button" class="rcResetV1" data-rc="all">${escapeHtml(L("Сбросить всё"))}</button></div>`;
+    box.appendChild(hint);
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest("#auctionMessage [data-rc]"); if(!b) return;
+    if(b.dataset.rc === "all"){ $("#resetFiltersBtn")?.click(); return; }
+    const c = activeChips[Number(b.dataset.rc)]; if(!c) return;
+    c.remove(); state.page = 1; state.displayPage = 1; loadLots();
+  });
+
   function setMessage(text){
     const box = $("#auctionMessage");
     box.hidden = !text;
@@ -2145,6 +2160,7 @@
       idle(prefetchNextPage);
       updateFavCount();
       if(!state.items.length) setMessage(archived ? "В архиве пока нет завершённых лотов по этим фильтрам. Ищете конкретную машину? Введите её VIN в поиск — история продаж находится по полной базе аукционов." : "По этим фильтрам лоты не найдены. Попробуйте изменить параметры поиска.");
+      if(!state.items.length) showRecovery();
     }catch(error){
       if(reqId !== state.loadSeq) return; // устаревший запрос — молча выходим
       state.hasMore = false;
@@ -3456,6 +3472,7 @@
     if(smart.vin){ openVinReport(smart.vin); return; }
     if(smart.lot){ openLotByNumber(smart.lot); return; }
     // Умный поиск: распознанные слова (марка, топливо, повреждение, штат, год…) становятся фильтрами, остальное — поиск по названию.
+    try{ if(msApi.saveRecent) msApi.saveRecent($("#auctionSmartSearch")?.value); }catch(e){}
     try{ if(msApi.hideSuggest) msApi.hideSuggest(); if(msApi.applySmart && String($("#auctionSmartSearch")?.value || "").trim()){ await msApi.applySmart($("#auctionSmartSearch").value); } }catch(e){}
     state.page = 1; state.displayPage = 1;
     const form = $("#auctionFiltersForm");
@@ -3776,10 +3793,107 @@
     };
     const smBodyInput = kw => [...document.querySelectorAll('#auctionFiltersForm input[name="body"]')].find(i => (i.closest("label")?.textContent || "").toLowerCase().includes(kw));
     const smOpt = (name, kw) => [...document.querySelectorAll(`#auctionFiltersForm input[name="${name}"]`)].find(i => (i.closest("label")?.textContent || "").toLowerCase().includes(kw));
+    // ---- Фразы с числами и «намерения» (цена, пробег, год, вкладка, сортировка…) — разбираются ДО разбивки на слова ----
+    const SMN = "(\\d{1,3}(?:[ \\u00a0,]\\d{3})+|\\d+(?:[.,]\\d+)?)\\s*(?:(k|к|тыс(?:\\.|яч[а-я]*)?|thousand)(?![a-zа-я]))?";
+    const SM_TO = "(?:до|под|дешевле|не\\s+дороже|макс(?:имум|\\.)?|менее|меньше|under|below|max|up\\s+to|less\\s+than|cheaper\\s+than|sub|<=?)";
+    const SM_FROM = "(?:от|дороже|мин(?:имум|\\.)?|более|больше|over|above|min|more\\s+than|peste|>=?)";
+    const SM_PRE = "(?:^|[\\s,;(])", SM_POST = "(?=$|[\\s,;)])";
+    const SM_UNIT = "(км|km|kilometers?|kilometres?|миль|мили|mi|miles?)";
+    const smRe = s => new RegExp(s, "gi");
+    const smParseNum = (n, k) => { let t = String(n).replace(/[  ]/g, ""); if(/^\d{1,3}(,\d{3})+$/.test(t)) t = t.replace(/,/g, ""); else t = t.replace(",", "."); let v = parseFloat(t); if(k) v *= 1000; return Math.round(v); };
+    const smIsYear = v => v >= 1980 && v <= 2039;
+    const smMoney = v => "$" + Number(v).toLocaleString("ru-RU");
+    const smFmtInt = v => Number(v).toLocaleString("ru-RU");
+    const smIsDirTo = d => !!d && new RegExp("^" + SM_TO + "$", "i").test(d.trim());
+    const smIsDirFrom = d => !!d && new RegExp("^" + SM_FROM + "$", "i").test(d.trim());
+    function smSetNum(name, v){
+      const el = document.querySelector(`#auctionFiltersForm [name="${name}"]`); if(el) el.value = v;
+      document.querySelectorAll("[data-range]").forEach(r => { if(r._applyNums) r._applyNums(); });
+    }
+    function smSetSort(key){
+      const sel = document.getElementById("auctionSort"); if(!sel) return;
+      sel.value = key;
+      const opt = document.querySelector(`#sortDropMenuV1 .sortOptV1[data-sort="${key}"]`), lbl = document.getElementById("sortDropLabelV1");
+      if(lbl && opt) lbl.textContent = opt.textContent.trim();
+      document.querySelectorAll("#sortDropMenuV1 .sortOptV1").forEach(el => el.classList.toggle("sortOptActiveV1", el.dataset.sort === key));
+    }
+    const SM_TABS = {soon:"Сегодня и завтра", buy_now:"Купить сейчас", archived:"Архив"};
+    function smTab(tab){ state.tab = tab; document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === tab)); }
+    const smOdoUi = () => (document.querySelector("[data-odo-unit].active")?.dataset.odoUnit === "km" ? "km" : "mi");
+    // Возвращает {text (без распознанных фраз), items}
+    function smartPre(raw){
+      let s = " " + String(raw || "") + " ";
+      const items = [];
+      const sweep = (re, fn) => { s = s.replace(re, (m, ...g) => { const r = fn(m, g); return r ? " " : m; }); };
+      const push = (type, label, apply) => items.push({type, label, apply});
+      // --- год со словами ---
+      sweep(smRe(`${SM_PRE}(?:не\\s+старше|новее|после|since|from|newer\\s+than|after|с)\\s*(19[89]\\d|20[0-3]\\d)(?!\\d)`), (m, g) => { const y = g[0]; push("year", `${L("Год")}: ${L("от")} ${y}`, () => smSetNum("yearFrom", y)); return true; });
+      sweep(smRe(`${SM_PRE}(?:не\\s+новее|старше|раньше|older\\s+than|before)\\s*(19[89]\\d|20[0-3]\\d)(?!\\d)`), (m, g) => { const y = g[0]; push("year", `${L("Год")}: ${L("до")} ${y}`, () => smSetNum("yearTo", y)); return true; });
+      sweep(smRe(`${SM_PRE}(19[89]\\d|20[0-3]\\d)\\s+(?:и\\s+новее|и\\s+свежее|or\\s+newer|and\\s+newer)${SM_POST}`), (m, g) => { const y = g[0]; push("year", `${L("Год")}: ${L("от")} ${y}`, () => smSetNum("yearFrom", y)); return true; });
+      // --- малый пробег ---
+      sweep(smRe(`${SM_PRE}(?:малый|низкий|небольшой|маленький)\\s+пробег${SM_POST}|${SM_PRE}low\\s+(?:mileage|miles)${SM_POST}|${SM_PRE}kilometraj\\s+redus${SM_POST}`), () => { push("mileage", `${L("Пробег")}: ${L("до")} 30 000 mi`, () => smSetNum("mileageTo", smOdoUi() === "km" ? 48280 : 30000)); return true; });
+      // --- пробег с числом ---
+      const odo = (dir, n, k, unit) => {
+        const v = smParseNum(n, k); const isKm = /^(к|k)/i.test(unit || "") && !/^(миль|мили)/i.test(unit || "") && !/^mi/i.test(unit || "");
+        const miles = isKm ? Math.round(v * 0.621371) : v; const from = smIsDirFrom(dir);
+        const ui = smOdoUi() === "km" ? Math.round(miles * 1.609) : miles;
+        push("mileage", `${L("Пробег")}: ${from ? L("от") : L("до")} ${smFmtInt(v)} ${isKm ? L("км") : "mi"}`, () => smSetNum(from ? "mileageFrom" : "mileageTo", ui));
+        return true;
+      };
+      sweep(smRe(`${SM_PRE}(?:пробег|mileage|odometer|kilometraj)\\s*(${SM_TO}|${SM_FROM})?\\s*${SMN}\\s*${SM_UNIT}?${SM_POST}`), (m, g) => odo(g[0], g[1], g[2], g[3]));
+      sweep(smRe(`${SM_PRE}(${SM_TO}|${SM_FROM})\\s*${SMN}\\s*${SM_UNIT}${SM_POST}`), (m, g) => odo(g[0], g[1], g[2], g[3]));
+      // --- выкуп (Buy Now) с ценой ---
+      sweep(smRe(`${SM_PRE}(?:выкуп|buy\\s*now|buynow|купить\\s+сейчас)\\s*(${SM_TO}|${SM_FROM})?\\s*\\$?\\s*${SMN}`), (m, g) => {
+        const v = smParseNum(g[1], g[2]), from = smIsDirFrom(g[0]);
+        push("buynow", `${L("Выкуп")}: ${from ? L("от") : L("до")} ${smMoney(v)}`, () => { smSetNum(from ? "buyNowFrom" : "buyNowTo", v); smTab("buy_now"); });
+        return true;
+      });
+      // --- диапазон цен (со знаком $ или валютой; пары лет — не цены) ---
+      sweep(smRe(`${SM_PRE}(\\$)?\\s*${SMN}\\s*[-–—]\\s*\\$?\\s*${SMN}\\s*(\\$|usd|долл[а-я]*)?`), (m, g) => {
+        const a = smParseNum(g[1], g[2]), b = smParseNum(g[3], g[4]), hasCur = !!(g[0] || g[5]);
+        if(!hasCur && (smIsYear(a) || smIsYear(b) || a < 100 || b < 100)) return false;
+        push("bid", `${L("Ставка")}: ${smMoney(Math.min(a, b))}–${smMoney(Math.max(a, b))}`, () => { smSetNum("bidFrom", Math.min(a, b)); smSetNum("bidTo", Math.max(a, b)); });
+        return true;
+      });
+      // --- «до N» / «от N»: год, если число похоже на год и нет валюты; иначе ставка ---
+      const dirPrice = (from) => sweep(smRe(`${SM_PRE}(${from ? SM_FROM : SM_TO})\\s*(\\$)?\\s*${SMN}\\s*(\\$|usd|долл[а-я]*)?`), (m, g) => {
+        const v = smParseNum(g[2], g[3]), cur = !!(g[1] || g[4]);
+        if(!cur && !g[3] && smIsYear(v)){ push("year", `${L("Год")}: ${from ? L("от") : L("до")} ${v}`, () => smSetNum(from ? "yearFrom" : "yearTo", v)); return true; }
+        if(v < 100 && !cur) return false;
+        push("bid", `${L("Ставка")}: ${from ? L("от") : L("до")} ${smMoney(v)}`, () => smSetNum(from ? "bidFrom" : "bidTo", v)); return true;
+      });
+      dirPrice(false); dirPrice(true);
+      sweep(smRe(`${SM_PRE}${SMN}\\s*(\\$|usd|долл[а-я]*)${SM_POST}`), (m, g) => { const v = smParseNum(g[0], g[1]); push("bid", `${L("Ставка")}: ${L("до")} ${smMoney(v)}`, () => smSetNum("bidTo", v)); return true; });
+      sweep(smRe(`${SM_PRE}\\$\\s*${SMN}${SM_POST}`), (m, g) => { const v = smParseNum(g[0], g[1]); push("bid", `${L("Ставка")}: ${L("до")} ${smMoney(v)}`, () => smSetNum("bidTo", v)); return true; });
+      // --- намерения словами ---
+      const kw = (words, fn) => sweep(smRe(`${SM_PRE}(?:${words})${SM_POST}`), () => { fn(); return true; });
+      kw("не\\s+на\\s+ходу|не\\s+едет|non-?runners?|not\\s+running|nu\\s+merge", () => push("cond", `${L("Состояние")}: ${L("Не на ходу")}`, () => smCheck("condition", "3")));
+      kw("на\\s+ходу|заводится\\s+и\\s+едет|runs?\\s+and\\s+drives?|run\\s+and\\s+drive|drives?|merge", () => push("cond", `${L("Состояние")}: ${L("Заводится и едет")}`, () => smCheck("condition", "0")));
+      kw("таймед|timed", () => push("sale", `${L("Статус продажи")}: Timed`, () => smCheck("saleStatus", "timed")));
+      kw("без\\s+резерва|no\\s+reserve|fără\\s+rezervă", () => push("sale", `${L("Статус продажи")}: ${L("Без резерва")}`, () => smCheck("saleStatus", "no_reserve")));
+      kw("на\\s+утверждении|on\\s+approval", () => push("sale", `${L("Статус продажи")}: ${L("На утверждении")}`, () => smCheck("saleStatus", "on_approval")));
+      kw("без\\s+перекупов|не\\s+перекуп|чистые|clean\\s+select|no\\s+resellers|fără\\s+revânzători", () => push("smart", "Feduk Clean Select™", () => smCheck("smart", "1")));
+      kw("сегодня|завтра|today|tomorrow|astăzi|mâine", () => push("tab", `${L("Вкладка")}: ${L(SM_TABS.soon)}`, () => smTab("soon")));
+      kw("архив|проданные|sold|archive|arhivă", () => push("tab", `${L("Вкладка")}: ${L(SM_TABS.archived)}`, () => smTab("archived")));
+      kw("выкуп|buy\\s*now|купить\\s+сейчас|cumpără\\s+acum", () => push("tab", `${L("Вкладка")}: ${L(SM_TABS.buy_now)}`, () => smTab("buy_now")));
+      kw("новые|свежие|новейшие|newest|fresh|noi", () => push("sort", `${L("Сортировка")}: ${L("Год 9-1")}`, () => smSetSort("year_desc")));
+      kw("скоро|ближайшие|soonest|în\\s+curând", () => push("sort", `${L("Сортировка")}: ${L("Скоро торги")}`, () => smSetSort("soon")));
+      return {text: s.trim(), items};
+    }
+    const smLev = (a, b) => { const m = a.length, n = b.length; if(!m) return n; if(!n) return m; const d = Array.from({length:m + 1}, (_, i) => [i]); for(let j = 1; j <= n; j++) d[0][j] = j;
+      for(let i = 1; i <= m; i++) for(let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; };
+    // Опечатки в марке («toyta», «hyundia», «mersedes»): расстояние ≤1 (≤2 для длинных названий), только однозначное совпадение
+    function smFuzzyMake(nm, makeIdx){
+      if(nm.length < 4 || /^\d/.test(nm)) return null;
+      const lim = nm.length >= 8 ? 2 : 1; let best = null, bestD = 99, tie = false;
+      for(const [key, m] of makeIdx){ if(Math.abs(key.length - nm.length) > lim) continue; const d = smLev(nm, key); if(d <= lim){ if(d < bestD){ best = m; bestD = d; tie = false; } else if(d === bestD && m !== best) tie = true; } }
+      return best && !tie ? best : null;
+    }
     // Разбор строки → {items:[{type,label,apply}], leftover:[слова]} (без побочных эффектов)
     function smartParse(raw){
-      const items = [], leftover = [];
-      const tokens = String(raw || "").split(/[\s,;]+/).filter(Boolean);
+      const pre = smartPre(raw);
+      const items = [...pre.items], leftover = [];
+      const tokens = String(pre.text || "").split(/[\s,;]+/).filter(Boolean);
       const makeIdx = smMakeIndex();
       const stateByName = new Map(); const stateByCode = new Map();
       (smartStates || []).forEach(s => { stateByName.set(sN(s.name), s); if(s.code && s.code.length === 2) stateByCode.set(s.code.toLowerCase(), s); });
@@ -3794,6 +3908,7 @@
           const aliasTarget = SM_MAKE_ALIAS[nm] || SM_MAKE_ALIAS[low];
           let mk = makeIdx.get(aliasTarget || nm);
           if(mk){ push("make", `${L("Марка")}: ${mk.name}`, () => smAddMake(mk), {makeId:String(mk.id)}); consumed = len; break; }
+          if(!mk && len === 1 && !aliasTarget){ const fz = smFuzzyMake(nm, makeIdx); if(fz){ push("make", `${L("Марка")}: ${fz.name} ≈`, () => smAddMake(fz), {makeId:String(fz.id)}); consumed = 1; break; } }
           if(nm === "rangerover" && makeIdx.get("landrover")){ const lr = makeIdx.get("landrover"); push("make", `${L("Марка")}: ${lr.name}`, () => smAddMake(lr), {makeId:String(lr.id)}); leftover.push("range", "rover"); consumed = len; break; }
           // штат/провинция (полное название, до 3 слов; двухбуквенный код — только заглавными)
           const st = stateByName.get(nm) || (len === 1 && /^[A-Z]{2}$/.test(orig) ? stateByCode.get(low) : null);
@@ -3875,12 +3990,24 @@
     // Подсказки под строкой поиска: что будет применено + автодополнение последнего слова (марки, штаты, топливо, повреждения…)
     (function initSmartSuggest(){
       const inp = document.getElementById("auctionSmartSearch"); if(!inp || !inp.parentElement) return;
+      const row = inp.parentElement;
       const panel = document.createElement("div"); panel.id = "smartSuggestV1"; panel.className = "smartPanelV1"; panel.hidden = true;
-      inp.parentElement.style.position = "relative"; inp.parentElement.appendChild(panel);
+      row.style.position = "relative"; row.appendChild(panel);
       let timer = null;
+      const RK = "apexRecentSearchV1";
+      const recents = () => { try{ const a = JSON.parse(localStorage.getItem(RK) || "[]"); return Array.isArray(a) ? a.filter(x => typeof x === "string").slice(0, 5) : []; }catch(e){ return []; } };
+      msApi.saveRecent = raw => { const t = String(raw || "").trim(); if(t.length < 2 || t.length > 80) return; try{ localStorage.setItem(RK, JSON.stringify([t, ...recents().filter(x => x.toLowerCase() !== t.toLowerCase())].slice(0, 5))); }catch(e){} };
+      const EXAMPLES = ["Toyota Camry гибрид до $8000", "Tesla Model Y без резерва", "BMW Флорида на ходу", "электро от 2021 новые", "Ford F-150 Texas timed", "Honda Accord пробег до 60к"];
+      const renderEmpty = () => {
+        const rc = recents();
+        panel.innerHTML = (rc.length ? `<div class="spHeadV1">${escapeHtml(L("Недавние поиски"))}</div>${rc.map((t, k) => `<button type="button" class="spRowV1 spRecentV1" data-rs="r${k}">${escapeHtml(t)}</button>`).join("")}` : "")
+          + `<div class="spHeadV1">${escapeHtml(L("Попробуйте"))}</div>${EXAMPLES.map((t, k) => `<button type="button" class="spRowV1" data-rs="e${k}">${escapeHtml(L(t))}</button>`).join("")}`;
+        panel._rs = {r:rc, e:EXAMPLES.map(t => L(t))}; panel._sugg = []; panel.hidden = false;
+      };
       const render = async () => {
         const raw = inp.value;
-        if(!raw.trim() || parseSmartSearch(raw).vin || parseSmartSearch(raw).lot){ panel.hidden = true; return; }
+        if(!raw.trim()){ renderEmpty(); return; }
+        if(parseSmartSearch(raw).vin || parseSmartSearch(raw).lot){ panel.hidden = true; return; }
         await ensureSmartStates();
         const {items, leftover} = smartParse(raw);
         const last = (/([^\s,;]+)$/.exec(raw) || [])[1] || "", ln = sN(last);
@@ -3895,16 +4022,35 @@
         panel._sugg = sugg; panel.hidden = !panel.innerHTML;
       };
       inp.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(render, 140); });
-      inp.addEventListener("focus", () => { if(inp.value.trim()) render(); });
+      inp.addEventListener("focus", () => render());
       inp.addEventListener("keydown", e => { if(e.key === "Escape") panel.hidden = true; });
       document.addEventListener("click", e => { if(!panel.hidden && !panel.contains(e.target) && e.target !== inp) panel.hidden = true; });
       panel.addEventListener("mousedown", e => e.preventDefault());
       panel.addEventListener("click", e => {
+        const rs = e.target.closest("[data-rs]");
+        if(rs){ const k = rs.dataset.rs; const t = (panel._rs || {})[k[0]]?.[Number(k.slice(1))]; if(t){ inp.value = t; panel.hidden = true; document.getElementById("auctionSearchBtn")?.click(); } return; }
         const b = e.target.closest("[data-sp]"); if(!b) return;
         const s = (panel._sugg || [])[Number(b.dataset.sp)]; if(!s) return;
         inp.value = inp.value.replace(/([^\s,;]+)$/, s.text) + " "; inp.focus(); render();
       });
       msApi.hideSuggest = () => { panel.hidden = true; };
+      // Голосовой ввод (Chrome/Safari/Edge): говорите «Toyota Camry до пяти тысяч» — строка разбирается так же, как набранная
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(SR){
+        const mic = document.createElement("button"); mic.type = "button"; mic.className = "spMicV1"; mic.setAttribute("aria-label", L("Голосовой поиск"));
+        mic.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>';
+        const wrap = document.createElement("div"); wrap.className = "spWrapV1"; row.insertBefore(wrap, inp); wrap.appendChild(inp); wrap.appendChild(mic);
+        let rec = null;
+        mic.addEventListener("click", () => {
+          if(rec){ try{ rec.stop(); }catch(e){} return; }
+          rec = new SR(); rec.lang = {ro:"ro-RO", en:"en-US"}[window.APEX_LANG] || "ru-RU"; rec.interimResults = true; rec.maxAlternatives = 1;
+          mic.classList.add("on");
+          rec.onresult = ev => { inp.value = Array.from(ev.results).map(r => r[0].transcript).join(" "); if(ev.results[ev.results.length - 1].isFinal){ panel.hidden = true; document.getElementById("auctionSearchBtn")?.click(); } };
+          rec.onend = () => { rec = null; mic.classList.remove("on"); };
+          rec.onerror = () => { rec = null; mic.classList.remove("on"); };
+          try{ rec.start(); }catch(e){ rec = null; mic.classList.remove("on"); }
+        });
+      }
     })();
 
     // Generation → generation_id (depends on the selected model)

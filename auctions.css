@@ -1200,3 +1200,24 @@ body.leadModalOpenV1 { overflow:hidden; }
 .spChipV1.sp-name { background:#f3f4f6; color:var(--aInk2); }
 .spRowV1 { display:block; width:100%; padding:8px 10px; border:none; border-radius:9px; background:transparent; text-align:left; font:inherit; font-size:13.5px; color:var(--aInk); cursor:pointer; }
 .spRowV1:hover { background:var(--aSoft); }
+
+/* Умный поиск v2: голос, примеры, восстановление пустой выдачи */
+.spWrapV1 { position:relative; flex:1; min-width:110px; display:flex; }
+.spWrapV1 input { width:100%; padding-right:48px !important; }
+.spMicV1 { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:36px; height:36px; display:grid; place-items:center; border:none; border-radius:10px; background:transparent; color:var(--aMuted); cursor:pointer; }
+.spMicV1:hover { background:#eef1f6; color:var(--aInk); }
+.spMicV1.on { background:var(--aRed); color:#fff; animation:spPulseV1 1.1s ease-in-out infinite; }
+@keyframes spPulseV1 { 50% { box-shadow:0 0 0 6px rgba(237,0,18,.18); } }
+@media (prefers-reduced-motion:reduce) { .spMicV1.on { animation:none; } }
+.spRecentV1::before { content:"↺"; margin-right:8px; color:var(--aMuted); }
+.spChipV1.sp-year, .spChipV1.sp-mileage { background:#efeafc; color:#5a3aa8; }
+.spChipV1.sp-bid, .spChipV1.sp-buynow { background:#fdeceb; color:#b3321f; }
+.spChipV1.sp-cond, .spChipV1.sp-sale, .spChipV1.sp-smart { background:#e7f6ec; color:#17794a; }
+.spChipV1.sp-tab, .spChipV1.sp-sort { background:#e9f1ff; color:#1f4fbf; }
+.rcBoxV1 { margin-top:12px; }
+.rcHeadV1 { margin-bottom:8px; font-size:12px; font-weight:700; color:var(--aMuted); }
+.rcChipsV1 { display:flex; flex-wrap:wrap; gap:6px; }
+.rcChipV1, .rcResetV1 { padding:7px 12px; border:1px solid var(--aLine); border-radius:999px; background:#fff; font:inherit; font-size:13px; font-weight:600; color:var(--aInk); cursor:pointer; }
+.rcChipV1:hover { border-color:var(--aRed); color:var(--aRed); }
+.rcResetV1 { background:var(--aRed); border-color:var(--aRed); color:#fff; }
+@media (max-width:640px) { .auctionSearchRowV2 .spWrapV1 { flex:1 1 0; } }
