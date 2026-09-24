@@ -3450,13 +3450,16 @@
     $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">Лот ${escapeHtml(lotNo)} не найден на Copart и IAAI.</div>`;
   }
 
-  function triggerSearch(){
+  async function triggerSearch(){
     const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
     // A complete VIN → open the VIN report instead of filtering the list.
     if(smart.vin){ openVinReport(smart.vin); return; }
     if(smart.lot){ openLotByNumber(smart.lot); return; }
+    // Умный поиск: распознанные слова (марка, топливо, повреждение, штат, год…) становятся фильтрами, остальное — поиск по названию.
+    try{ if(msApi.hideSuggest) msApi.hideSuggest(); if(msApi.applySmart && String($("#auctionSmartSearch")?.value || "").trim()){ await msApi.applySmart($("#auctionSmartSearch").value); } }catch(e){}
     state.page = 1; state.displayPage = 1;
-    loadLots();
+    const form = $("#auctionFiltersForm");
+    if(form && form.requestSubmit) form.requestSubmit(); else loadLots();
   }
 
   function openLead(lot){
@@ -3732,6 +3735,177 @@
     msApi.removeMake = id => { ms.makes = ms.makes.filter(x => x.id !== id); ms.models = ms.models.filter(x => x.makeId !== id); syncHidden(); renderMakes(); renderModels(); refreshGenerationsForSelection(); state.page = 1; state.displayPage = 1; loadLots(); };
     msApi.removeModel = id => { ms.models = ms.models.filter(x => x.id !== id); syncHidden(); renderModels(); refreshGenerationsForSelection(); state.page = 1; state.displayPage = 1; loadLots(); };
     msApi.reset = () => { ms.makes = []; ms.models = []; syncHidden(); if(makeSearch) makeSearch.value = ""; if(modelSearch) modelSearch.value = ""; renderMakes(); renderModels(); resetGenerations(); };
+
+    // ================= Умный поиск (25.09.2026) =================
+    // Строка поиска разбирается на фильтры: марка/модель, топливо, повреждение, штат/провинция, год/диапазон, объём двигателя, кузов, привод, КПП, площадка, страна.
+    // Всё, что не распознано, остаётся текстом для поиска по названию (все слова должны встретиться). Распознанное превращается в обычные фильтры (чипы, сохранение, уведомления).
+    const sN = s => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/g, "");
+    const SM_FUEL = {gasoline:4, petrol:4, gas:4, benzin:4, "бензин":4, "бензиновый":4, "бензиновая":4, diesel:1, "дизель":1, "дизельный":1, hybrid:3, phev:3, plugin:3, "гибрид":3, "гибридный":3, electric:2, ev:2, "электро":2, "электромобиль":2, "электрический":2, "электрокар":2};
+    const SM_FUEL_RU = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин"};
+    const SM_DMG = [
+      [/^(front|перед|передний|спереди|фронт)$/, "Front End", "Перед"], [/^(rear|зад|задний|сзади)$/, "Rear End", "Зад"], [/^(side|бок|боковой|сбоку)$/, "Side", "Бок"],
+      [/^(water|flood|вода|воды|затопление|затоплен|затопленный|утопленник|утоплен)$/, "Water / Flood", "Вода / затопление"], [/^(fire|burn|burnt|огонь|пожар|сгорел|сгоревший)$/, "Burn / Fire", "Огонь"],
+      [/^(hail|град|градом)$/, "Hail / Storm", "Град"], [/^(rollover|переворот|перевернут)$/, "Rollover", "Переворот"], [/^(undercarriage|днище)$/, "Undercarriage", "Днище"],
+      [/^(mechanical|механика|электрика)$/, "Mechanical / Electrical", "Механика"], [/^(roof|крыша)$/, "Roof / Top", "Крыша"], [/^(frame|рама)$/, "Frame / Structural", "Рама"],
+      [/^(vandalism|вандализм|угон|theft)$/, "Vandalism / Theft", "Вандализм"], [/^(scratches|царапины|minor|мелкие)$/, "Minor / Normal Wear", "Мелкие повреждения"], [/^(glass|window|windows|стекло|стекла)$/, "Glass / Windows", "Стёкла"],
+      [/^(allover)$/, "All Over", "Весь кузов"]
+    ];
+    const SM_BODY = {sedan:"седан", "седан":"седан", suv:"suv", crossover:"suv", "кроссовер":"suv", "внедорожник":"suv", coupe:"купе", "купе":"купе", convertible:"кабриолет", cabrio:"кабриолет", cabriolet:"кабриолет", "кабриолет":"кабриолет",
+      pickup:"пикап", "пикап":"пикап", truck:"грузовик", "грузовик":"грузовик", hatchback:"хэтчбек", hatch:"хэтчбек", "хэтчбек":"хэтчбек", wagon:"универсал", estate:"универсал", "универсал":"универсал", minivan:"минивэн", van:"минивэн", "минивэн":"минивэн", "вэн":"минивэн"};
+    const SM_DRIVE = {awd:"полный", "4wd":"полный", "4x4":"полный", "полный":"полный", fwd:"передний", "передний":"передний", rwd:"задний", "задний":"задний"};
+    const SM_TRANS = {automatic:"автомат", "автомат":"автомат", "акпп":"автомат", manual:"механика", "механика":"механика", "мкпп":"механика"};
+    const SM_MAKE_ALIAS = {vw:"volkswagen", chevy:"chevrolet", merc:"mercedesbenz", mercedes:"mercedesbenz", benz:"mercedesbenz", bimmer:"bmw",
+      "тойота":"toyota", "хонда":"honda", "ниссан":"nissan", "мазда":"mazda", "субару":"subaru", "мицубиси":"mitsubishi", "митсубиси":"mitsubishi", "лексус":"lexus", "инфинити":"infiniti", "акура":"acura", "хендай":"hyundai", "хюндай":"hyundai", "киа":"kia",
+      "ауди":"audi", "бмв":"bmw", "мерседес":"mercedesbenz", "фольксваген":"volkswagen", "вольво":"volvo", "порше":"porsche", "форд":"ford", "шевроле":"chevrolet", "додж":"dodge", "джип":"jeep", "крайслер":"chrysler", "тесла":"tesla", "кадиллак":"cadillac",
+      "линкольн":"lincoln", "бьюик":"buick", "ягуар":"jaguar", "мини":"mini", "фиат":"fiat", "сузуки":"suzuki", "рам":"ram", "джимси":"gmc", "ленд ровер":"landrover", "ландровер":"landrover"};
+    const SM_SUGGEST = [["hybrid","Топливо: Гибрид"], ["гибрид","Топливо: Гибрид"], ["electric","Топливо: Электро"], ["электро","Топливо: Электро"], ["diesel","Топливо: Дизель"], ["дизель","Топливо: Дизель"], ["gasoline","Топливо: Бензин"], ["бензин","Топливо: Бензин"],
+      ["water","Повреждение: Вода / затопление"], ["flood","Повреждение: Вода / затопление"], ["затопление","Повреждение: Вода / затопление"], ["front","Повреждение: Перед"], ["rear","Повреждение: Зад"], ["hail","Повреждение: Град"], ["rollover","Повреждение: Переворот"], ["fire","Повреждение: Огонь"],
+      ["sedan","Кузов: Седан"], ["suv","Кузов: SUV / Кроссовер"], ["pickup","Кузов: Пикап"], ["coupe","Кузов: Купе"], ["hatchback","Кузов: Хэтчбек"], ["wagon","Кузов: Универсал"], ["minivan","Кузов: Минивэн"], ["awd","Привод: Полный"], ["copart","Площадка: Copart"], ["iaai","Площадка: IAAI"]];
+    let smartStates = null;
+    async function ensureSmartStates(){
+      if(smartStates) return smartStates;
+      try{
+        const [us, ca] = await Promise.all(["us", "ca"].map(c => api(`/api/auctions?action=usadict&dict=states&country=${c}`).then(r => r.items || []).catch(() => [])));
+        smartStates = [...us, ...ca].filter(s => s && s.name);
+      }catch(e){ smartStates = []; }
+      return smartStates;
+    }
+    const smMakeIndex = () => {
+      const idx = new Map(); (manufacturers || []).forEach(m => { if(m.id != null) idx.set(sN(m.name), m); });
+      return idx;
+    };
+    const smBodyInput = kw => [...document.querySelectorAll('#auctionFiltersForm input[name="body"]')].find(i => (i.closest("label")?.textContent || "").toLowerCase().includes(kw));
+    const smOpt = (name, kw) => [...document.querySelectorAll(`#auctionFiltersForm input[name="${name}"]`)].find(i => (i.closest("label")?.textContent || "").toLowerCase().includes(kw));
+    // Разбор строки → {items:[{type,label,apply}], leftover:[слова]} (без побочных эффектов)
+    function smartParse(raw){
+      const items = [], leftover = [];
+      const tokens = String(raw || "").split(/[\s,;]+/).filter(Boolean);
+      const makeIdx = smMakeIndex();
+      const stateByName = new Map(); const stateByCode = new Map();
+      (smartStates || []).forEach(s => { stateByName.set(sN(s.name), s); if(s.code && s.code.length === 2) stateByCode.set(s.code.toLowerCase(), s); });
+      let i = 0;
+      const push = (type, label, apply, extra) => items.push({type, label, apply, ...(extra || {})});
+      while(i < tokens.length){
+        let consumed = 0;
+        for(let len = Math.min(3, tokens.length - i); len >= 1 && !consumed; len--){
+          const orig = tokens.slice(i, i + len).join(" "), low = orig.toLowerCase(), nm = sN(orig);
+          if(!nm) continue;
+          // марка
+          const aliasTarget = SM_MAKE_ALIAS[nm] || SM_MAKE_ALIAS[low];
+          let mk = makeIdx.get(aliasTarget || nm);
+          if(mk){ push("make", `${L("Марка")}: ${mk.name}`, () => smAddMake(mk), {makeId:String(mk.id)}); consumed = len; break; }
+          if(nm === "rangerover" && makeIdx.get("landrover")){ const lr = makeIdx.get("landrover"); push("make", `${L("Марка")}: ${lr.name}`, () => smAddMake(lr), {makeId:String(lr.id)}); leftover.push("range", "rover"); consumed = len; break; }
+          // штат/провинция (полное название, до 3 слов; двухбуквенный код — только заглавными)
+          const st = stateByName.get(nm) || (len === 1 && /^[A-Z]{2}$/.test(orig) ? stateByCode.get(low) : null);
+          if(st){ push("state", `${L("Штат / провинция")}: ${st.name.replace(/\b\w/g, c => c.toUpperCase())}`, () => smSetState(st)); consumed = len; break; }
+          if(len === 2 && nm === "allover"){ push("damage", `${L("Повреждение")}: ${L("Весь кузов")}`, () => smAddDamage("All Over")); consumed = len; break; }
+          if(len > 1) continue;
+          // одиночные слова
+          if(SM_FUEL[nm]){ const fid = SM_FUEL[nm]; push("fuel", `${L("Топливо")}: ${L(SM_FUEL_RU[fid])}`, () => smCheck("fuel", String(fid))); consumed = 1; break; }
+          const dm = SM_DMG.find(d => d[0].test(nm));
+          if(dm){ push("damage", `${L("Повреждение")}: ${L(dm[2])}`, () => smAddDamage(dm[1])); consumed = 1; break; }
+          if(SM_BODY[nm] && smBodyInput(SM_BODY[nm])){ const bi = smBodyInput(SM_BODY[nm]); push("body", `${L("Кузов")}: ${bi.closest("label").textContent.trim()}`, () => { bi.checked = true; }); consumed = 1; break; }
+          if(SM_DRIVE[nm] && smOpt("drive", SM_DRIVE[nm])){ const di = smOpt("drive", SM_DRIVE[nm]); push("drive", `${L("Привод")}: ${di.closest("label").textContent.trim()}`, () => { di.checked = true; }); consumed = 1; break; }
+          if(SM_TRANS[nm] && smOpt("transmission", SM_TRANS[nm])){ const ti = smOpt("transmission", SM_TRANS[nm]); push("trans", `${L("Коробка")}: ${ti.closest("label").textContent.trim()}`, () => { ti.checked = true; }); consumed = 1; break; }
+          if(nm === "copart" || nm === "копарт"){ push("auction", `${L("Площадка")}: Copart`, () => smAuction("copart")); consumed = 1; break; }
+          if(nm === "iaai" || nm === "iaa" || nm === "иаа"){ push("auction", `${L("Площадка")}: IAAI`, () => smAuction("iaai")); consumed = 1; break; }
+          if(nm === "canada" || nm === "канада"){ push("country", `${L("Страна")}: ${L("Канада")}`, () => smCheck("country", "CA")); consumed = 1; break; }
+          if(nm === "usa" || nm === "us" || nm === "сша"){ push("country", `${L("Страна")}: ${L("США")}`, () => smCheck("country", "US")); consumed = 1; break; }
+          let m2;
+          if((m2 = /^((?:19[89]|20[0-3])\d)[-–]{1,2}((?:19[89]|20[0-3])\d)$/.exec(low))){ const a = m2[1], b = m2[2]; push("year", `${L("Год")}: ${a}–${b}`, () => smYears(a, b)); consumed = 1; break; }
+          if((m2 = /^((?:19[89]|20[0-3])\d)\+$/.exec(low))){ push("year", `${L("Год")}: ${L("от")} ${m2[1]}`, () => smYears(m2[1], "")); consumed = 1; break; }
+          if(/^(?:19[89]|20[0-3])\d$/.test(low)){ push("year", `${L("Год")}: ${low}`, () => smYears(low, low)); consumed = 1; break; }
+          if((m2 = /^(\d\.\d)\s*(?:l|л)?$/.exec(low)) && (m2[0].includes("l") || m2[0].includes("л") || true)){ const v = m2[1]; push("engine", `${L("Объём двигателя")}: ${v}L`, () => smEngine(v)); consumed = 1; break; }
+        }
+        if(consumed) i += consumed; else { const w = tokens[i]; if(!SMART_STOP_WORDS.has(w.toLowerCase())) leftover.push(w); i++; }
+      }
+      return {items, leftover};
+    }
+    const SMART_STOP_WORDS = new Set(["и", "в", "на", "с", "для", "из", "от", "or", "and", "the", "with"]);
+    function smAddMake(mk){
+      const id = String(mk.id);
+      if(!ms.makes.some(x => x.id === id)) ms.makes.push({id, name:mk.name});
+    }
+    function smCheck(name, value){ const el = document.querySelector(`#auctionFiltersForm input[name="${name}"][value="${value}"]`); if(el) el.checked = true; }
+    function smAddDamage(label){ setDamageList([...damageList(), label]); }
+    function smSetState(st){
+      const sid = document.getElementById("filterStateIdV2"), inp = document.getElementById("filterStateV2");
+      if(sid) sid.value = st.code || String(st.id || ""); if(inp) inp.value = st.name.replace(/\b\w/g, c => c.toUpperCase());
+    }
+    function smYears(a, b){
+      const f = document.querySelector('#auctionFiltersForm [name="yearFrom"]'), t = document.querySelector('#auctionFiltersForm [name="yearTo"]');
+      if(f) f.value = a; if(t) t.value = b;
+      document.querySelectorAll("[data-range]").forEach(r => { if(r._applyNums) r._applyNums(); });
+    }
+    function smEngine(v){
+      const f = document.querySelector('#auctionFiltersForm [name="engineFrom"]'), t = document.querySelector('#auctionFiltersForm [name="engineTo"]');
+      if(f) f.value = v; if(t) t.value = v;
+      document.querySelectorAll("[data-range]").forEach(r => { if(r._applyNums) r._applyNums(); });
+    }
+    function smAuction(a){
+      state.auction = a;
+      document.querySelectorAll("[data-auction-switch]").forEach(b => b.classList.toggle("active", b.getAttribute("data-auction-switch") === a));
+    }
+    // Применить: фильтры → форма; выбранные слова-модели → модель; остаток → строка поиска (название). Возвращает число применённых фильтров.
+    msApi.applySmart = async raw => {
+      await ensureSmartStates();
+      const {items, leftover} = smartParse(raw);
+      items.forEach(it => { try{ it.apply(); }catch(e){} });
+      let left = leftover.slice();
+      const makeIds = ms.makes.map(m => m.id);
+      if(makeIds.length && left.length){
+        await Promise.all(makeIds.map(ensureModels));
+        const models = makeIds.flatMap(id => modelsCache[id] || []);
+        let changed = true;
+        while(changed && left.length){
+          changed = false;
+          for(let len = Math.min(3, left.length); len >= 1 && !changed; len--){
+            for(let k = 0; k + len <= left.length && !changed; k++){
+              const nm = sN(left.slice(k, k + len).join(" "));
+              const m = nm && models.find(x => sN(x.name) === nm);
+              if(m){ if(!ms.models.some(x => x.id === m.id)) ms.models.push({id:m.id, name:m.name, makeId:m.makeId}); left.splice(k, len); changed = true; }
+            }
+          }
+        }
+      }
+      syncHidden(); renderMakes(); renderModels(); refreshGenerationsForSelection();
+      const inp = document.getElementById("auctionSmartSearch"); if(inp) inp.value = left.join(" ");
+      return items.length;
+    };
+    // Подсказки под строкой поиска: что будет применено + автодополнение последнего слова (марки, штаты, топливо, повреждения…)
+    (function initSmartSuggest(){
+      const inp = document.getElementById("auctionSmartSearch"); if(!inp || !inp.parentElement) return;
+      const panel = document.createElement("div"); panel.id = "smartSuggestV1"; panel.className = "smartPanelV1"; panel.hidden = true;
+      inp.parentElement.style.position = "relative"; inp.parentElement.appendChild(panel);
+      let timer = null;
+      const render = async () => {
+        const raw = inp.value;
+        if(!raw.trim() || parseSmartSearch(raw).vin || parseSmartSearch(raw).lot){ panel.hidden = true; return; }
+        await ensureSmartStates();
+        const {items, leftover} = smartParse(raw);
+        const last = (/([^\s,;]+)$/.exec(raw) || [])[1] || "", ln = sN(last);
+        const sugg = [];
+        if(ln.length >= 2 && !/[\s,;]$/.test(raw)){
+          (manufacturers || []).filter(m => sN(m.name).startsWith(ln) && sN(m.name) !== ln).slice(0, 5).forEach(m => sugg.push({text:m.name, label:`${L("Марка")}: ${m.name}`}));
+          (smartStates || []).filter(s => sN(s.name).startsWith(ln) && sN(s.name) !== ln).slice(0, 3).forEach(s => sugg.push({text:s.name.replace(/\b\w/g, c => c.toUpperCase()), label:`${L("Штат / провинция")}: ${s.name.replace(/\b\w/g, c => c.toUpperCase())}`}));
+          SM_SUGGEST.filter(([w]) => sN(w).startsWith(ln) && sN(w) !== ln).slice(0, 4).forEach(([w, lab]) => sugg.push({text:w, label:lab.replace(/^(\\S+):/, (m0, k) => L(k) + ":")}));
+        }
+        const chips = items.map(it => `<span class="spChipV1 sp-${it.type}">${escapeHtml(it.label)}</span>`).join("") + (leftover.length ? `<span class="spChipV1 sp-name">${escapeHtml(L("Название"))}: ${escapeHtml(leftover.join(" "))}</span>` : "");
+        panel.innerHTML = `${chips ? `<div class="spHeadV1">${escapeHtml(L("Будет найдено"))}</div><div class="spChipsV1">${chips}</div>` : ""}${sugg.length ? `<div class="spHeadV1">${escapeHtml(L("Подсказки"))}</div>${sugg.map((s, k) => `<button type="button" class="spRowV1" data-sp="${k}">${escapeHtml(s.label)}</button>`).join("")}` : ""}`;
+        panel._sugg = sugg; panel.hidden = !panel.innerHTML;
+      };
+      inp.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(render, 140); });
+      inp.addEventListener("focus", () => { if(inp.value.trim()) render(); });
+      inp.addEventListener("keydown", e => { if(e.key === "Escape") panel.hidden = true; });
+      document.addEventListener("click", e => { if(!panel.hidden && !panel.contains(e.target) && e.target !== inp) panel.hidden = true; });
+      panel.addEventListener("mousedown", e => e.preventDefault());
+      panel.addEventListener("click", e => {
+        const b = e.target.closest("[data-sp]"); if(!b) return;
+        const s = (panel._sugg || [])[Number(b.dataset.sp)]; if(!s) return;
+        inp.value = inp.value.replace(/([^\s,;]+)$/, s.text) + " "; inp.focus(); render();
+      });
+      msApi.hideSuggest = () => { panel.hidden = true; };
+    })();
 
     // Generation → generation_id (depends on the selected model)
     setupCombo("filterGenV2", "genMenuV2", () => generations, (opt) => { if(genId) genId.value = opt.id != null ? opt.id : ""; });

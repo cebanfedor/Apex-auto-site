@@ -2383,7 +2383,12 @@ async function searchFromDb(query){
   if(q && /^\d{6,10}$/.test(q)) p.set("lot", `eq.${q}`);
   else if(q) ands.push(`or(vin.ilike.*${pgEscape(q)}*,title.ilike.*${pgEscape(q)}*)`);
   if(vin) p.set("vin", `ilike.*${pgEscape(vin).replace(/_/g, "")}*`);
-  if(name) p.set("title", `ilike.*${pgEscape(name)}*`);
+  if(name){
+    // Умный поиск: несколько слов — каждое должно встретиться в названии (порядок не важен); одно слово/фраза как раньше
+    const words = String(name).split(/\s+/).map(w => w.replace(/[(),*%\\]/g, "")).filter(Boolean).slice(0, 6);
+    if(words.length > 1) words.forEach(w => ands.push(`title.ilike.*${pgEscape(w)}*`));
+    else p.set("title", `ilike.*${pgEscape(name)}*`);
+  }
 
   const dateFrom = query.get("auctionDateFrom");
   const dateTo = query.get("auctionDateTo");
