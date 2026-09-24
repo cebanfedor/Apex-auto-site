@@ -1882,6 +1882,19 @@
     const map = {archived:"Архив аукционов", soon:"Торги сегодня и завтра", buy_now:"Купить сейчас", favorites:"Избранное"};
     el.textContent = L(map[state.tab] || "Текущие аукционы");
   }
+  // Снимок последней выдачи (sessionStorage, ≤2 запроса, 20 мин): «Вернуться в каталог» и обновление страницы показывают список мгновенно,
+  // а свежие данные подтягиваются следом (stale-while-revalidate на клиенте).
+  const SNAP_KEY = "apexCatSnapV1";
+  function snapRead(key){
+    try{ const a = JSON.parse(sessionStorage.getItem(SNAP_KEY) || "[]"); return a.find(x => x.k === key && Date.now() - x.t < 20 * 60e3) || null; }catch(e){ return null; }
+  }
+  function snapWrite(key, payload){
+    try{
+      const a = JSON.parse(sessionStorage.getItem(SNAP_KEY) || "[]").filter(x => x.k !== key);
+      a.unshift({k:key, t:Date.now(), items:payload.items || [], total:payload.total || 0, hasMore:!!payload.hasMore});
+      sessionStorage.setItem(SNAP_KEY, JSON.stringify(a.slice(0, 2)));
+    }catch(e){ try{ sessionStorage.removeItem(SNAP_KEY); }catch(_){} }
+  }
   async function loadLots({_retry = false, append = false} = {}){
     updateCatalogH1();
     if(state.tab === "favorites"){ renderFavorites(); return; }
@@ -1893,6 +1906,16 @@
     const reqId = state.loadSeq = (state.loadSeq || 0) + 1;
     state.loading = true;
     setMessage("");
+    const snapKey = append ? "" : formParams().toString();
+    if(!append && state.items.length === 0){
+      const sn = snapRead(snapKey);
+      if(sn && Array.isArray(sn.items) && sn.items.length){
+        state.items = sn.items; state.total = sn.total || 0; state.hasMore = !!sn.hasMore; state.displayPage = 1;
+        $("#auctionResultCount").textContent = state.total ? state.total.toLocaleString("ru-RU") : state.items.length;
+        setResultNum(state.total ? state.total.toLocaleString("ru-RU") : "");
+        try{ renderCards(); }catch(e){}
+      }
+    }
     // Stale-while-revalidate: dim existing cards on page change, skeleton on first load
     if(state.items.length === 0) $("#auctionCards").innerHTML = skeletonCards(6);
     else $("#auctionCards").classList.add("lotsRefreshingV1");
@@ -1901,6 +1924,7 @@
       const payload = await api(`/api/auctions?action=search&${formParams()}`);
       if(reqId !== state.loadSeq) return; // уже запрошено что-то новее
       const nextItems = payload.items || [];
+      if(!append && nextItems.length) snapWrite(snapKey, payload);
       state.hasMore = Boolean(payload.hasMore);
       state.total = payload.total || 0;
       if(append){
