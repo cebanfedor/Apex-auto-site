@@ -3473,7 +3473,7 @@
     if(smart.lot){ openLotByNumber(smart.lot); return; }
     // Умный поиск: распознанные слова (марка, топливо, повреждение, штат, год…) становятся фильтрами, остальное — поиск по названию.
     try{ if(msApi.saveRecent) msApi.saveRecent($("#auctionSmartSearch")?.value); }catch(e){}
-    try{ if(msApi.hideSuggest) msApi.hideSuggest(); if(msApi.applySmart && String($("#auctionSmartSearch")?.value || "").trim()){ await msApi.applySmart($("#auctionSmartSearch").value); } }catch(e){}
+    try{ if(msApi.hideSuggest) msApi.hideSuggest(); if(msApi.applySmart && String($("#auctionSmartSearch")?.value || "").trim()){ const q = $("#auctionSmartSearch").value; if(msApi.clearAll && msApi.hasSmartItems && msApi.hasSmartItems(q)) msApi.clearAll(true); await msApi.applySmart(q); } }catch(e){}
     state.page = 1; state.displayPage = 1;
     const form = $("#auctionFiltersForm");
     if(form && form.requestSubmit) form.requestSubmit(); else loadLots();
@@ -3962,6 +3962,7 @@
       document.querySelectorAll("[data-auction-switch]").forEach(b => b.classList.toggle("active", b.getAttribute("data-auction-switch") === a));
     }
     // Применить: фильтры → форма; выбранные слова-модели → модель; остаток → строка поиска (название). Возвращает число применённых фильтров.
+    msApi.hasSmartItems = raw => { try{ return smartParse(raw).items.length > 0; }catch(e){ return false; } };
     msApi.applySmart = async raw => {
       await ensureSmartStates();
       const {items, leftover} = smartParse(raw);
@@ -4319,7 +4320,7 @@
       if(open && list[Number(open.dataset.svOpen)]) location.href = `${location.pathname}?${list[Number(open.dataset.svOpen)].qs}`;
     });
     updateSavedCount();
-    $("#resetFiltersBtn").addEventListener("click", () => {
+    function clearAllFilters(soft){
       $("#auctionFiltersForm").reset();
       // Скрытые ID комбо-фильтров form.reset() не чистит — фильтр «залипал»
       ["filterMakeIdV2","filterModelIdV2","filterGenIdV2","filterMakeV2","filterModelV2","filterGenV2","filterStateIdV2","filterStateV2"].forEach(id => {
@@ -4329,14 +4330,17 @@
       msApi.reset();
       setDamageList([]);
       const dInp = document.getElementById("filterDamageV2"); if(dInp) dInp.value = "";
-      ["#auctionSmartSearch"].forEach(selector => {
-        const input = $(selector);
-        if(input) input.value = "";
-      });
+      if(!soft){ const input = $("#auctionSmartSearch"); if(input) input.value = ""; }
       document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active"));
       document.querySelectorAll("[data-range]").forEach(range => { if(range._refresh) range._refresh(); });
-      state.auction = "all";
-      document.querySelectorAll("[data-auction-switch]").forEach(b => b.classList.toggle("active", b.getAttribute("data-auction-switch") === "all"));
+      if(!soft){
+        state.auction = "all";
+        document.querySelectorAll("[data-auction-switch]").forEach(b => b.classList.toggle("active", b.getAttribute("data-auction-switch") === "all"));
+      }
+    }
+    msApi.clearAll = clearAllFilters;
+    $("#resetFiltersBtn").addEventListener("click", () => {
+      clearAllFilters(false);
       state.page = 1; state.displayPage = 1;
       loadLots();
     });
