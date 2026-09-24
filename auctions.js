@@ -1096,6 +1096,8 @@
     if(count === 0){
       // В списке фид отдаёт историю только ТЕКУЩЕГО номера лота; перевыставленные машины (новый номер после
       // продажи) выглядели «ранее не продавалась». Полная история по VIN — на странице лота.
+      // Пока VIN-история не пришла — спокойная однострочная заглушка (раньше показывали двухстрочный «по этому лоту нет…», потом меняли → карточка прыгала).
+      if(currentLot && String(currentLot.vin || "").length === 17) return `<li class="dbCheck neutral dbHistPendingV1">${dbIco("dot")}<span><b>${L("История:")}</b> <i class="dbPendTxtV1">${L("проверяем…")}</i></span></li>`;
       return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
@@ -1247,7 +1249,7 @@
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
-          <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
+          <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
         </div>
         <div class="dbCols">
           <div class="dbLeftCol">
@@ -1289,7 +1291,7 @@
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
             ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
-            <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}" hidden></div>
+            <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
           </div>
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
@@ -1487,7 +1489,14 @@
     cards.forEach(card => {
       const lid = card.querySelector(".dbPhoto")?.dataset.lid;
       const lot = byId.get(String(lid)); if(!lot || !lot.vin) return;
-      const h = vinHistCache[lot.vin]; if(!h) return;
+      const h = vinHistCache[lot.vin];
+      if(!h){
+        if(h === null && (vinRetryN[lot.vin] || 0) > 2){
+          const pend = card.querySelector(".dbHistPendingV1");
+          if(pend){ pend.classList.remove("dbHistPendingV1"); pend.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span>`; }
+        }
+        return;
+      }
       const li = [...card.querySelectorAll(".dbChecks li")].find(x => /История/.test(x.textContent));
       if(!li) return;
       // Прошлые заходы = записи ДРУГИХ лотов (текущий номер — это текущие/эти торги, не «ранее»).
@@ -1529,6 +1538,13 @@
   // 23.09.2026: раньше каждая карточка тянула /api/auctions?action=comps СВОИМ запросом — на
   // странице с 30 лотами это до 19 живых HTTP-запросов подряд (~6с, пока не досчитаются все).
   // Один POST на весь видимый экран — как уже сделано для vinhist/livebids.
+  // Карточка, у которой ожидается «Ориентир»: резервируем место со скелетоном (иначе блок цены вырастал, когда оценка приходила).
+  function forecastPending(lot){
+    try{ return !!(lot && lot.makeId && lot.modelId && (Number(lot.year) || 0) >= FORECAST_MIN_YEAR && !lotSaleState(lot).isSold); }catch(e){ return false; }
+  }
+  function clearForecastSkeletons(){
+    document.querySelectorAll('[data-forecast][data-pending="1"]').forEach(n => { n.removeAttribute("data-pending"); n.innerHTML = ""; n.hidden = true; });
+  }
   async function updateCardForecasts(){
     const nodes = [...document.querySelectorAll("[data-forecast]")];
     if(!nodes.length) return;
@@ -1541,14 +1557,15 @@
       if(lotSaleState(lot).isSold) return;
       jobs.push({node, lot});
     });
-    if(!jobs.length) return;
+    if(!jobs.length){ clearForecastSkeletons(); return; }
     const items = jobs.map(({lot}) => ({id:String(lot.id), ...compsFieldsFor(lot)}));
     let results = {};
     try{
       const r = await api("/api/auctions?action=compsbatch", {method:"POST", body:{items}});
       results = (r && r.items) || {};
-    }catch(e){ return; }
+    }catch(e){ clearForecastSkeletons(); return; }
     jobs.forEach(({node, lot}) => {
+      node.removeAttribute("data-pending"); node.innerHTML = ""; node.hidden = true;
       const c = results[String(lot.id)]; if(!c || !document.body.contains(node)) return;
       // Зеркало старого forecastForLot: guide (таблица Федора) → comps (похожие продажи) → stats (агрегат).
       const f = (c.guide && c.p25 > 0) ? {lo:c.p25, hi:c.p75, src:"guide", guide:true}
