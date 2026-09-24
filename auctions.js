@@ -1075,10 +1075,12 @@
   }
   function dbCheckSeller(raw){
     const val = raw ? tc(raw) : "";
-    const display = val || "Неизвестен";
-    const isInsurance = /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
+    let display = val || "Неизвестен";
+    const rental = isRentalName(display);
+    if(rental) display = display.replace(/\s*·\s*(Страховая|Прокат)\s*$/i, "") + " · Прокат";
+    const isInsurance = rental || /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display).replace(/Страховая/g, L("Страховая")).replace(/^Неизвестен$/, L("Неизвестен")))}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display).replace(/Страховая/g, L("Страховая")).replace(/Прокат/g, L("Прокат")).replace(/^Неизвестен$/, L("Неизвестен")))}</span></li>`;
   }
   function dbCheckKey(raw){
     if(!raw) return "";
@@ -1125,7 +1127,11 @@
 
   // «Текущий заход» (не история): запись того же дня/в будущем или собственная продажа этого же лота.
   // Ранние заходы ТОГО ЖЕ номера лота — это история (перекуп выставляет один номер десятки раз).
+  // Компании проката (Sixt, Turo, Avis…): хороший продавец, но не страховая — подпись «Прокат». Фид метит их seller_type=insurance.
+  const RENTAL_RE = /\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
+  const isRentalName = v => RENTAL_RE.test(String(v || ""));
   function sellerIsInsurance(lot){
+    if(isRentalName(lot && lot.seller)) return true;
     return /insurance/.test(String(lot.sellerType || "").toLowerCase())
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
   }
@@ -2781,12 +2787,12 @@
     const sellerTypeRaw = String(lot.sellerType || "").toLowerCase();
     const isIns = /insurance/.test(sellerTypeRaw)
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
-    const sellerTypeLabel = L(isIns ? "Страховая"
+    const sellerTypeLabel = L(isRentalName(lot.seller) ? "Прокат" : isIns ? "Страховая"
       : /financ|credit|bank/.test(sellerTypeRaw) ? "Банк / кредитная"
       : /fleet|lease|rental/.test(sellerTypeRaw) ? "Автопарк / лизинг"
       : /dealer/.test(sellerTypeRaw) ? "Дилер"
       : "Дилер / банк");
-    const sellerName = L(tc(String(lot.seller || "")).replace(/\s*·\s*Страховая\s*$/i, ""));
+    const sellerName = L(tc(String(lot.seller || "")).replace(/\s*·\s*(Страховая|Прокат)\s*$/i, ""));
     $("#auctionCatalog").hidden = true;
     const detail = $("#auctionDetail");
     detail.hidden = false;
@@ -2866,7 +2872,7 @@
             <section class="dSec">
               <div class="dSecHead">${L("Главное")}</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
-              ${lot.seller ? dMain("Продавец", isIns ? `${L("Страховая")} · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
+              ${lot.seller ? dMain("Продавец", isIns ? `${L(isRentalName(lot.seller) ? "Прокат" : "Страховая")} · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
               ${(() => {
                 const k = String(lot.keys || "").trim();
                 if(!k) return "";

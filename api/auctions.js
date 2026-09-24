@@ -233,6 +233,7 @@ function sellerLabel(lot, item){
   const isInsurance = /insurance/.test(t) || (!t && insurerKeywords.test(nameUp));
   const isDealer = /non.?insurance|dealer|dealership|private/.test(t);
   if(name){
+    if(/SIXT|TURO|AVIS|HERTZ|ENTERPRISE|BUDGET RENT|NATIONAL CAR|ALAMO|DOLLAR RENT|THRIFTY|ZIPCAR|GETAROUND|U-?HAUL|RYDER|PENSKE|FIREFLY|PAYLESS|FOX RENT/.test(nameUp)) return name + " · Прокат";   // прокат — хороший продавец, но не страховая
     if(isInsurance) return name + " · Страховая";
     if(isDealer) return name + " · Дилер";
     return name;
