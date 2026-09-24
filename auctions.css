@@ -1132,3 +1132,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPendTxtV1 { font-style:normal; color:var(--aMuted); }
 @keyframes dbSkelV1 { to { background-position:-200% 0; } }
 @media (prefers-reduced-motion:reduce){ .dbForecastSkelV1 { animation:none; } }
+
+.auctionTabsV1 button.timedTabV2 { color:#b45309; border-color:#f6d3a1; background:#fff8ee; }
+.auctionTabsV1 button.timedTabV2:hover { border-color:#e79a2a; }
+.auctionTabsV1 button.timedTabV2.active { background:#d97706; color:#fff; border-color:#d97706; }

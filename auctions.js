@@ -1980,6 +1980,12 @@
       sessionStorage.setItem(SNAP_KEY, JSON.stringify(a.slice(0, 2)));
     }catch(e){ try{ sessionStorage.removeItem(SNAP_KEY); }catch(_){} }
   }
+  // Быстрая кнопка «Timed аукцион» = фильтр «Статус продажи: Timed» одним кликом (тот же серверный фильтр, что в панели фильтров).
+  function syncQuickTimed(){
+    const btn = document.getElementById("quickTimedV1"); if(!btn) return;
+    const on = [...document.querySelectorAll('input[name="saleStatus"]:checked')].map(x => x.value).join(",") === "timed";
+    btn.classList.toggle("active", on); btn.setAttribute("aria-pressed", on ? "true" : "false");
+  }
   async function loadLots({_retry = false, append = false} = {}){
     updateCatalogH1();
     if(state.tab === "favorites"){ renderFavorites(); return; }
@@ -2079,6 +2085,7 @@
     }finally{
       if(reqId === state.loadSeq){
         state.loading = false;
+        syncQuickTimed();
         clearTimeout(state.dimTimer);
         $("#auctionCards").classList.remove("lotsRefreshingV1");
         syncUrl();
@@ -3749,6 +3756,20 @@
         exitDiscovery(); state.page = 1; state.displayPage = 1;
         loadLots();
       });
+    });
+    document.getElementById("quickTimedV1")?.addEventListener("click", () => {
+      const btn = document.getElementById("quickTimedV1"), on = btn.classList.contains("active");
+      document.querySelectorAll('input[name="saleStatus"]').forEach(x => { x.checked = false; });
+      if(!on){
+        const t = document.querySelector('input[name="saleStatus"][value="timed"]'); if(t) t.checked = true;
+        if(["archived", "favorites"].includes(state.tab)){   // Timed бывает только у текущих торгов
+          state.tab = "all";
+          document.querySelectorAll("[data-tab]").forEach(item => item.classList.toggle("active", item.dataset.tab === "all"));
+        }
+      }
+      syncQuickTimed();
+      state.page = 1; state.displayPage = 1; exitDiscovery();
+      $("#auctionFiltersForm").requestSubmit();
     });
     $("#auctionFiltersForm").addEventListener("submit", event => {
       event.preventDefault();

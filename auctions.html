@@ -34,7 +34,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v442">
-  <link rel="stylesheet" href="/auctions.css?v=v496">
+  <link rel="stylesheet" href="/auctions.css?v=v497">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -107,6 +107,7 @@
           <button class="active" type="button" data-tab="all">Все</button>
           <button type="button" data-tab="soon">Сегодня и завтра</button>
           <button type="button" data-tab="buy_now">Купить сейчас</button>
+          <button type="button" class="timedTabV2" id="quickTimedV1" aria-pressed="false">Timed аукцион</button>
           <button type="button" class="archiveTabV2" data-tab="archived">Архив</button>
           <button type="button" class="favTabV2" data-tab="favorites">★ Избранное<span id="favCount"></span></button>
           <button type="button" class="savedTabV1" id="savedBtnV1" aria-expanded="false">Сохранённые поиски<span id="savedCount"></span></button>
@@ -415,7 +416,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v490" defer></script>
-  <script src="/auctions.js?v=auctions-v269" defer></script>
+  <script src="/auctions.js?v=auctions-v270" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->
