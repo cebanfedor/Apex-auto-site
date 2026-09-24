@@ -1143,3 +1143,13 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPhotoBarV1 i { position:absolute; top:0; bottom:0; left:0; border-radius:2px; background:#3b82f6; transition:left .08s linear; }
 @media (hover:hover) and (pointer:fine){ .dbPhoto:hover .dbPhotoBarV1 { opacity:1; } .dbPhoto .dbPhotoLink { cursor:zoom-in; } }
 .lbLotV1 { text-decoration:none; display:inline-flex; align-items:center; }
+
+/* Карточка каталога (десктоп): чуть крупнее текст и иконки в блоке характеристик — меньше пустоты справа/снизу, без растягивания промежутков */
+@media (min-width:1101px){
+  .dbTitle { font-size:17px; }
+  .dbSpecs, .dbChecks { gap:8px; }
+  .dbSpecs li, .dbChecks li { font-size:13.5px; gap:9px; }
+  .dbSpecs .dbIco, .dbChecks .dbIco { width:17px; height:17px; margin-top:0; }
+  .dbIds > span, .dbLotRowV1 .dbLotNo { font-size:13px; }
+  .dbWhen span { font-size:13.5px; }
+}
