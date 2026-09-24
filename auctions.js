@@ -2812,7 +2812,7 @@
     if(!Number.isFinite(t) || lotSaleState(lot).isSold) return;
     const dt = t - Date.now();
     if(dt > 30 * 3600e3 || dt < -5 * 3600e3) return;
-    const lotRow = x => `<li><span class="lqNoV1">#${x.runNo}</span><span class="lqTitleV1">${escapeHtml(x.title || "")}</span>${x.finalBid ? `<b>${money(x.finalBid)}</b>` : ""}</li>`;
+    const lotRow = x => x ? `<li><span class="lqNoV1">#${x.runNo}</span><span class="lqTitleV1">${escapeHtml(x.title || "")}</span>${x.finalBid ? `<b>${money(x.finalBid)}</b>` : ""}</li>` : "";
     const tick = async () => {
       const box = document.getElementById("lotQueueV1");
       if(seq !== queueSeq) return;
@@ -2840,9 +2840,10 @@
       box.innerHTML = `<div class="lqHeadV1"><span>${L("Очередь торгов")}</span><span>${L("Линия")} ${escapeHtml(r.lane)} · №${r.runNo}</span></div>
         ${main}
         <div class="lqBarV1"><i style="width:${Math.min(100, pct)}%"></i></div>
+        ${r.current && r.state === "queue" ? `<div class="lqSubV1">${L("Сейчас на торгах")}</div><ul class="lqListV1">${lotRow(r.current)}</ul>` : ""}
         ${r.recent && r.recent.length ? `<div class="lqSubV1">${L("Только что продано")}</div><ul class="lqListV1">${r.recent.map(lotRow).join("")}</ul>` : ""}
         ${r.next && r.next.length ? `<div class="lqSubV1">${L("Следом")}</div><ul class="lqListV1">${r.next.map(lotRow).join("")}</ul>` : ""}
-        <p class="lqNoteV1">${L("Оценка по номеру лота в зале, считаем 1 лот ≈ 1 минута. Реальный темп аукциона может отличаться.")}</p>`;
+        <p class="lqNoteV1">${L("Очередь определена по статусам лотов линии. Темп аукциона сейчас:")} ≈ ${r.pace} ${L("с на лот")}.</p>`;
     };
     let stopped = false;
     const schedule = ms => { if(seq !== queueSeq) return; if(queueTimer) clearTimeout(queueTimer); queueTimer = stopped ? null : setTimeout(tick, ms); };

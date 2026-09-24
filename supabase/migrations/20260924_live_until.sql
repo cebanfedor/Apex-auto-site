@@ -13,10 +13,10 @@ begin
       and sale_date between now() - interval '10 hours' and now()
   )
   update public.api_lots a
-     set live_until = r.sale_date + (r.rk + 15) * interval '1 minute'
+     set live_until = r.sale_date + (r.rk * 1.5 + 15) * interval '1 minute'
     from r
    where a.id = r.id and a.archived = false
-     and a.live_until is distinct from r.sale_date + (r.rk + 15) * interval '1 minute';
+     and a.live_until is distinct from r.sale_date + (r.rk * 1.5 + 15) * interval '1 minute';
   get diagnostics c = row_count;
   return c;
 end $$;

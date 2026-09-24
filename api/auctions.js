@@ -3730,27 +3730,52 @@ module.exports = async function handler(request, response){
       if(!lotNo || !(await runColsReady())){ sendJson(response, 200, {ok:true, available:false}, {"cache-control":"public, s-maxage=30"}); return; }
       const me = (await syncSbFetch(`/api_lots?id=eq.${qAuction}-${lotNo}&select=lane,run_no,sale_date,status_id,archived`))?.[0];
       if(!me || !me.lane || !me.run_no || !me.sale_date){ const r = {ok:true, available:false}; setCached(ck, r, 60e3); sendJson(response, 200, r, {"cache-control":"public, s-maxage=30"}); return; }
-      const {url, key} = syncSb();
       const base = `/api_lots?auction=eq.${qAuction}&id=not.like.*-s2*&sale_date=eq.${encodeURIComponent(me.sale_date)}&lane=eq.${encodeURIComponent(me.lane)}`;
-      const count = async extra => {
-        const r = await fetch(`${url}/rest/v1${base}${extra}&select=id`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}});
-        return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
-      };
-      const total = await count("&run_no=not.is.null");
-      const before = await count(`&run_no=lt.${me.run_no}`);
-      const soldBefore = await count(`&run_no=lt.${me.run_no}&status_id=eq.6`);
-      const recent = await syncSbFetch(`${base}&run_no=lt.${me.run_no}&status_id=eq.6&order=run_no.desc&limit=3&select=lot,title,final_bid,run_no,img:payload->images->>0`);
-      const next = await syncSbFetch(`${base}&run_no=gt.${me.run_no}&order=run_no.asc&limit=3&select=lot,title,run_no,img:payload->images->>0`);
-      const PACE = 60;
+      // Все лоты линии по порядку (обычно 100–300 строк): по ним считаем позицию и ищем «лот в эфире».
+      const laneRows = (await syncSbFetch(`${base}&run_no=not.is.null&order=run_no.asc&limit=600&select=lot,run_no,status_id,archived,title,img:payload->images->>0`)) || [];
+      const myIdx = laneRows.findIndex(x => Number(x.run_no) === Number(me.run_no) && String(x.lot) === lotNo);
+      if(myIdx < 0){ const r = {ok:true, available:false}; setCached(ck, r, 30e3); sendJson(response, 200, r, {"cache-control":"public, s-maxage=15"}); return; }
+      const total = laneRows.length;
       const elapsed = (Date.now() - Date.parse(me.sale_date)) / 1000;
-      const byTime = elapsed > 0 ? Math.floor(elapsed / PACE) : 0;
-      const processed = Math.min(before, Math.max(soldBefore, byTime));
-      const ahead = Math.max(0, before - processed);
+      // Фид не отдаёт «лот в эфире», но отдаёт статус каждого лота. Очередь идёт по порядку, значит граница «продан / ещё нет» одна:
+      // ищем её пачками параллельных проб (≤4 раунда по 8 лотов), результат общий для всех лотов линии (кэш 45 с).
+      const laneKey = `qlane:${qAuction}:${me.sale_date}:${me.lane}`;
+      let curIdx = getCached(laneKey);
+      if(curIdx == null && elapsed < 0){ curIdx = 0; }
+      else if(curIdx == null){
+        const isDone = async idx => {
+          const row = laneRows[idx]; const pk = `probe:${qAuction}:${row.lot}`; const hit = getCached(pk); if(hit != null) return hit;
+          let done = false;
+          try{ const d = await fetchDetail(new URLSearchParams({auction:qAuction, lot:String(row.lot)})); done = [6, 8].includes(Number(d.statusId)) && Date.parse(d.auctionDate || "") < Date.now(); }
+          catch(_){ done = Number(row.status_id) === 6; }
+          setCached(pk, done, 30e3); return done;
+        };
+        let soldIdx = -1; laneRows.forEach((x, i) => { if(Number(x.status_id) === 6) soldIdx = i; });
+        let L = soldIdx + 1, R = total;
+        for(let round = 0; round < 4 && R - L > 0; round++){
+          const pts = [...new Set(Array.from({length:8}, (_, k) => L + Math.floor((R - L) * (k + 1) / 9)).filter(x => x >= L && x < R))];
+          if(!pts.length) pts.push(L);
+          const res = await Promise.all(pts.map(async x => [x, await isDone(x)]));
+          let nl = L, nr = R;
+          for(const [x, d] of res){ if(d) nl = Math.max(nl, x + 1); }
+          for(const [x, d] of res){ if(!d && x >= nl) nr = Math.min(nr, x); }
+          L = nl; R = nr;
+          if(R - L <= 1) break;
+        }
+        curIdx = L; setCached(laneKey, curIdx, 45e3);
+      }
       const sold = Number(me.status_id) === 6 && me.archived === true;
+      const ahead = sold ? 0 : Math.max(0, myIdx - curIdx);
+      const pace = curIdx >= 8 && elapsed > 0 ? Math.max(30, Math.min(150, Math.round(elapsed / curIdx))) : 60;
       const state = sold ? "sold" : elapsed < 0 ? "before" : ahead === 0 ? "now" : "queue";
-      const r = {ok:true, available:true, lane:String(me.lane).split("|").pop(), runNo:me.run_no, total, ahead, etaSec:ahead * PACE, state, startsAt:me.sale_date, pace:PACE,
-        recent:(recent || []).map(x => ({lot:x.lot, title:x.title, finalBid:x.final_bid, runNo:x.run_no, img:x.img || ""})),
-        next:(next || []).map(x => ({lot:x.lot, title:x.title, runNo:x.run_no, img:x.img || ""}))};
+      const brief = x => x ? {lot:x.lot, title:x.title || "", runNo:x.run_no, img:x.img || ""} : null;
+      const recentRows = laneRows.slice(Math.max(0, curIdx - 3), curIdx).reverse();
+      const finals = {};
+      await Promise.all(recentRows.map(async x => { try{ const d = await fetchDetail(new URLSearchParams({auction:qAuction, lot:String(x.lot)})); if(Number(d.statusId) === 6) finals[x.lot] = Number(d.finalBid) || Number(d.currentBid) || 0; }catch(_){} }));
+      const r = {ok:true, available:true, lane:String(me.lane).split("|").pop(), runNo:me.run_no, total, ahead, etaSec:ahead * pace, state, startsAt:me.sale_date, pace,
+        pos:curIdx, current:brief(laneRows[curIdx]),
+        recent:recentRows.map(x => ({...brief(x), finalBid:finals[x.lot] || 0})),
+        next:laneRows.slice(myIdx + 1, myIdx + 4).map(brief)};
       setCached(ck, r, 15e3);
       sendJson(response, 200, r, {"cache-control":"public, s-maxage=15, stale-while-revalidate=15"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}); }
