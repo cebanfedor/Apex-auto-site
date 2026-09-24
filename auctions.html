@@ -34,7 +34,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v442">
-  <link rel="stylesheet" href="/auctions.css?v=v493">
+  <link rel="stylesheet" href="/auctions.css?v=v496">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -160,14 +160,11 @@
             <button id="closeFiltersBtn" type="button">×</button>
           </div>
           <form id="auctionFiltersForm">
-            <div class="smartSelV1">
-              <div class="smartSelTxtV1">
-                <b>Feduk Clean Select™</b>
-                <span>Без перекупов и перепродаж: только чистые лоты</span>
-              </div>
+            <div class="smartSelV1" title="Скрываем лоты, которые уже продавались под другим номером, и машины, которые перекупы выставляют по многу раз. История проверяется по VIN.">
+              <b class="smartTitleV1">Feduk Clean Select™</b>
               <label class="smartSwV1" aria-label="Feduk Clean Select"><input type="checkbox" name="smart" value="1" id="smartSelV1"><i></i></label>
+              <span class="smartSubV1"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 9.5C8 19.2 5 15.5 5 11V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>Без перекупов и перепродаж</span>
             </div>
-            <p class="smartNoteV1">Скрываем лоты, которые уже продавались под другим номером лота, и машины, которые перекупы выставляют по многу раз. История проверяется по VIN; новые лоты проверяются в течение часа.</p>
             <details class="fSecV2"><summary>Поиск</summary>
               <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
@@ -417,7 +414,7 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v489" defer></script>
+  <script src="/i18n.js?v=multilang-v490" defer></script>
   <script src="/auctions.js?v=auctions-v269" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
