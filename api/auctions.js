@@ -2538,23 +2538,29 @@ async function searchFromDb(query){
       const tailKey = p2.toString();
       const tc = undatedCountCache.get(tailKey);
       if(need === 0 && tc && Date.now() - tc.at < 6 * 3600e3){ if(!totalIsFull) total += tc.n; throw null; }
-      const ctrl2 = new AbortController();
-      const t2 = setTimeout(() => ctrl2.abort(), 3000);
-      let r2;
-      try{
-        r2 = await fetch(`${url}/rest/v1/api_lots?${p2}`, {
-          headers:{apikey:key, authorization:`Bearer ${key}`, prefer:hasNarrowFilter ? "count=exact" : "count=planned",
-            range:`${off2}-${off2 + Math.max(need, 1) - 1}`, "range-unit":"items"},
-          signal:ctrl2.signal
-        });
-      }finally{ clearTimeout(t2); }
-      if(r2 && (r2.ok || r2.status === 416)){
-        const undated = Number((r2.headers.get("content-range") || "*/0").split("/").pop()) || 0;
-        if(r2.ok && need > 0){ const extra = await r2.json(); rows = rows.concat(extra.slice(0, need)); }
-        if(!totalIsFull) total += undated;
-        undatedCountCache.set(tailKey, {n:undated, at:Date.now()});
-        if(undatedCountCache.size > 200) undatedCountCache.delete(undatedCountCache.keys().next().value);
-      }
+      // Страница уже полная (need === 0): хвост нужен только ради счётчика — считаем в фоне, ответ не ждёт (кэш на 6ч).
+      const runTail = async () => {
+        const ctrl2 = new AbortController();
+        const t2 = setTimeout(() => ctrl2.abort(), 3000);
+        let r2;
+        try{
+          r2 = await fetch(`${url}/rest/v1/api_lots?${p2}`, {
+            headers:{apikey:key, authorization:`Bearer ${key}`, prefer:hasNarrowFilter ? "count=exact" : "count=planned",
+              range:`${off2}-${off2 + Math.max(need, 1) - 1}`, "range-unit":"items"},
+            signal:ctrl2.signal
+          });
+        }finally{ clearTimeout(t2); }
+        if(r2 && (r2.ok || r2.status === 416)){
+          const undated = Number((r2.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+          if(r2.ok && need > 0){ const extra = await r2.json(); rows = rows.concat(extra.slice(0, need)); }
+          if(!totalIsFull) total += undated;
+          undatedCountCache.set(tailKey, {n:undated, at:Date.now()});
+          if(undatedCountCache.size > 200) undatedCountCache.delete(undatedCountCache.keys().next().value);
+        }
+      };
+      // С маркой/моделью/поиском счётчик хвоста входит в total страницы (у BMW 3 — сотни лотов без даты), поэтому там ждём.
+      if(need === 0 && !hasNarrowFilter){ runTail().catch(() => {}); if(!totalIsFull && tc) total += tc.n; throw null; }
+      await runTail();
     }catch(e){ /* без хвоста — отдаём датированные (null = взяли счётчик из кэша) */ }
   }
   T.tail = Date.now() - T.t0;
@@ -4007,7 +4013,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "27";
+  const SEARCH_CACHE_VER = "28";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g14" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
