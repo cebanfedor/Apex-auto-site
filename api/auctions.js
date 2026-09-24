@@ -1189,6 +1189,7 @@ async function loadVinHist(vin, maxAgeMs){
     const rows = await syncSbFetch(`/vin_hist?vin=eq.${encodeURIComponent(vin)}&select=entries,latest,checked_at&limit=1`);
     const r = rows && rows[0];
     if(!r || (maxAgeMs && Date.now() - Date.parse(r.checked_at) > maxAgeMs)) return null;
+    if(!maxAgeMs || maxAgeMs <= 48 * 3600e3){ if(Date.parse(r.checked_at) < Date.parse("2026-09-24T20:55:00Z")) return null; }   // записи до правки «тот же лот выставлен снова» — не продажа
     return r;
   }catch(_){ return null; }
 }
@@ -1232,7 +1233,14 @@ async function attachVinHistory(lot){
         const noBidRound = !(pb > 0) && /not_sold/.test(safeName(p?.status).toLowerCase());
         if(!((pb > 0 || noBidRound) && pd && Date.parse(pd) < Date.now())) continue;
         if(p && typeof p === "object" && !attachVinHistory.rawKeys) attachVinHistory.rawKeys = {price:Object.keys(p), lot:Object.keys(l || {})};
-        const pst = safeName(p?.status).toLowerCase() || st;
+        let pst = safeName(p?.status).toLowerCase() || st;
+        // Правило Федора 24.09.2026: тот же номер лота выставлен ЕЩЁ РАЗ позже (Honda Insight 62067926: раунд 24.09 фид помечает sold со ставкой,
+        // а лот снова на торгах 01.10) — значит раунд не закончился продажей (резерв не набран). Продажа — только последний заход номера.
+        if(/sold/.test(pst) && !/not/.test(pst)){
+          const pdMs = Date.parse(pd), recMs = Date.parse(l?.sale_date || l?.auction_date || "");
+          const laterRound = (Number.isFinite(recMs) && recMs > pdMs + 3600e3) || (Array.isArray(l?.prices) && l.prices.some(o => Date.parse(o?.sale_date || "") > pdMs + 3600e3));
+          if(laterRound) pst = "not_sold";
+        }
         const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || (lotTimed && String(pd).slice(0, 10) === curDay) || looksTimed(pd);
         // пред-ставки текущих торгов (тот же день) — не история
         const cur = String(pd).slice(0, 10) === curDay;
@@ -3636,6 +3644,14 @@ async function runResaleCheck(budgetMs){
   const t0 = Date.now();
   const out = {ok:true, checked:0, clean:0, relisted:0, resold:0, skipped:0, fail:0};
   if(!(await takeMetaLock("resale", 50000))) return {ok:true, lockedOut:true};
+  // Одноразово (24.09.2026): метки перекупа считались по старым правилам («sold» раунд того же лота, выставленного снова) — пересчитываем.
+  try{
+    const done = await syncSbFetch(`/alert_meta?k=eq.resale_reset_v2&select=k`);
+    if(Array.isArray(done) && !done.length){
+      await syncSbFetch(`/api_lots?archived=eq.false&resale=in.(1,2)&sale_date=gte.${new Date().toISOString()}&sale_date=lte.${new Date(Date.now() + 72 * 3600e3).toISOString()}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale_at:null})});
+      await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=ignore-duplicates,return=minimal"}, body:JSON.stringify({k:"resale_reset_v2", v:{}, updated_at:new Date().toISOString()})});
+    }
+  }catch(_){}
   const since = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
   let rows;
   try{
@@ -3992,7 +4008,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "26";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g13" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g14" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -4307,7 +4323,7 @@ module.exports = async function handler(request, response){
         for(const r of rows || []) storedMap[r.vin] = r.entries;
       }catch(_){}
       const one = async vin => {
-        const ck = "vinhist4:" + vin;
+        const ck = "vinhist5:" + vin;
         const c = getCached(ck);
         if(c){ out[vin] = c; return; }
         try{
