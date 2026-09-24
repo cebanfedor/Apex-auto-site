@@ -527,6 +527,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     saleStatus:sale.label,
     sellerReserve:sale.reserve || 0,          // резерв продавца, $ (0 = не указан)
     sellerReserveAt:sale.reserveAt || "",
+    ...(() => { const m = /^([A-Za-z0-9]+)\/(\d{1,6})$/.exec(String((lot?.line ?? item?.line) || "").trim()); return m ? {lane:m[1].toUpperCase(), runNo:Number(m[2])} : {lane:"", runNo:0}; })(),
     saleStatusKey:sale.key,
     timed:sale.timed,
     images,
@@ -3073,6 +3074,8 @@ function syncRowFromItem(item, {archived = false} = {}){
     sale_date:saleDate,
     status_id:statusId != null && Number.isFinite(Number(statusId)) ? Number(statusId) : null,
     archived:isArchived,
+    lane:normalized.lane || null,
+    run_no:normalized.runNo || null,
     payload:normalized,
     synced_at:new Date().toISOString()
   };
@@ -3112,13 +3115,23 @@ function upsertClosedLot(lot){
 }
 // Ключевые поля строки: если в базе они те же — строку не переписываем (upsert = переписать 12 индексов + TOAST payload).
 const ROW_KEY_FIELDS = ["sale_date", "current_bid", "buy_now", "final_bid", "status_id", "odometer_mi", "archived"];
-function sameKeyFields(a, b){
+// Колонки lane/run_no появляются после миграции 20260924_run_line.sql; до неё синк их не пишет (иначе PostgREST отвергнет весь upsert).
+let runColsState = {ok:false, at:0};
+async function runColsReady(){
+  const ttl = runColsState.ok ? 600e3 : 60e3;
+  if(Date.now() - runColsState.at < ttl) return runColsState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=run_no&limit=1`); ok = true; }catch(_){ ok = false; }
+  runColsState = {ok, at:Date.now()};
+  return ok;
+}
+function sameKeyFields(a, b, keyFields = ROW_KEY_FIELDS){
   // Timed и резерв продавца живут в payload: лот, перешедший на Timed-аукцион без смены даты/ставки, раньше считался
   // «неизменившимся» и его признак Timed в базе застревал (DreamBid: 4334 Timed, у нас были сотни).
   const pl = a.payload || {};
   if(("tm" in b) && (!!pl.timed) !== (b.tm === "true")) return false;
   if(("sr" in b) && (Number(pl.sellerReserve) || 0) !== (Number(b.sr) || 0)) return false;
-  for(const f of ROW_KEY_FIELDS){
+  for(const f of keyFields){
     let x = a[f], y = b[f];
     if(f === "sale_date"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
     if((x ?? null) !== (y ?? null) && !(Number.isFinite(Number(x)) && Number.isFinite(Number(y)) && Number(x) === Number(y))) return false;
@@ -3142,10 +3155,13 @@ async function preserveSoldCopies(ids){
 async function syncUpsertRows(rows, deadline, opts = {}){
   syncUpsertRows.written = 0; syncUpsertRows.unchanged = 0; syncUpsertRows.preserved = 0;
   if(!rows.length) return;
+  const hasRun = await runColsReady();
+  if(!hasRun) rows.forEach(r => { delete r.lane; delete r.run_no; });
+  const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no"] : ROW_KEY_FIELDS;
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
-    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${ROW_KEY_FIELDS.join(",")},tm:payload->>timed,sr:payload->>sellerReserve`);
+    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${keyFields.join(",")},tm:payload->>timed,sr:payload->>sellerReserve`);
     if(Array.isArray(ex)){
       const map = new Map(ex.map(r => [r.id, r]));
       // Строку-продажу нельзя ухудшить: входящая без финала и без БУДУЩИХ торгов (sold без даты, not_sold-раунд
@@ -3157,7 +3173,7 @@ async function syncUpsertRows(rows, deadline, opts = {}){
       if(!rows.length){ syncUpsertRows.written = before0; return; }
       if(!opts.force){
         const before = rows.length;
-        rows = rows.filter(r => { const e = map.get(r.id); return !e || !sameKeyFields(r, e); });
+        rows = rows.filter(r => { const e = map.get(r.id); return !e || !sameKeyFields(r, e, keyFields); });
         syncUpsertRows.unchanged = before - rows.length;
         syncUpsertRows.written = syncUpsertRows.unchanged;   // «учтены», хоть и не переписаны — страница считается полной
         if(!rows.length) return;
@@ -3678,6 +3694,42 @@ module.exports = async function handler(request, response){
       walk(payload, "", 0);
       sendJson(response, 200, {ok:true, fields:out}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 160)}); }
+    return;
+  }
+  // Очередь онлайн-торгов Copart: линия и номер лота в зале (lots[0].line = "B/2113") → сколько лотов впереди и ориентировочное время.
+  // Фид не отдаёт «текущий лот» в эфире: считаем по времени (≈25 с на лот с начала торгов линии), нижняя граница — уже проданные в базе.
+  if(action === "queue"){
+    const lotNo = String(query.get("lot") || "").replace(/[^\d]/g, "");
+    const ck = "queue:" + lotNo, hit = getCached(ck);
+    if(hit){ sendJson(response, 200, hit, {"cache-control":"public, s-maxage=15, stale-while-revalidate=15"}); return; }
+    try{
+      if(!lotNo || !(await runColsReady())){ sendJson(response, 200, {ok:true, available:false}, {"cache-control":"public, s-maxage=30"}); return; }
+      const me = (await syncSbFetch(`/api_lots?id=eq.copart-${lotNo}&select=lane,run_no,sale_date,status_id,archived`))?.[0];
+      if(!me || !me.lane || !me.run_no || !me.sale_date){ const r = {ok:true, available:false}; setCached(ck, r, 60e3); sendJson(response, 200, r, {"cache-control":"public, s-maxage=30"}); return; }
+      const {url, key} = syncSb();
+      const base = `/api_lots?auction=eq.copart&id=not.like.*-s2*&sale_date=eq.${encodeURIComponent(me.sale_date)}&lane=eq.${encodeURIComponent(me.lane)}`;
+      const count = async extra => {
+        const r = await fetch(`${url}/rest/v1${base}${extra}&select=id`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}});
+        return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
+      };
+      const total = await count("&run_no=not.is.null");
+      const before = await count(`&run_no=lt.${me.run_no}`);
+      const soldBefore = await count(`&run_no=lt.${me.run_no}&status_id=eq.6`);
+      const recent = await syncSbFetch(`${base}&run_no=lt.${me.run_no}&status_id=eq.6&order=run_no.desc&limit=3&select=lot,title,final_bid,run_no,img:payload->images->>0`);
+      const next = await syncSbFetch(`${base}&run_no=gt.${me.run_no}&order=run_no.asc&limit=3&select=lot,title,run_no,img:payload->images->>0`);
+      const PACE = 25;
+      const elapsed = (Date.now() - Date.parse(me.sale_date)) / 1000;
+      const byTime = elapsed > 0 ? Math.floor(elapsed / PACE) : 0;
+      const processed = Math.min(before, Math.max(soldBefore, byTime));
+      const ahead = Math.max(0, before - processed);
+      const sold = Number(me.status_id) === 6 && me.archived === true;
+      const state = sold ? "sold" : elapsed < 0 ? "before" : ahead === 0 ? "now" : "queue";
+      const r = {ok:true, available:true, lane:me.lane, runNo:me.run_no, total, ahead, etaSec:ahead * PACE, state, startsAt:me.sale_date, pace:PACE,
+        recent:(recent || []).map(x => ({lot:x.lot, title:x.title, finalBid:x.final_bid, runNo:x.run_no, img:x.img || ""})),
+        next:(next || []).map(x => ({lot:x.lot, title:x.title, runNo:x.run_no, img:x.img || ""}))};
+      setCached(ck, r, 15e3);
+      sendJson(response, 200, r, {"cache-control":"public, s-maxage=15, stale-while-revalidate=15"});
+    }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}); }
     return;
   }
   if(action === "enginefill"){

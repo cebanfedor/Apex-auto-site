@@ -1104,3 +1104,21 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 
 .dbCardGoneV1 { opacity:0; max-height:0; overflow:hidden; margin:0; padding:0; border-width:0; transition:opacity .3s, max-height .35s; }
+
+.lotQueueV1 { border:1px solid var(--aLine); border-radius:14px; padding:12px 14px; background:#fff; display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+.lqHeadV1 { display:flex; justify-content:space-between; gap:10px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--aMuted); }
+.lqBigV1 { display:flex; align-items:baseline; gap:8px; }
+.lqBigV1 b { font-size:26px; line-height:1.1; color:var(--aInk); font-variant-numeric:tabular-nums; }
+.lqBigV1 span { font-size:13px; color:var(--aInk2); }
+.lqNowV1 { align-items:center; }
+.lqNowV1 b { font-size:16px; color:var(--aRed); }
+.lqEtaV1 { font-size:13px; color:var(--aInk2); }
+.lqBarV1 { height:6px; border-radius:999px; background:var(--aLine2); overflow:hidden; }
+.lqBarV1 i { display:block; height:100%; background:var(--aRed); border-radius:999px; transition:width .6s; }
+.lqSubV1 { margin-top:2px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--aMuted); }
+.lqListV1 { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.lqListV1 li { display:flex; align-items:center; gap:8px; font-size:12.5px; min-width:0; }
+.lqNoV1 { color:var(--aMuted); font-variant-numeric:tabular-nums; flex:none; }
+.lqTitleV1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lqListV1 b { flex:none; font-variant-numeric:tabular-nums; }
+.lqNoteV1 { margin:0; font-size:11.5px; line-height:1.4; color:var(--aMuted); }
