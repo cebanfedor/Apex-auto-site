@@ -21,3 +21,24 @@ begin
   return c;
 end $$;
 revoke execute on function public.refresh_live_until() from public, anon, authenticated;
+
+-- Версия с параметрами (25.09.2026): factor — минут на лот, margin — запас в минутах. Код вызывает её с factor 1.3 / margin 10.
+create or replace function public.refresh_live_until(factor numeric, margin numeric)
+returns int language plpgsql security definer set statement_timeout = '30s' as $$
+declare c int;
+begin
+  with r as (
+    select id, sale_date, row_number() over (partition by sale_date, lane order by run_no) rk
+    from public.api_lots
+    where run_no is not null and id not like '%-s2%'
+      and sale_date between now() - interval '10 hours' and now()
+  )
+  update public.api_lots a
+     set live_until = r.sale_date + (r.rk * factor + margin) * interval '1 minute'
+    from r
+   where a.id = r.id and a.archived = false
+     and a.live_until is distinct from r.sale_date + (r.rk * factor + margin) * interval '1 minute';
+  get diagnostics c = row_count;
+  return c;
+end $$;
+revoke execute on function public.refresh_live_until(numeric, numeric) from public, anon, authenticated;

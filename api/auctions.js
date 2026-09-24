@@ -3641,7 +3641,11 @@ async function runEngineFill(){
     }
   }catch(e){ out.ok = false; out.error = String(e.message || e).slice(0, 160); }
   // Тот же тик пересчитывает live_until идущих аукционов (SQL-функция refresh_live_until: позиция лота в линии + 15 мин)
-  try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:"{}"})) || 0; }catch(e){ out.liveErr = String(e.message || e).slice(0, 100); }
+  try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:JSON.stringify({factor:1.3, margin:10})})) || 0; }
+  catch(e){
+    try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:"{}"})) || 0; out.liveOld = true; }   // версия без параметров (×1.5 + 15)
+    catch(e2){ out.liveErr = String(e2.message || e2).slice(0, 100); }
+  }
   out.ms = Date.now() - t0;
   return out;
 }
