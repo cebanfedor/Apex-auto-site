@@ -2082,7 +2082,7 @@ async function tabTotal(tab, auction, vtype){
     catch(e){ tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return 0; }
   };
   const live = "or=(status_id.neq.6,status_id.is.null)";
-  const grace = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+  const grace = encodeURIComponent(new Date(Date.now() - LIVE_GRACE_MS).toISOString());
   let n = 0;
   if(tab === "soon"){
     const to = encodeURIComponent(new Date(Date.now() + 48 * 3600e3).toISOString());
@@ -2183,7 +2183,7 @@ async function searchFromDb(query){
     // sale_date — быстро и без недатированных. Заменила вкладку «Открытые», которая после
     // возврата лотов без даты стала копией «Все».
     p.set("archived", "eq.false");
-    const from = new Date(Date.now() - 2 * 3600e3).toISOString();
+    const from = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
     const to = new Date(Date.now() + 48 * 3600e3).toISOString();
     ands.push(`sale_date.gte.${from}`);
     ands.push(`sale_date.lte.${to}`);
@@ -2194,7 +2194,7 @@ async function searchFromDb(query){
     // Открытые: будущие торги (плюс идущие прямо сейчас — до 2 ч после старта) или
     // без даты. Раньше окно было «сутки назад» → первая страница по дате состояла
     // из ВЧЕРАШНИХ уже прошедших торгов (ставку не сделать, смотрелось как мусор).
-    const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
+    const grace = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
     // Без марки/модели/поиска OR по sale_date не даёт Postgres идти по индексу диапазоном:
     // общий каталог упирался в 8с-таймаут и падал на live (10с первая загрузка). В общем
     // виде берём только назначенные торги — чистый range-scan по (sale_date,id); недатированные
@@ -2216,7 +2216,7 @@ async function searchFromDb(query){
     p.set("archived", "eq.false");
     // То же окно «сейчас − 2 ч»: вчерашние торги, ждущие результата, покупателю
     // бесполезны — после синка они и так уходят в архив.
-    const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
+    const grace = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
     // 21.09.2026: лоты БЕЗ даты возвращены. Проверка выборки по live-фиду: ~70% из них —
     // живые «upcoming» (площадка ещё не назначила торги; у DreamBid это «Future», их 872
     // у BMW 3 Series против наших 11 с датой). Сортировка sale_date.asc NULLS LAST держит
@@ -3506,7 +3506,7 @@ async function handleSyncLots(response){
 async function computeCatalogCount(){
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  const grace = new Date(Date.now() - 2 * 3600e3).toISOString();
+  const grace = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
   const cnt = async extra => {
     const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
       {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
@@ -3563,6 +3563,8 @@ function resaleLevel(stub, lotNo, saleIso){
   const lots = new Set(past.map(e => e.lot).filter(Boolean)); lots.add(String(lotNo));
   return soldBefore ? 2 : (past.length >= 8 || lots.size >= 3) ? 1 : 0;
 }
+// Окно «идут торги» для текущих вкладок: лот с датой старта старше 30 мин уже почти наверняка продан (лоты аукциона идут по одному), а проверить каждый нельзя.
+const LIVE_GRACE_MS = 30 * 60e3;
 function parseEngineRange(query){
   const one = k => {
     const v = Number(String(query.get(k) || "").replace(",", "."));
@@ -3865,7 +3867,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "24";
+  const SEARCH_CACHE_VER = "25";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g13" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
@@ -4050,7 +4052,7 @@ module.exports = async function handler(request, response){
       const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
       const skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
       const H = {apikey:skey, authorization:`Bearer ${skey}`};
-      const grace = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+      const grace = encodeURIComponent(new Date(Date.now() - LIVE_GRACE_MS).toISOString());
       const to = encodeURIComponent(new Date(Date.now() + 48 * 3600e3).toISOString());
       const q = `/api_lots?select=id&archived=eq.false&and=(sale_date.gte.${grace},sale_date.lte.${to},or(status_id.neq.6,status_id.is.null))&order=sale_date.asc,id.asc&limit=1`;
       const timed = async (path, extra) => {
