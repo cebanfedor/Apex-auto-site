@@ -1127,6 +1127,18 @@
 
   // «Текущий заход» (не история): запись того же дня/в будущем или собственная продажа этого же лота.
   // Ранние заходы ТОГО ЖЕ номера лота — это история (перекуп выставляет один номер десятки раз).
+  // Запрет экспорта (Федор 25.09.2026): 1) штат Гавайи (HI) — вывоз с острова в Молдову невозможен; 2) ЭЛЕКТРОМОБИЛЬ с повреждением/документом Water/Flood.
+  function exportBan(lot){
+    if(!lot) return null;
+    const loc = String(lot.location || "");
+    if(/\(HI\)\s*$/i.test(loc) || /,\s*HI\b/i.test(loc) || /\b(hawaii|honolulu|kapolei|kahului|hilo|wailuku|lihue)\b/i.test(loc))
+      return {kind:"hi", short:"Гавайи (HI)", long:"Штат Гавайи: вывоз автомобилей с островов невозможен, отправить такую машину в Молдову нельзя."};
+    const fuel = String(lot.fuel || "");
+    if(/electric|электро/i.test(fuel) && !/hybrid|гибрид/i.test(fuel) && /water|flood|затоп|утоп/i.test(`${lot.damage || ""} ${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.document || ""}`))
+      return {kind:"evwater", short:"электромобиль после затопления", long:"Электромобиль с повреждением водой (Water/Flood): такие автомобили запрещены к экспорту."};
+    return null;
+  }
+  const exportBanCard = lot => { const b = exportBan(lot); return b ? `<div class="dbExportBanV1">${dbIco("warn")}<span>${L("Экспорт запрещён")} · ${L(b.short)}</span></div>` : ""; };
   // Компании проката (Sixt, Turo, Avis…): хороший продавец, но не страховая — подпись «Прокат». Фид метит их seller_type=insurance.
   const RENTAL_RE = /\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
   const isRentalName = v => RENTAL_RE.test(String(v || ""));
@@ -1253,6 +1265,7 @@
       </div>
       <div class="dbBody">
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
+        ${exportBanCard(lot)}
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
@@ -2898,6 +2911,7 @@
               ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
+            ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco("warn")}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
             <div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>
             <section class="dSec">
               <div class="dSecHead">${L("Аукцион")}</div>
