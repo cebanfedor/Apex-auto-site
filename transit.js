@@ -24,6 +24,13 @@
     return "/in-transit/" + [String(it.id), slugWords(it.title, 60), vin].filter(Boolean).join("-");
   }
 
+  /* Лёгкие копии фото: Supabase Storage — свой ресайз (241 КБ → ~80 КБ), Copart _hrs (250 КБ) → _ful (150 КБ) */
+  function photoSized(url, w){
+    var u = String(url || "");
+    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + (w || 640) + "&quality=72";
+    if(/cs\.copart\.com\/.*_hrs\.jpg/i.test(u)) return u.replace(/_hrs\.jpg/i, "_ful.jpg");
+    return u;
+  }
 function esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
@@ -58,7 +65,7 @@ function esc(s){
 
   function card(it){
     var img = it.photos[0]
-      ? '<img src="' + esc(it.photos[0]) + '" alt="' + esc(it.title) + '" loading="lazy">'
+      ? '<img src="' + esc(photoSized(it.photos[0], 640)) + '" alt="' + esc(it.title) + '" width="640" height="480" loading="lazy" decoding="async" data-fb="' + esc(it.photos[0]) + '">'
       : '<div class="transitNoImgV1"></div>';
     return '<a class="transitCardV1' + (it.sold ? " isSoldV1" : "") + '" href="' + transitHref(it) + '" data-transit-id="' + esc(it.id) + '">'
       + '<div class="transitCardImgV1">' + img
@@ -121,7 +128,7 @@ function esc(s){
             + (photos.length > 1 ? '<button type="button" class="transitGalNavV1 isPrevV1" data-gal="-1" aria-label="Предыдущее фото">‹</button><button type="button" class="transitGalNavV1 isNextV1" data-gal="1" aria-label="Следующее фото">›</button><span class="transitGalCntV1" id="transitGalCntV1">1 / ' + photos.length + '</span>' : "")
           + '</div>'
           + (photos.length > 1 ? '<div class="transitThumbsV1">' + photos.map(function(p, i){
-              return '<button type="button" class="' + (i === 0 ? "isActiveV1" : "") + '" data-thumb="' + i + '"><img src="' + esc(p) + '" alt="" loading="lazy"></button>';
+              return '<button type="button" class="' + (i === 0 ? "isActiveV1" : "") + '" data-thumb="' + i + '"><img src="' + esc(photoSized(p, 200)) + '" alt="" width="100" height="75" loading="lazy" decoding="async" data-fb="' + esc(p) + '"></button>';
             }).join("") + '</div>' : "")
         + '</div>'
       : '<div class="transitGalV1"><div class="transitGalMainV1 transitNoImgV1"></div></div>';

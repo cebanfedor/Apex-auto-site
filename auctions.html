@@ -29,9 +29,11 @@
   <!-- Фото лотов идут с CDN аукционов — рукопожатие заранее -->
   <link rel="preconnect" href="https://cs.copart.com">
   <link rel="preconnect" href="https://vis.iaai.com">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/styles.css?v=v439">
+      <link rel="preload" href="/assets/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css?v=v440">
   <link rel="stylesheet" href="/auctions.css?v=v488">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
@@ -49,7 +51,7 @@
     ]
   }
   </script>
-  <script src="/img-fallback.js?v=v3"></script>
+  <script src="/img-fallback.js?v=v4" defer></script>
 </head>
 <body>
     <header class="siteHeader apexHdrV201">
@@ -62,7 +64,7 @@
     </a>
     <a class="headerPhoneV308" href="tel:+37368832032" aria-label="Позвонить 068-832-032">068-832-032</a>
     <input type="checkbox" id="navToggleV210" class="navToggleV210">
-    <label for="navToggleV210" class="burgerV210" aria-label="Меню"><span></span><span></span><span></span></label>
+    <label for="navToggleV210" class="burgerV210"><span></span><span></span><span></span><b class="srOnlyV1">Меню</b></label>
     <nav class="mainNavV82 apexNavV201">
       <a href="/">Главная</a>
       <a href="/auctions" class="active">Аукционы</a>

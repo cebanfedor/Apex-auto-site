@@ -15,7 +15,14 @@
   var sec = document.getElementById("homeTransitV1");
   var grid = document.getElementById("homeTransitGridV1");
   if(!sec || !grid) return;
-  function esc(s){
+    /* Лёгкие копии фото: Supabase Storage — свой ресайз (241 КБ → ~80 КБ), Copart _hrs (250 КБ) → _ful (150 КБ) */
+  function photoSized(url, w){
+    var u = String(url || "");
+    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + (w || 640) + "&quality=72";
+    if(/cs\.copart\.com\/.*_hrs\.jpg/i.test(u)) return u.replace(/_hrs\.jpg/i, "_ful.jpg");
+    return u;
+  }
+function esc(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
@@ -26,7 +33,7 @@
     var chips = [it.mileage, it.fuel, it.damage].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
     return '<a class="transitCardV1" href="' + transitHref(it) + '">'
       + '<div class="transitCardImgV1">'
-        + (it.photos[0] ? '<img src="' + esc(it.photos[0]) + '" alt="' + esc(it.title) + '" loading="lazy">' : '<div class="transitNoImgV1"></div>')
+        + (it.photos[0] ? '<img src="' + esc(photoSized(it.photos[0], 640)) + '" alt="' + esc(it.title) + '" width="640" height="480" loading="lazy" decoding="async" data-fb="' + esc(it.photos[0]) + '">' : '<div class="transitNoImgV1"></div>')
         + '<span class="transitBadgeV1">' + esc(T("В пути")) + '</span>'
       + '</div>'
       + '<div class="transitCardBodyV1">'

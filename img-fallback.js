@@ -41,6 +41,19 @@
     if(bg){ el.style.background = bg; }
   }, true);
 
+  // Скрипт теперь defer (не блокирует отрисовку): картинки, упавшие ДО его запуска, обрабатываем повторно.
+  function rescanBroken(){
+    var imgs = document.querySelectorAll("img[data-fb], img[data-fb-hide], img[data-fb-bg]");
+    for(var i = 0; i < imgs.length; i++){
+      var im = imgs[i];
+      if(im.complete && im.naturalWidth === 0 && im.getAttribute("src") && !im.getAttribute("data-fb-done")){
+        im.dispatchEvent(new Event("error"));
+      }
+    }
+  }
+  rescanBroken();
+  window.addEventListener("load", rescanBroken);
+
   // 2) Закрытие exit-popup: data-exit-close вместо onclick="exitPopupClose()".
   document.addEventListener("click", function(e){
     var t = e.target.closest ? e.target.closest("[data-exit-close]") : null;
