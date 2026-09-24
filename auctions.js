@@ -215,7 +215,8 @@
   function syncUrl(){
     if(parseSlug(currentSlug())) return; // on a detail page — leave its path
     const p = formParams();
-    p.delete("page"); p.delete("per_page");
+    p.delete("per_page");
+    if(Number(p.get("page")) <= 1) p.delete("page");   // страница >1 остаётся в ссылке: «назад из лота» возвращает на неё
     if(p.get("sort") === "smart") p.delete("sort"); // «Рекомендованные» — дефолт с 15.09.2026 (лучшие из ближайших торгов первыми)
     if(p.get("auction") === "all") p.delete("auction");
     if(p.get("tab") === "all") p.delete("tab");
@@ -431,6 +432,7 @@
     if(p.get("tab")){ state.tab = p.get("tab") === "sold" ? "archived" : p.get("tab") === "open" ? "all" : p.get("tab"); setActive("[data-tab]", "data-tab", state.tab); } // старые ссылки ?tab=sold → «Архив»
     if(p.get("auction")){ state.auction = p.get("auction"); setActive("[data-auction-switch]", "data-auction-switch", state.auction); }
     if(p.get("sort") && $("#auctionSort")) $("#auctionSort").value = p.get("sort");
+    { const pg = Number(p.get("page")); if(Number.isFinite(pg) && pg > 1){ state.page = Math.min(400, Math.floor(pg)); } }
     // Открыли по ссылке с фильтрами (марка/модель/…) без явной сортировки → «Скоро торги», не «Рекомендованные»
     const fk = [...p.keys()].filter(k => !["sort","tab","auction","page","per_page","lang"].includes(k));
     if(fk.length && !p.get("sort") && $("#auctionSort") && !["archived","favorites"].includes(state.tab)){
@@ -1386,6 +1388,31 @@
     });
   }
   const vinHistCache = {}, vinRetryN = {};
+  // «Назад в каталог»: место, откуда открыли лот (фильтры/страница — в URL, положение прокрутки — здесь и в sessionStorage).
+  const BACK_KEY = "apexBackV1", BACK_FLAG = "apexBackFlag";
+  let pendingScrollRestore = null;
+  const catalogSeo = {title:document.title, desc:document.querySelector('meta[name="description"]')?.getAttribute("content") || ""};
+  function saveBackSnap(){
+    const snap = {href:location.pathname + location.search, y:Math.round(window.scrollY), t:Date.now()};
+    state.backSnap = snap;
+    try{ sessionStorage.setItem(BACK_KEY, JSON.stringify(snap)); }catch(e){}
+  }
+  function readBackSnap(){
+    try{ const v = JSON.parse(sessionStorage.getItem(BACK_KEY) || "null"); return v && Date.now() - v.t < 6 * 3600e3 ? v : null; }catch(e){ return null; }
+  }
+  // Каталог остался в DOM (лот открывали без перезагрузки) — просто показываем его на прежнем месте
+  function showCatalogAgain(){
+    const snap = state.backSnap || readBackSnap();
+    const det = $("#auctionDetail");
+    if(det){ det.hidden = true; det.innerHTML = ""; }
+    $("#auctionCatalog").hidden = false;
+    document.title = catalogSeo.title;
+    const md = document.querySelector('meta[name="description"]'); if(md && catalogSeo.desc) md.setAttribute("content", catalogSeo.desc);
+    const y = snap ? snap.y : 0;
+    window.scrollTo(0, y);
+    setTimeout(() => window.scrollTo(0, y), 150);   // картинки подгрузились и чуть сдвинули вёрстку
+    state.backSnap = null;
+  }
   async function updateCardVinHistory(){
     const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
     const byId = new Map(state.items.map(l => [String(l.id), l]));
@@ -1881,6 +1908,10 @@
         state.loading = false;
         $("#auctionCards").classList.remove("lotsRefreshingV1");
         syncUrl();
+        if(pendingScrollRestore != null){
+          const y = pendingScrollRestore; pendingScrollRestore = null;
+          requestAnimationFrame(() => { window.scrollTo(0, y); setTimeout(() => window.scrollTo(0, y), 300); });
+        }
       }
     }
   }
@@ -2460,7 +2491,7 @@
     try{
       if(lot && lot.auction && lot.lot){
         const href = detailHref(lot);
-        if(location.pathname !== href) history.pushState({apexLot:1}, "", href);
+        if(location.pathname !== href) history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", href);
       }
     }catch(e){}
     const images = lot.images?.length ? lot.images : [lot.image].filter(Boolean);
@@ -2900,10 +2931,12 @@
     if(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     const slug = parseSlug(decodeURIComponent(link.getAttribute("href").replace(/^\/auctions\//, "").split(/[?#]/)[0]));
     if(!slug) return;
+    const fromCatalog = !$("#auctionCatalog").hidden;
+    if(fromCatalog) saveBackSnap();   // запоминаем место в каталоге и для обычной навигации (витрина, «похожие» и т.п.)
     const known = (state.items || []).find(l => String(l.lot) === String(slug.lot) && l.auction === slug.auction);
     if(!known) return; // нет данных под рукой — обычная навигация через SSR
     event.preventDefault();
-    try{ history.pushState({apexLot:1}, "", link.getAttribute("href")); }catch(_){ location.href = link.href; return; }
+    try{ history.pushState({apexLot:1, d:fromCatalog ? 1 : ((history.state && history.state.d) || 0) + 1}, "", link.getAttribute("href")); }catch(_){ location.href = link.href; return; }
     window.scrollTo(0, 0);
     renderDetail(known);
     refreshDetailInBackground(slug);
@@ -3040,7 +3073,25 @@
     }
   }
 
-  window.addEventListener("popstate", () => { location.reload(); });
+  window.addEventListener("popstate", () => {
+    // Вернулись на каталог, а он ещё в DOM (лот открывали из него без перезагрузки) — без перезагрузки и на том же месте
+    if(!parseSlug(currentSlug()) && state.backSnap && (state.items || []).length && $("#auctionCatalog")){ showCatalogAgain(); return; }
+    try{ sessionStorage.setItem(BACK_FLAG, "1"); }catch(e){}   // после перезагрузки вернём прокрутку
+    location.reload();
+  });
+  // Кнопка «Вернуться к каталогу»: на то же место, откуда пришли (фильтры, страница, прокрутка), а не в начало каталога
+  document.addEventListener("click", event => {
+    const back = event.target.closest(".detailBackV1");
+    if(!back || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    const d = history.state && history.state.d;
+    if(d && state.backSnap && (state.items || []).length){ event.preventDefault(); history.go(-d); return; }
+    const snap = readBackSnap();
+    if(snap){
+      event.preventDefault();
+      try{ sessionStorage.setItem(BACK_FLAG, "1"); }catch(e){}
+      location.href = snap.href;
+    }
+  });
 
   // Номер лота ищем напрямую через detail (search_query API по лотам не ищет):
   // сначала Copart, затем IAAI.
@@ -3845,6 +3896,11 @@
         return;
       }
       restoreFromUrl();
+      try{
+        const snap = readBackSnap();
+        if(sessionStorage.getItem(BACK_FLAG) && snap && snap.href === location.pathname + location.search) pendingScrollRestore = snap.y;
+        sessionStorage.removeItem(BACK_FLAG);
+      }catch(e){}
       loadLots();
     }
   }
