@@ -1255,6 +1255,7 @@
         <a class="dbPhotoLink" href="${detailHref(lot)}">
           ${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" ${idx < 2 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="dbSlideImg">` : `<span class="dbNoPhoto">${L("Нет фото")}</span>`}
         </a>
+        ${exportBan(lot) ? `<span class="dbExportTagV1">${L("Экспорт запрещён")}</span>` : ""}
         <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         ${photos > 1 ? `<span class="dbPhotoBarV1" aria-hidden="true"><i style="width:${(100 / photos).toFixed(3)}%"></i></span>` : ""}
@@ -1265,7 +1266,6 @@
       </div>
       <div class="dbBody">
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
-        ${exportBanCard(lot)}
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
@@ -1280,9 +1280,9 @@
             <ul class="dbSpecs">
               ${dbSpec("engine", escapeHtml(engineLine))}
               ${dbSpec("odo", dbOdo(lot.odometerText))}
-              ${dbSpec("damage", escapeHtml(ruDamage(lot.damage)))}
+              ${(() => { const eb = exportBan(lot), tag = `<em class="dbExpTagV1">${L("Экспорт запрещён")}</em>`; return `${dbSpec("damage", escapeHtml(ruDamage(lot.damage)) + (eb && eb.kind === "evwater" ? tag : ""))}
               ${dbSpec("doc", escapeHtml(docShort(lot.document)))}
-              ${dbSpec("pin", escapeHtml(lotLocationText(lot)))}
+              ${dbSpec("pin", escapeHtml(lotLocationText(lot)) + (eb && eb.kind === "hi" ? tag : ""))}`; })()}
             </ul>
           </div>
           <div class="dbChecksCol">
