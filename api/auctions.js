@@ -997,6 +997,11 @@ async function fetchSearch(query){
           const d = String(lot.damage || "").toLowerCase();
           return t.some(x => d.includes(x.toLowerCase()));
         })
+        // Мультивыбор моделей (live): фид принимает одну — остальные отсекаем здесь
+        .filter(lot => {
+          const ids = String(query.get("model") || "").split(",").filter(x => /^\d+$/.test(x));
+          return ids.length < 2 || ids.includes(String(lot.modelId));
+        })
         // Мультивыбор топлива (live): список id → фильтр по нормализованному fuel
         .filter(lot => {
           const ids = String(query.get("fuel") || "").split(",").filter(x => /^\d+$/.test(x));
@@ -2150,7 +2155,7 @@ async function searchFromDb(query){
   const make = query.get("make");
   if(make && /^[\d,]+$/.test(make)) p.set("make_id", make.includes(",") ? `in.(${make})` : `eq.${make}`);
   const model = query.get("model");
-  if(model && /^\d+$/.test(model)) p.set("model_id", `eq.${model}`);
+  if(model && /^[\d,]+$/.test(model)) p.set("model_id", model.includes(",") ? `in.(${model.replace(/^,+|,+$/g, "")})` : `eq.${model}`);
   const generation = query.get("generation");
   const synGen = parseSynGen(generation);
   if(synGen){

@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v437">
-  <link rel="stylesheet" href="/auctions.css?v=v481">
+  <link rel="stylesheet" href="/auctions.css?v=v482">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -170,18 +170,14 @@
               <input name="q" class="fInputV2" placeholder="VIN / LOT / марка / модель">
             </details>
             <details open class="fSecV2"><summary>Марка</summary>
-              <div class="comboV2">
-                <input id="filterMakeV2" class="fInputV2" placeholder="Выбрать марку" autocomplete="off">
-                <input type="hidden" name="make" id="filterMakeIdV2">
-                <div class="comboMenuV2" id="makeMenuV2" hidden></div>
-              </div>
+              <input id="filterMakeV2" class="fInputV2" placeholder="Выбрать марку" autocomplete="off">
+              <input type="hidden" name="make" id="filterMakeIdV2">
+              <div class="msListV1" id="makeListV1"><p class="msEmptyV1">Загрузка…</p></div>
             </details>
             <details open class="fSecV2"><summary>Модель</summary>
-              <div class="comboV2">
-                <input id="filterModelV2" class="fInputV2" placeholder="Сначала выберите марку" autocomplete="off">
-                <input type="hidden" name="model" id="filterModelIdV2">
-                <div class="comboMenuV2" id="modelMenuV2" hidden></div>
-              </div>
+              <input id="filterModelV2" class="fInputV2" placeholder="Найти модель" autocomplete="off">
+              <input type="hidden" name="model" id="filterModelIdV2">
+              <div class="msListV1" id="modelListV1"><p class="msEmptyV1">Сначала выберите марку</p></div>
             </details>
             <details class="fSecV2"><summary>Поколение</summary>
               <div class="comboV2">
@@ -427,8 +423,8 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v480" defer></script>
-  <script src="/auctions.js?v=auctions-v240" defer></script>
+  <script src="/i18n.js?v=multilang-v481" defer></script>
+  <script src="/auctions.js?v=auctions-v241" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

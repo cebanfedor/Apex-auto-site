@@ -236,6 +236,10 @@
     box.innerHTML = damageList().map((d, i) => `<button type="button" class="dmgChipV1" data-i="${i}" title="Убрать">${escapeHtml(d)} <span aria-hidden="true">×</span></button>`).join("");
   }
   // ---- Активные фильтры сверху (удаление по одному) + сохранённые поиски (localStorage) ----
+  // Мультивыбор марок/моделей (как DreamBid): выбранные — в ms, id — в скрытых полях через запятую.
+  const ms = {makes:[], models:[]};
+  const msApi = {removeMake(){}, removeModel(){}, reset(){}};
+  const msIdsOf = id => { const v = document.getElementById(id)?.value || ""; return v ? v.split(",").filter(Boolean) : []; };
   const SAVED_KEY = "apexSavedSearchesV1";
   function savedLoad(){ try{ const a = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]"); return Array.isArray(a) ? a : []; }catch(e){ return []; } }
   function savedStore(list){ try{ localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0, 30))); }catch(e){} }
@@ -251,12 +255,10 @@
     const smart = String($("#auctionSmartSearch")?.value || "").trim();
     if(smart) add(`${L("Поиск")}: ${smart}`, () => { $("#auctionSmartSearch").value = ""; });
     if(val("q")) add(`${L("Поиск")}: ${val("q")}`, () => { form.elements.q.value = ""; });
-    const mk = byId("filterMakeV2"), md = byId("filterModelV2"), gn = byId("filterGenV2");
-    const mkId = byId("filterMakeIdV2"), mdId = byId("filterModelIdV2"), gnId = byId("filterGenIdV2");
+    const gn = byId("filterGenV2"), gnId = byId("filterGenIdV2");
     const resetGen = () => { clear(gn, gnId); if(gn) setPhV1(gn, "Сначала выберите модель"); };
-    const resetModel = () => { clear(md, mdId); if(md) setPhV1(md, "Сначала выберите марку"); resetGen(); };
-    if(mkId && mkId.value) add(`${L("Марка")}: ${(mk && mk.value) || mkId.value}`, () => { clear(mk, mkId); resetModel(); });
-    if(mdId && mdId.value) add(`${L("Модель")}: ${(md && md.value) || mdId.value}`, resetModel);
+    msIdsOf("filterMakeIdV2").forEach(id => add(`${L("Марка")}: ${(ms.makes.find(m => String(m.id) === id) || {}).name || id}`, () => msApi.removeMake(id)));
+    msIdsOf("filterModelIdV2").forEach(id => add(`${L("Модель")}: ${(ms.models.find(m => String(m.id) === id) || {}).name || id}`, () => msApi.removeModel(id)));
     if(gnId && gnId.value) add(`${L("Поколение")}: ${(gn && gn.value) || gnId.value}`, resetGen);
     const range = (title, a, b, fmt) => {
       const x = val(a), y = val(b);
@@ -1561,7 +1563,7 @@
   async function updateGenChips(){
     let box = document.getElementById("genChipsV1");
     const modelId = document.getElementById("filterModelIdV2")?.value || "";
-    if(!modelId){ if(box) box.remove(); return; }
+    if(!modelId || /,/.test(modelId)){ if(box) box.remove(); return; }
     if(!box){
       box = document.createElement("div");
       box.id = "genChipsV1";
@@ -3196,35 +3198,75 @@
       if(genId) genId.value = "";
     }
 
-    // Make + Model: live from API (manufacturer_id / model_id); fall back to static names locally.
-    setupCombo("filterMakeV2", "makeMenuV2", () => manufacturers, async (opt) => {
-      if(makeId) makeId.value = opt.id != null ? opt.id : "";
-      if(modelInput){ modelInput.value = ""; setPhV1(modelInput, "Загрузка моделей…"); }
-      if(modelId) modelId.value = "";
-      models = [];
-      resetGenerations();
-      if(opt.id != null){
-        try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(opt.id)}`); models = (r.items || []).map(x => ({...x, name:displayModel(x.name)})); }
-        catch(e){ models = []; }
-      }else{
-        const key = Object.keys(data.models || {}).find(k => k.toLowerCase() === String(opt.name).toLowerCase());
-        models = key ? data.models[key].map(n => ({id:null, name:n})) : [];
+    // Марка + Модель: списки с галочками и мультивыбором (как DreamBid). Выбранные — сверху, список фильтруется поиском.
+    const makeSearch = makeInput, modelSearch = modelInput;
+    const makeList = document.getElementById("makeListV1"), modelList = document.getElementById("modelListV1");
+    const modelsCache = {};
+    let applyTimer = null;
+    const queueApply = () => { clearTimeout(applyTimer); applyTimer = setTimeout(() => { state.page = 1; state.displayPage = 1; exitDiscovery(); $("#auctionFiltersForm").requestSubmit(); }, 350); };
+    const syncHidden = () => { if(makeId) makeId.value = ms.makes.map(m => m.id).join(","); if(modelId) modelId.value = ms.models.map(m => m.id).join(","); };
+    async function ensureModels(mid){
+      if(!modelsCache[mid]){
+        try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(mid)}`); modelsCache[mid] = (r.items || []).map(x => ({id:String(x.id), name:displayModel(x.name), makeId:String(mid), qty:x.qty})); }
+        catch(e){ modelsCache[mid] = []; }
       }
-      if(modelInput) setPhV1(modelInput, models.length ? "Выбрать модель" : "Модель (введите вручную)");
-    });
-    makeInput?.addEventListener("input", () => { if(makeId) makeId.value = ""; });
-
-    setupCombo("filterModelV2", "modelMenuV2", () => models, async (opt) => {
-      if(modelId) modelId.value = opt.id != null ? opt.id : "";
+      return modelsCache[mid];
+    }
+    const rowHtml = (kind, id, name, image, qty, checked, sub) => `<label class="msRowV1${checked ? " isOnV1" : ""}"><input type="checkbox" data-ms-${kind}="${escapeHtml(String(id))}"${checked ? " checked" : ""}>${image ? `<img class="msLogoV1" src="${escapeHtml(image)}" alt="" loading="lazy">` : ""}<span class="msNameV1">${escapeHtml(name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span>${qty ? `<i>${escapeHtml(String(qty))}</i>` : ""}</label>`;
+    function renderMakes(){
+      if(!makeList) return;
+      if(!manufacturers.length){ makeList.innerHTML = `<p class="msEmptyV1">${escapeHtml(L("Список марок недоступен"))}</p>`; return; }
+      const q = (makeSearch?.value || "").trim().toLowerCase();
+      const on = new Set(ms.makes.map(m => m.id));
+      const list = manufacturers.filter(m => m.id != null && (!q || String(m.name).toLowerCase().includes(q)));
+      const rows = [...list.filter(m => on.has(String(m.id))), ...list.filter(m => !on.has(String(m.id)))];
+      makeList.innerHTML = rows.length ? rows.map(m => rowHtml("make", m.id, m.name, m.image, m.qty, on.has(String(m.id)))).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
+    }
+    function renderModels(){
+      if(!modelList) return;
+      if(!ms.makes.length){ modelList.innerHTML = `<p class="msEmptyV1">${escapeHtml(L("Сначала выберите марку"))}</p>`; return; }
+      const q = (modelSearch?.value || "").trim().toLowerCase();
+      const on = new Set(ms.models.map(m => m.id));
+      const multi = ms.makes.length > 1;
+      let all = [];
+      ms.makes.forEach(mk => (modelsCache[mk.id] || []).forEach(m => all.push({...m, makeName:mk.name})));
+      if(ms.makes.some(mk => modelsCache[mk.id] === undefined)){ modelList.innerHTML = `<p class="msEmptyV1">${escapeHtml(L("Загрузка моделей…"))}</p>`; return; }
+      all = all.filter(m => !q || m.name.toLowerCase().includes(q));
+      const rows = [...all.filter(m => on.has(m.id)), ...all.filter(m => !on.has(m.id))];
+      modelList.innerHTML = rows.length ? rows.map(m => rowHtml("model", m.id, m.name, "", m.qty, on.has(m.id), multi ? m.makeName : "")).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
+    }
+    async function refreshGenerationsForSelection(){
       resetGenerations();
-      if(opt.id != null){
-        if(genInput) setPhV1(genInput, "Загрузка поколений…");
-        try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(opt.id)}`); generations = r.items || []; }
-        catch(e){ generations = []; }
-        if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
-      }
+      if(ms.models.length !== 1){ if(genInput) setPhV1(genInput, ms.models.length > 1 ? "Выберите одну модель" : "Сначала выберите модель"); return; }
+      if(genInput) setPhV1(genInput, "Загрузка поколений…");
+      try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(ms.models[0].id)}`); generations = r.items || []; }
+      catch(e){ generations = []; }
+      if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
+    }
+    makeList?.addEventListener("change", async e => {
+      const cb = e.target.closest("[data-ms-make]"); if(!cb) return;
+      const id = cb.dataset.msMake, m = manufacturers.find(x => String(x.id) === id);
+      if(cb.checked){ if(m && !ms.makes.some(x => x.id === id)) ms.makes.push({id, name:m.name}); }
+      else{ ms.makes = ms.makes.filter(x => x.id !== id); ms.models = ms.models.filter(x => x.makeId !== id); }
+      syncHidden(); renderMakes(); renderModels();
+      if(cb.checked){ await ensureModels(id); renderModels(); }
+      refreshGenerationsForSelection();
+      queueApply();
     });
-    modelInput?.addEventListener("input", () => { if(modelId) modelId.value = ""; resetGenerations(); });
+    modelList?.addEventListener("change", e => {
+      const cb = e.target.closest("[data-ms-model]"); if(!cb) return;
+      const id = cb.dataset.msModel;
+      if(cb.checked){
+        const found = ms.makes.map(mk => (modelsCache[mk.id] || []).find(x => x.id === id)).find(Boolean);
+        if(found && !ms.models.some(x => x.id === id)) ms.models.push({id, name:found.name, makeId:found.makeId});
+      }else ms.models = ms.models.filter(x => x.id !== id);
+      syncHidden(); renderModels(); refreshGenerationsForSelection(); queueApply();
+    });
+    makeSearch?.addEventListener("input", renderMakes);
+    modelSearch?.addEventListener("input", renderModels);
+    msApi.removeMake = id => { ms.makes = ms.makes.filter(x => x.id !== id); ms.models = ms.models.filter(x => x.makeId !== id); syncHidden(); renderMakes(); renderModels(); refreshGenerationsForSelection(); state.page = 1; state.displayPage = 1; loadLots(); };
+    msApi.removeModel = id => { ms.models = ms.models.filter(x => x.id !== id); syncHidden(); renderModels(); refreshGenerationsForSelection(); state.page = 1; state.displayPage = 1; loadLots(); };
+    msApi.reset = () => { ms.makes = []; ms.models = []; syncHidden(); if(makeSearch) makeSearch.value = ""; if(modelSearch) modelSearch.value = ""; renderMakes(); renderModels(); resetGenerations(); };
 
     // Generation → generation_id (depends on the selected model)
     setupCombo("filterGenV2", "genMenuV2", () => generations, (opt) => { if(genId) genId.value = opt.id != null ? opt.id : ""; });
@@ -3234,27 +3276,18 @@
     // показывали «Выбрать марку» — человек не видел, по чему отфильтровано, и не мог сбросить.
     // Подставляем названия и подгружаем зависимые списки.
     async function hydrateNamesFromIds(){
-      const mk = makeId && makeId.value, md = modelId && modelId.value, gn = genId && genId.value;
-      if(!mk || /,/.test(mk) || !makeInput || makeInput.value) return;
-      const m = manufacturers.find(x => String(x.id) === String(mk));
-      if(!m) return;
-      makeInput.value = m.name;
-      try{ const r = await api(`/api/auctions?action=models&manufacturer_id=${encodeURIComponent(mk)}`); models = (r.items || []).map(x => ({...x, name:displayModel(x.name)})); }catch(e){ models = []; }
-      if(modelInput) setPhV1(modelInput, models.length ? "Выбрать модель" : "Модель (введите вручную)");
-      if(!md || !modelInput || modelInput.value) return;
-      const mo = models.find(x => String(x.id) === String(md));
-      if(!mo) return;
-      modelInput.value = mo.name;
-      try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(md)}`); generations = r.items || []; }catch(e){ generations = []; }
-      if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
-      if(gn && genInput && !genInput.value){
-        const g = generations.find(x => String(x.id) === String(gn));
-        if(g) genInput.value = g.name;
+      const mkIds = msIdsOf("filterMakeIdV2"), mdIds = msIdsOf("filterModelIdV2"), gn = genId && genId.value;
+      ms.makes = mkIds.map(id => manufacturers.find(m => String(m.id) === id)).filter(Boolean).map(m => ({id:String(m.id), name:m.name}));
+      await Promise.all(ms.makes.map(m => ensureModels(m.id)));
+      ms.models = mdIds.map(id => { for(const mk of ms.makes){ const f = (modelsCache[mk.id] || []).find(x => x.id === id); if(f) return {id, name:f.name, makeId:mk.id}; } return null; }).filter(Boolean);
+      renderMakes(); renderModels();
+      if(ms.models.length === 1){
+        try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(ms.models[0].id)}`); generations = r.items || []; }catch(e){ generations = []; }
+        if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
+        if(gn && genInput && !genInput.value){ const g = generations.find(x => String(x.id) === String(gn)); if(g) genInput.value = g.name; }
       }
     }
-    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; Promise.resolve(hydrateNamesFromIds()).then(() => renderActiveFilters()).catch(() => {}); }).catch(() => {
-      manufacturers = (data.makes || []).map(n => ({id:null, name:n}));
-    });
+    api(`/api/auctions?action=manufacturers`).then(r => { manufacturers = r.items || []; Promise.resolve(hydrateNamesFromIds()).then(() => renderActiveFilters()).catch(() => {}); }).catch(() => { manufacturers = []; renderMakes(); });
 
     // Damage, color, state: mutable arrays — filled from API on load
     let damages = [];
@@ -3480,6 +3513,7 @@
         const el = document.getElementById(id);
         if(el) el.value = "";
       });
+      msApi.reset();
       setDamageList([]);
       const dInp = document.getElementById("filterDamageV2"); if(dInp) dInp.value = "";
       ["#auctionSmartSearch"].forEach(selector => {

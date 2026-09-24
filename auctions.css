@@ -1043,3 +1043,14 @@ body.leadModalOpenV1 { overflow:hidden; }
 .smartSwV1 input:checked + i::after { transform:translateX(22px); }
 .smartSwV1 input:focus-visible + i { outline:2px solid #1d4ed8; outline-offset:2px; }
 .smartNoteV1 { margin:0 0 12px; padding:0 0 12px; border-bottom:1px solid var(--aLine); font-size:12px; line-height:1.45; color:var(--aMuted); }
+
+.msListV1 { margin-top:8px; max-height:250px; overflow-y:auto; border:1px solid var(--aLine); border-radius:10px; background:#fff; padding:4px; }
+.msRowV1 { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:8px; cursor:pointer; font-size:14px; color:var(--aInk); }
+.msRowV1:hover { background:var(--aSoft); }
+.msRowV1 input { flex:none; width:17px; height:17px; margin:0; accent-color:#1d4ed8; cursor:pointer; }
+.msLogoV1 { flex:none; width:24px; height:24px; object-fit:contain; }
+.msNameV1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.msNameV1 small { display:block; font-size:11px; font-weight:500; color:var(--aMuted); }
+.msRowV1 i { flex:none; font-style:normal; font-size:12px; color:var(--aMuted); }
+.msRowV1.isOnV1 { background:#f3f7ff; }
+.msEmptyV1 { margin:0; padding:10px 8px; font-size:13px; color:var(--aMuted); }
