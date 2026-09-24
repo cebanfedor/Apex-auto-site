@@ -3624,6 +3624,13 @@ module.exports = async function handler(request, response){
   if(action.startsWith("alert")){
     const alerts = require("../server/alerts").create({
       sb:syncSbFetch, searchFromDb, sendJson, readBody,
+      liveLot:async id => {
+        const [auction, lotNo] = String(id).split("-");
+        const lot = await fetchDetail(new URLSearchParams({auction, lot:lotNo}));
+        const sold = Number(lot.statusId) === 6 && Date.parse(lot.auctionDate || "") < Date.now();
+        if(sold) upsertClosedLot(lot);
+        return {auctionDate:lot.auctionDate || "", statusId:Number(lot.statusId) || 0, currentBid:Number(lot.currentBid) || 0, buyNow:Number(lot.buyNow) || 0, finalBid:Number(lot.finalBid) || Number(lot.currentBid) || 0, sold};
+      },
       isAdmin:req => { try{ return require("../server/auth").isAuthenticated(req); }catch(_){ return false; } }
     });
     if(await alerts.handle(action, request, response, query).catch(e => { sendJson(response, 500, {ok:false, error:String(e.message || e).slice(0, 160)}); return true; })) return;
@@ -4104,6 +4111,9 @@ module.exports = async function handler(request, response){
           const lot = await fetchDetail(new URLSearchParams({auction, lot:lotNo}));
           const r = {currentBid:Number(lot.currentBid) || 0, buyNow:Number(lot.buyNow) || 0, sellerReserve:Number(lot.sellerReserve) || 0,
             saleStatus:lot.saleStatus || "", timed:!!lot.timed, statusId:lot.statusId, auctionDate:lot.auctionDate || ""};
+          // Лот по данным самого лота (не списка) уже продан — карточка в каталоге показывала «сегодня на торгах» (IAAI 44995177):
+          // отдаём клиенту флаг и заодно лечим строку в базе (архив), чтобы ошибка не жила дальше.
+          if(Number(lot.statusId) === 6 && Date.parse(lot.auctionDate || "") < Date.now()){ r.sold = true; r.finalBid = Number(lot.finalBid) || Number(lot.currentBid) || 0; upsertClosedLot(lot); }
           setCached(ck, r, 2 * 60e3); out[id] = r;
         }catch(e){ out[id] = null; }
       };

@@ -107,7 +107,7 @@ function lotUrl(id){ return `${SITE}/auctions/${encodeURIComponent(id)}`; }
 function ymd(iso){ const d = new Date(iso); return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10).replace(/-/g, ""); }
 
 function create(deps){
-  const {sb, searchFromDb, sendJson, readBody, isAdmin} = deps;
+  const {sb, searchFromDb, sendJson, readBody, isAdmin, liveLot} = deps;
   let botName = null, botNameAt = 0;
 
   const tgToken = () => process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || "";
@@ -254,10 +254,24 @@ function create(deps){
       const cr = await sb(`/api_lots?id=in.(${copyIds.map(q).join(",")})&select=id,final_bid,status_id,archived`).catch(() => []);
       for(const r of cr) copies[r.id] = r;
     }
+    // Данные списка в базе могут отставать (лот продан на Timed, а в списке ещё «сегодня торги»): для ближайших лотов подписчиков
+    // спрашиваем сам лот — его дата и статус точнее.
+    const liveMap = {};
+    if(liveLot){
+      const soonIds = [...new Set(live.filter(x => Number(x.stage) < 3 && (!x.sale_date || (Date.parse(x.sale_date) < now + 36 * 3600e3 && Date.parse(x.sale_date) > now - 3 * 3600e3))).map(x => x.lot_id))].slice(0, 60);
+      for(let i = 0; i < soonIds.length; i += 8) await Promise.all(soonIds.slice(i, i + 8).map(async id => { try{ liveMap[id] = await liveLot(id); }catch(_){} }));
+    }
     for(const s of live){
       const link = links[s.token], lang = link.lang || "ru", T = tx(lang);
       const prefs = {...PREF_DEFAULT, ...(link.prefs || {})};
-      const row = byId[s.lot_id];
+      let row = byId[s.lot_id];
+      const lv = liveMap[s.lot_id];
+      if(lv){
+        row = {...(row || {payload:{}})};
+        if(lv.auctionDate) row.sale_date = lv.auctionDate;
+        row.status_id = lv.statusId; row.current_bid = lv.currentBid; row.buy_now = lv.buyNow;
+        if(lv.sold){ row.final_bid = lv.finalBid; row.archived = true; }
+      }
       const pl = (row && row.payload) || {};
       const title = s.lot_title || pl.title || s.lot_id;
       const btn = [{text:T.openLot, url:lotUrl(s.lot_id)}];

@@ -1371,10 +1371,21 @@
     if(!ids.length) return;
     let live = {};
     try{ const r = await api(`/api/auctions?action=livebids&ids=${encodeURIComponent(ids.slice(0, 30).join(","))}`); live = r.items || {}; }catch(e){ return; }
+    let healed = false;
     cards.forEach(cd => {
       const lid = cd.querySelector(".dbPhoto")?.dataset.lid; const lot = byId.get(String(lid)); const lv = live[lid];
       if(!lot || !lv) return;
       Object.assign(lot, {currentBid:lv.currentBid, buyNow:lv.buyNow, sellerReserve:lv.sellerReserve, saleStatus:lv.saleStatus || lot.saleStatus, timed:lv.timed});
+      // Данные самого лота расходятся со списком: лот уже продан, либо торги перенесены — перерисовываем карточку и лечим базу.
+      const liveMs = Date.parse(lv.auctionDate || ""), listMs = Date.parse(lot.auctionDate || "");
+      const dateMoved = Number.isFinite(liveMs) && Number.isFinite(listMs) && Math.abs(liveMs - listMs) > 2 * 3600e3;
+      if(lv.sold || dateMoved){
+        Object.assign(lot, {auctionDate:lv.auctionDate || lot.auctionDate}, lv.sold ? {statusId:6, statusName:"sold", lotStatus:"sold", finalBid:lv.finalBid || lv.currentBid} : {});
+        try{ cd.insertAdjacentHTML("afterend", renderCard(lot)); cd.remove(); }catch(e){}
+        api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&fresh=1`).catch(() => {});
+        healed = true;
+        return;
+      }
       const box = cd.querySelector(".dbPriceBox b"); const isCa = !!findCanadaLocation(lot);
       const v = lv.currentBid || (state.tab === "buy_now" ? lv.buyNow : 0);
       if(box && v > 0){ box.textContent = isCa ? moneyCad(v) : money(v); box.classList.remove("dbNoBidV1"); }
@@ -1386,6 +1397,7 @@
         res.innerHTML = `${L("Резерв продавца")}: <b>${isCa ? moneyCad(lv.sellerReserve) : money(lv.sellerReserve)}</b>`;
       }
     });
+    if(healed) idle(updateCardVinHistory);
   }
   const vinHistCache = {}, vinRetryN = {};
   // «Назад в каталог»: место, откуда открыли лот (фильтры/страница — в URL, положение прокрутки — здесь и в sessionStorage).
