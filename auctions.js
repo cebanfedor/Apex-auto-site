@@ -1084,6 +1084,20 @@
     return [name ? name.replace(/_/g, " ") : "", "histPend"];
   }
 
+  // «Текущий заход» (не история): запись того же дня/в будущем или собственная продажа этого же лота.
+  // Ранние заходы ТОГО ЖЕ номера лота — это история (перекуп выставляет один номер десятки раз).
+  function sellerIsInsurance(lot){
+    return /insurance/.test(String(lot.sellerType || "").toLowerCase())
+      || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
+  }
+  function isCurrentRound(e, lot){
+    if(!e) return false;
+    if(e.current) return true;
+    const day = String(e.date || "").slice(0, 10), curDay = String(lot.auctionDate || "").slice(0, 10);
+    if(curDay && day === curDay) return true;
+    if(Date.parse(e.date) > Date.now()) return true;
+    return lotSaleState(lot).isSold && e.lot && String(e.lot) === String(lot.lot) && /^sold$/i.test(String(e.status || ""));
+  }
   function renderPriceHistory(rawHistory, isCad, curLot){
     // Запись текущих торгов (h.current) — не история продаж: снапшоты
     // незавершённого аукциона не должны выглядеть как прошлые торги
@@ -1094,10 +1108,11 @@
     const max = Math.max(1, ...bids);
     const min = bids.length ? Math.min(...bids) : 0;
     const hi = bids.length ? Math.max(...bids) : 0;
-    const rows = history.slice(0, 12).map(h => {
+    const rows = history.map((h, idx) => {
       const val = Number(h.bid || h.buyNow || 0);
       let [label, cls] = histStatusLabel(h.status);
       if(!val && cls === "histUnsold") label = L("Не продан · без ставок");
+      if(!val && cls === "histSold") label = L("Продан · цена не указана");
       // Timed-раунд (по данным фида): «Timed · не продан $14 200» — сразу видно, что это ночной аукцион, а не живые торги.
       if(h.timed && (cls === "histUnsold" || cls === "histSold")) label = `Timed · ${label.toLowerCase()}`;
       const pct = Math.max(6, Math.round(val / max * 100));
@@ -1108,7 +1123,7 @@
       const isCur = curLot && lotNo && String(curLot.lot) === lotNo && (!h.auction || auc === String(curLot.auction).toLowerCase());
       const lotHtml = lotNo ? (isCur ? `<span class="histLotV1 histLotCurV1">#${escapeHtml(lotNo)}</span>`
         : `<a class="histLotV1" href="/auctions/${encodeURIComponent(auc || "copart")}-${encodeURIComponent(lotNo)}">#${escapeHtml(lotNo)}${auc ? ` · ${escapeHtml(auc === "iaai" ? "IAAI" : "Copart")}` : ""}</a>`) : "";
-      return `<div class="histRowV1">
+      return `<div class="histRowV1${idx >= 12 ? " histHiddenV1" : ""}">
         <span class="histDateV1">${escapeHtml(dbDate(h.date))}${lotHtml ? `<br>${lotHtml}` : ""}</span>
         <span class="histBarWrapV1"><span class="histBarV1" style="width:${pct}%"></span></span>
         <span class="histStatusV1 ${cls}">${escapeHtml(L(label))}</span>
@@ -1119,6 +1134,7 @@
     return `<section class="dSec">
       <div class="dSecHead">${L("История цены")} <span class="histCountV1">${history.length} ${recordsWord(history.length)}${range ? ` · ${escapeHtml(range)}` : ""}</span></div>
       <div class="histListV1">${rows}</div>
+      ${history.length > 12 ? `<button type="button" class="histMoreBtnV1" data-hist-more>${escapeHtml(L("Показать все"))} (${history.length})</button>` : ""}
     </section>`;
   }
 
@@ -1390,10 +1406,9 @@
       const li = [...card.querySelectorAll(".dbChecks li")].find(x => /История/.test(x.textContent));
       if(!li) return;
       // Прошлые заходы = записи ДРУГИХ лотов (текущий номер — это текущие/эти торги, не «ранее»).
-      const cur = String(lot.lot || "");
       const curDay = String(lot.auctionDate || "").slice(0, 10);
       const entries = Array.isArray(h.entries) ? h.entries : [];
-      const past = entries.filter(e => !(e.lot && e.lot === cur) && !(!e.lot && e.date === curDay));
+      const past = entries.filter(e => !isCurrentRound(e, lot));
       const pastSold = past.filter(e => e.status === "sold");
       const fmt = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : d; };
       const {isSold} = lotSaleState(lot);
@@ -1409,7 +1424,7 @@
         const ph = card.querySelector(".dbPhoto");
         if(ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
         li.className = "dbCheck bad";
-        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${laterSale ? L("Продана позже под другим лотом") : L("Продавалась ранее")}: ${money(last.bid)} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}</span>`;
+        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${laterSale ? L("Продана позже под другим лотом") : L("Продавалась ранее")}: ${last.bid ? money(last.bid) : L("цена не указана")} · ${fmt(last.date)}${pastSold.length > 1 ? ` (${pastSold.length} ${L("продажи")})` : ""}${!laterSale && !sellerIsInsurance(lot) ? ` · ${L("Перекуп")}` : ""}</span>`;
       }else{
         li.className = "dbCheck neutral";
         li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")}: ${past.length} ${recordsWord(past.length)}, ${L("не продана")}</span>`;
@@ -2441,14 +2456,13 @@
     // «Ранее» = записи ДРУГИХ лотов по этому VIN. Запись текущего номера (в т.ч. его продажа) — это
     // эти торги, а не история. Продан один раз под текущим номером → «Единственная продажа».
     const curLotNo = String(lot.lot || ""), curDay = String(lot.auctionDate || "").slice(0, 10);
-    const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : [])
-      .filter(h => !h.current && !(h.lot && String(h.lot) === curLotNo) && !(!h.lot && String(h.date).slice(0, 10) === curDay));
+    const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : []).filter(h => !isCurrentRound(h, lot));
     const histCount = pastHistory.length;
     const pastSold = pastHistory.filter(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const fmtHd = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : ""; };
     const histStr = histCount === 0
       ? (lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
-      : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L("Был продан ранее!")}`
+      : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L("Был продан ранее!")}${sellerIsInsurance(lot) ? "" : ` • ${L("Перекуп")}`}`
       : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
@@ -3574,6 +3588,8 @@
         expBtn.textContent = open ? "Свернуть" : "Развернуть";
         return;
       }
+      const histMore = event.target.closest("[data-hist-more]");
+      if(histMore){ histMore.closest(".dSec")?.querySelectorAll(".histHiddenV1").forEach(r => r.classList.remove("histHiddenV1")); histMore.remove(); return; }
       const bellBtn = event.target.closest("[data-alert-lot]");
       if(bellBtn){
         event.preventDefault();

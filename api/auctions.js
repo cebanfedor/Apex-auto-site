@@ -1159,6 +1159,14 @@ async function attachVinHistory(lot){
       // Timed-раунд по данным фида: флаг на заходе (lot) или на записи цены.
       const lotTimed = l?.is_timed_auction === true || /timed/i.test(String(l?.auction_type || l?.sale_type || ""));
       if(soldReal) entries.push({bid:fb, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom, timed:lotTimed});
+      // Продан без указанной цены (фид: status sold, final_bid пуст, дата прошла — Tesla 58144806, прошлый заход 92059535).
+      // Считаем продажей, только если ПОЗЖЕ тот же VIN выставили под другим номером лота (перепродажа). Цену не выдумываем.
+      if(!soldReal && past && !(fb > 0) && (sid === 6 || (/sold/.test(st) && !/not/.test(st))) && lotNo !== String(lot.lot || "")){
+        const sdMs = Date.parse(sd);
+        const firstOf = o => { const ds = [o?.sale_date, ...(Array.isArray(o?.prices) ? o.prices.map(x => x?.sale_date) : [])].map(x => Date.parse(x || "")).filter(Number.isFinite); return ds.length ? Math.min(...ds) : NaN; };
+        const later = lotsArr.some(o => String(o?.lot || o?.lot_number || o?.external_id || "").replace(/~.*/, "") !== lotNo && firstOf(o) > sdMs);
+        if(later) entries.push({bid:0, buyNow:0, date:new Date(sd).toISOString(), status:"sold", lot:lotNo, auction:dom, timed:lotTimed, noPrice:true});
+      }
       for(const p of (Array.isArray(l?.prices) ? l.prices : [])){
         const pd = p?.sale_date || ""; const pb = safeNumber(p?.bid || p?.final_bid || p?.current_bid);
         const noBidRound = !(pb > 0) && /not_sold/.test(safeName(p?.status).toLowerCase());
@@ -3910,7 +3918,7 @@ module.exports = async function handler(request, response){
       const vins = [...new Set(String(query.get("vins") || "").toUpperCase().split(",").map(v => v.replace(/[^A-Z0-9]/g, "")).filter(isValidVin))].slice(0, 30);
       const out = {};
       const one = async vin => {
-        const ck = "vinhist3:" + vin;
+        const ck = "vinhist4:" + vin;
         const c = getCached(ck);
         if(c){ out[vin] = c; return; }
         try{
@@ -3921,7 +3929,7 @@ module.exports = async function handler(request, response){
           // Отдаём записи с номером лота и датой: клиент сам исключает ТЕКУЩИЙ лот (для архивной
           // карточки её собственная продажа — не «ранее», а эта самая продажа).
           const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null,
-            entries:[...sold, ...h.filter(x => x.status !== "sold")].slice(0, 40).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || ""}))};
+            entries:[...sold, ...h.filter(x => x.status !== "sold")].slice(0, 40).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || "", ...(x.noPrice ? {noPrice:true} : {})}))};
           setCached(ck, r, 2 * 3600e3);
           out[vin] = r;
         }catch(e){ out[vin] = null; }

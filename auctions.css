@@ -1027,3 +1027,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .svPrefsV1 { display:flex; flex-wrap:wrap; gap:6px 14px; padding:4px 2px 8px; }
 .svPrefV1 { display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--aInk2); cursor:pointer; }
 .svPrefV1 input { width:16px; height:16px; accent-color:#1d4ed8; }
+
+.histHiddenV1 { display:none; }
+.histMoreBtnV1 { margin-top:10px; width:100%; padding:10px; border:1px solid var(--aLine); border-radius:10px; background:#fff; color:var(--aInk2); font-family:inherit; font-weight:700; font-size:13px; cursor:pointer; }
+.histMoreBtnV1:hover { border-color:var(--aMuted); }
