@@ -2086,6 +2086,7 @@
       if(reqId === state.loadSeq){
         state.loading = false;
         syncQuickTimed();
+        if(!append){ try{ msApi.refreshFacets && msApi.refreshFacets(); }catch(e){} }
         clearTimeout(state.dimTimer);
         $("#auctionCards").classList.remove("lotsRefreshingV1");
         syncUrl();
@@ -3540,12 +3541,41 @@
       return modelsCache[mid];
     }
     const rowHtml = (kind, id, name, image, qty, checked, sub) => `<label class="msRowV1${checked ? " isOnV1" : ""}"><input type="checkbox" data-ms-${kind}="${escapeHtml(String(id))}"${checked ? " checked" : ""}>${image ? `<img class="msLogoV1" src="${escapeHtml(image)}" alt="" loading="lazy">` : ""}<span class="msNameV1">${escapeHtml(name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span>${qty ? `<i>${escapeHtml(String(qty))}</i>` : ""}</label>`;
+    // Фасеты: счётчики марок/моделей по ТЕКУЩИМ фильтрам (action=facets). Без фильтров или с неподдерживаемыми — глобальные числа из справочника.
+    let facet = null, facetKey = "", facetSeq = 0;
+    const FACET_KEYS = new Set(["tab", "auction", "saleStatus", "vehicleType", "fuel", "body", "drive", "transmission", "cylinders", "condition", "country", "state", "yearFrom", "yearTo", "bidFrom", "bidTo", "buyNowFrom", "buyNowTo", "mileageFrom", "mileageTo", "mileageFromKm", "mileageToKm", "engineFrom", "engineTo", "smart"]);
+    const FACET_IGNORE = new Set(["make", "model", "makeAny", "generation", "page", "per_page", "sort"]);
+    async function refreshFacets(){
+      const out = new URLSearchParams(); let unsupported = false, active = false;
+      for(const [k, v] of formParams().entries()){
+        if(FACET_IGNORE.has(k)) continue;
+        if(FACET_KEYS.has(k)){ out.set(k, v); if(!((k === "tab" || k === "auction") && v === "all")) active = true; }
+        else unsupported = true;
+      }
+      if(unsupported || !active || !["all", "soon", "buy_now", "archived"].includes(state.tab)){
+        if(facet){ facet = null; facetKey = ""; renderMakes(); renderModels(); }
+        return;
+      }
+      const key = out.toString();
+      if(facet && key === facetKey) return;
+      const seq = ++facetSeq;
+      let next = null;
+      try{ const r = await api(`/api/auctions?action=facets&${out}`); if(r && r.ok) next = {makes:r.makes || {}, models:r.models || {}}; }catch(e){}
+      if(seq !== facetSeq) return;
+      facet = next; facetKey = next ? key : "";
+      renderMakes(); renderModels();
+    }
+    msApi.refreshFacets = refreshFacets;
     function renderMakes(){
       if(!makeList) return;
       if(!manufacturers.length){ makeList.innerHTML = `<p class="msEmptyV1">${escapeHtml(L("Список марок недоступен"))}</p>`; return; }
       const q = (makeSearch?.value || "").trim().toLowerCase();
       const on = new Set(ms.makes.map(m => m.id));
-      const list = manufacturers.filter(m => m.id != null && (!q || String(m.name).toLowerCase().includes(q)));
+      const FM = facet && facet.makes;
+      // Счётчики и список марок — по текущим фильтрам (вкладка, тип продажи, год…): марки без подходящих лотов скрываем.
+      const list = manufacturers.filter(m => m.id != null && (!q || String(m.name).toLowerCase().includes(q)))
+        .filter(m => !FM || (FM[m.id] || 0) > 0 || on.has(String(m.id)))
+        .map(m => FM ? {...m, qty:FM[m.id] || 0} : m);
       const rows = [...list.filter(m => on.has(String(m.id))), ...list.filter(m => !on.has(String(m.id)))];
       makeList.innerHTML = rows.length ? rows.map(m => rowHtml("make", m.id, m.name, m.image, m.qty, on.has(String(m.id)))).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
     }
@@ -3558,7 +3588,10 @@
       let all = [];
       ms.makes.forEach(mk => (modelsCache[mk.id] || []).forEach(m => all.push({...m, makeName:mk.name})));
       if(ms.makes.some(mk => modelsCache[mk.id] === undefined)){ modelList.innerHTML = `<p class="msEmptyV1">${escapeHtml(L("Загрузка моделей…"))}</p>`; return; }
-      all = all.filter(m => !q || m.name.toLowerCase().includes(q));
+      const FMD = facet && facet.models;
+      all = all.filter(m => !q || m.name.toLowerCase().includes(q))
+        .filter(m => !FMD || (FMD[m.id] || 0) > 0 || on.has(m.id))
+        .map(m => FMD ? {...m, qty:FMD[m.id] || 0} : m);
       const rows = [...all.filter(m => on.has(m.id)), ...all.filter(m => !on.has(m.id))];
       modelList.innerHTML = rows.length ? rows.map(m => rowHtml("model", m.id, m.name, "", m.qty, on.has(m.id), multi ? m.makeName : "")).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
     }

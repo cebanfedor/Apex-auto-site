@@ -3842,6 +3842,35 @@ module.exports = async function handler(request, response){
     sendJson(response, 200, {ok:true, n:out.length, of:paths.length, phase, out, ms:Date.now() - t0}, {"cache-control":"no-store"});
     return;
   }
+  // Счётчики марок/моделей по текущим фильтрам каталога (SQL-функция facet_counts; PostgREST группировку не умеет).
+  if(action === "facets"){
+    const ints = k => String(query.get(k) || "").split(",").map(x => x.trim()).filter(x => /^\d+$/.test(x)).map(Number).slice(0, 30);
+    const num = k => { const v = query.get(k); return v != null && /^\d+$/.test(v) ? Number(v) : null; };
+    const tab = String(query.get("tab") || "all");
+    const km = k => { const v = num(k); return v == null ? null : Math.round(v * 0.621371); };
+    const eng = parseEngineRange(query);
+    const p = {
+      tab:["all", "soon", "buy_now", "archived"].includes(tab) ? tab : "all",
+      auction:/^(copart|iaai)$/.test(String(query.get("auction") || "")) ? query.get("auction") : "",
+      sale:parseSaleList(query), vtype:ints("vehicleType"), fuel:ints("fuel"), body:ints("body"), drive:ints("drive"), trans:ints("transmission"), cyl:ints("cylinders"), cond:ints("condition"),
+      country:[...new Set(String(query.get("country") || "").toLowerCase().split(",").filter(x => x === "us" || x === "ca"))],
+      state:String(query.get("state") || "").replace(/[^A-Za-z]/g, "").slice(0, 3),
+      year_from:num("yearFrom"), year_to:num("yearTo"), bid_from:num("bidFrom"), bid_to:num("bidTo"), buynow_from:num("buyNowFrom"), buynow_to:num("buyNowTo"),
+      odo_from:num("mileageFrom") ?? km("mileageFromKm"), odo_to:num("mileageTo") ?? km("mileageToKm"),
+      eng_from:eng.from, eng_to:eng.to, smart:query.get("smart") === "1" ? "1" : ""
+    };
+    const ck = "facets:" + JSON.stringify(p), hit = getCached(ck);
+    if(hit){ sendJson(response, 200, hit, {"cache-control":"public, s-maxage=180, stale-while-revalidate=300"}); return; }
+    try{
+      const rows = (await syncSbFetch("/rpc/facet_counts", {method:"POST", body:JSON.stringify({p})})) || [];
+      const makes = {}, models = {}; let total = 0;
+      for(const r of rows){ const n = Number(r.n) || 0; total += n; if(r.mk != null) makes[r.mk] = (makes[r.mk] || 0) + n; if(r.md != null) models[r.md] = n; }
+      const out = {ok:true, makes, models, total};
+      setCached(ck, out, 300e3);
+      sendJson(response, 200, out, {"cache-control":"public, s-maxage=180, stale-while-revalidate=300"});
+    }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}, {"cache-control":"no-store"}); }
+    return;
+  }
   if(action === "enginefill"){
     sendJson(response, 200, await runEngineFill(), {"cache-control":"no-store"});
     return;
