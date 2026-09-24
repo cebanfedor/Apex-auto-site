@@ -1527,8 +1527,10 @@
         li.className = "dbCheck bad";
         li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${txt}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }else{
-        li.className = "dbCheck neutral";
-        li.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})</span>`;
+        // Тот же лот повторяется: у страховой это норма; у неизвестного/частного продавца 3+ раза — подозрение на перекупа.
+        const shady = !sellerIsInsurance(lot) && past.length >= 3;
+        li.className = shady ? "dbCheck bad" : "dbCheck neutral";
+        li.innerHTML = `${dbIco(shady ? "warn" : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${shady ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }
     });
   }
