@@ -2133,7 +2133,7 @@
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Дата аукциона не назначена"))}</b>${usdHint(topBidValue)}</div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
-      ${!isSold && lot.auction === "copart" ? `<div id="lotQueueV1" class="lotQueueV1" hidden></div>` : ""}
+      ${!isSold ? `<div id="lotQueueV1" class="lotQueueV1" hidden></div>` : ""}
       ${isSold ? `<div class="soldPitchV1">
         <p>${L("Этот лот уже продан. Но мы подберём похожую машину на актуальных аукционах и привезём под ключ.")}</p>
         <button type="button" class="dbBtnPrimary soldPitchCtaV1" data-lead="${escapeHtml(lot.id)}">${L("Подобрать похожую")}</button>
@@ -2806,7 +2806,7 @@
   }
   function startQueueWatch(lot){
     if(queueTimer){ clearInterval(queueTimer); queueTimer = null; }
-    if(!lot || lot.auction !== "copart" || !document.getElementById("lotQueueV1")) return;
+    if(!lot || !document.getElementById("lotQueueV1")) return;
     const t = Date.parse(lot.auctionDate || "");
     if(!Number.isFinite(t) || lotSaleState(lot).isSold) return;
     const dt = t - Date.now();
@@ -2816,7 +2816,7 @@
       const box = document.getElementById("lotQueueV1");
       if(!box){ clearInterval(queueTimer); queueTimer = null; return; }
       if(document.hidden) return;
-      let r; try{ r = await api(`/api/auctions?action=queue&lot=${encodeURIComponent(lot.lot)}`); }catch(e){ return; }
+      let r; try{ r = await api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`); }catch(e){ return; }
       if(!r || !r.available){ box.hidden = true; return; }
       const startTime = new Date(r.startsAt).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
       let main;

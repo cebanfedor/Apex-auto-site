@@ -527,7 +527,13 @@ function normalizeLot(source, fallbackAuction = "copart"){
     saleStatus:sale.label,
     sellerReserve:sale.reserve || 0,          // резерв продавца, $ (0 = не указан)
     sellerReserveAt:sale.reserveAt || "",
-    ...(() => { const m = /^([A-Za-z0-9]+)\/(\d{1,6})$/.exec(String((lot?.line ?? item?.line) || "").trim()); return m ? {lane:m[1].toUpperCase(), runNo:Number(m[2])} : {lane:"", runNo:0}; })(),
+    ...(() => {
+      // Copart: "B/2113"; IAAI: "1 - #40" (или "tbd" — ещё не назначено). Нумерация идёт внутри филиала, поэтому ключ линии = филиал|линия.
+      const m = /^([A-Za-z0-9]+)\s*[-\/]\s*#?(\d{1,6})$/.exec(String((lot?.line ?? item?.line) || "").trim());
+      if(!m) return {lane:"", laneKey:"", runNo:0};
+      const br = lot?.selling_branch?.id || lot?.location?.location?.id || 0;
+      return {lane:m[1].toUpperCase(), laneKey:`${br}|${m[1].toUpperCase()}`, runNo:Number(m[2])};
+    })(),
     saleStatusKey:sale.key,
     timed:sale.timed,
     images,
@@ -3074,7 +3080,7 @@ function syncRowFromItem(item, {archived = false} = {}){
     sale_date:saleDate,
     status_id:statusId != null && Number.isFinite(Number(statusId)) ? Number(statusId) : null,
     archived:isArchived,
-    lane:normalized.lane || null,
+    lane:normalized.laneKey || null,
     run_no:normalized.runNo || null,
     payload:normalized,
     synced_at:new Date().toISOString()
@@ -3157,7 +3163,7 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   if(!rows.length) return;
   const hasRun = await runColsReady();
   if(!hasRun) rows.forEach(r => { delete r.lane; delete r.run_no; });
-  const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no"] : ROW_KEY_FIELDS;
+  const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no", "lane"] : ROW_KEY_FIELDS;
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
@@ -3700,14 +3706,15 @@ module.exports = async function handler(request, response){
   // Фид не отдаёт «текущий лот» в эфире: считаем по времени (≈1 мин на лот с начала торгов линии), нижняя граница — уже проданные в базе.
   if(action === "queue"){
     const lotNo = String(query.get("lot") || "").replace(/[^\d]/g, "");
-    const ck = "queue:" + lotNo, hit = getCached(ck);
+    const qAuction = String(query.get("auction") || "copart").toLowerCase() === "iaai" ? "iaai" : "copart";
+    const ck = `queue:${qAuction}:${lotNo}`, hit = getCached(ck);
     if(hit){ sendJson(response, 200, hit, {"cache-control":"public, s-maxage=15, stale-while-revalidate=15"}); return; }
     try{
       if(!lotNo || !(await runColsReady())){ sendJson(response, 200, {ok:true, available:false}, {"cache-control":"public, s-maxage=30"}); return; }
-      const me = (await syncSbFetch(`/api_lots?id=eq.copart-${lotNo}&select=lane,run_no,sale_date,status_id,archived`))?.[0];
+      const me = (await syncSbFetch(`/api_lots?id=eq.${qAuction}-${lotNo}&select=lane,run_no,sale_date,status_id,archived`))?.[0];
       if(!me || !me.lane || !me.run_no || !me.sale_date){ const r = {ok:true, available:false}; setCached(ck, r, 60e3); sendJson(response, 200, r, {"cache-control":"public, s-maxage=30"}); return; }
       const {url, key} = syncSb();
-      const base = `/api_lots?auction=eq.copart&id=not.like.*-s2*&sale_date=eq.${encodeURIComponent(me.sale_date)}&lane=eq.${encodeURIComponent(me.lane)}`;
+      const base = `/api_lots?auction=eq.${qAuction}&id=not.like.*-s2*&sale_date=eq.${encodeURIComponent(me.sale_date)}&lane=eq.${encodeURIComponent(me.lane)}`;
       const count = async extra => {
         const r = await fetch(`${url}/rest/v1${base}${extra}&select=id`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}});
         return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
@@ -3724,7 +3731,7 @@ module.exports = async function handler(request, response){
       const ahead = Math.max(0, before - processed);
       const sold = Number(me.status_id) === 6 && me.archived === true;
       const state = sold ? "sold" : elapsed < 0 ? "before" : ahead === 0 ? "now" : "queue";
-      const r = {ok:true, available:true, lane:me.lane, runNo:me.run_no, total, ahead, etaSec:ahead * PACE, state, startsAt:me.sale_date, pace:PACE,
+      const r = {ok:true, available:true, lane:String(me.lane).split("|").pop(), runNo:me.run_no, total, ahead, etaSec:ahead * PACE, state, startsAt:me.sale_date, pace:PACE,
         recent:(recent || []).map(x => ({lot:x.lot, title:x.title, finalBid:x.final_bid, runNo:x.run_no, img:x.img || ""})),
         next:(next || []).map(x => ({lot:x.lot, title:x.title, runNo:x.run_no, img:x.img || ""}))};
       setCached(ck, r, 15e3);
