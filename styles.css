@@ -1597,3 +1597,11 @@ details > summary::-webkit-details-marker { display: none; }
   .homeLotPriceV1 small { margin:0; font-size:9.5px; letter-spacing:.02em; text-transform:uppercase; }
   .homeLotSubV1 { white-space:nowrap; }
 }
+
+/* ---- Мобильная главная: длинные списки — горизонтальной каруселью (аудит 24.09.2026) ---- */
+@media (max-width: 640px){
+  .apexReviewsGridV212, #homeTransitV1 .transitGridV1 { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; gap:12px; margin-left:-16px; margin-right:-16px; padding:4px 16px 14px; scrollbar-width:none; }
+  .apexReviewsGridV212::-webkit-scrollbar, #homeTransitV1 .transitGridV1::-webkit-scrollbar { display:none; }
+  .apexReviewsGridV212 > .apexReviewCardV212 { flex:0 0 84%; scroll-snap-align:center; }
+  #homeTransitV1 .transitGridV1 > .transitCardV1 { flex:0 0 82%; scroll-snap-align:center; }
+}

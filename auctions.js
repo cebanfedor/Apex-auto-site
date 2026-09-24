@@ -503,6 +503,18 @@
     return m.replace(/-klasse\b/i, "-Class");
   }
 
+  // Картинки карточек: IAAI 1280×960 ≈ 220 КБ → 720×540 ≈ 70 КБ; Copart _hrs (1280×960, 250 КБ) → _ful (960×720, 154 КБ).
+  // Полный размер остаётся на странице лота и в лайтбоксе; при ошибке — исходный URL (см. обработчик error ниже).
+  function cardImg(url){
+    const u = String(url || "");
+    if(/vis\.iaai\.com\/resizer/i.test(u)) return u.replace(/width=\d+/i, "width=720").replace(/height=\d+/i, "height=540");
+    if(/cs\.copart\.com\/.*_hrs\.jpg/i.test(u)) return u.replace(/_hrs\.jpg/i, "_ful.jpg");
+    return u;
+  }
+  document.addEventListener("error", e => {
+    const t = e.target;
+    if(t && t.tagName === "IMG" && t.dataset && t.dataset.full && t.src !== t.dataset.full){ t.src = t.dataset.full; }
+  }, true);
   // Ссылка = площадка-лот + название + VIN (тот же алгоритм на сервере: server/slug.js)
   function slugWords(s, max){
     return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
@@ -511,6 +523,16 @@
     const title = slugWords(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60);
     const vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toLowerCase() : "";
     return [`${String(lot.auction || "").toLowerCase()}-${lot.lot}`, title, vin].filter(Boolean).join("-");
+  }
+  // Фид иногда кладёт в titleStatus название машины («2023 BMW 330E») вместо статуса документа — это не документ
+  function docRaw(lot){
+    const d = String(lot.document || "").trim();
+    if(d) return d;
+    const t = String(lot.titleStatus || "").trim();
+    if(!t) return "";
+    const title = String(lot.title || "").trim().toLowerCase();
+    if(t.toLowerCase() === title || /^(19|20)\d{2}\s+[a-z]/i.test(t) && lot.make && t.toLowerCase().includes(String(lot.make).toLowerCase())) return "";
+    return t;
   }
   function detailHref(lot){
     return `/auctions/${encodeURIComponent(lotSlug(lot))}`;
@@ -1189,7 +1211,7 @@
     return {isSold, finalBid};
   }
 
-  function renderCard(lot){
+  function renderCard(lot, idx){
     const title = lotTitle(lot);
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
@@ -1210,7 +1232,7 @@
     return `<article class="dbCard">
       <div class="dbPhoto" data-lid="${escapeHtml(String(lot.id))}">
         <a class="dbPhotoLink" href="${detailHref(lot)}">
-          ${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" class="dbSlideImg">` : `<span class="dbNoPhoto">${L("Нет фото")}</span>`}
+          ${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" ${idx < 2 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="dbSlideImg">` : `<span class="dbNoPhoto">${L("Нет фото")}</span>`}
         </a>
         <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
@@ -1750,7 +1772,7 @@
       ? `<span class="scPriceV1"><span>${buyNow && !price ? L("Купить сейчас") : L("Ставка")}</span><b>${money(price || buyNow)}</b></span>`
       : `<span class="scPriceV1 scPriceEmptyV1"><span>${L(lot.auctionDate ? "Ставок пока нет" : "Дата аукциона не назначена")}</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
-      <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
+      <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
         <b class="scTitleV1">${escapeHtml(title)}</b>
         <span class="scSpecV1">${spec ? escapeHtml(spec) : "&nbsp;"}</span>
@@ -2580,6 +2602,11 @@
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
             </div>
             <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}</p>
+            ${(() => {
+              const st = lotSaleState(lot), b = st.isSold ? (st.finalBid || lot.finalBid || 0) : (lot.currentBid || 0);
+              const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
+              return `<div class="dMobSumV1">${b ? `<span><small>${L(st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
+            })()}
           </div>
           <div class="dHeadActionsV1">
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
@@ -2644,13 +2671,13 @@
                 return dPlain("Ключ доступен", escapeHtml(tc(k)), "key", yes ? "good" : no ? "warn" : "neutral");
               })()}
               ${(() => {
-                const doc = parseDocTitle(lot.document || lot.titleStatus);
+                const doc = parseDocTitle(docRaw(lot));
                 if(!doc) return "";
                 const verdict = doc.tone === "rework" ? "Требуется переделка · 30–40 дней" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
                 const icon = doc.tone === "rework" ? "excl" : "doc";
                 const docTone = doc.tone === "rework" ? "warn" : doc.tone === "good" ? "good" : "neutral";
                 return dMain("Статус документов", verdict, icon)
-                  + dPlain("Тип документа", escapeHtml(docShort(lot.document || lot.titleStatus)), "doc", docTone);
+                  + dPlain("Тип документа", escapeHtml(docShort(docRaw(lot))), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
               ${dPlain("Привод", escapeHtml(driveLine), "drive")}
@@ -3707,7 +3734,7 @@
         }
         let idx = parseInt(img?.dataset.slide || "0");
         idx = (idx + dir + lot.images.length) % lot.images.length;
-        if(img){ img.src = lot.images[idx]; img.dataset.slide = idx; }
+        if(img){ img.dataset.full = lot.images[idx]; img.src = cardImg(lot.images[idx]); img.dataset.slide = idx; }
         if(counter) counter.textContent = `${idx + 1}/${lot.images.length}`;
         return;
       }

@@ -60,6 +60,9 @@
   function card(it) {
     var title = it.title || [it.year, it.make, it.model].filter(Boolean).join(" ");
     var img = it.image || "";
+    // Карточка ~140px: IAAI 1280×960 (220 КБ) → 480×360 (30 КБ); Copart _hrs (250 КБ) → _ful (154 КБ)
+    if(/vis\.iaai\.com\/resizer/i.test(img)) img = img.replace(/width=\d+/i, "width=480").replace(/height=\d+/i, "height=360");
+    else if(/cs\.copart\.com\/.*_hrs\.jpg/i.test(img)) img = img.replace(/_hrs\.jpg/i, "_ful.jpg");
     var auc = (it.auction || "").toUpperCase();
     var p = price(it);
     var km = kmFromMi(it.odometer);
