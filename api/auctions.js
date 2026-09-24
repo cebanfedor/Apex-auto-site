@@ -2526,7 +2526,7 @@ async function searchFromDb(query){
     try{
       const p2 = new URLSearchParams(p);
       const ands2 = dateTail
-        ? ands.filter(x => !x.startsWith("sale_date.gte.") && !x.startsWith("sale_date.lte."))
+        ? ands.filter(x => !x.startsWith("sale_date.gte.") && !x.startsWith("sale_date.lte.") && !(datedOnlyFull && (x === datedOnlyFull[0] || x === datedOnlyFull[1])))
         : ands.filter(x => x !== tailSpec.ok);
       ands2.push(dateTail ? (dateCap ? `or(sale_date.is.null,sale_date.gt.${dateCap})` : "sale_date.is.null") : tailSpec.miss);
       p2.set("and", `(${ands2.join(",")})`);
@@ -4007,7 +4007,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "26";
+  const SEARCH_CACHE_VER = "27";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g14" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
