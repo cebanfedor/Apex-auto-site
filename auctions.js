@@ -3760,6 +3760,16 @@
     document.getElementById("quickTimedV1")?.addEventListener("click", () => {
       const btn = document.getElementById("quickTimedV1"), on = btn.classList.contains("active");
       document.querySelectorAll('input[name="saleStatus"]').forEach(x => { x.checked = false; });
+      // Timed: сортировка от свежих годов к старым (Федор 25.09.2026); при выключении возвращаем прежнюю.
+      const setSort = key => {
+        const sel = $("#auctionSort"); if(!sel) return;
+        sel.value = key;
+        const opt = document.querySelector(`#sortDropMenuV1 .sortOptV1[data-sort="${key}"]`);
+        const lbl = document.getElementById("sortDropLabelV1"); if(lbl && opt) lbl.textContent = opt.textContent.trim();
+        document.querySelectorAll("#sortDropMenuV1 .sortOptV1").forEach(el => el.classList.toggle("sortOptActiveV1", el.dataset.sort === key));
+      };
+      if(on){ setSort(state.sortBeforeTimed || "soon"); state.sortBeforeTimed = ""; }
+      else{ state.sortBeforeTimed = $("#auctionSort")?.value || "soon"; setSort("year_desc"); }
       if(!on){
         const t = document.querySelector('input[name="saleStatus"][value="timed"]'); if(t) t.checked = true;
         if(["archived", "favorites"].includes(state.tab)){   // Timed бывает только у текущих торгов
