@@ -136,6 +136,7 @@ module.exports = async function(req, res){
   }
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("Cache-Control", "public, s-maxage=900, max-age=120, stale-while-revalidate=3600");
+  // История по VIN не загрузилась → страницу в CDN почти не держим (клиент к тому же сам перезапросит лот)
+  res.setHeader("Cache-Control", lot && lot.vinChecked === false ? "public, s-maxage=20, max-age=0" : "public, s-maxage=900, max-age=120, stale-while-revalidate=3600");
   res.status(200).send(html);
 };
