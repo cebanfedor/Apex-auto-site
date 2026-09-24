@@ -1072,7 +1072,8 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dMobSumV1 small { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
   .dMobSumV1 b { font-size:15px; color:var(--aInk); }
   /* «Показать / Сбросить» в шторке фильтров всегда под рукой, а не в конце двухтысячепиксельного списка */
-  .auctionFiltersV1 .filterActionsV1 { position:sticky; bottom:0; z-index:6; margin:14px -6px 0; padding:10px 6px calc(10px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid var(--aLine); box-shadow:0 -8px 18px rgba(15,23,42,.08); }
+  body.filtersOpenV1 .auctionFiltersV1 { padding-bottom:0; }   /* иначе липкая панель встаёт выше нижнего края на величину padding */
+  .auctionFiltersV1 .filterActionsV1 { position:sticky; bottom:0; z-index:6; margin:14px -16px 0; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid var(--aLine); box-shadow:0 -8px 18px rgba(15,23,42,.08); }
   .auctionFiltersV1 .filterActionsV1 button { height:44px; font-size:14px; }
 }
 @media (max-width:640px){
