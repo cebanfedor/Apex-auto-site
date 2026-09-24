@@ -500,3 +500,9 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   фото авто в пути через Supabase render (`?width=640&quality=72`, 241→84 КБ) и Copart `_ful`, контраст `--muted` #667080, зелёный/красный, burger без aria-label на label (`b.srOnlyV1`), меню контактов `visibility:hidden` в закрытом виде.
   После: perf 72, FCP 2.8с, LCP 5.2с, a11y 96. Остаток: элемент LCP (hero-фото) рисуется с задержкой ~2с из-за загрузки главного потока (gtag 172 КБ, script.js/locations.js), hero-кроссфейд.
 - Как мерить снова: pagespeed.web.dev через Chrome пользователя (публичный API имеет дневную квоту и падает).
+
+## Фильтр «Объём двигателя» (24.09.2026)
+- Ползунок + поля «от/до» в литрах (`engineFrom/engineTo`, `data-decimal` в `initRanges`), чип «Объём двигателя: 1.6L–2.5L». Сервер: `parseEngineRange`; БД — колонка `api_lots.engine_l numeric(3,1)`
+  (0 = электро/неизвестно; при любом лимите добавляем `engine_l.gt.0`, электрокары в выдачу не попадают). Live-фолбэк парсит литры из `lot.engine` (`engineLitersOf`).
+- Колонку заполняет **не синк**, а SQL-функция `fill_engine_l(n)` (из `payload->>'engine'`, `for update skip locked`) через cron `/api/cron/engine` (*/3, `action=enginefill`, ≤6 порций по 2500).
+  Так синк не падает, если миграции нет. Пока очередь (`engine_l is null`) не пуста, фильтр видит не все лоты; после заливки — `analyze public.api_lots`. Миграция `20260924_engine_l.sql`.

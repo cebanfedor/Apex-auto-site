@@ -201,6 +201,12 @@
                 <div class="rangeNumsV2"><input name="mileageFrom" type="number" inputmode="numeric" placeholder="0"><input name="mileageTo" type="number" inputmode="numeric" placeholder="250 000"></div>
               </div>
             </details>
+            <details class="fSecV2"><summary>Объём двигателя</summary>
+              <div class="rangeV2" data-range data-decimal data-min="0.5" data-max="8" data-step="0.1">
+                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0.5" max="8" step="0.1" value="0.5"><input type="range" class="rHiV2" min="0.5" max="8" step="0.1" value="8"></div>
+                <div class="rangeNumsV2"><input name="engineFrom" type="number" inputmode="decimal" step="0.1" min="0" max="12" placeholder="0.5 L"><input name="engineTo" type="number" inputmode="decimal" step="0.1" min="0" max="12" placeholder="8.0 L"></div>
+              </div>
+            </details>
             <details class="fSecV2"><summary>Цена (ставка)</summary>
               <div class="rangeV2" data-range data-min="0" data-max="100000" data-step="500">
                 <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="100000" step="500" value="0"><input type="range" class="rHiV2" min="0" max="100000" step="500" value="100000"></div>
@@ -412,7 +418,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v484" defer></script>
-  <script src="/auctions.js?v=auctions-v252" defer></script>
+  <script src="/auctions.js?v=auctions-v253" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

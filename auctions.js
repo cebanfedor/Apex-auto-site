@@ -271,6 +271,7 @@
     const unit = document.querySelector("[data-odo-unit].active")?.dataset.odoUnit === "km" ? "км" : "mi";
     range("Год", "yearFrom", "yearTo", n => n);
     range("Пробег", "mileageFrom", "mileageTo", n => `${num(n)} ${unit}`);
+    range("Объём двигателя", "engineFrom", "engineTo", n => `${Number(n).toFixed(1)}L`);
     range("Цена (ставка)", "bidFrom", "bidTo", n => `$${num(n)}`);
     range("Цена «Купить сейчас»", "buyNowFrom", "buyNowTo", n => `$${num(n)}`);
     const optText = el => (el.closest("label")?.textContent || el.value).trim();
@@ -3246,7 +3247,7 @@
     document.querySelectorAll("[data-range]").forEach(range => {
       if(range.dataset.init) return;
       range.dataset.init = "1";
-      const min = Number(range.dataset.min), max = Number(range.dataset.max);
+      const min = Number(range.dataset.min), max = Number(range.dataset.max), dec = range.hasAttribute("data-decimal");
       const lo = range.querySelector(".rLoV2"), hi = range.querySelector(".rHiV2"), fill = range.querySelector(".rangeFillV2");
       const nums = range.querySelectorAll(".rangeNumsV2 input"), numLo = nums[0], numHi = nums[1];
       const rangeTitle = (range.closest("details")?.querySelector("summary")?.textContent || "").trim();
@@ -3261,8 +3262,9 @@
         let a = Number(lo.value), b = Number(hi.value);
         if(a > b){ const t = a; a = b; b = t; lo.value = a; hi.value = b; }
         const f = rangeUnitFactor(range);
-        numLo.value = a > min ? Math.round(a * f) : "";
-        numHi.value = b < max ? Math.round(b * f) : "";
+        const rd = v => dec ? (Math.round(v * 10) / 10).toFixed(1) : Math.round(v * f);
+        numLo.value = a > min ? rd(a) : "";
+        numHi.value = b < max ? rd(b) : "";
         paint();
       };
       const fromNum = () => {

@@ -998,6 +998,13 @@ async function fetchSearch(query){
           const d = String(lot.damage || "").toLowerCase();
           return t.some(x => d.includes(x.toLowerCase()));
         })
+        // Объём двигателя (live): фид не фильтрует по нему — читаем литры из строки двигателя
+        .filter(lot => {
+          const eng = parseEngineRange(query);
+          if(eng.from == null && eng.to == null) return true;
+          const l = engineLitersOf(lot.engine);
+          return l > 0 && (eng.from == null || l >= eng.from) && (eng.to == null || l <= eng.to);
+        })
         // Мультивыбор моделей (live): фид принимает одну — остальные отсекаем здесь
         .filter(lot => {
           const ids = String(query.get("model") || "").split(",").filter(x => /^\d+$/.test(x));
@@ -2283,6 +2290,14 @@ async function searchFromDb(query){
     const v = query.get(from);
     if(v && /^\d+$/.test(v)) ands.push(`${col}.${op}.${v}`);
   }
+  {
+    const eng = parseEngineRange(query);
+    if(eng.from != null || eng.to != null){
+      ands.push("engine_l.gt.0");
+      if(eng.from != null) ands.push(`engine_l.gte.${eng.from}`);
+      if(eng.to != null) ands.push(`engine_l.lte.${eng.to}`);
+    }
+  }
   const kmFrom = query.get("mileageFromKm"), kmTo = query.get("mileageToKm");
   if(kmFrom && /^\d+$/.test(kmFrom)) ands.push(`odometer_mi.gte.${Math.round(Number(kmFrom) * 0.621371)}`);
   if(kmTo && /^\d+$/.test(kmTo)) ands.push(`odometer_mi.lte.${Math.round(Number(kmTo) * 0.621371)}`);
@@ -3548,6 +3563,34 @@ function resaleLevel(stub, lotNo, saleIso){
   const lots = new Set(past.map(e => e.lot).filter(Boolean)); lots.add(String(lotNo));
   return soldBefore ? 2 : (past.length >= 8 || lots.size >= 3) ? 1 : 0;
 }
+function parseEngineRange(query){
+  const one = k => {
+    const v = Number(String(query.get(k) || "").replace(",", "."));
+    return Number.isFinite(v) && v > 0 && v < 20 ? Math.round(v * 10) / 10 : null;
+  };
+  return {from:one("engineFrom"), to:one("engineTo")};
+}
+function engineLitersOf(text){
+  const m = /^\s*(\d{1,2}\.\d)\s*l/i.exec(String(text || ""));
+  return m ? Number(m[1]) : 0;
+}
+
+// Заливка api_lots.engine_l из payload.engine («2.0l i-4 …» → 2.0). Порция — SQL-функция fill_engine_l (skip locked).
+async function runEngineFill(){
+  const t0 = Date.now();
+  const out = {ok:true, filled:0, rounds:0};
+  try{
+    while(Date.now() - t0 < 40000 && out.rounds < 6){
+      const n = await syncSbFetch("/rpc/fill_engine_l", {method:"POST", body:JSON.stringify({n:2500})});
+      out.rounds++;
+      out.filled += Number(n) || 0;
+      if(!(Number(n) >= 2500)) break;
+    }
+  }catch(e){ out.ok = false; out.error = String(e.message || e).slice(0, 160); }
+  out.ms = Date.now() - t0;
+  return out;
+}
+
 async function runResaleCheck(budgetMs){
   const t0 = Date.now();
   const out = {ok:true, checked:0, clean:0, relisted:0, resold:0, skipped:0, fail:0};
@@ -3615,6 +3658,10 @@ module.exports = async function handler(request, response){
     out.upcomingChecked = await cnt(`/api_lots?select=id&archived=eq.false&resale_at=not.is.null&sale_date=gte.${encodeURIComponent(new Date().toISOString())}`);
     out.upcomingTotal = await cnt(`/api_lots?select=id&archived=eq.false&vin=not.is.null&sale_date=gte.${encodeURIComponent(new Date().toISOString())}`);
     sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
+  if(action === "enginefill"){
+    sendJson(response, 200, await runEngineFill(), {"cache-control":"no-store"});
     return;
   }
   if(action === "resalecheck"){
@@ -3818,7 +3865,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "23";
+  const SEARCH_CACHE_VER = "24";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g13" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
