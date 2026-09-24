@@ -3685,7 +3685,7 @@ module.exports = async function handler(request, response){
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${auctionsApiDomain(auction)}?prices_history=1`);
       const out = {};
       const walk = (o, path, depth) => {
-        if(depth > 4 || o == null) return;
+        if(depth > 6 || o == null) return;
         if(Array.isArray(o)){ if(o.length) walk(o[0], path + "[0]", depth + 1); return; }
         if(typeof o === "object"){ for(const [k, v] of Object.entries(o)) walk(v, path ? path + "." + k : k, depth + 1); return; }
         if(/image|photo|thumb|url|link|video/i.test(path)) return;
