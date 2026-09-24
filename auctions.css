@@ -1143,3 +1143,17 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPhotoBarV1 i { position:absolute; top:0; bottom:0; left:0; border-radius:2px; background:#3b82f6; transition:left .08s linear; }
 @media (hover:hover) and (pointer:fine){ .dbPhoto:hover .dbPhotoBarV1 { opacity:1; } .dbPhoto .dbPhotoLink { cursor:zoom-in; } }
 .lbLotV1 { text-decoration:none; display:inline-flex; align-items:center; }
+
+/* ---- Карточка каталога (25.09.2026, вариант «ровные строки»): строки характеристик равномерно распределены по высоте фото, без лишних блоков ---- */
+@media (min-width:1101px){
+  .dbCard { padding:16px 18px; }
+  .dbBody { gap:10px; }
+  .dbTitle { font-size:18px; }
+  .dbCols { flex:1; grid-template-rows:minmax(0,1fr); align-items:stretch; gap:4px 22px; }
+  .dbLeftCol, .dbChecksCol { display:flex; flex-direction:column; gap:10px; min-height:0; }
+  .dbSpecs, .dbChecks { flex:1; justify-content:space-between; gap:6px; }
+  .dbSpecs li, .dbChecks li { font-size:13px; line-height:1.3; }
+  .dbSpecs .dbIco, .dbChecks .dbIco { width:16px; height:16px; }
+  .dbAside { justify-content:space-between; }
+  .dbPriceWrap { margin-top:auto; }
+}
