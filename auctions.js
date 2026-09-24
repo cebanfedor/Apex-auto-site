@@ -1089,15 +1089,16 @@
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
     return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(val))}</span></li>`;
   }
-  function dbCheckHistory(rawHistory, currentLot){
+  function dbCheckHistory(rawHistory, currentLot, noPending = false){
+    // Пока VIN-история не пришла, показываем ТОЛЬКО заглушку (данные списка — предварительные и потом меняются: карточка «мигала»).
+    if(!noPending && currentLot && String(currentLot.vin || "").length === 17 && vinHistCache[currentLot.vin] === undefined)
+      return `<li class="dbCheck neutral dbHistPendingV1">${dbIco("dot")}<span><b>${L("История:")}</b> <i class="dbPendTxtV1">${L("проверяем…")}</i></span></li>`;
     // Запись текущих торгов (h.current) — не история продаж
     const history = (Array.isArray(rawHistory) ? rawHistory : []).filter(h => !h.current);
     const count = history.length;
     if(count === 0){
       // В списке фид отдаёт историю только ТЕКУЩЕГО номера лота; перевыставленные машины (новый номер после
       // продажи) выглядели «ранее не продавалась». Полная история по VIN — на странице лота.
-      // Пока VIN-история не пришла — спокойная однострочная заглушка (раньше показывали двухстрочный «по этому лоту нет…», потом меняли → карточка прыгала).
-      if(currentLot && String(currentLot.vin || "").length === 17) return `<li class="dbCheck neutral dbHistPendingV1">${dbIco("dot")}<span><b>${L("История:")}</b> <i class="dbPendTxtV1">${L("проверяем…")}</i></span></li>`;
       return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span></li>`;
     }
     const wasSold = history.some(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
@@ -1481,6 +1482,7 @@
       try{
         const r = await api(`/api/auctions?action=vinhist&vins=${encodeURIComponent(uniq.slice(i, i + 30).join(","))}`);
         Object.assign(vinHistCache, r.items || {});
+        uniq.slice(i, i + 30).forEach(v => { if(vinHistCache[v] === undefined) vinHistCache[v] = null; });   // фид не вернул VIN — не оставляем заглушку навсегда
       }catch(e){ uniq.slice(i, i + 30).forEach(v => { vinHistCache[v] = null; }); }
     }
     // Не получилось узнать историю (фид не ответил) — пробуем ещё пару раз, а не оставляем карточку «неизвестной»
@@ -1493,7 +1495,7 @@
       if(!h){
         if(h === null && (vinRetryN[lot.vin] || 0) > 2){
           const pend = card.querySelector(".dbHistPendingV1");
-          if(pend){ pend.classList.remove("dbHistPendingV1"); pend.innerHTML = `${dbIco("dot")}<span><b>${L("История:")}</b> ${L("по этому лоту нет · полная — на странице лота")}</span>`; }
+          if(pend){ const tmp = document.createElement("ul"); tmp.innerHTML = dbCheckHistory(lot.priceHistory, lot, true); const li2 = tmp.firstElementChild; if(li2) pend.replaceWith(li2); }
         }
         return;
       }
