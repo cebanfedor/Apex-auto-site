@@ -1987,18 +1987,23 @@
     return lot._fullPromise;
   }
   const lotOfPhoto = ph => ph && state.items.find(l => String(l.id) === String(ph.dataset.lid));
+  // Число позиций листания — по ОБЩЕМУ числу фото (не только по 4 загруженным из списка), чтобы полоска и счётчик не перестраивались после догрузки.
+  const cardPhotoTotal = lot => Math.min(CARD_PHOTO_MAX, Math.max((lot.images || []).length, Number(lot.photoCount) || 0));
   function showCardPhoto(ph, lot, i){
-    const imgs = (lot.images || []).slice(0, CARD_PHOTO_MAX); if(i < 0 || i >= imgs.length) return;
+    const imgs = (lot.images || []).slice(0, CARD_PHOTO_MAX); if(!imgs.length) return;
+    const total = cardPhotoTotal(lot); if(i < 0 || i >= total) return;
     const img = ph.querySelector(".dbSlideImg"); if(!img) return;
-    img.src = cardImg(imgs[i]); img.dataset.full = imgs[i]; img.dataset.slide = i; ph.dataset.hov = String(i);
-    const total = Math.min(CARD_PHOTO_MAX, Math.max(imgs.length, Number(lot.photoCount) || 0));
+    const j = Math.min(i, imgs.length - 1);   // пока полный набор не загружен — ближайшее из уже имеющихся
+    const src = cardImg(imgs[j]);
+    if(img.getAttribute("src") !== src){ img.src = src; img.dataset.full = imgs[j]; }
+    img.dataset.slide = j; ph.dataset.hov = String(i);
     const cnt = ph.querySelector(".dbPhotoCount"); if(cnt) cnt.textContent = `${i + 1}/${total}`;
-    const bar = ph.querySelector(".dbPhotoBarV1 i"); if(bar){ bar.style.width = (100 / imgs.length).toFixed(3) + "%"; bar.style.left = (i * 100 / imgs.length).toFixed(3) + "%"; }
+    const bar = ph.querySelector(".dbPhotoBarV1 i"); if(bar){ bar.style.width = (100 / total).toFixed(3) + "%"; bar.style.left = (i * 100 / total).toFixed(3) + "%"; }
   }
   const noScrub = t => t.closest(".dbFav, .dbBell, .dbSlideBtn, .dbResoldV1, [data-sold-warn]");
   document.addEventListener("mouseover", e => {
     if(!finePointer()) return;
-    const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto"); if(!ph || ph.dataset.hovInit) return;
+    const card = e.target.closest && e.target.closest("#auctionCards .dbCard"); const ph = card && card.querySelector(".dbPhoto"); if(!ph || ph.dataset.hovInit) return;
     const lot = lotOfPhoto(ph); if(!lot || saveData()) return;
     ph.dataset.hovInit = "1";
     ensureFullImages(lot).then(() => { (lot.images || []).slice(0, 10).forEach(u => { const im = new Image(); im.decoding = "async"; im.src = cardImg(u); }); });
@@ -2006,7 +2011,7 @@
   document.addEventListener("mousemove", e => {
     if(!finePointer()) return;
     const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto"); if(!ph || noScrub(e.target)) return;
-    const lot = lotOfPhoto(ph); const n = lot && lot.images ? Math.min(CARD_PHOTO_MAX, lot.images.length) : 0; if(n < 2) return;
+    const lot = lotOfPhoto(ph); const n = lot ? cardPhotoTotal(lot) : 0; if(n < 2) return;
     const r = ph.getBoundingClientRect();
     const i = Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * n)));
     if(ph.dataset.hov === String(i)) return;

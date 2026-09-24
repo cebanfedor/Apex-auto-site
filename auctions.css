@@ -1169,3 +1169,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPhoto .dbExportTagV1 ~ .dbResoldV1 { top:32px; }
 @media (max-width:640px){ .dbExportTagV1 { top:36px; } .dbPhoto .dbExportTagV1 ~ .dbResoldV1 { top:60px; } }
 .dbExpTagV1 { display:inline-block; margin-left:8px; padding:0 6px; border-radius:5px; background:#fff0b3; color:#7a5800; font-style:normal; font-size:11px; font-weight:800; line-height:18px; white-space:nowrap; }
+
+/* Полоска позиции фото — по самому низу фото, не перекрывает плашки (площадка, «Видео», счётчик) */
+.dbPhotoBarV1 { left:0; right:0; bottom:0; height:3px; border-radius:0; }
+.dbPhotoBarV1 i { border-radius:0; }
