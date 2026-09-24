@@ -1275,7 +1275,7 @@
               ${dbCheckFuel(lot.fuel)}
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
-              ${dbCheckHistory(lot.priceHistory, lot.lot)}
+              ${dbCheckHistory(lot.priceHistory, lot)}
             </ul>
           </div>
         </div>
@@ -2006,9 +2006,10 @@
         : `${L("Показано")} ${state.items.length} ${L("лотов")}`;
       renderCards();
       updateGenChips();
-      idle(updateCardVinHistory);
+      // История по VIN и «Ориентир» — сразу после отрисовки (не ждём простоя браузера): заглушки в карточках заменяются за доли секунды.
+      updateCardVinHistory();
+      updateCardForecasts();
       idle(updateCardLiveBids);
-      idle(updateCardForecasts);
       if(!append) idle(updateTabCounts);
       if(!append) idle(updateArchiveStats);
       idle(prefetchNextPage);
