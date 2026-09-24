@@ -492,3 +492,11 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - **Переводы (24.09.2026): словари RO/EN лежат в `i18n-dict.js`** (`window.__APEX_DICT = {dict, attrDict}`, ~250 КБ), а `i18n.js` — только рантайм (10 КБ). Для RU словарь не грузится; для RO/EN — стартует параллельно с разбором страницы
   (`ensureDict`), при переключении языка — по требованию. Новые строки перевода добавлять В `i18n-dict.js` (два семейства блоков ro/en — как раньше), версию `?v=multilang-vNNN` бампать во всех HTML (словарь берёт ту же версию из адреса `i18n.js`).
 - Мобильный каталог: шапка управления сжата (первая карточка на 337px вместо ~520): переключатель площадки на всю ширину, сортировка + «Фильтры» в ряд, поиск с кнопкой в одной строке, строка-дубль числа скрыта.
+
+## PageSpeed (Chrome пользователя, 24.09.2026, mobile, главная)
+- Реальные пользователи (CrUX 28 дней): LCP 1.2с, INP 135мс, CLS 0, FCP 0.9с, TTFB 0.3с — Core Web Vitals пройдены. Лаборатория (медленная 4G, 4× CPU) до правок: perf 62, FCP 4.5с, LCP 7.2с, a11y 89.
+- Причина: `@import` Google Fonts в начале styles.css (цепочка HTML→CSS→fonts, 780мс блокировки) + блокирующий `img-fallback.js` (480мс). Сделано: **свои шрифты** `assets/fonts/*.woff2` (Inter 400–600, Onest 400–800, подмножества latin/cyrillic +
+  latin-ext урезан до румынских символов через fonttools — 3 КБ вместо 85), `@font-face` в начале styles.css, preload 4 файлов на index/auctions, `img-fallback.js` → defer (+ повторная проверка битых картинок),
+  фото авто в пути через Supabase render (`?width=640&quality=72`, 241→84 КБ) и Copart `_ful`, контраст `--muted` #667080, зелёный/красный, burger без aria-label на label (`b.srOnlyV1`), меню контактов `visibility:hidden` в закрытом виде.
+  После: perf 72, FCP 2.8с, LCP 5.2с, a11y 96. Остаток: элемент LCP (hero-фото) рисуется с задержкой ~2с из-за загрузки главного потока (gtag 172 КБ, script.js/locations.js), hero-кроссфейд.
+- Как мерить снова: pagespeed.web.dev через Chrome пользователя (публичный API имеет дневную квоту и падает).
