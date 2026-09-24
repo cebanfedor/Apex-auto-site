@@ -2384,10 +2384,9 @@ async function searchFromDb(query){
   else if(q) ands.push(`or(vin.ilike.*${pgEscape(q)}*,title.ilike.*${pgEscape(q)}*)`);
   if(vin) p.set("vin", `ilike.*${pgEscape(vin).replace(/_/g, "")}*`);
   if(name){
-    // Умный поиск: несколько слов — каждое должно встретиться в названии (порядок не важен); одно слово/фраза как раньше
-    const words = String(name).split(/\s+/).map(w => w.replace(/[(),*%\\]/g, "")).filter(Boolean).slice(0, 6);
-    if(words.length > 1) words.forEach(w => ands.push(`title.ilike.*${pgEscape(w)}*`));
-    else p.set("title", `ilike.*${pgEscape(name)}*`);
+    // Умный поиск: каждое слово должно начинаться с границы слова в названии (x5 находит «X5 xDrive», но не «Ex500»); порядок слов не важен
+    const words = String(name).split(/\s+/).map(w => w.replace(/[(),*%\\"]/g, "")).filter(Boolean).slice(0, 6);
+    words.forEach(w => ands.push(`title.imatch.\\m${w.replace(/[.+?^${}|[\]]/g, "\\$&")}`));
   }
 
   const dateFrom = query.get("auctionDateFrom");
@@ -4084,7 +4083,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "28";
+  const SEARCH_CACHE_VER = "29";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g14" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
