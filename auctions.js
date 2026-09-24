@@ -1070,8 +1070,9 @@
     if(!raw) return "";
     const val = ruEnum(RU_FUEL, raw);
     const low = String(raw).toLowerCase();
-    const tone = /electric|электро/.test(low) ? "good" : /hybrid|гибрид|phev|plug/.test(low) ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco("fuel")}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
+    // Цвет значка по типу: электро — голубой, гибрид — зелёный, бензин/дизель — серый (Федор 25.09.2026)
+    const fuelCls = /electric|электро/.test(low) && !/hybrid|гибрид/.test(low) ? "dbFuelEvV1" : /hybrid|гибрид|phev|plug/.test(low) ? "dbFuelHyV1" : "dbFuelGasV1";
+    return `<li class="dbCheck neutral ${fuelCls}">${dbIco("fuel")}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
   }
   function dbCheckSeller(raw){
     const val = raw ? tc(raw) : "";
@@ -1287,7 +1288,7 @@
           </div>
           <div class="dbChecksCol">
             <div class="dbLotRowV1">
-              ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "")}
+              ${copyChip(lot.lot, "Скопировать номер лота", "dbLotNo", "tag")}
               ${aucLinkBadge(lot)}
             </div>
             <ul class="dbChecks">
