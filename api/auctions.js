@@ -1139,11 +1139,51 @@ function looksTimed(dateStr){
   if(Number.isNaN(d.getTime())) return false;
   return d.getUTCSeconds() !== 0 || d.getUTCMinutes() % 15 !== 0;
 }
+// ---- Надёжность истории по VIN: повтор запроса + постоянное хранилище (vin_hist) как запасной источник ----
+async function fetchJsonRetry(url, tries = 2){
+  let err;
+  for(let i = 0; i < tries; i++){
+    try{ return await fetchJson(url); }
+    catch(e){ err = e; if(e && (e.status === 404 || e.status === 400)) throw e; if(i < tries - 1) await new Promise(r => setTimeout(r, 400)); }
+  }
+  throw err;
+}
+const vinStoreThrottle = new Map();
+const vinFailStat = {fail:0, fallback:0, ok:0, since:Date.now()};
+function compactVinEntries(list){
+  return (Array.isArray(list) ? list : []).slice(0, 80).map(e => {
+    const o = {date:e.date, bid:e.bid || 0, status:e.status, lot:e.lot || "", auction:e.auction || ""};
+    if(e.buyNow) o.buyNow = e.buyNow;
+    if(e.timed) o.timed = true;
+    if(e.noPrice) o.noPrice = true;
+    if(e.prebid) o.prebid = e.prebid;
+    return o;
+  });
+}
+async function saveVinHist(vin, entries, latest){
+  const last = vinStoreThrottle.get(vin);
+  if(last && Date.now() - last < 10 * 60e3) return;
+  vinStoreThrottle.set(vin, Date.now()); if(vinStoreThrottle.size > 5000) vinStoreThrottle.clear();
+  try{
+    const list = compactVinEntries(entries);
+    await syncSbFetch(`/vin_hist?on_conflict=vin`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+      body:JSON.stringify({vin, entries:list, latest:latest || null, sold_n:list.filter(e => e.status === "sold").length, rounds_n:list.length, checked_at:new Date().toISOString()})});
+  }catch(_){}
+}
+async function loadVinHist(vin, maxAgeMs){
+  try{
+    const rows = await syncSbFetch(`/vin_hist?vin=eq.${encodeURIComponent(vin)}&select=entries,latest,checked_at&limit=1`);
+    const r = rows && rows[0];
+    if(!r || (maxAgeMs && Date.now() - Date.parse(r.checked_at) > maxAgeMs)) return null;
+    return r;
+  }catch(_){ return null; }
+}
+
 async function attachVinHistory(lot){
   try{
     if(!lot || !isValidVin(String(lot.vin || ""))) return lot;
     const params = new URLSearchParams({prices_history:"1"});
-    const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(lot.vin)}?${params}`);
+    const payload = await fetchJsonRetry(`${AUCTIONS_API_BASE}/search-vin/${encodeURIComponent(lot.vin)}?${params}`);
     const lotsArr = Array.isArray(payload?.lots) ? payload.lots : Array.isArray(payload?.data?.lots) ? payload.data.lots : [];
     // История ТОЛЬКО по VIN (правило Федора 22.09.2026): номер лота — не идентификатор машины (один номер
     // может быть у разных машин на Copart и IAAI), поэтому историю текущего номера НЕ используем —
@@ -1201,21 +1241,20 @@ async function attachVinHistory(lot){
       .filter((e, i, arr) => !(e.status === "sold" && arr.some((o, j) => j < i && o.status === "sold" && o.lot === e.lot && o.bid === e.bid && Math.abs(Date.parse(o.date) - Date.parse(e.date)) < 3 * 864e5)))
       .filter(e => { const k = e.date.slice(0, 10) + "|" + e.lot + "|" + e.status; if(seen.has(k)) return false; seen.add(k); return true; })
       .sort((a, b) => a.date < b.date ? 1 : -1);
-    // Актуальный заход: тот же VIN позже этого лота выставлен под ДРУГИМ номером (перекуп, Tesla Model Y 49664006 → 69796376) —
-    // клиент покажет «Машина выставлена снова» со ссылкой на живой лот.
-    {
-      const ownMs = Date.parse(lot.auctionDate || "");
-      let rel = null;
-      for(const l of lotsArr){
-        const no = String(l?.lot || l?.lot_number || l?.external_id || "").replace(/~.*/, "");
-        if(!no || no === String(lot.lot)) continue;
-        const sd = Date.parse(l?.sale_date || l?.auction_date || "");
-        if(!Number.isFinite(sd) || sd < Date.now() - 12 * 3600e3) continue;
-        if(Number.isFinite(ownMs) && sd <= ownMs) continue;
-        if(!rel || sd > rel.ms) rel = {ms:sd, lot:no, auction:normalizeAuction(l?.domain || payload?.domain || lot.auction), date:new Date(sd).toISOString(), bid:safeNumber(l?.bid || l?.current_bid)};
-      }
-      if(rel){ delete rel.ms; lot.relisted = rel; }
+    // Актуальный заход по VIN: самая поздняя запись, которая ещё не сыграла (или только что сыграла) и НЕ продана — не зависит от лота, храним в vin_hist.
+    let latest = null;
+    for(const l of lotsArr){
+      const no = String(l?.lot || l?.lot_number || l?.external_id || "").replace(/~.*/, "");
+      const sd = Date.parse(l?.sale_date || l?.auction_date || "");
+      if(!no || !Number.isFinite(sd) || sd < Date.now() - 12 * 3600e3) continue;
+      if((Number(enumIdOf(l?.status)) === 6 || (/sold/.test(safeName(l?.status).toLowerCase()) && !/not/.test(safeName(l?.status).toLowerCase()))) && safeNumber(l?.final_bid || l?.winning_bid) > 0 && sd < Date.now()) continue;
+      if(!latest || sd > latest.ms) latest = {ms:sd, lot:no, auction:normalizeAuction(l?.domain || payload?.domain || lot.auction), date:new Date(sd).toISOString(), bid:safeNumber(l?.bid || l?.current_bid)};
     }
+    if(latest){ latest = {lot:latest.lot, auction:latest.auction, date:latest.date, bid:latest.bid}; }
+    lot.relisted = undefined; delete lot.relisted;
+    { const rel = relistedFor(lot, latest); if(rel) lot.relisted = rel; }
+    saveVinHist(lot.vin, lot.priceHistory, latest);
+    vinFailStat.ok++;
     // Финал — только если ТЕКУЩИЙ заход реально продан (прошедшая дата + статус) — по VIN-данным
     const curEntry = lotsArr.find(l => String(l?.lot || l?.lot_number || "").replace(/~.*/, "") === String(lot.lot));
     if(curEntry){
@@ -1224,8 +1263,29 @@ async function attachVinHistory(lot){
       const sold = sid === 6 && fb > 0 && sd && Date.parse(sd) < Date.now();
       lot.finalBid = sold ? fb : 0;
     }
-  }catch(e){ if(lot && isValidVin(String(lot.vin || ""))) lot.vinChecked = false; /* история по VIN недоступна — остаёмся с историей лота */ }
+  }catch(e){
+    if(lot && isValidVin(String(lot.vin || ""))){
+      if(e && e.status === 404){ lot.vinChecked = true; }                 // фид не знает этот VIN — истории нет, это не сбой
+      else{
+        vinFailStat.fail++;
+        // Запасной источник: последняя удачная история этого VIN из нашей базы (до 14 дней)
+        const st = await loadVinHist(String(lot.vin).toUpperCase(), 14 * 864e5);
+        if(st && Array.isArray(st.entries)){
+          const curDay = String(lot.auctionDate || "").slice(0, 10);
+          lot.priceHistory = st.entries.map(x => ({...x, ...(String(x.date).slice(0, 10) === curDay ? {current:true} : {})}));
+          const rel = relistedFor(lot, st.latest); if(rel) lot.relisted = rel;
+          lot.vinChecked = true; lot.vinStale = st.checked_at;
+          vinFailStat.fallback++;
+        }else lot.vinChecked = false;   // ни фид, ни запас — честно скажем «недоступно»
+      }
+    }
+  }
   return lot;
+}
+function relistedFor(lot, latest){
+  if(!latest || !latest.lot || String(latest.lot) === String(lot.lot)) return null;
+  const ownMs = Date.parse(lot.auctionDate || "");
+  return !Number.isFinite(ownMs) || Date.parse(latest.date) > ownMs ? {lot:latest.lot, auction:latest.auction, date:latest.date, bid:latest.bid} : null;
 }
 function enumIdOf(v){ return (v && typeof v === "object" && v.id != null) ? Number(v.id) : (typeof v === "number" ? v : null); }
 async function fetchVin(query){
@@ -3498,6 +3558,15 @@ async function runResaleCheck(budgetMs){
     rows = await syncSbFetch(`/api_lots?archived=eq.false&resale_at=is.null&vin=not.is.null&sale_date=gte.${since}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue&order=sale_date.asc&limit=300`);
   }catch(e){ return {ok:false, error:String(e.message || e).slice(0, 160)}; }
   const buckets = {0:[], 1:[], 2:[]};
+  const storedMap = {};
+  try{
+    const vinsAll = [...new Set(rows.map(r => String(r.vin || "").toUpperCase()).filter(isValidVin))];
+    const sinceIso = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
+    for(let i = 0; i < vinsAll.length; i += 100){
+      const part = await syncSbFetch(`/vin_hist?vin=in.(${vinsAll.slice(i, i + 100).join(",")})&checked_at=gt.${sinceIso}&select=vin,entries`);
+      for(const x of part || []) storedMap[x.vin] = x.entries;
+    }
+  }catch(_){}
   let idx = 0, stop = false;
   const worker = async () => {
     while(!stop && Date.now() - t0 < budgetMs){
@@ -3506,7 +3575,8 @@ async function runResaleCheck(budgetMs){
       if(!isValidVin(vin)){ buckets[0].push(r.id); continue; }
       if((resaleFailedVins.get(vin) || 0) > Date.now()){ out.skipped++; continue; }
       const stub = {vin, lot:String(r.lot || ""), auctionDate:r.sale_date || "", estimatedRetailValue:Number(r.erv) || 0, buyNow:Number(r.buy_now) || 0, priceHistory:[]};
-      await attachVinHistory(stub);
+      if(Array.isArray(storedMap[vin])){ stub.priceHistory = storedMap[vin]; stub._vinOk = true; out.fromStore = (out.fromStore || 0) + 1; }
+      else await attachVinHistory(stub);
       if(!stub._vinOk){ out.fail++; resaleFailedVins.set(vin, Date.now() + 10 * 60e3); if(out.fail >= 4) stop = true; continue; }
       buckets[resaleLevel(stub, r.lot, r.sale_date)].push(r.id);
     }
@@ -3531,6 +3601,22 @@ module.exports = async function handler(request, response){
   const action = query.get("action") || "search";
 
   if(action === "lead") return handleLead(request, response);
+  if(action === "vinhealth"){
+    // Здоровье истории по VIN: сбои/запасной источник (в пределах инстанса) и покрытие проверкой Clean Select.
+    const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+    const cnt = async path => {
+      try{
+        const r = await fetch(`${url}/rest/v1${path}`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
+        return Number(String(r.headers.get("content-range") || "").split("/").pop()) || 0;
+      }catch(_){ return null; }
+    };
+    const out = {ok:true, instance:{...vinFailStat, minutes:Math.round((Date.now() - vinFailStat.since) / 60000)}};
+    out.vinStored = await cnt("/vin_hist?select=vin");
+    out.upcomingChecked = await cnt(`/api_lots?select=id&archived=eq.false&resale_at=not.is.null&sale_date=gte.${encodeURIComponent(new Date().toISOString())}`);
+    out.upcomingTotal = await cnt(`/api_lots?select=id&archived=eq.false&vin=not.is.null&sale_date=gte.${encodeURIComponent(new Date().toISOString())}`);
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "resalecheck"){
     sendJson(response, 200, await runResaleCheck(42000).catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
     return;
@@ -4030,21 +4116,33 @@ module.exports = async function handler(request, response){
     if(action === "vinhist"){
       const vins = [...new Set(String(query.get("vins") || "").toUpperCase().split(",").map(v => v.replace(/[^A-Z0-9]/g, "")).filter(isValidVin))].slice(0, 30);
       const out = {};
+      // Сначала наше хранилище (vin_hist, свежее ≤24ч): мгновенно и без запросов к фиду; фид — только для того, чего в базе нет.
+      const storedMap = {};
+      try{
+        const since = encodeURIComponent(new Date(Date.now() - 24 * 3600e3).toISOString());
+        const rows = await syncSbFetch(`/vin_hist?vin=in.(${vins.join(",")})&checked_at=gt.${since}&select=vin,entries`);
+        for(const r of rows || []) storedMap[r.vin] = r.entries;
+      }catch(_){}
       const one = async vin => {
         const ck = "vinhist4:" + vin;
         const c = getCached(ck);
         if(c){ out[vin] = c; return; }
         try{
-          const stub = {vin, lot:"", auctionDate:"", estimatedRetailValue:0, buyNow:0, priceHistory:[]};
-          await attachVinHistory(stub);
-          const h = stub.priceHistory || [];
+          let h, fromStore = false;
+          if(Array.isArray(storedMap[vin])){ h = storedMap[vin]; fromStore = true; }
+          else{
+            const stub = {vin, lot:"", auctionDate:"", estimatedRetailValue:0, buyNow:0, priceHistory:[]};
+            await attachVinHistory(stub);
+            if(stub.vinChecked === false){ out[vin] = null; return; }   // сбой фида и нет запаса — клиент повторит, не «ранее не продавалась»
+            h = stub.priceHistory || [];
+          }
           const sold = h.filter(x => x.status === "sold");
           // Отдаём записи с номером лота и датой: клиент сам исключает ТЕКУЩИЙ лот (для архивной
           // карточки её собственная продажа — не «ранее», а эта самая продажа).
           const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null,
             entries:[...sold, ...h.filter(x => x.status !== "sold")].slice(0, 40).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || "", ...(x.noPrice ? {noPrice:true} : {})}))};
           setCached(ck, r, 2 * 3600e3);
-          out[vin] = {...r, fresh:true};
+          out[vin] = fromStore ? r : {...r, fresh:true};
         }catch(e){ out[vin] = null; }
       };
       for(let i = 0; i < vins.length; i += 10) await Promise.all(vins.slice(i, i + 10).map(one));

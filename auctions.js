@@ -1385,7 +1385,7 @@
       }
     });
   }
-  const vinHistCache = {};
+  const vinHistCache = {}, vinRetryN = {};
   async function updateCardVinHistory(){
     const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
     const byId = new Map(state.items.map(l => [String(l.id), l]));
@@ -1402,6 +1402,9 @@
         Object.assign(vinHistCache, r.items || {});
       }catch(e){ uniq.slice(i, i + 30).forEach(v => { vinHistCache[v] = null; }); }
     }
+    // Не получилось узнать историю (фид не ответил) — пробуем ещё пару раз, а не оставляем карточку «неизвестной»
+    const retry = uniq.filter(v => vinHistCache[v] === null && ((vinRetryN[v] = (vinRetryN[v] || 0) + 1) <= 2));
+    if(retry.length) setTimeout(() => { retry.forEach(v => { delete vinHistCache[v]; }); updateCardVinHistory(); }, 6000);
     cards.forEach(card => {
       const lid = card.querySelector(".dbPhoto")?.dataset.lid;
       const lot = byId.get(String(lid)); if(!lot || !lot.vin) return;
@@ -2434,7 +2437,23 @@
     markResoldSimilar(box);
   }
 
+  // История по VIN не загрузилась (сбой фида) — не оставляем «недоступно»: тихо перезапрашиваем лот и перерисовываем.
+  let vinRetryTimer = null;
+  function scheduleVinRetry(lot, attempt){
+    clearTimeout(vinRetryTimer);
+    if(!lot || lot.vinChecked !== false || attempt > 3) return;
+    vinRetryTimer = setTimeout(async () => {
+      try{
+        const r = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&fresh=1`);
+        const cur = document.getElementById("auctionDetail");
+        if(!cur || cur.hidden || !r.lot || String(r.lot.lot) !== String(lot.lot)) return;
+        if(r.lot.vinChecked === false){ scheduleVinRetry(r.lot, attempt + 1); return; }
+        const y = window.scrollY; renderDetail(r.lot); window.scrollTo(0, y);
+      }catch(e){ scheduleVinRetry(lot, attempt + 1); }
+    }, [0, 4000, 10000, 20000][attempt] || 20000);
+  }
   function renderDetail(lot){
+    scheduleVinRetry(lot, 1);
     _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
