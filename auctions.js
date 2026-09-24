@@ -2464,9 +2464,12 @@
     const histCount = pastHistory.length;
     const pastSold = pastHistory.filter(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
     const fmtHd = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : ""; };
+    const curMs = Date.parse(lot.auctionDate || "");
+    const soldEarlier = pastSold.filter(h => !Number.isFinite(curMs) || Date.parse(h.date) < curMs);
+    const soldTotal = pastSold.length + (lotSaleState(lot).isSold ? 1 : 0);
     const histStr = histCount === 0
-      ? (lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
-      : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L("Был продан ранее!")}${sellerIsInsurance(lot) ? "" : ` • ${L("Перекуп")}`}`
+      ? (lot.vinChecked === false ? L("История по VIN временно недоступна") : lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
+      : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L(soldEarlier.length ? "Был продан ранее!" : "Продан снова позже!")}${soldTotal >= 2 ? ` • ${L("Продаж по VIN")}: ${soldTotal}` : ""}${sellerIsInsurance(lot) ? "" : ` • ${L("Перекуп")}`}`
       : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
@@ -2507,6 +2510,14 @@
             ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
           </div>
         </div>
+        ${(() => {
+          // Этот заход уже прошёл, а машину выставили снова под другим номером (перекуп) — ведём на живой лот.
+          const rl = lot.relisted;
+          if(!rl || !(lotSaleState(lot).isSold || Date.parse(lot.auctionDate || "") < Date.now())) return "";
+          const ra = String(rl.auction || lot.auction || "copart").toLowerCase(), rn = String(rl.lot || "").replace(/[^0-9A-Za-z-]/g, "");
+          if(!rn) return "";
+          return `<div class="dRelistV1"><div><b>${L("Эта машина выставлена снова")}</b><span>${L("Лот")} ${escapeHtml(rn)} · ${escapeHtml(ra === "iaai" ? "IAAI" : "Copart")} · ${L("торги")} ${escapeHtml(dbDate(rl.date))}${rl.bid ? ` · ${L("ставка")} ${money(rl.bid)}` : ""}</span></div><a class="dRelistBtnV1" href="/auctions/${encodeURIComponent(ra)}-${encodeURIComponent(rn)}">${L("Открыть актуальный лот")}</a></div>`;
+        })()}
         <div class="lotDetailGridV1">
           <div class="detailGalleryV1">
             <div class="dGalMainV2" data-lb-open role="button" tabindex="0" aria-label="Открыть фото в HD">
@@ -2520,7 +2531,7 @@
                 const pa = String(ps.auction || lot.auction || "copart").toLowerCase(); const pl = String(ps.lot || "").replace(/[^0-9A-Za-z-]/g, "");
                 return `<div class="dSoldWarnV1" data-sold-warn>
                   <b>${L("Предупреждение!")}</b>
-                  <p>${L("Этот автомобиль был продан на другом аукционе")} ${escapeHtml(dd)}${ps.bid ? ` · ${money(ps.bid)}` : ""}</p>
+                  <p>${L(Number.isFinite(curMs) && Date.parse(ps.date) > curMs ? "Позже этот автомобиль был продан снова" : "Этот автомобиль был продан на другом аукционе")} ${escapeHtml(dd)}${ps.bid ? ` · ${money(ps.bid)}` : ""}</p>
                   <div class="dSoldWarnBtnsV1">
                     <button type="button" class="dSoldHideV1" data-sold-hide="${escapeHtml(lot.vin || lot.id)}">${L("Скрыть информацию")}</button>
                     ${pl ? `<a class="dSoldPrevV1" href="/auctions/${encodeURIComponent(pa)}-${encodeURIComponent(pl)}" data-sold-prev>${L("Предыдущий аукцион")}</a>` : ""}

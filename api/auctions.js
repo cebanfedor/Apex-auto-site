@@ -1186,6 +1186,7 @@ async function attachVinHistory(lot){
       }
     }
     try{ Object.defineProperty(lot, "_vinOk", {value:true, enumerable:false, configurable:true}); }catch(_){}   // запрос к фиду прошёл (отличаем «VIN не найден» от сбоя)
+    lot.vinChecked = true;   // клиент: история по VIN проверена (иначе — не утверждаем «единственная продажа»)
     if(!lotsArr.length) return lot;   // VIN не найден — оставляем как есть
     // «не продан» за копейки (перенос без ставок) — не история
     const erv = Number(lot.estimatedRetailValue) || 0, cap = Math.max(300, erv * 0.02);
@@ -1200,6 +1201,21 @@ async function attachVinHistory(lot){
       .filter((e, i, arr) => !(e.status === "sold" && arr.some((o, j) => j < i && o.status === "sold" && o.lot === e.lot && o.bid === e.bid && Math.abs(Date.parse(o.date) - Date.parse(e.date)) < 3 * 864e5)))
       .filter(e => { const k = e.date.slice(0, 10) + "|" + e.lot + "|" + e.status; if(seen.has(k)) return false; seen.add(k); return true; })
       .sort((a, b) => a.date < b.date ? 1 : -1);
+    // Актуальный заход: тот же VIN позже этого лота выставлен под ДРУГИМ номером (перекуп, Tesla Model Y 49664006 → 69796376) —
+    // клиент покажет «Машина выставлена снова» со ссылкой на живой лот.
+    {
+      const ownMs = Date.parse(lot.auctionDate || "");
+      let rel = null;
+      for(const l of lotsArr){
+        const no = String(l?.lot || l?.lot_number || l?.external_id || "").replace(/~.*/, "");
+        if(!no || no === String(lot.lot)) continue;
+        const sd = Date.parse(l?.sale_date || l?.auction_date || "");
+        if(!Number.isFinite(sd) || sd < Date.now() - 12 * 3600e3) continue;
+        if(Number.isFinite(ownMs) && sd <= ownMs) continue;
+        if(!rel || sd > rel.ms) rel = {ms:sd, lot:no, auction:normalizeAuction(l?.domain || payload?.domain || lot.auction), date:new Date(sd).toISOString(), bid:safeNumber(l?.bid || l?.current_bid)};
+      }
+      if(rel){ delete rel.ms; lot.relisted = rel; }
+    }
     // Финал — только если ТЕКУЩИЙ заход реально продан (прошедшая дата + статус) — по VIN-данным
     const curEntry = lotsArr.find(l => String(l?.lot || l?.lot_number || "").replace(/~.*/, "") === String(lot.lot));
     if(curEntry){
@@ -1208,7 +1224,7 @@ async function attachVinHistory(lot){
       const sold = sid === 6 && fb > 0 && sd && Date.parse(sd) < Date.now();
       lot.finalBid = sold ? fb : 0;
     }
-  }catch(e){ /* история по VIN недоступна — остаёмся с историей лота */ }
+  }catch(e){ if(lot && isValidVin(String(lot.vin || ""))) lot.vinChecked = false; /* история по VIN недоступна — остаёмся с историей лота */ }
   return lot;
 }
 function enumIdOf(v){ return (v && typeof v === "object" && v.id != null) ? Number(v.id) : (typeof v === "number" ? v : null); }
@@ -3869,8 +3885,16 @@ module.exports = async function handler(request, response){
       await attachGenRange(lot);
       upsertClosedLot(lot);
       const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};
-      setCached(key, payload);
-      setDbCache(key, payload, "detail");
+      // История по VIN не загрузилась (таймаут фида) — НЕ кэшируем: иначе «Единственная продажа» висит до получаса.
+      if(lot.vinChecked !== false){
+        setCached(key, payload);
+        setDbCache(key, payload, "detail");
+        // Clean Select: страницу лота открыли — метку перекупа получаем сразу, не ждём очереди фоновой проверки
+        if(lot.vinChecked && lot.id && Number(lot.statusId) !== 6 && Date.parse(lot.auctionDate || "") > Date.now()){
+          syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}&archived=eq.false&resale_at=is.null`, {method:"PATCH", headers:{prefer:"return=minimal"},
+            body:JSON.stringify({resale:resaleLevel(lot, lot.lot, lot.auctionDate), resale_at:new Date().toISOString()})}).catch(() => {});
+        }
+      }
       sendJson(response, 200, payload);
       return;
     }
@@ -4020,10 +4044,22 @@ module.exports = async function handler(request, response){
           const r = {count:h.length, sold:sold.length, lastSale:sold[0] ? {date:sold[0].date.slice(0, 10), bid:sold[0].bid} : null,
             entries:[...sold, ...h.filter(x => x.status !== "sold")].slice(0, 40).map(x => ({date:String(x.date).slice(0, 10), bid:x.bid, status:x.status, lot:x.lot || "", auction:x.auction || "", ...(x.noPrice ? {noPrice:true} : {})}))};
           setCached(ck, r, 2 * 3600e3);
-          out[vin] = r;
+          out[vin] = {...r, fresh:true};
         }catch(e){ out[vin] = null; }
       };
       for(let i = 0; i < vins.length; i += 10) await Promise.all(vins.slice(i, i + 10).map(one));
+      // Clean Select: карточки, которые смотрят люди, размечаем сразу (только живые лоты без метки; уровень 0 не пишем — его выставит фоновая проверка)
+      try{
+        const byLevel = {1:[], 2:[]};
+        for(const v of Object.keys(out)){
+          const e = out[v]; if(!e || !e.fresh) continue;
+          const lvl = resaleLevel({priceHistory:e.entries.map(x => ({...x, date:x.date}))}, "", "");
+          if(lvl > 0) byLevel[lvl].push(v);
+        }
+        const stamp = new Date().toISOString();
+        for(const lvl of [1, 2]) if(byLevel[lvl].length) syncSbFetch(`/api_lots?vin=in.(${byLevel[lvl].join(",")})&archived=eq.false&resale_at=is.null`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale:lvl, resale_at:stamp})}).catch(() => {});
+      }catch(_){}
+      for(const v of Object.keys(out)) if(out[v] && out[v].fresh) delete out[v].fresh;
       sendJson(response, 200, {ok:true, items:out}, {"cache-control":"public, s-maxage=3600, stale-while-revalidate=21600"});
       return;
     }
