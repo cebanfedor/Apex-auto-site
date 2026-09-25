@@ -1378,12 +1378,10 @@
               if(isSold) return "";
               const b = budgetValue();
               if(b > 0 && state.tab !== "archived"){ const mx = budgetMaxBid(lot, b); return mx >= 0 ? `<div class="dbTurnkeyV1 dbTurnkeyBudgetV1">${L("Ставка до")} <b>${findCanadaLocation(lot) ? moneyCad(mx) : money(mx)}</b> ${L("влезает в бюджет")}</div>` : ""; }
-              if(!(Number(priceVal) > 0)) return "";
-              const tk = turnkeyFor(lot, Number(priceVal));
-              return tk > 0 ? `<div class="dbTurnkeyV1" title="${escapeHtml(L("Ориентировочно: ставка, сборы аукциона, доставка, растаможка и услуги Apex до Кишинёва"))}">${L("Под ключ ≈")} <b>${money(tk)}</b></div>` : "";
+              return "";
             })()}
-            <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
           </div>
+          <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
         </div>
