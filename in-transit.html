@@ -6,7 +6,9 @@
   <!-- Google tag (lazy) -->
   <script>
     window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
-    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
+    gtag('consent','default',{'analytics_storage':'denied','ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied'});
+    window.apexLoadGA=function(){if(window.__gaLoadedV1)return;window.__gaLoadedV1=true;gtag('consent','update',{'analytics_storage':'granted'});var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0',{'anonymize_ip':true});};
+    window.addEventListener('load',function(){try{if(localStorage.getItem('apexCookieConsent')==='1')window.apexLoadGA();}catch(e){}});
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Авто в пути из США — купить до прибытия | Apex Auto</title>
@@ -28,7 +30,7 @@
   <meta name="twitter:title" content="Продажа авто в пути — машины из США, которые уже едут в Молдову | Apex Auto">
   <meta name="twitter:description" content="Автомобили из США и Канады, которые уже куплены и едут в Молдову: цена, фото, описание и отслеживание по VIN. Можно купить, пока авто в пути.">
   <meta name="twitter:image" content="https://apexauto.md/assets/og/hot.png?v=3">
-  <link rel="stylesheet" href="/styles.css?v=v443">
+  <link rel="stylesheet" href="/styles.css?v=v444">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -189,5 +191,6 @@
   </footer>
 
 <script src="/analytics.js?v=1" defer></script>
+<script src="/cookie-consent.js?v=1" defer></script>
 </body>
 </html>
