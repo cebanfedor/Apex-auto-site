@@ -3123,53 +3123,50 @@
     }, 120e3);
   }
 
-  // Очередь онлайн-торгов Copart: линия/номер лота → сколько лотов впереди и ≈ время. Обновление раз в 20 с.
+  // Онлайн-торги (упрощено по решению Федора 25.09.2026): линия и номер лота с сервера, дальше всё считаем по времени старта —
+  // 1 лот ≈ 1 минута, значит лот №102 выйдет примерно через 102 минуты после начала торгов.
   let queueTimer = null, queueSeq = 0;
-  function fmtEta(sec){
-    const m = Math.max(1, Math.round(sec / 60));
+  function fmtEta(min){
+    const m = Math.max(1, Math.round(min));
     return m >= 60 ? `${Math.floor(m / 60)} ${L("ч")} ${m % 60} ${L("мин")}` : `${m} ${L("мин")}`;
   }
   function startQueueWatch(lot){
-    if(queueTimer){ clearTimeout(queueTimer); queueTimer = null; }
+    if(queueTimer){ clearInterval(queueTimer); queueTimer = null; }
     const seq = ++queueSeq;
     if(!lot || !document.getElementById("lotQueueV1")) return;
     const t = Date.parse(lot.auctionDate || "");
     if(!Number.isFinite(t) || lotSaleState(lot).isSold || lot.timed) return;
     const dt = t - Date.now();
-    if(dt > 30 * 3600e3 || dt < -5 * 3600e3) return;
-    const lotRow = x => x ? `<li><span class="lqNoV1">#${x.runNo}</span><span class="lqTitleV1">${escapeHtml(x.title || "")}</span>${x.finalBid ? `<b>${money(x.finalBid)}</b>` : ""}</li>` : "";
-    const tick = async () => {
+    if(dt > 30 * 3600e3 || dt < -6 * 3600e3) return;
+    const hm = ms => new Date(ms).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
+    let info = null;
+    const draw = () => {
       const box = document.getElementById("lotQueueV1");
-      if(seq !== queueSeq) return;
-      if(!box){ stopped = true; queueTimer = null; return; }
-      if(document.hidden){ schedule(20e3); return; }
-      let r; try{ r = await api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`); }catch(e){ schedule(60e3); return; }
-      if(!r || !r.available){
-        // Линия ещё не назначена (у IAAI — за пару часов до торгов): блок скрыт, проверяем раз в 5 минут.
-        box.hidden = true;
-        schedule(300e3);
-        return;
+      if(seq !== queueSeq || !box || !info){ if(queueTimer && !box){ clearInterval(queueTimer); queueTimer = null; } return; }
+      const start = Date.parse(info.startsAt), etaAt = start + info.position * 60e3, now = Date.now();
+      let big, sub, pct = 0;
+      if(now < start){
+        big = `<div class="lqBigV1"><b>${L("Торги начнутся в")} ${hm(start)}</b></div>`;
+        sub = `<div class="lqEtaV1">${L("Ваш лот примерно через")} ${fmtEta(info.position)} ${L("после старта")} (≈ ${hm(etaAt)})</div>`;
+      }else{
+        const left = Math.ceil((etaAt - now) / 60e3);
+        pct = Math.min(100, Math.max(2, Math.round((now - start) / (etaAt - start) * 100)));
+        big = `<div class="lqBigV1 lqNowV1"><span class="calcLiveDotV1"></span><b>${L("Идут онлайн-торги")}</b></div>`;
+        sub = left > 0
+          ? `<div class="lqEtaV1">${L("Примерно")} ${fmtEta(left)} ${L("до вашего лота")} (≈ ${hm(etaAt)})</div>`
+          : `<div class="lqEtaV1">${L(left > -4 ? "Ваш лот сейчас в эфире" : "Лот в эфире или уже сыгран")}</div>`;
       }
-      schedule(20e3);
-      const startTime = new Date(r.startsAt).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
-      let main;
-      if(r.state === "sold") main = `<div class="lqBigV1"><b>${L("Лот продан")}</b></div>`;
-      else if(r.state === "now") main = `<div class="lqBigV1 lqNowV1"><span class="calcLiveDotV1"></span><b>${L("Ваш лот сейчас на очереди")}</b></div>`;
-      else main = `<div class="lqBigV1"><b>≈ ${r.ahead}</b><span>${L("лотов впереди")}</span></div>
-        <div class="lqEtaV1">≈ ${fmtEta(r.etaSec)} ${L("до вашего лота")}${r.state === "before" ? ` · ${L("торги начнутся в")} ${startTime}` : ""}</div>`;
-      const pct = r.state === "sold" ? 100 : Math.max(2, Math.round(((r.runNo && r.total ? (r.total - r.ahead) / r.total : 0)) * 100));
       box.hidden = false;
-      box.innerHTML = `<div class="lqHeadV1"><span>${L("Очередь торгов")}</span><span>${L("Линия")} ${escapeHtml(r.lane)} · №${r.runNo}</span></div>
-        ${main}
-        <div class="lqBarV1"><i style="width:${Math.min(100, pct)}%"></i></div>
-        ${r.current && r.state === "queue" ? `<div class="lqSubV1">${L("Сейчас на торгах")}</div><ul class="lqListV1">${lotRow(r.current)}</ul>` : ""}
-        ${r.recent && r.recent.length ? `<div class="lqSubV1">${L("Только что продано")}</div><ul class="lqListV1">${r.recent.map(lotRow).join("")}</ul>` : ""}
-        ${r.next && r.next.length ? `<div class="lqSubV1">${L("Следом")}</div><ul class="lqListV1">${r.next.map(lotRow).join("")}</ul>` : ""}
-        <p class="lqNoteV1">${L("Очередь определена по статусам лотов линии. Темп аукциона сейчас:")} ≈ ${r.pace} ${L("с на лот")}.</p>`;
+      box.innerHTML = `<div class="lqHeadV1"><span>${L("Онлайн-торги")}</span><span>${L("Линия")} ${escapeHtml(info.lane)} · №${escapeHtml(String(info.runNo))}</span></div>
+        ${big}${sub}
+        <div class="lqBarV1"><i style="width:${pct}%"></i></div>
+        <p class="lqNoteV1">${L("Расчёт приблизительный: в среднем один лот в минуту.")}</p>`;
     };
-    let stopped = false;
-    const schedule = ms => { if(seq !== queueSeq) return; if(queueTimer) clearTimeout(queueTimer); queueTimer = stopped ? null : setTimeout(tick, ms); };
-    tick();
+    api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`).then(r => {
+      if(seq !== queueSeq) return;
+      if(!r || !r.available || !(r.position > 0)){ const box = document.getElementById("lotQueueV1"); if(box) box.hidden = true; return; }   // линия ещё не назначена (у IAAI — за пару часов до торгов)
+      info = r; draw(); queueTimer = setInterval(draw, 30e3);
+    }).catch(() => {});
   }
 
   // Живой отсчёт до торгов в сайдбаре (обновление раз в 30 сек)

@@ -3906,57 +3906,12 @@ module.exports = async function handler(request, response){
       if(!lotNo || !(await runColsReady())){ sendJson(response, 200, {ok:true, available:false}, {"cache-control":"public, s-maxage=30"}); return; }
       const me = (await syncSbFetch(`/api_lots?id=eq.${qAuction}-${lotNo}&select=lane,run_no,sale_date,status_id,archived`))?.[0];
       if(!me || !me.lane || !me.run_no || !me.sale_date){ const r = {ok:true, available:false}; setCached(ck, r, 60e3); sendJson(response, 200, r, {"cache-control":"public, s-maxage=30"}); return; }
+      // Просто (решение Федора 25.09.2026): линия + номер + время старта; «≈ N минут до лота» считает страница (1 лот ≈ 1 минута). Позиция = место лота в линии по run_no.
       const base = `/api_lots?auction=eq.${qAuction}&id=not.like.*-s2*&sale_date=eq.${encodeURIComponent(me.sale_date)}&lane=eq.${encodeURIComponent(me.lane)}`;
-      // Все лоты линии по порядку (обычно 100–300 строк): по ним считаем позицию и ищем «лот в эфире».
-      const laneRows = (await syncSbFetch(`${base}&run_no=not.is.null&order=run_no.asc&limit=600&select=lot,run_no,status_id,archived,title,img:payload->images->>0`)) || [];
+      const laneRows = (await syncSbFetch(`${base}&run_no=not.is.null&order=run_no.asc&limit=600&select=lot,run_no`)) || [];
       const myIdx = laneRows.findIndex(x => Number(x.run_no) === Number(me.run_no) && String(x.lot) === lotNo);
       if(myIdx < 0){ const r = {ok:true, available:false}; setCached(ck, r, 30e3); sendJson(response, 200, r, {"cache-control":"public, s-maxage=15"}); return; }
-      const total = laneRows.length;
-      const elapsed = (Date.now() - Date.parse(me.sale_date)) / 1000;
-      // Фид не отдаёт «лот в эфире», но отдаёт статус каждого лота. Очередь идёт по порядку, значит граница «продан / ещё нет» одна:
-      // ищем её пачками параллельных проб (≤4 раунда по 8 лотов), результат общий для всех лотов линии (кэш 45 с).
-      const laneKey = `qlane:${qAuction}:${me.sale_date}:${me.lane}`;
-      let curIdx = getCached(laneKey);
-      if(curIdx == null && elapsed < 0){ curIdx = 0; }
-      else if(curIdx == null){
-        const isDone = async idx => {
-          const row = laneRows[idx]; const pk = `probe:${qAuction}:${row.lot}`; const hit = getCached(pk); if(hit != null) return hit;
-          let done = false;
-          try{ const d = await fetchDetail(new URLSearchParams({auction:qAuction, lot:String(row.lot)})); done = [6, 8].includes(Number(d.statusId)) && Date.parse(d.auctionDate || "") < Date.now(); }
-          catch(_){ done = Number(row.status_id) === 6; }
-          setCached(pk, done, 30e3); return done;
-        };
-        let soldIdx = -1; laneRows.forEach((x, i) => { if(Number(x.status_id) === 6) soldIdx = i; });
-        let L = soldIdx + 1, R = total;
-        const est = Math.floor(elapsed / 76);   // типичный темп → первая волна проб вокруг ожидаемой границы
-        const tProbe = Date.now();
-        for(let round = 0; round < 3 && R - L > 0 && Date.now() - tProbe < 14000; round++){
-          let pts = round === 0
-            ? [-30, -20, -12, -7, -3, 0, 3, 7, 12, 20, 30].map(d => est + d).filter(x => x >= L && x < R)
-            : Array.from({length:12}, (_, k) => L + Math.floor((R - L) * (k + 1) / 13)).filter(x => x >= L && x < R);
-          pts = [...new Set(pts)];
-          if(!pts.length) pts = [Math.min(R - 1, Math.max(L, est))];
-          const res = await Promise.all(pts.map(async x => [x, await isDone(x)]));
-          let nl = L, nr = R;
-          for(const [x, d] of res){ if(d) nl = Math.max(nl, x + 1); }
-          for(const [x, d] of res){ if(!d && x >= nl) nr = Math.min(nr, x); }
-          L = nl; R = nr;
-          if(R - L <= 1) break;
-        }
-        curIdx = L; setCached(laneKey, curIdx, 45e3);
-      }
-      const sold = Number(me.status_id) === 6 && me.archived === true;
-      const ahead = sold ? 0 : Math.max(0, myIdx - curIdx);
-      const pace = curIdx >= 8 && elapsed > 0 ? Math.max(30, Math.min(150, Math.round(elapsed / curIdx))) : 60;
-      const state = sold ? "sold" : elapsed < 0 ? "before" : ahead === 0 ? "now" : "queue";
-      const brief = x => x ? {lot:x.lot, title:x.title || "", runNo:x.run_no, img:x.img || ""} : null;
-      const recentRows = laneRows.slice(Math.max(0, curIdx - 3), curIdx).reverse();
-      const finals = {};
-      await Promise.all(recentRows.map(async x => { try{ const d = await fetchDetail(new URLSearchParams({auction:qAuction, lot:String(x.lot)})); if(Number(d.statusId) === 6) finals[x.lot] = Number(d.finalBid) || Number(d.currentBid) || 0; }catch(_){} }));
-      const r = {ok:true, available:true, lane:String(me.lane).split("|").pop(), runNo:me.run_no, total, ahead, etaSec:ahead * pace, state, startsAt:me.sale_date, pace,
-        pos:curIdx, current:brief(laneRows[curIdx]),
-        recent:recentRows.map(x => ({...brief(x), finalBid:finals[x.lot] || 0})),
-        next:laneRows.slice(myIdx + 1, myIdx + 4).map(brief)};
+      const r = {ok:true, available:true, lane:String(me.lane).split("|").pop(), runNo:me.run_no, position:myIdx + 1, total:laneRows.length, startsAt:me.sale_date};
       setCached(ck, r, 15e3);
       sendJson(response, 200, r, {"cache-control":"public, s-maxage=15, stale-while-revalidate=15"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}); }
