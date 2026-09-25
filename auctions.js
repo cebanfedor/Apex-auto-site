@@ -966,6 +966,7 @@
         let lo = 0, hi = Math.ceil(budget * (findCanadaLocation(lot) ? 1.6 : 1));
         while(hi - lo > 25){ const mid = Math.floor((lo + hi) / 2); if(turnkeyFor(lot, mid) <= budget) lo = mid; else hi = mid; }
         res = Math.floor(lo / 50) * 50;
+        if(res < 300) res = -1;   // потолок ставки меньше $300 — по такой цене лотов не бывает
       }
     }catch(e){ res = 0; }
     if(budgetMaxCache.size > 3000) budgetMaxCache.clear();
