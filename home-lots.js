@@ -6,8 +6,8 @@
    RO/EN подхватывает i18n (MutationObserver + словарь). */
 (function () {
   function lotSlugV(lot){
-    function w(s, m){ return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, m).replace(/-+$/g, ""); }
-    var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toLowerCase() : "";
+    function w(s, m){ return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").split(/[^A-Za-z0-9]+/).filter(Boolean).map(function(t){ return t[0].toUpperCase() + t.slice(1); }).join("-").slice(0, m).replace(/-+$/g, ""); }
+    var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toUpperCase() : "";
     return [String(lot.auction || "").toLowerCase() + "-" + lot.lot, w(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60), vin].filter(Boolean).join("-");
   }
 

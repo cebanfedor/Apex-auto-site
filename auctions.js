@@ -260,7 +260,8 @@
     const resetGen = () => { clear(gn, gnId); if(gn) setPhV1(gn, "Сначала выберите модель"); };
     msIdsOf("filterMakeIdV2").forEach(id => add(`${L("Марка")}: ${(ms.makes.find(m => String(m.id) === id) || {}).name || id}`, () => msApi.removeMake(id)));
     msIdsOf("filterModelIdV2").forEach(id => add(`${L("Модель")}: ${(ms.models.find(m => String(m.id) === id) || {}).name || id}`, () => msApi.removeModel(id)));
-    if(gnId && gnId.value) add(`${L("Поколение")}: ${(gn && gn.value) || gnId.value}`, resetGen);
+    // Есть ряд чипов поколений (CD391 / CD3) — активное подсвечено там, второй раз в чипах фильтров не дублируем
+    if(gnId && gnId.value && !document.querySelector("#genChipsV1 .genChipV1")) add(`${L("Поколение")}: ${(gn && gn.value) || gnId.value}`, resetGen);
     const range = (title, a, b, fmt) => {
       const x = val(a), y = val(b);
       if(!x && !y) return;
@@ -523,11 +524,11 @@
   }, true);
   // Ссылка = площадка-лот + название + VIN (тот же алгоритм на сервере: server/slug.js)
   function slugWords(s, max){
-    return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
+    return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").split(/[^A-Za-z0-9]+/).filter(Boolean).map(function(t){ return t[0].toUpperCase() + t.slice(1); }).join("-").slice(0, max).replace(/-+$/g, "");
   }
   function lotSlug(lot){
     const title = slugWords(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60);
-    const vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toLowerCase() : "";
+    const vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "").trim()) ? String(lot.vin).trim().toUpperCase() : "";
     return [`${String(lot.auction || "").toLowerCase()}-${lot.lot}`, title, vin].filter(Boolean).join("-");
   }
   // Фид иногда кладёт в titleStatus название машины («2023 BMW 330E») вместо статуса документа — это не документ
@@ -1814,7 +1815,7 @@
   async function updateGenChips(){
     let box = document.getElementById("genChipsV1");
     const modelId = document.getElementById("filterModelIdV2")?.value || "";
-    if(!modelId || /,/.test(modelId)){ if(box) box.remove(); return; }
+    if(!modelId || /,/.test(modelId)){ if(box){ box.remove(); try{ renderActiveFilters(); }catch(e){} } return; }
     if(!box){
       box = document.createElement("div");
       box.id = "genChipsV1";
@@ -1829,10 +1830,11 @@
         genChipsCache[modelId] = r.items || [];
       }
       const gens = genChipsCache[modelId];
-      if(gens.length < 2){ box.remove(); return; }
+      if(gens.length < 2){ box.remove(); try{ renderActiveFilters(); }catch(e){} return; }
       if((document.getElementById("filterModelIdV2")?.value || "") !== modelId) return; // модель сменили, пока грузили
       const activeGen = document.getElementById("filterGenIdV2")?.value || "";
       box.innerHTML = gens.map(g => `<button type="button" class="genChipV1${String(g.id) === activeGen ? " isActiveGenV1" : ""}" data-gen-id="${escapeHtml(String(g.id))}" data-gen-name="${escapeHtml(g.name || "")}">${escapeHtml(g.name || "")}${g.qty ? `<i>${escapeHtml(String(g.qty))}</i>` : ""}</button>`).join("");
+      try{ renderActiveFilters(); }catch(e){}
     }catch(e){ /* чипы — необязательный блок */ }
   }
 

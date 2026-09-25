@@ -1,9 +1,11 @@
-// Человекочитаемые ссылки: /auctions/iaai-45987487-2021-chevrolet-malibu-fwd-lt-1g1zd5st3mf072564
-// и /in-transit/3-2019-lincoln-mkz-rezerve-ii-3ln6l5mu7kr624453. Тот же алгоритм — в auctions.js и transit.js (клиент).
+// Человекочитаемые ссылки: /auctions/iaai-45987487-2021-Chevrolet-Malibu-Fwd-Lt-1G1ZD5ST3MF072564
+// и /in-transit/3-2019-Lincoln-Mkz-Rezerve-Ii-3LN6L5MU7KR624453. Тот же алгоритм — в auctions.js и transit.js (клиент).
 function words(s, max){
-  return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, max).replace(/-+$/g, "");
+  // Каждое слово с заглавной буквы (как у DreamBid: 2022-Tesla-Model-3); регистр остальных букв слова сохраняем (BMW, xDrive)
+  const toks = String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").split(/[^A-Za-z0-9]+/).filter(Boolean).map(t => t[0].toUpperCase() + t.slice(1));
+  return toks.join("-").slice(0, max).replace(/-+$/g, "");
 }
-function vinPart(vin){ const v = String(vin || "").trim(); return /^[A-HJ-NPR-Z0-9]{17}$/i.test(v) ? v.toLowerCase() : ""; }
+function vinPart(vin){ const v = String(vin || "").trim(); return /^[A-HJ-NPR-Z0-9]{17}$/i.test(v) ? v.toUpperCase() : ""; }
 function lotSlug(lot){
   const title = words(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "), 60);
   return [`${String(lot.auction || "").toLowerCase()}-${lot.lot}`, title, vinPart(lot.vin)].filter(Boolean).join("-");
