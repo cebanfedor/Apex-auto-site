@@ -279,6 +279,7 @@
     if(form.querySelector('input[name="smart"]:checked')) add("Feduk Clean Select™", () => { form.querySelector('input[name="smart"]').checked = false; });
     boxes("fuel", "Топливо");
     if(form.querySelector('input[name="phev"]:checked')) add(`${L("Топливо")}: Plug-in ${L("гибрид")}`, () => { form.querySelector('input[name="phev"]').checked = false; });
+    { const bv = Number(form.elements.budget && form.elements.budget.value); if(bv >= 1000) add(`${L("Бюджет под ключ")}: ${L("до")} $${num(bv)}`, () => { form.elements.budget.value = ""; }); }
     if(form.querySelector('input[name="noBan"]:checked')) add(L("Без запрещённых к экспорту"), () => { form.querySelector('input[name="noBan"]').checked = false; });
     boxes("body", "Кузов"); boxes("vehicleType", "Тип техники"); boxes("drive", "Привод"); boxes("transmission", "Коробка");
     boxes("cylinders", "Цилиндры"); boxes("country", "Страна"); boxes("condition", "Состояние");
@@ -943,6 +944,46 @@
     };
   }
 
+  // ---- Цена «под ключ» на карточке и бюджет (25.09.2026) ----
+  const turnkeyCache = new Map();
+  function turnkeyFor(lot, bid){
+    try{
+      const key = `${lot.id}|${bid}`;
+      if(turnkeyCache.has(key)) return turnkeyCache.get(key);
+      const t = Number(calcLotTotal(lot, {bid, insurance:true}).total) || 0;
+      if(turnkeyCache.size > 3000) turnkeyCache.clear();
+      turnkeyCache.set(key, t); return t;
+    }catch(e){ return 0; }
+  }
+  // Максимальная ставка (в валюте лота: CAD у канадских), при которой цена под ключ не выше бюджета; -1 — не влезает даже при нулевой ставке
+  const budgetMaxCache = new Map();
+  function budgetMaxBid(lot, budget){
+    const key = `${lot.id}|${budget}`;
+    if(budgetMaxCache.has(key)) return budgetMaxCache.get(key);
+    let res = -1;
+    try{
+      if(turnkeyFor(lot, 0) <= budget){
+        let lo = 0, hi = Math.ceil(budget * (findCanadaLocation(lot) ? 1.6 : 1));
+        while(hi - lo > 25){ const mid = Math.floor((lo + hi) / 2); if(turnkeyFor(lot, mid) <= budget) lo = mid; else hi = mid; }
+        res = Math.floor(lo / 50) * 50;
+      }
+    }catch(e){ res = 0; }
+    if(budgetMaxCache.size > 3000) budgetMaxCache.clear();
+    budgetMaxCache.set(key, res); return res;
+  }
+  function budgetValue(){
+    const v = Number(document.querySelector('#auctionFiltersForm [name="budget"]')?.value);
+    return Number.isFinite(v) && v >= 1000 ? Math.round(v) : 0;
+  }
+  function budgetApplies(){ return budgetValue() > 0 && state.tab !== "archived" && state.tab !== "favorites"; }
+  // Лот подходит, если текущая ставка (или цена выкупа) не выше потолка ставки под бюджет; лоты без ставок подходят
+  function lotFitsBudget(lot){
+    const b = budgetValue(); if(!b || lotSaleState(lot).isSold) return true;
+    const max = budgetMaxBid(lot, b); if(max < 0) return false;
+    const cur = Number(lot.currentBid) || 0, bn = Number(lot.buyNow) || 0;
+    return cur <= max || (bn > 0 && bn <= max);
+  }
+
   // Пустая выдача: вместо тупика — кнопки «убрать этот фильтр» по каждому активному чипу
   function showRecovery(){
     const box = $("#auctionMessage"); if(!box || state.tab === "favorites") return;
@@ -1332,6 +1373,14 @@
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
             ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
+            ${(() => {
+              if(isSold) return "";
+              const b = budgetValue();
+              if(b > 0 && state.tab !== "archived"){ const mx = budgetMaxBid(lot, b); return mx >= 0 ? `<div class="dbTurnkeyV1 dbTurnkeyBudgetV1">${L("Ставка до")} <b>${findCanadaLocation(lot) ? moneyCad(mx) : money(mx)}</b> ${L("влезает в бюджет")}</div>` : ""; }
+              if(!(Number(priceVal) > 0)) return "";
+              const tk = turnkeyFor(lot, Number(priceVal));
+              return tk > 0 ? `<div class="dbTurnkeyV1" title="${escapeHtml(L("Ориентировочно: ставка, сборы аукциона, доставка, растаможка и услуги Apex до Кишинёва"))}">${L("Под ключ ≈")} <b>${money(tk)}</b></div>` : "";
+            })()}
             <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
           </div>
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
@@ -1785,7 +1834,7 @@
   // (searchFromDb), с честным total и пагинацией, а сортировка работает по всему отфильтрованному каталогу. Раньше эти фильтры
   // шли «клиентскими»: тянули пачки по 100 лотов и сортировали только внутри загруженных — «сортировка по паре страниц».
   // renderCards по-прежнему подстраховывает клиентским фильтром (live-фолбэк, когда база недоступна), но пагинация — серверная.
-  function clientFilterActive(){ return false; }
+  function clientFilterActive(){ return budgetApplies(); }
   function isServerPaging(){ return state.tab !== "favorites" && !clientFilterActive(); }
 
   function renderCards(){
@@ -1793,16 +1842,22 @@
     const sale     = [...document.querySelectorAll('input[name="saleStatus"]:checked')].map(x => x.value);
     const dateFrom = document.querySelector('input[name="auctionDateFrom"]')?.value || "";
     const dateTo   = document.querySelector('input[name="auctionDateTo"]')?.value || "";
-    const filtered = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo));
+    const bOn = budgetApplies();
+    const filtered = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo) && (!bOn || lotFitsBudget(lot)));
     state.filteredCount = filtered.length;
     const start = (state.displayPage - 1) * state.displayPageSize;
     const pageItems = filtered.slice(start, start + state.displayPageSize);
     box.innerHTML = pageItems.map(renderCard).join("");
-    if(sale.length && !isServerPaging()){
+    if(bOn){
+      setResultNum("");
+      $("#auctionResultLabel").textContent = `${L("Показано")} ${filtered.length} (${L("влезает в бюджет под ключ")})`;
+    }else if(sale.length && !isServerPaging()){
       setResultNum("");
       $("#auctionResultLabel").textContent = `${L("Показано")} ${filtered.length} (${L("фильтр статуса продажи")})`;
     }
     renderPagination();
+    // Бюджетный режим: страница после клиентского фильтра может выйти пустой — подгружаем следующие пачки (до 5)
+    if(bOn && state.hasMore && !state.loading && filtered.length < state.displayPageSize && (state._bAuto = (state._bAuto || 0) + 1) <= 5){ state.page++; loadLots({append:true}); }
   }
 
   function renderPagination(){
@@ -2113,7 +2168,7 @@
     // Не блокируем повторный вызов, а перебиваем предыдущий: клик по сортировке
     // или вкладке во время загрузки должен выигрывать, не игнорироваться,
     // и устаревший ответ не должен перетирать свежий (race).
-    if(!append) state.perPage = isServerPaging() ? SERVER_PAGE_SIZE : 100;
+    if(!append){ state.perPage = isServerPaging() ? SERVER_PAGE_SIZE : 100; state._bAuto = 0; }
     const reqId = state.loadSeq = (state.loadSeq || 0) + 1;
     state.loading = true;
     setMessage("");
@@ -2836,6 +2891,8 @@
       ? (lot.vinChecked === false ? L("История по VIN временно недоступна") : lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
       : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L(soldEarlier.length ? "Был продан ранее!" : "Продан снова позже!")}${soldTotal >= 2 ? ` • ${L("Продаж по VIN")}: ${soldTotal}` : ""}${sellerIsInsurance(lot) ? "" : ` • ${L("Перекуп")}`}`
       : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
+    // Перекуп (те же правила, что метка в карточке): менялся номер лота / была продажа / 3+ захода — и продавец не страховая. Блок «Apex рекомендует» такому лоту не показываем.
+    const isResaleLot = !sellerIsInsurance(lot) && (pastSold.length > 0 || pastHistory.some(h => h.lot && String(h.lot) !== curLotNo) || histCount >= 3);
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
     // Первичен seller_type из API (mapfre и др. по имени не распознать).
@@ -2954,7 +3011,7 @@
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
             ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco("warn")}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
-            ${exportBan(lot) ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
+            ${exportBan(lot) || isResaleLot ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">
               <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
@@ -3847,6 +3904,10 @@
       const items = [];
       const sweep = (re, fn) => { s = s.replace(re, (m, ...g) => { const r = fn(m, g); return r ? " " : m; }); };
       const push = (type, label, apply) => items.push({type, label, apply});
+      // --- бюджет «под ключ» (до Кишинёва): «под ключ до 12000», «бюджет 12к», «до 12 000 под ключ» ---
+      const budgetPush = (n, k) => { const v = smParseNum(n, k); if(v < 1000) return false; push("budget", `${L("Бюджет под ключ")}: ${L("до")} ${smMoney(v)}`, () => smSetNum("budget", v)); return true; };
+      sweep(smRe(`${SM_PRE}(?:под\\s+ключ|бюджет|turnkey|all[\\s-]?in|la\\s+cheie|buget|budget)\\s*(?:${SM_TO}|=|:)?\\s*\\$?\\s*${SMN}\\s*(?:\\$|usd|долл[а-я]*)?${SM_POST}`), (m, g) => budgetPush(g[0], g[1]));
+      sweep(smRe(`${SM_PRE}(?:${SM_TO})?\\s*\\$?\\s*${SMN}\\s*(?:\\$|usd|долл[а-я]*)?\\s*(?:под\\s+ключ|turnkey|la\\s+cheie|all[\\s-]?in)${SM_POST}`), (m, g) => budgetPush(g[0], g[1]));
       // --- год со словами ---
       sweep(smRe(`${SM_PRE}(?:не\\s+старше|новее|после|since|from|newer\\s+than|after|с)\\s*(19[89]\\d|20[0-3]\\d)(?!\\d)`), (m, g) => { const y = g[0]; push("year", `${L("Год")}: ${L("от")} ${y}`, () => smSetNum("yearFrom", y)); return true; });
       sweep(smRe(`${SM_PRE}(?:не\\s+новее|старше|раньше|older\\s+than|before)\\s*(19[89]\\d|20[0-3]\\d)(?!\\d)`), (m, g) => { const y = g[0]; push("year", `${L("Год")}: ${L("до")} ${y}`, () => smSetNum("yearTo", y)); return true; });
@@ -4282,6 +4343,7 @@
       }
       loadLots();
     });
+    document.querySelector('#auctionFiltersForm [name="budget"]')?.addEventListener("change", () => { state.page = 1; state.displayPage = 1; $("#auctionFiltersForm").requestSubmit(); });
     document.getElementById("smartSelV1")?.addEventListener("change", () => { $("#auctionFiltersForm").requestSubmit(); });
     // Галочки фильтров (топливо, кузов, привод…) на десктопе применяются сразу; на телефоне — кнопкой «Показать» (панель-шторка).
     let optTimer = null;

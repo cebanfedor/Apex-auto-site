@@ -2331,6 +2331,12 @@ async function searchFromDb(query){
     if(ids.length === 1) p.set(col, `eq.${ids[0]}`);
     else if(ids.length > 1) p.set(col, `in.(${ids.join(",")})`);   // мультивыбор
   }
+  // Бюджет «под ключ» (клиент считает точно): здесь только необходимое условие — ставка или выкуп не выше бюджета минус минимум доставки/сборов
+  const budgetQ = query.get("budget");
+  if(budgetQ && /^\d{4,7}$/.test(budgetQ) ){
+    const cap = Math.max(0, Number(budgetQ) - 1200);
+    ands.push(`or(current_bid.is.null,current_bid.lte.${cap},and(buy_now.gt.0,buy_now.lte.${cap}))`);
+  }
   // Plug-in гибрид (PHEV): фид отдаёт таким машинам просто «hybrid» → распознаём по названию (те же правила, что isPluginHybrid в calc-core.js).
   // «Гибрид» в списке топлива уже включает PHEV, поэтому отдельный фильтр нужен, только если гибрид целиком не выбран.
   if(query.get("phev") === "1"){

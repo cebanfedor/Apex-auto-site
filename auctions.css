@@ -1229,3 +1229,12 @@ body.leadModalOpenV1 { overflow:hidden; }
 .spChipV1.sp-export { background:#fff4d6; color:#7a5800; }
 #quickTimedV1 .tabCountV1 { background:#fde8c8; color:#b45309; }
 #quickTimedV1.active .tabCountV1 { background:rgba(255,255,255,.22); color:#fff; }
+
+/* Цена под ключ на карточке и бюджет */
+.dbTurnkeyV1 { margin-top:4px; font-size:12.5px; color:var(--aMuted); line-height:1.3; }
+.dbTurnkeyV1 b { color:var(--aInk); font-weight:700; }
+.dbTurnkeyBudgetV1 { color:#17794a; }
+.dbTurnkeyBudgetV1 b { color:#17794a; }
+.budgetBoxV1 { display:grid; gap:8px; }
+.budgetBoxV1 p { margin:0; font-size:12px; line-height:1.4; color:var(--aMuted); }
+.spChipV1.sp-budget { background:#e7f6ec; color:#17794a; }
