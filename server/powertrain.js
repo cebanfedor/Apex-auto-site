@@ -89,10 +89,18 @@ function kindFromRules({make, model, year, title, fuelId}){
   return {x:4, src:2};
 }
 
-// Итог для одной строки: vPIC (если есть) → правила
+// Марки, у которых «Hybrid» в названии / все варианты модели по EPA — это полный гибрид (а не 48V mild): у них ошибочный «Mild HEV» из vPIC не берём
+const FULL_HYBRID_MAKERS = /^(toyota|lexus|honda|acura|hyundai|kia|ford|lincoln)$/;
+// Итог для одной строки: vPIC (если есть) → правила. Сверка 25.09.2026: vPIC иногда пишет «Mild HEV» полным гибридам (Elantra Hybrid 2021, Land Cruiser 2026)
 function decide(row, vpicRow){
   const v = kindFromVpic(vpicRow);
-  if(v) return v;
+  if(v){
+    if(v.src === 4 && v.x === 4 && FULL_HYBRID_MAKERS.test(norm(row.make)) && Number(row.year) >= 2016){
+      const fl = epaFlags(row.make, row.model, Number(row.year));
+      if(/\bhybrid\b|\bhev\b/i.test(String(row.title || "")) || (fl && !/[GDE]/.test(fl))) return {x:3, src:2};
+    }
+    return v;
+  }
   return kindFromRules(row);
 }
 

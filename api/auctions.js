@@ -3777,6 +3777,17 @@ async function runPowertrainFill(budgetMs = 42000){
       }
     }catch(_){}
   }
+  // Одноразово: «мягкие» от vPIC (src 4) пересматриваем — у Toyota/Hyundai/Honda/Ford с «Hybrid» в названии это полные гибриды
+  if(useTrim){
+    try{
+      const done = await syncSbFetch(`/alert_meta?k=eq.pt_mild_v3&select=k`);
+      if(Array.isArray(done) && !done.length){
+        await syncSbFetch(`/api_lots?archived=eq.false&fuel_src=eq.4`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({vin_trim:null})});
+        await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=ignore-duplicates,return=minimal"}, body:JSON.stringify({k:"pt_mild_v3", v:{}, updated_at:new Date().toISOString()})});
+        out.requeuedMild = true;
+      }
+    }catch(_){}
+  }
   const since = new Date(Date.now() - 3600e3).toISOString();   // ближайшие торги первыми (ушедшие вчера не нужны)
   while(Date.now() - t0 < budgetMs - 9000 && out.rounds < 30){
     out.rounds++;

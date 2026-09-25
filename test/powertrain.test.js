@@ -112,3 +112,12 @@ test("обрывки комплектации отбрасываются", () =>
   assert.equal(pt.fullTitle("2022 Polestar 2", {trim:"e-", kind:2}), "2022 Polestar 2");
   assert.equal(pt.trimFromVpic({Make:"POLESTAR", Trim:"e-"}), "");
 });
+
+test("vPIC «Mild HEV» у Toyota/Hyundai с Hybrid в названии — всё же полный гибрид; у Audi — бензин", () => {
+  const mild = {Make:"X", Model:"Y", ElectrificationLevel:"Mild HEV (Hybrid Electric Vehicle)", FuelTypePrimary:"Gasoline", FuelTypeSecondary:"Electric"};
+  assert.equal(pt.decide({make:"Hyundai", model:"Elantra", year:2021, title:"2021 Hyundai Elantra Hybrid Limited", fuelId:3}, mild).x, 3);
+  assert.equal(pt.decide({make:"Toyota", model:"Land Cruiser", year:2026, title:"2026 Toyota Land Cruiser Base", fuelId:3}, mild).x, 3);
+  assert.equal(pt.decide({make:"Audi", model:"A4", year:2021, title:"2021 Audi A4 Premium Plus 40", fuelId:3}, mild).x, 4);
+  assert.equal(pt.decide({make:"Mazda", model:"CX-90", year:2025, title:"2025 Mazda Cx-90 Preferred", fuelId:4}, mild).x, 4);
+  assert.equal(pt.decide({make:"Ford", model:"Escape", year:2021, title:"2021 Ford Escape Se", fuelId:4}, mild).x, 4);   // без «Hybrid» и не EPA-гибрид-только → бензин
+});
