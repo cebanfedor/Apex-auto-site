@@ -104,7 +104,9 @@
     var yr = Number(year) || (function(){ var m = s.match(/\b(?:19|20)\d{2}\b/); return m ? Number(m[0]) : 0; })();
     // Явные маркеры PHEV в названии (включая суффикс «h+» у Toyota/Lexus).
     if(/plug[\s-]?in|phev|\b4xe\b|\be[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance|h\+/.test(s)) return true;
-    if(/\bprime\b/.test(s) && mk.indexOf("toyota") !== -1) return true;      // любой Toyota Prime (RAV4/Prius/…)
+    if(/\bprime\b/.test(s) && mk.indexOf("toyota") !== -1) return true;
+    // Audi plug-in: «Q5 E», «A6 TFSI e», «Q8 e-tron» не считаем (это BEV), а «55 TFSI e» — да
+    if(mk.indexOf("audi") !== -1 && /\b(?:a3|a6|a7|a8|q5|q7|q8)\s+(?:tfsi\s+)?e\b/.test(s)) return true;      // любой Toyota Prime (RAV4/Prius/…)
     // BMW/Mercedes: трим «40e», «330e», «530e», «350e», «225xe», «xDrive40e» — цифры+(x)+e.
     if(/bmw|mercedes/.test(s) && /\d{2,3}x?e\b/.test(s)) return true;
     // Mitsubishi Outlander — гибридная версия существует только как PHEV.

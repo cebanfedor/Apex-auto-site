@@ -1080,15 +1080,16 @@
     return d.toLocaleString(loc, opts);
   }
   function dbOdo(text){
-    if(!text) return "";
+    // Пробег не пришёл из фида (пусто/0) — так и пишем, а не прячем строку (Федор 25.09.2026)
+    if(!text) return L("Пробег не указан");
     const num = Number(String(text).replace(/[^\d.]/g, ""));
-    if(!num) return escapeHtml(text);
-    // «1 mi» — заглушка аукциона, а не реальный пробег
-    if(num <= 5) return L("Пробег не указан");
+    if(!num) return L("Пробег не указан");
+    // «1 mi» — заглушка аукциона, а 999 999 — «нет данных» у площадки, а не реальный пробег
+    if(num <= 5 || num >= 999999) return L("Пробег не указан");
     const fmt = v => Math.round(v).toLocaleString("ru-RU");
-    if(/mi/i.test(text)) return `${fmt(num)} ${L("миль")} ≈ ${fmt(num * 1.609)} ${L("км")}`;
+    if(/mi/i.test(text)) return `${fmt(num)} ${L("миль")} ≈ ${fmt(num * 1.609344)} ${L("км")}`;
     // Канадские лоты: одометр уже в км (как на Copart CA) — показываем км, мили справочно
-    return `${fmt(num)} ${L("км")} ≈ ${fmt(num / 1.609)} ${L("миль")}`;
+    return `${fmt(num)} ${L("км")} ≈ ${fmt(num / 1.609344)} ${L("миль")}`;
   }
   // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){

@@ -97,3 +97,13 @@ test("списки комплектаций и дубли не попадают 
   assert.equal(ft("2026 Kia Carnival Hev Sx/Sx+", {trim:"SX, SX Prestige", kind:3}), "2026 Kia Carnival Hev Sx/Sx+");
   assert.equal(pt.trimFromVpic({Make:"TOYOTA", Trim:"LE, SE, XSE"}), "");
 });
+
+test("мягкий гибрид = бензин (правило Федора)", () => {
+  const r = (make, model, year, title, fuelId) => pt.kindFromRules({make, model, year, title, fuelId});
+  assert.deepEqual(r("Audi", "A4", 2021, "2021 Audi A4 Premium Plus 40", 3), {x:4, src:4});   // 40 TFSI mild hybrid; vPIC по VIN молчит
+  assert.deepEqual(r("Audi", "A4", 2021, "2021 Audi A4 Premium Plus 40", 4), {x:4, src:2});   // фид сказал бензин — бензин
+  assert.equal(r("Audi", "Q5", 2021, "2021 Audi Q5 E Premium Plus", 3).x, 5);                   // Q5 e — plug-in
+  assert.equal(r("Toyota", "Camry", 2023, "2023 Toyota Camry Xle Hybrid", 3).x, 3);           // настоящий гибрид
+  assert.equal(r("Toyota", "Prius", 2020, "2020 Toyota Prius L", 4).x, 3);
+  assert.equal(r("Dodge", "Hornet", 2024, "2024 Dodge Hornet R/T Plus Eaw", 3).x, 5);           // у Hornet гибрид бывает только plug-in
+});

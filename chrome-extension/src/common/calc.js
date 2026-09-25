@@ -113,6 +113,8 @@
     var yr = Number(year) || (function(){ var m = s.match(/\b(?:19|20)\d{2}\b/); return m ? Number(m[0]) : 0; })();
     if(/plug[\s-]?in|phev|\b4xe\b|\be[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance|h\+/.test(s)) return true;
     if(/\bprime\b/.test(s) && mk.indexOf("toyota") !== -1) return true;
+    // Audi plug-in: «Q5 E», «A6 TFSI e», «Q8 e-tron» не считаем (это BEV), а «55 TFSI e» — да
+    if(mk.indexOf("audi") !== -1 && /\b(?:a3|a6|a7|a8|q5|q7|q8)\s+(?:tfsi\s+)?e\b/.test(s)) return true;
     if(/bmw|mercedes/.test(s) && /\d{2,3}x?e\b/.test(s)) return true;
     if(mk.indexOf("mitsubishi") !== -1 && /outlander/.test(s)) return true;
     if(mk.indexOf("mazda") !== -1 && /cx[\s-]?70|cx[\s-]?90/.test(s)) return true;

@@ -65,8 +65,14 @@ function kindFromRules({make, model, year, title, fuelId}){
   const phevTitle = calc && calc.isPluginHybrid ? calc.isPluginHybrid(make, model, t, year) : /plug[\s-]?in|phev|4xe|prime|energi/i.test(t);
   const hybridTitle = /\bhybrid\b|\bhv\b|\bhev\b/i.test(t);
   const fl = epaFlags(make, model, Number(year));
-  // В этом году у модели ВСЕ варианты гибридные (Prius, Niro…) — фид мог написать «бензин» по ошибке
-  const allHybrid = !!fl && !/[GDE]/.test(fl);
+  const mk = norm(make);
+  // Мягкий гибрид (48V mild-hybrid: Audi A4/A6/Q5 «40 TFSI», Mercedes EQ Boost, BMW/Land Rover/Volvo «B5», Jeep/Ram eTorque, Mazda CX-90 3.3T…) — по факту обычный бензин,
+  // едет только на ДВС (правило Федора 25.09.2026). EPA такие машины тоже пишет «Hybrid», а vPIC у части VIN молчит, поэтому у этих марок «гибрид» от фида
+  // без явного plug-in признака считаем бензином (fuel_src 4 = mild).
+  const MILD_PRONE = /^(audi|bmw|mercedesbenz|mercedes|landrover|rangerover|jaguar|volvo|maserati|alfaromeo|porsche|genesis|ram|jeep|dodge|chrysler|mini|lamborghini|ferrari|bentley|astonmartin|mazda|cadillac|gmc|chevrolet)$/.test(mk);
+  // Модели, где ВСЕ варианты этого года гибридные (Prius, Niro…) — только у «настоящих» гибридных марок; фид мог написать «бензин» по ошибке
+  const FULL_HYBRID_MAKER = /^(toyota|lexus|honda|acura|hyundai|kia)$/.test(mk);
+  const allHybrid = FULL_HYBRID_MAKER && !!fl && !/[GDE]/.test(fl);
   if(allHybrid && (feed === 3 || feed === 4)){
     if(phevTitle || (fl.includes("P") && !fl.includes("H"))) return {x:5, src:2};
     return {x:3, src:2};
@@ -74,6 +80,7 @@ function kindFromRules({make, model, year, title, fuelId}){
   if(feed === 3){
     if(phevTitle) return {x:5, src:2};
     if(fl.includes("P") && !fl.includes("H")) return {x:5, src:2};
+    if(MILD_PRONE && !/\bhybrid\b|\bhev\b/i.test(t)) return {x:4, src:4};
     return {x:3, src:2};
   }
   if(feed === 1 || feed === 2) return {x:feed, src:2};

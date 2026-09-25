@@ -3766,6 +3766,17 @@ async function runPowertrainFill(budgetMs = 42000){
   if(!sbUp()) return {ok:true, skipped:"db down"};
   if(!(await fuelXReady())) return {ok:true, skipped:"нет колонок fuel_x (миграция 20260925_fuel_x.sql)"};
   const useTrim = await trimColReady();   // есть колонка vin_trim → очередь по ней и пакетная запись через set_pt (иначе как раньше: только fuel_x)
+  // Одноразово (25.09.2026): «гибриды», определённые ЗАПАСНЫМИ правилами (fuel_src=2), считались по старой логике (EPA «Hybrid» = мягкие гибриды Audi/Mercedes…) — ставим в очередь заново
+  if(useTrim){
+    try{
+      const done = await syncSbFetch(`/alert_meta?k=eq.pt_rules_v2&select=k`);
+      if(Array.isArray(done) && !done.length){
+        await syncSbFetch(`/api_lots?archived=eq.false&fuel_src=eq.2&fuel_x=in.(3,5)`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({vin_trim:null})});
+        await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=ignore-duplicates,return=minimal"}, body:JSON.stringify({k:"pt_rules_v2", v:{}, updated_at:new Date().toISOString()})});
+        out.requeued = true;
+      }
+    }catch(_){}
+  }
   const since = new Date(Date.now() - 3600e3).toISOString();   // ближайшие торги первыми (ушедшие вчера не нужны)
   while(Date.now() - t0 < budgetMs - 9000 && out.rounds < 30){
     out.rounds++;
