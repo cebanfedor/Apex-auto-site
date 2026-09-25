@@ -1315,3 +1315,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbCaFlagV1 { display:inline-flex; align-items:center; height:22px; padding:0 5px; border-radius:6px; background:rgba(255,255,255,.96); box-shadow:0 1px 3px rgba(15,23,42,.25); }
 .caFlagV1 { display:inline-block; vertical-align:-1px; border-radius:2px; box-shadow:0 0 0 1px rgba(15,23,42,.12); }
 .dbCaFlagV1 .caFlagV1 { vertical-align:0; }
+
+/* Плашки на фото — одной высоты (площадка, флаг Канады, видео, счётчик фото) */
+.dbBadgesRowV3 > span, .dbPhoto .dbPhotoCount { display:inline-flex; align-items:center; justify-content:center; height:22px; padding:0 8px; box-sizing:border-box; line-height:1; border-radius:6px; }
+.dbBadgesRowV3 > .dbCaFlagV1 { padding:0 6px; }
+.dbBadgesRowV3 .caFlagV1 { width:18px; height:10px; }
