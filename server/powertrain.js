@@ -100,10 +100,16 @@ function teslaConfig(other){
   return "";
 }
 // Комплектация из полей vPIC («XSE», «Lariat», «Long Range Dual Motor» у Tesla)
+// vPIC для части VIN отдаёт не комплектацию, а СПИСОК возможных («LE, SE, XSE, LE w/Convenience Tech pkg», «SEL/LE/GT/BE/SE») — такое не берём
+function cleanTrim(t){
+  t = String(t || "").replace(/\s+/g, " ").trim();
+  if(!t || /[\/,()+;]|\bw\/|\bpkg\b|package/i.test(t) || t.split(" ").length > 4 || t.length > 28) return "";
+  return t;
+}
 function trimFromVpic(d){
   if(!d) return "";
   if(String(d.Make || "").toLowerCase() === "tesla") return teslaConfig(d.OtherEngineInfo);
-  let t = [d.Trim, d.Trim2].filter(Boolean).join(" ").replace(NOISE_TRIM, "").replace(/\s+/g, " ").trim();
+  let t = cleanTrim([d.Trim, d.Trim2].filter(Boolean).join(" ").replace(NOISE_TRIM, ""));
   if(/^(base|standard)$/i.test(t)) t = "";
   t = t.split(" ").map(w => (w.length > 4 && w === w.toUpperCase()) ? w[0] + w.slice(1).toLowerCase() : w).join(" ");
   return t.slice(0, 40);
@@ -119,10 +125,12 @@ function fullTitle(title, {trim, kind} = {}){
     if(w){ toks[toks.length - 1] = w; t = toks.join(" "); }
   }
   // 2. Комплектация из VIN, если её слов ещё нет в названии
+  trim = cleanTrim(trim);   // и то, что уже лежит в базе (старые разборы), тоже проверяем
   if(trim){
     const have = new Set(t.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
-    const need = String(trim).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
-    if(need.length && need.some(x => !have.has(x))) t += " " + trim;
+    // дописываем только недостающие слова: «Long Range» уже есть → добавится «Dual Motor», а не вся комплектация целиком
+    const missing = trim.split(" ").filter(w => w && !have.has(w.toLowerCase()));
+    if(missing.length) t += " " + missing.join(" ");
   }
   // 3. Гибрид / plug-in по VIN
   if(kind === 3 && !/hybri|\bhev\b|\bhv\b/i.test(t)) t += " Hybrid";

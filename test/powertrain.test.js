@@ -88,3 +88,12 @@ test("комплектация из vPIC", () => {
   assert.equal(pt.trimFromVpic({Make:"TESLA", OtherEngineInfo:"Single Motor – Standard / Performance"}), "");
   assert.equal(pt.trimFromVpic({Make:"BMW", Trim:"Base"}), "");
 });
+
+test("списки комплектаций и дубли не попадают в название", () => {
+  const ft = pt.fullTitle;
+  assert.equal(ft("2024 Toyota Corolla Hybrid Se", {trim:"LE, SE, XSE, LE w/Convenience Tech pkg", kind:3}), "2024 Toyota Corolla Hybrid Se");
+  assert.equal(ft("2022 Mitsubishi Outlander Phev", {trim:"SEL/LE/GT/BE/SE", kind:5}), "2022 Mitsubishi Outlander Phev");
+  assert.equal(ft("2021 Tesla Model Y Long Range", {trim:"Long Range Dual Motor", kind:2}), "2021 Tesla Model Y Long Range Dual Motor");
+  assert.equal(ft("2026 Kia Carnival Hev Sx/Sx+", {trim:"SX, SX Prestige", kind:3}), "2026 Kia Carnival Hev Sx/Sx+");
+  assert.equal(pt.trimFromVpic({Make:"TOYOTA", Trim:"LE, SE, XSE"}), "");
+});
