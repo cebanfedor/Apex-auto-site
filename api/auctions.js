@@ -485,6 +485,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     lot:lotNumber,
     url:auctionUrl(auction, iaaiExternalId || lotNumber),
     location,
+    stateCode:String(lot?.location?.state?.code || lot?.location?.state_code || "").toLowerCase(),
     auctionDate:lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "",
     currentBid:preBidSold ? Math.max(currentBid, resolvedFinalBid) : currentBid,
     finalBid:preBidSold ? 0 : resolvedFinalBid,
@@ -4202,7 +4203,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "30";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g15" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g16" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

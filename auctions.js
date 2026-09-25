@@ -861,12 +861,13 @@
       const m = raw.match(/,\s*([a-z]{2})\b\s*$/);
       if(m && CA_PROV_CODES.includes(m[1].toUpperCase())) prov = m[1].toUpperCase();
     }
+    if(!prov && lot.stateCode && CA_PROV_CODES.includes(String(lot.stateCode).toUpperCase())) prov = String(lot.stateCode).toUpperCase();   // «rocky view county, Canada» — код провинции из фида
     // API часто пишет просто «moncton, Canada» — без провинции
     const isCanadaWord = /,\s*canada\s*$/.test(raw);
     if(!prov && !isCanadaWord) return null; // не канадский лот
     let city = (raw.split(",")[0] || "").replace(/[^a-z ]/g, "").trim();
     // Города-сателлиты канадских ярдов → имя площадки в базе
-    const CA_CITY_ALIASES = {"stoney creek":"hamilton", "laval":"montreal", "saint eustache":"eustache", "north york":"toronto", "innisfil":"toronto"};
+    const CA_CITY_ALIASES = {"stoney creek":"hamilton", "laval":"montreal", "saint eustache":"eustache", "north york":"toronto", "innisfil":"toronto", "rocky view county":"calgary", "strathcona county":"edmonton", "surrey":"achbc"};
     city = CA_CITY_ALIASES[city] || city;
     const auc = String(lot.auction || "").toLowerCase().includes("iaai") ? "iaai" : "copart";
     const byA = locs.filter(l => String(l.auction || "").toLowerCase() === auc);
