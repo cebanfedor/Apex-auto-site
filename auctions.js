@@ -3143,10 +3143,11 @@
     const draw = () => {
       const box = document.getElementById("lotQueueV1");
       if(seq !== queueSeq || !box || !info){ if(queueTimer && !box){ clearInterval(queueTimer); queueTimer = null; } return; }
-      const start = Date.parse(info.startsAt), etaAt = start + info.position * 60e3, now = Date.now();
+      const paceSec = String(lot.auction).toLowerCase() === "iaai" ? 30 : 60;   // IAAI ≈ 30 с на лот, Copart ≈ 60 с
+      const start = Date.parse(info.startsAt), etaAt = start + info.position * paceSec * 1000, now = Date.now();
       let line;
       if(now < start){
-        line = `${L("Старт в")} <b>${hm(start)}</b> · ${L("ваш лот")} ≈ <b>${hm(etaAt)}</b> (${L("через")} ${fmtEta(info.position)} ${L("после старта")})`;
+        line = `${L("Старт в")} <b>${hm(start)}</b> · ${L("ваш лот")} ≈ <b>${hm(etaAt)}</b> (${L("через")} ${fmtEta(info.position * paceSec / 60)} ${L("после старта")})`;
       }else{
         const left = Math.ceil((etaAt - now) / 60e3);
         line = `<span class="calcLiveDotV1"></span><b class="lqLiveV1">${L("Идут онлайн-торги")}</b> · ` + (left > 0
