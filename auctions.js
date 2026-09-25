@@ -1650,6 +1650,12 @@
         li.className = shady ? "dbCheck bad" : "dbCheck neutral";
         li.innerHTML = `${dbIco(shady ? "warn" : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${shady ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }
+      // Feduk Clean Select включён, а по истории это перекуп (метка «Перекуп») — карточке здесь не место: убираем (база могла ещё не пометить лот)
+      if(document.querySelector('#auctionFiltersForm input[name="smart"]:checked') && card.querySelector(".dbResaleTagV1")){
+        card.classList.add("dbCardGoneV1");
+        setTimeout(() => { try{ card.remove(); }catch(e){} }, 350);
+        const ix = state.items.indexOf(lot); if(ix >= 0) state.items.splice(ix, 1);
+      }
     });
   }
 

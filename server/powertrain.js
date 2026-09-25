@@ -89,4 +89,45 @@ function decide(row, vpicRow){
   return kindFromRules(row);
 }
 
-module.exports = {vpicBatch, kindFromVpic, kindFromRules, epaFlags, decide, validVin, KIND_NAME};
+// ---- Полное название лота (Федор 25.09.2026: «пиши как на аукционе») ----
+// Площадка режет название (Copart: «2022 Toyota Rav4 Hybri») и часто не пишет комплектацию («2023 Tesla Model Y»). Достраиваем:
+// (1) обрезанное последнее слово, (2) комплектацию из NHTSA vPIC (Trim), (3) тип силовой установки по VIN («Hybrid» / «Plug-in Hybrid»).
+const TITLE_WORDS = ["Hybrid", "Premium", "Limited", "Platinum", "Touring", "Titanium", "Convertible", "Performance", "Adventure", "Wilderness", "Outdoorsman", "Laramie", "Sahara", "Rubicon", "Overland", "Summit", "Denali", "Signature", "Prestige", "Luxury", "Sport", "Elite", "Select", "Preferred", "Reserve", "Ultimate", "Premier", "Inscription", "Momentum", "Executive", "Electric", "Plug-in", "Unlimited", "Standard", "Trailhawk", "Longitude", "Altitude", "Technology", "Advance", "Platinum"];
+const NOISE_TRIM = /\b(FHEV|PHEV|HEV|MHEV|BEV|AWD|FWD|RWD|4WD|2WD|4X4)\b/gi;
+function teslaConfig(other){
+  const o = String(other || "");
+  if(/dual motor/i.test(o)) return /performance/i.test(o) ? "Performance Dual Motor" : /standard|long range/i.test(o) ? "Long Range Dual Motor" : "Dual Motor";
+  return "";
+}
+// Комплектация из полей vPIC («XSE», «Lariat», «Long Range Dual Motor» у Tesla)
+function trimFromVpic(d){
+  if(!d) return "";
+  if(String(d.Make || "").toLowerCase() === "tesla") return teslaConfig(d.OtherEngineInfo);
+  let t = [d.Trim, d.Trim2].filter(Boolean).join(" ").replace(NOISE_TRIM, "").replace(/\s+/g, " ").trim();
+  if(/^(base|standard)$/i.test(t)) t = "";
+  t = t.split(" ").map(w => (w.length > 4 && w === w.toUpperCase()) ? w[0] + w.slice(1).toLowerCase() : w).join(" ");
+  return t.slice(0, 40);
+}
+function fullTitle(title, {trim, kind} = {}){
+  let t = String(title || "").replace(/\s+/g, " ").trim();
+  if(!t) return t;
+  // 1. Обрезанное последнее слово: «Hybri» → «Hybrid»
+  const toks = t.split(" ");
+  const last = toks[toks.length - 1];
+  if(t.length >= 20 && last.length >= 4 && !TITLE_WORDS.some(w => w.toLowerCase() === last.toLowerCase())){
+    const w = TITLE_WORDS.find(x => x.length > last.length && x.toLowerCase().startsWith(last.toLowerCase()));
+    if(w){ toks[toks.length - 1] = w; t = toks.join(" "); }
+  }
+  // 2. Комплектация из VIN, если её слов ещё нет в названии
+  if(trim){
+    const have = new Set(t.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+    const need = String(trim).toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    if(need.length && need.some(x => !have.has(x))) t += " " + trim;
+  }
+  // 3. Гибрид / plug-in по VIN
+  if(kind === 3 && !/hybri|\bhev\b|\bhv\b/i.test(t)) t += " Hybrid";
+  if(kind === 5 && !/plug|phev|hybri|energi|prime|recharge|4xe|\d{2,3}x?e\b/i.test(t)) t += " Plug-in Hybrid";
+  return t;
+}
+
+module.exports = {trimFromVpic, fullTitle, teslaConfig, vpicBatch, kindFromVpic, kindFromRules, epaFlags, decide, validVin, KIND_NAME};

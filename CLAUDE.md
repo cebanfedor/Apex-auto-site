@@ -665,3 +665,11 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   (`server/og-lot.js`, `og-catalog.js`, `og-track.js` — словари ru/ro/en). Новая страница/строка текста = запись в `server/og-pages.js` + `node scripts/build-og-pages.js` + бамп `?v=` картинок.
   ⚠️ `/tracking` с `?lang=` обрабатывает `tracking-page.js` сам (в page-meta не добавлять). В шрифте карточек нет «≈», «№», «→».
   Главная `/?lang=ro|en`: корень отдаёт статический index.html раньше rewrites, поэтому для превью-ботов (UA Telegram/WhatsApp/Facebook/…) — redirect на `/api/page-meta?page=index`; люди видят обычную главную.
+
+## Названия лотов «как на аукционе» и метка перекупа (25.09.2026)
+- Площадка отдаёт название усечённым/без комплектации: Copart `ld` = «2022 TOYOTA RAV4 HYBRI» (проверено `copart.com/public/data/lotdetails/solr/<лот>`, публичный JSON; с сервера Vercel может резаться Incapsula), «2023 TESLA MODEL Y» без Long Range/Dual Motor.
+  `powertrain.fullTitle(title, {trim, kind})` достраивает: обрезанное последнее слово (`TITLE_WORDS`: «Hybri»→«Hybrid»), комплектацию из vPIC (`trimFromVpic`: Trim; у Tesla по `OtherEngineInfo`: Dual Motor + Standard/Long Range → «Long Range Dual Motor», Performance → «Performance Dual Motor», одномоторные — без добавки),
+  и тип по VIN («Hybrid»/«Plug-in Hybrid», mild — нет). Страница лота — сразу (`attachPowertrain`, поле `lot.titleFeed` = исходное); списки — из колонки `api_lots.vin_trim` (миграция `20260925_vin_trim.sql` + функция `set_pt`; очередь ptfill теперь по `vin_trim is null`, пересчитывает и `fuel_x`).
+  ⚠️ Соответствие «Dual Motor – Standard» = Long Range — предположение (для 2020–2023 Model 3/Y dual motor без Performance = Long Range); проверить на живых лотах.
+- Метка перекупа `resaleLevel` теперь учитывает продавца (как карточка): у НЕ страховой (и не проката) 1 = менялся номер лота или 3+ выставлений; у страховой — только 8+ выставлений или 3+ номеров; 2 = уже продавался. Раньше порог был 8 у всех, а карточка показывала «Перекуп» с 3 — при включённом Clean Select такие лоты оставались.
+  Метки, поставленные до `RESALE_RULES_AT`, пересчитываются кроном resalecheck (ближайшие торги первыми). Клиент при включённом Clean Select сам убирает карточки с меткой «Перекуп» (`updateCardVinHistory`).

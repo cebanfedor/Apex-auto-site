@@ -2178,7 +2178,8 @@ async function searchFromDb(query){
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const p = new URLSearchParams();
   const fxOk = await fuelXReady();
-  p.set("select", fxOk ? "payload,fuel_x,fuel_src" : "payload");
+  const trimOk = fxOk && await trimColReady();
+  p.set("select", fxOk ? "payload,fuel_x,fuel_src" + (trimOk ? ",vin_trim" : "") : "payload");
   const ands = [];
   // Страховка от Encar/Кореи, попавшей в базу до доменного фильтра синка
   ands.push("or(country.neq.kr,country.is.null)");
@@ -2643,7 +2644,7 @@ async function searchFromDb(query){
   }
   return {
     _db:true,
-    items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } return l; }),
+    items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } if(r.vin_trim !== undefined && r.vin_trim !== null){ l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind}); } return l; }),
     total,
     page,
     perPage,
@@ -3682,12 +3683,20 @@ async function takeMetaLock(k, ms){
   }).catch(() => null);
   return Array.isArray(rows) && rows.length === 1;
 }
+// Страховая/прокат — тот же список, что sellerIsInsurance/isRentalName в auctions.js
+const INS_SELLER_RE = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre|\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
+const sellerIsIns = s => /insurance/i.test(String(s.sellerType || "")) || INS_SELLER_RE.test(String(s.seller || ""));
+// Метка перекупа для Clean Select (правила Федора, едины с карточкой): 2 — уже продавался; 1 — подозрительный: у НЕ страховой менялся номер лота или 3+ выставлений
+// (страховая выставляет тот же лот 2–4 раза — норма; у неё 1 только при 8+ выставлениях или 3+ номерах лота). Продавец неизвестен коду (нет полей) — старые мягкие пороги.
 function resaleLevel(stub, lotNo, saleIso){
   const curDay = String(saleIso || "").slice(0, 10);
   const past = (stub.priceHistory || []).filter(e => !e.current && !(curDay && String(e.date).slice(0, 10) === curDay) && !(Date.parse(e.date) > Date.now()));
   const soldBefore = past.some(e => e.status === "sold");
   const lots = new Set(past.map(e => e.lot).filter(Boolean)); lots.add(String(lotNo));
-  return soldBefore ? 2 : (past.length >= 8 || lots.size >= 3) ? 1 : 0;
+  if(soldBefore) return 2;
+  const sellerKnown = stub.seller !== undefined || stub.sellerType !== undefined;
+  if(sellerKnown && !sellerIsIns(stub)) return (lots.size >= 2 || past.length >= 3) ? 1 : 0;
+  return (past.length >= 8 || lots.size >= 3) ? 1 : 0;
 }
 // Окно «идут торги» для текущих вкладок: лот с датой старта старше 30 мин уже почти наверняка продан (лоты аукциона идут по одному), а проверить каждый нельзя.
 const LIVE_GRACE_MS = 30 * 60e3;
@@ -3740,6 +3749,15 @@ async function runBuyNowCheck(budgetMs = 44000){
   return out;
 }
 
+let trimColState = {ok:false, at:0};
+async function trimColReady(){
+  const ttl = trimColState.ok ? 600e3 : 60e3;
+  if(Date.now() - trimColState.at < ttl) return trimColState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=vin_trim&limit=1`); ok = true; }catch(_){ ok = false; }
+  trimColState = {ok, at:Date.now()};
+  return ok;
+}
 // ---- Тип силовой установки по VIN (NHTSA vPIC) → api_lots.fuel_x (см. server/powertrain.js) ----
 const ptMemo = new Map();   // VIN → {x, src, at}: страница лота и повторные листинги не ходят в vPIC каждый раз
 async function runPowertrainFill(budgetMs = 42000){
@@ -3747,10 +3765,11 @@ async function runPowertrainFill(budgetMs = 42000){
   const out = {ok:true, done:0, vpic:0, rules:0, mild:0, failBatches:0, rounds:0};
   if(!sbUp()) return {ok:true, skipped:"db down"};
   if(!(await fuelXReady())) return {ok:true, skipped:"нет колонок fuel_x (миграция 20260925_fuel_x.sql)"};
+  const useTrim = await trimColReady();   // есть колонка vin_trim → очередь по ней и пакетная запись через set_pt (иначе как раньше: только fuel_x)
   const since = new Date(Date.now() - 3600e3).toISOString();   // ближайшие торги первыми (ушедшие вчера не нужны)
   while(Date.now() - t0 < budgetMs - 9000 && out.rounds < 30){
     out.rounds++;
-    const rows = await syncSbFetch(`/api_lots?select=id,vin,title,year,fuel_id,make:payload->>make,model:payload->>model&fuel_x=is.null&archived=eq.false&year=gte.2005&sale_date=gte.${encodeURIComponent(since)}&order=sale_date.asc&limit=200`).catch(() => null);
+    const rows = await syncSbFetch(`/api_lots?select=id,vin,title,year,fuel_id,make:payload->>make,model:payload->>model&${useTrim ? "vin_trim=is.null" : "fuel_x=is.null"}&archived=eq.false&year=gte.2005&sale_date=gte.${encodeURIComponent(since)}&order=sale_date.asc&limit=200`).catch(() => null);
     if(!Array.isArray(rows) || !rows.length) break;
     const vins = [...new Set(rows.map(r => String(r.vin || "").toUpperCase()).filter(powertrain.validVin))];
     const chunks = []; for(let i = 0; i < vins.length; i += 50) chunks.push(vins.slice(i, i + 50));
@@ -3758,7 +3777,7 @@ async function runPowertrainFill(budgetMs = 42000){
     const byVin = new Map(); let failed = false;
     maps.forEach(m => { if(!m) failed = true; else m.forEach((v, k) => byVin.set(k, v)); });
     if(failed) out.failBatches++;
-    const groups = new Map();
+    const groups = new Map(); const batch = {};
     for(const r of rows){
       const vin = String(r.vin || "").toUpperCase();
       const valid = powertrain.validVin(vin);
@@ -3766,9 +3785,17 @@ async function runPowertrainFill(budgetMs = 42000){
       if(valid && failed && !byVin.has(vin)) continue;
       const d = powertrain.decide({make:r.make, model:r.model, year:r.year, title:r.title, fuelId:r.fuel_id}, valid ? byVin.get(vin) : null);
       if(d.src === 1) out.vpic++; else if(d.src === 4){ out.vpic++; out.mild++; } else out.rules++;
+      if(useTrim){ batch[r.id] = {x:d.x, s:d.src, t:valid ? powertrain.trimFromVpic(byVin.get(vin)) : ""}; continue; }
       const k = d.x + "|" + d.src;
       if(!groups.has(k)) groups.set(k, []);
       groups.get(k).push(r.id);
+    }
+    if(useTrim){
+      const ids = Object.keys(batch);
+      if(!ids.length) break;
+      try{ await syncSbFetch("/rpc/set_pt", {method:"POST", body:JSON.stringify({p:batch})}); out.done += ids.length; }catch(e){ out.patchErr = (out.patchErr || 0) + 1; out.err = String(e.message || e).slice(0, 100); break; }
+      if(failed) break;
+      continue;
     }
     if(!groups.size) break;
     for(const [k, ids] of groups){
@@ -3796,11 +3823,13 @@ async function attachPowertrain(lot){
         const m = await powertrain.vpicBatch([vin], 6000);
         const raw = m && m.get(vin);
         d = powertrain.kindFromVpic(raw);
+        if(d) d.trim = powertrain.trimFromVpic(raw);
         if(d){ ptMemo.set(vin, {d, at:Date.now()}); if(ptMemo.size > 2000) ptMemo.clear(); }
       }
     }
     if(!d) d = powertrain.kindFromRules({make:lot.make, model:lot.model, year:lot.year, title:lot.title, fuelId:{diesel:1, electric:2, hybrid:3, gasoline:4}[String(lot.fuel || "").toLowerCase()] || (/hybrid/i.test(String(lot.fuel)) ? 3 : 4)});
     lot.fuelKind = d.x; lot.fuelSrc = d.src; if(d.level) lot.powertrainLevel = d.level;
+    if(lot.title){ lot.titleFeed = lot.title; lot.title = powertrain.fullTitle(lot.title, {trim:d.trim || "", kind:d.x}); }
     // заодно исправляем строку в базе (если колонки есть)
     if(lot.id && Number(lot.statusId) !== 6 && await fuelXReady()){
       syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}&archived=eq.false`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({fuel_x:d.x, fuel_src:d.src})}).catch(() => {});
@@ -3859,6 +3888,7 @@ async function runEngineFill(){
   return out;
 }
 
+const RESALE_RULES_AT = "2026-09-25T14:00:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
 async function runResaleCheck(budgetMs){
   const t0 = Date.now();
   const out = {ok:true, checked:0, clean:0, relisted:0, resold:0, skipped:0, fail:0};
@@ -3874,7 +3904,7 @@ async function runResaleCheck(budgetMs){
   const since = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
   let rows;
   try{
-    rows = await syncSbFetch(`/api_lots?archived=eq.false&resale_at=is.null&vin=not.is.null&year=gte.2017&sale_date=gte.${since}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue&order=sale_date.asc&limit=300`);
+    rows = await syncSbFetch(`/api_lots?archived=eq.false&or=(resale_at.is.null,resale_at.lt.${RESALE_RULES_AT})&vin=not.is.null&year=gte.2017&sale_date=gte.${since}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue,seller:payload-%3E%3Eseller,sellerType:payload-%3E%3EsellerType&order=sale_date.asc&limit=300`);
   }catch(e){ return {ok:false, error:String(e.message || e).slice(0, 160)}; }
   const buckets = {0:[], 1:[], 2:[]};
   const storedMap = {};
@@ -3893,7 +3923,7 @@ async function runResaleCheck(budgetMs){
       const vin = String(r.vin || "").toUpperCase();
       if(!isValidVin(vin)){ buckets[0].push(r.id); continue; }
       if((resaleFailedVins.get(vin) || 0) > Date.now()){ out.skipped++; continue; }
-      const stub = {vin, lot:String(r.lot || ""), auctionDate:r.sale_date || "", estimatedRetailValue:Number(r.erv) || 0, buyNow:Number(r.buy_now) || 0, priceHistory:[]};
+      const stub = {vin, lot:String(r.lot || ""), auctionDate:r.sale_date || "", estimatedRetailValue:Number(r.erv) || 0, buyNow:Number(r.buy_now) || 0, priceHistory:[], seller:r.seller || "", sellerType:r.sellertype || r.sellerType || ""};
       if(Array.isArray(storedMap[vin])){ stub.priceHistory = storedMap[vin]; stub._vinOk = true; out.fromStore = (out.fromStore || 0) + 1; }
       else await attachVinHistory(stub);
       if(!stub._vinOk){ out.fail++; resaleFailedVins.set(vin, Date.now() + 10 * 60e3); if(out.fail >= 4) stop = true; continue; }
@@ -4264,8 +4294,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "31";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g17" : "";   // бамп при смене таблицы поколений и формы detail
+  const SEARCH_CACHE_VER = "32";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g18" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

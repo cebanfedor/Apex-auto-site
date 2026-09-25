@@ -66,3 +66,25 @@ test("validVin", () => {
   assert.ok(!pt.validVin("JM3KKEHD2S122393"));
   assert.ok(!pt.validVin("YAMC0412F222"));
 });
+
+test("полное название: усечённое слово, комплектация по VIN, гибрид", () => {
+  const ft = pt.fullTitle;
+  assert.equal(ft("2022 Toyota Rav4 Hybri", {trim:"XSE", kind:3}), "2022 Toyota Rav4 Hybrid XSE");
+  assert.equal(ft("2022 Ford Escape Titanium", {trim:"Titanium", kind:3}), "2022 Ford Escape Titanium Hybrid");
+  assert.equal(ft("2024 Ford Maverick Lariat", {trim:"Lariat", kind:3}), "2024 Ford Maverick Lariat Hybrid");
+  assert.equal(ft("2023 Tesla Model Y", {trim:"Long Range Dual Motor", kind:2}), "2023 Tesla Model Y Long Range Dual Motor");
+  assert.equal(ft("2023 Tesla Model 3", {trim:"", kind:2}), "2023 Tesla Model 3");
+  assert.equal(ft("2018 BMW 530e Iperformance", {trim:"", kind:5}), "2018 BMW 530e Iperformance");
+  assert.equal(ft("2014 BMW X3 xDrive28i", {trim:"xDrive28i", kind:4}), "2014 BMW X3 xDrive28i");
+  assert.equal(ft("2021 Kia Sorento", {trim:"", kind:5}), "2021 Kia Sorento Plug-in Hybrid");
+  assert.equal(ft("2020 Toyota Camry Le", {trim:"", kind:4}), "2020 Toyota Camry Le");
+});
+test("комплектация из vPIC", () => {
+  assert.equal(pt.trimFromVpic({Make:"TOYOTA", Trim:"XSE"}), "XSE");
+  assert.equal(pt.trimFromVpic({Make:"FORD", Trim:"Titanium FHEV"}), "Titanium");
+  assert.equal(pt.trimFromVpic({Make:"FORD", Trim:"LARIAT"}), "Lariat");
+  assert.equal(pt.trimFromVpic({Make:"TESLA", OtherEngineInfo:"Dual Motor – Standard"}), "Long Range Dual Motor");
+  assert.equal(pt.trimFromVpic({Make:"TESLA", OtherEngineInfo:"Dual Motor - Performance"}), "Performance Dual Motor");
+  assert.equal(pt.trimFromVpic({Make:"TESLA", OtherEngineInfo:"Single Motor – Standard / Performance"}), "");
+  assert.equal(pt.trimFromVpic({Make:"BMW", Trim:"Base"}), "");
+});
