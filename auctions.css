@@ -1255,3 +1255,4 @@ body.leadModalOpenV1 { overflow:hidden; }
 .lqLineV1 .calcLiveDotV1 { display:inline-block; vertical-align:middle; margin-right:6px; }
 .lqLineV1 b { color:var(--aInk); font-weight:700; }
 .lqLineV1 .lqLiveV1 { color:var(--aRed); }
+.lqLineV1 b { display:inline !important; }
