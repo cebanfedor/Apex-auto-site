@@ -34,7 +34,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v442">
-  <link rel="stylesheet" href="/auctions.css?v=v528">
+  <link rel="stylesheet" href="/auctions.css?v=v529">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -349,7 +349,9 @@
             <button id="auctionSearchBtn" type="button">Найти</button>
             <button id="searchSettingsBtn" class="filterDrawerBtnV1 desktopSettingsV1" type="button">Настройки</button>
           </div>
-          <div id="activeFiltersV1" class="activeFiltersV1" hidden></div>
+          <div id="filterBarV1" class="filterBarV1">
+            <div id="activeFiltersV1" class="activeFiltersV1" hidden></div>
+          </div>
           <div id="savedPanelV1" class="savedPanelV1" hidden></div>
           <div id="auctionMessage" class="auctionMessageV1" hidden></div>
           <div id="auctionCards" class="auctionCardsV1"></div>
@@ -424,7 +426,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v505" defer></script>
-  <script src="/auctions.js?v=auctions-v310" defer></script>
+  <script src="/auctions.js?v=auctions-v311" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

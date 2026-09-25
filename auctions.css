@@ -1301,3 +1301,11 @@ body.leadModalOpenV1 { overflow:hidden; }
   body.filtersOpenV1::before { z-index:1000; }
   body.filtersOpenV1 .auctionFiltersV1 { z-index:1001; }
 }
+
+/* Чипы фильтров, кнопки и поколения — одной строкой (переносится только когда не хватает ширины) */
+.filterBarV1 { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0; }
+.filterBarV1:has(> :not([hidden])) { margin:0 0 14px; }
+.filterBarV1 > .activeFiltersV1:not([hidden]), .filterBarV1 > .genChipsV1 { display:contents; }
+.filterBarV1 .activeFiltersV1 { margin:0; }
+.filterBarV1 .genChipsV1 { margin:0; }
+.filterBarV1 > .genChipsV1 .genChipV1:first-child { margin-left:6px; }

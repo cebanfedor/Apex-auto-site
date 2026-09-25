@@ -1818,9 +1818,9 @@
       box = document.createElement("div");
       box.id = "genChipsV1";
       box.className = "genChipsV1";
-      const cards = document.getElementById("auctionCards");
-      if(!cards) return;
-      cards.parentNode.insertBefore(box, cards);
+      const bar = document.getElementById("filterBarV1");   // в одной строке с чипами фильтров
+      if(!bar) return;
+      bar.appendChild(box);
     }
     try{
       if(!genChipsCache[modelId]){
