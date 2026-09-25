@@ -2350,7 +2350,8 @@
     const buyNowPrice = !isSold ? Number(lot.buyNow || 0) : 0;
     const currOnly = Number(lot.currentBid || 0);
     const topBidValue = isSold ? initialBid : currOnly;
-    return `<aside class="lotCalcV2">
+    const banned = exportBan(lot);
+    return `<aside class="lotCalcV2${banned ? " calcBannedV1" : ""}">
       ${isSold && (effectiveFinalBid || hidePrice) ? `
       <div class="calcSoldCardV1">
         <span>${L("Продано")}</span>
@@ -2369,6 +2370,7 @@
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
       ${!isSold ? `<div id="lotQueueV1" class="lotQueueV1" hidden></div>` : ""}
+      ${banned && !isSold ? `<div class="calcBanNoteV1"><p>${L("Этот лот нельзя вывезти в Молдову, поэтому расчёт не делаем. Подберём похожую машину, которую можно привезти.")}</p><button type="button" class="dbBtnPrimary" data-lead="${escapeHtml(lot.id)}">${L("Подобрать похожую")}</button></div>` : ""}
       ${isSold ? `<div class="soldPitchV1">
         <p>${L("Этот лот уже продан. Но мы подберём похожую машину на актуальных аукционах и привезём под ключ.")}</p>
         <button type="button" class="dbBtnPrimary soldPitchCtaV1" data-lead="${escapeHtml(lot.id)}">${L("Подобрать похожую")}</button>
@@ -2980,7 +2982,7 @@
           <span class="lotStickyTitleV1">${escapeHtml([lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" "))}</span>
           <span class="lotStickyTotalV1" id="lotStickyTotalV1" hidden><small>${L("Под ключ в Кишинёве")} ≈</small> <b data-no-i18n="true"></b></span>
         </button>
-        <button type="button" class="dbBtnPrimary lotStickyBtnV1" data-lead="${escapeHtml(lot.id)}">${s ? L("Подобрать похожую") : L("Оставить заявку")}</button>
+        <button type="button" class="dbBtnPrimary lotStickyBtnV1" data-lead="${escapeHtml(lot.id)}">${s || exportBan(lot) ? L("Подобрать похожую") : L("Оставить заявку")}</button>
       </div>`; })()}
     `;
     state.selectedLot = lot;
@@ -3759,6 +3761,7 @@
     // Строка поиска разбирается на фильтры: марка/модель, топливо, повреждение, штат/провинция, год/диапазон, объём двигателя, кузов, привод, КПП, площадка, страна.
     // Всё, что не распознано, остаётся текстом для поиска по названию (все слова должны встретиться). Распознанное превращается в обычные фильтры (чипы, сохранение, уведомления).
     const sN = s => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/g, "");
+    const SM_STATE_RU = {"алабама":"alabama", "аляска":"alaska", "аризона":"arizona", "арканзас":"arkansas", "калифорния":"california", "колорадо":"colorado", "коннектикут":"connecticut", "делавэр":"delaware", "флорида":"florida", "джорджия":"georgia", "грузия":"georgia", "гавайи":"hawaii", "айдахо":"idaho", "иллинойс":"illinois", "индиана":"indiana", "айова":"iowa", "канзас":"kansas", "кентукки":"kentucky", "луизиана":"louisiana", "мэн":"maine", "мэриленд":"maryland", "массачусетс":"massachusetts", "мичиган":"michigan", "миннесота":"minnesota", "миссисипи":"mississippi", "миссури":"missouri", "монтана":"montana", "небраска":"nebraska", "невада":"nevada", "ньюгэмпшир":"newhampshire", "ньюджерси":"newjersey", "ньюмексико":"newmexico", "ньюйорк":"newyork", "севернаякаролина":"northcarolina", "севернаядакота":"northdakota", "огайо":"ohio", "оклахома":"oklahoma", "орегон":"oregon", "пенсильвания":"pennsylvania", "родайленд":"rhodeisland", "южнаякаролина":"southcarolina", "южнаядакота":"southdakota", "теннесси":"tennessee", "техас":"texas", "юта":"utah", "вермонт":"vermont", "виргиния":"virginia", "вашингтон":"washington", "западнаявиргиния":"westvirginia", "висконсин":"wisconsin", "вайоминг":"wyoming", "онтарио":"ontario", "квебек":"quebec", "альберта":"alberta", "манитоба":"manitoba", "саскачеван":"saskatchewan", "новаяшотландия":"novascotia", "ньюбрансуик":"newbrunswick", "британскаяколумбия":"britishcolumbia", "ньюфаундленд":"newfoundlandandlabrador"};
     const SM_FUEL = {gasoline:4, petrol:4, gas:4, benzin:4, "бензин":4, "бензиновый":4, "бензиновая":4, diesel:1, "дизель":1, "дизельный":1, hybrid:3, phev:3, plugin:3, "гибрид":3, "гибридный":3, electric:2, ev:2, "электро":2, "электромобиль":2, "электрический":2, "электрокар":2};
     const SM_FUEL_RU = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин"};
     const SM_DMG = [
@@ -3913,7 +3916,7 @@
           if(!mk && len === 1 && !aliasTarget){ const fz = smFuzzyMake(nm, makeIdx); if(fz){ push("make", `${L("Марка")}: ${fz.name} ≈`, () => smAddMake(fz), {makeId:String(fz.id)}); consumed = 1; break; } }
           if(nm === "rangerover" && makeIdx.get("landrover")){ const lr = makeIdx.get("landrover"); push("make", `${L("Марка")}: ${lr.name}`, () => smAddMake(lr), {makeId:String(lr.id)}); leftover.push("range", "rover"); consumed = len; break; }
           // штат/провинция (полное название, до 3 слов; двухбуквенный код — только заглавными)
-          const st = stateByName.get(nm) || (len === 1 && /^[A-Z]{2}$/.test(orig) ? stateByCode.get(low) : null);
+          const st = stateByName.get(SM_STATE_RU[nm] || nm) || (len === 1 && /^[A-Z]{2}$/.test(orig) ? stateByCode.get(low) : null);
           if(st){ push("state", `${L("Штат / провинция")}: ${st.name.replace(/\b\w/g, c => c.toUpperCase())}`, () => smSetState(st)); consumed = len; break; }
           if(len === 2 && nm === "allover"){ push("damage", `${L("Повреждение")}: ${L("Весь кузов")}`, () => smAddDamage("All Over")); consumed = len; break; }
           if(len > 1) continue;

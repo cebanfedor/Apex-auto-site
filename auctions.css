@@ -1221,3 +1221,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 .rcChipV1:hover { border-color:var(--aRed); color:var(--aRed); }
 .rcResetV1 { background:var(--aRed); border-color:var(--aRed); color:#fff; }
 @media (max-width:640px) { .auctionSearchRowV2 .spWrapV1 { flex:1 1 0; } }
+
+/* Лот с запретом экспорта: расчёт и «Оставить заявку» не показываем */
+.calcBannedV1 .calcStepperV2, .calcBannedV1 .calcOptsV2, .calcBannedV1 #lotCalcBody, .calcBannedV1 .calcGrandV2, .calcBannedV1 .calcRatesV2, .calcBannedV1 .calcEtaV1, .calcBannedV1 .calcCtasV2, .calcBannedV1 .calcTopCtaV1, .calcBannedV1 .calcBuyNowV1 { display:none !important; }
+.calcBanNoteV1 { display:grid; gap:12px; padding:14px; border-radius:12px; background:#fff8dc; border:1px solid #f0d675; }
+.calcBanNoteV1 p { margin:0; font-size:14px; line-height:1.45; color:#5c4a00; }
