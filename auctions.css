@@ -1247,3 +1247,10 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPriceWrap > .dbForecastInPriceV1[hidden] { display:none; }
 .dbPriceWrap > .dbForecastInPriceV1[data-pending] { min-height:16px; justify-content:center; }
 .fuelNoteV1 { margin:8px 0 0; font-size:12px; line-height:1.4; color:var(--aMuted); }
+
+/* Онлайн-торги — компактно (Федор 25.09.2026: «слишком большой блок») */
+.lotQueueV1 { padding:9px 12px; gap:3px; margin:8px 0; border-radius:12px; }
+.lqHeadV1 { font-size:10.5px; }
+.lqLineV1 { font-size:13px; line-height:1.4; color:var(--aInk2); display:flex; align-items:center; flex-wrap:wrap; gap:0 4px; }
+.lqLineV1 b { color:var(--aInk); font-weight:700; }
+.lqLineV1 .lqLiveV1 { color:var(--aRed); }

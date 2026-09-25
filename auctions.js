@@ -3144,23 +3144,17 @@
       const box = document.getElementById("lotQueueV1");
       if(seq !== queueSeq || !box || !info){ if(queueTimer && !box){ clearInterval(queueTimer); queueTimer = null; } return; }
       const start = Date.parse(info.startsAt), etaAt = start + info.position * 60e3, now = Date.now();
-      let big, sub, pct = 0;
+      let line;
       if(now < start){
-        big = `<div class="lqBigV1"><b>${L("Торги начнутся в")} ${hm(start)}</b></div>`;
-        sub = `<div class="lqEtaV1">${L("Ваш лот примерно через")} ${fmtEta(info.position)} ${L("после старта")} (≈ ${hm(etaAt)})</div>`;
+        line = `${L("Старт в")} <b>${hm(start)}</b> · ${L("ваш лот")} ≈ <b>${hm(etaAt)}</b> (${L("через")} ${fmtEta(info.position)} ${L("после старта")})`;
       }else{
         const left = Math.ceil((etaAt - now) / 60e3);
-        pct = Math.min(100, Math.max(2, Math.round((now - start) / (etaAt - start) * 100)));
-        big = `<div class="lqBigV1 lqNowV1"><span class="calcLiveDotV1"></span><b>${L("Идут онлайн-торги")}</b></div>`;
-        sub = left > 0
-          ? `<div class="lqEtaV1">${L("Примерно")} ${fmtEta(left)} ${L("до вашего лота")} (≈ ${hm(etaAt)})</div>`
-          : `<div class="lqEtaV1">${L(left > -4 ? "Ваш лот сейчас в эфире" : "Лот в эфире или уже сыгран")}</div>`;
+        line = `<span class="calcLiveDotV1"></span><b class="lqLiveV1">${L("Идут онлайн-торги")}</b> · ` + (left > 0
+          ? `${L("до вашего лота")} ≈ ${fmtEta(left)} (${hm(etaAt)})`
+          : L(left > -4 ? "ваш лот сейчас в эфире" : "лот в эфире или уже сыгран"));
       }
       box.hidden = false;
-      box.innerHTML = `<div class="lqHeadV1"><span>${L("Онлайн-торги")}</span><span>${L("Линия")} ${escapeHtml(info.lane)} · №${escapeHtml(String(info.runNo))}</span></div>
-        ${big}${sub}
-        <div class="lqBarV1"><i style="width:${pct}%"></i></div>
-        <p class="lqNoteV1">${L("Расчёт приблизительный: в среднем один лот в минуту.")}</p>`;
+      box.innerHTML = `<div class="lqHeadV1"><span>${L("Онлайн-торги")}</span><span>${L("Линия")} ${escapeHtml(info.lane)} · №${escapeHtml(String(info.runNo))}</span></div><div class="lqLineV1">${line}</div>`;
     };
     api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`).then(r => {
       if(seq !== queueSeq) return;
