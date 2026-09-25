@@ -3,18 +3,17 @@
 <head>
   <meta charset="utf-8">
   <script>(function(){var k="apexAutoLang",q=new URLSearchParams(location.search).get("lang")||"",s=localStorage.getItem(k)||"",raw=(q||s).toLowerCase(),l=raw.startsWith("ro")||raw.startsWith("mo")?"ro":raw.startsWith("en")?"en":"ru";if(l!=="ru")document.documentElement.classList.add("i18n-pending");})();</script>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
+  <!-- Google tag (lazy) -->
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-NYH24Z7PM0');
+    window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Моя история — Федор Чебан, основатель Apex Auto</title>
   <meta name="description" content="Федор Чебан, основатель Apex Auto: опыт с 2016 года, аукционы Copart, IAAI, Manheim, проверка авто до покупки и сопровождение под ключ до Кишинёва.">
   <link rel="canonical" href="https://apexauto.md/about">
+  <link rel="alternate" hreflang="ru" href="https://apexauto.md/about">
+  <link rel="alternate" hreflang="x-default" href="https://apexauto.md/about">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Apex Auto">
   <meta property="og:locale" content="ru_RU">
@@ -29,7 +28,12 @@
   <meta name="twitter:title" content="Моя история — Федор Чебан, основатель Apex Auto">
   <meta name="twitter:description" content="Федор Чебан, основатель Apex Auto: опыт с 2016 года, аукционы Copart, IAAI, Manheim, проверка авто до покупки и сопровождение под ключ до Кишинёва.">
   <meta name="twitter:image" content="https://apexauto.md/assets/og/about.png?v=3">
-  <link rel="stylesheet" href="styles.css?v=v442">
+  <link rel="preload" href="/assets/founder.webp" as="image" type="image/webp" fetchpriority="high">
+  <link rel="preload" href="/assets/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=v443">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
@@ -41,7 +45,7 @@
 <body>
   <header class="siteHeader apexHdrV201">
     <a class="headerBrand apexBrandV201" href="/" aria-label="Apex Auto — на главную">
-      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto">
+      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto" width="600" height="600">
       <span class="apexBrandTextV201">
         <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
         <small>Доставка авто из США и Канады в Молдову</small>
@@ -59,7 +63,7 @@
         <button class="navDropBtnV420" type="button">Полезное <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
         <div class="navDropMenuV420">
           <a href="/blog">Блог</a>
-          <a href="/cases">Кейсы</a>
+          <a href="/cases" rel="nofollow">Кейсы</a>
           <a href="/guide">Гид по покупке</a>
           <a href="/customs">Растаможка</a>
           <a href="/auction-fees">Сборы аукционов</a>
@@ -78,7 +82,7 @@
 <main>
 
 <section class="aboutHeroV344">
-  <img class="aboutHeroImgV344" src="/assets/founder.webp" alt="Федор Чебан — основатель Apex Auto" loading="eager" data-fb="/assets/founder.jpg">
+  <img class="aboutHeroImgV344" src="/assets/founder.webp" alt="Федор Чебан — основатель Apex Auto" loading="eager" fetchpriority="high" width="1200" height="800" data-fb="/assets/founder.jpg">
   <div class="aboutHeroOverlayV344"></div>
   <div class="aboutHeroTextV344">
     <span class="sectionKicker">МОЯ ИСТОРИЯ</span>
@@ -95,7 +99,7 @@
       <div class="aboutBlockIconV348">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       </div>
-      <h3>С чего всё началось</h3>
+      <h2>С чего всё началось</h2>
       <p>Автомобили вошли в жизнь с 2013 года — всегда интересовало не просто ездить, а понимать устройство, как оцениваются повреждения и почему одни машины стоят своих денег, а другие лучше обходить стороной. В 2016 году начал работать в компании по авто и запчастям из США: сначала менеджером, потом старшим — каталоги, склады, клиенты, логистика и отгрузки.</p>
     </div>
 
@@ -103,7 +107,7 @@
       <div class="aboutBlockIconV348">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </div>
-      <h3>Первые авто из США</h3>
+      <h2>Первые авто из США</h2>
       <p>В 2017 году заказал первый личный автомобиль — Volkswagen Passat. После продажи стало понятно, насколько интересным и выгодным может быть этот рынок. Потом Tiguan, затем другие машины. С каждой покупкой убеждался: авто из США и Канады дают больше за те же деньги.</p>
     </div>
 
@@ -111,7 +115,7 @@
       <div class="aboutBlockIconV348">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
       </div>
-      <h3>Прямая работа с аукционами</h3>
+      <h2>Прямая работа с аукционами</h2>
       <p>Работа привела к аукционам напрямую: покупал автомобили для разборки — после ДТП, наводнений и штормов. Именно там появился опыт, который невозможно получить из роликов или статей. Только руки и десятки реальных машин с разными повреждениями.</p>
     </div>
 
@@ -119,7 +123,7 @@
       <div class="aboutBlockIconV348">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
       </div>
-      <h3>Топляки и сложные случаи</h3>
+      <h2>Топляки и сложные случаи</h2>
       <p>Через руки прошли десятки авто с разными повреждениями — в том числе топляки, которые многие отправили бы сразу на разборку. Благодаря работе с электрикой, каталогами, проводкой и блоками такие машины восстанавливались до отличного состояния и успешно продавались.</p>
     </div>
 
@@ -127,7 +131,7 @@
       <div class="aboutBlockIconV348">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
       </div>
-      <h3>BMW M-серии и Manheim</h3>
+      <h2>BMW M-серии и Manheim</h2>
       <p>BMW M дали отдельный опыт: понимаю, когда собирать на оригинальных деталях, а когда разумна качественная б/у. Работаю не только с Copart и IAAI, но и с Manheim — дилерским аукционом. Там тоже хватает скрытых проблем, и опыт позволяет отличать хороший вариант от рискованного.</p>
     </div>
 
@@ -135,7 +139,7 @@
       <div class="aboutBlockIconV348">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
       </div>
-      <h3>Логистика под ключ</h3>
+      <h2>Логистика под ключ</h2>
       <p>Знаю, как работает логистика на аукционе, доставка по США, погрузка контейнеров, морская перевозка и выдача клиенту. Именно этот полный путь — от выбора машины до результата в руках клиента — даёт энергию и движет каждый день.</p>
     </div>
 

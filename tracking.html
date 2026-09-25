@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8">
   <script>(function(){var k="apexAutoLang",q=new URLSearchParams(location.search).get("lang")||"",s=localStorage.getItem(k)||"",raw=(q||s).toLowerCase(),l=raw.startsWith("ro")||raw.startsWith("mo")?"ro":raw.startsWith("en")?"en":"ru";if(l!=="ru")document.documentElement.classList.add("i18n-pending");})();</script>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NYH24Z7PM0');</script>
+  <!-- Google tag (lazy) -->
+  <script>
+    window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Трекинг авто из США и Канады — отследить доставку | Apex Auto</title>
+  <title>Отследить доставку авто из США в Молдову | Apex Auto</title>
   <meta name="description" content="Отследите доставку вашего автомобиля из США или Канады в Молдову. Введите VIN или номер лота — покажем этапы и ожидаемую дату прибытия в Кишинёв.">
   <link rel="canonical" href="https://apexauto.md/tracking">
+  <link rel="alternate" hreflang="ru" href="https://apexauto.md/tracking">
+  <link rel="alternate" hreflang="x-default" href="https://apexauto.md/tracking">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Apex Auto">
-  <meta property="og:title" content="Трекинг авто из США и Канады — отследить доставку | Apex Auto">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Отследить доставку авто из США в Молдову | Apex Auto">
   <meta property="og:description" content="Введите VIN или номер лота — покажем этапы доставки.">
   <meta property="og:url" content="https://apexauto.md/tracking">
   <meta property="og:image" content="https://apexauto.md/assets/og/tracking.png?v=3">
@@ -19,10 +25,14 @@
   <meta property="og:image:height" content="630">
   <meta property="og:image:type" content="image/png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Отслеживание груза — Apex Auto">
+  <meta name="twitter:title" content="Отследить доставку авто из США в Молдову | Apex Auto">
   <meta name="twitter:description" content="Введите VIN или номер лота — покажем этапы доставки.">
   <meta name="twitter:image" content="https://apexauto.md/assets/og/tracking.png?v=3">
-  <link rel="stylesheet" href="styles.css?v=v442">
+  <link rel="preload" href="/assets/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=v443">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -568,7 +578,7 @@
 <body>
   <header class="siteHeader apexHdrV201">
     <a class="headerBrand apexBrandV201" href="/" aria-label="Apex Auto — на главную">
-      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto">
+      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto" width="600" height="600">
       <span class="apexBrandTextV201">
         <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
         <small>Доставка авто из США и Канады в Молдову</small>
@@ -586,7 +596,7 @@
         <button class="navDropBtnV420" type="button">Полезное <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
         <div class="navDropMenuV420">
           <a href="/blog">Блог</a>
-          <a href="/cases">Кейсы</a>
+          <a href="/cases" rel="nofollow">Кейсы</a>
           <a href="/guide">Гид по покупке</a>
           <a href="/customs">Растаможка</a>
           <a href="/auction-fees">Сборы аукционов</a>

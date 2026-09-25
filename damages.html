@@ -3,18 +3,25 @@
 <head>
   <meta charset="utf-8">
   <script>(function(){var k="apexAutoLang",q=new URLSearchParams(location.search).get("lang")||"",s=localStorage.getItem(k)||"",raw=(q||s).toLowerCase(),l=raw.startsWith("ro")||raw.startsWith("mo")?"ro":raw.startsWith("en")?"en":"ru";if(l!=="ru")document.documentElement.classList.add("i18n-pending");})();</script>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NYH24Z7PM0');</script>
+  <!-- Google tag (lazy) -->
+  <script>
+    window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Какие повреждения авто с аукциона опасны, а какие нет — Apex Auto</title>
+  <title>Повреждения авто с аукциона: что опасно | Apex Auto</title>
   <meta name="description" content="Разбор повреждений на Copart и IAAI из опыта 2000+ авто: какие лоты действительно выгодны, почему град и «целые» лоты — ловушка, а Flood и Burn бывают лучше битых.">
   <link rel="canonical" href="https://apexauto.md/damages">
   <link rel="alternate" hreflang="ru" href="https://apexauto.md/damages">
   <link rel="alternate" hreflang="ro" href="https://apexauto.md/ro/daune-auto">
   <link rel="alternate" hreflang="x-default" href="https://apexauto.md/damages">
   <meta property="og:type" content="article">
+  <meta property="article:author" content="Фёдор Чебан">
+  <meta property="article:published_time" content="2026-08-14T00:00:00+03:00">
+  <meta property="article:modified_time" content="2026-09-25T00:00:00+03:00">
   <meta property="og:site_name" content="Apex Auto">
   <meta property="og:locale" content="ru_RU">
+  <meta property="og:locale:alternate" content="ro_RO">
   <meta property="og:title" content="Какие повреждения авто с аукциона опасны, а какие нет">
   <meta property="og:description" content="Какие лоты действительно выгодны, почему град — ловушка, а затопленные бывают лучше битых. Как читать Primary Damage на Copart и IAAI.">
   <meta property="og:url" content="https://apexauto.md/damages">
@@ -26,7 +33,11 @@
   <meta name="twitter:title" content="Какие повреждения авто с аукциона опасны, а какие нет">
   <meta name="twitter:description" content="Какие лоты действительно выгодны, почему град — ловушка, а затопленные бывают лучше битых.">
   <meta name="twitter:image" content="https://apexauto.md/assets/og/damages.png?v=3">
-  <link rel="stylesheet" href="styles.css?v=v442">
+  <link rel="preload" href="/assets/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=v443">
   <link rel="stylesheet" href="guide.css?v=v1">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -39,7 +50,7 @@
 <body>
   <header class="siteHeader apexHdrV201">
     <a class="headerBrand apexBrandV201" href="/" aria-label="Apex Auto — на главную">
-      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto">
+      <img src="/assets/apex-logo-dark.webp" alt="Apex Auto" width="600" height="600">
       <span class="apexBrandTextV201">
         <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
         <small>Доставка авто из США и Канады в Молдову</small>
@@ -57,7 +68,7 @@
         <button class="navDropBtnV420" type="button">Полезное <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
         <div class="navDropMenuV420">
           <a href="/blog" class="active">Блог</a>
-          <a href="/cases">Кейсы</a>
+          <a href="/cases" rel="nofollow">Кейсы</a>
           <a href="/guide">Гид по покупке</a>
           <a href="/customs">Растаможка</a>
           <a href="/auction-fees">Сборы аукционов</a>
