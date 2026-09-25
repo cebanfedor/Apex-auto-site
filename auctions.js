@@ -1323,7 +1323,9 @@
     const soldLike = lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "");
     const isSold = hardSold || (soldLike && !upcoming);
     const finalBid = isSold ? (lot.finalBid || lot.priceHistory?.[0]?.bid || 0) : 0;
-    return {isSold, finalBid};
+    // Торги прошли, ставка ждёт решения продавца (on_approval) — это ещё не продажа: подписываем «На утверждении», а не «Продано»
+    const onApproval = isSold && !hardSold && (lot.statusId === 4 || /approval/i.test(lot.statusName || lot.lotStatus || ""));
+    return {isSold, finalBid, onApproval};
   }
 
   function renderCard(lot, idx){
@@ -1340,7 +1342,7 @@
     // выглядят копеечными, хотя выкуп стоит тысячи.
     const showBuyNow = !isSold && Number(lot.buyNow) > 0 && (state.tab === "buy_now" || !Number(lot.currentBid));
     const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow));
-    const priceLabel = isSold && effectiveFinalBid ? "Финальная цена"
+    const priceLabel = isSold && effectiveFinalBid ? (lotSaleState(lot).onApproval ? "На утверждении" : "Финальная цена")
       : showBuyNow ? "Купить сейчас" : "Текущая цена";
     // Канадские площадки торгуют в CAD
     const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
@@ -2463,7 +2465,7 @@
     return `<aside class="lotCalcV2${banned ? " calcBannedV1" : ""}">
       ${isSold && (effectiveFinalBid || hidePrice) ? `
       <div class="calcSoldCardV1">
-        <span>${L("Продано")}</span>
+        <span>${L(lotSaleState(lot).onApproval ? "На утверждении" : "Продано")}</span>
         ${hidePrice ? `
         <b class="soldByReqV1">${L("Цена — по запросу")}</b>
         <button type="button" class="soldRefineNoteV1 soldNoteBtnV1" data-lead="${escapeHtml(lot.id)}">${L("Напишите нам — подскажем точную цену продажи")}</button>
@@ -2975,7 +2977,7 @@
             ${(() => {
               const st = lotSaleState(lot), b = st.isSold ? (st.finalBid || lot.finalBid || 0) : (lot.currentBid || 0);
               const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
-              return `<div class="dMobSumV1">${b ? `<span><small>${L(st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
+              return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
             })()}
           </div>
           <div class="dHeadActionsV1">

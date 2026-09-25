@@ -265,6 +265,19 @@ function driveLabel(value){
   return safeName(value);
 }
 
+// Штат площадки по названию филиала. Фид у части IAAI-лотов кладёт в location.state штат ТАЙТЛА (Salvage (Idaho)), а не двора:
+// «shirley, idaho» при selling_branch «boston - shirley (ma)» и координатах Массачусетса. Штат в скобках филиала — надёжный.
+const US_STATE_NAMES = {"al": "alabama", "ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california", "co": "colorado", "ct": "connecticut", "de": "delaware", "dc": "district of columbia", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho", "il": "illinois", "in": "indiana", "ia": "iowa", "ks": "kansas", "ky": "kentucky", "la": "louisiana", "me": "maine", "md": "maryland", "ma": "massachusetts", "mi": "michigan", "mn": "minnesota", "ms": "mississippi", "mo": "missouri", "mt": "montana", "ne": "nebraska", "nv": "nevada", "nh": "new hampshire", "nj": "new jersey", "nm": "new mexico", "ny": "new york", "nc": "north carolina", "nd": "north dakota", "oh": "ohio", "ok": "oklahoma", "or": "oregon", "pa": "pennsylvania", "ri": "rhode island", "sc": "south carolina", "sd": "south dakota", "tn": "tennessee", "tx": "texas", "ut": "utah", "vt": "vermont", "va": "virginia", "wa": "washington", "wv": "west virginia", "wi": "wisconsin", "wy": "wyoming"};
+function yardFix(lot){
+  try{
+    const m = safeName(lot?.selling_branch || lot?.branch).toLowerCase().match(/\(([a-z]{2})\)\s*$/);
+    if(!m || !US_STATE_NAMES[m[1]]) return null;
+    if(String(lot?.location?.country?.iso || "us").toLowerCase() !== "us") return null;
+    if(String(lot?.location?.state?.code || "").toLowerCase() === m[1]) return null;
+    return {code:m[1], name:US_STATE_NAMES[m[1]]};
+  }catch(_){ return null; }
+}
+
 function locationLabel(loc){
   if(!loc) return "";
   if(typeof loc === "string") return loc;
@@ -356,8 +369,9 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const lotNumber = String(lot?.lot || lot?.lot_number || lot?.lotNumber || lot?.external_id || item?.lot || item?.lot_number || item?.lotNumber || "").replace(/~.*/, "");
   // For IAAI: external_id is the stock number used in the URL (lot.lot is the internal API id).
   const iaaiExternalId = auction === "iaai" ? String(lot?.external_id || lotNumber).replace(/~.*/, "") : "";
-  const title = item?.title || [year, make, model].filter(Boolean).join(" ") || "Автомобиль";
-  const location = locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location);
+  const title = powertrain.cleanTitle(item?.title || [year, make, model].filter(Boolean).join(" ") || "Автомобиль");
+  const yard = yardFix(lot);
+  const location = yard ? [safeName(lot?.location?.city), yard.name].filter(Boolean).join(", ") : (locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location));
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
   // Канада: Copart CA показывает одометр в КМ, а фид кладёт то же число в odometer.mi и «пересчитывает»
@@ -500,7 +514,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     lot:lotNumber,
     url:auctionUrl(auction, iaaiExternalId || lotNumber),
     location,
-    stateCode:String(lot?.location?.state?.code || lot?.location?.state_code || "").toLowerCase(),
+    stateCode:yard ? yard.code : String(lot?.location?.state?.code || lot?.location?.state_code || "").toLowerCase(),
     auctionDate:bnSale ? bnSale.date : (lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || ""),
     currentBid:bnSale ? bnSale.bid : (preBidSold ? Math.max(currentBid, resolvedFinalBid) : currentBid),
     finalBid:bnSale ? bnSale.bid : (preBidSold ? 0 : resolvedFinalBid),
@@ -2644,7 +2658,7 @@ async function searchFromDb(query){
   }
   return {
     _db:true,
-    items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } if(r.vin_trim !== undefined && r.vin_trim !== null){ l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind}); } return l; }),
+    items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); l.title = powertrain.cleanTitle(l.title); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } if(r.vin_trim !== undefined && r.vin_trim !== null){ l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind}); } return l; }),
     total,
     page,
     perPage,
@@ -3157,7 +3171,7 @@ function syncRowFromItem(item, {archived = false} = {}){
     cylinders:num(item?.cylinders),
     damage:normalized.damage || null,
     document:normalized.document || null,
-    state_code:(lot?.location?.state?.code || "").toLowerCase() || null,
+    state_code:(yardFix(lot)?.code || lot?.location?.state?.code || "").toLowerCase() || null,
     country:(lot?.location?.country?.iso || "").toLowerCase() || null,
     odometer_mi:num(normalized.odometer),
     current_bid:num(normalized.currentBid) || 0,
@@ -3206,7 +3220,7 @@ function upsertClosedLot(lot){
   }catch(e){ /* не мешаем ответу */ }
 }
 // Ключевые поля строки: если в базе они те же — строку не переписываем (upsert = переписать 12 индексов + TOAST payload).
-const ROW_KEY_FIELDS = ["sale_date", "current_bid", "buy_now", "final_bid", "status_id", "odometer_mi", "archived"];
+const ROW_KEY_FIELDS = ["sale_date", "current_bid", "buy_now", "final_bid", "status_id", "odometer_mi", "archived", "state_code"];   // state_code — чтобы исправление штата двора (yardFix) доехало до старых строк
 // Колонки lane/run_no появляются после миграции 20260924_run_line.sql; до неё синк их не пишет (иначе PostgREST отвергнет весь upsert).
 let runColsState = {ok:false, at:0};
 async function runColsReady(){
@@ -4351,8 +4365,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "33";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g20" : "";   // бамп при смене таблицы поколений и формы detail
+  const SEARCH_CACHE_VER = "34";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g21" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

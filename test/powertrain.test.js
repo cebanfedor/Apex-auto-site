@@ -121,3 +121,14 @@ test("vPIC «Mild HEV» у Toyota/Hyundai с Hybrid в названии — вс
   assert.equal(pt.decide({make:"Mazda", model:"CX-90", year:2025, title:"2025 Mazda Cx-90 Preferred", fuelId:4}, mild).x, 4);
   assert.equal(pt.decide({make:"Ford", model:"Escape", year:2021, title:"2021 Ford Escape Se", fuelId:4}, mild).x, 4);   // без «Hybrid» и не EPA-гибрид-только → бензин
 });
+
+test("cleanTitle: обозначения BMW как на аукционе", () => {
+  const {cleanTitle} = require("../server/powertrain");
+  assert.equal(cleanTitle("2016 BMW 340 Xi"), "2016 BMW 340i xDrive");
+  assert.equal(cleanTitle("2023 BMW 530 I xDrive"), "2023 BMW 530i xDrive");
+  assert.equal(cleanTitle("2022 BMW 530 Xi xDrive"), "2022 BMW 530i xDrive");
+  assert.equal(cleanTitle("2023 BMW M550 I xDrive"), "2023 BMW M550i xDrive");
+  assert.equal(cleanTitle("2021 BMW X5 Xdrive40I"), "2021 BMW X5 xDrive40i");
+  assert.equal(cleanTitle("2020 BMW 530e xDrive"), "2020 BMW 530e xDrive");
+  assert.equal(cleanTitle("2021 Toyota Camry XLE"), "2021 Toyota Camry XLE");
+});

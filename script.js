@@ -298,6 +298,8 @@ const AI_ADVICE_I18N = {
   "Ставка: {v}":{ro:"Ofertă: {v}",en:"Bid: {v}"},
   "Выкуп: {v}":{ro:"Cumpără acum: {v}",en:"Buy now: {v}"},
   "Локацию аукциона проверьте вручную.":{ro:"Verificați manual locația licitației.",en:"Check the auction location manually."},
+  "Торги прошли, ставка ждёт утверждения продавцом — расчёт сделан по ней. Итог может измениться.":{ro:"Licitația s-a încheiat, oferta așteaptă aprobarea vânzătorului — calculul folosește această ofertă. Totalul se poate schimba.",en:"The auction is over and the bid awaits the seller's approval — the estimate uses it. The total may change."},
+  "На утверждении: {v}":{ro:"În așteptare: {v}",en:"On approval: {v}"},
   "Двигатель: {v} л":{ro:"Motor: {v} l",en:"Engine: {v} l"},
   "Топливо: {v}":{ro:"Combustibil: {v}",en:"Fuel: {v}"},
   "Расчёт сделан по цене, за которую лот был продан на прошлых торгах. Для нового лота укажите свою ставку.":{ro:"Calculul folosește prețul la care lotul a fost vândut la licitația anterioară. Pentru un lot nou, introduceți oferta dvs.",en:"The estimate uses the price this lot sold for at the last auction. For a new lot, enter your own bid."},
@@ -750,7 +752,10 @@ function detectLocationFromText(value){
     }
   });
 
-  return bestScore >= 25 ? best : null;
+  if(bestScore >= 25) return best;
+  // Штат в данных лота бывает неверным (фид ставит штат тайтла): если город встречается у ОДНОЙ площадки — берём её
+  const byCity = locations.filter(item => { const c = normalizePlace(item.city || ""); return c.length > 4 && (" " + source + " ").includes(" " + c + " "); });
+  return byCity.length === 1 ? byCity[0] : null;
 }
 
 function selectLocationByItem(item){
@@ -867,7 +872,8 @@ function renderLotImportStatus(data, applied){
   if(data.fromVin){
     const money = n => "$" + Math.round(n).toLocaleString("en-US");
     if(data.year) found.push(String(data.year));
-    if(data.soldPrice) found.push(aiT("Продан: {v}", {v:money(data.soldPrice)}));
+    if(data.onApproval && data.currentBid) found.push(aiT("На утверждении: {v}", {v:money(data.currentBid)}));
+    else if(data.soldPrice) found.push(aiT("Продан: {v}", {v:money(data.soldPrice)}));
     else if(data.currentBid) found.push(aiT("Ставка: {v}", {v:money(data.currentBid)}));
     if(!data.soldPrice && data.buyNowPrice) found.push(aiT("Выкуп: {v}", {v:money(data.buyNowPrice)}));
     if(data.engineLiters) found.push(aiT("Двигатель: {v} л", {v:data.engineLiters}));
@@ -993,7 +999,8 @@ function vinEngineLiters(lot){
 function lotFromVinResponse(lot, vin){
   const fuel = VIN_FUEL_KIND[lot.fuelKind] || detectFuelFromText([lot.fuel, lot.title].filter(Boolean).join(" ")) || "gasoline";
   const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0;
-  const price = sold ? Number(lot.finalBid) : (Number(lot.currentBid) || Number(lot.buyNow) || 0);
+  const approval = !sold && Number(lot.statusId) === 4 && Number(lot.finalBid) > 0;
+  const price = sold || approval ? Number(lot.finalBid) : (Number(lot.currentBid) || Number(lot.buyNow) || 0);
   const isCa = /,\s*canada\s*$|\b(ontario|quebec|alberta|british columbia|manitoba|saskatchewan|nova scotia|new brunswick|newfoundland)\b/i.test(String(lot.location || ""));
   return {
     original: vin, fromVin: true, vin,
@@ -1003,12 +1010,13 @@ function lotFromVinResponse(lot, vin){
     year: Number(lot.year) || 0,
     fuel, vehicleType: vinVehicleType(lot),
     engineLiters: fuel === "electric" ? "" : vinEngineLiters(lot),
-    currentBid: price, soldPrice: sold ? price : 0, buyNowPrice: Number(lot.buyNow) || 0,
+    currentBid: price, onApproval: approval, soldPrice: sold ? price : 0, buyNowPrice: Number(lot.buyNow) || 0,
     location: lot.location || "", branch: lot.location || "",
     damage: lot.damage || "", document: lot.document || "",
     saleDate: lot.auctionDate || "", isCanada: isCa,
     priceNote: sold
       ? aiT("Расчёт сделан по цене, за которую лот был продан на прошлых торгах. Для нового лота укажите свою ставку.")
+      : approval ? aiT("Торги прошли, ставка ждёт утверждения продавцом — расчёт сделан по ней. Итог может измениться.")
       : price ? aiT("Расчёт сделан по текущей цене лота. Проверьте ставку перед торгами.")
       : aiT("Ставки по лоту пока нет — введите свою ставку в поле «Стоимость лота».")
   };

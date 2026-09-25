@@ -130,8 +130,21 @@ function trimFromVpic(d){
   t = t.split(" ").map(w => (w.length > 4 && w === w.toUpperCase()) ? w[0] + w.slice(1).toLowerCase() : w).join(" ");
   return t.slice(0, 40);
 }
+// Обозначения BMW в фиде приходят кривыми: «340 Xi», «530 I xDrive», «M550 I», «Xdrive40I» → как на аукционе/у DreamBid: «340i xDrive», «530i xDrive», «M550i», «xDrive40i».
+function cleanTitle(title){
+  let t = String(title || "");
+  if(!/\bBMW\b/i.test(t)) return t;
+  t = t.replace(/\b(M?\d{3})\s*xi\b/gi, (m, a) => a.toUpperCase() + "i xDrive");
+  t = t.replace(/\b(M?\d{3})\s*([ied])\b/gi, (m, a, b) => a.toUpperCase() + b.toLowerCase());
+  t = t.replace(/\b([sx])drive\s*(\d{2})\s*([ide])\b/gi, (m, p, d, l) => p.toLowerCase() + "Drive" + d + l.toLowerCase());
+  t = t.replace(/\bxdrive\b/gi, "xDrive").replace(/\bsdrive\b/gi, "sDrive");
+  t = t.replace(/\b(xDrive|sDrive)\s+\1\b/g, "$1");
+  t = t.replace(/\b(M?\d{3}[ied])\s+\1\b/gi, "$1");
+  return t.replace(/\s+/g, " ").trim();
+}
+
 function fullTitle(title, {trim, kind} = {}){
-  let t = String(title || "").replace(/\s+/g, " ").trim();
+  let t = cleanTitle(String(title || "").replace(/\s+/g, " ").trim());
   if(!t) return t;
   // 1. Обрезанное последнее слово: «Hybri» → «Hybrid»
   const toks = t.split(" ");
@@ -154,4 +167,4 @@ function fullTitle(title, {trim, kind} = {}){
   return t;
 }
 
-module.exports = {trimFromVpic, fullTitle, teslaConfig, vpicBatch, kindFromVpic, kindFromRules, epaFlags, decide, validVin, KIND_NAME};
+module.exports = {trimFromVpic, fullTitle, cleanTitle, teslaConfig, vpicBatch, kindFromVpic, kindFromRules, epaFlags, decide, validVin, KIND_NAME};
