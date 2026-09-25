@@ -2897,6 +2897,18 @@
       }catch(e){ scheduleVinRetry(lot, attempt + 1); }
     }, [0, 4000, 10000, 20000][attempt] || 20000);
   }
+  // Открыли другой лот без перезагрузки (похожие, крошки, поиск) — показываем его с самого начала. На телефоне одного scrollTo(0,0)
+  // до подмены разметки мало: iOS игнорирует его во время инерции прокрутки, а страница нового лота короче — и человек оставался «внизу».
+  // Поэтому повторяем сразу, после отрисовки и с небольшой задержкой, но не мешаем, если человек уже сам начал листать.
+  let lastTouchAt = 0;
+  window.addEventListener("touchstart", () => { lastTouchAt = Date.now(); }, {passive:true});
+  function forceTop(){
+    const go = () => { try{ window.scrollTo({top:0, left:0, behavior:"instant"}); }catch(e){ window.scrollTo(0, 0); } document.documentElement.scrollTop = 0; if(document.body) document.body.scrollTop = 0; };
+    const startedAt = Date.now();
+    go();
+    requestAnimationFrame(go);
+    [60, 180, 400, 800].forEach(ms => setTimeout(() => { if(lastTouchAt <= startedAt) go(); }, ms));
+  }
   function renderDetail(lot){
     scheduleVinRetry(lot, 1);
     _caLotFlag = !!findCanadaLocation(lot);
@@ -2909,7 +2921,7 @@
         const sameLot = decodeURIComponent(location.pathname).startsWith(`/auctions/${lot.auction}-${lot.lot}`);
         if(location.pathname !== href){
           if(sameLot) history.replaceState(history.state, "", withLang(href));
-          else history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", withLang(href));
+          else{ history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", withLang(href)); forceTop(); }
         }
       }
     }catch(e){}
@@ -3407,8 +3419,9 @@
     if(!known) return; // нет данных под рукой — обычная навигация через SSR
     event.preventDefault();
     try{ history.pushState({apexLot:1, d:fromCatalog ? 1 : ((history.state && history.state.d) || 0) + 1}, "", withLang(link.getAttribute("href"))); }catch(_){ location.href = link.href; return; }
-    window.scrollTo(0, 0);
+    forceTop();
     renderDetail(known);
+    forceTop();
     refreshDetailInBackground(slug);
   });
 
@@ -3542,6 +3555,16 @@
         </div>`;
     }
   }
+
+  // Пришли на страницу лота по ссылке (например, «похожий» лот, открытый обычной навигацией): начинаем с начала страницы,
+  // даже если браузер телефона по ошибке перенёс прежнюю прокрутку. Назад/вперёд/обновление не трогаем — там браузер вернёт место сам.
+  try{
+    const navType = (performance.getEntriesByType("navigation")[0] || {}).type;
+    if(navType === "navigate" && !location.hash && parseSlug(currentSlug())){
+      forceTop();
+      window.addEventListener("load", () => forceTop(), {once:true});
+    }
+  }catch(e){}
 
   window.addEventListener("popstate", () => {
     // Вернулись на каталог, а он ещё в DOM (лот открывали из него без перезагрузки) — без перезагрузки и на том же месте
