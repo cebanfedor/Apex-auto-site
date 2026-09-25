@@ -2331,6 +2331,24 @@ async function searchFromDb(query){
     if(ids.length === 1) p.set(col, `eq.${ids[0]}`);
     else if(ids.length > 1) p.set(col, `in.(${ids.join(",")})`);   // мультивыбор
   }
+  // Plug-in гибрид (PHEV): фид отдаёт таким машинам просто «hybrid» → распознаём по названию (те же правила, что isPluginHybrid в calc-core.js).
+  // «Гибрид» в списке топлива уже включает PHEV, поэтому отдельный фильтр нужен, только если гибрид целиком не выбран.
+  if(query.get("phev") === "1"){
+    const fids = String(query.get("fuel") || "").replace(/[^0-9,]/g, "").split(",").filter(Boolean);
+    if(!fids.includes("3")){
+      const phevExpr = "or(title.imatch.plug.?in,title.ilike.*phev*,title.imatch.\\m4xe\\M,title.imatch.e.?hybrid,title.ilike.*energi*,title.ilike.*recharge*,title.ilike.*iperformance*,title.ilike.*h+*,"
+        + "and(title.ilike.*toyota*,title.imatch.\\mprime\\M),and(or(title.ilike.*bmw*,title.ilike.*mercedes*),title.imatch.\\d\\d\\d?x?e\\M),"
+        + "and(title.ilike.*mitsubishi*,title.ilike.*outlander*),and(title.ilike.*mazda*,title.imatch.cx.?[79]0),and(title.ilike.*volvo*,year.gte.2016),"
+        + "and(title.ilike.*lexus*,title.imatch.nx.?450,year.gte.2022),and(title.ilike.*lexus*,title.imatch.rx.?450,year.gte.2023))";
+      p.delete("fuel_id");
+      ands.push(fids.length ? `or(fuel_id.in.(${fids.join(",")}),and(fuel_id.eq.3,${phevExpr}))` : `and(fuel_id.eq.3,${phevExpr})`);
+    }
+  }
+  // Без лотов, запрещённых к экспорту: Гавайи и электромобили после затопления (те же правила, что exportBan на клиенте)
+  if(query.get("noBan") === "1"){
+    ands.push("or(state_code.neq.hi,state_code.is.null)");
+    ands.push("or(fuel_id.neq.2,fuel_id.is.null,and(or(damage.is.null,damage.not.ilike.*water*),or(damage.is.null,damage.not.ilike.*flood*),or(document.is.null,document.not.ilike.*flood*)))");
+  }
   // Статус лота (мультивыбор): 10 скоро торги · 3 в продаже · 4 на одобрении · 6 продан · 8 не продан
   const stIds = String(query.get("lotStatus") || "").replace(/[^0-9,]/g, "").split(",").filter(x => x && x !== "8");
   if(stIds.length){
@@ -3823,7 +3841,7 @@ module.exports = async function handler(request, response){
     const base = "https://apexauto.md", t0 = Date.now(), out = [];
     const S = "/api/auctions?action=search&";
     // Каждый раз: то, что грузит страница без фильтров. Остальное — по кругу (1/3 за тик, полный круг ≈ 9 мин < 13 мин жизни кэша: 180 с + swr 600 с).
-    const always = ["/api/auctions?action=manufacturers", "/api/content?rates=1", "/api/auctions?action=count", "/api/content",
+    const always = ["/api/auctions?action=manufacturers", "/api/content?rates=1", "/api/auctions?action=count", "/api/auctions?action=search&saleStatus=timed&per_page=1&tab=all&auction=all", "/api/content",
       ...["1", "2", "5", "7"].map(t => `${S}per_page=30&vehicleType=${t}&sort=smart&auction=all&tab=all`)];
     const tabs = []; for(const tab of ["all", "soon", "buy_now", "archived"]) for(const a of ["all", "copart", "iaai"]) tabs.push(`${S}auction=${a}&tab=${tab}&sort=smart&page=1&per_page=30`);
     const types = ["1", "2", "5", "7"].map(t => `${S}vehicleType=${t}&auction=all&tab=all&sort=smart&page=1&per_page=30`);

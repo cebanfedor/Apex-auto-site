@@ -278,6 +278,8 @@
     const boxes = (name, title) => form.querySelectorAll(`input[name="${name}"]:checked`).forEach(cb => add(`${L(title)}: ${optText(cb)}`, () => { cb.checked = false; }));
     if(form.querySelector('input[name="smart"]:checked')) add("Feduk Clean Select™", () => { form.querySelector('input[name="smart"]').checked = false; });
     boxes("fuel", "Топливо");
+    if(form.querySelector('input[name="phev"]:checked')) add(`${L("Топливо")}: Plug-in ${L("гибрид")}`, () => { form.querySelector('input[name="phev"]').checked = false; });
+    if(form.querySelector('input[name="noBan"]:checked')) add(L("Без запрещённых к экспорту"), () => { form.querySelector('input[name="noBan"]').checked = false; });
     boxes("body", "Кузов"); boxes("vehicleType", "Тип техники"); boxes("drive", "Привод"); boxes("transmission", "Коробка");
     boxes("cylinders", "Цилиндры"); boxes("country", "Страна"); boxes("condition", "Состояние");
     damageList().forEach((d, i) => add(`${L("Повреждение")}: ${d}`, () => { const l = damageList(); l.splice(i, 1); setDamageList(l); }));
@@ -1083,9 +1085,10 @@
     const c = conditionInfo(raw);
     return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>${L("Состояние:")}</b> ${escapeHtml(L(c.label))}</span></li>`;
   }
-  function dbCheckFuel(raw){
+  function dbCheckFuel(raw, lot){
     if(!raw) return "";
-    const val = ruEnum(RU_FUEL, raw);
+    let val = ruEnum(RU_FUEL, raw);
+    if(lot && /hybrid|гибрид/i.test(String(raw)) && !/plug|phev/i.test(String(raw)) && window.ApexCalc && window.ApexCalc.isPluginHybrid && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title, lot.year)) val = "Plug-in гибрид";
     const low = String(raw).toLowerCase();
     // Цвет значка по типу: электро — голубой, гибрид — зелёный, бензин/дизель — серый (Федор 25.09.2026)
     const fuelCls = /electric|электро/.test(low) && !/hybrid|гибрид/.test(low) ? "dbFuelEvV1" : /hybrid|гибрид|phev|plug/.test(low) ? "dbFuelHyV1" : "dbFuelGasV1";
@@ -1310,7 +1313,7 @@
             </div>
             <ul class="dbChecks">
               ${dbCondition(lot.condition)}
-              ${dbCheckFuel(lot.fuel)}
+              ${dbCheckFuel(lot.fuel, lot)}
               ${dbCheckSeller(lot.seller)}
               ${dbCheckKey(lot.keys)}
               ${dbCheckHistory(lot.priceHistory, lot)}
@@ -1658,6 +1661,19 @@
 
   // ---- Счётчики лотов на вкладках (как у BidCars) ----
   let tabCountSeq = 0;
+  // Число Timed-лотов на быстрой кнопке (только без фильтров; тот же запрос греет крон warm)
+  async function updateTimedBadge(seq){
+    const btn = document.getElementById("quickTimedV1"); if(!btn) return;
+    try{
+      const r = await api("/api/auctions?action=search&saleStatus=timed&per_page=1&tab=all&auction=all");
+      if(seq !== tabCountSeq) return;
+      const n = Number(r && r.total) || 0;
+      let b = btn.querySelector(".tabCountV1");
+      if(!n){ b && b.remove(); return; }
+      if(!b){ b = document.createElement("span"); b.className = "tabCountV1"; btn.appendChild(b); }
+      b.textContent = n > 999 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n);
+    }catch(e){}
+  }
   async function updateTabCounts(){
     const seq = ++tabCountSeq;
     const base = formParams();
@@ -1676,12 +1692,12 @@
       try{
         const c = await api("/api/auctions?action=count");
         if(seq !== tabCountSeq) return;
-        if(c && c.total > 0){ setBadge("soon", Number(c.soon) || 0); setBadge("buy_now", Number(c.buyNow) || 0); setBadge("archived", Number(c.archived) || 0); return; }
+        if(c && c.total > 0){ setBadge("soon", Number(c.soon) || 0); setBadge("buy_now", Number(c.buyNow) || 0); setBadge("archived", Number(c.archived) || 0); updateTimedBadge(seq); return; }
       }catch(e){ /* ниже — обычный путь */ }
     }
     // С фильтрами/площадкой бейджи не считаем: три отдельных запроса шли из разных источников (база/живой фид)
     // и давали «Архив 168» рядом с «170 903» в шапке. Убираем бейджи, чтобы не врать.
-    if(true){ ["soon","buy_now","archived"].forEach(tab => { const b = document.querySelector(`[data-tab="${tab}"] .tabCountV1`); if(b) b.remove(); }); return; }
+    if(true){ document.querySelector("#quickTimedV1 .tabCountV1")?.remove(); ["soon","buy_now","archived"].forEach(tab => { const b = document.querySelector(`[data-tab="${tab}"] .tabCountV1`); if(b) b.remove(); }); return; }
     await Promise.all(["soon","buy_now","archived"].map(async tab => {   // «Завершенные» убраны 15.09.2026: 99% совпадали с архивом
       try{
         const p = new URLSearchParams(base);
@@ -3762,7 +3778,7 @@
     // Всё, что не распознано, остаётся текстом для поиска по названию (все слова должны встретиться). Распознанное превращается в обычные фильтры (чипы, сохранение, уведомления).
     const sN = s => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]/g, "");
     const SM_STATE_RU = {"алабама":"alabama", "аляска":"alaska", "аризона":"arizona", "арканзас":"arkansas", "калифорния":"california", "колорадо":"colorado", "коннектикут":"connecticut", "делавэр":"delaware", "флорида":"florida", "джорджия":"georgia", "грузия":"georgia", "гавайи":"hawaii", "айдахо":"idaho", "иллинойс":"illinois", "индиана":"indiana", "айова":"iowa", "канзас":"kansas", "кентукки":"kentucky", "луизиана":"louisiana", "мэн":"maine", "мэриленд":"maryland", "массачусетс":"massachusetts", "мичиган":"michigan", "миннесота":"minnesota", "миссисипи":"mississippi", "миссури":"missouri", "монтана":"montana", "небраска":"nebraska", "невада":"nevada", "ньюгэмпшир":"newhampshire", "ньюджерси":"newjersey", "ньюмексико":"newmexico", "ньюйорк":"newyork", "севернаякаролина":"northcarolina", "севернаядакота":"northdakota", "огайо":"ohio", "оклахома":"oklahoma", "орегон":"oregon", "пенсильвания":"pennsylvania", "родайленд":"rhodeisland", "южнаякаролина":"southcarolina", "южнаядакота":"southdakota", "теннесси":"tennessee", "техас":"texas", "юта":"utah", "вермонт":"vermont", "виргиния":"virginia", "вашингтон":"washington", "западнаявиргиния":"westvirginia", "висконсин":"wisconsin", "вайоминг":"wyoming", "онтарио":"ontario", "квебек":"quebec", "альберта":"alberta", "манитоба":"manitoba", "саскачеван":"saskatchewan", "новаяшотландия":"novascotia", "ньюбрансуик":"newbrunswick", "британскаяколумбия":"britishcolumbia", "ньюфаундленд":"newfoundlandandlabrador"};
-    const SM_FUEL = {gasoline:4, petrol:4, gas:4, benzin:4, "бензин":4, "бензиновый":4, "бензиновая":4, diesel:1, "дизель":1, "дизельный":1, hybrid:3, phev:3, plugin:3, "гибрид":3, "гибридный":3, electric:2, ev:2, "электро":2, "электромобиль":2, "электрический":2, "электрокар":2};
+    const SM_FUEL = {gasoline:4, petrol:4, gas:4, benzin:4, "бензин":4, "бензиновый":4, "бензиновая":4, diesel:1, "дизель":1, "дизельный":1, hybrid:3, "гибрид":3, "гибридный":3, electric:2, ev:2, "электро":2, "электромобиль":2, "электрический":2, "электрокар":2};
     const SM_FUEL_RU = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин"};
     const SM_DMG = [
       [/^(front|перед|передний|спереди|фронт)$/, "Front End", "Перед"], [/^(rear|зад|задний|сзади)$/, "Rear End", "Зад"], [/^(side|бок|боковой|сбоку)$/, "Side", "Бок"],
@@ -3873,6 +3889,8 @@
       // --- намерения словами ---
       const kw = (words, fn) => sweep(smRe(`${SM_PRE}(?:${words})${SM_POST}`), () => { fn(); return true; });
       kw("не\\s+на\\s+ходу|не\\s+едет|non-?runners?|not\\s+running|nu\\s+merge", () => push("cond", `${L("Состояние")}: ${L("Не на ходу")}`, () => smCheck("condition", "3")));
+      kw("plug[\\s-]?in(?:\\s+hybrid)?|phev|плаг[иі]н(?:\\s*гибрид)?|плагин-гибрид|подзаряжаем\\S*(?:\\s+гибрид)?|гибрид\\s+с\\s+подзарядкой|hibrid\\s+plug[\\s-]?in", () => push("fuel", `${L("Топливо")}: Plug-in ${L("гибрид")}`, () => smCheck("phev", "1")));
+      kw("без\\s+запрещ[её]нных|можно\\s+(?:вывезти|экспортировать)|экспорт\\s+разрешён|экспорт\\s+разрешен|exportable|export\\s+ok", () => push("export", L("Без запрещённых к экспорту"), () => smCheck("noBan", "1")));
       kw("на\\s+ходу|заводится\\s+и\\s+едет|runs?\\s+and\\s+drives?|run\\s+and\\s+drive|drives?|merge", () => push("cond", `${L("Состояние")}: ${L("Заводится и едет")}`, () => smCheck("condition", "0")));
       kw("таймед|timed", () => push("sale", `${L("Статус продажи")}: Timed`, () => smCheck("saleStatus", "timed")));
       kw("без\\s+резерва|no\\s+reserve|fără\\s+rezervă", () => push("sale", `${L("Статус продажи")}: ${L("Без резерва")}`, () => smCheck("saleStatus", "no_reserve")));
