@@ -2336,7 +2336,7 @@ async function searchFromDb(query){
   if(query.get("phev") === "1"){
     const fids = String(query.get("fuel") || "").replace(/[^0-9,]/g, "").split(",").filter(Boolean);
     if(!fids.includes("3")){
-      const phevExpr = "or(title.imatch.plug.?in,title.ilike.*phev*,title.imatch.\\m4xe\\M,title.imatch.e.?hybrid,title.ilike.*energi*,title.ilike.*recharge*,title.ilike.*iperformance*,title.ilike.*h+*,"
+      const phevExpr = "or(title.imatch.plug.?in,title.ilike.*phev*,title.imatch.\\m4xe\\M,title.imatch.\\me[- ]?hybrid,title.ilike.*energi*,title.ilike.*recharge*,title.ilike.*iperformance*,title.ilike.*h+*,"
         + "and(title.ilike.*toyota*,title.imatch.\\mprime\\M),and(or(title.ilike.*bmw*,title.ilike.*mercedes*),title.imatch.\\d\\d\\d?x?e\\M),"
         + "and(title.ilike.*mitsubishi*,title.ilike.*outlander*),and(title.ilike.*mazda*,title.imatch.cx.?[79]0),and(title.ilike.*volvo*,year.gte.2016),"
         + "and(title.ilike.*lexus*,title.imatch.nx.?450,year.gte.2022),and(title.ilike.*lexus*,title.imatch.rx.?450,year.gte.2023))";

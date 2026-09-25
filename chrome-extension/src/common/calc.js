@@ -111,7 +111,7 @@
     var mk = String(make || "").toLowerCase();
     var s = (mk + " " + String(model || "") + " " + String(title || "")).toLowerCase();
     var yr = Number(year) || (function(){ var m = s.match(/\b(?:19|20)\d{2}\b/); return m ? Number(m[0]) : 0; })();
-    if(/plug[\s-]?in|phev|\b4xe\b|e[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance|h\+/.test(s)) return true;
+    if(/plug[\s-]?in|phev|\b4xe\b|\be[\s-]?hybrid|\benergi\b|\brecharge\b|iperformance|h\+/.test(s)) return true;
     if(/\bprime\b/.test(s) && mk.indexOf("toyota") !== -1) return true;
     if(/bmw|mercedes/.test(s) && /\d{2,3}x?e\b/.test(s)) return true;
     if(mk.indexOf("mitsubishi") !== -1 && /outlander/.test(s)) return true;
