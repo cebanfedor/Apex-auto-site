@@ -2486,7 +2486,7 @@ async function searchFromDb(query){
   const perPage = Math.min(100, Math.max(1, Number(query.get("per_page") || query.get("limit") || 50) || 50));
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const offset = (page - 1) * perPage;
-  const hasNarrowFilter = !!(query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
+  const hasNarrowFilter = !!(query.get("phev") === "1" || query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
   // «Широкий» фильтр = любой параметр кроме служебных (вкладка/площадка/сортировка/страница) и без марки/модели/поиска.
   const NON_FILTER_KEYS = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action", "vehicleType", "debug"]);
   const hasBroadFilter = !hasNarrowFilter && [...query.keys()].some(k => !NON_FILTER_KEYS.has(k));
