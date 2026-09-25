@@ -1251,6 +1251,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Онлайн-торги — компактно (Федор 25.09.2026: «слишком большой блок») */
 .lotQueueV1 { padding:9px 12px; gap:3px; margin:8px 0; border-radius:12px; }
 .lqHeadV1 { font-size:10.5px; }
-.lqLineV1 { font-size:13px; line-height:1.4; color:var(--aInk2); display:flex; align-items:center; flex-wrap:wrap; gap:0 4px; }
+.lqLineV1 { font-size:13px; line-height:1.45; color:var(--aInk2); }
+.lqLineV1 .calcLiveDotV1 { display:inline-block; vertical-align:middle; margin-right:6px; }
 .lqLineV1 b { color:var(--aInk); font-weight:700; }
 .lqLineV1 .lqLiveV1 { color:var(--aRed); }
