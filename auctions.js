@@ -212,9 +212,19 @@
   }
 
   // ---- URL state sync (shareable searches, survives refresh) ----
+  // Строка фильтров для уведомлений: сервер ждёт «До» уже сдвинутым на день (исключающая граница), как в запросе к API
+  function alertQs(){
+    const p = new URLSearchParams(location.search);
+    const dTo = p.get("auctionDateTo"), m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dTo || "");
+    if(m) p.set("auctionDateTo", new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1)).toISOString().slice(0, 10));
+    return p.toString();
+  }
   function syncUrl(){
     if(parseSlug(currentSlug())) return; // on a detail page — leave its path
     const p = formParams();
+    // В ссылке — дата «До» как выбрал человек (formParams прибавляет день для запроса к API): иначе при перезагрузке диапазон уезжает на день
+    const rawTo = document.querySelector('input[name="auctionDateTo"]')?.value;
+    if(p.get("auctionDateTo")){ if(rawTo) p.set("auctionDateTo", rawTo); else p.delete("auctionDateTo"); }
     p.delete("per_page");
     if(Number(p.get("page")) <= 1) p.delete("page");   // страница >1 остаётся в ссылке: «назад из лота» возвращает на неё
     if(p.get("sort") === "smart") p.delete("sort"); // «Рекомендованные» — дефолт с 15.09.2026 (лучшие из ближайших торгов первыми)
@@ -4380,7 +4390,7 @@
         return;
       }
       if(e.target.closest("#afClearV1")){ $("#resetFiltersBtn").click(); return; }
-      if(e.target.closest("#afBellV1")){ alertSubscribe("search", {qs:location.search.replace(/^\?/, ""), name:searchAlertName()}); return; }
+      if(e.target.closest("#afBellV1")){ alertSubscribe("search", {qs:alertQs(), name:searchAlertName()}); return; }
       if(e.target.closest("#afFavBellV1")){
         const lots = favList().filter(alertable).map(l => ({id:l.id, title:lotTitle(l), saleDate:l.auctionDate, vin:l.vin || ""}));
         alertSubscribe("lot", {lots}, () => alertLotMark(lots.map(l => l.id)));
