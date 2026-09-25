@@ -664,3 +664,4 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   страницы сайта → `api/page-meta.js` (rewrites с `has: lang=(ro|en)` в vercel.json; тексты и картинки — `server/og-pages.js`, PNG `assets/og/<имя>-ro.png`/`-en.png`, генератор тот же `scripts/build-og-pages.js`); каталог → `api/catalog-page.js` (lang + фильтры); лот/«в пути»/каталог/трекинг — картинки `/og/…?lang=` и описания на языке
   (`server/og-lot.js`, `og-catalog.js`, `og-track.js` — словари ru/ro/en). Новая страница/строка текста = запись в `server/og-pages.js` + `node scripts/build-og-pages.js` + бамп `?v=` картинок.
   ⚠️ `/tracking` с `?lang=` обрабатывает `tracking-page.js` сам (в page-meta не добавлять). В шрифте карточек нет «≈», «№», «→».
+  Главная `/?lang=ro|en`: корень отдаёт статический index.html раньше rewrites, поэтому для превью-ботов (UA Telegram/WhatsApp/Facebook/…) — redirect на `/api/page-meta?page=index`; люди видят обычную главную.

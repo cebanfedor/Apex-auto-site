@@ -15,6 +15,7 @@
     { "path": "/api/cron/buynow", "schedule": "2-59/3 * * * *" }
   ],
   "redirects": [
+    { "source": "/", "has": [{ "type": "query", "key": "lang", "value": "(?<lang>ro|en)" }, { "type": "header", "key": "user-agent", "value": ".*(TelegramBot|WhatsApp|facebookexternalhit|Facebot|Twitterbot|Slackbot|LinkedInBot|Viber|Discordbot|SkypeUriPreview|Pinterest|Google-InspectionTool|Googlebot).*" }], "destination": "/api/page-meta?page=index&lang=:lang", "permanent": false },
     { "source": "/server/:path*", "destination": "/404", "permanent": false },
     { "source": "/", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/", "permanent": true },
     { "source": "/:path*", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/:path*", "permanent": true },
