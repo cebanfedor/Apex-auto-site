@@ -4087,6 +4087,32 @@ module.exports = async function handler(request, response){
     return;
   }
   // Диагностика: сколько лотов уже определено по VIN и где фид расходится с vPIC (read-only)
+  // Сверка «фид ↔ расшифровка VIN ↔ итог» по уже разобранным лотам (read-only): матрица расхождений и список моделей, где они возникают
+  if(action === "ptaudit"){
+    if(!(await fuelXReady())){ sendJson(response, 200, {ok:false, error:"нет колонок fuel_x"}, {"cache-control":"no-store"}); return; }
+    const grp = rows => { const m = {}; for(const r of rows){ const k = `${r.make || "?"} ${r.model || ""}`.trim(); if(!m[k]) m[k] = {n:0, ex:r.title}; m[k].n++; } return Object.entries(m).sort((a, b) => b[1].n - a[1].n).slice(0, 25).map(([k, v]) => `${k} ×${v.n} (${v.ex})`); };
+    const sel = "select=id,title,fuel_id,fuel_x,fuel_src,make:payload->>make,model:payload->>model&archived=eq.false&fuel_x=not.is.null";
+    const out = {ok:true};
+    try{
+      // матрица по выборке ~6000 разобранных лотов
+      const matrix = {}; let seen = 0;
+      for(let off = 0; off < 6000; off += 1000){
+        const rows = await syncSbFetch(`/api_lots?select=fuel_id,fuel_x,fuel_src&archived=eq.false&fuel_x=not.is.null&order=sale_date.asc&limit=1000&offset=${off * 5}`).catch(() => []);
+        for(const r of rows){ const k = `src${r.fuel_src} feed${r.fuel_id} → ${r.fuel_x}`; matrix[k] = (matrix[k] || 0) + 1; seen++; }
+        if(rows.length < 1000) break;
+      }
+      out.sampled = seen; out.matrix = Object.fromEntries(Object.entries(matrix).sort((a, b) => b[1] - a[1]));
+      const lim = "&order=sale_date.asc&limit=400";
+      out.feedGasVpicHybrid = grp(await syncSbFetch(`/api_lots?${sel}&fuel_id=eq.4&fuel_x=in.(3,5)&fuel_src=in.(1,4)${lim}`).catch(() => []));
+      out.feedHybridVpicGas = grp(await syncSbFetch(`/api_lots?${sel}&fuel_id=eq.3&fuel_x=eq.4&fuel_src=in.(1,4)${lim}`).catch(() => []));
+      out.feedHybridVpicPlugin = grp(await syncSbFetch(`/api_lots?${sel}&fuel_id=eq.3&fuel_x=eq.5&fuel_src=eq.1${lim}`).catch(() => []));
+      out.feedPlugVpicHybrid = grp(await syncSbFetch(`/api_lots?${sel}&fuel_id=eq.3&fuel_x=eq.3&fuel_src=eq.1&title=ilike.*phev*${lim}`).catch(() => []));
+      out.rulesOnlyHybrid = grp(await syncSbFetch(`/api_lots?${sel}&fuel_src=eq.2&fuel_x=in.(3,5)${lim}`).catch(() => []));
+      out.rulesOnlyMild = grp(await syncSbFetch(`/api_lots?${sel}&fuel_src=eq.4&fuel_id=eq.3${lim}`).catch(() => []));
+    }catch(e){ out.error = String(e.message || e).slice(0, 160); }
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "ptstatus"){
     if(!(await fuelXReady())){ sendJson(response, 200, {ok:true, ready:false, note:"нет колонок fuel_x — выполните миграцию 20260925_fuel_x.sql"}, {"cache-control":"no-store"}); return; }
     const cnt = async q => { try{ const r = await fetch(`${(process.env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(new Date().toISOString())}${q}`, {headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY, authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}}); return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0; }catch(e){ return -1; } };
