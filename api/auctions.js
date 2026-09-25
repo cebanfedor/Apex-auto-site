@@ -3845,13 +3845,21 @@ async function attachPowertrain(lot){
         const m = await powertrain.vpicBatch([vin], 6000);
         const raw = m && m.get(vin);
         d = powertrain.kindFromVpic(raw);
-        if(d){ d.trim = powertrain.trimFromVpic(raw); d.disp = Number(raw && raw.DisplacementL) || 0; }
+        if(d){ d.trim = powertrain.trimFromVpic(raw); d.disp = Number(raw && raw.DisplacementL) || 0; d.vModel = String((raw && raw.Model) || "").trim(); }
         if(d){ ptMemo.set(vin, {d, at:Date.now()}); if(ptMemo.size > 2000) ptMemo.clear(); }
       }
     }
     if(!d) d = powertrain.kindFromRules({make:lot.make, model:lot.model, year:lot.year, title:lot.title, fuelId:{diesel:1, electric:2, hybrid:3, gasoline:4}[String(lot.fuel || "").toLowerCase()] || (/hybrid/i.test(String(lot.fuel)) ? 3 : 4)});
     lot.fuelKind = d.x; lot.fuelSrc = d.src; if(d.level) lot.powertrainLevel = d.level;
     if(d.disp > 0) lot.vinEngineL = Math.round(d.disp * 10) / 10;   // объём двигателя по VIN (л)
+    // Модель по VIN важнее фида: у Copart бывает «Model X» на VIN Model 3 (5YJ3…). Только Tesla — там модель однозначно задаёт 4-й знак VIN;
+    // у остальных марок названия vPIC и фида не совпадают по написанию (330i / 3 Series), подмена дала бы ошибки.
+    if(d.vModel && /tesla/i.test(String(lot.make || "")) && /^(Model [3SXY]|Cybertruck)$/i.test(d.vModel) && d.vModel.toLowerCase() !== String(lot.model || "").toLowerCase()){
+      const old = String(lot.model || "");
+      lot.modelFeed = old; lot.model = d.vModel;
+      if(lot.title && old) lot.title = lot.title.replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), d.vModel);
+      lot.body = /^Model [3S]$/i.test(d.vModel) ? "sedan" : "suv";
+    }
     if(lot.title){ lot.titleFeed = lot.title; lot.title = powertrain.fullTitle(lot.title, {trim:d.trim || "", kind:d.x}); }
     // заодно исправляем строку в базе (если колонки есть)
     if(lot.id && Number(lot.statusId) !== 6 && await fuelXReady()){
@@ -4344,7 +4352,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "33";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g19" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g20" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
