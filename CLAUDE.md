@@ -609,3 +609,16 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
   уже попавшее в базу удаляет `purgeFakeLots` (вызывается из `enginefill`, cron */3, по 300 строк, флаг завершения `alert_meta.fake_purge_v1`). Страница лота по прямой ссылке открывается как раньше.
 - Лоты без фото, но с нормальными номерами (≈64 IAAI на ближайшие 2 дня) — настоящие, фото у них ещё не загружены; не скрываем.
 - ⚠️ Счётчики марок (`facet_counts`) и вкладок пересчитаются сами после удаления строк из базы.
+
+## Тип силовой установки по VIN — гибрид / plug-in / mild (25.09.2026)
+- Проблема: `fuel_id` фида путает (Mazda CX-90 Hybrid — «бензин», CX-90 PHEV — «гибрид»; Santa Fe/Sorento бывают бензин/HEV/PHEV). Источник истины — **NHTSA vPIC** (`DecodeVINValuesBatch`, до 50 VIN за запрос, БЕЗ ключа, поле `ElectrificationLevel`:
+  `PHEV` / `Strong HEV`|`HEV` / `Mild HEV` / `BEV`; при пустом — `FuelTypePrimary/Secondary`). Проверено на 100+ VIN: покрытие гибридов 2016–2020 = 100%, бензин и BEV классифицируются верно.
+- Коды `api_lots.fuel_x` / `lot.fuelKind`: 1 дизель · 2 электро · 3 гибрид (HEV) · 4 бензин (**mild-hybrid 48V = бензин**, `fuel_src=4`) · 5 plug-in (PHEV, в т.ч. range-extender вроде Volt/i3 REx). `fuel_src`: 1 vPIC · 2 правила · 4 vPIC mild. null — не определён → работает `fuel_id`.
+- Код: `server/powertrain.js` (`vpicBatch`, `kindFromVpic`, `kindFromRules`, `decide`); запасные правила = фид + `calc-core.isPluginHybrid` + таблица EPA `server/epa-powertrain.js` (генератор `scripts/build-epa-table.py` из
+  https://www.fueleconomy.gov/feg/epadata/vehicles.csv.zip; «марка|модель»: «годы:варианты» G/D/H/P/E; 196 моделей с гибридными вариантами; обновлять раз в полгода при появлении моделей). Тесты `test/powertrain.test.js`.
+- Заполнение: cron `/api/cron/powertrain` (каждые 2 мин, `action=ptfill`, `runPowertrainFill`): берёт лоты 2005+ с `fuel_x is null` по ближайшим торгам (200/раунд, vPIC пачками по 50 параллельно), пишет `fuel_x/fuel_src`; при сбое vPIC строки НЕ помечает (повтор).
+  Синк колонки не трогает (в upsert их нет). Страница лота (`action=detail`) определяет тип по VIN сразу (`attachPowertrain`, кэш 12 ч, заодно чинит строку в базе). `?action=ptstatus` — сколько определено и где фид расходится с vPIC.
+- Поиск: фильтр «Топливо» — чекбоксы Бензин/Дизель/Гибрид/Plug-in/Электро (значения 4/1/3/5/2); сервер фильтрует `or(fuel_x in (…), and(fuel_x is null, легаси по fuel_id и названию))`; «Гибрид» = только HEV (без plug-in), умный поиск «гибрид» ставит 3+5, «plug-in/phev/плагин» — 5.
+  Старый параметр `phev=1` = «+ plug-in». Без миграции (`fuelXReady()` false) всё работает по старому. Счётчики марок (`facet_counts`) используют `coalesce(fuel_x, fuel_id)`.
+- Клиент: `mapFuel(raw, green, lot)` берёт `lot.fuelKind` первым — калькулятор считает акциз по РЕАЛЬНОМУ типу (plug-in 0.5, гибрид 0.75); карточка/страница лота показывают «Plug-in гибрид», «Бензин · mild-hybrid».
+- ⚠️ Миграция `supabase/migrations/20260925_fuel_x.sql` выполняется Федором в SQL Editor (колонки, индексы, новая `facet_counts`). После неё бэкфилл ~100k ближайших лотов идёт несколько часов.

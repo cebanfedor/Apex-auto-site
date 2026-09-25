@@ -34,7 +34,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v442">
-  <link rel="stylesheet" href="/auctions.css?v=v522">
+  <link rel="stylesheet" href="/auctions.css?v=v523">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -222,9 +222,10 @@
                 <label class="optV2"><input type="checkbox" name="fuel" value="4"><span>Бензин</span></label>
                 <label class="optV2"><input type="checkbox" name="fuel" value="1"><span>Дизель</span></label>
                 <label class="optV2"><input type="checkbox" name="fuel" value="3"><span>Гибрид</span></label>
+                <label class="optV2"><input type="checkbox" name="fuel" value="5"><span>Plug-in гибрид</span></label>
                 <label class="optV2"><input type="checkbox" name="fuel" value="2"><span>Электро</span></label>
-                <label class="optV2"><input type="checkbox" name="phev" value="1"><span>Plug-in гибрид</span></label>
               </div>
+              <p class="fuelNoteV1">Тип определяем по VIN (база NHTSA). «Гибрид» — без подзарядки от розетки, «Plug-in» — с ней. Мягкие гибриды 48V считаем бензиновыми.</p>
             </details>
             <details open class="fSecV2"><summary>Бюджет под ключ</summary>
               <div class="budgetBoxV1">
@@ -427,8 +428,8 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v501" defer></script>
-  <script src="/auctions.js?v=auctions-v303" defer></script>
+  <script src="/i18n.js?v=multilang-v502" defer></script>
+  <script src="/auctions.js?v=auctions-v304" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

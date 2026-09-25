@@ -1246,3 +1246,4 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPriceWrap > .dbForecastInPriceV1 b { font-size:12px; font-weight:600; color:var(--aMuted); }
 .dbPriceWrap > .dbForecastInPriceV1[hidden] { display:none; }
 .dbPriceWrap > .dbForecastInPriceV1[data-pending] { min-height:16px; justify-content:center; }
+.fuelNoteV1 { margin:8px 0 0; font-size:12px; line-height:1.4; color:var(--aMuted); }

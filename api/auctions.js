@@ -1,4 +1,5 @@
 const {sendJson, methodNotAllowed, readBody, getQuery} = require("../server/http");
+const powertrain = require("../server/powertrain");
 const supabase = require("../server/supabase");
 const priceGuide = require("../server/price-guide");
 const {isValidContact, isValidVin} = require("../server/validators");
@@ -634,7 +635,7 @@ function buildSearchParams(query){
     if(value) params.set(to, value);
   }
   const fuelCsv = String(query.get("fuel") || "");
-  if(/^\d+$/.test(fuelCsv)) params.set("fuel_type", fuelCsv);
+  if(/^\d+$/.test(fuelCsv)) params.set("fuel_type", fuelCsv === "5" ? "3" : fuelCsv);
   // Поколение из нашей таблицы (синтетический id) → диапазон лет вместо generation_id.
   const synGenLive = parseSynGen(query.get("generation"));
   if(synGenLive){
@@ -1023,7 +1024,7 @@ async function fetchSearch(query){
         .filter(lot => {
           const ids = String(query.get("fuel") || "").split(",").filter(x => /^\d+$/.test(x));
           if(ids.length < 2) return true;
-          const T = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline"};
+          const T = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"hybrid"};
           const f = String(lot.fuel || "").toLowerCase();
           return ids.some(id => T[id] && f.includes(T[id]));
         });
@@ -2157,7 +2158,8 @@ async function searchFromDb(query){
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const p = new URLSearchParams();
-  p.set("select", "payload");
+  const fxOk = await fuelXReady();
+  p.set("select", fxOk ? "payload,fuel_x,fuel_src" : "payload");
   const ands = [];
   // Страховка от Encar/Кореи, попавшей в базу до доменного фильтра синка
   ands.push("or(country.neq.kr,country.is.null)");
@@ -2328,6 +2330,7 @@ async function searchFromDb(query){
 
   const enumFilters = [["fuel","fuel_id"],["body","body_id"],["transmission","transmission_id"],["drive","drive_id"],["condition","condition_id"],["color","color_id"],["cylinders","cylinders"],["vehicleType","vehicle_type_id"]];
   for(const [from, col] of enumFilters){
+    if(from === "fuel") continue;   // топливо — ниже: по реальному типу силовой установки (fuel_x), фид путает гибриды и plug-in
     const v = String(query.get(from) || "").replace(/[^0-9,]/g, "");
     const ids = v.split(",").filter(Boolean);
     if(ids.length === 1) p.set(col, `eq.${ids[0]}`);
@@ -2339,17 +2342,25 @@ async function searchFromDb(query){
     const cap = Math.max(0, Number(budgetQ) - 1200);
     ands.push(`or(current_bid.is.null,current_bid.lte.${cap},and(buy_now.gt.0,buy_now.lte.${cap}))`);
   }
-  // Plug-in гибрид (PHEV): фид отдаёт таким машинам просто «hybrid» → распознаём по названию (те же правила, что isPluginHybrid в calc-core.js).
-  // «Гибрид» в списке топлива уже включает PHEV, поэтому отдельный фильтр нужен, только если гибрид целиком не выбран.
-  if(query.get("phev") === "1"){
-    const fids = String(query.get("fuel") || "").replace(/[^0-9,]/g, "").split(",").filter(Boolean);
-    if(!fids.includes("3")){
+  // Топливо. fuel_x — реальный тип по VIN (NHTSA vPIC): 1 дизель · 2 электро · 3 гибрид · 4 бензин · 5 plug-in гибрид; пока лот не определён (null) — fuel_id фида.
+  // Для ещё не определённых «plug-in» ищем по названию теми же правилами, что isPluginHybrid в calc-core.js. Старый параметр phev=1 = «+ plug-in».
+  {
+    let fids = [...new Set(String(query.get("fuel") || "").replace(/[^0-9,]/g, "").split(",").filter(x => /^[1-5]$/.test(x)))];
+    if(query.get("phev") === "1" && !fids.includes("5")) fids.push("5");
+    if(fids.length){
       const phevExpr = "or(title.imatch.plug.?in,title.ilike.*phev*,title.imatch.\\m4xe\\M,title.imatch.\\me[- ]?hybrid,title.ilike.*energi*,title.ilike.*recharge*,title.ilike.*iperformance*,title.ilike.*h+*,"
         + "and(title.ilike.*toyota*,title.imatch.\\mprime\\M),and(or(title.ilike.*bmw*,title.ilike.*mercedes*),title.imatch.\\d\\d\\d?x?e\\M),"
         + "and(title.ilike.*mitsubishi*,title.ilike.*outlander*),and(title.ilike.*mazda*,title.imatch.cx.?[79]0),and(title.ilike.*volvo*,year.gte.2016),"
         + "and(title.ilike.*lexus*,title.imatch.nx.?450,year.gte.2022),and(title.ilike.*lexus*,title.imatch.rx.?450,year.gte.2023))";
-      p.delete("fuel_id");
-      ands.push(fids.length ? `or(fuel_id.in.(${fids.join(",")}),and(fuel_id.eq.3,${phevExpr}))` : `and(fuel_id.eq.3,${phevExpr})`);
+      const legacy = [];   // для строк без fuel_x (или пока колонки нет)
+      const feedIds = fids.filter(x => x !== "5" && x !== "3");
+      if(fids.includes("3") && fids.includes("5")) feedIds.push("3");
+      else if(fids.includes("3")) legacy.push("and(fuel_id.eq.3," + "title.not.imatch.plug.?in,title.not.ilike.*phev*,title.not.imatch.\\m4xe\\M)");
+      else if(fids.includes("5")) legacy.push(`and(fuel_id.eq.3,${phevExpr})`);
+      if(feedIds.length) legacy.push(`fuel_id.in.(${feedIds.join(",")})`);
+      const legacyExpr = legacy.length === 1 ? legacy[0] : `or(${legacy.join(",")})`;
+      if(fxOk) ands.push(`or(fuel_x.in.(${fids.join(",")}),and(fuel_x.is.null,${legacyExpr}))`);
+      else ands.push(legacyExpr.startsWith("or(") || legacyExpr.startsWith("and(") ? legacyExpr : `or(${legacyExpr})`);
     }
   }
   // Без лотов, запрещённых к экспорту: Гавайи и электромобили после затопления (те же правила, что exportBan на клиенте)
@@ -2494,7 +2505,7 @@ async function searchFromDb(query){
   const perPage = Math.min(100, Math.max(1, Number(query.get("per_page") || query.get("limit") || 50) || 50));
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const offset = (page - 1) * perPage;
-  const hasNarrowFilter = !!(query.get("phev") === "1" || query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
+  const hasNarrowFilter = !!(query.get("phev") === "1" || /(^|,)5(,|$)/.test(String(query.get("fuel") || "")) || query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
   // «Широкий» фильтр = любой параметр кроме служебных (вкладка/площадка/сортировка/страница) и без марки/модели/поиска.
   const NON_FILTER_KEYS = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action", "vehicleType", "debug"]);
   const hasBroadFilter = !hasNarrowFilter && [...query.keys()].some(k => !NON_FILTER_KEYS.has(k));
@@ -2609,7 +2620,7 @@ async function searchFromDb(query){
   }
   return {
     _db:true,
-    items:rows.map(r => r.payload).filter(Boolean).map(sanitizeStoredLot),
+    items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } return l; }),
     total,
     page,
     perPage,
@@ -3183,6 +3194,16 @@ async function runColsReady(){
   return ok;
 }
 let liveColState = {ok:false, at:0};
+let fuelXState = {ok:false, at:0};
+// Колонки fuel_x/fuel_src (миграция 20260925_fuel_x.sql) — без них работаем по fuel_id фида, ничего не падает
+async function fuelXReady(){
+  const ttl = fuelXState.ok ? 600e3 : 60e3;
+  if(Date.now() - fuelXState.at < ttl) return fuelXState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=fuel_x,fuel_src&limit=1`); ok = true; }catch(_){ ok = false; }
+  fuelXState = {ok, at:Date.now()};
+  return ok;
+}
 async function liveColReady(){
   const ttl = liveColState.ok ? 600e3 : 60e3;
   if(Date.now() - liveColState.at < ttl) return liveColState.ok;
@@ -3660,6 +3681,74 @@ function engineLitersOf(text){
 }
 
 // Заливка api_lots.engine_l из payload.engine («2.0l i-4 …» → 2.0). Порция — SQL-функция fill_engine_l (skip locked).
+// ---- Тип силовой установки по VIN (NHTSA vPIC) → api_lots.fuel_x (см. server/powertrain.js) ----
+const ptMemo = new Map();   // VIN → {x, src, at}: страница лота и повторные листинги не ходят в vPIC каждый раз
+async function runPowertrainFill(budgetMs = 42000){
+  const t0 = Date.now();
+  const out = {ok:true, done:0, vpic:0, rules:0, mild:0, failBatches:0, rounds:0};
+  if(!sbUp()) return {ok:true, skipped:"db down"};
+  if(!(await fuelXReady())) return {ok:true, skipped:"нет колонок fuel_x (миграция 20260925_fuel_x.sql)"};
+  const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+  while(Date.now() - t0 < budgetMs - 9000 && out.rounds < 30){
+    out.rounds++;
+    const rows = await syncSbFetch(`/api_lots?select=id,vin,title,year,fuel_id,make:payload->>make,model:payload->>model&fuel_x=is.null&archived=eq.false&year=gte.2005&sale_date=gte.${encodeURIComponent(since)}&order=sale_date.asc&limit=200`).catch(() => null);
+    if(!Array.isArray(rows) || !rows.length) break;
+    const vins = [...new Set(rows.map(r => String(r.vin || "").toUpperCase()).filter(powertrain.validVin))];
+    const chunks = []; for(let i = 0; i < vins.length; i += 50) chunks.push(vins.slice(i, i + 50));
+    const maps = await Promise.all(chunks.map(c => powertrain.vpicBatch(c)));
+    const byVin = new Map(); let failed = false;
+    maps.forEach(m => { if(!m) failed = true; else m.forEach((v, k) => byVin.set(k, v)); });
+    if(failed) out.failBatches++;
+    const groups = new Map();
+    for(const r of rows){
+      const vin = String(r.vin || "").toUpperCase();
+      const valid = powertrain.validVin(vin);
+      // vPIC не ответил по этой пачке — строку не помечаем (повторим на следующем тике), иначе цикл ушёл бы в правила навсегда
+      if(valid && failed && !byVin.has(vin)) continue;
+      const d = powertrain.decide({make:r.make, model:r.model, year:r.year, title:r.title, fuelId:r.fuel_id}, valid ? byVin.get(vin) : null);
+      if(d.src === 1) out.vpic++; else if(d.src === 4){ out.vpic++; out.mild++; } else out.rules++;
+      const k = d.x + "|" + d.src;
+      if(!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r.id);
+    }
+    if(!groups.size) break;
+    for(const [k, ids] of groups){
+      const [x, src] = k.split("|").map(Number);
+      for(let i = 0; i < ids.length; i += 50){
+        const chunk = ids.slice(i, i + 50).map(encodeURIComponent).join(",");
+        await syncSbFetch(`/api_lots?id=in.(${chunk})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({fuel_x:x, fuel_src:src})}).catch(() => { out.patchErr = (out.patchErr || 0) + 1; });
+      }
+      out.done += ids.length;
+    }
+    if(failed) break;
+  }
+  out.ms = Date.now() - t0;
+  return out;
+}
+// Страница лота: тип силовой установки по VIN (кэш в памяти на 12 ч); сбой vPIC → правила. Поля: lot.fuelKind (1–5), lot.fuelSrc, lot.powertrainLevel
+async function attachPowertrain(lot){
+  try{
+    const vin = String(lot.vin || "").toUpperCase();
+    let d = null;
+    if(powertrain.validVin(vin)){
+      const hit = ptMemo.get(vin);
+      if(hit && Date.now() - hit.at < 12 * 3600e3) d = hit.d;
+      else{
+        const m = await powertrain.vpicBatch([vin], 6000);
+        const raw = m && m.get(vin);
+        d = powertrain.kindFromVpic(raw);
+        if(d){ ptMemo.set(vin, {d, at:Date.now()}); if(ptMemo.size > 2000) ptMemo.clear(); }
+      }
+    }
+    if(!d) d = powertrain.kindFromRules({make:lot.make, model:lot.model, year:lot.year, title:lot.title, fuelId:{diesel:1, electric:2, hybrid:3, gasoline:4}[String(lot.fuel || "").toLowerCase()] || (/hybrid/i.test(String(lot.fuel)) ? 3 : 4)});
+    lot.fuelKind = d.x; lot.fuelSrc = d.src; if(d.level) lot.powertrainLevel = d.level;
+    // заодно исправляем строку в базе (если колонки есть)
+    if(lot.id && Number(lot.statusId) !== 6 && await fuelXReady()){
+      syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}&archived=eq.false`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({fuel_x:d.x, fuel_src:d.src})}).catch(() => {});
+    }
+  }catch(_){ /* необязательное поле */ }
+}
+
 // Фиктивные лоты Copart (25.09.2026): 9-значные номера 99xxxxxxx — 6745 «лотов» без фото, без штата, без продавца, с числом вместо повреждения
 // (damage «61016245»); на copart.com их нет. Настоящие номера Copart — 8 цифр. Не пускаем в базу/поиск и один раз вычищаем то, что уже попало.
 const isFakeLot = lot => {
@@ -3934,6 +4023,24 @@ module.exports = async function handler(request, response){
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}, {"cache-control":"no-store"}); }
     return;
   }
+  if(action === "ptfill"){
+    sendJson(response, 200, await runPowertrainFill().catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
+    return;
+  }
+  // Диагностика: сколько лотов уже определено по VIN и где фид расходится с vPIC (read-only)
+  if(action === "ptstatus"){
+    if(!(await fuelXReady())){ sendJson(response, 200, {ok:true, ready:false, note:"нет колонок fuel_x — выполните миграцию 20260925_fuel_x.sql"}, {"cache-control":"no-store"}); return; }
+    const cnt = async q => { try{ const r = await fetch(`${(process.env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(new Date().toISOString())}${q}`, {headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY, authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}}); return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0; }catch(e){ return -1; } };
+    const out = {ok:true, ready:true, upcoming:{}};
+    out.upcoming.pending = await cnt("&fuel_x=is.null");
+    for(const [n, x] of [["diesel", 1], ["electric", 2], ["hybrid", 3], ["gasoline", 4], ["plugin", 5]]) out.upcoming[n] = await cnt(`&fuel_x=eq.${x}`);
+    out.upcoming.mildHybrid = await cnt("&fuel_src=eq.4");
+    out.upcoming.byRules = await cnt("&fuel_src=eq.2");
+    out.upcoming.feedHybridButNotHybrid = await cnt("&fuel_id=eq.3&fuel_x=not.in.(3,5)&fuel_x=not.is.null");
+    out.upcoming.feedGasButHybrid = await cnt("&fuel_id=eq.4&fuel_x=in.(3,5)");
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "enginefill"){
     sendJson(response, 200, await runEngineFill(), {"cache-control":"no-store"});
     return;
@@ -4139,8 +4246,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "29";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g14" : "";   // бамп при смене таблицы поколений и формы detail
+  const SEARCH_CACHE_VER = "30";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g15" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -4295,7 +4402,7 @@ module.exports = async function handler(request, response){
 
     if(action === "detail"){
       const lot = await fetchDetail(query);
-      await attachVinHistory(lot);
+      await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);
       await attachGenRange(lot);
       upsertClosedLot(lot);
       const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};

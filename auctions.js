@@ -278,7 +278,6 @@
     const boxes = (name, title) => form.querySelectorAll(`input[name="${name}"]:checked`).forEach(cb => add(`${L(title)}: ${optText(cb)}`, () => { cb.checked = false; }));
     if(form.querySelector('input[name="smart"]:checked')) add("Feduk Clean Select™", () => { form.querySelector('input[name="smart"]').checked = false; });
     boxes("fuel", "Топливо");
-    if(form.querySelector('input[name="phev"]:checked')) add(`${L("Топливо")}: Plug-in ${L("гибрид")}`, () => { form.querySelector('input[name="phev"]').checked = false; });
     { const bv = Number(form.elements.budget && form.elements.budget.value); if(bv >= 1000) add(`${L("Бюджет под ключ")}: ${L("до")} $${num(bv)}`, () => { form.elements.budget.value = ""; }); }
     if(form.querySelector('input[name="noBan"]:checked')) add(L("Без запрещённых к экспорту"), () => { form.querySelector('input[name="noBan"]').checked = false; });
     boxes("body", "Кузов"); boxes("vehicleType", "Тип техники"); boxes("drive", "Привод"); boxes("transmission", "Коробка");
@@ -449,7 +448,9 @@
     const smartPrefill = p.get("vin") || p.get("q") || p.get("name");
     if(smartPrefill && $("#auctionSmartSearch")) $("#auctionSmartSearch").value = smartPrefill;
     const form = $("#auctionFiltersForm");
+    if(form && p.get("phev") === "1"){ const f5 = form.querySelector('input[name="fuel"][value="5"]'); if(f5) f5.checked = true; }
     if(form) for(const [k, v] of p.entries()){
+      if(k === "phev") continue;
       const radios = form.querySelectorAll(`[name="${k}"]`);
       if(radios.length && radios[0].type === "checkbox"){
         const set = new Set(String(v).split(","));
@@ -460,6 +461,7 @@
         try{ form.elements[k].value = v; }catch(e){}
       }
     }
+    if(form && p.get("phev") === "1"){ const f5 = form.querySelector('input[name="fuel"][value="5"]'); if(f5) f5.checked = true; }
     setDamageList(damageList());
     document.querySelectorAll("[data-range]").forEach(r => { if(r._applyNums) r._applyNums(); else if(r._refresh) r._refresh(); });
   }
@@ -718,7 +720,15 @@
   function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
   function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
 
+  // Реальный тип силовой установки по VIN (NHTSA vPIC), приходит с сервера как lot.fuelKind: 1 дизель · 2 электро · 3 гибрид · 4 бензин (в т.ч. mild-hybrid) · 5 plug-in гибрид
+  const FUEL_KIND = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
+  const FUEL_KIND_RU = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
+  function fuelKindRu(lot){
+    if(!lot || !FUEL_KIND_RU[lot.fuelKind]) return "";
+    return L(FUEL_KIND_RU[lot.fuelKind]) + (lot.fuelSrc === 4 ? " · mild-hybrid" : "");
+  }
   function mapFuel(raw, greenOverride, lot){
+    if(lot && FUEL_KIND[lot.fuelKind]) return FUEL_KIND[lot.fuelKind];
     const f = String(raw || "").toLowerCase();
     // PHEV по названию модели/трима (xDrive40e, 330e, RAV4 Prime, 4xe и т.п.) —
     // фид часто отдаёт таким машинам просто «гибрид», а у PHEV таможня ниже.
@@ -1128,10 +1138,12 @@
     return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>${L("Состояние:")}</b> ${escapeHtml(L(c.label))}</span></li>`;
   }
   function dbCheckFuel(raw, lot){
-    if(!raw) return "";
+    if(!raw && !(lot && lot.fuelKind)) return "";
     let val = ruEnum(RU_FUEL, raw);
-    if(lot && /hybrid|гибрид/i.test(String(raw)) && !/plug|phev/i.test(String(raw)) && window.ApexCalc && window.ApexCalc.isPluginHybrid && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title, lot.year)) val = "Plug-in гибрид";
-    const low = String(raw).toLowerCase();
+    const kindRu = fuelKindRu(lot);
+    if(kindRu) val = kindRu;
+    else if(lot && /hybrid|гибрид/i.test(String(raw)) && !/plug|phev/i.test(String(raw)) && window.ApexCalc && window.ApexCalc.isPluginHybrid && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title, lot.year)) val = "Plug-in гибрид";
+    const low = (kindRu ? (lot.fuelKind === 2 ? "electric" : lot.fuelKind === 3 || lot.fuelKind === 5 ? "hybrid" : "gasoline") : String(raw)).toLowerCase();
     // Цвет значка по типу: электро — голубой, гибрид — зелёный, бензин/дизель — серый (Федор 25.09.2026)
     const fuelCls = /electric|электро/.test(low) && !/hybrid|гибрид/.test(low) ? "dbFuelEvV1" : /hybrid|гибрид|phev|plug/.test(low) ? "dbFuelHyV1" : "dbFuelGasV1";
     return `<li class="dbCheck neutral ${fuelCls}">${dbIco("fuel")}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
@@ -2869,7 +2881,7 @@
     const primaryDmg = lot.primaryDamage || dmgParts[0] || "";
     const secondaryDmg = lot.secondaryDamage || dmgParts[1] || "";
     // Тип топлива — сразу в спек-строке, чтобы бензин/дизель/гибрид был виден без скролла
-    const fuelRu = lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "";   // в составной строке «2.0 · Бензин · AWD» словарь i18n не сработает сам
+    const fuelRu = fuelKindRu(lot) ? L(fuelKindRu(lot)) : lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "";   // в составной строке «2.0 · Бензин · AWD» словарь i18n не сработает сам
     const driveLine = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
     const specLine  = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "", fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
@@ -3026,7 +3038,7 @@
             </section>
             <section class="dSec">
               <div class="dSecHead">${L("Описание")}</div>
-              ${dPlain("Тип топлива", escapeHtml(ruEnum(RU_FUEL, lot.fuel)))}
+              ${dPlain("Тип топлива", escapeHtml(fuelKindRu(lot) ? L(fuelKindRu(lot)) : ruEnum(RU_FUEL, lot.fuel)))}
               ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
@@ -3949,7 +3961,7 @@
       // --- намерения словами ---
       const kw = (words, fn) => sweep(smRe(`${SM_PRE}(?:${words})${SM_POST}`), () => { fn(); return true; });
       kw("не\\s+на\\s+ходу|не\\s+едет|non-?runners?|not\\s+running|nu\\s+merge", () => push("cond", `${L("Состояние")}: ${L("Не на ходу")}`, () => smCheck("condition", "3")));
-      kw("plug[\\s-]?in(?:\\s+hybrid)?|phev|плаг[иі]н(?:\\s*гибрид)?|плагин-гибрид|подзаряжаем\\S*(?:\\s+гибрид)?|гибрид\\s+с\\s+подзарядкой|hibrid\\s+plug[\\s-]?in", () => push("fuel", `${L("Топливо")}: Plug-in ${L("гибрид")}`, () => smCheck("phev", "1")));
+      kw("plug[\\s-]?in(?:\\s+hybrid)?|phev|плаг[иі]н(?:\\s*гибрид)?|плагин-гибрид|подзаряжаем\\S*(?:\\s+гибрид)?|гибрид\\s+с\\s+подзарядкой|hibrid\\s+plug[\\s-]?in", () => push("fuel", `${L("Топливо")}: Plug-in ${L("гибрид")}`, () => smCheck("fuel", "5")));
       kw("без\\s+запрещ[её]нных|можно\\s+(?:вывезти|экспортировать)|экспорт\\s+разрешён|экспорт\\s+разрешен|exportable|export\\s+ok", () => push("export", L("Без запрещённых к экспорту"), () => smCheck("noBan", "1")));
       kw("на\\s+ходу|заводится\\s+и\\s+едет|runs?\\s+and\\s+drives?|run\\s+and\\s+drive|drives?|merge", () => push("cond", `${L("Состояние")}: ${L("Заводится и едет")}`, () => smCheck("condition", "0")));
       kw("таймед|timed", () => push("sale", `${L("Статус продажи")}: Timed`, () => smCheck("saleStatus", "timed")));
@@ -3999,7 +4011,7 @@
           if(len === 2 && nm === "allover"){ push("damage", `${L("Повреждение")}: ${L("Весь кузов")}`, () => smAddDamage("All Over")); consumed = len; break; }
           if(len > 1) continue;
           // одиночные слова
-          if(SM_FUEL[nm]){ const fid = SM_FUEL[nm]; push("fuel", `${L("Топливо")}: ${L(SM_FUEL_RU[fid])}`, () => smCheck("fuel", String(fid))); consumed = 1; break; }
+          if(SM_FUEL[nm]){ const fid = SM_FUEL[nm]; push("fuel", `${L("Топливо")}: ${L(SM_FUEL_RU[fid])}${fid === 3 ? " + Plug-in" : ""}`, () => { smCheck("fuel", String(fid)); if(fid === 3) smCheck("fuel", "5"); }); consumed = 1; break; }
           const dm = SM_DMG.find(d => d[0].test(nm));
           if(dm){ push("damage", `${L("Повреждение")}: ${L(dm[2])}`, () => smAddDamage(dm[1])); consumed = 1; break; }
           if(SM_BODY[nm] && smBodyInput(SM_BODY[nm])){ const bi = smBodyInput(SM_BODY[nm]); push("body", `${L("Кузов")}: ${bi.closest("label").textContent.trim()}`, () => { bi.checked = true; }); consumed = 1; break; }
