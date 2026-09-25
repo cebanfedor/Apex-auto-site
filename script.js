@@ -1011,6 +1011,14 @@ function showVinStatus(title, note, warn){
   setLotCheckButton(null);
 }
 
+// У лота нет цены — не оставляем ставку от прошлого лота (она вводила бы в заблуждение): очищаем поле и просим ввести свою
+function clearBidIfNoPrice(data){
+  if(!data.currentBid && $("lotPrice")){
+    $("lotPrice").value = "";
+    try{ if(window.matchMedia && matchMedia("(pointer:fine)").matches) $("lotPrice").focus(); }catch(e){}
+  }
+}
+
 let vinImportSeq = 0;
 async function applyVinImport(vin){
   const seq = ++vinImportSeq;
@@ -1038,6 +1046,7 @@ async function applyVinImport(vin){
     if(data.vehicleType && $("vehicleType")) $("vehicleType").value = data.vehicleType;
     if(data.engineLiters && $("engineLiters")) $("engineLiters").value = String(data.engineLiters);
     if(data.currentBid && $("lotPrice")) $("lotPrice").value = String(Math.round(data.currentBid));
+    clearBidIfNoPrice(data);
     let caApplied = false;
     try{
       const city = String(data.location || "").toLowerCase().split(",")[0].replace(/[^a-z ]/g, " ").trim();
@@ -1054,6 +1063,8 @@ async function applyVinImport(vin){
     return;
   }
   applyImportedData(data, priceBeforeFetch);
+  clearBidIfNoPrice(data);
+  if(!data.currentBid) calculate();
 }
 
 async function applyAuctionImport(){
