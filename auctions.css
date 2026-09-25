@@ -1310,3 +1310,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 .filterBarV1 .genChipsV1 { margin:0; }
 .filterBarV1 > .genChipsV1 .genChipV1:first-child { margin-left:14px; position:relative; }
 .filterBarV1 > .genChipsV1 .genChipV1:first-child::before { content:""; position:absolute; left:-10px; top:50%; height:20px; width:1px; margin-top:-10px; background:var(--aLine); }
+
+/* Флаг Канады на канадских лотах */
+.dbCaFlagV1 { display:inline-flex; align-items:center; height:22px; padding:0 5px; border-radius:6px; background:rgba(255,255,255,.96); box-shadow:0 1px 3px rgba(15,23,42,.25); }
+.caFlagV1 { display:inline-block; vertical-align:-1px; border-radius:2px; box-shadow:0 0 0 1px rgba(15,23,42,.12); }
+.dbCaFlagV1 .caFlagV1 { vertical-align:0; }

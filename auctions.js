@@ -1331,7 +1331,7 @@
           ${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" ${idx < 2 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="dbSlideImg">` : `<span class="dbNoPhoto">${L("Нет фото")}</span>`}
         </a>
         ${exportBan(lot) ? `<span class="dbExportTagV1">${L("Экспорт запрещён")}</span>` : ""}
-        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
+        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${caFlagBadge(lot)}${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         ${photos > 1 ? `<span class="dbPhotoBarV1" aria-hidden="true"><i style="width:${(100 / photos).toFixed(3)}%"></i></span>` : ""}
         ${Number(priceVal) > 0 ? `<span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>` : ""}
@@ -2521,10 +2521,19 @@
   // Сроки доставки по портам (в днях), отсчёт от даты торгов лота:
   // NJ/NY/GA — 60–75, TX — 60–90, Калифорния — 90–120,
   // Канада — 50–60, Британская Колумбия (Ванкувер) — 70–90.
-  const PORT_DAYS = {nj:[60,75], savannah:[60,75], houston:[60,90], la:[90,120], canada:[50,60], canada_bc:[70,90]};
+  // Канада (Федор 25.09.2026): восток (Монреаль, Торонто, Лондон…) — 1,5–2 мес., Калгари/Эдмонтон (Альберта) — 2 мес., Ванкувер (BC) — 2,5 мес.
+  const PORT_DAYS = {nj:[60,75], savannah:[60,75], houston:[60,90], la:[90,120], canada:[45,60], canada_ab:[55,65], canada_bc:[70,80]};
+  function canadaPortKey(caLoc){ return caLoc.zone === "bc" ? "canada_bc" : (caLoc.province === "AB" || caLoc.province === "SK") ? "canada_ab" : "canada"; }
+  const CA_DELIVERY_TXT = {canada:"1,5–2 месяца", canada_ab:"≈ 2 месяца", canada_bc:"≈ 2,5 месяца"};
+  // Маленький флаг Канады — чтобы канадские лоты узнавались сразу
+  const CA_FLAG_SVG = '<svg class="caFlagV1" viewBox="0 0 24 13" width="20" height="11" aria-hidden="true"><rect width="24" height="13" fill="#fff"/><rect width="6" height="13" fill="#d52b1e"/><rect x="18" width="6" height="13" fill="#d52b1e"/><path fill="#d52b1e" d="M12 1.7l.9 1.8 1.3-.5-.4 2.7 1.4-1.1.4 1-1.4 1.1 1.8.6-.4 1.1-2.4-.3.3 1.5h-1.4v2h-.9v-2H9.4l.3-1.5-2.4.3-.4-1.1 1.8-.6-1.4-1.1.4-1 1.4 1.1-.4-2.7 1.3.5z"/></svg>';
+  function caFlagBadge(lot){
+    const ca = findCanadaLocation(lot); if(!ca) return "";
+    return `<span class="dbCaFlagV1" title="${escapeHtml(L("Канада"))} · ${escapeHtml(L("доставка"))} ${escapeHtml(L(CA_DELIVERY_TXT[canadaPortKey(ca)]))}">${CA_FLAG_SVG}</span>`;
+  }
   function deliveryWindow(lot){
     const caLoc = findCanadaLocation(lot);
-    const port = caLoc ? (caLoc.zone === "bc" ? "canada_bc" : "canada") : (findLotLocation(lot)?.autoPort || "");
+    const port = caLoc ? canadaPortKey(caLoc) : (findLotLocation(lot)?.autoPort || "");
     const [d1, d2] = PORT_DAYS[port] || [60, 90];
     const t = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
     const base = Number.isFinite(t) ? t : Date.now(); // от даты торгов, даже прошедшей
@@ -3032,7 +3041,7 @@
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(lot.auctionDate ? dbDate(lot.auctionDate, true) : L("Не назначена")))}
-              ${dPlain("Локация", escapeHtml(lotLocationText(lot)))}
+              ${dPlain("Локация", (findCanadaLocation(lot) ? CA_FLAG_SVG + " " : "") + escapeHtml(lotLocationText(lot)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
               ${lot.repairCost ? dPlain("Оценка ремонта", caMoney(lot.repairCost)) : ""}
             </section>

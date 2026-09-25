@@ -1543,9 +1543,10 @@ function calculateCanada(){
   if($("auctionBadge")) $("auctionBadge").textContent = ($("auction")?.value || "copart").toUpperCase();
   const _lngCA = window.APEX_LANG || "ru";
   const _roCA = _lngCA === "ro", _enCA = _lngCA === "en";
-  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = zone === "bc"
-    ? (_roCA ? "9–12 săptămâni" : _enCA ? "9–12 weeks" : "9–12 недель")
-    : (_roCA ? "8–10 săptămâni" : _enCA ? "8–10 weeks" : "8–10 недель");
+  // Срок из Канады (Федор 25.09.2026): восток 1,5–2 мес., Альберта/Саскачеван 2 мес., Британская Колумбия 2,5 мес.
+  const _prov = selectedCanadaLocation?.province || "";
+  const _wk = zone === "bc" ? "10–11" : (_prov === "AB" || _prov === "SK") ? "8–9" : "6–8";
+  if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = _wk + (_roCA ? " săptămâni" : _enCA ? " weeks" : " недель");
 
   // update portView to reflect actual ocean route
   const pvEl = $("portView");
