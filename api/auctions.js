@@ -469,6 +469,21 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const saleTsN = Date.parse(lot?.sale_date || lot?.auction_date || "");
   const soldByStatus = Number(statusId) === 6 || Number(statusId) === 8 || /sold/i.test(String(statusName || ""));
   const preBidSold = soldByStatus && Number.isFinite(saleTsN) && saleTsN > Date.now();
+  // Покупка по Buy Now (BMW 530e IAAI 45914882, 24.09.2026): фид пишет раунд «sold» с «живым» временем (14:13:29 — не время аукциона, секунды ≠ 0)
+  // и ставкой = цене выкупа, а основная запись лота остаётся «в продаже» (устарела, updated_at раньше продажи, торги «28.09»). Такой лот продан.
+  const bnSale = (() => {
+    if(!(buyNow > 0) || Number(statusId) === 6) return null;
+    const upd = Date.parse(lot?.updated_at || "");
+    for(const ph of priceHistory){
+      if(!/sold/i.test(ph.status || "") || /not/i.test(ph.status || "")) continue;
+      const t = Date.parse(ph.date);
+      if(!Number.isFinite(t) || t > Date.now() || new Date(t).getUTCSeconds() === 0) continue;
+      if(!(ph.bid > 0) || Math.abs(ph.bid - buyNow) > buyNow * 0.01) continue;
+      if(Number.isFinite(upd) && upd > t + 10 * 60e3) continue;   // запись лота обновлялась после продажи — его перевыставили
+      return {bid:ph.bid, date:new Date(t).toISOString()};
+    }
+    return null;
+  })();
 
   return {
     id:`${auction}-${lotNumber || item?.vin || Math.random().toString(36).slice(2)}`,
@@ -486,10 +501,11 @@ function normalizeLot(source, fallbackAuction = "copart"){
     url:auctionUrl(auction, iaaiExternalId || lotNumber),
     location,
     stateCode:String(lot?.location?.state?.code || lot?.location?.state_code || "").toLowerCase(),
-    auctionDate:lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "",
-    currentBid:preBidSold ? Math.max(currentBid, resolvedFinalBid) : currentBid,
-    finalBid:preBidSold ? 0 : resolvedFinalBid,
-    buyNow,
+    auctionDate:bnSale ? bnSale.date : (lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || ""),
+    currentBid:bnSale ? bnSale.bid : (preBidSold ? Math.max(currentBid, resolvedFinalBid) : currentBid),
+    finalBid:bnSale ? bnSale.bid : (preBidSold ? 0 : resolvedFinalBid),
+    buyNow:bnSale ? 0 : buyNow,
+    soldByBuyNow:!!bnSale,
     odometer,
     odometerKm:odometerKmVal,
     // Для Канады текст — в км (как на Copart), чтобы клиент не считал дважды.
@@ -524,10 +540,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     condition:safeName(lot?.condition || item?.condition),
     priceHistory,
     photoCount:images.length,
-    lotStatus:preBidSold ? "sale" : lotStatus(item, lot),
-    statusName:preBidSold ? "On sale" : statusName,
-    statusId:preBidSold ? 3 : statusId,
-    saleStatus:sale.label,
+    lotStatus:bnSale ? "sold" : (preBidSold ? "sale" : lotStatus(item, lot)),
+    statusName:bnSale ? "sold" : (preBidSold ? "On sale" : statusName),
+    statusId:bnSale ? 6 : (preBidSold ? 3 : statusId),
+    saleStatus:bnSale ? "Продан по Buy Now" : sale.label,
     sellerReserve:sale.reserve || 0,          // резерв продавца, $ (0 = не указан)
     sellerReserveAt:sale.reserveAt || "",
     ...(() => {
@@ -1243,7 +1259,9 @@ async function attachVinHistory(lot){
         if(/sold/.test(pst) && !/not/.test(pst)){
           const pdMs = Date.parse(pd), recMs = Date.parse(l?.sale_date || l?.auction_date || "");
           const laterRound = (Number.isFinite(recMs) && recMs > pdMs + 3600e3) || (Array.isArray(l?.prices) && l.prices.some(o => Date.parse(o?.sale_date || "") > pdMs + 3600e3));
-          if(laterRound) pst = "not_sold";
+          // Покупка по Buy Now (живое время раунда, ставка = цена выкупа записи) — реальная продажа, даже если лот потом снова в списке
+          const rawBn = safeNumber(l?.buy_now), bnEvent = new Date(pdMs).getUTCSeconds() !== 0 && rawBn > 0 && pb > 0 && Math.abs(pb - rawBn) <= rawBn * 0.01;
+          if(laterRound && !bnEvent) pst = "not_sold";
         }
         const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || (lotTimed && String(pd).slice(0, 10) === curDay) || looksTimed(pd);
         // пред-ставки текущих торгов (тот же день) — не история
@@ -1287,7 +1305,7 @@ async function attachVinHistory(lot){
       const sid = Number(enumIdOf(curEntry.status)), fb = safeNumber(curEntry.final_bid || curEntry.winning_bid);
       const sd = curEntry.sale_date || curEntry.auction_date || "";
       const sold = sid === 6 && fb > 0 && sd && Date.parse(sd) < Date.now();
-      lot.finalBid = sold ? fb : 0;
+      if(!lot.soldByBuyNow) lot.finalBid = sold ? fb : 0;
     }
   }catch(e){
     if(lot && isValidVin(String(lot.vin || ""))){
@@ -3103,7 +3121,7 @@ function syncRowFromItem(item, {archived = false} = {}){
   }
   const num = v => { const n = Number(v); return Number.isFinite(n) ? Math.round(n) : null; };
   const enumId = v => (v && typeof v === "object" && v.id != null) ? Number(v.id) : (typeof v === "number" ? v : null);
-  const saleDateRaw = lot?.sale_date || lot?.auction_date || null;
+  const saleDateRaw = normalized.soldByBuyNow ? normalized.auctionDate : (lot?.sale_date || lot?.auction_date || null);
   const saleDate = saleDateRaw && !Number.isNaN(new Date(saleDateRaw).getTime()) ? new Date(saleDateRaw).toISOString() : null;
   const statusId = normalized.statusId != null ? normalized.statusId : enumId(lot?.status);
   // Лот с будущей датой торгов и не проданный — НИКОГДА не архивный, даже если
@@ -3686,6 +3704,42 @@ function engineLitersOf(text){
 }
 
 // Заливка api_lots.engine_l из payload.engine («2.0l i-4 …» → 2.0). Порция — SQL-функция fill_engine_l (skip locked).
+// ---- Перепроверка лотов «Купить сейчас» (25.09.2026): покупка по Buy Now не меняет основную запись лота в фиде (BMW 530e 45914882 висел «купить за $9 100» после продажи),
+// поэтому лоты выкупа опрашиваем по кругу. Курсор (sale_date, id) — в alert_meta.bn_cursor; за тик ≈250 лотов, ближайшие торги первыми.
+async function runBuyNowCheck(budgetMs = 40000){
+  const t0 = Date.now();
+  const out = {ok:true, checked:0, sold:0, fail:0};
+  if(!sbUp()) return {ok:true, skipped:"db down"};
+  const meta = await syncSbFetch(`/alert_meta?k=eq.bn_cursor&select=v`).catch(() => null);
+  let cur = (Array.isArray(meta) && meta[0] && meta[0].v) || {};
+  const q = (extra, lim) => `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString())}${extra}&order=sale_date.asc,id.asc&limit=${lim}`;
+  const after = cur.sd ? `&or=(sale_date.gt.${encodeURIComponent(cur.sd)},and(sale_date.eq.${encodeURIComponent(cur.sd)},id.gt.${encodeURIComponent(cur.id || "")}))` : "";
+  let rows = await syncSbFetch(q(after, 260)).catch(() => null);
+  if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
+  out.wrapped = !rows.length;
+  if(!rows.length){ rows = await syncSbFetch(q("", 260)).catch(() => []); cur = {}; }
+  let idx = 0, last = null;
+  const worker = async () => {
+    while(idx < rows.length && Date.now() - t0 < budgetMs){
+      const r = rows[idx++]; last = r;
+      try{
+        const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
+        out.checked++;
+        const ts = Date.parse(lot.auctionDate || "");
+        if(Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now()){ upsertClosedLot(lot); out.sold++; }
+      }catch(e){ out.fail++; }
+    }
+  };
+  await Promise.all(Array.from({length:8}, worker));
+  if(idx > 0 && rows[idx - 1]){
+    const l = rows[Math.min(idx, rows.length) - 1];
+    await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({k:"bn_cursor", v:{sd:l.sale_date, id:l.id}, updated_at:new Date().toISOString()})}).catch(() => {});
+    out.cursor = l.sale_date;
+  }
+  out.ms = Date.now() - t0;
+  return out;
+}
+
 // ---- Тип силовой установки по VIN (NHTSA vPIC) → api_lots.fuel_x (см. server/powertrain.js) ----
 const ptMemo = new Map();   // VIN → {x, src, at}: страница лота и повторные листинги не ходят в vPIC каждый раз
 async function runPowertrainFill(budgetMs = 42000){
@@ -3983,6 +4037,10 @@ module.exports = async function handler(request, response){
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}, {"cache-control":"no-store"}); }
     return;
   }
+  if(action === "buynowcheck"){
+    sendJson(response, 200, await runBuyNowCheck().catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
+    return;
+  }
   if(action === "ptfill"){
     sendJson(response, 200, await runPowertrainFill().catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
     return;
@@ -4206,8 +4264,8 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "30";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g16" : "";   // бамп при смене таблицы поколений и формы detail
+  const SEARCH_CACHE_VER = "31";
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g17" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

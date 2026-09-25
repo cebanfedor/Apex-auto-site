@@ -11,7 +11,8 @@
     { "path": "/api/cron/resale", "schedule": "*/2 * * * *" },
     { "path": "/api/cron/engine", "schedule": "*/3 * * * *" },
     { "path": "/api/cron/warm", "schedule": "*/3 * * * *" },
-    { "path": "/api/cron/powertrain", "schedule": "1-59/2 * * * *" }
+    { "path": "/api/cron/powertrain", "schedule": "1-59/2 * * * *" },
+    { "path": "/api/cron/buynow", "schedule": "2-59/3 * * * *" }
   ],
   "redirects": [
     { "source": "/server/:path*", "destination": "/404", "permanent": false },
@@ -31,6 +32,7 @@
     { "source": "/api/cron/engine", "destination": "/api/auctions?action=enginefill&source=cron" },
     { "source": "/api/cron/warm", "destination": "/api/auctions?action=warm&source=cron" },
     { "source": "/api/cron/powertrain", "destination": "/api/auctions?action=ptfill&source=cron" },
+    { "source": "/api/cron/buynow", "destination": "/api/auctions?action=buynowcheck&source=cron" },
     { "source": "/api/sync-lots", "destination": "/api/auctions?action=synclots" },
     { "source": "/api/calc", "destination": "/api/content?calc=1" },
     { "source": "/api/locations", "destination": "/api/content?calc=1&locations=" },
