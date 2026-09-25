@@ -3165,7 +3165,8 @@
     api(`/api/auctions?action=queue&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`).then(r => {
       if(seq !== queueSeq) return;
       if(!r || !r.available || !(r.position > 0)){ const box = document.getElementById("lotQueueV1"); if(box) box.hidden = true; return; }   // линия ещё не назначена (у IAAI — за пару часов до торгов)
-      info = r; draw(); queueTimer = setInterval(draw, 30e3);
+      // Минут = номер лота на аукционе (клиент видит его же: «№102» → ≈102 мин); если нумерация не с единицы (у Copart бывает 2001+) — место в линии по нашей базе
+      const rn = Number(r.runNo); info = {...r, position:rn >= 1 && rn <= 999 ? rn : r.position}; draw(); queueTimer = setInterval(draw, 30e3);
     }).catch(() => {});
   }
 
