@@ -44,6 +44,20 @@ function wrap(text, size, maxW, maxLines, bold){
   return lines;
 }
 
+// Перенос в 1–2 строки без «висячих» слов: при том же числе строк берём самую узкую раскладку
+function balanced(text, size, maxW, maxLines, bold){
+  const base = wrap(text, size, maxW, maxLines, bold);
+  if(base.length !== 2) return base;
+  let best = base, bestW = Math.max(...base.map(l => textW(l, size, bold)));
+  for(let w = maxW - 30; w > maxW * 0.5; w -= 30){
+    const l = wrap(text, size, w, maxLines, bold);
+    if(l.length !== 2 || l.join(" ").length < base.join(" ").length) break;
+    const mw = Math.max(...l.map(x => textW(x, size, bold)));
+    if(mw < bestW){ best = l; bestW = mw; }
+  }
+  return best;
+}
+
 async function fetchImage(url, timeoutMs = 6000){
   if(!/^https:\/\//i.test(String(url || ""))) return null;
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -158,4 +172,25 @@ async function brandCard(title, sub){
   return toPng(svg);
 }
 
-module.exports = {lotCard, trackCard, brandCard, money, dateRu, fetchImage, bigPhoto};
+// ---------- Страница сайта ----------
+// p: {kicker, title, sub, path, photoPath (локальный файл) | image (data URI)}
+async function pageCard(p){
+  let uri = p.image || null;
+  if(!uri && p.photoPath && fs.existsSync(p.photoPath)){
+    const ext = path.extname(p.photoPath).slice(1).toLowerCase().replace("jpg", "jpeg");
+    uri = `data:image/${ext};base64,${fs.readFileSync(p.photoPath).toString("base64")}`;
+  }
+  let size = 78, lines = balanced(p.title, size, 940, 3, true);
+  if(lines.length > 2){ size = 66; lines = wrap(p.title, size, 940, 3, true); }
+  const top = 250 - (lines.length - 1) * 26;
+  const titleSvg = lines.map((l, i) => `<text x="44" y="${top + i * (size + 8)}" font-family="Onest" font-weight="800" font-size="${size}" fill="#fff">${esc(l)}</text>`).join("");
+  const subLines = balanced(p.sub || "", 32, 980, 2, false);
+  const subY = top + lines.length * (size + 8) - 4;
+  const subSvg = subLines.map((l, i) => `<text x="44" y="${subY + 20 + i * 42}" font-family="Onest" font-weight="500" font-size="32" fill="#fff" fill-opacity=".82">${esc(l)}</text>`).join("");
+  const side = `<defs><linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#090b0f" stop-opacity=".94"/><stop offset=".55" stop-color="#090b0f" stop-opacity=".72"/><stop offset="1" stop-color="#090b0f" stop-opacity=".25"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sd)"/>`;
+  const kick = p.kicker ? `<rect x="44" y="${top - size - 44}" width="6" height="26" rx="3" fill="${RED}"/><text x="64" y="${top - size - 24}" font-family="Onest" font-weight="700" font-size="24" fill="#fff" fill-opacity=".9" letter-spacing="3">${esc(p.kicker)}</text>` : "";
+  const svg = frame(photoLayer(uri) + (uri ? side : "") + brandTop() + kick + titleSvg + subSvg + footer(p.path || "apexauto.md") + `<rect x="0" y="${H - 8}" width="${W}" height="8" fill="${RED}"/>`);
+  return toPng(svg);
+}
+
+module.exports = {lotCard, trackCard, brandCard, pageCard, money, dateRu, fetchImage, bigPhoto};

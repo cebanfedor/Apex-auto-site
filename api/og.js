@@ -2,6 +2,7 @@
 // Любая ошибка → брендовая картинка (а не 500): скрейперы Telegram/WhatsApp не должны остаться без превью.
 const og = require("../server/og-card");
 const ogLot = require("../server/og-lot");
+const ogCatalog = require("../server/og-catalog");
 
 const {describeTrack} = require("../server/og-track");
 
@@ -35,12 +36,22 @@ async function buildTrack(req, vin){
   return og.trackCard({vehicle:t.vehicle, vin:t.vin || String(vin).toUpperCase(), statusLabel:t.statusLabel, delivered:t.delivered, stages:t.stages, sub:t.eta, image:t.image});
 }
 
+async function buildCatalog(req){
+  const p = ogCatalog.cleanQuery(req.query);
+  const d = await ogCatalog.describeCatalog(origin(req), p);
+  if(!d) return null;
+  const uri = d.image ? await og.fetchImage(og.bigPhoto(d.image)) : null;
+  const sub = [d.totalTxt, ...d.chips].filter(Boolean).join(" · ") || "Фото · история по VIN · цена под ключ";
+  return og.pageCard({kicker:"КАТАЛОГ АУКЦИОНОВ COPART И IAAI", title:d.names, sub, path:"apexauto.md/auctions", image:uri});
+}
+
 module.exports = async function(req, res){
   const type = String(req.query.type || ""), id = String(req.query.id || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
   let png = null, ttl = "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400";
   try{
     if(type === "lot") png = await buildLot(req, id);
     else if(type === "transit") png = await buildTransit(req, id);
+    else if(type === "catalog"){ png = await buildCatalog(req); }
     else if(type === "track"){ png = await buildTrack(req, id); ttl = "public, max-age=120, s-maxage=600, stale-while-revalidate=3600"; }
   }catch(e){ png = null; }
   if(!png){
