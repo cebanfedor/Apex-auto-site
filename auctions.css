@@ -1297,3 +1297,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   body.filtersOpenV1 .filterHeadV1::before { content:""; position:absolute; top:8px; left:50%; width:40px; height:4px; margin-left:-20px; border-radius:99px; background:#d5dae2; }
 }
 @media (prefers-reduced-motion:reduce){ body.filtersOpenV1 .auctionFiltersV1 { animation:none; } }
+@media (max-width:1100px){
+  body.filtersOpenV1::before { z-index:1000; }
+  body.filtersOpenV1 .auctionFiltersV1 { z-index:1001; }
+}
