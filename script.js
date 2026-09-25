@@ -1062,6 +1062,7 @@ async function applyVinImport(vin){
     renderLotImportStatus(data, {location: caApplied ? "ok" : ""});
     return;
   }
+  if(calcMode === "canada" && typeof switchCalcMode === "function") switchCalcMode("usa");   // прошлый VIN был канадский
   applyImportedData(data, priceBeforeFetch);
   clearBidIfNoPrice(data);
   if(!data.currentBid) calculate();

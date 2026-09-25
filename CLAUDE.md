@@ -685,3 +685,9 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - Провайдеры (AvtoShipping/W8) отдают оригиналы ~2000×1500 (300–400 КБ, до 77 фото на VIN) — на телефоне грузились целиком даже как миниатюры 76 px. Теперь `tracking.html` берёт уменьшенные копии через **Vercel Image**
   (`/_vercel/image?url=…&w=160|960|1600&q=75`, конфиг `images` в `vercel.json`: sizes 160/640/960/1600, remotePatterns только `storage-lavto.lionwood.software` и `static.w8shipping.com`). Новый хост фото у провайдера → добавить в `remotePatterns` и в `PV_HOSTS` (tracking.html), иначе фото идёт оригиналом.
   Миниатюры 160, основное 960 (+предзагрузка соседних), лайтбокс: сразу 960 из кэша, затем 1600. При ошибке — оригинал (`data-fb`). Хеши инлайн-скриптов в CSP пересчитаны (старые оставлены на переходный период кэша страницы — можно убрать позже).
+
+## Калькулятор по VIN (25.09.2026, Федор)
+- Поле «Ссылка на лот или VIN-код» на главной (`#auctionUrl`): полный VIN (17 символов, без I/O/Q; `pureVin` в script.js) считается сразу при вводе/вставке/Enter (`applyVinImport`), ссылка Copart/IAAI — как раньше (`/api/lot`).
+  VIN → `/api/auctions?action=vin` (лот из `/search-vin`, теперь с `attachPowertrain`: `fuelKind` по vPIC и `vinEngineL` = DisplacementL; кэш `|g19`). Дальше `lotFromVinResponse`: топливо по `fuelKind` (гибрид/plug-in/бензин из VIN, не из фида), кузов (`vinVehicleType`: pickup/van/`ApexCalc.bodyClassForModel`),
+  объём из `lot.engine`, иначе из VIN, цена = финал, если продан, иначе ставка/выкуп; локация — общий `detectLocationFromText`. Канадский лот → режим «Канада» + подбор канадской локации по городу, ставка в CAD. Нет цены → поле ставки очищается (не оставляем цену прошлого лота).
+  Общий хвост применения данных — `applyImportedData` (для ссылок и VIN). VIN, которого нет на Copart/IAAI (404), — сообщение «VIN не найден».
