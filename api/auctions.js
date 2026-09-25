@@ -989,6 +989,7 @@ async function fetchSearch(query){
       return findItems(payload)
         .filter(item => !isAll || !isEncar(item))
         .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
+        .filter(lot => !isFakeLot(lot))
         // For live tabs strip definitively sold/unsold lots (status 6/8).
         // Don't filter by past auction date — recently ended lots may not have
         // status 6/8 yet (feed lag). sortItems("soon") puts future lots first,
@@ -2160,6 +2161,7 @@ async function searchFromDb(query){
   const ands = [];
   // Страховка от Encar/Кореи, попавшей в базу до доменного фильтра синка
   ands.push("or(country.neq.kr,country.is.null)");
+  ands.push(FAKE_LOT_ID_FILTER);   // фиктивные лоты Copart 99xxxxxxx
 
   // Внутреннее: «новые лоты» для уведомлений (first_seen проставляет БД при первой вставке лота)
   const firstSeenFrom = query.get("firstSeenFrom");
@@ -3078,7 +3080,7 @@ function syncRowFromItem(item, {archived = false} = {}){
   if(domainId != null && domainId !== 1 && domainId !== 3) return null;
   const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || "copart");
   const normalized = normalizeLot(item, auction);
-  if(!normalized.lot) return null;
+  if(!normalized.lot || isFakeLot(normalized)) return null;
   // Обложка + до 4 фото: карточке каталога хватает, детальная всегда live.
   if(Array.isArray(normalized.images) && normalized.images.length > 4){
     normalized.images = normalized.images.slice(0, 4);
@@ -3658,6 +3660,35 @@ function engineLitersOf(text){
 }
 
 // Заливка api_lots.engine_l из payload.engine («2.0l i-4 …» → 2.0). Порция — SQL-функция fill_engine_l (skip locked).
+// Фиктивные лоты Copart (25.09.2026): 9-значные номера 99xxxxxxx — 6745 «лотов» без фото, без штата, без продавца, с числом вместо повреждения
+// (damage «61016245»); на copart.com их нет. Настоящие номера Copart — 8 цифр. Не пускаем в базу/поиск и один раз вычищаем то, что уже попало.
+const isFakeLot = lot => {
+  if(!lot) return false;
+  const a = String(lot.auction || "").toLowerCase(), n = String(lot.lot || "");
+  return a === "copart" && n.length === 9 && n.startsWith("99");
+};
+const FAKE_LOT_ID_FILTER = "id.not.like.copart-99_______";
+async function purgeFakeLots(deadline){
+  if(!sbUp()) return {skipped:"db down"};
+  const meta = await syncSbFetch(`/alert_meta?k=eq.fake_purge_v1&select=v`).catch(() => null);
+  if(Array.isArray(meta) && meta[0] && meta[0].v && meta[0].v.done) return {done:true};
+  let deleted = 0;
+  while(Date.now() < deadline){
+    const rows = await syncSbFetch(`/api_lots?select=id&id=like.copart-99_______&limit=300`).catch(() => null);
+    if(!Array.isArray(rows)) return {deleted, error:"read failed"};
+    if(!rows.length){
+      await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({k:"fake_purge_v1", v:{done:true, at:new Date().toISOString()}, updated_at:new Date().toISOString()})}).catch(() => {});
+      return {deleted, done:true};
+    }
+    for(let i = 0; i < rows.length && Date.now() < deadline; i += 50){
+      const chunk = rows.slice(i, i + 50).map(r => encodeURIComponent(r.id)).join(",");
+      await syncSbFetch(`/api_lots?id=in.(${chunk})`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
+      deleted += Math.min(50, rows.length - i);
+    }
+  }
+  return {deleted};
+}
+
 async function runEngineFill(){
   const t0 = Date.now();
   const out = {ok:true, filled:0, rounds:0};
@@ -3669,6 +3700,7 @@ async function runEngineFill(){
       if(!(Number(n) >= 2500)) break;
     }
   }catch(e){ out.ok = false; out.error = String(e.message || e).slice(0, 160); }
+  try{ out.fake = await purgeFakeLots(Date.now() + 15000); }catch(e){ out.fake = {error:String(e.message || e).slice(0, 100)}; }
   // Тот же тик пересчитывает live_until идущих аукционов (SQL-функция refresh_live_until: позиция лота в линии + 15 мин)
   try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:JSON.stringify({factor:1.3, margin:10})})) || 0; }
   catch(e){
