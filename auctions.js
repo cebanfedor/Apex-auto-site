@@ -629,9 +629,10 @@
     // sale_date_to is exclusive (treated as 00:00) — bump the "До" day by 1 so the picked day is included.
     const dTo = params.get("auctionDateTo");
     if(dTo){
-      const d = new Date(dTo + "T00:00:00");
-      if(!Number.isNaN(d.getTime())){
-        d.setDate(d.getDate() + 1);
+      // Дата — календарная (без часового пояса): раньше toISOString() в UTC+3 (Молдова) возвращал ПРЕДЫДУЩИЙ день, и выбор одного дня («Сегодня») давал 0 лотов
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dTo);
+      if(m){
+        const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1));
         params.set("auctionDateTo", d.toISOString().slice(0, 10));
       }
     }

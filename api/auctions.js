@@ -2320,9 +2320,13 @@ async function searchFromDb(query){
   {
     const eng = parseEngineRange(query);
     if(eng.from != null || eng.to != null){
-      ands.push("engine_l.gt.0");
-      if(eng.from != null) ands.push(`engine_l.gte.${eng.from}`);
-      if(eng.to != null) ands.push(`engine_l.lte.${eng.to}`);
+      const engParts = ["engine_l.gt.0"];
+      if(eng.from != null) engParts.push(`engine_l.gte.${eng.from}`);
+      if(eng.to != null) engParts.push(`engine_l.lte.${eng.to}`);
+      // Электромобили без двигателя (объём 0) не должны пропадать, если человек сам выбрал топливо «Электро» вместе с ограничением объёма
+      const wantsEv = String(query.get("fuel") || "").split(",").includes("2");
+      if(wantsEv) ands.push(`or(and(${engParts.join(",")}),${fxOk ? "fuel_x.eq.2," : ""}fuel_id.eq.2)`);
+      else engParts.forEach(x => ands.push(x));
     }
   }
   const kmFrom = query.get("mileageFromKm"), kmTo = query.get("mileageToKm");
