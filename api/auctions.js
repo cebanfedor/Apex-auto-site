@@ -3688,7 +3688,7 @@ async function runPowertrainFill(budgetMs = 42000){
   const out = {ok:true, done:0, vpic:0, rules:0, mild:0, failBatches:0, rounds:0};
   if(!sbUp()) return {ok:true, skipped:"db down"};
   if(!(await fuelXReady())) return {ok:true, skipped:"нет колонок fuel_x (миграция 20260925_fuel_x.sql)"};
-  const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+  const since = new Date(Date.now() - 3600e3).toISOString();   // ближайшие торги первыми (ушедшие вчера не нужны)
   while(Date.now() - t0 < budgetMs - 9000 && out.rounds < 30){
     out.rounds++;
     const rows = await syncSbFetch(`/api_lots?select=id,vin,title,year,fuel_id,make:payload->>make,model:payload->>model&fuel_x=is.null&archived=eq.false&year=gte.2005&sale_date=gte.${encodeURIComponent(since)}&order=sale_date.asc&limit=200`).catch(() => null);
