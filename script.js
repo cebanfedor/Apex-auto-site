@@ -286,6 +286,20 @@ const AI_ADVICE_I18N = {
   "аукцион":{ro:"licitație",en:"auction"},
   "Аукцион: {v}":{ro:"Licitație: {v}",en:"Auction: {v}"},
   "Лот: {v}":{ro:"Lot: {v}",en:"Lot: {v}"},
+  "Ищем VIN на аукционах…":{ro:"Căutăm VIN-ul la licitații…",en:"Looking up the VIN at auctions…"},
+  "VIN не найден":{ro:"VIN-ul nu a fost găsit",en:"VIN not found"},
+  "Этого VIN нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер или введите данные вручную.":{ro:"Acest VIN nu este pe Copart și IAAI sau licitația nu a returnat încă datele. Verificați numărul sau introduceți datele manual.",en:"This VIN is not on Copart or IAAI, or the auction has not returned data yet. Check the number or enter the details manually."},
+  "Не удалось получить данные по VIN. Попробуйте ещё раз или введите данные вручную.":{ro:"Nu am putut obține datele după VIN. Încercați din nou sau introduceți datele manual.",en:"Could not get data for this VIN. Try again or enter the details manually."},
+  "Продан: {v}":{ro:"Vândut: {v}",en:"Sold: {v}"},
+  "Ставка: {v}":{ro:"Ofertă: {v}",en:"Bid: {v}"},
+  "Выкуп: {v}":{ro:"Cumpără acum: {v}",en:"Buy now: {v}"},
+  "Локацию аукциона проверьте вручную.":{ro:"Verificați manual locația licitației.",en:"Check the auction location manually."},
+  "Двигатель: {v} л":{ro:"Motor: {v} l",en:"Engine: {v} l"},
+  "Топливо: {v}":{ro:"Combustibil: {v}",en:"Fuel: {v}"},
+  "Расчёт сделан по цене, за которую лот был продан на прошлых торгах. Для нового лота укажите свою ставку.":{ro:"Calculul folosește prețul la care lotul a fost vândut la licitația anterioară. Pentru un lot nou, introduceți oferta dvs.",en:"The estimate uses the price this lot sold for at the last auction. For a new lot, enter your own bid."},
+  "Расчёт сделан по текущей цене лота. Проверьте ставку перед торгами.":{ro:"Calculul folosește prețul curent al lotului. Verificați oferta înainte de licitație.",en:"The estimate uses the lot's current price. Check the bid before the auction."},
+  "Ставки по лоту пока нет — введите свою ставку в поле «Стоимость лота».":{ro:"Nu există încă nicio ofertă — introduceți oferta dvs. în câmpul „Costul lotului”.",en:"No bid on this lot yet — enter your own bid in the \"Lot price\" field."},
+  "Канадский лот: выбран режим «Канада». Укажите ставку в CAD и проверьте локацию.":{ro:"Lot din Canada: este selectat modul „Canada”. Introduceți oferta în CAD și verificați locația.",en:"Canadian lot: \"Canada\" mode selected. Enter the bid in CAD and check the location."},
   "год":{ro:"anul",en:"year"},
   "топливо":{ro:"combustibil",en:"fuel"},
   "тип кузова":{ro:"tip caroserie",en:"body type"},
@@ -846,6 +860,15 @@ function renderLotImportStatus(data, applied){
   if(!data.vehicleType) missing.push(aiT("тип кузова"));
   if(!data.engineLiters && data.fuel !== "electric") missing.push(aiT("объем двигателя"));
   if(!applied.location) missing.push(aiT("локация аукциона"));
+  if(data.fromVin){
+    const money = n => "$" + Math.round(n).toLocaleString("en-US");
+    if(data.year) found.push(String(data.year));
+    if(data.soldPrice) found.push(aiT("Продан: {v}", {v:money(data.soldPrice)}));
+    else if(data.currentBid) found.push(aiT("Ставка: {v}", {v:money(data.currentBid)}));
+    if(!data.soldPrice && data.buyNowPrice) found.push(aiT("Выкуп: {v}", {v:money(data.buyNowPrice)}));
+    if(data.engineLiters) found.push(aiT("Двигатель: {v} л", {v:data.engineLiters}));
+    if(data.fuel) found.push(aiT("Топливо: {v}", {v:fuelLabel(data.fuel)}));
+  }
   if(data.saleDate) found.push(aiT("Дата торгов: {v}", {v:new Date(data.saleDate).toLocaleDateString(_dLoc)}));
   if(data.damage) found.push(aiT("Повреждения: {v}", {v:data.damage}));
   if(needsExportDocuments(data)) found.push(aiT("Экспортные документы: +$400"));
@@ -854,6 +877,7 @@ function renderLotImportStatus(data, applied){
   box.hidden = false;
   const isSparse = found.length <= 2 && !data.year && !data.fuel && !data.vehicleType;
   const title = isSparse ? aiT("Ссылка распознана, данные лота закрыты") : (data.title || aiT("Лот распознан частично"));
+  const vinLocNote = data.fromVin && !applied.location ? " " + aiT("Локацию аукциона проверьте вручную.") : "";
   const apiNote = lotImportApiStatus
     ? aiT("Мы нашли ссылку на лот, но часть данных нужно уточнить вручную. Заполните ставку, год, двигатель, топливо и локацию или отправьте лот нам на проверку.")
     : "";
@@ -865,7 +889,7 @@ function renderLotImportStatus(data, applied){
       ${found.map(item => `<span>${escapeHtml(item)}</span>`).join("")}
       <button class="lotImportCheckBtnV120" id="sendLotCheckBtnInner">${escapeHtml(aiT("Отправить лот на проверку"))}</button>
     </div>
-    <p>${escapeHtml(apiNote || data.priceNote || (missing.length ? aiT("Для точного расчета проверьте: {list}.", {list:missing.join(", ")}) : aiT("Данных достаточно для предварительного расчета.")))}</p>
+    <p>${escapeHtml(apiNote || (data.priceNote ? data.priceNote + vinLocNote : "") || (missing.length ? aiT("Для точного расчета проверьте: {list}.", {list:missing.join(", ")}) : aiT("Данных достаточно для предварительного расчета.")))}</p>
   `;
   box.querySelector("#sendLotCheckBtnInner").onclick = () => {
     openTelegramMessage([
@@ -902,18 +926,8 @@ function needsExportDocuments(data){
   return /bill\s*of\s*sale|\bacq\b|parts\s*only/i.test(text);
 }
 
-async function applyAuctionImport(){
-  const input = $("auctionUrl");
-  if(!input) return;
-  let data = analyzeAuctionLink(input.value);
-  if(!data.original){
-    renderLotImportStatus(null, {});
-    return;
-  }
-  const priceBeforeFetch = $("lotPrice")?.value ?? "";
-  const liveData = await fetchLiveLotData(data.original);
-  data = mergeLotData(data, liveData || (getKnownLotData(data) || {}), {original:data.original});
-
+// Подставляет разобранные данные лота в калькулятор и пересчитывает (общий хвост для ссылки и VIN)
+function applyImportedData(data, priceBeforeFetch){
   if(data.auction && $("auction")){
     $("auction").value = data.auction;
     initLocations();
@@ -935,6 +949,127 @@ async function applyAuctionImport(){
   refreshGlassSelects();
   calculate();
   renderLotImportStatus(data, {location: appliedLocation ? location.displayName : ""});
+}
+
+// ---- Расчёт по VIN (25.09.2026): вводим VIN → подтягиваем машину с Copart/IAAI и сразу считаем ----
+function pureVin(value){
+  const v = String(value || "").toUpperCase().replace(/[\s-]/g, "");
+  return /^[A-HJ-NPR-Z0-9]{17}$/.test(v) ? v : "";
+}
+
+const VIN_FUEL_KIND = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
+
+function vinVehicleType(lot){
+  const body = String(lot.body || "").toLowerCase();
+  const text = body + " " + String(lot.make || "").toLowerCase() + " " + String(lot.model || "").toLowerCase();
+  if(/motorcycle|moto\b/.test(text)) return "moto";
+  if(/\batv\b|quad/.test(text)) return "atv";
+  if(/pickup|truck|silverado|sierra|\bram\b|f-150|f150|tundra|tacoma/.test(text)) return "pickup";
+  if(/\bvan\b|cargo|sprinter|transit|minivan/.test(text)) return "vanLarge";
+  const byModel = window.ApexCalc && window.ApexCalc.bodyClassForModel ? window.ApexCalc.bodyClassForModel(lot.make, lot.model) : null;
+  if(byModel === "crossover" || byModel === "suv") return byModel;
+  if(/suv|utility|cuv|crossover/.test(body)) return "suv";
+  return "sedan";
+}
+
+function vinEngineLiters(lot){
+  const m = String(lot.engine || "").match(/\b([1-9](?:\.\d)?)\s*l/i) || String(lot.title || "").match(/\b([1-9]\.\d)\s*l\b/i);
+  const n = m ? Number(m[1]) : Number(lot.vinEngineL) || 0;
+  return n > 0 && n <= 7 ? n.toFixed(1) : "";
+}
+
+function lotFromVinResponse(lot, vin){
+  const fuel = VIN_FUEL_KIND[lot.fuelKind] || detectFuelFromText([lot.fuel, lot.title].filter(Boolean).join(" ")) || "gasoline";
+  const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0;
+  const price = sold ? Number(lot.finalBid) : (Number(lot.currentBid) || Number(lot.buyNow) || 0);
+  const isCa = /,\s*canada\s*$|\b(ontario|quebec|alberta|british columbia|manitoba|saskatchewan|nova scotia|new brunswick|newfoundland)\b/i.test(String(lot.location || ""));
+  return {
+    original: vin, fromVin: true, vin,
+    auction: lot.auction === "iaai" ? "iaai" : "copart",
+    lotNumber: lot.lot || "", stockNumber: lot.lot || "",
+    title: lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "),
+    year: Number(lot.year) || 0,
+    fuel, vehicleType: vinVehicleType(lot),
+    engineLiters: fuel === "electric" ? "" : vinEngineLiters(lot),
+    currentBid: price, soldPrice: sold ? price : 0, buyNowPrice: Number(lot.buyNow) || 0,
+    location: lot.location || "", branch: lot.location || "",
+    damage: lot.damage || "", document: lot.document || "",
+    saleDate: lot.auctionDate || "", isCanada: isCa,
+    priceNote: sold
+      ? aiT("Расчёт сделан по цене, за которую лот был продан на прошлых торгах. Для нового лота укажите свою ставку.")
+      : price ? aiT("Расчёт сделан по текущей цене лота. Проверьте ставку перед торгами.")
+      : aiT("Ставки по лоту пока нет — введите свою ставку в поле «Стоимость лота».")
+  };
+}
+
+function showVinStatus(title, note, warn){
+  const box = $("lotImportStatus");
+  if(!box) return;
+  box.hidden = false;
+  box.classList.toggle("isWarningV120", !!warn);
+  box.innerHTML = `<strong>${escapeHtml(title)}</strong>${note ? `<p>${escapeHtml(note)}</p>` : ""}`;
+  setLotCheckButton(null);
+}
+
+let vinImportSeq = 0;
+async function applyVinImport(vin){
+  const seq = ++vinImportSeq;
+  showVinStatus(aiT("Ищем VIN на аукционах…"), "", false);
+  const priceBeforeFetch = $("lotPrice")?.value ?? "";
+  let res = null, failed = false;
+  try{
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    const r = await fetch(`/api/auctions?action=vin&vin=${encodeURIComponent(vin)}`, {signal: ctrl.signal});
+    clearTimeout(timer);
+    if(r.status === 404) res = null;
+    else if(!r.ok) failed = true;
+    else res = await r.json().catch(() => null);
+  }catch(e){ failed = true; }
+  if(seq !== vinImportSeq) return;          // пока ждали, ввели другой VIN
+  if(failed){ showVinStatus(aiT("VIN не найден"), aiT("Не удалось получить данные по VIN. Попробуйте ещё раз или введите данные вручную."), true); return; }
+  if(!res || !res.ok || !res.lot || !res.lot.year){ showVinStatus(aiT("VIN не найден"), aiT("Этого VIN нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер или введите данные вручную."), true); return; }
+  const data = lotFromVinResponse(res.lot, vin);
+  if(data.isCanada && typeof switchCalcMode === "function" && calcMode !== "canada"){
+    switchCalcMode("canada");
+    if(data.auction && $("auction")){ $("auction").value = data.auction; initCanadaLocations(); }
+    if(data.year && $("year")) $("year").value = String(data.year);
+    if(data.fuel && $("fuel")) $("fuel").value = data.fuel;
+    if(data.vehicleType && $("vehicleType")) $("vehicleType").value = data.vehicleType;
+    if(data.engineLiters && $("engineLiters")) $("engineLiters").value = String(data.engineLiters);
+    if(data.currentBid && $("lotPrice")) $("lotPrice").value = String(Math.round(data.currentBid));
+    let caApplied = false;
+    try{
+      const city = String(data.location || "").toLowerCase().split(",")[0].replace(/[^a-z ]/g, " ").trim();
+      const caLocs = (window.CANADA_LOCATIONS || []).filter(l => l.auction === data.auction);
+      const idx = city.length > 2 ? caLocs.findIndex(l => l.name.toLowerCase().includes(city)) : -1;
+      if(idx >= 0 && $("location")){ $("location").value = String(idx); $("location").dispatchEvent(new Event("change", {bubbles:true})); caApplied = true; }
+    }catch(e){}
+    data.priceNote = aiT("Канадский лот: выбран режим «Канада». Укажите ставку в CAD и проверьте локацию.");
+    data.caLocation = caApplied;
+    lastImportedLot = data;
+    refreshGlassSelects();
+    calculate();
+    renderLotImportStatus(data, {location: caApplied ? "ok" : ""});
+    return;
+  }
+  applyImportedData(data, priceBeforeFetch);
+}
+
+async function applyAuctionImport(){
+  const input = $("auctionUrl");
+  if(!input) return;
+  const vin = pureVin(input.value);
+  if(vin){ await applyVinImport(vin); return; }
+  let data = analyzeAuctionLink(input.value);
+  if(!data.original){
+    renderLotImportStatus(null, {});
+    return;
+  }
+  const priceBeforeFetch = $("lotPrice")?.value ?? "";
+  const liveData = await fetchLiveLotData(data.original);
+  data = mergeLotData(data, liveData || (getKnownLotData(data) || {}), {original:data.original});
+  applyImportedData(data, priceBeforeFetch);
 }
 
 function applyLotParamImport(){
@@ -1092,6 +1227,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);
   if($("auctionUrl")){
     $("auctionUrl").addEventListener("paste",()=>setTimeout(applyAuctionImport,80));
+    // полный VIN набран руками — считаем сразу, без кнопки
+    let lastAutoVin = "";
+    $("auctionUrl").addEventListener("input",()=>{const v=pureVin($("auctionUrl").value);if(v&&v!==lastAutoVin){lastAutoVin=v;applyAuctionImport();}else if(!v)lastAutoVin="";});
     $("auctionUrl").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();applyAuctionImport();}});
     applyLotParamImport();
   }
