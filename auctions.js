@@ -4472,6 +4472,7 @@
     $("#openFiltersBtn").addEventListener("click", openFiltersDrawer);
     $("#searchSettingsBtn")?.addEventListener("click", openFiltersDrawer);
     $("#closeFiltersBtn").addEventListener("click", closeFiltersDrawer);
+    document.addEventListener("click", e => { if(e.target === document.body && document.body.classList.contains("filtersOpenV1")) closeFiltersDrawer(); });   // клик по затемнению
     document.addEventListener("click", event => {
       const warn = event.target.closest("[data-sold-warn]");
       if(warn){
