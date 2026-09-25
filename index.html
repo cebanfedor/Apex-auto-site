@@ -5,13 +5,10 @@
   <script>(function(){var k="apexAutoLang",q=new URLSearchParams(location.search).get("lang")||"",s=localStorage.getItem(k)||"",raw=(q||s).toLowerCase(),l=raw.startsWith("ro")||raw.startsWith("mo")?"ro":raw.startsWith("en")?"en":"ru";if(l!=="ru")document.documentElement.classList.add("i18n-pending");})();</script>
   <link rel="preconnect" href="https://www.googletagmanager.com">
   <link rel="preconnect" href="https://www.google-analytics.com">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0"></script>
+  <!-- Google tag (lazy) -->
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-NYH24Z7PM0');
+    window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Apex Auto — авто из США и Канады под ключ в Молдову</title>
@@ -31,14 +28,12 @@
   <meta name="twitter:title" content="Apex Auto — авто из США и Канады под ключ в Молдову">
   <meta name="twitter:description" content="Расчёт полной стоимости авто из США и Канады под ключ до Кишинёва: аукционы Copart, IAAI, Manheim, доставка, таможня, страховка. Подбор, бесплатный Carfax и сопровождение.">
   <meta name="twitter:image" content="https://apexauto.md/assets/og/index.png?v=3">
-  <link rel="preconnect" href="https://www.googletagmanager.com">
-  <link rel="preconnect" href="https://www.google-analytics.com">
   <link rel="preload" as="image" href="/assets/hot/founder-auction.webp" imagesrcset="/assets/hot/founder-auction-1000.webp 1000w, /assets/hot/founder-auction.webp 1400w" imagesizes="(max-width: 700px) 330px, 100vw" type="image/webp" fetchpriority="high">
       <link rel="preload" href="/assets/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v442">
+  <link rel="stylesheet" href="styles.css?v=v443">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
