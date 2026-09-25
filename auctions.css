@@ -1308,4 +1308,5 @@ body.leadModalOpenV1 { overflow:hidden; }
 .filterBarV1 > .activeFiltersV1:not([hidden]), .filterBarV1 > .genChipsV1 { display:contents; }
 .filterBarV1 .activeFiltersV1 { margin:0; }
 .filterBarV1 .genChipsV1 { margin:0; }
-.filterBarV1 > .genChipsV1 .genChipV1:first-child { margin-left:6px; }
+.filterBarV1 > .genChipsV1 .genChipV1:first-child { margin-left:14px; position:relative; }
+.filterBarV1 > .genChipsV1 .genChipV1:first-child::before { content:""; position:absolute; left:-10px; top:50%; height:20px; width:1px; margin-top:-10px; background:var(--aLine); }
