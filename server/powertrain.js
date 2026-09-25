@@ -111,6 +111,7 @@ function teslaConfig(other){
 function cleanTrim(t){
   t = String(t || "").replace(/\s+/g, " ").trim();
   if(!t || /[\/,()+;]|\bw\/|\bpkg\b|package/i.test(t) || t.split(" ").length > 4 || t.length > 28) return "";
+  if(t.length < 2 || /-$/.test(t) || !/[a-z0-9]{2}/i.test(t)) return "";   // «e-», «S» — обрывки, не комплектация
   return t;
 }
 function trimFromVpic(d){

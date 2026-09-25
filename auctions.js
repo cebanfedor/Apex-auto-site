@@ -1331,7 +1331,8 @@
     const [liveLabel, liveTone] = dbLive(lot);
     const isNew = /upcoming|new/i.test(lot.lotStatus || "");
     const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "";
-    const engineLine = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
+    const fuelShort = fuelKindRu(lot) || (lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "");   // тип топлива в строке характеристик — на телефоне отдельной строки «Топливо» нет
+    const engineLine = [cleanEngine(lot.engine), hpStr, fuelShort, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
     const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     // Во вкладке «Купить сейчас» (и когда реальной ставки нет) показываем цену

@@ -107,3 +107,8 @@ test("мягкий гибрид = бензин (правило Федора)", (
   assert.equal(r("Toyota", "Prius", 2020, "2020 Toyota Prius L", 4).x, 3);
   assert.equal(r("Dodge", "Hornet", 2024, "2024 Dodge Hornet R/T Plus Eaw", 3).x, 5);           // у Hornet гибрид бывает только plug-in
 });
+
+test("обрывки комплектации отбрасываются", () => {
+  assert.equal(pt.fullTitle("2022 Polestar 2", {trim:"e-", kind:2}), "2022 Polestar 2");
+  assert.equal(pt.trimFromVpic({Make:"POLESTAR", Trim:"e-"}), "");
+});
