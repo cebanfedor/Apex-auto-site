@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const {lotSlug, parseLotSlug} = require("../server/slug");
+const ogLot = require("../server/og-lot");
 
 // SSR-обёртка страницы лота: OG-теги для шаринга + данные лота, вшитые
 // в HTML (window.__ssrLot) — фронт рендерит мгновенно, без второго запроса.
@@ -57,6 +58,7 @@ module.exports = async function(req, res){
   let ogTitle = TXT.t;
   let ogDesc = TXT.d;
   let ogImage = "https://apexauto.md/assets/hot/bmw-530e.jpg";
+  let ogHasCard = false;
 
   const parsed = parseLotSlug(slug);
   const match = parsed ? [null, parsed.auction, parsed.lot] : null;
@@ -70,12 +72,10 @@ module.exports = async function(req, res){
       if(lot && lot.title){
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title;
         ogTitle = `${title} — ${match[1].toUpperCase()} ${TXT.lot} ${match[2]} | Apex Auto`;
-        const parts = [];
-        if(lot.odometerText) parts.push(lot.odometerText);
-        if(lot.primaryDamage && lang !== "ro") parts.push(lot.primaryDamage);
-        if(lot.location) parts.push(lot.location);
-        ogDesc = `${title}${parts.length ? ". " + parts.join(" · ") : ""}. ${TXT.tail}`;
-        if(lot.image) ogImage = lot.image;
+        ogDesc = ogLot.description(lot, lang);
+        // Своя картинка-карточка (фото + название + цена + бренд), а не сырое фото аукциона
+        ogImage = lot.id ? `https://apexauto.md/og/lot/${lot.id}?v=1` : (lot.image || ogImage);
+        ogHasCard = !!lot.id;
       }
     }catch(e){
       debugError = e.message;
@@ -123,7 +123,7 @@ module.exports = async function(req, res){
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escapeAttr(ogTitle)}">`)
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escapeAttr(ogDesc)}">`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${escapeAttr(ogUrl)}">`)
-    .replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${escapeAttr(ogImage)}">`)
+    .replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${escapeAttr(ogImage)}">${ogHasCard ? `\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">\n  <meta property="og:image:type" content="image/png">\n  <meta property="og:image:alt" content="${escapeAttr(ogTitle)}">` : ""}`)
     .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escapeAttr(ogTitle)}">`)
     .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escapeAttr(ogDesc)}">`)
     .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${escapeAttr(ogImage)}">`);

@@ -77,7 +77,7 @@ module.exports = async function(req, res){
   const descSrc = String(it.description || "").replace(/\s+/g, " ").trim();
   const desc = [`${it.title}${price ? W.forP + price : ""}${it.sold ? W.sold : W.go}.`, specs, descSrc]
     .filter(Boolean).join(" ").slice(0, 300);
-  const image = it.photos && it.photos[0] ? it.photos[0] : "https://apexauto.md/assets/og/hot.png";
+  const image = `https://apexauto.md/og/transit/${it.id}?v=1`;
 
   const ld = {
     "@context":"https://schema.org",
@@ -117,7 +117,7 @@ module.exports = async function(req, res){
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escAttr(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escAttr(desc)}">`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${escAttr(url)}">`)
-    .replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${escAttr(image)}">`)
+    .replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${escAttr(image)}">\n  <meta property="og:image:width" content="1200">\n  <meta property="og:image:height" content="630">\n  <meta property="og:image:type" content="image/png">\n  <meta property="og:image:alt" content="${escAttr(it.title)}">`)
     .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${escAttr(title)}">`)
     .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${escAttr(desc)}">`)
     .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${escAttr(image)}">`)

@@ -1,6 +1,7 @@
 {
   "functions": {
-    "api/auctions.js": { "maxDuration": 60 }
+    "api/auctions.js": { "maxDuration": 60 },
+    "api/og.js": { "maxDuration": 25 }
   },
   "crons": [
     { "path": "/api/cron/sync", "schedule": "1-59/2 * * * *" },
@@ -36,7 +37,10 @@
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/auctions", "destination": "/auctions.html" },
     { "source": "/auctions/:slug", "destination": "/api/lot-page?slug=:slug" },
-    { "source": "/tracking", "destination": "/tracking.html" },
+    { "source": "/tracking", "destination": "/api/tracking-page" },
+    { "source": "/og/lot/:id", "destination": "/api/og?type=lot&id=:id" },
+    { "source": "/og/transit/:id", "destination": "/api/og?type=transit&id=:id" },
+    { "source": "/og/track/:vin", "destination": "/api/og?type=track&id=:vin" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contacts", "destination": "/contacts.html" },
