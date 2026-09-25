@@ -767,8 +767,10 @@
       const total = thumbs.length;
       const mainImg = document.getElementById('trackGalleryImgV401');
       const mainLink = document.getElementById('trackGalleryLinkV401');
-      if (mainImg) mainImg.src = src;
+      if (mainImg) { mainImg.removeAttribute('data-fb-done'); mainImg.setAttribute('data-fb', src); mainImg.src = pv(src, 960); }
       if (mainLink) mainLink.href = src;
+      // следующее фото подгружаем заранее — листание без пауз
+      [idx + 1, idx - 1].forEach(function(k) { if (thumbs[k]) new Image().src = pv(thumbs[k].dataset.src, 960); });
       thumbs.forEach(b => b.classList.remove('isActiveV401'));
       thumb.classList.add('isActiveV401');
       const counter = area.querySelector('.trackPhotoCountV401');
@@ -799,11 +801,11 @@
         if (counter) counter.textContent = '1 / ' + cat.photos.length;
         const mainImg = document.getElementById('trackGalleryImgV401');
         const mainLink = document.getElementById('trackGalleryLinkV401');
-        if (mainImg && cat.photos[0]) { mainImg.src = cat.photos[0]; mainLink.href = cat.photos[0]; }
+        if (mainImg && cat.photos[0]) { mainImg.removeAttribute('data-fb-done'); mainImg.setAttribute('data-fb', cat.photos[0]); mainImg.src = pv(cat.photos[0], 960); mainLink.href = cat.photos[0]; }
         const thumbsDiv = area.querySelector('.trackGalleryThumbsV401');
         if (thumbsDiv) {
           thumbsDiv.innerHTML = cat.photos.map((url, i) =>
-            `<button class="trackThumbV401${i === 0 ? ' isActiveV401' : ''}" data-src="${url}" data-idx="${i}" data-total="${cat.photos.length}"><img src="${url}" alt="${i + 1}" loading="${i < 6 ? 'eager' : 'lazy'}"></button>`
+            `<button class="trackThumbV401${i === 0 ? ' isActiveV401' : ''}" data-src="${esc(url)}" data-idx="${i}" data-total="${cat.photos.length}"><img src="${esc(pv(url, 160))}" data-fb="${esc(url)}" alt="${i + 1}" width="76" height="57" decoding="async" loading="${i < 6 ? 'eager' : 'lazy'}"></button>`
           ).join('');
         }
         updateArrows(0, cat.photos.length);
@@ -861,6 +863,16 @@
         return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
       });
     }
+
+    // Оригиналы у провайдера 2000×1500 (300–400 КБ) — на телефоне это и есть «плохо грузит».
+    // Отдаём уменьшенные копии через Vercel Image (кэш в CDN), при ошибке — оригинал (data-fb).
+    var PV_HOSTS = /^https:\/\/(storage-lavto\.lionwood\.software|static\.w8shipping\.com)\//i;
+    function pv(url, w) {
+      url = String(url || "");
+      if (!PV_HOSTS.test(url)) return url;
+      return "/_vercel/image?url=" + encodeURIComponent(url) + "&w=" + w + "&q=75";
+    }
+    window._trackPv = pv;
 
     function fmtDate(iso) {
       if (!iso) return "";
@@ -994,7 +1006,7 @@
               `<button class="trackPhotoTabV401${i === 0 ? " isActiveV401" : ""}" data-cat-idx="${i}">${esc(c.label)} <span class="tabCountV401">${c.photos.length}</span></button>`
             ).join("");
             const thumbs = first.photos.map((url, i) =>
-              `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${total}"><img src="${esc(url)}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`
+              `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${total}"><img src="${esc(pv(url, 160))}" data-fb="${esc(url)}" alt="${i + 1}" width="76" height="57" decoding="async" loading="${i < 6 ? "eager" : "lazy"}"></button>`
             ).join("");
             return `
         <div class="trackPhotosCardV401">
@@ -1003,7 +1015,7 @@
           <div class="trackGalleryWrapV401">
             <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
             <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${esc(first.photos[0])}" target="_blank" rel="noopener">
-              <img id="trackGalleryImgV401" src="${esc(first.photos[0])}" alt="Фото автомобиля">
+              <img id="trackGalleryImgV401" src="${esc(pv(first.photos[0], 960))}" data-fb="${esc(first.photos[0])}" alt="Фото автомобиля" fetchpriority="high" decoding="async">
               <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
             </a>
             <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${total <= 1 ? " disabled" : ""}>&#8250;</button>
@@ -1016,13 +1028,13 @@
           <div class="trackGalleryWrapV401">
             <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
             <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${esc(d.photos[0])}" target="_blank" rel="noopener">
-              <img id="trackGalleryImgV401" src="${esc(d.photos[0])}" alt="Фото автомобиля">
+              <img id="trackGalleryImgV401" src="${esc(pv(d.photos[0], 960))}" data-fb="${esc(d.photos[0])}" alt="Фото автомобиля" fetchpriority="high" decoding="async">
               <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
             </a>
             <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${d.photos.length <= 1 ? " disabled" : ""}>&#8250;</button>
           </div>
           <div class="trackGalleryThumbsV401">
-            ${d.photos.map((url, i) => `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${d.photos.length}"><img src="${esc(url)}" alt="${i + 1}" loading="${i < 6 ? "eager" : "lazy"}"></button>`).join("")}
+            ${d.photos.map((url, i) => `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${d.photos.length}"><img src="${esc(pv(url, 160))}" data-fb="${esc(url)}" alt="${i + 1}" width="76" height="57" decoding="async" loading="${i < 6 ? "eager" : "lazy"}"></button>`).join("")}
           </div>
         </div>` : ""}
 
@@ -1180,8 +1192,21 @@
       if (lbCount) lbCount.textContent = (idx + 1) + ' / ' + total;
     }
 
+    // Показываем уже загруженную 960-ю версию сразу, а чёткую 1600 подменяем, когда она догрузится.
+    function showLbPhoto(orig) {
+      const pv = window._trackPv || (u => u);
+      const lo = pv(orig, 960), hi = pv(orig, 1600);
+      lbImg.removeAttribute('data-fb-done');
+      lbImg.setAttribute('data-fb', orig);
+      lbImg.src = lo;
+      if (hi === lo) return;
+      const big = new Image();
+      big.onload = function() { if (lbImg.getAttribute('data-fb') === orig) lbImg.src = hi; };
+      big.src = hi;
+    }
+
     function openLightbox(src, idx) {
-      lbImg.src = src;
+      showLbPhoto(src);
       lb.classList.add('isOpenV401');
       document.body.style.overflow = 'hidden';
       updateLbState(idx || 0);
@@ -1198,8 +1223,7 @@
       const thumbs = getThumbs();
       const newIdx = _lbIdx + dir;
       if (newIdx < 0 || newIdx >= thumbs.length) return;
-      const src = thumbs[newIdx].dataset.src;
-      lbImg.src = src;
+      showLbPhoto(thumbs[newIdx].dataset.src);
       if (window._galleryGoTo) window._galleryGoTo(newIdx);
       updateLbState(newIdx);
       resetZoom();
@@ -1224,9 +1248,9 @@
       const link = e.target.closest('.trackGalleryMainV401');
       if (!link) return;
       e.preventDefault();
-      const src = document.getElementById('trackGalleryImgV401')?.src;
       const activeThumb = area.querySelector('.trackThumbV401.isActiveV401');
       const idx = activeThumb ? +activeThumb.dataset.idx : 0;
+      const src = activeThumb ? activeThumb.dataset.src : document.getElementById('trackGalleryImgV401')?.getAttribute('data-fb');
       if (src) openLightbox(src, idx);
     }, true);
 
