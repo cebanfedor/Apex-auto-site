@@ -287,6 +287,10 @@ const AI_ADVICE_I18N = {
   "Аукцион: {v}":{ro:"Licitație: {v}",en:"Auction: {v}"},
   "Лот: {v}":{ro:"Lot: {v}",en:"Lot: {v}"},
   "Ищем VIN на аукционах…":{ro:"Căutăm VIN-ul la licitații…",en:"Looking up the VIN at auctions…"},
+  "Ищем лот на аукционах…":{ro:"Căutăm lotul la licitații…",en:"Looking up the lot at auctions…"},
+  "Лот не найден":{ro:"Lotul nu a fost găsit",en:"Lot not found"},
+  "Такого лота нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер (можно с названием площадки: «Copart 61420506») или введите данные вручную.":{ro:"Acest lot nu există pe Copart și IAAI sau licitația nu a returnat încă datele. Verificați numărul (puteți adăuga platforma: „Copart 61420506”) sau introduceți datele manual.",en:"This lot is not on Copart or IAAI, or the auction has not returned data yet. Check the number (you can add the auction name: \"Copart 61420506\") or enter the details manually."},
+  "Не удалось получить данные. Попробуйте ещё раз или введите данные вручную.":{ro:"Nu am putut obține datele. Încercați din nou sau introduceți datele manual.",en:"Could not get the data. Try again or enter the details manually."},
   "VIN не найден":{ro:"VIN-ul nu a fost găsit",en:"VIN not found"},
   "Этого VIN нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер или введите данные вручную.":{ro:"Acest VIN nu este pe Copart și IAAI sau licitația nu a returnat încă datele. Verificați numărul sau introduceți datele manual.",en:"This VIN is not on Copart or IAAI, or the auction has not returned data yet. Check the number or enter the details manually."},
   "Не удалось получить данные по VIN. Попробуйте ещё раз или введите данные вручную.":{ro:"Nu am putut obține datele după VIN. Încercați din nou sau introduceți datele manual.",en:"Could not get data for this VIN. Try again or enter the details manually."},
@@ -957,6 +961,14 @@ function pureVin(value){
   return /^[A-HJ-NPR-Z0-9]{17}$/.test(v) ? v : "";
 }
 
+// Номер лота: «61420506», «Copart 61420506», «IAAI #45839097», «лот 45839097»; площадку можно не указывать — проверим обе
+function pureLot(value){
+  const m = String(value || "").trim().match(/^(?:(copart|iaai|iaa|копарт|иаи|иаа)\s*)?(?:lot|лот|№|#)?\s*[#№:.-]?\s*(\d{6,9})$/i);
+  if(!m) return null;
+  const a = String(m[1] || "").toLowerCase();
+  return {lot:m[2], auction: /copart|копарт/.test(a) ? "copart" : /iaa|иаи|иаа/.test(a) ? "iaai" : ""};
+}
+
 const VIN_FUEL_KIND = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
 
 function vinVehicleType(lot){
@@ -1020,24 +1032,45 @@ function clearBidIfNoPrice(data){
 }
 
 let vinImportSeq = 0;
-async function applyVinImport(vin){
-  const seq = ++vinImportSeq;
-  showVinStatus(aiT("Ищем VIN на аукционах…"), "", false);
-  const priceBeforeFetch = $("lotPrice")?.value ?? "";
-  let res = null, failed = false;
+async function fetchLookup(url){
   try{
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 20000);
-    const r = await fetch(`/api/auctions?action=vin&vin=${encodeURIComponent(vin)}`, {signal: ctrl.signal});
+    const r = await fetch(url, {signal: ctrl.signal});
     clearTimeout(timer);
-    if(r.status === 404) res = null;
-    else if(!r.ok) failed = true;
-    else res = await r.json().catch(() => null);
-  }catch(e){ failed = true; }
-  if(seq !== vinImportSeq) return;          // пока ждали, ввели другой VIN
-  if(failed){ showVinStatus(aiT("VIN не найден"), aiT("Не удалось получить данные по VIN. Попробуйте ещё раз или введите данные вручную."), true); return; }
-  if(!res || !res.ok || !res.lot || !res.lot.year){ showVinStatus(aiT("VIN не найден"), aiT("Этого VIN нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер или введите данные вручную."), true); return; }
-  const data = lotFromVinResponse(res.lot, vin);
+    if(r.status === 404 || r.status === 400) return {lot:null};
+    if(!r.ok) return {failed:true};
+    const j = await r.json().catch(() => null);
+    return {lot: j && j.ok && j.lot && j.lot.year ? j.lot : null};
+  }catch(e){ return {failed:true}; }
+}
+
+// what: {vin} или {lot, auction}. Номер лота без площадки ищем на Copart и IAAI одновременно
+async function applyVinImport(what){
+  const seq = ++vinImportSeq;
+  const isLot = typeof what === "object";
+  const vin = isLot ? "" : what;
+  showVinStatus(aiT(isLot ? "Ищем лот на аукционах…" : "Ищем VIN на аукционах…"), "", false);
+  const priceBeforeFetch = $("lotPrice")?.value ?? "";
+  let lot = null, failed = false;
+  if(!isLot){
+    const r = await fetchLookup(`/api/auctions?action=vin&vin=${encodeURIComponent(vin)}`);
+    lot = r.lot; failed = !!r.failed;
+  }else{
+    const list = what.auction ? [what.auction] : ["copart", "iaai"];
+    const rs = await Promise.all(list.map(a => fetchLookup(`/api/auctions?action=detail&auction=${a}&lot=${encodeURIComponent(what.lot)}`)));
+    const found = rs.map(r => r.lot).filter(Boolean);
+    // номер есть на обеих площадках — берём ближайший к сегодняшнему дню заход (предстоящие торги важнее старых)
+    found.sort((a, b) => (Date.parse(b.auctionDate || "") || 0) - (Date.parse(a.auctionDate || "") || 0));
+    lot = found[0] || null;
+    failed = !lot && rs.some(r => r.failed);
+  }
+  if(seq !== vinImportSeq) return;          // пока ждали, ввели другое
+  const notFound = aiT(isLot ? "Лот не найден" : "VIN не найден");
+  if(failed){ showVinStatus(notFound, aiT("Не удалось получить данные. Попробуйте ещё раз или введите данные вручную."), true); return; }
+  if(!lot){ showVinStatus(notFound, aiT(isLot ? "Такого лота нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер (можно с названием площадки: «Copart 61420506») или введите данные вручную." : "Этого VIN нет на Copart и IAAI, либо аукцион ещё не отдал данные. Проверьте номер или введите данные вручную."), true); return; }
+  const data = lotFromVinResponse(lot, lot.vin || vin);
+  if(isLot) data.original = (what.auction ? what.auction.toUpperCase() + " " : "") + what.lot;
   if(data.isCanada && typeof switchCalcMode === "function" && calcMode !== "canada"){
     switchCalcMode("canada");
     if(data.auction && $("auction")){ $("auction").value = data.auction; initCanadaLocations(); }
@@ -1073,6 +1106,8 @@ async function applyAuctionImport(){
   if(!input) return;
   const vin = pureVin(input.value);
   if(vin){ await applyVinImport(vin); return; }
+  const lotRef = pureLot(input.value);
+  if(lotRef){ await applyVinImport(lotRef); return; }
   let data = analyzeAuctionLink(input.value);
   if(!data.original){
     renderLotImportStatus(null, {});
@@ -1240,8 +1275,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   if($("auctionUrl")){
     $("auctionUrl").addEventListener("paste",()=>setTimeout(applyAuctionImport,80));
     // полный VIN набран руками — считаем сразу, без кнопки
-    let lastAutoVin = "";
-    $("auctionUrl").addEventListener("input",()=>{const v=pureVin($("auctionUrl").value);if(v&&v!==lastAutoVin){lastAutoVin=v;applyAuctionImport();}else if(!v)lastAutoVin="";});
+    let lastAutoVin = "", lotTimer = 0;
+    $("auctionUrl").addEventListener("input",()=>{const v=pureVin($("auctionUrl").value);if(v&&v!==lastAutoVin){lastAutoVin=v;applyAuctionImport();}else if(!v)lastAutoVin="";clearTimeout(lotTimer);const ref=pureLot($("auctionUrl").value);if(ref&&ref.lot.length>=7)lotTimer=setTimeout(()=>{const again=pureLot($("auctionUrl").value);if(again&&again.lot===ref.lot)applyAuctionImport();},700);});
     $("auctionUrl").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();applyAuctionImport();}});
     applyLotParamImport();
   }
