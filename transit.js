@@ -19,6 +19,10 @@
   function slugWords(s, max){
     return String(s || "").normalize("NFKD").replace(/[^\x00-\x7F]/g, "").split(/[^A-Za-z0-9]+/).filter(Boolean).map(function(t){ return t[0].toUpperCase() + t.slice(1); }).join("-").slice(0, max).replace(/-+$/g, "");
   }
+  function withLang(u){
+    var l = window.APEX_LANG; if(l !== "ro" && l !== "en") return u;
+    return u + (u.indexOf("?") === -1 ? "?" : "&") + "lang=" + l;
+  }
   function transitHref(it){
     var vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(it.vin || "").trim()) ? String(it.vin).trim().toUpperCase() : "";
     return "/in-transit/" + [String(it.id), slugWords(it.title, 60), vin].filter(Boolean).join("-");
@@ -199,12 +203,12 @@ function esc(s){
       if(t.dataset.gal){ show(idx + Number(t.dataset.gal)); }
       else if(t.dataset.thumb != null && t.hasAttribute("data-thumb")){ show(Number(t.dataset.thumb)); }
       else if(t.dataset.transitShare){
-        var url = location.origin + transitHref(it);
+        var url = location.origin + withLang(transitHref(it));
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function(){
           t.textContent = T("Ссылка скопирована");
         }).catch(function(){ window.prompt("", url); });
       }
-      else if(t.dataset.transitBack){ e.preventDefault(); history.pushState({}, "", "/in-transit"); route(); }
+      else if(t.dataset.transitBack){ e.preventDefault(); history.pushState({}, "", withLang("/in-transit")); route(); }
     };
     // Свайп по главному фото на телефоне
     var sx = null;
@@ -277,7 +281,7 @@ function esc(s){
     var a = e.target.closest("[data-transit-id]");
     if(!a || e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault();
-    history.pushState({}, "", a.getAttribute("href"));
+    history.pushState({}, "", withLang(a.getAttribute("href")));
     route();
   });
   window.addEventListener("popstate", route);

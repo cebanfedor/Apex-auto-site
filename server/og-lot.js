@@ -29,7 +29,7 @@ function facts(lot, lang = "ru"){
   const dateShort = Number.isFinite(ts) ? new Intl.DateTimeFormat("ru-RU", {timeZone:"Europe/Chisinau", day:"2-digit", month:"2-digit", year:"numeric"}).format(new Date(ts)) : "";
   const kind = KIND[lang] && KIND[lang][lot.fuelKind];
   return {t, cond, trans, odo, sold, price, priceLabel, dateShort, kind, canada:isCanada(lot), loc:cleanLoc(lot.location),
-    dateCard: Number.isFinite(ts) ? (sold ? `${t.sale} ${dateRu(lot.auctionDate).split(",")[0]}` : `${t.auction} ${dateRu(lot.auctionDate)}`) : ""};
+    dateCard: Number.isFinite(ts) ? (sold ? `${t.sale} ${dateRu(lot.auctionDate, lang).split(",")[0]}` : `${t.auction} ${dateRu(lot.auctionDate, lang)}`) : ""};
 }
 
 // og:description в стиле «RWD • Автомат. Лот: … Дата торгов: … Локация: … Состояние: … Пробег: …»
@@ -54,12 +54,13 @@ function description(lot, lang = "ru"){
 function cardData(lot, lang = "ru"){
   const f = facts(lot, lang);
   const chips = [f.odo, f.cond, f.loc && f.loc.replace(/,\s*(Canada|USA)$/i, "")].filter(Boolean);
-  const tagMap = {2:"Электро", 3:"Гибрид", 5:"Plug-in"};
+  const tagMap = {ru:{2:"Электро", 3:"Гибрид", 5:"Plug-in"}, ro:{2:"Electric", 3:"Hibrid", 5:"Plug-in"}, en:{2:"Electric", 3:"Hybrid", 5:"Plug-in"}}[lang] || {};
+  const footer = {ru:"apexauto.md · доставка авто из США и Канады под ключ", ro:"apexauto.md · livrare auto din SUA și Canada la cheie", en:"apexauto.md · turnkey car delivery from the USA and Canada"}[lang];
   return {
     title: lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" "),
     auction: lot.auction, canada:f.canada, image: (lot.images && lot.images[0]) || lot.image,
     price: f.price, priceLabel: f.price ? f.priceLabel : f.t.noBid, date: f.dateCard, chips,
-    tag: tagMap[lot.fuelKind] || "", tagBg: lot.fuelKind === 2 ? "#1f7ae0" : "#1c9c5b"
+    footer, tag: tagMap[lot.fuelKind] || "", tagBg: lot.fuelKind === 2 ? "#1f7ae0" : "#1c9c5b"
   };
 }
 

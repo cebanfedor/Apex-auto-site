@@ -77,7 +77,7 @@ module.exports = async function(req, res){
   const descSrc = String(it.description || "").replace(/\s+/g, " ").trim();
   const desc = [`${it.title}${price ? W.forP + price : ""}${it.sold ? W.sold : W.go}.`, specs, descSrc]
     .filter(Boolean).join(" ").slice(0, 300);
-  const image = `https://apexauto.md/og/transit/${it.id}?v=1`;
+  const image = `https://apexauto.md/og/transit/${it.id}?v=1${lang === "ru" ? "" : "&lang=" + lang}`;
 
   const ld = {
     "@context":"https://schema.org",

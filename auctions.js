@@ -219,6 +219,11 @@
     if(m) p.set("auctionDateTo", new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1)).toISOString().slice(0, 10));
     return p.toString();
   }
+  // Язык (RO/EN) остаётся в адресе и в ссылках «Поделиться»: превью ссылки строится на том же языке
+  function withLang(u){
+    const l = window.APEX_LANG; if(l !== "ro" && l !== "en") return u;
+    try{ const x = new URL(u, location.origin); x.searchParams.set("lang", l); return x.pathname + x.search + x.hash; }catch(e){ return u; }
+  }
   function syncUrl(){
     if(parseSlug(currentSlug())) return; // on a detail page — leave its path
     const p = formParams();
@@ -231,7 +236,7 @@
     if(p.get("auction") === "all") p.delete("auction");
     if(p.get("tab") === "all") p.delete("tab");
     const qs = p.toString();
-    try{ history.replaceState(null, "", qs ? `${location.pathname}?${qs}` : location.pathname); }catch(e){}
+    try{ history.replaceState(null, "", withLang(qs ? `${location.pathname}?${qs}` : location.pathname)); }catch(e){}
     try{ renderActiveFilters(); }catch(e){}
   }
   // Мультивыбор повреждений: значения в скрытом поле через «|», чипсы под полем.
@@ -2893,8 +2898,8 @@
         // тот же лот, отличается только «хвост» ссылки (название/VIN) — заменяем адрес, а не плодим записи в истории
         const sameLot = decodeURIComponent(location.pathname).startsWith(`/auctions/${lot.auction}-${lot.lot}`);
         if(location.pathname !== href){
-          if(sameLot) history.replaceState(history.state, "", href);
-          else history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", href);
+          if(sameLot) history.replaceState(history.state, "", withLang(href));
+          else history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", withLang(href));
         }
       }
     }catch(e){}
@@ -3391,7 +3396,7 @@
     const known = (state.items || []).find(l => String(l.lot) === String(slug.lot) && l.auction === slug.auction);
     if(!known) return; // нет данных под рукой — обычная навигация через SSR
     event.preventDefault();
-    try{ history.pushState({apexLot:1, d:fromCatalog ? 1 : ((history.state && history.state.d) || 0) + 1}, "", link.getAttribute("href")); }catch(_){ location.href = link.href; return; }
+    try{ history.pushState({apexLot:1, d:fromCatalog ? 1 : ((history.state && history.state.d) || 0) + 1}, "", withLang(link.getAttribute("href"))); }catch(_){ location.href = link.href; return; }
     window.scrollTo(0, 0);
     renderDetail(known);
     refreshDetailInBackground(slug);
@@ -4258,7 +4263,7 @@
     // «Поделиться» — системный share на мобильном, буфер обмена на десктопе
     $("#shareCatalogBtn")?.addEventListener("click", async () => {
       const btn = $("#shareCatalogBtn");
-      const url = location.href;
+      const url = location.origin + withLang(location.pathname + location.search);
       try{
         if(navigator.share){ await navigator.share({title:document.title, url}); return; }
         await navigator.clipboard.writeText(url);
@@ -4650,7 +4655,7 @@
       const shareBtn = event.target.closest("[data-share-page]");
       if(shareBtn){
         (async () => {
-          const url = location.href;
+          const url = location.origin + withLang(location.pathname + location.search);
           try{
             if(navigator.share){ await navigator.share({title:document.title, url}); return; }
             await navigator.clipboard.writeText(url);

@@ -16,33 +16,37 @@ async function getJson(url, ms = 7000){
   catch(e){ return null; }
   finally{ clearTimeout(timer); }
 }
+const langOf = req => /^ro/i.test(String(req.query.lang || "")) ? "ro" : /^en/i.test(String(req.query.lang || "")) ? "en" : "ru";
 async function buildLot(req, id){
   const m = String(id).match(/^(copart|iaai)-(\d{5,12})/i); if(!m) return null;
   const j = await getJson(`${origin(req)}/api/auctions?action=detail&auction=${m[1].toLowerCase()}&lot=${m[2]}`);
   const lot = j && j.ok !== false && j.lot; if(!lot) return null;
-  return og.lotCard(ogLot.cardData(lot));
+  return og.lotCard(ogLot.cardData(lot, langOf(req)));
 }
 async function buildTransit(req, id){
+  const lang = langOf(req);
   const j = await getJson(`${origin(req)}/api/hot-lots?type=transit`);
   const it = j && Array.isArray(j.items) && j.items.find(x => String(x.id) === String(id)); if(!it) return null;
-  const price = og.money(it.price);
-  return og.lotCard({title:it.title, auction:"", image:it.photos && it.photos[0], price, priceLabel: it.sold ? "Продан" : "Цена", tag: it.sold ? "Продан" : "В пути в Молдову", tagBg: it.sold ? "#6b7280" : "#1c9c5b",
-    chips:[it.mileage, it.fuel, it.engine].filter(Boolean), date: it.sold ? "" : "Можно забронировать"});
+  const W = {ru:{sold:"Продан", price:"Цена", tag:"В пути в Молдову", book:"Можно забронировать", footer:"apexauto.md · доставка авто из США и Канады под ключ"},
+    ro:{sold:"Vândut", price:"Preț", tag:"În drum spre Moldova", book:"Se poate rezerva", footer:"apexauto.md · livrare auto din SUA și Canada la cheie"},
+    en:{sold:"Sold", price:"Price", tag:"On the way to Moldova", book:"Available to reserve", footer:"apexauto.md · turnkey car delivery from the USA and Canada"}}[lang];
+  return og.lotCard({title:it.title, auction:"", image:it.photos && it.photos[0], price:og.money(it.price), priceLabel: it.sold ? W.sold : W.price, tag: it.sold ? W.sold : W.tag, tagBg: it.sold ? "#6b7280" : "#1c9c5b",
+    chips:[it.mileage, it.fuel, it.engine].filter(Boolean), date: it.sold ? "" : W.book, footer:W.footer});
 }
 async function buildTrack(req, vin){
   if(!/^[A-HJ-NPR-Z0-9]{17}$/i.test(vin)) return null;
-  const t = describeTrack(await getJson(`${origin(req)}/api/w8-tracking?vin=${encodeURIComponent(vin)}`));
+  const t = describeTrack(await getJson(`${origin(req)}/api/w8-tracking?vin=${encodeURIComponent(vin)}`), langOf(req) === "ru" ? "" : langOf(req));
   if(!t) return null;
-  return og.trackCard({vehicle:t.vehicle, vin:t.vin || String(vin).toUpperCase(), statusLabel:t.statusLabel, delivered:t.delivered, stages:t.stages, sub:t.eta, image:t.image});
+  return og.trackCard({vehicle:t.vehicle, fallbackName:t.fallback, label:t.label, footer:t.footer, vin:t.vin || String(vin).toUpperCase(), statusLabel:t.statusLabel, delivered:t.delivered, stages:t.stages, sub:t.eta, image:t.image});
 }
 
 async function buildCatalog(req){
   const p = ogCatalog.cleanQuery(req.query);
-  const d = await ogCatalog.describeCatalog(origin(req), p);
+  const lang = langOf(req); const d = await ogCatalog.describeCatalog(origin(req), p, lang);
   if(!d) return null;
   const uri = d.image ? await og.fetchImage(og.bigPhoto(d.image)) : null;
-  const sub = [d.totalTxt, ...d.chips].filter(Boolean).join(" · ") || "Фото · история по VIN · цена под ключ";
-  return og.pageCard({kicker:"КАТАЛОГ АУКЦИОНОВ COPART И IAAI", title:d.names, sub, path:"apexauto.md/auctions", image:uri});
+  const sub = [d.totalTxt, ...d.chips].filter(Boolean).join(" · ") || d.X.sub;
+  return og.pageCard({kicker:d.X.kicker, title:d.names, sub, path:"apexauto.md/auctions" + (lang === "ru" ? "" : `?lang=${lang}`), image:uri});
 }
 
 module.exports = async function(req, res){

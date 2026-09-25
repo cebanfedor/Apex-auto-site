@@ -74,7 +74,7 @@ module.exports = async function(req, res){
         ogTitle = `${title} — ${match[1].toUpperCase()} ${TXT.lot} ${match[2]} | Apex Auto`;
         ogDesc = ogLot.description(lot, lang);
         // Своя картинка-карточка (фото + название + цена + бренд), а не сырое фото аукциона
-        ogImage = lot.id ? `https://apexauto.md/og/lot/${lot.id}?v=1` : (lot.image || ogImage);
+        ogImage = lot.id ? `https://apexauto.md/og/lot/${lot.id}?v=1${lang === "ru" ? "" : "&lang=" + lang}` : (lot.image || ogImage);
         ogHasCard = !!lot.id;
       }
     }catch(e){

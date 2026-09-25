@@ -186,6 +186,8 @@
 
   let currentLang = getLang();
   window.APEX_LANG = currentLang;
+  // Язык — в адресе: скопированная/отправленная ссылка откроется и получит превью (Telegram, WhatsApp) на том же языке
+  try{ if(currentLang !== "ru"){ var _u = new URL(location.href); if(_u.searchParams.get("lang") !== currentLang){ _u.searchParams.set("lang", currentLang); history.replaceState(history.state, "", _u.toString()); } } }catch(e){}
   if(currentLang !== "ru") ensureDict();   // грузим словарь параллельно с разбором страницы
   // Синхронный перевод строки в текущий язык — для динамического контента
   // (калькулятор лота, карточки), который строится в JS уже после apply().

@@ -13,12 +13,18 @@ function loadResvg(){ if(!Resvg) Resvg = require("@resvg/resvg-js").Resvg; retur
 
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const money = n => Number(n) > 0 ? "$" + Math.round(Number(n)).toLocaleString("en-US").replace(/,/g, " ") : "";
-const MONTHS = ["янв.", "февр.", "марта", "апр.", "мая", "июня", "июля", "авг.", "сент.", "окт.", "нояб.", "дек."];
-function dateRu(iso){
+const MONTHS_ALL = {
+  ru:["янв.", "февр.", "марта", "апр.", "мая", "июня", "июля", "авг.", "сент.", "окт.", "нояб.", "дек."],
+  ro:["ian.", "feb.", "mar.", "apr.", "mai", "iun.", "iul.", "aug.", "sept.", "oct.", "nov.", "dec."],
+  en:["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+};
+let MONTHS = MONTHS_ALL.ru;
+function dateRu(iso, lang){
+  MONTHS = MONTHS_ALL[lang] || MONTHS_ALL.ru;
   const t = Date.parse(iso || ""); if(!Number.isFinite(t)) return "";
   const p = new Intl.DateTimeFormat("en-GB", {timeZone:"Europe/Chisinau", day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit", hour12:false}).formatToParts(new Date(t));
   const g = k => (p.find(x => x.type === k) || {}).value || "";
-  return `${g("day")} ${MONTHS[Number(g("month")) - 1] || ""}, ${g("hour")}:${g("minute")}`;
+  return lang === "en" ? `${MONTHS[Number(g("month")) - 1] || ""} ${g("day")}, ${g("hour")}:${g("minute")}` : `${g("day")} ${MONTHS[Number(g("month")) - 1] || ""}, ${g("hour")}:${g("minute")}`;
 }
 
 // Грубая оценка ширины текста Onest (px на символ при размере 1): для переноса строк и подбора размера
@@ -127,7 +133,7 @@ async function lotCard(lot){
     ? `<g transform="translate(${W - 44} 0)"><text x="0" y="446" text-anchor="end" font-family="Onest" font-weight="500" font-size="26" fill="#fff" fill-opacity=".78">${esc(lot.priceLabel || "")}</text><text x="0" y="524" text-anchor="end" font-family="Onest" font-weight="800" font-size="84" fill="#fff">${esc(lot.price)}</text>${lot.date ? `<text x="0" y="562" text-anchor="end" font-family="Onest" font-weight="500" font-size="26" fill="#fff" fill-opacity=".78">${esc(lot.date)}</text>` : ""}</g>`
     : `${lot.priceLabel ? `<text x="${W - 44}" y="500" text-anchor="end" font-family="Onest" font-weight="800" font-size="46" fill="#fff">${esc(lot.priceLabel)}</text>` : ""}${lot.date ? `<text x="${W - 44}" y="548" text-anchor="end" font-family="Onest" font-weight="500" font-size="30" fill="#fff" fill-opacity=".85">${esc(lot.date)}</text>` : ""}`;
   const bar = `<rect x="0" y="${H - 8}" width="${W}" height="8" fill="${RED}"/>`;
-  const svg = frame(photoLayer(uri) + shade + brandTop(badges) + titleSvg + chipsSvg + priceBlock + footer("apexauto.md · доставка авто из США и Канады под ключ") + bar);
+  const svg = frame(photoLayer(uri) + shade + brandTop(badges) + titleSvg + chipsSvg + priceBlock + footer(lot.footer || "apexauto.md · доставка авто из США и Канады под ключ") + bar);
   return toPng(svg);
 }
 
@@ -135,7 +141,7 @@ async function lotCard(lot){
 // t: {vehicle, vin, statusLabel, stageIndex, stageTotal, stages:[{label,status}], image, delivered}
 async function trackCard(t){
   const uri = await fetchImage(bigPhoto(t.image));
-  const name = wrap(t.vehicle || "Ваш автомобиль", 60, 1000, 2, true);
+  const name = wrap(t.vehicle || t.fallbackName || "Ваш автомобиль", 60, 1000, 2, true);
   const nameSvg = name.map((l, i) => `<text x="44" y="${262 + i * 68}" font-family="Onest" font-weight="800" font-size="60" fill="#fff">${esc(l)}</text>`).join("");
   const vinY = 262 + (name.length - 1) * 68 + 54;
   const subY = vinY + 52;
@@ -156,11 +162,11 @@ async function trackCard(t){
     const lab = wrap(s.label, 19, gap - 12, 2, cur);
     labels += lab.map((l, k) => `<text x="${cx}" y="${stageY + 52 + k * 24}" text-anchor="middle" font-family="Onest" font-weight="${cur ? 700 : 500}" font-size="19" fill="#fff" fill-opacity="${cur ? 1 : ok ? 0.75 : 0.42}">${esc(l)}</text>`).join("");
   });
-  const status = pill(44, 116, t.statusLabel || "В обработке", {size:26, h:52, padX:22, bg:t.delivered ? "#1c9c5b" : RED, r:14});
-  const svg = frame(photoLayer(uri, uri ? 14 : 0) + `<rect width="${W}" height="${H}" fill="#0b0d11" fill-opacity="${uri ? 0.66 : 0}"/>` + brandTop(`<text x="${W - 44}" y="70" text-anchor="end" font-family="Onest" font-weight="700" font-size="24" fill="#fff" fill-opacity=".8" letter-spacing="1.5">ОТСЛЕЖИВАНИЕ АВТО</text>`)
+  const status = pill(44, 116, t.statusLabel || "—", {size:26, h:52, padX:22, bg:t.delivered ? "#1c9c5b" : RED, r:14});
+  const svg = frame(photoLayer(uri, uri ? 14 : 0) + `<rect width="${W}" height="${H}" fill="#0b0d11" fill-opacity="${uri ? 0.66 : 0}"/>` + brandTop(`<text x="${W - 44}" y="70" text-anchor="end" font-family="Onest" font-weight="700" font-size="24" fill="#fff" fill-opacity=".8" letter-spacing="1.5">${esc(t.label || "ОТСЛЕЖИВАНИЕ АВТО")}</text>`)
     + status.svg + nameSvg + (t.vin ? `<text x="44" y="${vinY}" font-family="Onest" font-weight="500" font-size="28" fill="#fff" fill-opacity=".8" letter-spacing="1">VIN ${esc(t.vin)}</text>` : "")
     + (t.sub ? `<text x="44" y="${subY}" font-family="Onest" font-weight="700" font-size="32" fill="#fff">${esc(t.sub)}</text>` : "")
-    + line + dots + labels + footer("apexauto.md/tracking") + `<rect x="0" y="${H - 8}" width="${W}" height="8" fill="${RED}"/>`);
+    + line + dots + labels + footer(t.footer || "apexauto.md/tracking") + `<rect x="0" y="${H - 8}" width="${W}" height="8" fill="${RED}"/>`);
   return toPng(svg);
 }
 
@@ -182,7 +188,7 @@ async function pageCard(p){
   }
   let size = 78, lines = balanced(p.title, size, 940, 3, true);
   if(lines.length > 2){ size = 66; lines = wrap(p.title, size, 940, 3, true); }
-  const top = 250 - (lines.length - 1) * 26;
+  const top = 258 - (lines.length - 1) * 18;
   const titleSvg = lines.map((l, i) => `<text x="44" y="${top + i * (size + 8)}" font-family="Onest" font-weight="800" font-size="${size}" fill="#fff">${esc(l)}</text>`).join("");
   const subLines = balanced(p.sub || "", 32, 980, 2, false);
   const subY = top + lines.length * (size + 8) - 4;
