@@ -3706,7 +3706,7 @@ function engineLitersOf(text){
 // Заливка api_lots.engine_l из payload.engine («2.0l i-4 …» → 2.0). Порция — SQL-функция fill_engine_l (skip locked).
 // ---- Перепроверка лотов «Купить сейчас» (25.09.2026): покупка по Buy Now не меняет основную запись лота в фиде (BMW 530e 45914882 висел «купить за $9 100» после продажи),
 // поэтому лоты выкупа опрашиваем по кругу. Курсор (sale_date, id) — в alert_meta.bn_cursor; за тик ≈250 лотов, ближайшие торги первыми.
-async function runBuyNowCheck(budgetMs = 40000){
+async function runBuyNowCheck(budgetMs = 44000){
   const t0 = Date.now();
   const out = {ok:true, checked:0, sold:0, fail:0};
   if(!sbUp()) return {ok:true, skipped:"db down"};
@@ -3714,10 +3714,10 @@ async function runBuyNowCheck(budgetMs = 40000){
   let cur = (Array.isArray(meta) && meta[0] && meta[0].v) || {};
   const q = (extra, lim) => `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString())}${extra}&order=sale_date.asc,id.asc&limit=${lim}`;
   const after = cur.sd ? `&or=(sale_date.gt.${encodeURIComponent(cur.sd)},and(sale_date.eq.${encodeURIComponent(cur.sd)},id.gt.${encodeURIComponent(cur.id || "")}))` : "";
-  let rows = await syncSbFetch(q(after, 260)).catch(() => null);
+  let rows = await syncSbFetch(q(after, 900)).catch(() => null);
   if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
   out.wrapped = !rows.length;
-  if(!rows.length){ rows = await syncSbFetch(q("", 260)).catch(() => []); cur = {}; }
+  if(!rows.length){ rows = await syncSbFetch(q("", 900)).catch(() => []); cur = {}; }
   let idx = 0, last = null;
   const worker = async () => {
     while(idx < rows.length && Date.now() - t0 < budgetMs){
