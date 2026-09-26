@@ -374,7 +374,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const item = source?.data && !Array.isArray(source.data) ? source.data : source;
   tesla.fixTeslaItem(item);   // модель Tesla — по VIN, фид её путает
   const lots = Array.isArray(item?.lots) ? item.lots : [];
-  const lot = unwrapFeedValues(lots[0] || item?.lot || item);
+  // плоская запись (как отдаёт /archived-lots): поля лота лежат в самом item, а item.lot — просто номер лота (строка/число), не объект
+  const lot = unwrapFeedValues(lots[0] || (item?.lot && typeof item.lot === "object" ? item.lot : item));
   unwrapFeedValues(item);
   const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || fallbackAuction);
   let make = safeName(item?.manufacturer || item?.make || item?.brand);
@@ -3150,7 +3151,7 @@ async function syncApiFetch(url, timeoutMs){
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
 function syncRowFromItem(item, {archived = false} = {}){
   tesla.fixTeslaItem(item);
-  const lot = unwrapFeedValues((Array.isArray(item?.lots) && item.lots[0]) || item?.lot || item || {});
+  const lot = unwrapFeedValues((Array.isArray(item?.lots) && item.lots[0]) || (item?.lot && typeof item.lot === "object" ? item.lot : item) || {});
   unwrapFeedValues(item);
   // Только Copart (3) и IAAI (1): Encar/Корея (12) не наш рынок, и normalizeAuction
   // ошибочно записывал бы такие лоты как «copart».
