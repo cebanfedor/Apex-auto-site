@@ -1580,4 +1580,4 @@ details > summary::-webkit-details-marker { display: none; }
 .cookieBtnRejectV1:hover { background:var(--field); }
 .cookieBtnAcceptV1 { background:var(--red); color:#fff; border-color:var(--red); }
 .cookieBtnAcceptV1:hover { background:var(--red-600); }
-@media (max-width: 640px) { .cookieConsentBoxV1 { padding:16px; flex-direction:column; align-items:stretch; } .cookieConsentBtnsV1 { justify-content:stretch; } .cookieConsentBtnsV1 button { flex:1 1 0; } }
+@media (max-width: 640px) { .cookieConsentV1 { padding:10px; } .cookieConsentBoxV1 { padding:14px; gap:12px; flex-direction:column; align-items:stretch; } .cookieConsentBoxV1 p { flex:0 0 auto; font-size:13px; line-height:1.5; } .cookieConsentBtnsV1 { justify-content:stretch; } .cookieConsentBtnsV1 button { flex:1 1 0; } }
