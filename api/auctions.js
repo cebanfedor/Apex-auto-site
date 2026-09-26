@@ -4275,8 +4275,11 @@ module.exports = async function handler(request, response){
         const p = new URLSearchParams({per_page:"1000", page:String(pg), simple_paginate:"1", minutes:String(mins)});
         const payload = await syncApiFetch(`${AUCTIONS_API_BASE}/archived-lots?${p}`);
         const items = findItems(payload) || [];
+        out.pages = (out.pages || 0) + 1; out.items = (out.items || 0) + items.length;
         for(const it of items){
           const row = syncRowFromItem(it, {archived:true});
+          const k = row ? `${row.archived ? "arch" : "live"}|${Number(row.final_bid) > 0 ? "fin" : "nofin"}|st${row.status_id}` : "null";
+          (out.kinds = out.kinds || {})[k] = (out.kinds[k] || 0) + 1;
           if(row && row.archived && Number(row.final_bid) > 0) ids.set(row.id, {final:row.final_bid, date:row.sale_date});
         }
         if(items.length < 1000) break;
