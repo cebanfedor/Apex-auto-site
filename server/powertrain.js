@@ -136,6 +136,7 @@ function cleanTitle(title){
   if(!/\bBMW\b/i.test(t)) return t;
   t = t.replace(/\b(M?\d{3})\s*xi\b/gi, (m, a) => a.toUpperCase() + "i xDrive");
   t = t.replace(/\b(M?\d{3})\s*([ied])\b/gi, (m, a, b) => a.toUpperCase() + b.toLowerCase());
+  t = t.replace(/\b(M\d{2})\s*([ie])\b/gi, (m, a, b) => a.toUpperCase() + b.toLowerCase());   // X5 M60I → M60i
   t = t.replace(/\b([sx])drive\s*(\d{2})\s*([ide])\b/gi, (m, p, d, l) => p.toLowerCase() + "Drive" + d + l.toLowerCase());
   t = t.replace(/\bxdrive\b/gi, "xDrive").replace(/\bsdrive\b/gi, "sDrive");
   t = t.replace(/\b(xDrive|sDrive)\s+\1\b/g, "$1");
