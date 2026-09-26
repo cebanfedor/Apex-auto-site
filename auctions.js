@@ -2489,6 +2489,7 @@
       <div class="calcTopV2">
         ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Ставок пока нет"))}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${!banned ? `<div id="lotMarketLineV1" class="lotMarketLineV1" hidden></div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
       ${!isSold ? `<div id="lotQueueV1" class="lotQueueV1" hidden></div>` : ""}
@@ -3141,6 +3142,7 @@
     updateLotCalculator();
     loadSimilarActive(lot);
     loadSimilarArchived(lot);
+    loadStats(lot);   // оценка лота под ценой (#lotMarketLineV1)
     fetchLiveRates();
     startLotCountdown(lot);
     startLiveBidWatch(lot);
@@ -3246,7 +3248,7 @@
   // Короткая строка рынка в сайдбаре калькулятора.
   function setMarketLine(median, count){
     const marketLine = document.getElementById("lotMarketLineV1");
-    if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} ${money500(median)}</span>`;
+    if(marketLine){ marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${L("средняя")} <b>${money500(median)}</b></span>`; marketLine.hidden = false; }
   }
   // Подпись: какие факторы учтены (динамически из match).
   function compsNote(match){
@@ -3261,8 +3263,9 @@
   }
 
   async function loadStats(lot){
-    const box = document.getElementById("lotStatsBox");
-    if(!box || !lot.makeId || !lot.modelId) return;
+    // Большой блок «Рыночная статистика» убран (c7f3499); остаётся строка оценки под ценой — #lotMarketLineV1. Пишем в отсоединённый узел, если блока нет.
+    const box = document.getElementById("lotStatsBox") || document.createElement("div");
+    if(!lot.makeId || !lot.modelId) return;
     // Префетч агрегата ПАРАЛЛЕЛЬНО с comps (не ждём провала comps) — если comps
     // уйдёт в фолбэк, статистика уже загружена и рендер мгновенный.
     const statsPrefetch = statsRowsFor(lot.makeId, lot.modelId);
@@ -3289,7 +3292,7 @@
           <p class="statNoteV1">${L("Считаем от средней цены продаж этого кузова с поправкой на состояние лота: повреждения и на ходу ли машина. Это ориентир, а не гарантия — перед ставкой проверяем лот вручную.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
-        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: ${money(c.p25)}–${money(c.p75)}</span>`;
+        if(marketLine){ marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>`; marketLine.hidden = false; }
         return;
       }
       if(cr && cr.ok && cr.comps && cr.comps.count){
@@ -3308,7 +3311,7 @@
           <p class="statNoteV1">${compsNote(c.match)} ${L("Помогает оценить адекватную ставку.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
-        if(marketLine) marketLine.innerHTML = `${dbIco("chart")}<span>${L("Рынок")}: ${hasRange ? `${money500(lo)}–${money500(hi)}` : money500(c.median)}</span>`;
+        if(marketLine){ marketLine.innerHTML = `${dbIco("chart")}<span>${L("Оценочная стоимость")}: <b>${hasRange ? `${money500(lo)}–${money500(hi)}` : money500(c.median)}</b></span>`; marketLine.hidden = false; }
         return;
       }
       // 2) Фолбэк: агрегат /statistics (когда база недоступна или мало продаж).
