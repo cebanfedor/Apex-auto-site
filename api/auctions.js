@@ -1664,9 +1664,20 @@ function parseSynGen(id){
   const from = Math.floor(n / 10000), to = n % 10000;
   return from >= 1900 && from <= 2100 ? {from, to:to || 0} : null;
 }
+const GEN_NAMES = require("../server/gen-names");
+// Название поколения «римский номер (код)»: «VI (F30)», «IV (YD8)». В таблице у записи бывает список кодов через запятую
+// («F30, F31, F34») — берём первый; если в коде уже есть номер («Gen VI», «Epsilon (VII)») или это слово (Juniper) — оставляем как есть.
+function genLabel(roman, code){
+  const c0 = String(code || "").split(",")[0].trim();
+  if(!c0) return roman || "";
+  if(!roman || /^Gen\s+[IVXL]+/i.test(c0) || /\([IVXL]+\)/.test(c0) || /[а-яё]/i.test(c0) || c0.split(/\s+/).length > 2) return c0;
+  return `${roman} (${c0})`;
+}
 function tableGens(modelId){
-  const t = GEN_TABLE[Number(String(modelId).replace(/[^0-9]/g, ""))];
-  return t ? t.map(([from, to, c]) => ({id:from * 10000 + (to || 0), name:c || "", from, to:to || null})) : null;
+  const id = Number(String(modelId).replace(/[^0-9]/g, ""));
+  const t = GEN_TABLE[id];
+  const nm = GEN_NAMES[id] || [];
+  return t ? t.map(([from, to, c], i) => ({id:from * 10000 + (to || 0), name:genLabel(nm[i] || "", c), code:String(c || "").split(",")[0].trim(), from, to:to || null})) : null;
 }
 const genRangeCache = new Map();
 async function generationsFor(modelId){
@@ -2071,9 +2082,8 @@ async function attachGenRange(lot){
       if(pick){
         const to = lot.genTo && lot.genTo < cur ? String(lot.genTo) : "";
         lot.generationId = pick.id;
-        // Как у DreamBid — коротко, кодом кузова («G05», «F3x»): берём текст в скобках
-        // имени справочника («VI (F3x)» → «F3x»), иначе имя целиком. Плюс US-годы.
-        const code = (String(pick.name).match(/\(([^)]+)\)/) || [])[1] || String(pick.name).trim();
+        // Римский номер и код кузова, как в справочнике («VII (G20/G21)»). Плюс US-годы.
+        const code = String(pick.name).trim();
         lot.generationName = lot.genFrom ? `${code} · ${lot.genFrom}–${to}` : code;
       }else if(lot.generationId){
         const feed = gens.find(g => String(g.id) === String(lot.generationId));
@@ -4414,7 +4424,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g21" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g22" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
