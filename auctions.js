@@ -3922,7 +3922,20 @@
       ["water","Повреждение: Вода / затопление"], ["flood","Повреждение: Вода / затопление"], ["затопление","Повреждение: Вода / затопление"], ["front","Повреждение: Перед"], ["rear","Повреждение: Зад"], ["hail","Повреждение: Град"], ["rollover","Повреждение: Переворот"], ["fire","Повреждение: Огонь"],
       ["sedan","Кузов: Седан"], ["suv","Кузов: SUV / Кроссовер"], ["pickup","Кузов: Пикап"], ["coupe","Кузов: Купе"], ["hatchback","Кузов: Хэтчбек"], ["wagon","Кузов: Универсал"], ["minivan","Кузов: Минивэн"], ["awd","Привод: Полный"], ["copart","Площадка: Copart"], ["iaai","Площадка: IAAI"]];
     let smartStates = null;
+    // ---- Коды кузова в поиске (26.09.2026): «g05», «c7», «b8», «w205», «audi a6 c7» → марка + модель + поколение ----
+    let genCodeIdx = null, genModelNames = new Set(), smPendingGen = null;
+    async function loadGenIndex(){
+      if(genCodeIdx) return;
+      genCodeIdx = new Map();
+      try{
+        const r = await api("/api/auctions?action=genindex");
+        const m = new Map(), names = new Set();
+        (r.items || []).forEach(e => { names.add(sN(e.mn)); (e.c || []).forEach(c => { if(!m.has(c)) m.set(c, []); m.get(c).push(e); }); });
+        genCodeIdx = m; genModelNames = names;
+      }catch(e){ genCodeIdx = null; }   // не загрузился — попробуем при следующем вводе
+    }
     async function ensureSmartStates(){
+      await loadGenIndex();
       if(smartStates) return smartStates;
       try{
         const [us, ca] = await Promise.all(["us", "ca"].map(c => api(`/api/auctions?action=usadict&dict=states&country=${c}`).then(r => r.items || []).catch(() => [])));
@@ -4083,7 +4096,35 @@
         }
         if(consumed) i += consumed; else { const w = tokens[i]; if(!SMART_STOP_WORDS.has(w.toLowerCase())) leftover.push(w); i++; }
       }
+      smartGenCodes(items, leftover, push);
       return {items, leftover};
+    }
+    // Код кузова из оставшихся слов. Контекст: уже найденные марки и названия моделей из запроса.
+    // Одна модель → марка+модель+поколение (диапазон лет); несколько моделей ОДНОЙ марки (B8 у Audi = A4/S4/A5…) → марка + модели + общий диапазон лет;
+    // разные марки (C7 = Audi A6 и Corvette) без подсказки в запросе — ничего не применяем, но и не теряем слово.
+    function smartGenCodes(items, leftover, push){
+      if(!genCodeIdx || !genCodeIdx.size || !leftover.length) return;
+      const ctx = new Set(leftover.map(w => sN(w)));
+      const makeIds = new Set(items.filter(it => it.type === "make").map(it => String(it.makeId)));
+      for(let k = 0; k < leftover.length; k++){
+        const w = leftover[k], code = String(w).toLowerCase().replace(/[^a-z0-9]/g, "");
+        let cand = genCodeIdx.get(code);
+        if(!cand || genModelNames.has(sN(w)) || /^(?:a[1-8]|q[2-8]|s[3-8]|x[1-7]|m[2-8]|i[3-8]|z[3-8])$/.test(code)) continue;   // «a6», «x5» — это модели, а не кузова
+        if(makeIds.size) cand = cand.filter(e => makeIds.has(String(e.k)));
+        if(!cand.length) continue;
+        if(new Set(cand.map(e => e.m)).size > 1){ const byModel = cand.filter(e => ctx.has(sN(e.mn))); if(byModel.length) cand = byModel; }
+        const modelIds = new Set(cand.map(e => e.m)), makeSet = new Set(cand.map(e => e.k));
+        const yrs = e => `${e.f}–${e.t || ""}`;
+        if(modelIds.size === 1){
+          const e = cand[0];
+          push("gen", `${e.kn} ${e.mn} · ${e.n} · ${yrs(e)}`, () => { smAddMake({id:e.k, name:e.kn}); if(!ms.models.some(x => String(x.id) === String(e.m))) ms.models.push({id:String(e.m), name:e.mn, makeId:String(e.k)}); smPendingGen = e; }, {makeId:String(e.k)});
+        }else if(makeSet.size === 1){
+          const from = Math.min(...cand.map(e => e.f)), to = cand.some(e => !e.t) ? "" : Math.max(...cand.map(e => e.t));
+          const list = [...new Map(cand.map(e => [e.m, e])).values()];
+          push("gen", `${list[0].kn} · ${String(w).toUpperCase()}: ${list.map(e => e.mn).join(", ")} · ${from}–${to}`, () => { smAddMake({id:list[0].k, name:list[0].kn}); list.forEach(e => { if(!ms.models.some(x => String(x.id) === String(e.m))) ms.models.push({id:String(e.m), name:e.mn, makeId:String(e.k)}); }); smYears(String(from), String(to)); }, {makeId:String(list[0].k)});
+        }else continue;
+        leftover.splice(k, 1); k--;
+      }
     }
     const SMART_STOP_WORDS = new Set(["и", "в", "на", "с", "для", "из", "от", "or", "and", "the", "with"]);
     function smAddMake(mk){
@@ -4133,7 +4174,13 @@
           }
         }
       }
-      syncHidden(); renderMakes(); renderModels(); refreshGenerationsForSelection();
+      syncHidden(); renderMakes(); renderModels();
+      if(smPendingGen && ms.models.length === 1 && String(ms.models[0].id) === String(smPendingGen.m)){
+        const g = smPendingGen; smPendingGen = null;
+        await refreshGenerationsForSelection();
+        if(genId) genId.value = String(g.g);
+        if(genInput) genInput.value = g.n;
+      }else{ smPendingGen = null; refreshGenerationsForSelection(); }
       const inp = document.getElementById("auctionSmartSearch"); if(inp) inp.value = left.join(" ");
       return items.length;
     };

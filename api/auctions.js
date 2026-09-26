@@ -4162,6 +4162,25 @@ module.exports = async function handler(request, response){
   }
   // Разовое исправление модели Tesla в базе (фид путал Model 3/X/Y): идём по id курсором, правим model_id, кузов, название и payload.
   // Вызывать повторно с &cursor=<nextCursor>, пока done=true. Дальше синк пишет уже верные значения (fixTeslaItem).
+  // Индекс кодов кузова для умного поиска: «g05», «c7», «b8», «w205» → марка + модель + поколение (диапазон лет).
+  // Отдаём весь (≈1300 записей) — клиент разбирает запрос без походов на сервер. Кэш CDN длинный: таблица меняется только деплоем.
+  if(action === "genindex"){
+    const GEN_MODELS = require("../server/gen-models");
+    const list = [];
+    for(const mid of Object.keys(GEN_TABLE)){
+      const meta = GEN_MODELS[mid]; if(!meta) continue;
+      for(const g of tableGens(mid)){
+        const codes = [];
+        String(GEN_TABLE[mid].find(e => e[0] === g.from)?.[2] || "").split(/[,/;()]/).forEach(t => {
+          const c = t.trim().toLowerCase().replace(/\s+/g, "");
+          if(/^[a-z]{1,3}\d{1,4}[a-z]{0,2}$/.test(c) || /^\d[a-z]$/.test(c) || /^\d{2}[a-z]?$/.test(c) && false) codes.push(c);
+        });
+        if(codes.length) list.push({m:Number(mid), k:meta[0], kn:meta[1], mn:meta[2], g:g.id, n:g.name, f:g.from, t:g.to || 0, c:[...new Set(codes)]});
+      }
+    }
+    sendJson(response, 200, {ok:true, items:list}, {"cache-control":"public, s-maxage=86400, stale-while-revalidate=604800"});
+    return;
+  }
   // Временная диагностика: сырой справочник поколений фида по model_id (для сверки римских номеров с нашей таблицей)
   if(action === "rawgens"){
     const ids = String(query.get("ids") || query.get("model_id") || "").split(",").map(x => x.replace(/[^0-9]/g, "")).filter(Boolean).slice(0, 40);
@@ -4424,7 +4443,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g25" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g26" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

@@ -1197,6 +1197,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .spChipV1.sp-fuel { background:#e7f6ec; color:#17794a; }
 .spChipV1.sp-damage { background:#fdeceb; color:#b3321f; }
 .spChipV1.sp-state, .spChipV1.sp-country { background:#fff4d6; color:#7a5800; }
+.spChipV1.sp-gen { background:#efe9ff; color:#5a35b8; }
 .spChipV1.sp-name { background:#f3f4f6; color:var(--aInk2); }
 .spRowV1 { display:block; width:100%; padding:8px 10px; border:none; border-radius:9px; background:transparent; text-align:left; font:inherit; font-size:13.5px; color:var(--aInk); cursor:pointer; }
 .spRowV1:hover { background:var(--aSoft); }
