@@ -4152,6 +4152,17 @@ module.exports = async function handler(request, response){
   }
   // Разовое исправление модели Tesla в базе (фид путал Model 3/X/Y): идём по id курсором, правим model_id, кузов, название и payload.
   // Вызывать повторно с &cursor=<nextCursor>, пока done=true. Дальше синк пишет уже верные значения (fixTeslaItem).
+  // Временная диагностика: сырой справочник поколений фида по model_id (для сверки римских номеров с нашей таблицей)
+  if(action === "rawgens"){
+    const ids = String(query.get("ids") || query.get("model_id") || "").split(",").map(x => x.replace(/[^0-9]/g, "")).filter(Boolean).slice(0, 40);
+    const out = {ok:true, gens:{}};
+    await Promise.all(ids.map(async id => {
+      try{ const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${id}`); out.gens[id] = (Array.isArray(list?.data) ? list.data : []).map(g => [g.id, g.name, g.from_year || g.year_from || null, g.to_year || g.year_to || null]); }
+      catch(e){ out.gens[id] = null; }
+    }));
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "teslafix"){
     const cursor = String(query.get("cursor") || "").replace(/[^\w.-]/g, "");
     const out = {ok:true, scanned:0, fixed:0, done:false, nextCursor:cursor};
