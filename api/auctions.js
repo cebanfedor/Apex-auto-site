@@ -4472,7 +4472,8 @@ module.exports = async function handler(request, response){
           : await syncImportPage("/archived-lots", page, {minutes}, {archived:true}, started + 44000);
         info.pages++; info.items += got; info.written += syncImportPage.lastWritten || 0;
         if(got < SYNC_PER_PAGE){ info.next = null; break; }
-        if(!syncImportPage.lastComplete){ info.next = page; break; }
+        // одну-две строки страницы защита «не ухудшать продажу» может не записать — это не обрыв; обрыв = вышли по времени
+        if(!syncImportPage.lastComplete && Date.now() - started >= 36000){ info.next = page; break; }
         info.next = page + 1;
       }
     }catch(e){ info.ok = false; info.error = String(e.message || e).slice(0, 200); info.next = page; }
