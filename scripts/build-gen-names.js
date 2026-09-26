@@ -48,6 +48,9 @@ function toRoman(n){ const m = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]; let
       res = res.map((_, i) => (i + 1 + off) >= 1 && (i + 1 + off) <= 20 ? toRoman(i + 1 + off) : "");
     }else if(conf.length >= 1){
       conf.forEach(c => { res[c.i] = match[c.i].roman; });
+      // одно-два надёжных совпадения без общего сдвига — соседей достраиваем по позиции от ближайшего надёжного (Fusion: CD391 = II → CD3 = I)
+      const anchor = conf[0];
+      res.forEach((r, i) => { if(!r){ const v = anchor.v + (i - anchor.i); if(v >= 1 && v <= 20 && conf.length === 1) res[i] = toRoman(v); } });
       // одинаковый номер у двух записей (рестайлинг отдельной строкой) — оставляем у более ранней
       const seen = new Set();
       res.forEach((r, i) => { if(r && seen.has(r)){ res[i] = ""; report.dup++; } if(r) seen.add(r); });
@@ -61,6 +64,7 @@ function toRoman(n){ const m = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]; let
     970:["I","II","III","IV","V","VI","VII","VIII"],       // VW Golf A1–A8
     2322:["I","II","III","IV","V","VI","VII","VIII"],      // VW Golf GTI
     1052:["I","II","III"],                                 // Mercedes CLS C219/C218/C257
+    71:["I","III","IV","V"],                               // Audi S4 B5, B7, B8, B9 (B6 в таблице нет)
     757:["I","III","IV","V","VI","VII","VIII"]             // Porsche 911: 901, 964, 993, 996, 997, 991, 992 (G-серии в таблице нет)
   };
   for(const id in MANUAL) if(out[id] && out[id].length === MANUAL[id].length) out[id] = MANUAL[id];
