@@ -4454,6 +4454,17 @@ module.exports = async function handler(request, response){
     finally{ await releaseSyncLock("closed", closedInfo); }
     return;
   }
+  // Диагностика /archived-lots: какие параметры окна поддерживает фид (read-only). ?p=minutes:2880,days:3 …
+  if(action === "archprobe"){
+    const okKeys = new Set(["minutes", "hours", "days", "date_from", "date_to", "from", "to", "since", "from_date", "to_date", "sale_date_from", "sale_date_to", "updated_from", "updated_after", "domain_id", "status", "sale_date_in_days", "created_from", "created_after", "final_bid_updated_at"]);
+    const pp = {}; for(const kv of String(query.get("p") || "").split(",")){ const i = kv.indexOf(":"); const k = kv.slice(0, i), v = kv.slice(i + 1); if(okKeys.has(k) && /^[\w:.+-]{1,40}$/.test(v || "")) pp[k] = v; }
+    const p = new URLSearchParams({per_page:"3", page:"1", simple_paginate:"0", ...pp});
+    const data = await fetchJson(`${AUCTIONS_API_BASE}/archived-lots?${p}`).catch(e => ({error:String(e.message || e).slice(0, 120)}));
+    const its = findItems(data) || [];
+    const dts = its.map(it => { const l = (it.lots || [])[0] || it; const sd = l.sale_date && typeof l.sale_date === "object" ? l.sale_date.value : l.sale_date; return sd; });
+    sendJson(response, 200, {ok:true, params:pp, total:Number(data?.total ?? data?.meta?.total ?? data?.data?.total) || null, n:its.length, saleDates:dts, error:data && data.error || null}, {"cache-control":"no-store"});
+    return;
+  }
   // Ручной добор истории продаж (26.09.2026): mode=recent — /archived-lots за minutes (до 1440) страницами; mode=sold — /cars?status=6 по домену
   // (domain=3 Copart / 1 IAAI, page=N, pages=K) — весь удерживаемый фидом набор проданных. Идемпотентно (неизменившиеся строки не переписываются).
   // Вызывать повторно, пока next не null; занимает общий лок синка (если занят — skipped, повторить).
