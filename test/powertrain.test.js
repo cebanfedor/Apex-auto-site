@@ -132,3 +132,8 @@ test("cleanTitle: обозначения BMW как на аукционе", () =
   assert.equal(cleanTitle("2020 BMW 530e xDrive"), "2020 BMW 530e xDrive");
   assert.equal(cleanTitle("2021 Toyota Camry XLE"), "2021 Toyota Camry XLE");
 });
+
+test("fullTitle: комплектация с дефисом не дублируется", () => {
+  assert.equal(pt.fullTitle("2025 Honda Cr-V Sport-L", {trim:"Sport-L", kind:3}), "2025 Honda Cr-V Sport-L Hybrid");
+  assert.equal(pt.fullTitle("2022 Tesla Model Y", {trim:"Long Range Dual Motor", kind:2}), "2022 Tesla Model Y Long Range Dual Motor");
+});

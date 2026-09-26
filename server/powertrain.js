@@ -159,7 +159,8 @@ function fullTitle(title, {trim, kind} = {}){
   if(trim){
     const have = new Set(t.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
     // дописываем только недостающие слова: «Long Range» уже есть → добавится «Dual Motor», а не вся комплектация целиком
-    const missing = trim.split(" ").filter(w => w && !have.has(w.toLowerCase()));
+    // слово комплектации «Sport-L» уже есть в названии, если есть все его части (sport, l) — иначе получалось «Sport-L Sport-L»
+    const missing = trim.split(" ").filter(w => w && !w.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).every(x => have.has(x)));
     if(missing.length) t += " " + missing.join(" ");
   }
   // 3. Гибрид / plug-in по VIN
