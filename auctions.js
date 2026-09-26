@@ -3428,7 +3428,7 @@
       const home = row.parentElement, wide = input.getAttribute("placeholder") || "";
       const mq = window.matchMedia("(max-width:640px)");
       const place = () => {
-        if(mq.matches){ head.after(row); row.classList.add("searchTopV1"); input.setAttribute("placeholder", L("Марка, модель, VIN или лот")); }
+        if(mq.matches){ head.after(row); row.classList.add("searchTopV1"); input.setAttribute("placeholder", L("Марка, модель, VIN")); }
         else{ home.prepend(row); row.classList.remove("searchTopV1"); input.setAttribute("placeholder", wide); }
       };
       place();
