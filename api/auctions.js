@@ -4289,7 +4289,7 @@ module.exports = async function handler(request, response){
     const out = {ok:true, minutes:mins, feed:0, inDb:0, archived:0, notArchived:0, missing:0, noFinal:0, coveragePct:null, samples:{missing:[], notArchived:[]}, stale:{}};
     const t0 = Date.now(); const ids = new Map();
     try{
-      for(let pg = 1; pg <= 8 && Date.now() - t0 < 25000; pg++){
+      for(let pg = 1; pg <= 45 && Date.now() - t0 < 28000; pg++){
         const p = new URLSearchParams({per_page:"1000", page:String(pg), simple_paginate:"1", minutes:String(mins)});
         const payload = await syncApiFetch(`${AUCTIONS_API_BASE}/archived-lots?${p}`);
         const items = findItems(payload) || [];
@@ -4307,7 +4307,8 @@ module.exports = async function handler(request, response){
         if(items.length < 1000) break;
       }
       out.feed = ids.size;
-      const list = [...ids.keys()];
+      // в базе сверяем равномерную выборку до 1800 лотов (полная сверка десятков тысяч не помещается в лимит функции)
+      let list = [...ids.keys()]; if(list.length > 1800){ const step = list.length / 1800; list = Array.from({length:1800}, (_, i) => list[Math.floor(i * step)]); out.sampled = 1800; }
       for(let i = 0; i < list.length && Date.now() - t0 < 50000; i += 120){
         const chunk = list.slice(i, i + 120);
         const rows = await syncSbFetch(`/api_lots?id=in.(${chunk.map(x => encodeURIComponent(x)).join(",")})&select=id,archived,status_id,final_bid`);
@@ -4321,7 +4322,7 @@ module.exports = async function handler(request, response){
           else{ out.notArchived++; if(out.samples.notArchived.length < 8) out.samples.notArchived.push(id); }
         }
       }
-      out.coveragePct = out.feed ? Math.round(out.archived / out.feed * 1000) / 10 : null;
+      out.coveragePct = out.inDb + out.missing ? Math.round(out.archived / (out.inDb + out.missing) * 1000) / 10 : null;
       // «Застрявшие» живые строки: торги прошли 6–72 часа назад, а строка не архив и не продана
       const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
       const cnt = async q => { try{ const r = await fetch(`${url}/rest/v1/api_lots?select=id&${q}`, {headers:{apikey:skey, authorization:`Bearer ${skey}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}}); return r.ok || r.status === 206 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`; }catch(e){ return "err"; } };
