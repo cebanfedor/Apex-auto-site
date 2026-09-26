@@ -1345,8 +1345,9 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionTabsV1 { gap:6px; margin:0 -14px; padding:0 14px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
   .auctionTabsV1 button { height:36px; padding:0 13px; font-size:13px; }
   .auctionToolRightV2 { gap:8px; grid-template-columns:1fr auto; }
-  .auctionSwitchV1 button, .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; }
-  .auctionSwitchV1 { border-radius:12px; }
+  .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; }
+  .auctionSwitchV1 { border-radius:10px; }
+  .auctionSwitchV1 button { height:32px; font-size:13px; }
   .sortDropTrigV1, .filterDrawerBtnV1 { border-radius:12px; }
   /* активные фильтры: чипы — обычной строкой, кнопки действий — одной строкой под ними */
   .filterBarV1 { gap:6px; }
