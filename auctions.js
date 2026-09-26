@@ -147,13 +147,23 @@
     [/salvage histor|salv histor/, "Salvage History", "good"],
     [/salvage|\bsalv\b/, "Salvage", "good"],
     [/clean|clear/, "Clean", "good"],
-    [/^cert(ificate)?\s+of\s+title\s*$/, "Clean", "good"]
+    [/^cert(ificate)?\s+of\s+title/, "Cert Title", "good"]
   ];
+  // Штат в скобках у IAAI: «Certificate Of Title (Nebraska)», «Salvage (Idaho)» → NE / ID (у Copart — префикс «NE - …»)
+  const US_STATE_CODES = {alabama:"AL",alaska:"AK",arizona:"AZ",arkansas:"AR",california:"CA",colorado:"CO",connecticut:"CT",delaware:"DE","district of columbia":"DC",florida:"FL",georgia:"GA",hawaii:"HI",idaho:"ID",illinois:"IL",indiana:"IN",iowa:"IA",kansas:"KS",kentucky:"KY",louisiana:"LA",maine:"ME",maryland:"MD",massachusetts:"MA",michigan:"MI",minnesota:"MN",mississippi:"MS",missouri:"MO",montana:"MT",nebraska:"NE",nevada:"NV","new hampshire":"NH","new jersey":"NJ","new mexico":"NM","new york":"NY","north carolina":"NC","north dakota":"ND",ohio:"OH",oklahoma:"OK",oregon:"OR",pennsylvania:"PA","rhode island":"RI","south carolina":"SC","south dakota":"SD",tennessee:"TN",texas:"TX",utah:"UT",vermont:"VT",virginia:"VA",washington:"WA","west virginia":"WV",wisconsin:"WI",wyoming:"WY",
+    ontario:"ON",quebec:"QC","british columbia":"BC",alberta:"AB",manitoba:"MB",saskatchewan:"SK","nova scotia":"NS","new brunswick":"NB"};
   function parseDocTitle(raw){
-    const s = String(raw || "").trim();
+    let s = String(raw || "").trim();
     if(!s) return null;
+    let state = "";
+    const pm = s.match(/\s*\(([A-Za-z .]+)\)\s*$/);
+    if(pm){
+      const nm = pm[1].toLowerCase().trim();
+      if(US_STATE_CODES[nm]){ state = US_STATE_CODES[nm]; s = s.slice(0, pm.index).trim(); }
+      else if(/^[a-z]{2}$/.test(nm)){ state = nm.toUpperCase(); s = s.slice(0, pm.index).trim(); }
+    }
     const m = s.match(/^\s*([A-Za-z]{2})\s*[-–·•]\s*(.*)$/);
-    const state = m ? m[1].toUpperCase() : "";
+    if(m && !state) state = m[1].toUpperCase();
     const rest = (m ? m[2] : s).toLowerCase();
     for(const [re, label, tone] of DOC_TYPES){
       if(re.test(rest)) return {state, label, tone};
@@ -1366,6 +1376,7 @@
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
+          ${Number(lot.sellerReserve) > 0 && !isSold ? `<span class="dbMobReserveV1">${L("Резерв продавца")}: <b>${findCanadaLocation(lot) ? moneyCad(lot.sellerReserve) : money(lot.sellerReserve)}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
         </div>
         <div class="dbCols">
@@ -1417,7 +1428,7 @@
           </div>
           <div class="dbForecastV1 dbForecastInPriceV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
           ${(() => { const t = Number(lot.sellerReserve) > 0 && !isSold ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t ? `<div class="dbSale ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
-          ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${money(lot.sellerReserve)}</b></div>` : ""}
+          ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="dbReserveV1">${L("Резерв продавца")}: <b>${findCanadaLocation(lot) ? moneyCad(lot.sellerReserve) : money(lot.sellerReserve)}</b></div>` : ""}
         </div>
       </aside>
     </article>`;
