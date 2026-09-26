@@ -1581,3 +1581,18 @@ details > summary::-webkit-details-marker { display: none; }
 .cookieBtnAcceptV1 { background:var(--red); color:#fff; border-color:var(--red); }
 .cookieBtnAcceptV1:hover { background:var(--red-600); }
 @media (max-width: 640px) { .cookieConsentV1 { padding:10px; } .cookieConsentBoxV1 { padding:14px; gap:12px; flex-direction:column; align-items:stretch; } .cookieConsentBoxV1 p { flex:0 0 auto; font-size:13px; line-height:1.5; } .cookieConsentBtnsV1 { justify-content:stretch; } .cookieConsentBtnsV1 button { flex:1 1 0; } }
+
+/* ===== Мобильная главная v2 (26.09.2026) ===== */
+@media (max-width: 640px) {
+  .heroAucV1 { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0 22px; }
+  /* короткие пары полей калькулятора — в два столбца: форма заметно короче */
+  .formCard .grid:has(#vehicleType), .formCard .grid:has(#engineLiters) { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .formCard .grid:has(#vehicleType) label, .formCard .grid:has(#engineLiters) label { font-size: 12.5px; min-height: 2.4em; display: flex; align-items: flex-end; }
+  /* итог под рукой, пока правят поля: липкая плашка «Итого под ключ» */
+  .calcStickyV1 { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9000; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 78px calc(10px + env(safe-area-inset-bottom)) 16px; background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -8px 22px rgba(15,23,42,.10); }
+  .calcStickyV1[hidden] { display: none; }
+  .calcStickyV1 small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .calcStickyV1 b { display: block; font-size: 21px; line-height: 1.15; color: var(--ink); }
+  .calcStickyV1 button { flex: none; height: 40px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--red); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
+}
+@media (min-width: 641px) { .calcStickyV1 { display: none !important; } }

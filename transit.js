@@ -56,14 +56,26 @@ function esc(s){
     "A_EU_DISPATCHED":"В пути к месту выдачи", "A_READY":"Готов к выдаче"
   };
 
+  // Значения из админки бывают «как набрали»: пробег без пробелов, объём без «л», топливо по-английски
+  var FUEL_RU = {hybrid:"Гибрид", "plug-in hybrid":"Plug-in гибрид", "plug in hybrid":"Plug-in гибрид", phev:"Plug-in гибрид", gasoline:"Бензин", petrol:"Бензин", gas:"Бензин", diesel:"Дизель", electric:"Электро", ev:"Электро"};
+  function fmtKm(v){
+    var m = String(v == null ? "" : v).trim().match(/^(\d[\d\s.,]*)\s*(км|km|mi|миль|miles)?$/i);
+    if(!m) return String(v || "");
+    var n = Number(m[1].replace(/[\s.,]/g, ""));
+    if(!isFinite(n) || n <= 0) return String(v || "");
+    return n.toLocaleString("en-US").replace(/,/g, "\u00a0") + "\u00a0" + (m[2] || "км").toLowerCase().replace("miles", "миль").replace("mi", "миль").replace("km", "км");
+  }
+  function fmtEngine(v){ var s = String(v == null ? "" : v).trim(); return /^\d(\.\d)?$/.test(s) ? s + "\u00a0л" : s; }
+  function fmtFuel(v){ var s = String(v == null ? "" : v).trim(); var r = FUEL_RU[s.toLowerCase()]; return r ? T(r) : s; }
+
   function fmtEta(d){
     if(!d) return "";
     var dt = new Date(d + "T00:00:00");
-    return isNaN(dt) ? "" : dt.toLocaleDateString(lang() === "ro" ? "ro-RO" : lang() === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"long", year:"numeric"});
+    return isNaN(dt) ? "" : dt.toLocaleDateString(lang() === "ro" ? "ro-RO" : lang() === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"long", year:"numeric"}).replace(/\s?г\.$/, "");
   }
 
   function chips(it){
-    return [it.mileage, it.fuel, it.engine, it.damage].filter(Boolean)
+    return [fmtKm(it.mileage), fmtFuel(it.fuel), fmtEngine(it.engine), it.damage].filter(Boolean)
       .map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
   }
 
@@ -146,9 +158,9 @@ function esc(s){
           + '<div class="transitPriceBigV1" data-no-i18n="true">' + (it.price ? money(it.price) : esc(T("Цена по запросу"))) + '</div>'
           + '<div class="transitSpecsV1">'
             + specRow("Год", it.year || "", true)
-            + specRow("Пробег", it.mileage, true)
-            + specRow("Двигатель", it.engine, true)
-            + specRow("Топливо", it.fuel)
+            + specRow("Пробег", fmtKm(it.mileage), true)
+            + specRow("Двигатель", fmtEngine(it.engine), true)
+            + specRow("Топливо", fmtFuel(it.fuel), true)
             + specRow("Повреждения", it.damage)
             + specRow("VIN", it.vin, true)
             + specRow("Оценка ремонта", it.repairEstimate ? "≈ " + money(it.repairEstimate) : "", true)
@@ -256,7 +268,7 @@ function esc(s){
         var etaTxt = "";
         if(eta){
           var dt = new Date(eta);
-          if(!isNaN(dt)) etaTxt = dt.toLocaleDateString(lang() === "ro" ? "ro-RO" : lang() === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"long", year:"numeric"});
+          if(!isNaN(dt)) etaTxt = dt.toLocaleDateString(lang() === "ro" ? "ro-RO" : lang() === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"long", year:"numeric"}).replace(/\s?г\.$/, "");
         }
         box.innerHTML = '<div><span>' + esc(T("Где сейчас авто")) + '</span><b>' + esc(T(STAGES[curStage.title] || curStage.title)) + '</b></div>'
           + (etaTxt ? '<div><span>' + esc(T(d.etaChisinau ? "Ориентировочно в Кишинёве" : "Ожидаемое прибытие")) + '</span><b data-no-i18n="true">' + esc(etaTxt) + '</b></div>' : "")

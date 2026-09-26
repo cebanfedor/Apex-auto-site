@@ -28,9 +28,21 @@ function esc(s){
     });
   }
   function T(s){ return typeof window.i18nT === "function" ? window.i18nT(s) : s; }
+  // Значения из админки бывают «как набрали»: пробег без пробелов, объём без «л», топливо по-английски
+  var FUEL_RU = {hybrid:"Гибрид", "plug-in hybrid":"Plug-in гибрид", "plug in hybrid":"Plug-in гибрид", phev:"Plug-in гибрид", gasoline:"Бензин", petrol:"Бензин", gas:"Бензин", diesel:"Дизель", electric:"Электро", ev:"Электро"};
+  function fmtKm(v){
+    var m = String(v == null ? "" : v).trim().match(/^(\d[\d\s.,]*)\s*(км|km|mi|миль|miles)?$/i);
+    if(!m) return String(v || "");
+    var n = Number(m[1].replace(/[\s.,]/g, ""));
+    if(!isFinite(n) || n <= 0) return String(v || "");
+    return n.toLocaleString("en-US").replace(/,/g, "\u00a0") + "\u00a0" + (m[2] || "км").toLowerCase().replace("miles", "миль").replace("mi", "миль").replace("km", "км");
+  }
+  function fmtEngine(v){ var s = String(v == null ? "" : v).trim(); return /^\d(\.\d)?$/.test(s) ? s + "\u00a0л" : s; }
+  function fmtFuel(v){ var s = String(v == null ? "" : v).trim(); var r = FUEL_RU[s.toLowerCase()]; return r ? T(r) : s; }
+
   function money(n){ return n ? "$" + Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : ""; }
   function card(it){
-    var chips = [it.mileage, it.fuel, it.damage].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
+    var chips = [fmtKm(it.mileage), fmtFuel(it.fuel), it.damage].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
     return '<a class="transitCardV1" href="' + transitHref(it) + '">'
       + '<div class="transitCardImgV1">'
         + (it.photos[0] ? '<img src="' + esc(photoSized(it.photos[0], 640)) + '" alt="' + esc(it.title) + '" width="640" height="480" loading="lazy" decoding="async" data-fb="' + esc(it.photos[0]) + '">' : '<div class="transitNoImgV1"></div>')

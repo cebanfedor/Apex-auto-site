@@ -300,6 +300,8 @@ const AI_ADVICE_I18N = {
   "Локацию аукциона проверьте вручную.":{ro:"Verificați manual locația licitației.",en:"Check the auction location manually."},
   "Торги прошли, ставка ждёт утверждения продавцом — расчёт сделан по ней. Итог может измениться.":{ro:"Licitația s-a încheiat, oferta așteaptă aprobarea vânzătorului — calculul folosește această ofertă. Totalul se poate schimba.",en:"The auction is over and the bid awaits the seller's approval — the estimate uses it. The total may change."},
   "На утверждении: {v}":{ro:"În așteptare: {v}",en:"On approval: {v}"},
+  "Итого под ключ":{ro:"Total la cheie",en:"Turnkey total"},
+  "К расчёту":{ro:"La calcul",en:"View estimate"},
   "Двигатель: {v} л":{ro:"Motor: {v} l",en:"Engine: {v} l"},
   "Топливо: {v}":{ro:"Combustibil: {v}",en:"Fuel: {v}"},
   "Расчёт сделан по цене, за которую лот был продан на прошлых торгах. Для нового лота укажите свою ставку.":{ro:"Calculul folosește prețul la care lotul a fost vândut la licitația anterioară. Pentru un lot nou, introduceți oferta dvs.",en:"The estimate uses the price this lot sold for at the last auction. For a new lot, enter your own bid."},
@@ -1836,4 +1838,24 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   // пересчёт при ручном изменении курса CAD
   if($("cadUsd")) $("cadUsd").addEventListener("input", () => { if(calcMode==="canada") calculateCanada(); });
+});
+
+// Липкая плашка «Итого под ключ» на телефоне: пока правят поля формы, итог виден без прокрутки к нему
+document.addEventListener("DOMContentLoaded", () => {
+  try{
+    const total = $("total"), form = $("calcForm");
+    if(!total || !form || !window.IntersectionObserver || !window.MutationObserver) return;
+    const bar = document.createElement("div");
+    bar.className = "calcStickyV1"; bar.hidden = true;
+    bar.innerHTML = `<div><small>${escapeHtml(aiT("Итого под ключ"))}</small><b></b></div><button type="button">${escapeHtml(aiT("К расчёту"))}</button>`;
+    document.body.appendChild(bar);
+    const val = bar.querySelector("b");
+    const sync = () => { val.textContent = total.textContent.trim(); };
+    new MutationObserver(sync).observe(total, {childList:true, characterData:true, subtree:true}); sync();
+    let formIn = false, totalIn = false;
+    const upd = () => { bar.hidden = !(formIn && !totalIn); };
+    new IntersectionObserver(es => { formIn = es[0].isIntersecting; upd(); }, {threshold:0.05}).observe(form);
+    new IntersectionObserver(es => { totalIn = es[0].isIntersecting; upd(); }, {threshold:0.2}).observe(total);
+    bar.querySelector("button").addEventListener("click", () => total.scrollIntoView({block:"center", behavior:"smooth"}));
+  }catch(e){}
 });
