@@ -3531,6 +3531,16 @@
     if(!slug) return false;
     $("#auctionCatalog").hidden = true;
     $("#auctionDetail").hidden = false;
+    // Заход на лот НЕ из каталога этой вкладки (прямая ссылка, Telegram, поиск,
+    // переход из «Похожих лотов» другого лота — обычная навигация, не SPA-клик)
+    // → старый снимок «где были в каталоге» (живёт до 6ч, apexBackV1) к этому
+    // заходу не относится. Иначе «Вернуться к каталогу» уводила на случайное
+    // место из прошлого, не связанного просмотра — сюда попадали через реальную
+    // навигацию браузера, значит проверяем document.referrer.
+    try{
+      const ref = document.referrer ? new URL(document.referrer) : null;
+      if(!ref || ref.origin !== location.origin || ref.pathname !== "/auctions") sessionStorage.removeItem(BACK_KEY);
+    }catch(e){}
     // SSR: лот уже вшит в HTML сервером (lot-page) — рендерим без запроса
     let ssr = window.__ssrLot;
     if(!ssr){
