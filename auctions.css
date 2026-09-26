@@ -1376,5 +1376,6 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dMobSumV1 span { padding:8px 12px; }
   .dHeadActionsV1 { display:grid !important; grid-auto-flow:column; grid-auto-columns:1fr; grid-template-columns:none; gap:8px; }
   .dHeadActionsV1 .dVinBtn { grid-column:auto; }
-  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { min-height:44px; height:auto; padding:6px 6px; gap:5px; font-size:12px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
+  .dHeadActionsV1 { align-items:stretch; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { align-self:stretch; min-height:56px; height:auto; padding:6px 6px; gap:5px; font-size:12px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
 }
