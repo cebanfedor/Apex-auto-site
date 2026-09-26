@@ -4264,6 +4264,50 @@ module.exports = async function handler(request, response){
   if(action === "synclots") return handleSyncLots(response);
   // Быстрый синк ЗАКРЫТЫХ торгов (каждые 10 мин из GitHub Actions): только /archived-lots за последние 90 минут.
   // Даёт правило «сыгралась → сразу в архив»: лаг ≤10 мин вместо часа. Полный инкремент остаётся часовым.
+  // Аудит истории продаж (read-only): что фид считает продажами за последние N минут (/archived-lots, то же правило «архив», что при записи в базу)
+  // и сколько из них у нас уже лежит в архиве. Ответ: покрытие в %, примеры недостающих. Работает по одному запросу к базе за раз.
+  if(action === "salescoverage"){
+    const mins = Math.min(1440, Math.max(30, Number(query.get("minutes")) || 720));
+    const out = {ok:true, minutes:mins, feed:0, inDb:0, archived:0, notArchived:0, missing:0, noFinal:0, coveragePct:null, samples:{missing:[], notArchived:[]}, stale:{}};
+    const t0 = Date.now(); const ids = new Map();
+    try{
+      for(let pg = 1; pg <= 8 && Date.now() - t0 < 25000; pg++){
+        const p = new URLSearchParams({per_page:"1000", page:String(pg), simple_paginate:"1", minutes:String(mins)});
+        const payload = await syncApiFetch(`${AUCTIONS_API_BASE}/archived-lots?${p}`);
+        const items = findItems(payload) || [];
+        for(const it of items){
+          const row = syncRowFromItem(it, {archived:true});
+          if(row && row.archived && Number(row.final_bid) > 0) ids.set(row.id, {final:row.final_bid, date:row.sale_date});
+        }
+        if(items.length < 1000) break;
+      }
+      out.feed = ids.size;
+      const list = [...ids.keys()];
+      for(let i = 0; i < list.length && Date.now() - t0 < 50000; i += 120){
+        const chunk = list.slice(i, i + 120);
+        const rows = await syncSbFetch(`/api_lots?id=in.(${chunk.map(x => encodeURIComponent(x)).join(",")})&select=id,archived,status_id,final_bid`);
+        const seen = new Map((Array.isArray(rows) ? rows : []).map(r => [r.id, r]));
+        for(const id of chunk){
+          const r = seen.get(id);
+          if(!r){ out.missing++; if(out.samples.missing.length < 8) out.samples.missing.push(id); continue; }
+          out.inDb++;
+          if(r.archived && r.status_id === 6 && Number(r.final_bid) > 0) out.archived++;
+          else if(r.archived){ out.noFinal++; }
+          else{ out.notArchived++; if(out.samples.notArchived.length < 8) out.samples.notArchived.push(id); }
+        }
+      }
+      out.coveragePct = out.feed ? Math.round(out.archived / out.feed * 1000) / 10 : null;
+      // «Застрявшие» живые строки: торги прошли 6–72 часа назад, а строка не архив и не продана
+      const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+      const cnt = async q => { try{ const r = await fetch(`${url}/rest/v1/api_lots?select=id&${q}`, {headers:{apikey:skey, authorization:`Bearer ${skey}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}}); return r.ok || r.status === 206 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`; }catch(e){ return "err"; } };
+      const a = new Date(Date.now() - 72 * 3600e3).toISOString(), b = new Date(Date.now() - 6 * 3600e3).toISOString();
+      out.stale.past6to72h = await cnt(`archived=eq.false&sale_date=gte.${a}&sale_date=lt.${b}&or=(status_id.neq.6,status_id.is.null)`);
+      out.stale.past6to72hBuyNow = await cnt(`archived=eq.false&sale_date=gte.${a}&sale_date=lt.${b}&buy_now=gt.0`);
+    }catch(e){ out.error = String(e.message || e).slice(0, 160); }
+    out.ms = Date.now() - t0;
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   // Диагностика фида закрытых лотов (read-only, только админ): есть ли лот в /archived-lots за N минут.
   if(action === "closedprobe"){
     const {isAuthenticated} = require("../server/auth");
