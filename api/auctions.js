@@ -4442,15 +4442,43 @@ module.exports = async function handler(request, response){
     const started = Date.now(); let n = 0, closedInfo = null;
     try{
       // Окно 30 мин при запуске каждые 10 мин (было 90: каждый закрытый лот переписывался ~9 раз подряд).
-      for(let apg = 1; apg <= 2; apg++){
+      for(let apg = 1; apg <= 3; apg++){
         if(Date.now() - started > 25000) break;
-        const got = await syncImportPage("/archived-lots", apg, {minutes:"30"}, {archived:true}, started + 30000);
+        const got = await syncImportPage("/archived-lots", apg, {minutes:"90"}, {archived:true}, started + 30000);
         n += syncImportPage.lastWritten; if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started}));
       closedInfo = {archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started};
     }catch(e){ response.statusCode = 200; response.end(JSON.stringify({ok:false, error:String(e.message || e).slice(0, 200)})); closedInfo = {error:String(e.message || e).slice(0, 120)}; }
     finally{ await releaseSyncLock("closed", closedInfo); }
+    return;
+  }
+  // Ручной добор истории продаж (26.09.2026): mode=recent — /archived-lots за minutes (до 1440) страницами; mode=sold — /cars?status=6 по домену
+  // (domain=3 Copart / 1 IAAI, page=N, pages=K) — весь удерживаемый фидом набор проданных. Идемпотентно (неизменившиеся строки не переписываются).
+  // Вызывать повторно, пока next не null; занимает общий лок синка (если занят — skipped, повторить).
+  if(action === "salesbackfill"){
+    response.setHeader("cache-control", "no-store");
+    if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
+    if(!(await acquireSyncLock())){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"sync running"})); return; }
+    const started = Date.now(); const mode = query.get("mode") === "sold" ? "sold" : "recent";
+    const minutes = String(Math.min(1440, Math.max(30, Number(query.get("minutes")) || 1440)));
+    const domain = query.get("domain") === "1" ? "1" : "3";
+    let page = Math.max(1, Number(query.get("page")) || 1); const maxPages = Math.min(8, Math.max(1, Number(query.get("pages")) || 4));
+    const info = {ok:true, mode, page:page, pages:0, items:0, written:0, next:null, ms:0};
+    try{
+      for(let k = 0; k < maxPages && Date.now() - started < 38000; k++, page++){
+        const got = mode === "sold"
+          ? await syncImportPage("/cars", page, {status:"6", domain_id:domain}, {archived:true}, started + 44000)
+          : await syncImportPage("/archived-lots", page, {minutes}, {archived:true}, started + 44000);
+        info.pages++; info.items += got; info.written += syncImportPage.lastWritten || 0;
+        if(got < SYNC_PER_PAGE){ info.next = null; break; }
+        if(!syncImportPage.lastComplete){ info.next = page; break; }
+        info.next = page + 1;
+      }
+    }catch(e){ info.ok = false; info.error = String(e.message || e).slice(0, 200); info.next = page; }
+    info.ms = Date.now() - started;
+    response.statusCode = 200; response.end(JSON.stringify(info));
+    await releaseSyncLock("closed", {backfill:mode, written:info.written, ms:info.ms});
     return;
   }
   // 23.09.2026: карточки каталога раньше тянули «Ориентир ставки» ПО ОДНОМУ запросу на лот (до 19
