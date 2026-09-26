@@ -549,7 +549,7 @@
 .lbV1 { position:fixed; inset:0; z-index:400; display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
 .lbV1[hidden] { display:none !important; }
 body.lbOpenV1 { overflow:hidden; }
-.lbImgV1 { max-width:92vw; max-height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+.lbImgV1 { width:92vw; height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
 .lbStageV1 { display:flex; align-items:center; justify-content:center; }
 /* Видео-плитка в галерее: постер + кружок play, открывается в лайтбоксе как фото */
 .dThumbVideoV1 { position:relative; display:block; cursor:pointer; overflow:hidden; }
