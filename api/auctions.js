@@ -4443,9 +4443,10 @@ module.exports = async function handler(request, response){
     const started = Date.now(); let n = 0, closedInfo = null;
     try{
       // Окно 30 мин при запуске каждые 10 мин (было 90: каждый закрытый лот переписывался ~9 раз подряд).
-      for(let apg = 1; apg <= 3; apg++){
-        if(Date.now() - started > 25000) break;
-        const got = await syncImportPage("/archived-lots", apg, {minutes:"90"}, {archived:true}, started + 30000);
+      // Пик торгов США — до 5 тыс. закрытых лотов в час: окно 60 мин с запасом на 8 страниц (по 1000); неизменившиеся строки при перекрытии окон пропускаются.
+      for(let apg = 1; apg <= 8; apg++){
+        if(Date.now() - started > 36000) break;
+        const got = await syncImportPage("/archived-lots", apg, {minutes:"60"}, {archived:true}, started + 44000);
         n += syncImportPage.lastWritten; if(got < SYNC_PER_PAGE || !syncImportPage.lastComplete) break;
       }
       response.statusCode = 200; response.end(JSON.stringify({ok:true, archivedMarked:n, skipped:syncUpsertRows.skipped || 0, ms:Date.now() - started}));
