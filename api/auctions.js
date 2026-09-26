@@ -1691,7 +1691,7 @@ async function generationsFor(modelId){
     const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${key.replace(/[^0-9]/g, "")}`);
     const items = (Array.isArray(list?.data) ? list.data : []).map(m => ({
       id:m.id,
-      name:m.name || "",
+      name:/^[IVXL]+$/.test(String(m.name || "").trim()) ? `Gen ${String(m.name).trim()}` : (m.name || ""),   // голый «I» без кода → «Gen I»
       from:m.from_year || m.year_from || m.start_year || null,
       to:m.to_year || m.year_to || m.end_year || null
     }));
@@ -4424,7 +4424,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g22" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g23" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
