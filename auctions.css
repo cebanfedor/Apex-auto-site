@@ -1416,3 +1416,5 @@ body.leadModalOpenV1 { overflow:hidden; }
   .calcReserveV1 { padding:8px 11px; }
   .calcReserveV1 .crRowV1 b { font-size:18px; }
 }
+.calcReserveV1 .crSubV1 span { text-transform:none; letter-spacing:0; font-size:12px; font-weight:600; }
+@media (max-width:640px){ .dSec .copyChipV1 { font-size:12.5px; white-space:nowrap; letter-spacing:0; } }
