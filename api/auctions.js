@@ -1668,10 +1668,12 @@ const GEN_NAMES = require("../server/gen-names");
 // Название поколения «римский номер (код)»: «VI (F30)», «IV (YD8)». В таблице у записи бывает список кодов через запятую
 // («F30, F31, F34») — берём первый; если в коде уже есть номер («Gen VI», «Epsilon (VII)») или это слово (Juniper) — оставляем как есть.
 function genLabel(roman, code){
-  const c0 = String(code || "").split(",")[0].trim();
+  // как у DreamBid: номер поколения и ВСЕ коды кузова («VI (F30, F31, F34)»), но не больше четырёх
+  const parts = String(code || "").split(",").map(x => x.trim()).filter(Boolean);
+  const c0 = parts[0] || "";
   if(!c0) return roman || "";
   if(!roman || /^Gen\s+[IVXL]+/i.test(c0) || /\([IVXL]+\)/.test(c0) || /[а-яё]/i.test(c0) || c0.split(/\s+/).length > 2) return c0;
-  return `${roman} (${c0})`;
+  return `${roman} (${parts.slice(0, 4).join(", ")})`;
 }
 function tableGens(modelId){
   const id = Number(String(modelId).replace(/[^0-9]/g, ""));
@@ -4443,7 +4445,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g27" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g28" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

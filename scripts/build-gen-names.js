@@ -3,6 +3,8 @@
 // только «чистые» римские имена (без «III 1» — это рестайлинги). Запуск: node scripts/build-gen-names.js  (нужен доступ к https://apexauto.md)
 const fs = require("fs"), path = require("path");
 const TABLE = require("../server/gen-table");
+const GM = require("../server/gen-models");
+const {dbFor, matchGens} = require("./dreambid-match");
 const ids = Object.keys(TABLE);
 const RAW = path.join(__dirname, "..", "..", "gen-raw.json");   // кэш ответов, чтобы не дёргать API повторно
 async function fetchRaw(){
@@ -24,7 +26,7 @@ function fromRoman(r){ let t = 0; for(let i = 0; i < r.length; i++){ const a = V
 function toRoman(n){ const m = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]; let o = ""; for(const [v, r] of m) while(n >= v){ o += r; n -= v; } return o; }
 (async () => {
   const raw = await fetchRaw();
-  const out = {}; const report = {ok:0, none:0, dup:0};
+  const out = {}; const report = {ok:0, none:0, dup:0, fromDb:0, fillDb:0};
   for(const id of ids){
     const feed = (raw[id] || []).map(([gid, name, from, to]) => {
       const m = String(name || "").trim().match(/^([IVXL]+)(?:\s*\(.*\))?$/);
@@ -54,6 +56,14 @@ function toRoman(n){ const m = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]; let
       // одинаковый номер у двух записей (рестайлинг отдельной строкой) — оставляем у более ранней
       const seen = new Set();
       res.forEach((r, i) => { if(r && seen.has(r)){ res[i] = ""; report.dup++; } if(r) seen.add(r); });
+    }
+    // 3) Главный источник — справочник DreamBid (их «Gen VII» = номер поколения): где модель нашлась, берём их номер, наш вывод из фида — только запасной
+    const meta = GM[id], db = meta && dbFor(meta[1], meta[2]);
+    if(db){
+      matchGens(entries, db.gens).forEach((g, i) => {
+        const rm = g && String(g[0]).match(/^([IVXL]+)\b|\b([IVXL]+)$/);
+        if(rm){ const r = rm[1] || rm[2]; if(res[i] && res[i] !== r) report.fromDb++; if(!res[i]) report.fillDb++; res[i] = r; }
+      });
     }
     res.forEach(r => r ? report.ok++ : report.none++);
     out[id] = res;
