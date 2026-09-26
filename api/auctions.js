@@ -4276,6 +4276,7 @@ module.exports = async function handler(request, response){
         const payload = await syncApiFetch(`${AUCTIONS_API_BASE}/archived-lots?${p}`);
         const items = findItems(payload) || [];
         out.pages = (out.pages || 0) + 1; out.items = (out.items || 0) + items.length;
+        if(!out.rawSamples) out.rawSamples = items.slice(0, 4).map(it => { const l = (it.lots || [])[0] || it; return {lot:l.lot, status:l.status && (l.status.name || l.status), bid:l.bid, final:l.final_bid, finalAt:l.final_bid_updated_at, sale:l.sale_date, upd:l.updated_at, prices:(l.prices || []).slice(0, 2).map(x => ({b:x.bid, f:x.final_bid, st:x.status && (x.status.name || x.status), d:x.sale_date || x.final_bid_updated_at}))}; });
         for(const it of items){
           const row = syncRowFromItem(it, {archived:true});
           const k = row ? `${row.archived ? "arch" : "live"}|${Number(row.final_bid) > 0 ? "fin" : "nofin"}|st${row.status_id}` : "null";
