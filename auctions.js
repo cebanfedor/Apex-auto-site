@@ -4112,6 +4112,9 @@
         if(!cand || genModelNames.has(sN(w)) || /^(?:a[1-8]|q[2-8]|s[3-8]|x[1-7]|m[2-8]|i[3-8]|z[3-8])$/.test(code)) continue;   // «a6», «x5» — это модели, а не кузова
         if(makeIds.size) cand = cand.filter(e => makeIds.has(String(e.k)));
         if(!cand.length) continue;
+        // в запросе названа модель из таблицы, у которой такого кода нет («passat b8», а B8 есть только у Audi) — не подсовываем чужие кузова
+        const named = [...ctx].filter(x => x !== sN(w) && genModelNames.has(x));
+        if(named.length && !cand.some(e => named.includes(sN(e.mn)))) continue;
         if(new Set(cand.map(e => e.m)).size > 1){ const byModel = cand.filter(e => ctx.has(sN(e.mn))); if(byModel.length) cand = byModel; }
         const modelIds = new Set(cand.map(e => e.m)), makeSet = new Set(cand.map(e => e.k));
         const yrs = e => `${e.f}–${e.t || ""}`;
