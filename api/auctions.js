@@ -4473,7 +4473,7 @@ module.exports = async function handler(request, response){
     if(!sbUp()){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"db down"})); return; }
     if(!(await acquireSyncLock())){ response.statusCode = 200; response.end(JSON.stringify({ok:false, skipped:"sync running"})); return; }
     const started = Date.now(); const mode = query.get("mode") === "sold" ? "sold" : "recent";
-    const minutes = String(Math.min(1440, Math.max(30, Number(query.get("minutes")) || 1440)));
+    const minutes = String(Math.min(4320, Math.max(30, Number(query.get("minutes")) || 1440)));
     const domain = query.get("domain") === "1" ? "1" : "3";
     let page = Math.max(1, Number(query.get("page")) || 1); const maxPages = Math.min(8, Math.max(1, Number(query.get("pages")) || 4));
     const info = {ok:true, mode, page:page, pages:0, items:0, written:0, next:null, ms:0};
