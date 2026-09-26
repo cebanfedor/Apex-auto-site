@@ -355,11 +355,27 @@ function makeFromTitle(title, year){
   return {make:best, model:rest.slice(best.length).trim()};
 }
 
+// /archived-lots (simple_paginate=1) отдаёт числа и даты объектами {value, updated_at} — bid, final_bid, sale_date…
+// (26.09.2026: из-за этого ВСЕ закрытые лоты из этого фида писались живыми без финала и в архив не попадали). Разворачиваем на месте:
+// поле = value, время обновления — в <поле>_updated_at. seller_reserve ({price, updated_at}) не трогаем — его разбирает saleStatusInfo.
+function unwrapFeedValues(obj){
+  if(!obj || typeof obj !== "object") return obj;
+  for(const k of Object.keys(obj)){
+    const v = obj[k];
+    if(v && typeof v === "object" && !Array.isArray(v) && "value" in v && Object.keys(v).every(x => x === "value" || x === "updated_at")){
+      if(v.updated_at !== undefined && obj[k + "_updated_at"] === undefined) obj[k + "_updated_at"] = v.updated_at;
+      obj[k] = v.value;
+    }
+  }
+  return obj;
+}
+
 function normalizeLot(source, fallbackAuction = "copart"){
   const item = source?.data && !Array.isArray(source.data) ? source.data : source;
   tesla.fixTeslaItem(item);   // модель Tesla — по VIN, фид её путает
   const lots = Array.isArray(item?.lots) ? item.lots : [];
-  const lot = lots[0] || item?.lot || item;
+  const lot = unwrapFeedValues(lots[0] || item?.lot || item);
+  unwrapFeedValues(item);
   const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || fallbackAuction);
   let make = safeName(item?.manufacturer || item?.make || item?.brand);
   let model = safeName(item?.model);
@@ -3134,7 +3150,8 @@ async function syncApiFetch(url, timeoutMs){
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
 function syncRowFromItem(item, {archived = false} = {}){
   tesla.fixTeslaItem(item);
-  const lot = (Array.isArray(item?.lots) && item.lots[0]) || item?.lot || item || {};
+  const lot = unwrapFeedValues((Array.isArray(item?.lots) && item.lots[0]) || item?.lot || item || {});
+  unwrapFeedValues(item);
   // Только Copart (3) и IAAI (1): Encar/Корея (12) не наш рынок, и normalizeAuction
   // ошибочно записывал бы такие лоты как «copart».
   const rawDomain = lot?.domain || item?.domain;
