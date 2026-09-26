@@ -112,28 +112,51 @@ const footer = txt => `<text x="44" y="${H - 28}" font-family="Onest" font-weigh
 
 // ---------- Лот аукциона ----------
 // lot: {title, auction, canada, image, price, priceLabel, chips[], date, sold}
+// Макет (26.09.2026, «наляписто» → чище): фото почти без затемнения, сверху только логотип и два мелких бейджа,
+// снизу слева — название и две строки фактов, снизу справа — цена. Колонки не пересекаются: слева ≤ 640 px, справа цена по правому краю.
+const shadeLot = `<defs><linearGradient id="sl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#090b0f" stop-opacity=".42"/><stop offset=".2" stop-color="#090b0f" stop-opacity="0"/><stop offset=".5" stop-color="#090b0f" stop-opacity="0"/><stop offset=".76" stop-color="#090b0f" stop-opacity=".78"/><stop offset="1" stop-color="#090b0f" stop-opacity=".92"/></linearGradient></defs><rect width="${W}" height="${H}" fill="url(#sl)"/>`;
+// название в 1–2 строки без многоточия: если не влезает, отбрасываем слова комплектации с конца (остаётся минимум год + марка + модель)
+function fitTitle(title, size, maxW){
+  let words = String(title || "Автомобиль").split(/\s+/).filter(Boolean);
+  // «Sport/Sport Touring» — список вариантов комплектации, а не название: на картинке обрезаем его целиком
+  const slash = words.findIndex((w, i) => i >= 3 && w.includes("/"));
+  if(slash > 0) words = words.slice(0, slash);
+  for(let n = words.length; n >= Math.min(3, words.length); n--){
+    const lines = wrap(words.slice(0, n).join(" "), size, maxW, 2, true);
+    if(!lines.some(l => l.endsWith("…"))) return lines;
+  }
+  return wrap(words.slice(0, Math.min(3, words.length)).join(" "), size, maxW, 2, true);
+}
 async function lotCard(lot){
   const uri = await fetchImage(bigPhoto(lot.image));
-  const titleLines = wrap(lot.title || "Автомобиль", 66, 700, 2, true);
-  const tSize = titleLines.length > 1 || textW(lot.title || "", 66, true) > 700 ? 60 : 68;
+  const LEFT_W = 640;
+  const tSize = 58;
+  const titleLines = fitTitle(lot.title, tSize, LEFT_W);
   const fmtChip = c => String(c).replace(/^(\d{4,})(\s*(?:км|km|mi|миль|mile|mile[sn]?))/i, (m, n, u) => Number(n).toLocaleString("en-US").replace(/,/g, "\u00a0") + u);
-  const chips = (lot.chips || []).filter(Boolean).map(fmtChip).slice(0, 4);
-  // бейджи справа сверху
+  const chips = (lot.chips || []).filter(Boolean).map(fmtChip);
+  const meta1 = chips.slice(0, 2).join("  ·  "), meta2 = chips[2] || "";
+  // бейджи справа сверху — мелкие
   let bx = W - 44, badges = "";
-  const push = (svg, w) => { bx -= w; badges += svg.replace("__X__", String(bx)); bx -= 12; };
-  if(lot.auction){ const auc = pill(0, 40, String(lot.auction).toUpperCase(), {size:24, h:44, bg:"rgba(9,11,15,.78)"}); push(`<g transform="translate(__X__ 0)">${auc.svg}</g>`, auc.w); }
-  if(lot.canada){ push(`<g transform="translate(__X__ 40)"><rect width="66" height="44" rx="12" fill="#fff"/><g transform="translate(11 10)">${FLAG_CA}</g></g>`, 66); }
-  if(lot.tag){ const t = pill(0, 40, lot.tag, {size:22, h:44, bg:lot.tagBg || "#1c9c5b"}); push(`<g transform="translate(__X__ 0)">${t.svg}</g>`, t.w); }
-  const ty = 370 - (titleLines.length - 1) * 0;
-  let y = 396;
-  const titleSvg = titleLines.map((l, i) => `<text x="44" y="${y + i * (tSize + 6)}" font-family="Onest" font-weight="800" font-size="${tSize}" fill="#fff">${esc(l)}</text>`).join("");
-  y += titleLines.length * (tSize + 6);
-  const chipsSvg = chips.length ? `<text x="44" y="${y + 20}" font-family="Onest" font-weight="500" font-size="30" fill="#fff" fill-opacity=".92">${esc(chips.join("  ·  "))}</text>` : "";
+  const push = (svg, w) => { bx -= w; badges += svg.replace("__X__", String(bx)); bx -= 10; };
+  if(lot.auction){ const auc = pill(0, 0, String(lot.auction).toUpperCase(), {size:20, h:38, padX:14, r:10, bg:"rgba(9,11,15,.7)"}); push(`<g transform="translate(__X__ 40)">${auc.svg}</g>`, auc.w); }
+  if(lot.canada){ push(`<g transform="translate(__X__ 40)"><rect width="58" height="38" rx="10" fill="#fff"/><g transform="translate(7 7) scale(.95)">${FLAG_CA}</g></g>`, 58); }
+  if(lot.tag){ const t = pill(0, 0, lot.tag, {size:20, h:38, padX:14, r:10, bg:lot.tagBg || "#1c9c5b"}); push(`<g transform="translate(__X__ 40)">${t.svg}</g>`, t.w); }
+  const logo = `<g transform="translate(44 36) scale(.78)">${LOGO}<text x="66" y="37" font-family="Onest" font-weight="800" font-size="30" fill="#fff">Apex<tspan fill="${RED}">Auto</tspan></text></g>`;
+  // низ слева: строки считаем снизу вверх
+  const base = H - 46;
+  let yy = base;
+  const lines = [];
+  if(meta2){ lines.push(`<text x="44" y="${yy}" font-family="Onest" font-weight="500" font-size="26" fill="#fff" fill-opacity=".72">${esc(meta2)}</text>`); yy -= 38; }
+  if(meta1){ lines.push(`<text x="44" y="${yy}" font-family="Onest" font-weight="600" font-size="30" fill="#fff" fill-opacity=".95">${esc(meta1)}</text>`); yy -= (tSize + 14); }
+  else yy -= tSize - 6;
+  const titleSvg = titleLines.map((l, i) => `<text x="44" y="${yy - (titleLines.length - 1 - i) * (tSize + 4)}" font-family="Onest" font-weight="800" font-size="${tSize}" fill="#fff">${esc(l)}</text>`).join("");
+  // низ справа: подпись, цена, дата — по правому краю
+  const R = W - 44;
   const priceBlock = lot.price
-    ? `<g transform="translate(${W - 44} 0)"><text x="0" y="446" text-anchor="end" font-family="Onest" font-weight="500" font-size="26" fill="#fff" fill-opacity=".78">${esc(lot.priceLabel || "")}</text><text x="0" y="524" text-anchor="end" font-family="Onest" font-weight="800" font-size="84" fill="#fff">${esc(lot.price)}</text>${lot.date ? `<text x="0" y="562" text-anchor="end" font-family="Onest" font-weight="500" font-size="26" fill="#fff" fill-opacity=".78">${esc(lot.date)}</text>` : ""}</g>`
-    : `${lot.priceLabel ? `<text x="${W - 44}" y="500" text-anchor="end" font-family="Onest" font-weight="800" font-size="46" fill="#fff">${esc(lot.priceLabel)}</text>` : ""}${lot.date ? `<text x="${W - 44}" y="548" text-anchor="end" font-family="Onest" font-weight="500" font-size="30" fill="#fff" fill-opacity=".85">${esc(lot.date)}</text>` : ""}`;
-  const bar = `<rect x="0" y="${H - 8}" width="${W}" height="8" fill="${RED}"/>`;
-  const svg = frame(photoLayer(uri) + shade + brandTop(badges) + titleSvg + chipsSvg + priceBlock + footer(lot.footer || "apexauto.md · доставка авто из США и Канады под ключ") + bar);
+    ? `<text x="${R}" y="${base - 8 - (lot.date ? 36 : 0) - 82}" text-anchor="end" font-family="Onest" font-weight="500" font-size="24" fill="#fff" fill-opacity=".8">${esc(lot.priceLabel || "")}</text><text x="${R}" y="${base - 8 - (lot.date ? 36 : 0)}" text-anchor="end" font-family="Onest" font-weight="800" font-size="78" fill="#fff">${esc(lot.price)}</text>${lot.date ? `<text x="${R}" y="${base}" text-anchor="end" font-family="Onest" font-weight="500" font-size="24" fill="#fff" fill-opacity=".8">${esc(lot.date)}</text>` : ""}`
+    : `${lot.priceLabel ? `<text x="${R}" y="${base - (lot.date ? 36 : 0)}" text-anchor="end" font-family="Onest" font-weight="800" font-size="44" fill="#fff">${esc(lot.priceLabel)}</text>` : ""}${lot.date ? `<text x="${R}" y="${base}" text-anchor="end" font-family="Onest" font-weight="500" font-size="26" fill="#fff" fill-opacity=".85">${esc(lot.date)}</text>` : ""}`;
+  const bar = `<rect x="0" y="${H - 6}" width="${W}" height="6" fill="${RED}"/>`;
+  const svg = frame(photoLayer(uri) + shadeLot + logo + badges + titleSvg + lines.join("") + priceBlock + bar);
   return toPng(svg);
 }
 
