@@ -2992,7 +2992,7 @@
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
-            <span class="auctionCrumbsV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a>${lot.make ? ` / <a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <span class="crumbDropV1"><a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>${lot.makeId ? `<button type="button" class="crumbChevV1" data-crumb-drop="model" aria-label="Другие модели"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>` : ""}</span>` : ""}${lot.generationId && lot.generationName && lot.makeId && lot.modelId ? ` / <span class="crumbDropV1"><a href="/auctions?make=${lot.makeId}&model=${lot.modelId}&generation=${lot.generationId}">${escapeHtml(lot.generationName)}</a><button type="button" class="crumbChevV1" data-crumb-drop="gen" aria-label="Другие поколения"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button></span>` : ""} / <span class="crumbCurV1">${escapeHtml(lotTitle(lot))}</span></span>
+            <span class="auctionCrumbsV1"><span class="crumbRootV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a> / </span>${lot.make ? `<a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <span class="crumbDropV1"><a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>${lot.makeId ? `<button type="button" class="crumbChevV1" data-crumb-drop="model" aria-label="Другие модели"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>` : ""}</span>` : ""}${lot.generationId && lot.generationName && lot.makeId && lot.modelId ? ` / <span class="crumbDropV1"><a href="/auctions?make=${lot.makeId}&model=${lot.modelId}&generation=${lot.generationId}">${escapeHtml(lot.generationName)}</a><button type="button" class="crumbChevV1" data-crumb-drop="gen" aria-label="Другие поколения"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button></span>` : ""}<span class="crumbCurV1"> / ${escapeHtml(lotTitle(lot))}</span></span>
             <div class="dTitleRowV1">
               <h1>${escapeHtml(title)}</h1>
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
@@ -3418,6 +3418,23 @@
     state.page = 1; state.displayPage = 1;
     loadLots();
   });
+
+  // Телефон: строка поиска — под заголовком, до вкладок и фильтров (в HTML она внутри блока результатов, ниже панели инструментов).
+  (function moveSearchRow(){
+    try{
+      const row = document.querySelector(".auctionSearchRowV2"), head = document.querySelector(".auctionsHeadV2");
+      const input = row && row.querySelector("#auctionSmartSearch");
+      if(!row || !head || !input) return;
+      const home = row.parentElement, wide = input.getAttribute("placeholder") || "";
+      const mq = window.matchMedia("(max-width:640px)");
+      const place = () => {
+        if(mq.matches){ head.after(row); row.classList.add("searchTopV1"); input.setAttribute("placeholder", L("Марка, модель, VIN или лот")); }
+        else{ home.prepend(row); row.classList.remove("searchTopV1"); input.setAttribute("placeholder", wide); }
+      };
+      place();
+      if(mq.addEventListener) mq.addEventListener("change", place);
+    }catch(e){}
+  })();
 
   // Переход из каталога на лот без перезагрузки: данные карточки уже есть
   // в state — рендерим мгновенно, полную версию дотягиваем в фоне.

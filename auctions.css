@@ -1329,3 +1329,53 @@ body.leadModalOpenV1 { overflow:hidden; }
 .lotMarketLineV1[hidden] { display:none; }
 .lotMarketLineV1 .dbIco { width:15px; height:15px; flex:none; }
 .lotMarketLineV1 b { color:var(--aInk); font-weight:700; }
+
+/* ================= Мобильная версия v2 (26.09.2026): порядок и воздух в верхней части каталога и лота ================= */
+@media (max-width:640px){
+  /* --- Каталог: заголовок → поиск → вкладки → площадка/сортировка/фильтры → активные фильтры --- */
+  .auctionsHeadV2 { flex-wrap:nowrap; align-items:center; gap:10px; margin:2px 0 10px; }
+  .auctionsHeadLeftV2 { min-width:0; flex:1; }
+  .auctionsH1V3 { gap:8px; font-size:22px; line-height:1.15; align-items:baseline; }
+  .auctionsH1V3 .h1CountV3 { font-size:17px; font-weight:700; color:var(--aMuted); }
+  .shareChipV3 { width:36px; height:36px; }
+  .auctionSearchRowV2.searchTopV1 { margin:0 0 12px; padding:5px; gap:6px; flex-wrap:nowrap; border-radius:16px; background:#fff; border:1px solid var(--aLine); box-shadow:0 2px 10px rgba(15,23,42,.05); }
+  .auctionSearchRowV2.searchTopV1 input { flex:1 1 auto; min-width:0; height:44px; border:0; background:transparent; box-shadow:none; padding:0 8px 0 4px; font-size:15px; }
+  .auctionSearchRowV2.searchTopV1 input:focus { box-shadow:none; background:transparent; }
+  .auctionSearchRowV2.searchTopV1 #auctionSearchBtn { flex:none; height:44px; padding:0 20px; border-radius:12px; }
+  .auctionToolbarV2 { gap:10px; margin-bottom:10px; }
+  .auctionTabsV1 { gap:6px; margin:0 -14px; padding:0 14px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
+  .auctionTabsV1 button { height:36px; padding:0 13px; font-size:13px; }
+  .auctionToolRightV2 { gap:8px; grid-template-columns:1fr auto; }
+  .auctionSwitchV1 button, .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; }
+  .auctionSwitchV1 { border-radius:12px; }
+  .sortDropTrigV1, .filterDrawerBtnV1 { border-radius:12px; }
+  /* активные фильтры: чипы — обычной строкой, кнопки действий — одной строкой под ними */
+  .filterBarV1 { gap:6px; }
+  .filterBarV1:has(> :not([hidden])) { margin:0 0 12px; }
+  .filterBarV1::before { content:""; order:9; flex-basis:100%; height:0; }
+  .afSaveV1, .afBellV1, .afClearV1 { height:38px; padding:0 14px; display:inline-flex; align-items:center; justify-content:center; }
+  .afSaveV1 { order:10; flex:1 1 auto; }
+  .afBellV1 { order:11; flex:none; width:38px; padding:0; }
+  .afBellV1 span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .afClearV1 { order:12; flex:none; border-color:transparent; background:transparent; color:var(--aMuted); padding:0 8px; }
+
+  /* --- Страница лота: короткая шапка --- */
+  .detailTopRowV1 { margin-bottom:6px; }
+  .detailBackV1 { min-height:36px; margin-bottom:0; font-size:14px; }
+  .auctionDetailPanelV1 { padding:12px 12px 16px; }
+  .detailHeaderV1 { gap:12px; }
+  .auctionCrumbsV1 .crumbRootV1 { display:none; }
+  .auctionCrumbsV1 { font-size:12.5px; line-height:1.5; }
+  .auctionCrumbsV1 a { padding:2px 0; }
+  .crumbChevV1 { width:26px; height:26px; }
+  .dTitleRowV1 { flex-wrap:nowrap; align-items:flex-start; gap:10px; margin-top:4px; }
+  .dTitleRowV1 h1 { flex:1; min-width:0; font-size:21px; line-height:1.2; }
+  .dShareBtnV1 { flex:none; width:34px; height:34px; padding:0; justify-content:center; border-radius:10px; }
+  .dShareBtnV1 span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .dSpecLine { gap:4px 12px; margin-top:6px; font-size:13px; }
+  .dMobSumV1 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  .dMobSumV1 span { padding:8px 12px; }
+  .dHeadActionsV1 { display:grid !important; grid-auto-flow:column; grid-auto-columns:1fr; grid-template-columns:none; gap:8px; }
+  .dHeadActionsV1 .dVinBtn { grid-column:auto; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { min-height:44px; height:auto; padding:6px 6px; gap:5px; font-size:12px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
+}
