@@ -2501,8 +2501,8 @@
       ${countdown ? `<div class="calcCountdownV1">${dbIco("clock")}<span>${L("Осталось")} <b id="lotCalcCountdown">${countdown}</b> ${L("до начала торгов")}</span></div>` : ""}
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
-      ${(() => { const t = Number(lot.sellerReserve) > 0 ? (lot.timed ? "Timed аукцион" : "") : lot.saleStatus; return t && !isSold ? `<div class="calcSaleV2 ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
-      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b>${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<i>${L("ставка ниже резерва")}</i>` : ""}${lot.timed ? `<p>${L("Если на Timed-аукционе резерв продавца не будет достигнут, машину снова выставят на онлайн-аукцион.")}</p>` : ""}</div>` : ""}
+      ${(() => { const t = Number(lot.sellerReserve) > 0 ? "" : lot.saleStatus; return t && !isSold ? `<div class="calcSaleV2 ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
+      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div><div class="crSubV1">${lot.timed ? `<em>${L("Timed аукцион")}</em>` : ""}${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""}</div>${lot.timed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>` : ""}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
@@ -3001,6 +3001,7 @@
             ${(() => {
               const st = lotSaleState(lot), b = st.isSold ? (st.finalBid || lot.finalBid || 0) : (lot.currentBid || 0);
               const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
+              if(st.isSold && b) return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${money(b)}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b></span></div>`;
               return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
             })()}
           </div>
@@ -3090,7 +3091,7 @@
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("обновлён")} ${escapeHtml(dbDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
-              ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.saleStatus) + (lot.timed && !lotSaleState(lot).finalBid ? ` <i class="dTimedHintV1">не продан на timed — выйдет на live-торги</i>` : "")) : ""}
+              ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.timed && Number(lot.sellerReserve) > 0 ? "Timed аукцион" : lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
               ${dPlain("Дата аукциона", escapeHtml(lot.auctionDate ? dbDate(lot.auctionDate, true) : L("Не назначена")))}

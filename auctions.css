@@ -1380,3 +1380,39 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dHeadActionsV1 { align-items:stretch; }
   .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { align-self:stretch; min-height:56px; height:auto; padding:6px 6px; gap:5px; font-size:12px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
 }
+
+/* ===== Таблица характеристик: линии строк на одном уровне (26.09.2026) ===== */
+/* Раньше ячейки центрировались (align-self:center) и каждая рисовала свою нижнюю границу — при разной высоте линии «съезжали». */
+.dRowLbl, .dRowVal { align-self:stretch; display:flex; align-items:center; }
+.dRowLbl { justify-content:flex-end; }
+.dRowVal { flex-wrap:wrap; gap:0 6px; }
+.dRowVal:not(:has(.dValUnit)) { padding-left:22px; }
+.dRowVal > .dValUnit { flex:1 1 auto; }
+
+/* ===== Резерв продавца — компактная карточка (26.09.2026) ===== */
+.calcReserveV1 { display:block; margin:6px 0 8px; padding:9px 12px; border-radius:12px; background:#fff4e5; color:#9a4d00; }
+.calcReserveV1 .crRowV1 { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.calcReserveV1 .crRowV1 span { font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.calcReserveV1 .crRowV1 b { font-size:19px; font-weight:800; }
+.calcReserveV1 .crSubV1 { display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:1px; font-size:12px; color:#b45309; }
+.calcReserveV1 .crSubV1:empty { display:none; }
+.calcReserveV1 .crSubV1 em { font-style:normal; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:11px; color:#e8780c; }
+.calcReserveV1 p { margin:3px 0 0; font-size:11.5px; line-height:1.35; color:#7c3f00; font-weight:500; opacity:.85; }
+
+/* ===== Проданный лот на телефоне: два блока «Продано за» и «Дата продажи» ===== */
+@media (max-width:640px){
+  .dMobSumV1.isSoldV1 { display:flex; flex-direction:column; gap:0; padding:0; border-radius:14px; overflow:hidden; border:1px solid #f3c2c7; }
+  .dMobSumV1.isSoldV1 span { flex-direction:row; align-items:center; justify-content:space-between; gap:12px; padding:9px 14px; border-radius:0; }
+  .dMobSumV1.isSoldV1 .dmsPriceV1 { background:#fdf2f3; }
+  .dMobSumV1.isSoldV1 .dmsPriceV1 small { color:var(--aRed); font-weight:800; }
+  .dMobSumV1.isSoldV1 .dmsPriceV1 b { font-size:21px; color:var(--aRed); letter-spacing:-.01em; }
+  .dMobSumV1.isSoldV1 .dmsDateV1 { background:#f6f8fb; border-top:1px solid #f3c2c7; }
+  .dMobSumV1.isSoldV1 .dmsDateV1 b { font-size:14px; font-weight:700; }
+  /* красивее и компактнее строки таблицы */
+  .dSec { grid-template-columns:112px 1fr; column-gap:12px; padding:10px 14px; }
+  .dRowLbl, .dRowVal { padding:7px 0; font-size:13px; line-height:1.3; }
+  .dRowLbl { font-size:12px; text-align:right; }
+  .dRowVal:not(:has(.dValUnit)) { padding-left:22px; }
+  .calcReserveV1 { padding:8px 11px; }
+  .calcReserveV1 .crRowV1 b { font-size:18px; }
+}
