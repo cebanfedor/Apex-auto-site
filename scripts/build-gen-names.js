@@ -64,6 +64,7 @@ function toRoman(n){ const m = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]; let
     970:["I","II","III","IV","V","VI","VII","VIII"],       // VW Golf A1–A8
     2322:["I","II","III","IV","V","VI","VII","VIII"],      // VW Golf GTI
     1052:["I","II","III"],                                 // Mercedes CLS C219/C218/C257
+    1904:["","Mk5"],                                       // Ford Fusion 2013–2020 = Mk5 (платформа Mondeo Mk5), Федор 26.09.2026
     71:["I","III","IV","V"],                               // Audi S4 B5, B7, B8, B9 (B6 в таблице нет)
     757:["I","III","IV","V","VI","VII","VIII"]             // Porsche 911: 901, 964, 993, 996, 997, 991, 992 (G-серии в таблице нет)
   };
