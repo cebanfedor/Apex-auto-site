@@ -6,7 +6,9 @@
   <!-- Google tag (lazy) -->
   <script>
     window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
-    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
+    gtag('consent','default',{'analytics_storage':'denied','ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied'});
+    window.apexLoadGA=function(){if(window.__gaLoadedV1)return;window.__gaLoadedV1=true;gtag('consent','update',{'analytics_storage':'granted'});var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0',{'anonymize_ip':true});};
+    window.addEventListener('load',function(){try{if(localStorage.getItem('apexCookieConsent')==='1')window.apexLoadGA();}catch(e){}});
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Контакты — Apex Auto | Telegram, WhatsApp, телефон</title>
@@ -32,7 +34,7 @@
   <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v443">
+  <link rel="stylesheet" href="styles.css?v=v444">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -232,5 +234,6 @@
 {"@context":"https://schema.org","@type":["LocalBusiness","ProfessionalService"],"name":"Apex Auto","description":"Доставка авто из США и Канады в Молдову под ключ: подбор, проверка, аукционы Copart/IAAI/Manheim, доставка и таможня.","url":"https://apexauto.md","logo":"https://apexauto.md/assets/apex-logo-light.png","image":"https://apexauto.md/assets/hot/founder-auction.jpg","telephone":"+37368832032","email":"apexauto.import@gmail.com","priceRange":"$$","areaServed":{"@type":"Country","name":"Moldova"},"address":{"@type":"PostalAddress","streetAddress":"Bucovina 9F","addressLocality":"Chișinău","addressCountry":"MD"},"geo":{"@type":"GeoCoordinates","latitude":47.068348,"longitude":28.885930},"sameAs":["https://t.me/fedukusa","https://t.me/fedukauto","https://www.instagram.com/feduk.usa","https://www.tiktok.com/@feduk.america","https://www.facebook.com/profile.php?id=61590759031763","https://www.google.com/maps/place/Apex+Auto+Import/data=!4m2!3m1!1s0x0:0xb6f889dce405372a"],"foundingDate":"2016"}
 </script>
 <script src="/analytics.js?v=1" defer></script>
+<script src="/cookie-consent.js?v=1" defer></script>
 </body>
 </html>

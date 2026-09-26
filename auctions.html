@@ -6,7 +6,9 @@
   <!-- Google tag (lazy) -->
   <script>
     window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
-    window.addEventListener('load',function(){var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0');});
+    gtag('consent','default',{'analytics_storage':'denied','ad_storage':'denied','ad_user_data':'denied','ad_personalization':'denied'});
+    window.apexLoadGA=function(){if(window.__gaLoadedV1)return;window.__gaLoadedV1=true;gtag('consent','update',{'analytics_storage':'granted'});var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-NYH24Z7PM0';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-NYH24Z7PM0',{'anonymize_ip':true});};
+    window.addEventListener('load',function(){try{if(localStorage.getItem('apexCookieConsent')==='1')window.apexLoadGA();}catch(e){}});
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Каталог авто Copart и IAAI из США и Канады | Apex Auto</title>
@@ -35,7 +37,7 @@
   <link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/styles.css?v=v443">
+  <link rel="stylesheet" href="/styles.css?v=v444">
   <link rel="stylesheet" href="/auctions.css?v=v532">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
@@ -477,5 +479,6 @@
 })();
 </script>
 <script src="/analytics.js?v=1" defer></script>
+<script src="/cookie-consent.js?v=1" defer></script>
 </body>
 </html>
