@@ -1,5 +1,6 @@
 const {sendJson, methodNotAllowed, readBody, getQuery} = require("../server/http");
 const powertrain = require("../server/powertrain");
+const tesla = require("../server/tesla");
 const supabase = require("../server/supabase");
 const priceGuide = require("../server/price-guide");
 const {isValidContact, isValidVin} = require("../server/validators");
@@ -356,6 +357,7 @@ function makeFromTitle(title, year){
 
 function normalizeLot(source, fallbackAuction = "copart"){
   const item = source?.data && !Array.isArray(source.data) ? source.data : source;
+  tesla.fixTeslaItem(item);   // модель Tesla — по VIN, фид её путает
   const lots = Array.isArray(item?.lots) ? item.lots : [];
   const lot = lots[0] || item?.lot || item;
   const auction = normalizeAuction(item?.auction || lot?.auction || item?.domain || lot?.domain || fallbackAuction);
@@ -3119,6 +3121,7 @@ async function syncApiFetch(url, timeoutMs){
 // item (сырой ответ API) → строка таблицы api_lots.
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
 function syncRowFromItem(item, {archived = false} = {}){
+  tesla.fixTeslaItem(item);
   const lot = (Array.isArray(item?.lots) && item.lots[0]) || item?.lot || item || {};
   // Только Copart (3) и IAAI (1): Encar/Корея (12) не наш рынок, и normalizeAuction
   // ошибочно записывал бы такие лоты как «copart».
@@ -4147,6 +4150,40 @@ module.exports = async function handler(request, response){
     sendJson(response, 200, out, {"cache-control":"no-store"});
     return;
   }
+  // Разовое исправление модели Tesla в базе (фид путал Model 3/X/Y): идём по id курсором, правим model_id, кузов, название и payload.
+  // Вызывать повторно с &cursor=<nextCursor>, пока done=true. Дальше синк пишет уже верные значения (fixTeslaItem).
+  if(action === "teslafix"){
+    const cursor = String(query.get("cursor") || "").replace(/[^\w.-]/g, "");
+    const out = {ok:true, scanned:0, fixed:0, done:false, nextCursor:cursor};
+    const t0 = Date.now();
+    try{
+      while(Date.now() - t0 < 30000){
+        const rows = await syncSbFetch(`/api_lots?select=id,vin,model_id,body_id,title,payload&make_id=eq.187${out.nextCursor ? `&id=gt.${encodeURIComponent(out.nextCursor)}` : ""}&order=id.asc&limit=400`);
+        if(!Array.isArray(rows) || !rows.length){ out.done = true; break; }
+        const todo = [];
+        for(const r of rows){
+          out.scanned++; out.nextCursor = r.id;
+          const m = tesla.teslaModelFromVin(r.vin);
+          if(!m || (Number(r.model_id) === m.id && /model|cyber/i.test(String((r.payload && r.payload.model) || "")) && String(r.payload.model).toLowerCase() === m.name.toLowerCase())) continue;
+          const pl = {...(r.payload || {})};
+          const old = String(pl.model || "");
+          pl.model = m.name; pl.modelId = m.id;
+          if(pl.title) pl.title = old ? String(pl.title).replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), m.name) : pl.title;
+          if(m.body) pl.body = m.body.name;
+          const patch = {model_id:m.id, payload:pl};
+          if(r.title) patch.title = old ? String(r.title).replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), m.name) : r.title;
+          if(m.body) patch.body_id = m.body.id;
+          todo.push({id:r.id, patch});
+        }
+        for(let i = 0; i < todo.length; i += 6){
+          await Promise.all(todo.slice(i, i + 6).map(x => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(x.id)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify(x.patch)}).then(() => { out.fixed++; }).catch(() => {})));
+        }
+        if(rows.length < 400){ out.done = true; break; }
+      }
+    }catch(e){ out.error = String(e.message || e).slice(0, 160); }
+    sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
   if(action === "ptstatus"){
     if(!(await fuelXReady())){ sendJson(response, 200, {ok:true, ready:false, note:"нет колонок fuel_x — выполните миграцию 20260925_fuel_x.sql"}, {"cache-control":"no-store"}); return; }
     const cnt = async q => { try{ const r = await fetch(`${(process.env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(new Date().toISOString())}${q}`, {headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY, authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}}); return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0; }catch(e){ return -1; } };
@@ -4365,7 +4402,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "34";
+  const SEARCH_CACHE_VER = "35";
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g21" : "";   // бамп при смене таблицы поколений и формы detail
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
