@@ -4295,7 +4295,10 @@ module.exports = async function handler(request, response){
         out.pages = (out.pages || 0) + 1; out.items = (out.items || 0) + items.length;
         if(!out.rawSamples) out.rawSamples = items.slice(0, 4).map(it => { const l = (it.lots || [])[0] || it; return {lot:l.lot, status:l.status && (l.status.name || l.status), bid:l.bid, final:l.final_bid, finalAt:l.final_bid_updated_at, sale:l.sale_date, upd:l.updated_at, prices:(l.prices || []).slice(0, 2).map(x => ({b:x.bid, f:x.final_bid, st:x.status && (x.status.name || x.status), d:x.sale_date || x.final_bid_updated_at}))}; });
         for(const it of items){
+          const l0 = (it.lots || [])[0] || it;
           const row = syncRowFromItem(it, {archived:true});
+          if(!out.rowSamples) out.rowSamples = [];
+          if(out.rowSamples.length < 3 && row) out.rowSamples.push({id:row.id, sale:row.sale_date, final:row.final_bid, st:row.status_id, arch:row.archived, rawSaleType:typeof l0.sale_date, rawFinalType:typeof l0.final_bid, rawStatus:JSON.stringify(l0.status).slice(0, 60), payloadDate:row.payload && row.payload.auctionDate, payloadFinal:row.payload && row.payload.finalBid, payloadSt:row.payload && row.payload.statusName});
           const k = row ? `${row.archived ? "arch" : "live"}|${Number(row.final_bid) > 0 ? "fin" : "nofin"}|st${row.status_id}` : "null";
           (out.kinds = out.kinds || {})[k] = (out.kinds[k] || 0) + 1;
           if(row && row.archived && Number(row.final_bid) > 0) ids.set(row.id, {final:row.final_bid, date:row.sale_date});
