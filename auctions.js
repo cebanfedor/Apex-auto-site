@@ -1089,6 +1089,12 @@
     if(withYear) opts.year = "numeric";
     return d.toLocaleString(loc, opts);
   }
+  // Компактная дата «27.09» — для мест, где полный формат dbDate (день недели + месяц + время) слишком длинный.
+  function shortDate(value){
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return "";
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
   function dbOdo(text){
     // Пробег не пришёл из фида (пусто/0) — так и пишем, а не прячем строку (Федор 25.09.2026)
     if(!text) return L("Пробег не указан");
@@ -1193,7 +1199,9 @@
     const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(val))}</span></li>`;
+    // Фид отдаёт "Yes"/"No" по-английски — переводим в «Да»/«Нет», не показываем сырое значение (24.09.2026).
+    const shown = isYes ? "Да" : isNo ? "Нет" : val;
+    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(shown))}</span></li>`;
   }
   function dbCheckHistory(rawHistory, currentLot, noPending = false){
     // Пока VIN-история не пришла, показываем ТОЛЬКО заглушку (данные списка — предварительные и потом меняются: карточка «мигала»).
@@ -2566,7 +2574,12 @@
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${(() => { const t = Number(lot.sellerReserve) > 0 ? "" : lot.saleStatus; return t && !isSold ? `<div class="calcSaleV2 ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
-      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div><div class="crSubV1">${lot.timed ? `<em>${L("Timed аукцион")}</em>` : ""}${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""}</div>${lot.timed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>` : ""}
+      ${(() => {
+        if(!(Number(lot.sellerReserve) > 0) || isSold) return "";
+        const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve;
+        const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""].filter(Boolean).join(`<i class="crDotV1">·</i>`);
+        return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${isTimed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>`;
+      })()}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
@@ -3128,8 +3141,9 @@
                 if(!k) return "";
                 const yes = /^(yes|да|present|available)/i.test(k);
                 const no = /^(no|нет|not )/i.test(k);
-                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор)
-                return dPlain("Ключ доступен", escapeHtml(tc(k)), "key", yes ? "good" : no ? "warn" : "neutral");
+                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор); фид отдаёт "Yes"/"No" — переводим.
+                const shown = yes ? "Да" : no ? "Нет" : tc(k);
+                return dPlain("Ключ доступен", escapeHtml(L(shown)), "key", yes ? "good" : no ? "warn" : "neutral");
               })()}
               ${(() => {
                 const doc = parseDocTitle(docRaw(lot));
@@ -3141,7 +3155,7 @@
                   + dPlain("Тип документа", escapeHtml(docShort(docRaw(lot))), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
-              ${dPlain("Привод", escapeHtml(driveLine), "drive")}
+              ${dPlain("Двигатель и привод", escapeHtml(driveLine), "drive")}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
               ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
@@ -3154,7 +3168,7 @@
               <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
-              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("обновлён")} ${escapeHtml(dbDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
+              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("от")} ${escapeHtml(shortDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.timed && Number(lot.sellerReserve) > 0 ? "Timed аукцион" : lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
@@ -3169,7 +3183,7 @@
               ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
-              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целы" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
+              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}

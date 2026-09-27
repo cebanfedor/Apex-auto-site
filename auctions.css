@@ -1344,7 +1344,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionLayoutV1 { gap:0; }
   .auctionTabsV1 button.active { box-shadow:none; }
   .auctionToolbarV2 { gap:10px; margin-bottom:10px; }
-  .auctionTabsV1 { gap:6px; margin:0 -14px; padding:0 14px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
+  .auctionTabsV1 { gap:6px; margin:0 -10px; padding:0 10px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
   .auctionTabsV1 button { height:36px; padding:0 13px; font-size:13px; }
   .auctionToolRightV2 { gap:8px; grid-template-columns:1fr auto; }
   .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; }
@@ -1396,9 +1396,10 @@ body.leadModalOpenV1 { overflow:hidden; }
 .calcReserveV1 .crRowV1 { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
 .calcReserveV1 .crRowV1 span { font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .calcReserveV1 .crRowV1 b { font-size:19px; font-weight:800; }
-.calcReserveV1 .crSubV1 { display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:1px; font-size:12px; color:#b45309; }
+.calcReserveV1 .crSubV1 { display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 6px; margin-top:1px; font-size:12px; color:#b45309; }
 .calcReserveV1 .crSubV1:empty { display:none; }
 .calcReserveV1 .crSubV1 em { font-style:normal; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:11px; color:#e8780c; }
+.calcReserveV1 .crSubV1 .crDotV1 { font-style:normal; color:#d6a45e; }
 .calcReserveV1 p { margin:3px 0 0; font-size:11.5px; line-height:1.35; color:#7c3f00; font-weight:500; opacity:.85; }
 
 /* ===== Проданный лот на телефоне: два блока «Продано за» и «Дата продажи» ===== */
