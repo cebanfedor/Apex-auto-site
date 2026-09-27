@@ -2873,6 +2873,18 @@ const EST_HI_PCTL = 88;
 // до уровня нормальной машины, а наш пул уже без утиля — проверка на продажах дала K≈1.03 (RAV4, Camry).
 const DATA_GUIDE_K = 1.0;
 const GUIDE_ACV_WEIGHT = 0.3;   // сколько доверяем ACV этого VIN поверх таблицы Федора (0..1); прошёл проверку ?action=compstest на RAV4/Camry/BMW 3
+// 27.09.2026: прогон ?action=compstest по 54 моделям (Audi/BMW/Mercedes/Toyota/Lexus/Ford/Lincoln) нашёл марки, где
+// таблица систематически расходится с реальностью в разы — Audi (actualToGuideRatio 0.41–0.61, таблица завышает
+// в 1.6–2.4×), Ford Fusion (0.43), BMW/Mercedes (0.67–0.70 почти везде). ACV лота — независимый сигнал (не из
+// таблицы), поэтому когда они с таблицей сильно расходятся, это верный знак, что таблице для ЭТОЙ марки/модели
+// стоит доверять меньше. Вес растёт с расхождением (в разах, симметрично в обе стороны), но не выше 0.65 —
+// таблица остаётся источником даже при сильном расхождении, а не подменяется ACV целиком.
+function guideAcvWeight(gbMid, acvMid){
+  const a = Number(gbMid) || 0, b = Number(acvMid) || 0;
+  if(!(a > 0) || !(b > 0)) return GUIDE_ACV_WEIGHT;
+  const ratio = Math.max(a / b, b / a);   // 1 = совпадают, 2 = отличаются вдвое
+  return Math.min(0.65, GUIDE_ACV_WEIGHT + Math.max(0, ratio - 1.3) * 0.3);
+}
 // База сужается по году как строки его таблицы (диапазоны 2–4 года): сначала год ±1, затем ±2, затем весь кузов.
 function dataGuideBase(rows, g, fuelId, year){
   if(!rows || !rows.length || !g || !g.genFrom) return null;
@@ -3008,9 +3020,10 @@ async function computeCompsForQ(q){
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
       if(acvBand){
-        // Таблица Федора не знает комплектацию конкретного VIN — ACV её знает. Вес ACV фиксированный (не по числу
-        // продаж, как в comps-ветке): таблица — проверенный источник, ACV лишь поправляет на реальный трим/опции.
-        const r100 = v => Math.round(v / 100) * 100, w = GUIDE_ACV_WEIGHT;
+        // Таблица Федора не знает комплектацию конкретного VIN — ACV её знает. Базовый вес ACV — 0.3, но растёт,
+        // если таблица и ACV сильно расходятся (см. guideAcvWeight) — типичная ситуация для марок, где таблица
+        // систематически завышает (Audi, отчасти BMW/Mercedes/Ford Fusion).
+        const r100 = v => Math.round(v / 100) * 100, w = guideAcvWeight(gb.mid, acvBand.mid);
         band = {lo:r100(gb.lo * (1 - w) + acvBand.lo * w), mid:r100(gb.mid * (1 - w) + acvBand.mid * w), hi:r100(gb.hi * (1 - w) + acvBand.hi * w)};
         src = "guide+acv";
       }else{ band = gb; src = "guide"; }
@@ -5067,7 +5080,7 @@ module.exports = async function handler(request, response){
             if(r.acv > 500){
               const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
               if(ab){
-                const w = GUIDE_ACV_WEIGHT;
+                const w = guideAcvWeight(tb.mid, ab.mid);
                 const bMid = tb.mid * (1 - w) + ab.mid * w;
                 tbErrs.push(Math.abs(bMid - r.final_bid) / r.final_bid);
                 tbIn20.push(Math.abs(r.final_bid - bMid) / bMid <= .2 ? 1 : 0);
