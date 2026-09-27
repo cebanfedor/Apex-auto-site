@@ -15,11 +15,11 @@ test("acvMileageAdj: без пробега — нейтрально, дальш�
   assert.equal(pg.acvMileageAdj(300000), 0.65);
 });
 
-test("acvExtraAdj: сработавшие подушки и отсутствие ключей понижают", () => {
+test("acvExtraAdj: сработавшие подушки понижают; ключ больше не влияет (Федор 28.09.2026 — 99% не играет роль)", () => {
   assert.equal(pg.acvExtraAdj({}), 1);
   assert.equal(pg.acvExtraAdj({airbags:"Deployed"}), 0.8);
-  assert.equal(pg.acvExtraAdj({keys:"No"}), 0.6);
-  assert.ok(Math.abs(pg.acvExtraAdj({airbags:"deployed", keys:"нет"}) - 0.48) < 1e-9);
+  assert.equal(pg.acvExtraAdj({keys:"No"}), 1);
+  assert.equal(pg.acvExtraAdj({airbags:"deployed", keys:"нет"}), 0.8);
 });
 
 test("estimateFromAcv: маленькая ACV или её отсутствие — не оцениваем", () => {
@@ -32,6 +32,26 @@ test("estimateFromAcv: вилка симметрична вокруг серед
   assert.equal(b.mid, Math.round(66124 * 0.29 / 100) * 100);
   assert.ok(b.lo < b.mid && b.mid < b.hi);
   assert.ok(b.hi <= 66124 * 0.9);
+});
+
+test("conditionCoef: документ почти всегда роли не играет (Федор 28.09.2026, Tesla Model Y CoD 7SAYGDEF8PF704867)", () => {
+  // Certificate of Destruction больше НЕ обнуляет до 0.5 — цену решают повреждения (перед+зад,
+  // не на ходу → тот же коэффициент 0.8, что и у обычного Salvage с той же историей повреждений).
+  const dmg = {dmg:"Rear End", dmg2:"Front End", run:false};
+  const cod = pg.conditionCoef({...dmg, doc:"Fl - Certificate Of Destruction"});
+  const salvage = pg.conditionCoef({...dmg, doc:"Ga - Cert Of Title-Salvage"});
+  const nonRepair = pg.conditionCoef({...dmg, doc:"Non-Repairable"});
+  assert.equal(cod, 0.8);
+  assert.equal(salvage, cod);      // документ не играет роль — совпадает с «обычным» salvage
+  assert.equal(nonRepair, cod);
+  // Bill of Sale / ACQ — небольшая скидка сверху обычного коэффициента.
+  assert.ok(Math.abs(pg.conditionCoef({...dmg, doc:"Bill of Sale"}) - 0.8 * 0.92) < 1e-9);
+  assert.ok(Math.abs(pg.conditionCoef({...dmg, doc:"ACQ"}) - 0.8 * 0.92) < 1e-9);
+  // Clean/Clear title — небольшая надбавка.
+  const minor = {dmg:"Minor Dent/Scratches", dmg2:"", run:true};
+  assert.equal(pg.conditionCoef(minor), 1.1);
+  assert.ok(Math.abs(pg.conditionCoef({...minor, doc:"Clean Title"}) - 1.1 * 1.05) < 1e-9);
+  assert.ok(Math.abs(pg.conditionCoef({...minor, doc:"NY - Clear"}) - 1.1 * 1.05) < 1e-9);
 });
 
 test("estimateFromAcv: реальный лот (2022 Porsche Panamera Base, IAAI 66261236, 26.09.2026)", () => {

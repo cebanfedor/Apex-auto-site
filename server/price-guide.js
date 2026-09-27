@@ -81,7 +81,15 @@ function matchGuide(rows, lot){
 
 // Коэффициент состояния по шкале Федора: 1.10 почти целая · 1.00 небольшой удар · 0.90 средний ·
 // 0.80 сильный; ниже — тяжёлые случаи (он подтвердил, что шкалу можно продолжать вниз).
-const RE_JUNK_DOC = /parts only|certificate of destruction|cert of destruction|non[- ]?repairable|junk|scrap|bill of sale/i;
+// ⚠️ 28.09.2026 (Федор, Tesla Model Y CoD 7SAYGDEF8PF704867 — ушла в $4.2-5.8к вместо реальных
+// $8-10к): документ раньше решал ВСЁ — «утиль»-статус (Certificate of Destruction/Non-Repairable/
+// Junk/Parts Only/Bill of Sale) сразу обнулял до 0.5, игнорируя реальные повреждения. По факту
+// бумага почти никогда не должна определять цену — только реальное состояние/повреждения. Теперь:
+// Bill of Sale / ACQ — небольшая скидка сверху обычного коэффициента; Clean/Clear title — небольшая
+// надбавка; ВСЕ остальные документы (включая Certificate of Destruction и другой «утиль»-статус) —
+// роли не играют вообще, цену определяют повреждения/состояние ниже.
+const RE_DOC_CHEAPER = /bill of sale|\bacq\b/i;
+const RE_DOC_PREMIUM = /\bclean\b|\bclear\b/i;
 const RE_TOTAL = /flood|water|burn|biohazard|bio ?chemical/i;
 const RE_STRUCT = /all over|roll ?over|undercarriage|frame|strip/i;
 const RE_MECH = /mechanical|engine|transmission|electrical/i;
@@ -93,16 +101,22 @@ function conditionCoef(meta){
   // «not_run» тоже содержит «run» — сначала отрицание. Явный флаг run от клиента приоритетнее текста.
   const noStart = meta.run === false || (meta.run !== true && /not|does|won|не завод|не на ходу|stationary/.test(c));
   const runs = !noStart && (meta.run === true || /run|drive|на ходу|заводится и едет/.test(c));
-  if(RE_JUNK_DOC.test(String(meta.doc || ""))) return 0.5;
-  if(RE_TOTAL.test(all)) return 0.6;
-  if(RE_STRUCT.test(all)) return runs ? 0.8 : 0.7;
-  if(RE_MECH.test(d1)) return runs ? 0.85 : 0.75;
-  const has2 = d2 && !RE_COSMETIC.test(d2);
-  const cosmetic1 = !d1 || RE_COSMETIC.test(d1);
-  if(cosmetic1 && !has2) return runs ? 1.1 : (noStart ? 0.95 : 1.0);
-  if(/hail/i.test(d1) && !has2) return runs ? 1.0 : 0.9;
-  if(!has2) return runs ? 1.0 : (noStart ? 0.9 : 0.95);      // один удар
-  return runs ? 0.9 : (noStart ? 0.8 : 0.85);                // две зоны
+  let coef;
+  if(RE_TOTAL.test(all)) coef = 0.6;
+  else if(RE_STRUCT.test(all)) coef = runs ? 0.8 : 0.7;
+  else if(RE_MECH.test(d1)) coef = runs ? 0.85 : 0.75;
+  else{
+    const has2 = d2 && !RE_COSMETIC.test(d2);
+    const cosmetic1 = !d1 || RE_COSMETIC.test(d1);
+    if(cosmetic1 && !has2) coef = runs ? 1.1 : (noStart ? 0.95 : 1.0);
+    else if(/hail/i.test(d1) && !has2) coef = runs ? 1.0 : 0.9;
+    else if(!has2) coef = runs ? 1.0 : (noStart ? 0.9 : 0.95);      // один удар
+    else coef = runs ? 0.9 : (noStart ? 0.8 : 0.85);                // две зоны
+  }
+  const doc = String(meta.doc || "");
+  if(RE_DOC_CHEAPER.test(doc)) coef *= 0.92;
+  else if(RE_DOC_PREMIUM.test(doc)) coef *= 1.05;
+  return coef;
 }
 
 // Таблица Федора рассчитана на пробег ДО 100 тыс. миль (его слова, 22.09.2026). Выше — понижающая
@@ -164,11 +178,12 @@ function acvMileageAdj(odometerMi){
   if(mi <= 220000) return 0.76;
   return 0.65;
 }
-// Сработавшие подушки и утерянные ключи — конкретные факты по ЭТОМУ лоту, ACV их ещё не учла.
-function acvExtraAdj({airbags, keys} = {}){
+// Сработавшие подушки — конкретный факт по ЭТОМУ лоту, ACV его ещё не учла.
+// ⚠️ 28.09.2026 (Федор): отсутствие ключа в 99% случаев НЕ влияет на цену — ключ дублируют/делают
+// новый копеечно, покупатели на аукционах это не считают проблемой. Скидка ×0.6 убрана.
+function acvExtraAdj({airbags} = {}){
   let f = 1;
   if(/deploy/i.test(String(airbags || ""))) f *= 0.8;
-  if(/^(no|нет|not)/i.test(String(keys || ""))) f *= 0.6;
   return f;
 }
 // Вилка по ACV: ±15% вокруг середины, потолок — не выше 90% ACV (дороже целой машины салважный лот не берут).
