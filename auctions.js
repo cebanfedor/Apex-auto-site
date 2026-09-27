@@ -2572,7 +2572,12 @@
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${(() => { const t = Number(lot.sellerReserve) > 0 ? "" : lot.saleStatus; return t && !isSold ? `<div class="calcSaleV2 ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
-      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div><div class="crSubV1">${lot.timed ? `<em>${L("Timed аукцион")}</em>` : ""}${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""}</div>${lot.timed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>` : ""}
+      ${(() => {
+        if(!(Number(lot.sellerReserve) > 0) || isSold) return "";
+        const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve;
+        const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""].filter(Boolean).join(`<i class="crDotV1">·</i>`);
+        return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${isTimed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>`;
+      })()}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
@@ -3175,7 +3180,7 @@
               ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
-              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целы" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
+              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
