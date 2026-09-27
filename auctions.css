@@ -774,11 +774,12 @@ body.leadModalOpenV1 { overflow:hidden; }
 .crumbChevV1 { display:inline-flex; align-items:center; justify-content:center; border:none; background:none; width:18px; height:18px; margin-left:1px; padding:0; cursor:pointer; color:var(--aInk2); line-height:1; }
 .crumbChevV1:hover { color:var(--aInk); }
 .crumbChevV1:hover { color:var(--aInk); }
-.crumbMenuV1 { position:absolute; top:calc(100% + 6px); left:0; z-index:70; min-width:200px; max-height:330px; overflow:auto; background:var(--aCard, #fff); border:1px solid var(--aLine2); border-radius:10px; box-shadow:0 14px 34px rgba(15,23,42,.16); padding:6px; }
-.crumbOptV1 { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:7px 10px; border-radius:7px; font-size:12.5px; color:var(--aInk); text-decoration:none; white-space:nowrap; }
+.crumbMenuV1 { position:absolute; top:calc(100% + 6px); left:0; z-index:70; min-width:220px; max-width:320px; max-height:330px; overflow-y:auto; overflow-x:hidden; background:var(--aCard, #fff); border:1px solid var(--aLine2); border-radius:10px; box-shadow:0 14px 34px rgba(15,23,42,.16); padding:6px; display:flex; flex-direction:column; }
+.crumbOptV1 { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; box-sizing:border-box; padding:9px 10px; border-radius:7px; font-size:13px; color:var(--aInk); text-decoration:none; white-space:normal; }
+.crumbOptV1:not(:last-child) { border-bottom:1px solid var(--aLine2); }
 .crumbOptV1:hover { background:var(--aLine2); text-decoration:none; }
 .crumbOptV1.isCurV1 { font-weight:700; }
-.crumbOptV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); }
+.crumbOptV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); flex:none; }
 .crumbMenuLoadV1 { padding:8px 10px; font-size:12px; color:var(--aMuted); }
 .crumbCurV1 { color:var(--aMuted); }
 
@@ -1325,10 +1326,11 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbBadgesRowV3 .caFlagV1 { width:18px; height:10px; }
 
 /* Оценка лота под ценой (как «Оценочная стоимость» у DreamBid) */
-.lotMarketLineV1 { display:flex; align-items:center; gap:7px; margin:8px 0 2px; font-size:13.5px; color:var(--aMuted); }
+.lotMarketLineV1 { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:8px 0 2px; font-size:13.5px; color:var(--aMuted); }
 .lotMarketLineV1[hidden] { display:none; }
 .lotMarketLineV1 .dbIco { width:15px; height:15px; flex:none; }
 .lotMarketLineV1 b { color:var(--aInk); font-weight:700; }
+.marketLineWarnV1 { font-style:normal; font-size:12px; font-weight:600; color:#9a4d00; }
 
 /* ================= Мобильная версия v2 (26.09.2026): порядок и воздух в верхней части каталога и лота ================= */
 @media (max-width:640px){
@@ -1342,7 +1344,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionLayoutV1 { gap:0; }
   .auctionTabsV1 button.active { box-shadow:none; }
   .auctionToolbarV2 { gap:10px; margin-bottom:10px; }
-  .auctionTabsV1 { gap:6px; margin:0 -14px; padding:0 14px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
+  .auctionTabsV1 { gap:6px; margin:0 -10px; padding:0 10px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
   .auctionTabsV1 button { height:36px; padding:0 13px; font-size:13px; }
   .auctionToolRightV2 { gap:8px; grid-template-columns:1fr auto; }
   .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; }
@@ -1394,9 +1396,10 @@ body.leadModalOpenV1 { overflow:hidden; }
 .calcReserveV1 .crRowV1 { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
 .calcReserveV1 .crRowV1 span { font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .calcReserveV1 .crRowV1 b { font-size:19px; font-weight:800; }
-.calcReserveV1 .crSubV1 { display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:1px; font-size:12px; color:#b45309; }
+.calcReserveV1 .crSubV1 { display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 6px; margin-top:1px; font-size:12px; color:#b45309; }
 .calcReserveV1 .crSubV1:empty { display:none; }
 .calcReserveV1 .crSubV1 em { font-style:normal; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:11px; color:#e8780c; }
+.calcReserveV1 .crSubV1 .crDotV1 { font-style:normal; color:#d6a45e; }
 .calcReserveV1 p { margin:3px 0 0; font-size:11.5px; line-height:1.35; color:#7c3f00; font-weight:500; opacity:.85; }
 
 /* ===== Проданный лот на телефоне: два блока «Продано за» и «Дата продажи» ===== */

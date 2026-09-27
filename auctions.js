@@ -1089,6 +1089,12 @@
     if(withYear) opts.year = "numeric";
     return d.toLocaleString(loc, opts);
   }
+  // Компактная дата «27.09» — для мест, где полный формат dbDate (день недели + месяц + время) слишком длинный.
+  function shortDate(value){
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return "";
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
   function dbOdo(text){
     // Пробег не пришёл из фида (пусто/0) — так и пишем, а не прячем строку (Федор 25.09.2026)
     if(!text) return L("Пробег не указан");
@@ -1193,7 +1199,9 @@
     const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(val))}</span></li>`;
+    // Фид отдаёт "Yes"/"No" по-английски — переводим в «Да»/«Нет», не показываем сырое значение (24.09.2026).
+    const shown = isYes ? "Да" : isNo ? "Нет" : val;
+    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(shown))}</span></li>`;
   }
   function dbCheckHistory(rawHistory, currentLot, noPending = false){
     // Пока VIN-история не пришла, показываем ТОЛЬКО заглушку (данные списка — предварительные и потом меняются: карточка «мигала»).
@@ -1497,6 +1505,16 @@
     if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(Math.round(lot.estimatedRetailValue)));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
+    // Самодиагностика (guide_miss): чтобы сервер видел, когда реальная ставка/резерв/прошлый раунд
+    // выше вилки, и мог залогировать локацию/штат/пробег для будущей правки формулы.
+    if(lot.id != null) cp.set("lot_id", `${String(lot.auction || "").toLowerCase()}-${lot.id}`.slice(0, 80));
+    if(lot.auction) cp.set("auction", String(lot.auction).slice(0, 10));
+    if(Number(lot.currentBid) > 0) cp.set("bid", String(Math.round(lot.currentBid)));
+    if(Number(lot.sellerReserve) > 0) cp.set("reserve", String(Math.round(lot.sellerReserve)));
+    const maxHistBid = Array.isArray(lot.priceHistory) ? Math.max(0, ...lot.priceHistory.map(h => Number(h && h.bid) || 0)) : 0;
+    if(maxHistBid > 0) cp.set("histbid", String(Math.round(maxHistBid)));
+    if(lot.stateCode) cp.set("state", String(lot.stateCode).slice(0, 10));
+    if(lot.location) cp.set("loc", String(lot.location).slice(0, 80));
     return cp;
   }
   const compsCache = {};
@@ -2146,6 +2164,54 @@
     const cnt = ph.querySelector(".dbPhotoCount"); if(cnt) cnt.textContent = `${i + 1}/${total}`;
     const bar = ph.querySelector(".dbPhotoBarV1 i"); if(bar){ bar.style.width = (100 / total).toFixed(3) + "%"; bar.style.left = (i * 100 / total).toFixed(3) + "%"; }
   }
+  // Листание фото карточки (стрелки + свайп на телефоне) на шаг dir (-1/1).
+  function stepCardPhoto(card, dir){
+    const lid = card.dataset.lid;
+    const lot = state.items.find(l => String(l.id) === String(lid));
+    if(!lot || !lot.images?.length) return;
+    const img = card.querySelector(".dbSlideImg");
+    const counter = card.querySelector(".dbPhotoCount");
+    // В базе у лота хранятся только 4 фото (экономия места), а счётчик показывал 1/19 —
+    // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
+    if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length && lot.images.length < CARD_PHOTO_MAX){
+      lot._fullImgs = "loading";
+      api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
+        .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
+          const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`; })
+        .catch(() => { lot._fullImgs = "done"; });
+    }
+    let idx = parseInt(img?.dataset.slide || "0");
+    { const cnt = Math.min(CARD_PHOTO_MAX, lot.images.length); idx = (idx + dir + cnt) % cnt; }
+    if(img){ img.dataset.full = lot.images[idx]; img.src = cardImg(lot.images[idx]); img.dataset.slide = idx; }
+    if(counter) counter.textContent = `${idx + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`;
+  }
+  // Свайп по фото карточки на телефоне: тач без стрелочек. Обычный тап (без движения) —
+  // навигация на лот как раньше; после распознанного свайпа клик по .dbPhotoLink отменяем,
+  // чтобы вместо смены фото не улетать на страницу лота.
+  let cardSwipePh = null, cardSwipeX = 0, cardSwipeY = 0, cardSwipeMoved = false, cardSwipeAt = 0;
+  document.addEventListener("touchstart", e => {
+    const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto");
+    if(!ph || !e.touches[0] || e.touches.length !== 1){ cardSwipePh = null; return; }
+    cardSwipePh = ph; cardSwipeX = e.touches[0].clientX; cardSwipeY = e.touches[0].clientY; cardSwipeMoved = false;
+  }, {passive:true});
+  document.addEventListener("touchmove", e => {
+    if(!cardSwipePh || !e.touches[0]) return;
+    if(Math.abs(e.touches[0].clientX - cardSwipeX) > 10 || Math.abs(e.touches[0].clientY - cardSwipeY) > 10) cardSwipeMoved = true;
+  }, {passive:true});
+  document.addEventListener("touchend", e => {
+    if(!cardSwipePh || !cardSwipeMoved || !e.changedTouches[0]) { cardSwipePh = null; return; }
+    const card = cardSwipePh; cardSwipePh = null;
+    const dx = e.changedTouches[0].clientX - cardSwipeX, dy = e.changedTouches[0].clientY - cardSwipeY;
+    if(Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.3){
+      cardSwipeAt = Date.now();
+      stepCardPhoto(card, dx < 0 ? 1 : -1);
+    }
+  }, {passive:true});
+  document.addEventListener("click", e => {
+    if(Date.now() - cardSwipeAt >= 500) return;
+    const link = e.target.closest && e.target.closest("#auctionCards .dbPhotoLink");
+    if(link){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
   const noScrub = t => t.closest(".dbFav, .dbBell, .dbSlideBtn, .dbResoldV1, [data-sold-warn]");
   document.addEventListener("mouseover", e => {
     if(!finePointer()) return;
@@ -2508,7 +2574,12 @@
       ${buyNowPrice ? `<button class="calcBuyNowV1" type="button" data-lead="${escapeHtml(lot.id)}"><span>${L("Купить сейчас")}</span><b>${fmtBid(buyNowPrice)}</b></button>` : ""}
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${(() => { const t = Number(lot.sellerReserve) > 0 ? "" : lot.saleStatus; return t && !isSold ? `<div class="calcSaleV2 ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
-      ${Number(lot.sellerReserve) > 0 && !isSold ? `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div><div class="crSubV1">${lot.timed ? `<em>${L("Timed аукцион")}</em>` : ""}${Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""}</div>${lot.timed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>` : ""}
+      ${(() => {
+        if(!(Number(lot.sellerReserve) > 0) || isSold) return "";
+        const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve;
+        const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""].filter(Boolean).join(`<i class="crDotV1">·</i>`);
+        return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${isTimed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>`;
+      })()}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
         <input id="lotBidInput" data-calc-input type="number" min="0" step="100" value="${escapeHtml(initialBid || "")}" placeholder="${isCa ? "Ваша ставка, CAD" : "Ваша ставка, $"}">
@@ -3070,8 +3141,9 @@
                 if(!k) return "";
                 const yes = /^(yes|да|present|available)/i.test(k);
                 const no = /^(no|нет|not )/i.test(k);
-                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор)
-                return dPlain("Ключ доступен", escapeHtml(tc(k)), "key", yes ? "good" : no ? "warn" : "neutral");
+                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор); фид отдаёт "Yes"/"No" — переводим.
+                const shown = yes ? "Да" : no ? "Нет" : tc(k);
+                return dPlain("Ключ доступен", escapeHtml(L(shown)), "key", yes ? "good" : no ? "warn" : "neutral");
               })()}
               ${(() => {
                 const doc = parseDocTitle(docRaw(lot));
@@ -3083,7 +3155,7 @@
                   + dPlain("Тип документа", escapeHtml(docShort(docRaw(lot))), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
-              ${dPlain("Привод", escapeHtml(driveLine), "drive")}
+              ${dPlain("Двигатель и привод", escapeHtml(driveLine), "drive")}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
               ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
@@ -3096,7 +3168,7 @@
               <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
-              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("обновлён")} ${escapeHtml(dbDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
+              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("от")} ${escapeHtml(shortDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.timed && Number(lot.sellerReserve) > 0 ? "Timed аукцион" : lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
@@ -3111,7 +3183,7 @@
               ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
-              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целы" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
+              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
@@ -3283,14 +3355,17 @@
       // Параметры те же, что у карточек каталога (один источник правды — compsParamsFor).
       const cp = compsParamsFor(lot);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
-      // Ставка или резерв продавца уже выше вилки → ориентир опровергнут рынком; на странице лота его не показываем.
-      // …а также если ЭТА машина уже торговалась выше вилки (не продана за $26 750 при вилке $15–17k — оценка явно низкая).
+      // Ставка/резерв продавца/прошлый раунд торгов из истории лота выше вилки — рынок
+      // ориентир опроверг. Раньше в этом случае цифру просто прятали (23.09.2026), но
+      // на практике это срабатывало слишком часто и ориентир пропадал без замены, хотя
+      // в каталоге та же карточка его показывает (там этой проверки нет вовсе). Теперь
+      // (Федор 27.09.2026) ориентир не прячем — помечаем «ставка выше ориентира».
       const maxHistBid = Math.max(0, ...(Array.isArray(lot.priceHistory) ? lot.priceHistory.map(h => Number(h.bid) || 0) : [0]));
-      const guideContradicted = cr && cr.ok && cr.comps && cr.comps.guide && (Number(lot.currentBid) > Number(cr.comps.p75) || Number(lot.sellerReserve) > Number(cr.comps.p75) || maxHistBid > Number(cr.comps.p75));
-      if(cr && cr.ok && cr.comps && cr.comps.guide && !guideContradicted){
+      if(cr && cr.ok && cr.comps && cr.comps.guide && Number(cr.comps.p25) > 0){
         // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
         const c = cr.comps;
         const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
+        const contradicted = Number(lot.currentBid) > Number(c.p75) || Number(lot.sellerReserve) > Number(c.p75) || maxHistBid > Number(c.p75);
         box.innerHTML = `
           <div class="dSecHead">${L("Ориентир ставки")} <span class="histCountV1">${escapeHtml(title)}</span></div>
           <div class="statGridV1">
@@ -3299,7 +3374,10 @@
           <p class="statNoteV1">${L("Считаем от средней цены продаж этого кузова с поправкой на состояние лота: повреждения и на ходу ли машина. Это ориентир, а не гарантия — перед ставкой проверяем лот вручную.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
-        if(marketLine){ marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>`; marketLine.hidden = false; }
+        if(marketLine){
+          marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>${contradicted ? `<i class="marketLineWarnV1">${L("ставка выше ориентира")}</i>` : ""}`;
+          marketLine.hidden = false;
+        }
         return;
       }
       if(cr && cr.ok && cr.comps && cr.comps.count){
@@ -4660,25 +4738,7 @@
         event.stopPropagation();
         const card = slideBtn.closest(".dbPhoto");
         if(!card) return;
-        const lid = card.dataset.lid;
-        const lot = state.items.find(l => String(l.id) === String(lid));
-        if(!lot || !lot.images?.length) return;
-        const img = card.querySelector(".dbSlideImg");
-        const counter = card.querySelector(".dbPhotoCount");
-        const dir = parseInt(slideBtn.dataset.dir) || 1;
-        // В базе у лота хранятся только 4 фото (экономия места), а счётчик показывал 1/19 —
-        // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
-        if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length && lot.images.length < CARD_PHOTO_MAX){
-          lot._fullImgs = "loading";
-          api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
-            .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
-              const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`; })
-            .catch(() => { lot._fullImgs = "done"; });
-        }
-        let idx = parseInt(img?.dataset.slide || "0");
-        { const cnt = Math.min(CARD_PHOTO_MAX, lot.images.length); idx = (idx + dir + cnt) % cnt; }
-        if(img){ img.dataset.full = lot.images[idx]; img.src = cardImg(lot.images[idx]); img.dataset.slide = idx; }
-        if(counter) counter.textContent = `${idx + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`;
+        stepCardPhoto(card, parseInt(slideBtn.dataset.dir) || 1);
         return;
       }
       const copyEl = event.target.closest("[data-copy]");
