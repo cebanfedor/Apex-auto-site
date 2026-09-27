@@ -18,10 +18,12 @@
     /* Лёгкие копии фото (27.09.2026, сужено ещё раз вечером — 400 всё ещё «превышает контейнер»
        294×221): карточка ~294px, Copart теперь режется через Vercel Image (/_vercel/image,
        remotePattern в vercel.json) до 300 (реальный размер карточки); Supabase-рендер и
-       IAAI-resizer — тоже под неё. */
+       IAAI-resizer — тоже под неё.
+       ⚠️ Без height Supabase резал ТОЛЬКО ширину, высота оставалась от оригинала (300×960 вместо
+       300×225) — карточка через object-fit:cover показывала кусок колеса вместо машины (Nissan Ariya). */
   function photoSized(url, w){
-    var u = String(url || ""), width = w || 300;
-    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + width + "&quality=72";
+    var u = String(url || ""), width = w || 300, height = Math.round(width * 0.75);
+    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + width + "&height=" + height + "&resize=cover&quality=72";
     if(/cs\.copart\.com\//i.test(u)) return "/_vercel/image?url=" + encodeURIComponent(u.replace(/_hrs\.jpg/i, "_ful.jpg")) + "&w=" + width + "&q=75";
     if(/vis\.iaai\.com\/resizer/i.test(u)) return u.replace(/width=\d+/i, "width=" + width).replace(/height=\d+/i, "height=" + Math.round(width * 0.75));
     return u;

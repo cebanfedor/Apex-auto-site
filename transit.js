@@ -28,10 +28,13 @@
     return "/in-transit/" + [String(it.id), slugWords(it.title, 60), vin].filter(Boolean).join("-");
   }
 
-  /* Лёгкие копии фото: Supabase Storage — свой ресайз (241 КБ → ~80 КБ), Copart _hrs (250 КБ) → _ful (150 КБ) */
+  /* Лёгкие копии фото: Supabase Storage — свой ресайз (241 КБ → ~80 КБ), Copart _hrs (250 КБ) → _ful (150 КБ).
+     ⚠️ 27.09.2026: без height Supabase режет ТОЛЬКО ширину, высота остаётся от оригинала (300×960 вместо
+     300×225) — карточка через object-fit:cover показывала кусок колеса вместо всей машины. Везде на сайте
+     карточки 4:3 — считаем height = width×0.75 и явно просим resize=cover (кроп по центру, не растяжение). */
   function photoSized(url, w){
-    var u = String(url || "");
-    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + (w || 640) + "&quality=72";
+    var u = String(url || ""), width = w || 640, height = Math.round(width * 0.75);
+    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + width + "&height=" + height + "&resize=cover&quality=72";
     if(/cs\.copart\.com\/.*_hrs\.jpg/i.test(u)) return u.replace(/_hrs\.jpg/i, "_ful.jpg");
     return u;
   }
