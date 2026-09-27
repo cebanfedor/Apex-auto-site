@@ -4901,6 +4901,32 @@ module.exports = async function handler(request, response){
       sendJson(response, 200, out, {"cache-control":"no-store"});
       return;
     }
+    if(action === "cachetest"){
+      // 27.09.2026: после апгрейда Supabase проверяем, можно ли вернуть api_cache для search/archived
+      // (отключили 23.09 — большие ответы читались >2.5с и выбивали circuit breaker на 3 мин). Пишем/читаем
+      // синтетический блоб размером с реальный ответ каталога (~100 лотов с payload, замер CLAUDE.md ~1.5-2 МБ),
+      // затем удаляем — не мусорим таблицу. Диагностика, можно удалить.
+      const sizeKb = Math.max(1, Math.min(4000, Number(query.get("kb")) || 1800));
+      const oneLot = {id:"copart-99999999", title:"Test Lot For Cache Benchmark 2020 Toyota Camry XLE", vin:"1HGCM82633A123456", make:"Toyota", model:"Camry",
+        images:Array.from({length:14}, (_, i) => `https://cs.copart.com/v1/AUTH_svc.pdoc00001/ids-c-prod-lpp/0000/${"a".repeat(32)}_${i}_hrs.jpg`),
+        priceHistory:Array.from({length:8}, (_, i) => ({bid:15000 + i * 100, buyNow:0, date:new Date().toISOString(), status:"not_sold", timed:false, lot:""})),
+        description:"x".repeat(400)};
+      const perLotKb = Buffer.byteLength(JSON.stringify(oneLot), "utf8") / 1024;
+      const n = Math.max(1, Math.round(sizeKb / perLotKb));
+      const payload = {ok:true, items:Array.from({length:n}, () => oneLot), total:n};
+      const realKb = Math.round(Buffer.byteLength(JSON.stringify(payload), "utf8") / 1024);
+      const testKey = "cachetest_tmp_" + Date.now();
+      const out = {ok:true, sizeKb:realKb, items:n};
+      const t0 = Date.now();
+      try{ await setDbCache(testKey, payload, "search"); out.writeMs = Date.now() - t0; out.writeOk = true; }
+      catch(e){ out.writeMs = Date.now() - t0; out.writeOk = false; out.writeErr = String(e && e.message || e).slice(0, 150); }
+      const t1 = Date.now();
+      try{ const got = await getDbCache(testKey); out.readMs = Date.now() - t1; out.readOk = !!(got && got.items && got.items.length === n); }
+      catch(e){ out.readMs = Date.now() - t1; out.readOk = false; out.readErr = String(e && e.message || e).slice(0, 150); }
+      syncSbFetch(`/api_cache?cache_key=eq.${encodeURIComponent(testKey)}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
+      sendJson(response, 200, out, {"cache-control":"no-store"});
+      return;
+    }
     if(action === "feedcount"){
       const ck = "feedcount"; const c = getCached(ck);
       if(c){ sendJson(response, 200, c, {"cache-control":"no-store"}); return; }
