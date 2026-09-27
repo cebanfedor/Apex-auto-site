@@ -5007,11 +5007,12 @@ module.exports = async function handler(request, response){
     // по подушкам/ключам/пробегу. Даёт объективные множители вместо интуиции. Read-only, диагностика.
     if(action === "acvcalib"){
       const limit = Math.min(6000, Math.max(500, Number(query.get("limit")) || 3000));
+      const makeFilter = String(query.get("make_id") || "").replace(/[^0-9]/g, "");
       const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}};
       try{
         const rows = [];
         for(let off = 0; off < limit && rows.length === off; off += 1000){
-          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=not.is.null&order=synced_at.desc`,
+          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=${makeFilter ? "eq." + makeFilter : "not.is.null"}&order=synced_at.desc`,
             {headers:{range:`${off}-${off + 999}`, "range-unit":"items"}});
           if(!Array.isArray(page) || !page.length) break;
           rows.push(...page);
