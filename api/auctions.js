@@ -59,6 +59,48 @@ async function notifyTelegram(data){
   }catch(_){}
 }
 
+// ── Публикация лота в Telegram-канал (админ жмёт кнопку на странице лота) ──
+// Постит бот POST_BOT_TOKEN в канал POST_CHANNEL_ID (@fedukauto). Подпись и выбор
+// фото собирает клиент (там уже есть вилка/под-ключ), сервер только отправляет.
+async function tgApi(token, method, body){
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body)
+  });
+  const payload = await res.json().catch(() => null);
+  if(!payload || !payload.ok) throw new Error((payload && payload.description) || `Telegram HTTP ${res.status}`);
+  return payload.result;
+}
+// Разрешённые хосты фото (админ-only, но подстраховка от произвольных URL).
+const TG_PHOTO_HOSTS = /^https:\/\/([a-z0-9-]+\.)*(apexauto\.md|copart\.com|iaai\.com|import-motor\.com|lionwood\.software|w8shipping\.com)\//i;
+function tgChannelLink(chatId, messageId){
+  const u = String(chatId || "").replace(/^@/, "");
+  return (u && !/^-?\d/.test(u) && messageId) ? `https://t.me/${u}/${messageId}` : "";
+}
+async function postLotToChannel({caption, photos}){
+  const token = process.env.POST_BOT_TOKEN;
+  const chatId = process.env.POST_CHANNEL_ID;
+  if(!token || !chatId){ const e = new Error("Постинг не настроен: добавьте POST_BOT_TOKEN и POST_CHANNEL_ID в переменные окружения Vercel и передеплойте."); e.status = 400; throw e; }
+  const text = String(caption || "").trim();
+  const pics = (Array.isArray(photos) ? photos : []).filter(u => typeof u === "string" && TG_PHOTO_HOSTS.test(u)).slice(0, 10);
+  const CAP = 1024;
+  let first;
+  if(!pics.length){
+    if(!text){ const e = new Error("Пустой пост: нет ни текста, ни фото."); e.status = 400; throw e; }
+    first = await tgApi(token, "sendMessage", {chat_id:chatId, text:text.slice(0, 4096), parse_mode:"HTML", disable_web_page_preview:false});
+  }else if(pics.length === 1){
+    const capFits = text.length <= CAP;
+    first = await tgApi(token, "sendPhoto", {chat_id:chatId, photo:pics[0], caption:capFits ? text : "", parse_mode:"HTML"});
+    if(!capFits && text) await tgApi(token, "sendMessage", {chat_id:chatId, text:text.slice(0, 4096), parse_mode:"HTML"});
+  }else{
+    const capFits = text.length <= CAP;
+    const media = pics.map((url, i) => ({type:"photo", media:url, ...(i === 0 && capFits && text ? {caption:text, parse_mode:"HTML"} : {})}));
+    const arr = await tgApi(token, "sendMediaGroup", {chat_id:chatId, media});
+    first = Array.isArray(arr) ? arr[0] : arr;
+    if(!capFits && text) await tgApi(token, "sendMessage", {chat_id:chatId, text:text.slice(0, 4096), parse_mode:"HTML"});
+  }
+  return {messageId:first && first.message_id, link:tgChannelLink(chatId, first && first.message_id)};
+}
+
 // CACHE_VER бампается при изменении нормализации/сортировки: кеш хранит уже
 // обработанные ответы, и без этого старая выдача живёт до 6 часов.
 const CACHE_VER = "n6";
@@ -4868,6 +4910,37 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    // Проверка доступа к постингу в канал (только админ): настроен ли бот/канал и может ли бот писать.
+    if(action === "tgdiag"){
+      const {isAuthenticated} = require("../server/auth");
+      if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false}); return; }
+      const token = process.env.POST_BOT_TOKEN;
+      const chatId = process.env.POST_CHANNEL_ID;
+      const out = {ok:true, configured:Boolean(token && chatId), channel:chatId ? String(chatId).replace(/^@/, "") : null};
+      if(token && chatId){
+        try{ const me = await tgApi(token, "getMe", {}); out.bot = me && me.username; }catch(e){ out.botError = String(e.message || e).slice(0, 120); }
+        try{ const chat = await tgApi(token, "getChat", {chat_id:chatId}); out.channelTitle = chat && (chat.title || chat.username); }catch(e){ out.channelError = String(e.message || e).slice(0, 160); }
+        out.canPost = Boolean(out.bot && out.channelTitle && !out.channelError);
+      }
+      sendJson(response, 200, out);
+      return;
+    }
+
+    // Публикация лота в канал (только админ). Клиент шлёт готовые caption (HTML) и photos (URL).
+    if(action === "tgpost"){
+      const {requireAdmin} = require("../server/auth");
+      if(!requireAdmin(request, response)) return;
+      if(request.method !== "POST"){ methodNotAllowed(response, ["POST"]); return; }
+      try{
+        const body = await readBody(request);
+        const result = await postLotToChannel({caption:body.caption, photos:body.photos});
+        sendJson(response, 200, {ok:true, ...result});
+      }catch(error){
+        sendJson(response, error.status || 500, {ok:false, error:String(error.message || error).slice(0, 300)});
+      }
+      return;
+    }
+
     // История по VIN пачкой для карточек каталога (правило Федора: VIN — первичен, номер лота — второстепенен).
     // До 30 VIN за запрос, параллельно по 6, результат кэшируется 6ч (история меняется редко).
     // Живые ставка/резерв/статус продажи пачкой для карточек (≤30 id, параллельно по 6, кэш 2 мин).
@@ -5352,10 +5425,12 @@ module.exports = async function handler(request, response){
       const score = it => { const r = repairRatio(it); return (r == null ? 9 : r) * 1e6 - Number(it.year) * 1e3 + Math.min(Number(it.odometer) || 0, 300000) / 100; };
       const dbg = query.get("debug") ? {} : null;
       try{
-        // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
+        // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро, 4 = бензин.
         // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
         // марке (любое топливо). Сырые слова API не фильтрует → берём id.
-        const bases = [{fuel:"3"}, {fuel:"2"}, {make:"16"}];
+        // 28.09.2026 (Федор: «должно быть несколько лотов, меняются при обновлении») — раньше
+        // без бензина и с жёстким отсечением перекупа (см. ниже) на витрине часто оставалась 1 машина.
+        const bases = [{fuel:"3"}, {fuel:"2"}, {fuel:"4"}, {make:"16"}];
         const rawLists = await Promise.all(bases.map(b =>
           fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"150", auction:"all" })).then(r => r.items || []).catch(() => [])
         ));
@@ -5370,10 +5445,13 @@ module.exports = async function handler(request, response){
         }
         if(dbg) dbg.candTotal = cand.length;
         // «Впервые на аукционе»: сегмент почти весь перевыставлен, поэтому строго
-        // «ни разу не был» — редкость. Убираем УЖЕ ПРОДАННЫЕ ранее (перекуп/
-        // повторы), а из чистых ставим truly-first-time (нет прошлых торгов)
-        // вперёд, добирая «ни разу не проданными» (был выставлен, но не купили).
+        // «ни разу не был» — редкость. Ставим truly-first-time (нет прошлых торгов)
+        // вперёд, затем «ни разу не проданными» (был выставлен, не купили).
         // Историю тянем волнами (detail) с бюджетом 48 на всех (раз в 30 мин).
+        // ⚠️ 28.09.2026 (Федор): раньше уже ПРОДАВАВШИЕСЯ ранее (перекуп) жёстко выбрасывались —
+        // на проверке 27.09 это отсекало 17 из 18 кандидатов, прошедших фильтр по состоянию,
+        // и витрина часто схлопывалась до 1 машины. Теперь перекуп — ТРЕТИЙ, запасной уровень
+        // (используется, только если свежих не хватает до 24), а не жёсткое исключение.
         const classify = ph => {
           let sold = false, past = false;
           for(const h of (ph || [])){
@@ -5383,11 +5461,11 @@ module.exports = async function handler(request, response){
           }
           return { sold, first: !past };
         };
-        const firstTier = [], secondTier = [];
+        const firstTier = [], secondTier = [], thirdTier = [];
         let detailChecked = 0, detailFailed = 0, soldOut = 0;
         // Собираем ПУЛ до 24: клиент показывает случайные 8 на каждом заходе —
         // витрина меняется, а не висит одним набором. Бюджет detail — 72 на всех.
-        for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length) < 24; i += 12){
+        for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length + thirdTier.length) < 24; i += 12){
           const wave = await Promise.all(cand.slice(i, i + 12).map(it =>
             fetchDetail(shim({ auction: it.auction, lot: it.lot }))
               .then(d => attachVinHistory(d))                 // история ПО VIN, не по номеру лота
@@ -5397,14 +5475,15 @@ module.exports = async function handler(request, response){
           for(const r of wave){
             detailChecked++;
             if(!r){ detailFailed++; continue; }
-            if(r.c.sold){ soldOut++; continue; }             // уже продавалась — вон
+            if(r.c.sold){ soldOut++; thirdTier.push(r.it); continue; }   // уже продавалась — запасной пул
             (r.c.first ? firstTier : secondTier).push(r.it);
           }
         }
-        if(dbg){ dbg.detailChecked = detailChecked; dbg.detailFailed = detailFailed; dbg.soldOut = soldOut; dbg.firstTier = firstTier.length; dbg.secondTier = secondTier.length; }
-        // Итоговый пул — снова по минимальному ремонту (tier «впервые» лишь отсекает
-        // уже проданные; порядок задаёт repairCost / estimatedRetailValue).
-        const items = firstTier.concat(secondTier).sort((a, b) => score(a) - score(b)).slice(0, 24);
+        if(dbg){ dbg.detailChecked = detailChecked; dbg.detailFailed = detailFailed; dbg.soldOut = soldOut; dbg.firstTier = firstTier.length; dbg.secondTier = secondTier.length; dbg.thirdTier = thirdTier.length; }
+        // Итоговый пул: свежие (firstTier+secondTier) впереди, перекуп — только чтобы добрать до 24,
+        // если свежих не хватает. Внутри каждой группы — по минимальному ремонту/году/пробегу.
+        const bySc = arr => arr.sort((a, b) => score(a) - score(b));
+        const items = bySc(firstTier.concat(secondTier)).concat(bySc(thirdTier)).slice(0, 24);
         const payload = dbg ? {ok:true, items, dbg} : {ok:true, items};
         setCached(key, payload, 15 * 60 * 1000);
         sendJson(response, 200, payload, dbg ? {"cache-control":"no-store"} : SHOWCASE_EDGE);
