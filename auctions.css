@@ -1003,8 +1003,11 @@ body.leadModalOpenV1 { overflow:hidden; }
    «Очистить всё» раньше был белым на белом — терялась; теперь видимый серый контур. */
 .afSaveV1 { border:1px solid #c9d8f5; background:#f3f7ff; color:#1d4ed8; }
 .afSaveV1:hover { background:#e6eeff; border-color:#1d4ed8; }
-.afClearV1 { border:1px solid var(--aLine); background:var(--aSoft); color:var(--aInk2); }
-.afClearV1:hover { border-color:var(--aMuted); background:#e4e9f1; }
+/* var(--aSoft) фон сливался с фоном самой страницы вокруг панели фильтров (тот же светло-серый
+   тон) — кнопка «терялась» на второй строке при переносе. Белый фон + тёмно-серый контур не
+   зависят от того, что окажется вплотную рядом/сзади. */
+.afClearV1 { border:1px solid var(--aMuted); background:#fff; color:var(--aInk2); }
+.afClearV1:hover { border-color:var(--aInk); background:#f5f6f8; }
 .auctionTabsV1 button.savedTabV1 { color:#1d4ed8; border-color:#c9d8f5; background:#f3f7ff; }
 .auctionTabsV1 button.savedTabV1:hover { border-color:#1d4ed8; }
 .auctionTabsV1 button.savedTabV1.active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
