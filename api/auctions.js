@@ -4702,10 +4702,13 @@ module.exports = async function handler(request, response){
 
   // Supabase persistent cache — shared across all serverless instances.
   // Checked only for actions that consume the auctionsapi.com quota.
-  // 23.09.2026: search/archived ИСКЛЮЧЕНЫ — живой ответ каталога (100 лотов с payload) весил мегабайты, его чтение
+  // 23.09.2026: search ИСКЛЮЧИЛИ — живой ответ каталога (100 лотов с payload) весил мегабайты, его чтение
   // из api_cache шло >2.5с и выбивало circuit breaker на 3 мин для всех запросов (каталог уходил в live по кругу).
-  // Каталогу хватает памяти инстанса + CDN (s-maxage=180).
-  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics"]);
+  // 27.09.2026: Supabase апгрейднули с Micro — замер (?action=cachetest) записи/чтения синтетического блоба:
+  // 2.5 МБ пишется ~0.9-1с, читается ~0.3с, 4 параллельных операции разного размера — тоже без просадки.
+  // Вернули search — теперь холодные (другой инстанс/после рестарта) заходы с одинаковыми фильтрами не бьют
+  // по auctionsapi.com/DB заново в окне TTL (180с), только по CDN-кэшу (s-maxage=180) промахнуться сложнее.
+  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics","search"]);
   // Словарь повреждений теперь статический (не тратит квоту API) — Supabase-кэш
   // для него лишний round-trip, пропускаем (memory + edge-кэш достаточно). P3-16.
   const isStaticDamages = action === "usadict" && String(query.get("dict") || "").toLowerCase() === "damages";
@@ -4898,32 +4901,6 @@ module.exports = async function handler(request, response){
       out.rangePlanned = await timed(q, {prefer:"count=planned", range:"0-0", "range-unit":"items"});
       out.plan = await timed(q, {accept:"application/vnd.pgrst.plan+text; options=analyze"});
       out.planAll = await timed(`/api_lots?select=id&archived=eq.false&and=(sale_date.gte.${grace},or(status_id.neq.6,status_id.is.null),or(country.neq.kr,country.is.null))&order=sale_date.asc,id.asc&limit=1`, {accept:"application/vnd.pgrst.plan+text; options=analyze"});
-      sendJson(response, 200, out, {"cache-control":"no-store"});
-      return;
-    }
-    if(action === "cachetest"){
-      // 27.09.2026: после апгрейда Supabase проверяем, можно ли вернуть api_cache для search/archived
-      // (отключили 23.09 — большие ответы читались >2.5с и выбивали circuit breaker на 3 мин). Пишем/читаем
-      // синтетический блоб размером с реальный ответ каталога (~100 лотов с payload, замер CLAUDE.md ~1.5-2 МБ),
-      // затем удаляем — не мусорим таблицу. Диагностика, можно удалить.
-      const sizeKb = Math.max(1, Math.min(4000, Number(query.get("kb")) || 1800));
-      const oneLot = {id:"copart-99999999", title:"Test Lot For Cache Benchmark 2020 Toyota Camry XLE", vin:"1HGCM82633A123456", make:"Toyota", model:"Camry",
-        images:Array.from({length:14}, (_, i) => `https://cs.copart.com/v1/AUTH_svc.pdoc00001/ids-c-prod-lpp/0000/${"a".repeat(32)}_${i}_hrs.jpg`),
-        priceHistory:Array.from({length:8}, (_, i) => ({bid:15000 + i * 100, buyNow:0, date:new Date().toISOString(), status:"not_sold", timed:false, lot:""})),
-        description:"x".repeat(400)};
-      const perLotKb = Buffer.byteLength(JSON.stringify(oneLot), "utf8") / 1024;
-      const n = Math.max(1, Math.round(sizeKb / perLotKb));
-      const payload = {ok:true, items:Array.from({length:n}, () => oneLot), total:n};
-      const realKb = Math.round(Buffer.byteLength(JSON.stringify(payload), "utf8") / 1024);
-      const testKey = "cachetest_tmp_" + Date.now();
-      const out = {ok:true, sizeKb:realKb, items:n};
-      const t0 = Date.now();
-      try{ await setDbCache(testKey, payload, "search"); out.writeMs = Date.now() - t0; out.writeOk = true; }
-      catch(e){ out.writeMs = Date.now() - t0; out.writeOk = false; out.writeErr = String(e && e.message || e).slice(0, 150); }
-      const t1 = Date.now();
-      try{ const got = await getDbCache(testKey); out.readMs = Date.now() - t1; out.readOk = !!(got && got.items && got.items.length === n); }
-      catch(e){ out.readMs = Date.now() - t1; out.readOk = false; out.readErr = String(e && e.message || e).slice(0, 150); }
-      syncSbFetch(`/api_cache?cache_key=eq.${encodeURIComponent(testKey)}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
       sendJson(response, 200, out, {"cache-control":"no-store"});
       return;
     }
@@ -5474,7 +5451,9 @@ module.exports = async function handler(request, response){
       const payload = {ok:true,...result,items:sortItems(result.items, query.get("sort") || "soon", {pastTab}), ...(dbErr ? {_dbErr:dbErr} : {}), ...(!result._source && !sbUp() ? {_dbDown:true} : {}), ...(query.get("debug") ? {_t:searchFromDb.t} : {})};
       // Fallback results cached briefly; real results cached 6h in Supabase.
       setCached(key, payload, result._fallback ? 90 * 1000 : 3 * 60 * 1000);
-      // api_cache для search не пишем (см. dbCacheActions).
+      // 27.09.2026: api_cache для search вернули (см. комментарий у dbCacheActions) — но только для
+      // настоящих DB-ответов (не live-фолбэк и не при dbErr), чтобы не законсервировать деградацию.
+      if(!result._fallback && !dbErr) setDbCache(key, payload, "search");
       sendJson(response, 200, payload);
       return;
     }
