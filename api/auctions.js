@@ -3015,6 +3015,44 @@ function computeComps(rows, meta){
   };
 }
 
+// Самодиагностика «Ориентира ставки» (27.09.2026, Федор): ставка/резерв/прошлый раунд торгов
+// оказались выше верха вилки — рынок ориентир опроверг. Сохраняем строку с диагностикой (локация,
+// документы, пробег, ACV, источник оценки — всё, что уже есть в параметрах запроса), чтобы потом
+// периодически смотреть, где формула систематически занижает, и точечно править коэффициенты.
+// Fire-and-forget: таблица может быть ещё не создана (миграция не выполнена) — тогда просто молчим,
+// ответ пользователю это никогда не блокирует и не портит.
+async function logGuideMiss(q, {src, band, observed, observedSrc}){
+  try{
+    const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+    await supabase.upsert("guide_miss", {
+      lot_id:String(q.get("lot_id") || "").slice(0, 80) || null,
+      auction:String(q.get("auction") || "").slice(0, 10) || null,
+      make:String(q.get("make_name") || "").slice(0, 60) || null,
+      model:String(q.get("model_name") || "").slice(0, 60) || null,
+      make_id:num(q.get("manufacturer_id") || q.get("make_id")),
+      model_id:num(q.get("model_id")),
+      year:num(q.get("year")),
+      generation:String(q.get("gen") || "").slice(0, 80) || null,
+      fuel:String(q.get("fuel_x") || q.get("fuel") || "").slice(0, 20) || null,
+      odometer:num(q.get("odometer")),
+      condition:String(q.get("cond") || "").slice(0, 60) || null,
+      damage:String(q.get("dmg") || "").slice(0, 60) || null,
+      damage2:String(q.get("dmg2") || "").slice(0, 60) || null,
+      document:String(q.get("doc") || "").slice(0, 60) || null,
+      state_code:String(q.get("state") || "").slice(0, 10) || null,
+      location:String(q.get("loc") || "").slice(0, 100) || null,
+      acv:num(q.get("acv")),
+      src:String(src || "").slice(0, 20) || null,
+      band_lo:num(band?.lo),
+      band_hi:num(band?.hi),
+      observed_value:num(observed),
+      observed_source:String(observedSrc || "").slice(0, 20) || null,
+      delta_pct:band?.hi > 0 ? Math.round((observed / band.hi - 1) * 1000) / 10 : null,
+      seen_at:new Date().toISOString()
+    }, "lot_id");
+  }catch(e){ /* таблицы ещё нет или сбой записи — диагностика необязательна, не мешаем основному ответу */ }
+}
+
 // Ориентир ставки по одному лоту, из объекта-like-URLSearchParams (q.get(key)) — используется и
 // одиночным action=comps, и пачкой action=compsbatch (см. ниже), чтобы не дублировать логику.
 async function computeCompsForQ(q){
@@ -3071,7 +3109,19 @@ async function computeCompsForQ(q){
         if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
       }
     }
-    if(band) return {guide:true, src, p25:band.lo, p75:band.hi, median:band.mid, trueMedian:band.mid, count:0, match:{gen:true, fuel:true}};
+    if(band){
+      // Ставка/резерв продавца/прошлый раунд торгов из истории лота уже выше верха вилки —
+      // рынок ориентир опроверг (см. logGuideMiss выше). На странице лота цифру не прячем,
+      // а помечаем «ставка выше ориентира» (Федор 27.09.2026) — заодно логируем для разбора.
+      const bidQ = Number(q.get("bid")) || 0, reserveQ = Number(q.get("reserve")) || 0, histQ = Number(q.get("histbid")) || 0;
+      let observed = 0, observedSrc = "";
+      if(bidQ > observed){ observed = bidQ; observedSrc = "bid"; }
+      if(reserveQ > observed){ observed = reserveQ; observedSrc = "reserve"; }
+      if(histQ > observed){ observed = histQ; observedSrc = "history"; }
+      const contradicted = observed > 0 && observed > band.hi;
+      if(contradicted) logGuideMiss(q, {src, band, observed, observedSrc}).catch(() => {});
+      return {guide:true, src, p25:band.lo, p75:band.hi, median:band.mid, trueMedian:band.mid, count:0, match:{gen:true, fuel:true}, contradicted};
+    }
   }catch(e){ /* ориентир не получился — ниже прежняя оценка по похожим продажам */ }
   try{
     const rows = await fetchSoldComps(makeId, modelId);
@@ -5191,6 +5241,39 @@ module.exports = async function handler(request, response){
           inside10:gIn10.length ? Math.round(gIn10.reduce((x, y) => x + y, 0) / gIn10.length * 100) : null,
           inside15:gIn15.length ? Math.round(gIn15.reduce((x, y) => x + y, 0) / gIn15.length * 100) : null,
           inside20:gIn20.length ? Math.round(gIn20.reduce((x, y) => x + y, 0) / gIn20.length * 100) : null}}, {"cache-control":"no-store"});
+      return;
+    }
+
+    // Отчёт по самодиагностике «Ориентира ставки» (27.09.2026, таблица guide_miss из logGuideMiss выше):
+    // где реальная ставка/резерв/прошлый раунд систематически выше вилки — по маркам/моделям и по штату,
+    // чтобы точечно смотреть, что править в server/price-guide.js. Числа — только уже публичные band_lo/hi,
+    // ничего из закрытой таблицы Федора. ?limit (по умолчанию 200, до 1000), ?make_id, ?model_id, ?state, ?order=delta.
+    if(action === "missdiag"){
+      try{
+        const params = {order:"seen_at.desc", limit:String(Math.min(1000, Math.max(1, Number(query.get("limit")) || 200)))};
+        const makeIdF = String(query.get("make_id") || "").replace(/[^0-9]/g, "");
+        const modelIdF = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+        if(makeIdF) params.make_id = `eq.${makeIdF}`;
+        if(modelIdF) params.model_id = `eq.${modelIdF}`;
+        if(query.get("state")) params.state_code = `eq.${String(query.get("state")).toUpperCase().slice(0, 10)}`;
+        if(String(query.get("order") || "") === "delta") params.order = "delta_pct.desc.nullslast";
+        const rows = await supabase.list("guide_miss", params);
+        const byModel = {}, byState = {};
+        for(const r of rows){
+          const mk = `${r.make || "?"} ${r.model || "?"}`;
+          if(!byModel[mk]) byModel[mk] = {make:r.make, model:r.model, make_id:r.make_id, model_id:r.model_id, count:0, deltas:[]};
+          byModel[mk].count++;
+          if(Number.isFinite(r.delta_pct)) byModel[mk].deltas.push(r.delta_pct);
+          const sc = r.state_code || "?";
+          if(!byState[sc]) byState[sc] = {state:sc, count:0};
+          byState[sc].count++;
+        }
+        const avg = a => a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length * 10) / 10 : null;
+        const byModelList = Object.values(byModel).map(g => ({make:g.make, model:g.model, make_id:g.make_id, model_id:g.model_id, count:g.count, avgDeltaPct:avg(g.deltas)}))
+          .sort((a, b) => b.count - a.count);
+        const byStateList = Object.values(byState).sort((a, b) => b.count - a.count);
+        sendJson(response, 200, {ok:true, total:rows.length, byModel:byModelList, byState:byStateList, rows}, {"cache-control":"no-store"});
+      }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 200)}); }
       return;
     }
 
