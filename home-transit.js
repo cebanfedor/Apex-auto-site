@@ -15,11 +15,15 @@
   var sec = document.getElementById("homeTransitV1");
   var grid = document.getElementById("homeTransitGridV1");
   if(!sec || !grid) return;
-    /* Лёгкие копии фото: Supabase Storage — свой ресайз (241 КБ → ~80 КБ), Copart _hrs (250 КБ) → _ful (150 КБ) */
+    /* Лёгкие копии фото (27.09.2026): карточка ~294px — раньше Copart отдавал даже в _ful 900×680+
+       (PageSpeed: до 93% байт фото — «трата»), а Supabase-рендер шёл на 640 при видимых ~294px.
+       Copart теперь режется через Vercel Image (/_vercel/image, remotePattern в vercel.json) до
+       реального размера карточки; Supabase-рендер и IAAI-resizer — тоже под неё (400 вместо 640/480). */
   function photoSized(url, w){
-    var u = String(url || "");
-    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + (w || 640) + "&quality=72";
-    if(/cs\.copart\.com\/.*_hrs\.jpg/i.test(u)) return u.replace(/_hrs\.jpg/i, "_ful.jpg");
+    var u = String(url || ""), width = w || 400;
+    if(/\.supabase\.co\/storage\/v1\/object\/public\//.test(u)) return u.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") + "?width=" + width + "&quality=72";
+    if(/cs\.copart\.com\//i.test(u)) return "/_vercel/image?url=" + encodeURIComponent(u.replace(/_hrs\.jpg/i, "_ful.jpg")) + "&w=" + width + "&q=75";
+    if(/vis\.iaai\.com\/resizer/i.test(u)) return u.replace(/width=\d+/i, "width=" + width).replace(/height=\d+/i, "height=" + Math.round(width * 0.75));
     return u;
   }
 function esc(s){
@@ -45,7 +49,7 @@ function esc(s){
     var chips = [fmtKm(it.mileage), fmtFuel(it.fuel), it.damage].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
     return '<a class="transitCardV1" href="' + transitHref(it) + '">'
       + '<div class="transitCardImgV1">'
-        + (it.photos[0] ? '<img src="' + esc(photoSized(it.photos[0], 640)) + '" alt="' + esc(it.title) + '" width="640" height="480" loading="lazy" decoding="async" data-fb="' + esc(it.photos[0]) + '">' : '<div class="transitNoImgV1"></div>')
+        + (it.photos[0] ? '<img src="' + esc(photoSized(it.photos[0], 400)) + '" alt="' + esc(it.title) + '" width="400" height="300" loading="lazy" decoding="async" data-fb="' + esc(it.photos[0]) + '">' : '<div class="transitNoImgV1"></div>')
         + '<span class="transitBadgeV1">' + esc(T("В пути")) + '</span>'
       + '</div>'
       + '<div class="transitCardBodyV1">'

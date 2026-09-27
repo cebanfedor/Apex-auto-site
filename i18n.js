@@ -12,6 +12,12 @@
   }
 
   function getLang(){
+    // ВАЖНО (27.09.2026): без auto-detect по navigator.language — сайт RU-первый (каноникал/<html lang>/OG
+    // всегда RU для "/"), а у Googlebot/Lighthouse/большинства ботов navigator.language по умолчанию en-US.
+    // Автопереключение на английский по языку браузера у первого визита без explicit ?lang= отдавало
+    // ботам и части реальных не-RU пользователей английский текст под русским каноникалом (мисматч для
+    // индексации) и давало вспышку RU→EN после отрисовки (несовпадение с pre-paint проверкой в <head>,
+    // которая тоже смотрит только query+localStorage). Язык меняется ТОЛЬКО явным выбором (?lang= или свитчер).
     const params = new URLSearchParams(window.location.search);
     const queryLang = normalizeLang(params.get("lang"));
     if(queryLang) return queryLang;
@@ -19,13 +25,6 @@
     const savedLang = normalizeLang(localStorage.getItem(STORAGE_KEY));
     if(savedLang) return savedLang;
 
-    const browserLangs = Array.isArray(navigator.languages) && navigator.languages.length
-      ? navigator.languages
-      : [navigator.language];
-    for(const item of browserLangs){
-      const lang = normalizeLang(item);
-      if(lang) return lang;
-    }
     return DEFAULT_LANG;
   }
 
