@@ -2146,6 +2146,54 @@
     const cnt = ph.querySelector(".dbPhotoCount"); if(cnt) cnt.textContent = `${i + 1}/${total}`;
     const bar = ph.querySelector(".dbPhotoBarV1 i"); if(bar){ bar.style.width = (100 / total).toFixed(3) + "%"; bar.style.left = (i * 100 / total).toFixed(3) + "%"; }
   }
+  // Листание фото карточки (стрелки + свайп на телефоне) на шаг dir (-1/1).
+  function stepCardPhoto(card, dir){
+    const lid = card.dataset.lid;
+    const lot = state.items.find(l => String(l.id) === String(lid));
+    if(!lot || !lot.images?.length) return;
+    const img = card.querySelector(".dbSlideImg");
+    const counter = card.querySelector(".dbPhotoCount");
+    // В базе у лота хранятся только 4 фото (экономия места), а счётчик показывал 1/19 —
+    // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
+    if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length && lot.images.length < CARD_PHOTO_MAX){
+      lot._fullImgs = "loading";
+      api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
+        .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
+          const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`; })
+        .catch(() => { lot._fullImgs = "done"; });
+    }
+    let idx = parseInt(img?.dataset.slide || "0");
+    { const cnt = Math.min(CARD_PHOTO_MAX, lot.images.length); idx = (idx + dir + cnt) % cnt; }
+    if(img){ img.dataset.full = lot.images[idx]; img.src = cardImg(lot.images[idx]); img.dataset.slide = idx; }
+    if(counter) counter.textContent = `${idx + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`;
+  }
+  // Свайп по фото карточки на телефоне: тач без стрелочек. Обычный тап (без движения) —
+  // навигация на лот как раньше; после распознанного свайпа клик по .dbPhotoLink отменяем,
+  // чтобы вместо смены фото не улетать на страницу лота.
+  let cardSwipePh = null, cardSwipeX = 0, cardSwipeY = 0, cardSwipeMoved = false, cardSwipeAt = 0;
+  document.addEventListener("touchstart", e => {
+    const ph = e.target.closest && e.target.closest("#auctionCards .dbPhoto");
+    if(!ph || !e.touches[0] || e.touches.length !== 1){ cardSwipePh = null; return; }
+    cardSwipePh = ph; cardSwipeX = e.touches[0].clientX; cardSwipeY = e.touches[0].clientY; cardSwipeMoved = false;
+  }, {passive:true});
+  document.addEventListener("touchmove", e => {
+    if(!cardSwipePh || !e.touches[0]) return;
+    if(Math.abs(e.touches[0].clientX - cardSwipeX) > 10 || Math.abs(e.touches[0].clientY - cardSwipeY) > 10) cardSwipeMoved = true;
+  }, {passive:true});
+  document.addEventListener("touchend", e => {
+    if(!cardSwipePh || !cardSwipeMoved || !e.changedTouches[0]) { cardSwipePh = null; return; }
+    const card = cardSwipePh; cardSwipePh = null;
+    const dx = e.changedTouches[0].clientX - cardSwipeX, dy = e.changedTouches[0].clientY - cardSwipeY;
+    if(Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.3){
+      cardSwipeAt = Date.now();
+      stepCardPhoto(card, dx < 0 ? 1 : -1);
+    }
+  }, {passive:true});
+  document.addEventListener("click", e => {
+    if(Date.now() - cardSwipeAt >= 500) return;
+    const link = e.target.closest && e.target.closest("#auctionCards .dbPhotoLink");
+    if(link){ e.preventDefault(); e.stopPropagation(); }
+  }, true);
   const noScrub = t => t.closest(".dbFav, .dbBell, .dbSlideBtn, .dbResoldV1, [data-sold-warn]");
   document.addEventListener("mouseover", e => {
     if(!finePointer()) return;
@@ -4660,25 +4708,7 @@
         event.stopPropagation();
         const card = slideBtn.closest(".dbPhoto");
         if(!card) return;
-        const lid = card.dataset.lid;
-        const lot = state.items.find(l => String(l.id) === String(lid));
-        if(!lot || !lot.images?.length) return;
-        const img = card.querySelector(".dbSlideImg");
-        const counter = card.querySelector(".dbPhotoCount");
-        const dir = parseInt(slideBtn.dataset.dir) || 1;
-        // В базе у лота хранятся только 4 фото (экономия места), а счётчик показывал 1/19 —
-        // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
-        if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length && lot.images.length < CARD_PHOTO_MAX){
-          lot._fullImgs = "loading";
-          api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
-            .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
-              const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`; })
-            .catch(() => { lot._fullImgs = "done"; });
-        }
-        let idx = parseInt(img?.dataset.slide || "0");
-        { const cnt = Math.min(CARD_PHOTO_MAX, lot.images.length); idx = (idx + dir + cnt) % cnt; }
-        if(img){ img.dataset.full = lot.images[idx]; img.src = cardImg(lot.images[idx]); img.dataset.slide = idx; }
-        if(counter) counter.textContent = `${idx + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`;
+        stepCardPhoto(card, parseInt(slideBtn.dataset.dir) || 1);
         return;
       }
       const copyEl = event.target.closest("[data-copy]");
