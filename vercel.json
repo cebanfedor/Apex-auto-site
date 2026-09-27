@@ -4,7 +4,7 @@
     "api/og.js": { "maxDuration": 25 }
   },
   "images": {
-    "sizes": [160, 400, 640, 960, 1600],
+    "sizes": [160, 300, 400, 640, 960, 1600],
     "qualities": [75],
     "formats": ["image/webp"],
     "minimumCacheTTL": 31536000,

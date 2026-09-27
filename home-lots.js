@@ -60,11 +60,12 @@
   function card(it) {
     var title = it.title || [it.year, it.make, it.model].filter(Boolean).join(" ");
     var img = it.image || "";
-    // Карточка ~297px (27.09.2026, PageSpeed: раньше даже _ful — 900×680+, 93% байт фото «трата»):
-    // IAAI 1280×960 → 380×285 через их же resizer; Copart — через Vercel Image (remotePattern в
+    // Карточка ~297px (27.09.2026, PageSpeed: раньше даже _ful — 900×680+, 93% байт фото «трата»;
+    // 27.09 вечер — даже 400×300 давал «превышает контейнер 297×223», сузили до 300×225):
+    // IAAI 1280×960 → 300×225 через их же resizer; Copart — через Vercel Image (remotePattern в
     // vercel.json) до реального размера карточки, не просто _hrs→_ful (тот всё ещё в разы больше).
-    if(/vis\.iaai\.com\/resizer/i.test(img)) img = img.replace(/width=\d+/i, "width=380").replace(/height=\d+/i, "height=285");
-    else if(/cs\.copart\.com\//i.test(img)) img = "/_vercel/image?url=" + encodeURIComponent(img.replace(/_hrs\.jpg/i, "_ful.jpg")) + "&w=400&q=75";
+    if(/vis\.iaai\.com\/resizer/i.test(img)) img = img.replace(/width=\d+/i, "width=300").replace(/height=\d+/i, "height=225");
+    else if(/cs\.copart\.com\//i.test(img)) img = "/_vercel/image?url=" + encodeURIComponent(img.replace(/_hrs\.jpg/i, "_ful.jpg")) + "&w=300&q=75";
     var auc = (it.auction || "").toUpperCase();
     var p = price(it);
     var km = kmFromMi(it.odometer);
@@ -73,7 +74,7 @@
     return (
       '<a class="homeLotCardV1" href="/auctions/' + esc(it.auction && it.lot ? lotSlugV(it) : it.id) + '">' +
       '<div class="homeLotImgV1">' +
-      (img ? '<img src="' + esc(img) + '" alt="' + esc(title) + '" width="380" height="285" loading="lazy" onerror="this.style.display=\'none\'">' : "") +
+      (img ? '<img src="' + esc(img) + '" alt="' + esc(title) + '" width="300" height="225" loading="lazy" onerror="this.style.display=\'none\'">' : "") +
       (p ? '<span class="homeLotPriceV1"><small>' + esc(T(p.label)) + "</small> " + esc(money(p.v)) + "</span>"
          : '<span class="homeLotPriceV1 homeLotNoBidV1">' + esc(T("Ставок пока нет")) + "</span>") +
       (auc ? '<span class="homeLotAucV1">' + esc(auc) + "</span>" : "") +
