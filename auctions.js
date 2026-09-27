@@ -1497,6 +1497,16 @@
     if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(Math.round(lot.estimatedRetailValue)));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
+    // Самодиагностика (guide_miss): чтобы сервер видел, когда реальная ставка/резерв/прошлый раунд
+    // выше вилки, и мог залогировать локацию/штат/пробег для будущей правки формулы.
+    if(lot.id != null) cp.set("lot_id", `${String(lot.auction || "").toLowerCase()}-${lot.id}`.slice(0, 80));
+    if(lot.auction) cp.set("auction", String(lot.auction).slice(0, 10));
+    if(Number(lot.currentBid) > 0) cp.set("bid", String(Math.round(lot.currentBid)));
+    if(Number(lot.sellerReserve) > 0) cp.set("reserve", String(Math.round(lot.sellerReserve)));
+    const maxHistBid = Array.isArray(lot.priceHistory) ? Math.max(0, ...lot.priceHistory.map(h => Number(h && h.bid) || 0)) : 0;
+    if(maxHistBid > 0) cp.set("histbid", String(Math.round(maxHistBid)));
+    if(lot.stateCode) cp.set("state", String(lot.stateCode).slice(0, 10));
+    if(lot.location) cp.set("loc", String(lot.location).slice(0, 80));
     return cp;
   }
   const compsCache = {};
