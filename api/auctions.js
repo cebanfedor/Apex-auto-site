@@ -5251,21 +5251,25 @@ module.exports = async function handler(request, response){
       };
       const repairOk = it => { const r = repairRatio(it); return r == null || r <= REPAIR_MAX; };
       const score = it => { const r = repairRatio(it); return (r == null ? 9 : r) * 1e6 - Number(it.year) * 1e3 + Math.min(Number(it.odometer) || 0, 300000) / 100; };
+      const dbg = query.get("debug") ? {} : null;
       try{
         // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
         // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
         // марке (любое топливо). Сырые слова API не фильтрует → берём id.
         const bases = [{fuel:"3"}, {fuel:"2"}, {make:"16"}];
-        const lists = await Promise.all(bases.map(b =>
-          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"150", auction:"all" }))
-            .then(r => (r.items || []).filter(cheapOk).sort((a, b) => score(a) - score(b))).catch(() => [])
+        const rawLists = await Promise.all(bases.map(b =>
+          fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"150", auction:"all" })).then(r => r.items || []).catch(() => [])
         ));
+        if(dbg) dbg.raw = rawLists.map(l => l.length);
+        const lists = rawLists.map(l => l.filter(cheapOk).sort((a, b) => score(a) - score(b)));
+        if(dbg) dbg.afterCheapOk = lists.map(l => l.length);
         // Round-robin: перемешиваем гибрид/PHEV/электро/BMW, чтобы витрина не
         // забивалась одной маркой; дедуп по id.
         const seen = new Set(), cand = [];
         for(let i = 0; i < 150; i++){
           for(const l of lists){ const it = l[i]; if(it && !seen.has(it.id)){ seen.add(it.id); cand.push(it); } }
         }
+        if(dbg) dbg.candTotal = cand.length;
         // «Впервые на аукционе»: сегмент почти весь перевыставлен, поэтому строго
         // «ни разу не был» — редкость. Убираем УЖЕ ПРОДАННЫЕ ранее (перекуп/
         // повторы), а из чистых ставим truly-first-time (нет прошлых торгов)
@@ -5281,6 +5285,7 @@ module.exports = async function handler(request, response){
           return { sold, first: !past };
         };
         const firstTier = [], secondTier = [];
+        let detailChecked = 0, detailFailed = 0, soldOut = 0;
         // Собираем ПУЛ до 24: клиент показывает случайные 8 на каждом заходе —
         // витрина меняется, а не висит одним набором. Бюджет detail — 72 на всех.
         for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length) < 24; i += 12){
@@ -5291,18 +5296,21 @@ module.exports = async function handler(request, response){
               .catch(() => null)
           ));
           for(const r of wave){
-            if(!r || r.c.sold) continue;                 // уже продавалась — вон
+            detailChecked++;
+            if(!r){ detailFailed++; continue; }
+            if(r.c.sold){ soldOut++; continue; }             // уже продавалась — вон
             (r.c.first ? firstTier : secondTier).push(r.it);
           }
         }
+        if(dbg){ dbg.detailChecked = detailChecked; dbg.detailFailed = detailFailed; dbg.soldOut = soldOut; dbg.firstTier = firstTier.length; dbg.secondTier = secondTier.length; }
         // Итоговый пул — снова по минимальному ремонту (tier «впервые» лишь отсекает
         // уже проданные; порядок задаёт repairCost / estimatedRetailValue).
         const items = firstTier.concat(secondTier).sort((a, b) => score(a) - score(b)).slice(0, 24);
-        const payload = {ok:true, items};
+        const payload = dbg ? {ok:true, items, dbg} : {ok:true, items};
         setCached(key, payload, 15 * 60 * 1000);
-        sendJson(response, 200, payload, SHOWCASE_EDGE);
+        sendJson(response, 200, payload, dbg ? {"cache-control":"no-store"} : SHOWCASE_EDGE);
       }catch(e){
-        sendJson(response, 200, {ok:true, items:[]}, SHOWCASE_EDGE);
+        sendJson(response, 200, {ok:true, items:[], dbgErr: dbg ? String(e && e.message || e).slice(0,200) : undefined}, {"cache-control":"no-store"});
       }
       return;
     }
