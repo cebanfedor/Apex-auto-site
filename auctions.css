@@ -997,14 +997,14 @@ body.leadModalOpenV1 { overflow:hidden; }
 .afChipV1:hover { background:#dde5f0; }
 .afChipV1:hover span { color:#ed0012; }
 .afSaveV1, .afClearV1 { padding:8px 14px; border-radius:999px; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; }
-/* 28.09.2026 (Федор: «сделай функцию заметнее, по типу DreamBid») — «Сохранить поиск» (локальная
-   закладка, второстепенно) раньше был залит основным красным, а «Уведомлять о новых» (реальная
-   ценность — Telegram-алерт на новые лоты) — блёклый синий чип, на телефоне вовсе схлопывался в
-   иконку без подписи. Поменял местами вес: колокольчик теперь основной акцент, «Сохранить» — контур. */
-.afSaveV1 { border:1px solid var(--aLine); background:#fff; color:var(--aInk2); }
-.afSaveV1:hover { border-color:var(--aMuted); }
-.afClearV1 { border:1px solid var(--aLine); background:#fff; color:var(--aInk2); }
-.afClearV1:hover { border-color:var(--aMuted); }
+/* 28.09.2026 (Федор): обе кнопки — «Сохранить поиск» и «Уведомлять о новых» — должны выделяться,
+   не только одна из них. Оба цветным контуром (не заливкой): «Сохранить» — синий (как было раньше
+   у колокольчика, ему понравился этот стиль), «Уведомлять» — красный контур (см. .afBellV1 ниже).
+   «Очистить всё» раньше был белым на белом — терялась; теперь видимый серый контур. */
+.afSaveV1 { border:1px solid #c9d8f5; background:#f3f7ff; color:#1d4ed8; }
+.afSaveV1:hover { background:#e6eeff; border-color:#1d4ed8; }
+.afClearV1 { border:1px solid var(--aLine); background:var(--aSoft); color:var(--aInk2); }
+.afClearV1:hover { border-color:var(--aMuted); background:#e4e9f1; }
 .auctionTabsV1 button.savedTabV1 { color:#1d4ed8; border-color:#c9d8f5; background:#f3f7ff; }
 .auctionTabsV1 button.savedTabV1:hover { border-color:#1d4ed8; }
 .auctionTabsV1 button.savedTabV1.active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
@@ -1016,9 +1016,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .svDelV1:hover { background:#fff0f0; color:#ed0012; }
 .svEmptyV1 { margin:0; padding:6px 4px; font-size:13px; color:var(--aMuted); }
 
-.afBellV1 { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border:1px solid #ed0012; border-radius:999px; background:#ed0012; color:#fff; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; box-shadow:0 2px 10px rgba(237,0,18,.25); }
+.afBellV1 { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border:1px solid #ed0012; border-radius:999px; background:#ffe9ea; color:#ed0012; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; }
 .afBellV1 .dbIco { width:15px; height:15px; }
-.afBellV1:hover { background:#c9000f; }
+.afBellV1:hover { background:#ffd9db; border-color:#c9000f; }
 .dbBell { position:absolute; right:46px; top:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.92); color:var(--aInk2); cursor:pointer; transition:color .15s, transform .1s; }
 .dbBell:hover { color:#1d4ed8; transform:scale(1.06); }
 .dbBell.is-on { color:#1d4ed8; }
@@ -1376,7 +1376,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .afSaveV1, .afBellV1, .afClearV1 { height:40px; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; }
   .afBellV1 { order:10; flex:1 1 100%; font-size:14px; }
   .afSaveV1 { order:11; flex:1 1 auto; }
-  .afClearV1 { order:12; flex:none; border-color:transparent; background:transparent; color:var(--aMuted); padding:0 8px; }
+  .afClearV1 { order:12; flex:none; padding:0 10px; }
 
   /* --- Страница лота: короткая шапка --- */
   .detailTopRowV1 { margin-bottom:6px; }
