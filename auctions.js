@@ -1469,6 +1469,9 @@
     if(lot.year) cp.set("year", String(lot.year));
     if(lot.odometer) cp.set("odometer", String(lot.odometer));
     if(lot.fuel) cp.set("fuel", String(lot.fuel));
+    // fuel_x — реальный тип по VIN (см. attachPowertrain): фид часто путает гибрид/plug-in/mild-hybrid
+    // (Mazda CX-90, Audi A4 и т.п.) — сервер предпочитает его сырому lot.fuel при подборе похожих продаж.
+    if(lot.fuelKind) cp.set("fuel_x", String(lot.fuelKind));
     if(lot.generationId) cp.set("generation_id", String(lot.generationId));
     const ci = conditionInfo(lot.condition);
     const runFlag = ci.tone === "good" ? "1" : ci.tone === "bad" ? "0" : "";

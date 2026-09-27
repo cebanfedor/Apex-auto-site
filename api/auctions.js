@@ -2758,7 +2758,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return null;
   const p = new URLSearchParams();
-  p.set("select", "auction,year,fuel_id,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date,acv:payload->>estimatedRetailValue,airbags:payload->>airbags,keys:payload->>keys");
+  p.set("select", "auction,year,fuel_id,fuel_x,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date,acv:payload->>estimatedRetailValue,airbags:payload->>airbags,keys:payload->>keys");
   p.set("make_id", `eq.${String(makeId).replace(/[^0-9]/g, "")}`);
   p.set("model_id", `eq.${String(modelId).replace(/[^0-9]/g, "")}`);
   p.set("archived", "eq.true");
@@ -2791,7 +2791,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
     const dmgTxt = String(r.damage || "").toLowerCase();
     if(JUNK_TITLE.test(titleTxt) || JUNK_DAMAGE.test(dmgTxt)) continue;   // утиль не берём
     out.push({final_bid:fb, year:Number(r.year) || 0, odometer_mi:Number(r.odometer_mi) || 0,
-      fuel_id:Number(r.fuel_id) || 0, gen_id:Number(r.generation_id) || 0,
+      fuel_id:Number(r.fuel_id) || 0, fuel_x:Number(r.fuel_x) || 0, gen_id:Number(r.generation_id) || 0,
       run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || ""), title:String(r.title || ""), auction:String(r.auction || ""),
       acv:Number(r.acv) || 0, airbags:String(r.airbags || ""), keys:String(r.keys || "")});
   }
@@ -2890,10 +2890,21 @@ function guideAcvWeight(gbMid, acvMid){
   return Math.min(0.65, GUIDE_ACV_WEIGHT + Math.max(0, ratio - 1.3) * 0.3);
 }
 // База сужается по году как строки его таблицы (диапазоны 2–4 года): сначала год ±1, затем ±2, затем весь кузов.
+// Реальный тип топлива строки пула comps: fuel_x (по VIN, наш пересчёт) — надёжнее сырого fuel_id фида,
+// который путает гибрид/plug-in/mild-hybrid (см. «Тип силовой установки по VIN» выше). fuel_x есть не у всех
+// строк (фоновая заливка ещё не прошла все ~900k лотов) — тогда используем fuel_id как раньше.
+const effFuel = r => Number(r.fuel_x) || Number(r.fuel_id) || 0;
+const FUEL_X_TEXT = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
+// Тип топлива ЭТОГО лота для сравнения: клиент шлёт и текст (lot.fuel, сырой), и fuel_x (наш пересчёт по VIN) —
+// fuel_x приоритетнее, если он есть.
+function resolveFuelText(q){
+  const fx = Number(q.get("fuel_x")) || 0;
+  return fx && FUEL_X_TEXT[fx] ? FUEL_X_TEXT[fx] : (q.get("fuel") || "");
+}
 function dataGuideBase(rows, g, fuelId, year){
   if(!rows || !rows.length || !g || !g.genFrom) return null;
   let gen = rows.filter(r => r.final_bid > 0 && r.year >= g.genFrom && r.year <= g.genTo);
-  if(fuelId){ const f = gen.filter(r => Number(r.fuel_id) === Number(fuelId)); if(f.length >= 8) gen = f; else if(gen.some(r => r.fuel_id && Number(r.fuel_id) !== Number(fuelId))) return null; }
+  if(fuelId){ const f = gen.filter(r => effFuel(r) === Number(fuelId)); if(f.length >= 8) gen = f; else if(gen.some(r => effFuel(r) && effFuel(r) !== Number(fuelId))) return null; }
   if(gen.length < 8) return null;
   let base = gen;
   const yr = Number(year) || 0;
@@ -2920,7 +2931,7 @@ function computeComps(rows, meta){
   let base = rows.filter(notWreck);
   let fuelMatched = false;
   if(fuel){
-    const f = base.filter(r => Number(r.fuel_id) === fuel);
+    const f = base.filter(r => effFuel(r) === fuel);
     if(f.length >= 3){ base = f; fuelMatched = true; }   // топливо: гибрид→гибрид (порог 3)
   }
   // Мало продаж своего поколения → не выдумываем, отдаём агрегату /statistics.
@@ -3012,8 +3023,11 @@ async function computeCompsForQ(q){
     const coef = priceGuide.conditionCoef({dmg:q.get("dmg"), dmg2:q.get("dmg2"), cond:q.get("cond"),
       run:runG === "1" ? true : runG === "0" ? false : null, doc:q.get("doc")});
     const hasCond = !!(q.get("dmg") || q.get("cond"));
+    // fuel_x (пересчёт по VIN) приоритетнее сырого текста фида — тот путает гибрид/plug-in/mild-hybrid
+    // (см. «Тип силовой установки по VIN»). Единая точка разбора — дальше используем везде.
+    const fuelText = resolveFuelText(q);
     const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:q.get("make_name"), model:q.get("model_name"),
-      title:q.get("title"), gen:q.get("gen"), year:yearG, fuel:q.get("fuel")}) : null;
+      title:q.get("title"), gen:q.get("gen"), year:yearG, fuel:fuelText}) : null;
     const miF = priceGuide.mileageFactor(String(q.get("odometer") || "").replace(/[^0-9]/g, ""));
     // ACV конкретного лота (уже учитывает год/пробег/комплектацию этого VIN) — калиброванная по нашей
     // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
@@ -3036,7 +3050,7 @@ async function computeCompsForQ(q){
       const pool = await fetchSoldComps(makeId, modelId);
       const g = await resolveGenRange(modelId, yearG, "");
       const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
-        fuelId:fuelTextToId(q.get("fuel")), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid")}) : null;
+        fuelId:fuelTextToId(fuelText), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid")}) : null;
       if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
         const r100 = v => Math.round(v / 100) * 100;
         let lo = cc.p25, mid = cc.median, hi = Math.max(cc.p75, cc.p25 * 1.05);
@@ -3049,7 +3063,7 @@ async function computeCompsForQ(q){
       }else if(acvBand){
         band = acvBand; src = "acv";
       }else{
-        const base = dataGuideBase(pool, g, fuelTextToId(q.get("fuel")), yearG);
+        const base = dataGuideBase(pool, g, fuelTextToId(fuelText), yearG);
         if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
       }
     }
@@ -3065,7 +3079,7 @@ async function computeCompsForQ(q){
       if(parseSynGen(genIdQ)) genIdQ = "";
       const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
       const cqQ = String(q.get("cq") || "");
-      const stats = computeComps(rows, {year:yearQ, odometer:q.get("odometer"), fuelId:fuelTextToId(q.get("fuel")), genId:genIdQ, genFrom, genTo, run, cq:cqQ});
+      const stats = computeComps(rows, {year:yearQ, odometer:q.get("odometer"), fuelId:fuelTextToId(resolveFuelText(q)), genId:genIdQ, genFrom, genTo, run, cq:cqQ});
       if(stats) return stats;
     }
   }catch(e){ /* база недоступна — выше уровень (compsbatch) откатится на /statistics */ }
@@ -5056,23 +5070,26 @@ module.exports = async function handler(request, response){
       // Проверка ТАБЛИЦЫ Федора на тех же продажах (только агрегаты — цифры таблицы наружу не уходят).
       const guideRows = await priceGuide.loadGuide();
       const mkName = String(query.get("make_name") || ""), mdName = String(query.get("model_name") || "");
-      const FUEL_TXT = {1:"Gasoline", 2:"Electric", 3:"Hybrid", 4:"Diesel"};
+      const FUEL_TXT = {1:"Diesel", 2:"Electric", 3:"Hybrid", 4:"Gasoline", 5:"Plug-in"};   // индекс fuel_x (см. effFuel), не старый fuel_id!
+      // Фильтр по топливу для целевой проверки гибридов/электро/plug-in (27.09.2026): ?fuel=hybrid|phev|electric|gasoline|diesel,
+      // сравнивается с effFuel(r) — VIN-пересчёт (fuel_x) приоритетнее сырого fuel_id фида.
+      const fuelFilterId = fuelTextToId(String(query.get("fuel") || ""));
       const tErrs = [], tRatio = [], tIn20 = [], tByYear = {}, tLow = [], tHigh = [];
       const tbErrs = [], tbIn20 = []; let tbNoAcv = 0;   // таблица + ACV этого лота (GUIDE_ACV_WEIGHT)
       const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = [], gIn10 = [], gIn15 = [], gIn20 = []; let nulls = 0;
       // ACV-оценка (?action=acvcalib калибровка) и «как в проде» смесь comps+ACV — те же метрики, что у formula/comps.
       const aErrs = [], aIn = [], aIn20 = [], bErrs = [], bIn = []; let aNoAcv = 0;
-      const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
+      const sample = rows.filter(r => !r.heavy && r.year >= 2012 && (!fuelFilterId || effFuel(r) === fuelFilterId)).slice(0, 400);
       for(const r of sample){
         if(!genCache.has(r.year)) genCache.set(r.year, await resolveGenRange(modelId, r.year, ""));
         const g = genCache.get(r.year);
         const rest = rows.filter(x => x !== r);
-        const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:r.fuel_id, genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
+        const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:effFuel(r), genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
         if(!st || !st.median){ nulls++; continue; }
         errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
         if(mkName && guideRows.length){
           const parts = String(r.dmg || "").split(/\s+\/\s+/);
-          const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:((tableGens(modelId) || []).find(x => x.from === g.genFrom) || {}).name || "", year:r.year, fuel:FUEL_TXT[r.fuel_id] || ""});
+          const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:((tableGens(modelId) || []).find(x => x.from === g.genFrom) || {}).name || "", year:r.year, fuel:FUEL_TXT[effFuel(r)] || ""});
           if(row){
             const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
             // Таблица Федора рассчитана на пробег до 100 тыс. миль — считаем отдельно «как в таблице» и «пробежные».
@@ -5093,7 +5110,7 @@ module.exports = async function handler(request, response){
             }else tbNoAcv++;
           }
         }
-        const gb = dataGuideBase(rest, g, r.fuel_id, r.year);
+        const gb = dataGuideBase(rest, g, effFuel(r), r.year);
         if(gb){
           const dp = String(r.dmg || "").split(/\s+\/\s+/);
           const cf = priceGuide.conditionCoef({dmg:dp[0], dmg2:dp[1] || "", run:r.run, doc:r.doc});
