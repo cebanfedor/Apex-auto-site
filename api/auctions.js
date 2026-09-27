@@ -4206,6 +4206,20 @@ module.exports = async function handler(request, response){
   const action = query.get("action") || "search";
 
   if(action === "lead") return handleLead(request, response);
+  // Публикация лота в канал — POST, поэтому диспетчеризуем ДО общего GET-гейта ниже.
+  if(action === "tgpost"){
+    const {requireAdmin} = require("../server/auth");
+    if(!requireAdmin(request, response)) return;
+    if(request.method !== "POST"){ methodNotAllowed(response, ["POST"]); return; }
+    try{
+      const body = await readBody(request);
+      const result = await postLotToChannel({caption:body.caption, photos:body.photos});
+      sendJson(response, 200, {ok:true, ...result});
+    }catch(error){
+      sendJson(response, error.status || 500, {ok:false, error:String(error.message || error).slice(0, 300)});
+    }
+    return;
+  }
   if(action === "vinhealth"){
     // Здоровье истории по VIN: сбои/запасной источник (в пределах инстанса) и покрытие проверкой Clean Select.
     const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
@@ -4923,21 +4937,6 @@ module.exports = async function handler(request, response){
         out.canPost = Boolean(out.bot && out.channelTitle && !out.channelError);
       }
       sendJson(response, 200, out);
-      return;
-    }
-
-    // Публикация лота в канал (только админ). Клиент шлёт готовые caption (HTML) и photos (URL).
-    if(action === "tgpost"){
-      const {requireAdmin} = require("../server/auth");
-      if(!requireAdmin(request, response)) return;
-      if(request.method !== "POST"){ methodNotAllowed(response, ["POST"]); return; }
-      try{
-        const body = await readBody(request);
-        const result = await postLotToChannel({caption:body.caption, photos:body.photos});
-        sendJson(response, 200, {ok:true, ...result});
-      }catch(error){
-        sendJson(response, error.status || 500, {ok:false, error:String(error.message || error).slice(0, 300)});
-      }
       return;
     }
 
