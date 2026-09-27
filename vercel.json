@@ -165,19 +165,19 @@
       "source": "/api/auctions",
       "has": [{ "type": "query", "key": "action", "value": "(showcase|comps|statistics|manufacturers|models|generations|usadict)" }],
       "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=43200" }
+        { "key": "Cache-Control", "value": "public, s-maxage=900, max-age=120, stale-while-revalidate=43200" }
       ]
     },
     {
       "source": "/api/content",
       "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=3600" }
+        { "key": "Cache-Control", "value": "public, s-maxage=300, max-age=60, stale-while-revalidate=3600" }
       ]
     },
     {
       "source": "/api/hot-lots",
       "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=3600" }
+        { "key": "Cache-Control", "value": "public, s-maxage=300, max-age=60, stale-while-revalidate=3600" }
       ]
     },
     {
