@@ -1326,10 +1326,11 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbBadgesRowV3 .caFlagV1 { width:18px; height:10px; }
 
 /* Оценка лота под ценой (как «Оценочная стоимость» у DreamBid) */
-.lotMarketLineV1 { display:flex; align-items:center; gap:7px; margin:8px 0 2px; font-size:13.5px; color:var(--aMuted); }
+.lotMarketLineV1 { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:8px 0 2px; font-size:13.5px; color:var(--aMuted); }
 .lotMarketLineV1[hidden] { display:none; }
 .lotMarketLineV1 .dbIco { width:15px; height:15px; flex:none; }
 .lotMarketLineV1 b { color:var(--aInk); font-weight:700; }
+.marketLineWarnV1 { font-style:normal; font-size:12px; font-weight:600; color:#9a4d00; }
 
 /* ================= Мобильная версия v2 (26.09.2026): порядок и воздух в верхней части каталога и лота ================= */
 @media (max-width:640px){

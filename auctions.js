@@ -3331,14 +3331,17 @@
       // Параметры те же, что у карточек каталога (один источник правды — compsParamsFor).
       const cp = compsParamsFor(lot);
       const cr = await api(`/api/auctions?${cp}`).catch(() => null);
-      // Ставка или резерв продавца уже выше вилки → ориентир опровергнут рынком; на странице лота его не показываем.
-      // …а также если ЭТА машина уже торговалась выше вилки (не продана за $26 750 при вилке $15–17k — оценка явно низкая).
+      // Ставка/резерв продавца/прошлый раунд торгов из истории лота выше вилки — рынок
+      // ориентир опроверг. Раньше в этом случае цифру просто прятали (23.09.2026), но
+      // на практике это срабатывало слишком часто и ориентир пропадал без замены, хотя
+      // в каталоге та же карточка его показывает (там этой проверки нет вовсе). Теперь
+      // (Федор 27.09.2026) ориентир не прячем — помечаем «ставка выше ориентира».
       const maxHistBid = Math.max(0, ...(Array.isArray(lot.priceHistory) ? lot.priceHistory.map(h => Number(h.bid) || 0) : [0]));
-      const guideContradicted = cr && cr.ok && cr.comps && cr.comps.guide && (Number(lot.currentBid) > Number(cr.comps.p75) || Number(lot.sellerReserve) > Number(cr.comps.p75) || maxHistBid > Number(cr.comps.p75));
-      if(cr && cr.ok && cr.comps && cr.comps.guide && !guideContradicted){
+      if(cr && cr.ok && cr.comps && cr.comps.guide && Number(cr.comps.p25) > 0){
         // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
         const c = cr.comps;
         const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
+        const contradicted = Number(lot.currentBid) > Number(c.p75) || Number(lot.sellerReserve) > Number(c.p75) || maxHistBid > Number(c.p75);
         box.innerHTML = `
           <div class="dSecHead">${L("Ориентир ставки")} <span class="histCountV1">${escapeHtml(title)}</span></div>
           <div class="statGridV1">
@@ -3347,7 +3350,10 @@
           <p class="statNoteV1">${L("Считаем от средней цены продаж этого кузова с поправкой на состояние лота: повреждения и на ходу ли машина. Это ориентир, а не гарантия — перед ставкой проверяем лот вручную.")}</p>`;
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
-        if(marketLine){ marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>`; marketLine.hidden = false; }
+        if(marketLine){
+          marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>${contradicted ? `<i class="marketLineWarnV1">${L("ставка выше ориентира")}</i>` : ""}`;
+          marketLine.hidden = false;
+        }
         return;
       }
       if(cr && cr.ok && cr.comps && cr.comps.count){
