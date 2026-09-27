@@ -2963,7 +2963,9 @@ function computeComps(rows, meta){
   const cq = meta.cq === "good" || meta.cq === "poor" ? meta.cq : "mid";
   const centerP = cq === "good" ? 90 : cq === "poor" ? 45 : 68;
   // Диапазон — ОТ средней и ВВЕРХ (нижний хвост не показываем): низ = центр.
-  const loP = centerP, hiP = Math.min(98, centerP + 8);
+  // Ширина (26.09.2026, Федор: у DreamBid разброс — несколько тысяч, не $1000–1500): было +8 percentile-пунктов
+  // (узко), теперь +20 — тот же порядок ширины, что у guideBand/estimateFromAcv (~15% от середины на типичном пуле).
+  const loP = centerP, hiP = Math.min(98, centerP + 20);
   // Примеры — ближайшие по году+пробегу (1 год ≈ 15к миль для сортировки).
   const samples = base.slice()
     .sort((a, b) => (Math.abs((a.odometer_mi || 0) - odo) + Math.abs((a.year || 0) - yr) * 15000)

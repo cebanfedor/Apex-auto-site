@@ -118,11 +118,17 @@ function mileageFactor(odometerMi){
 }
 
 const round100 = v => Math.round(v / 100) * 100;
-// Вилка ориентира: ±0.05 от коэффициента вокруг базы×K.
+// Вилка ориентира (26.09.2026, Федор: у DreamBid разброс — несколько тысяч долларов, не $1000–1500):
+// раньше ±0.05 к коэффициенту давало от силы 10% ширины (Honda Civic: $9800–$10900 при медиане $10400).
+// Сверка с живыми карточками DreamBid (app.dreambid.pl/api/lots/<key>, поле avg_final_bid) — у них разброс
+// ~30% от середины (тот же Civic: $9650–$13050 при среднем $11350, 30%; Pacifica $4800–$6500, 35%).
+// ±15% от середины — тот же порядок, что и у ACV-оценки (estimateFromAcv), полосы не выглядят разнородно.
+const GUIDE_BAND_FRAC = 0.15;
 function guideBand(base, k, coef){
   const g = Number(base) * (Number(k) || 1.2);
   if(!(g > 0)) return null;
-  return {lo:round100(g * (coef - 0.05)), mid:round100(g * coef), hi:round100(g * (coef + 0.05))};
+  const mid = g * coef;
+  return {lo:round100(mid * (1 - GUIDE_BAND_FRAC)), mid:round100(mid), hi:round100(mid * (1 + GUIDE_BAND_FRAC))};
 }
 
 
