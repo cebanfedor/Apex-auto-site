@@ -125,4 +125,55 @@ function guideBand(base, k, coef){
   return {lo:round100(g * (coef - 0.05)), mid:round100(g * coef), hi:round100(g * (coef + 0.05))};
 }
 
-module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash};
+
+// ---- Оценка по ACV лота (26.09.2026) ----
+// Оценочная стоимость (ACV/estimated retail value) в фиде — это appraisal КОНКРЕТНОГО VIN на момент
+// повреждения: она уже учитывает год, пробег, комплектацию и трим этой машины. Для моделей вне таблицы
+// Федора это точнее «усреднённой по кузову» цены (там терялись премиальные версии/свежие пробеги).
+// Коэффициенты ниже — НЕ придуманы: выверены по НАШЕЙ базе проданных лотов, ?action=acvcalib
+// (26.09.2026, выборка ~5300 продаж с известной ACV): медиана finalBid/ACV по каждому состоянию.
+// «Слух», что ставка = 50–60% ACV, подтвердился только для почти целых машин (coef 1.10 → ~42%);
+// для среднего повреждённого лота реальная медиана — 27–30%, для тяжёлых — 17–21%.
+const ACV_RATIO_BY_COEF = {
+  "1.1":0.42, "1":0.29, "0.95":0.27, "0.9":0.27, "0.85":0.23,
+  "0.8":0.21, "0.75":0.19, "0.7":0.18, "0.6":0.17, "0.5":0.16
+};
+function acvRatioFor(coef){
+  const key = Number(coef).toFixed(2).replace(/0$/, "").replace(/\.$/, "");
+  if(ACV_RATIO_BY_COEF[key] != null) return ACV_RATIO_BY_COEF[key];
+  const c = Number(coef) || 1;
+  const keys = Object.keys(ACV_RATIO_BY_COEF).map(Number).sort((a, b) => a - b);
+  const near = keys.reduce((a, b) => Math.abs(b - c) < Math.abs(a - c) ? b : a);
+  return ACV_RATIO_BY_COEF[String(near)];
+}
+// Пробег двигает долю ACV, которую реально платят, даже когда сама ACV его уже учла (та же база,
+// точка отсчёта 60–100 тыс. миль): свежий малопробежный экземпляр разбирают на запчасти охотнее.
+function acvMileageAdj(odometerMi){
+  const mi = Number(odometerMi) || 0;
+  if(!mi) return 1;
+  if(mi <= 30000) return 1.15;
+  if(mi <= 60000) return 1.13;
+  if(mi <= 100000) return 1.0;
+  if(mi <= 150000) return 0.88;
+  if(mi <= 220000) return 0.76;
+  return 0.65;
+}
+// Сработавшие подушки и утерянные ключи — конкретные факты по ЭТОМУ лоту, ACV их ещё не учла.
+function acvExtraAdj({airbags, keys} = {}){
+  let f = 1;
+  if(/deploy/i.test(String(airbags || ""))) f *= 0.8;
+  if(/^(no|нет|not)/i.test(String(keys || ""))) f *= 0.6;
+  return f;
+}
+// Вилка по ACV: ±15% вокруг середины, потолок — не выше 90% ACV (дороже целой машины салважный лот не берут).
+function estimateFromAcv(acv, coef, odometerMi, extra){
+  const a = Number(acv) || 0;
+  if(a < 500) return null;
+  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {});
+  const mid = a * Math.min(ratio, 0.9);
+  if(!(mid > 0)) return null;
+  return {lo:round100(mid * 0.85), mid:round100(mid), hi:round100(Math.min(mid * 1.15, a * 0.9))};
+}
+
+module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash,
+  acvRatioFor, acvMileageAdj, acvExtraAdj, estimateFromAcv};

@@ -2758,7 +2758,7 @@ async function fetchSoldCompsFromDb(makeId, modelId){
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return null;
   const p = new URLSearchParams();
-  p.set("select", "auction,year,fuel_id,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date");
+  p.set("select", "auction,year,fuel_id,odometer_mi,final_bid,generation_id,condition_id,damage,title,document,sale_date,acv:payload->>estimatedRetailValue,airbags:payload->>airbags,keys:payload->>keys");
   p.set("make_id", `eq.${String(makeId).replace(/[^0-9]/g, "")}`);
   p.set("model_id", `eq.${String(modelId).replace(/[^0-9]/g, "")}`);
   p.set("archived", "eq.true");
@@ -2788,7 +2788,8 @@ async function fetchSoldCompsFromDb(makeId, modelId){
     if(JUNK_TITLE.test(titleTxt) || JUNK_DAMAGE.test(dmgTxt)) continue;   // утиль не берём
     out.push({final_bid:fb, year:Number(r.year) || 0, odometer_mi:Number(r.odometer_mi) || 0,
       fuel_id:Number(r.fuel_id) || 0, gen_id:Number(r.generation_id) || 0,
-      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || ""), title:String(r.title || ""), auction:String(r.auction || "")});
+      run:Number(r.condition_id) === 0, heavy:HEAVY_DAMAGE.test(dmgTxt), dmg:String(r.damage || ""), doc:String(r.document || ""), title:String(r.title || ""), auction:String(r.auction || ""),
+      acv:Number(r.acv) || 0, airbags:String(r.airbags || ""), keys:String(r.keys || "")});
   }
   return out.length ? out : null;
 }
@@ -3001,9 +3002,22 @@ async function computeCompsForQ(q){
       const g = await resolveGenRange(modelId, yearG, "");
       const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
         fuelId:fuelTextToId(q.get("fuel")), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid")}) : null;
+      // ACV конкретного лота (уже учитывает год/пробег/комплектацию этого VIN) — калиброванная по нашей
+      // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Мало похожих продаж по кузову
+      // (частая беда свежих/премиальных версий) → ACV надёжнее «усреднённой по кузову» цены.
+      const acvNum = Number(q.get("acv")) || 0;
+      const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys")}) : null;
       if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
         const r100 = v => Math.round(v / 100) * 100;
-        band = {lo:r100(cc.p25), mid:r100(cc.median), hi:r100(Math.max(cc.p75, cc.p25 * 1.05))}; src = "data";
+        let lo = cc.p25, mid = cc.median, hi = Math.max(cc.p75, cc.p25 * 1.05);
+        if(acvBand){
+          // Доверие похожим продажам растёт с их числом: до 12 — ACV весит больше половины, от 20 — почти не влияет.
+          const w = cc.count >= 20 ? 0.25 : cc.count >= 12 ? 0.4 : 0.55;
+          lo = lo * (1 - w) + acvBand.lo * w; mid = mid * (1 - w) + acvBand.mid * w; hi = hi * (1 - w) + acvBand.hi * w;
+        }
+        band = {lo:r100(lo), mid:r100(mid), hi:r100(hi)}; src = acvBand ? "data+acv" : "data";
+      }else if(acvBand){
+        band = acvBand; src = "acv";
       }else{
         const base = dataGuideBase(pool, g, fuelTextToId(q.get("fuel")), yearG);
         if(base){ band = priceGuide.guideBand(base, DATA_GUIDE_K, coef); src = "data"; }
@@ -5014,6 +5028,8 @@ module.exports = async function handler(request, response){
       const FUEL_TXT = {1:"Gasoline", 2:"Electric", 3:"Hybrid", 4:"Diesel"};
       const tErrs = [], tRatio = [], tIn20 = [], tByYear = {}, tLow = [], tHigh = [];
       const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = [], gIn10 = [], gIn15 = [], gIn20 = []; let nulls = 0;
+      // ACV-оценка (?action=acvcalib калибровка) и «как в проде» смесь comps+ACV — те же метрики, что у formula/comps.
+      const aErrs = [], aIn = [], aIn20 = [], bErrs = [], bIn = []; let aNoAcv = 0;
       const sample = rows.filter(r => !r.heavy && r.year >= 2012).slice(0, 400);
       for(const r of sample){
         if(!genCache.has(r.year)) genCache.set(r.year, await resolveGenRange(modelId, r.year, ""));
@@ -5046,6 +5062,21 @@ module.exports = async function handler(request, response){
           const rel = Math.abs(r.final_bid - b.mid) / b.mid; gIn10.push(rel <= .10 ? 1 : 0); gIn15.push(rel <= .15 ? 1 : 0); gIn20.push(rel <= .20 ? 1 : 0);
           gRatio.push(r.final_bid / (gb * cf));
         }
+        if(r.acv > 500){
+          const dp = String(r.dmg || "").split(/\s+\/\s+/);
+          const cf = priceGuide.conditionCoef({dmg:dp[0], dmg2:dp[1] || "", run:r.run, doc:r.doc});
+          const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
+          if(ab){
+            aErrs.push(Math.abs(ab.mid - r.final_bid) / r.final_bid);
+            aIn.push(r.final_bid >= ab.lo && r.final_bid <= ab.hi ? 1 : 0);
+            aIn20.push(Math.abs(r.final_bid - ab.mid) / ab.mid <= .2 ? 1 : 0);
+            // как в проде: comps побеждает при ≥20 похожих, ниже — доля ACV растёт
+            const w = st.count >= 20 ? 0.25 : st.count >= 12 ? 0.4 : 0.55;
+            const bMid = st.median * (1 - w) + ab.mid * w, bLo = st.p25 * (1 - w) + ab.lo * w, bHi = st.p75 * (1 - w) + ab.hi * w;
+            bErrs.push(Math.abs(bMid - r.final_bid) / r.final_bid);
+            bIn.push(r.final_bid >= bLo && r.final_bid <= bHi ? 1 : 0);
+          }
+        }else aNoAcv++;
         inBand.push(r.final_bid >= st.p25 && r.final_bid <= st.p75 ? 1 : 0);
         widths.push((st.p75 - st.p25) / Math.max(1, st.median));
       }
@@ -5064,6 +5095,13 @@ module.exports = async function handler(request, response){
           under100k:{n:tLow.length, ratio:tLow.length ? Math.round(med(tLow) * 100) / 100 : null, within25pct:tLow.length ? Math.round(tLow.filter(x => Math.abs(x - 1) <= .25).length / tLow.length * 100) : null},
           over100k:{n:tHigh.length, ratio:tHigh.length ? Math.round(med(tHigh) * 100) / 100 : null},
           ratioByAuction:Object.fromEntries(Object.entries(tByYear).map(([k, v]) => [k, {n:v.length, ratio:Math.round(med(v) * 100) / 100}]))},
+        acv:{tested:aErrs.length, noAcv:aNoAcv, medianAbsErrPct:aErrs.length ? Math.round(med(aErrs) * 100) : null,
+          within25pct:aErrs.length ? Math.round(aErrs.filter(e => e <= .25).length / aErrs.length * 100) : null,
+          insideBandPct:aIn.length ? Math.round(aIn.reduce((x, y) => x + y, 0) / aIn.length * 100) : null,
+          inside20:aIn20.length ? Math.round(aIn20.reduce((x, y) => x + y, 0) / aIn20.length * 100) : null},
+        blend:{tested:bErrs.length, medianAbsErrPct:bErrs.length ? Math.round(med(bErrs) * 100) : null,
+          within25pct:bErrs.length ? Math.round(bErrs.filter(e => e <= .25).length / bErrs.length * 100) : null,
+          insideBandPct:bIn.length ? Math.round(bIn.reduce((x, y) => x + y, 0) / bIn.length * 100) : null},
         formula:{tested:gErrs.length, medianAbsErrPct:gErrs.length ? Math.round(med(gErrs) * 100) : null,
           within25pct:gErrs.length ? Math.round(gErrs.filter(e => e <= .25).length / gErrs.length * 100) : null,
           insideBandPct:gIn.length ? Math.round(gIn.reduce((x, y) => x + y, 0) / gIn.length * 100) : null,

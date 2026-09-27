@@ -1491,6 +1491,9 @@
     if(lot.model) cp.set("model_name", String(lot.model).slice(0, 40));
     if(lot.title) cp.set("title", String(lot.title).slice(0, 80));
     if(lot.generationName) cp.set("gen", String(lot.generationName).slice(0, 60));
+    if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(Math.round(lot.estimatedRetailValue)));
+    if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
+    if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
     return cp;
   }
   const compsCache = {};
