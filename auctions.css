@@ -1370,11 +1370,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   .filterBarV1:has(> :not([hidden])) { margin:0 0 12px; }
   .filterBarV1::before { content:""; order:9; flex-basis:100%; height:0; }
   /* 28.09.2026: колокольчик — теперь главное действие и на телефоне тоже: раньше схлопывался в
-     иконку 38px без подписи (afBellV1 span был визуально скрыт) — заметить его было невозможно. */
+     иконку 38px без подписи (afBellV1 span был визуально скрыт) — заметить его было невозможно.
+     На всю ширину отдельной строкой (текст «Уведомлять о новых» не помещался рядом с «Сохранить
+     поиск» 50/50 и обрезался многоточием) — второстепенные действия мельче под ним. */
   .afSaveV1, .afBellV1, .afClearV1 { height:40px; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; }
-  .afBellV1 { order:10; flex:1 1 0; min-width:0; }
-  .afBellV1 span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .afSaveV1 { order:11; flex:1 1 0; min-width:0; }
+  .afBellV1 { order:10; flex:1 1 100%; font-size:14px; }
+  .afSaveV1 { order:11; flex:1 1 auto; }
   .afClearV1 { order:12; flex:none; border-color:transparent; background:transparent; color:var(--aMuted); padding:0 8px; }
 
   /* --- Страница лота: короткая шапка --- */
