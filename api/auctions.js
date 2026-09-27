@@ -4965,8 +4965,15 @@ module.exports = async function handler(request, response){
       const limit = Math.min(6000, Math.max(500, Number(query.get("limit")) || 3000));
       const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}};
       try{
-        const rows = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=not.is.null&order=synced_at.desc&limit=${limit}`);
-        out.sampled = Array.isArray(rows) ? rows.length : 0;
+        const rows = [];
+        for(let off = 0; off < limit && rows.length === off; off += 1000){
+          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=not.is.null&order=synced_at.desc`,
+            {headers:{range:`${off}-${off + 999}`, "range-unit":"items"}});
+          if(!Array.isArray(page) || !page.length) break;
+          rows.push(...page);
+          if(page.length < 1000) break;
+        }
+        out.sampled = rows.length;
         const byCoef = new Map(), byAirbag = new Map(), byKeys = new Map(), byMi = new Map();
         const miBucket = mi => !mi ? "0" : mi <= 30000 ? "0-30k" : mi <= 60000 ? "30-60k" : mi <= 100000 ? "60-100k" : mi <= 150000 ? "100-150k" : "150k+";
         for(const r of (rows || [])){
