@@ -2872,6 +2872,7 @@ const EST_HI_PCTL = 88;
 // K для базы из НАШИХ данных = 1.0, а не 1.2: у Федора 1.2 поднимает «среднюю по всей истории» (с утилем)
 // до уровня нормальной машины, а наш пул уже без утиля — проверка на продажах дала K≈1.03 (RAV4, Camry).
 const DATA_GUIDE_K = 1.0;
+const GUIDE_ACV_WEIGHT = 0.3;   // сколько доверяем ACV этого VIN поверх таблицы Федора (0..1); прошёл проверку ?action=compstest на RAV4/Camry/BMW 3
 // База сужается по году как строки его таблицы (диапазоны 2–4 года): сначала год ±1, затем ±2, затем весь кузов.
 function dataGuideBase(rows, g, fuelId, year){
   if(!rows || !rows.length || !g || !g.genFrom) return null;
@@ -2996,17 +2997,27 @@ async function computeCompsForQ(q){
     const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:q.get("make_name"), model:q.get("model_name"),
       title:q.get("title"), gen:q.get("gen"), year:yearG, fuel:q.get("fuel")}) : null;
     const miF = priceGuide.mileageFactor(String(q.get("odometer") || "").replace(/[^0-9]/g, ""));
-    let band = row ? priceGuide.guideBand(row.base_price * miF, row.k, coef) : null, src = "guide";
+    // ACV конкретного лота (уже учитывает год/пробег/комплектацию этого VIN) — калиброванная по нашей
+    // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
+    // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
+    const acvNum = Number(q.get("acv")) || 0;
+    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys")}) : null;
+    let band = null, src = "guide";
+    if(row){
+      const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
+      if(acvBand){
+        // Таблица Федора не знает комплектацию конкретного VIN — ACV её знает. Вес ACV фиксированный (не по числу
+        // продаж, как в comps-ветке): таблица — проверенный источник, ACV лишь поправляет на реальный трим/опции.
+        const r100 = v => Math.round(v / 100) * 100, w = GUIDE_ACV_WEIGHT;
+        band = {lo:r100(gb.lo * (1 - w) + acvBand.lo * w), mid:r100(gb.mid * (1 - w) + acvBand.mid * w), hi:r100(gb.hi * (1 - w) + acvBand.hi * w)};
+        src = "guide+acv";
+      }else{ band = gb; src = "guide"; }
+    }
     if(!band && hasCond && yearG){
       const pool = await fetchSoldComps(makeId, modelId);
       const g = await resolveGenRange(modelId, yearG, "");
       const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
         fuelId:fuelTextToId(q.get("fuel")), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid")}) : null;
-      // ACV конкретного лота (уже учитывает год/пробег/комплектацию этого VIN) — калиброванная по нашей
-      // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Мало похожих продаж по кузову
-      // (частая беда свежих/премиальных версий) → ACV надёжнее «усреднённой по кузову» цены.
-      const acvNum = Number(q.get("acv")) || 0;
-      const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys")}) : null;
       if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
         const r100 = v => Math.round(v / 100) * 100;
         let lo = cc.p25, mid = cc.median, hi = Math.max(cc.p75, cc.p25 * 1.05);
@@ -5027,6 +5038,7 @@ module.exports = async function handler(request, response){
       const mkName = String(query.get("make_name") || ""), mdName = String(query.get("model_name") || "");
       const FUEL_TXT = {1:"Gasoline", 2:"Electric", 3:"Hybrid", 4:"Diesel"};
       const tErrs = [], tRatio = [], tIn20 = [], tByYear = {}, tLow = [], tHigh = [];
+      const tbErrs = [], tbIn20 = []; let tbNoAcv = 0;   // таблица + ACV этого лота (GUIDE_ACV_WEIGHT)
       const errs = [], inBand = [], widths = [], gErrs = [], gIn = [], gRatio = [], gIn10 = [], gIn15 = [], gIn20 = []; let nulls = 0;
       // ACV-оценка (?action=acvcalib калибровка) и «как в проде» смесь comps+ACV — те же метрики, что у formula/comps.
       const aErrs = [], aIn = [], aIn20 = [], bErrs = [], bIn = []; let aNoAcv = 0;
@@ -5050,6 +5062,15 @@ module.exports = async function handler(request, response){
             const rel = Math.abs(r.final_bid - tb.mid) / r.final_bid;
             tErrs.push(rel); tRatio.push(r.final_bid / tb.mid);
             (tByYear[r.auction || "?"] = tByYear[r.auction || "?"] || []).push(r.final_bid / tb.mid); tIn20.push(Math.abs(r.final_bid - tb.mid) / tb.mid <= .2 ? 1 : 0);
+            if(r.acv > 500){
+              const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
+              if(ab){
+                const w = GUIDE_ACV_WEIGHT;
+                const bMid = tb.mid * (1 - w) + ab.mid * w;
+                tbErrs.push(Math.abs(bMid - r.final_bid) / r.final_bid);
+                tbIn20.push(Math.abs(r.final_bid - bMid) / bMid <= .2 ? 1 : 0);
+              }
+            }else tbNoAcv++;
           }
         }
         const gb = dataGuideBase(rest, g, r.fuel_id, r.year);
@@ -5088,6 +5109,10 @@ module.exports = async function handler(request, response){
         within25pct:errs.length ? Math.round(errs.filter(e => e <= .25).length / errs.length * 100) : null,
         actualInsideBandPct:inBand.length ? Math.round(inBand.reduce((x, y) => x + y, 0) / inBand.length * 100) : null,
         medianBandWidthPct:widths.length ? Math.round(med(widths) * 100) : null,
+        tableBlend:{tested:tbErrs.length, noAcv:tbNoAcv, weight:GUIDE_ACV_WEIGHT,
+          medianAbsErrPct:tbErrs.length ? Math.round(med(tbErrs) * 100) : null,
+          within25pct:tbErrs.length ? Math.round(tbErrs.filter(e => e <= .25).length / tbErrs.length * 100) : null,
+          inside20:tbIn20.length ? Math.round(tbIn20.reduce((x, y) => x + y, 0) / tbIn20.length * 100) : null},
         table:{tested:tErrs.length, medianAbsErrPct:tErrs.length ? Math.round(med(tErrs) * 100) : null,
           within25pct:tErrs.length ? Math.round(tErrs.filter(e => e <= .25).length / tErrs.length * 100) : null,
           inside20:tIn20.length ? Math.round(tIn20.reduce((x, y) => x + y, 0) / tIn20.length * 100) : null,
