@@ -1089,6 +1089,12 @@
     if(withYear) opts.year = "numeric";
     return d.toLocaleString(loc, opts);
   }
+  // Компактная дата «27.09» — для мест, где полный формат dbDate (день недели + месяц + время) слишком длинный.
+  function shortDate(value){
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return "";
+    return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
   function dbOdo(text){
     // Пробег не пришёл из фида (пусто/0) — так и пишем, а не прячем строку (Федор 25.09.2026)
     if(!text) return L("Пробег не указан");
@@ -3154,7 +3160,7 @@
               <div class="dSecHead">${L("Аукцион")}</div>
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
-              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("обновлён")} ${escapeHtml(dbDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
+              ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("от")} ${escapeHtml(shortDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.timed && Number(lot.sellerReserve) > 0 ? "Timed аукцион" : lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
