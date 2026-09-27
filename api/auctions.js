@@ -4958,6 +4958,43 @@ module.exports = async function handler(request, response){
 
     // Диагностика точности оценки (read-only): leave-one-out по истории продаж модели.
     // Каждую проданную машину «оцениваем» по остальным и сравниваем с реальным молотком.
+    // Калибровка коэффициента «финалка / оценочная стоимость (ACV из фида)» по НАШЕЙ базе (не таблице Федора) —
+    // сколько реально платят за лот относительно его собственной оценки, по состоянию (conditionCoef) и отдельно
+    // по подушкам/ключам/пробегу. Даёт объективные множители вместо интуиции. Read-only, диагностика.
+    if(action === "acvcalib"){
+      const limit = Math.min(6000, Math.max(500, Number(query.get("limit")) || 3000));
+      const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}};
+      try{
+        const rows = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=not.is.null&order=synced_at.desc&limit=${limit}`);
+        out.sampled = Array.isArray(rows) ? rows.length : 0;
+        const byCoef = new Map(), byAirbag = new Map(), byKeys = new Map(), byMi = new Map();
+        const miBucket = mi => !mi ? "0" : mi <= 30000 ? "0-30k" : mi <= 60000 ? "30-60k" : mi <= 100000 ? "60-100k" : mi <= 150000 ? "100-150k" : "150k+";
+        for(const r of (rows || [])){
+          const p = r.payload || {}; const acv = Number(p.estimatedRetailValue) || 0; const fb = Number(r.final_bid) || 0;
+          if(!(acv > 500) || !(fb > 0)) continue;
+          const ratio = fb / acv;
+          if(ratio > 3 || ratio < 0.01) continue;
+          out.withAcv++;
+          const coef = priceGuide.conditionCoef({dmg:p.primaryDamage, dmg2:p.secondaryDamage, cond:p.condition, doc:p.document});
+          const k = coef.toFixed(2);
+          (byCoef.get(k) || byCoef.set(k, []).get(k)).push(ratio);
+          const ab = /deploy/i.test(String(p.airbags || "")) ? "deployed" : /intact/i.test(String(p.airbags || "")) ? "intact" : "unknown";
+          (byAirbag.get(ab) || byAirbag.set(ab, []).get(ab)).push(ratio);
+          const ky = /^(yes|да|present|available)/i.test(String(p.keys || "")) ? "yes" : /^(no|нет|not)/i.test(String(p.keys || "")) ? "no" : "unknown";
+          (byKeys.get(ky) || byKeys.set(ky, []).get(ky)).push(ratio);
+          const mb = miBucket(Number(r.odometer_mi) || 0);
+          (byMi.get(mb) || byMi.set(mb, []).get(mb)).push(ratio);
+        }
+        const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
+        const stat = a => ({n:a.length, medianRatio:Math.round(med(a) * 1000) / 1000});
+        for(const [k, a] of byCoef) out.coefBuckets[k] = stat(a);
+        for(const [k, a] of byAirbag) out.airbags[k] = stat(a);
+        for(const [k, a] of byKeys) out.keys[k] = stat(a);
+        for(const [k, a] of byMi) out.mileage[k] = stat(a);
+      }catch(e){ out.error = String(e.message || e).slice(0, 160); }
+      sendJson(response, 200, out, {"cache-control":"no-store"});
+      return;
+    }
     if(action === "compstest"){
       const makeId = String(query.get("manufacturer_id") || "").replace(/[^0-9]/g, "");
       const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
