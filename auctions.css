@@ -546,9 +546,7 @@
 .detailThumbsV1 .dThumbV2:hover { transform:translateY(-1px); border-color:var(--aMuted); }
 .detailThumbsV1 .dThumbV2.isActiveThumbV2 { border-color:var(--aRed); box-shadow:0 0 0 2px rgba(237,0,18,.16); }
 
-/* z-index выше кнопки контактов (9000) и cookie-плашки (9999, styles.css) — иначе они всплывали
-   поверх увеличенного фото (27.09.2026, найдено при проверке зума на десктопе). */
-.lbV1 { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
+.lbV1 { position:fixed; inset:0; z-index:var(--z-lightbox); display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
 .lbV1[hidden] { display:none !important; }
 body.lbOpenV1 { overflow:hidden; }
 .lbImgV1 { width:92vw; height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
@@ -579,8 +577,8 @@ body.lbOpenV1 { overflow:hidden; }
 .lbNextV1 { right:24px; }
 @media (max-width:640px){ .lbNavV1 { width:44px; height:44px; font-size:26px; } .lbPrevV1 { left:10px; } .lbNextV1 { right:10px; } .lbBtnV1 { padding:0 12px; } }
 
-/* Lead modal */
-.auctionModalV1 { position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(11,13,16,.55); backdrop-filter:blur(4px); }
+/* Lead modal — z-index:var(--z-overlay), иначе на первом визите его перекрывала cookie-плашка (27.09.2026, тот же баг, что был у лайтбокса) */
+.auctionModalV1 { position:fixed; inset:0; z-index:var(--z-overlay); display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(11,13,16,.55); backdrop-filter:blur(4px); }
 body.leadModalOpenV1 { overflow:hidden; }
 .auctionLeadFormV1 { position:relative; width:100%; max-width:460px; background:var(--aSurf); border-radius:20px; padding:28px; display:flex; flex-direction:column; gap:12px; box-shadow:0 24px 60px rgba(0,0,0,.3); }
 .auctionLeadFormV1 h2 { font-size:22px; color:var(--aInk); }
@@ -1019,7 +1017,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .svHeadV1 { margin:0 0 2px; font-size:13px; font-weight:800; color:var(--aInk); }
 .svKindV1 { flex:none; padding:10px 10px; border-radius:8px; background:#f3f7ff; color:#1d4ed8; font-weight:700; font-size:12px; align-self:center; }
 .svNameV1 { flex:1; min-width:0; padding:10px 6px; font-size:13px; font-weight:600; color:var(--aInk); overflow-wrap:anywhere; }
-.alertToastV1 { position:fixed; right:18px; bottom:18px; z-index:9000; display:flex; align-items:center; gap:12px; max-width:min(440px, calc(100vw - 32px)); padding:14px 14px 14px 16px; border-radius:14px; background:#111827; color:#fff; box-shadow:0 18px 40px rgba(0,0,0,.28); font-size:14px; line-height:1.4; }
+.alertToastV1 { position:fixed; right:18px; bottom:18px; z-index:var(--z-toast); display:flex; align-items:center; gap:12px; max-width:min(440px, calc(100vw - 32px)); padding:14px 14px 14px 16px; border-radius:14px; background:#111827; color:#fff; box-shadow:0 18px 40px rgba(0,0,0,.28); font-size:14px; line-height:1.4; }
 .alertToastV1[hidden] { display:none; }
 .alertToastV1[data-kind="err"] { background:#7f1d1d; }
 .alertToastV1[data-kind="ok"] { background:#14532d; }
@@ -1304,8 +1302,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 @media (prefers-reduced-motion:reduce){ body.filtersOpenV1 .auctionFiltersV1 { animation:none; } }
 @media (max-width:1100px){
-  body.filtersOpenV1::before { z-index:1000; }
-  body.filtersOpenV1 .auctionFiltersV1 { z-index:1001; }
+  /* z-index:var(--z-overlay-backdrop/--z-overlay) — иначе на первом визите шторку фильтров перекрывала cookie-плашка (27.09.2026) */
+  body.filtersOpenV1::before { z-index:var(--z-overlay-backdrop); }
+  body.filtersOpenV1 .auctionFiltersV1 { z-index:var(--z-overlay); }
 }
 
 /* Чипы фильтров, кнопки и поколения — одной строкой (переносится только когда не хватает ширины) */
