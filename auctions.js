@@ -3033,18 +3033,18 @@
   const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
   function tgSpecs(lot){
     const p = [];
-    const od = lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer).toLocaleString("ru-RU") + " миль" : "");
-    if(od) p.push(od);
-    const cond = (lot.conditionInfo && lot.conditionInfo.name) || lot.condition;
-    if(cond) p.push(cond);
+    try{ const od = dbOdo(lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer) + " mi" : "")); if(od) p.push(od); }catch(_){}
+    try{ const ci = conditionInfo(lot.condition); if(ci && ci.label) p.push(ci.label); }catch(_){ if(lot.condition) p.push(lot.condition); }
     const dmg = lot.primaryDamage || lot.damage;
     if(dmg) p.push(dmg);
     return p.join(" · ");
   }
   function tgDrive(lot){
     const fk = TG_FUEL[lot.fuelKind] || lot.fuel || "";
-    const eng = lot.engine ? String(lot.engine).replace(/\s+/g, " ").trim() : "";
-    return [eng, fk, lot.drive, lot.transmission].filter(Boolean).join(" · ");
+    const liters = String(lot.engine || "").match(/(\d[.,]\d)\s*l/i);
+    const eng = liters ? liters[1].replace(",", ".") + "L" : "";
+    const tr = /auto/i.test(lot.transmission || "") ? "Автомат" : /manu/i.test(lot.transmission || "") ? "Механика" : (lot.transmission || "");
+    return [eng, fk, lot.drive, tr].filter(Boolean).join(" · ");
   }
   function tgLotUrl(lot){ try{ return location.origin + "/auctions/" + lotSlug(lot); }catch(_){ return location.href; } }
   function tgHashtags(lot){
