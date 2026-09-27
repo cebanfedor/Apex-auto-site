@@ -57,7 +57,10 @@ module.exports = async function(req, res){
   }[lang];
   let ogTitle = TXT.t;
   let ogDesc = TXT.d;
-  let ogImage = "https://apexauto.md/assets/hot/bmw-530e.jpg";
+  // Запасная картинка (лот не нашёлся/не успел загрузиться) — брендовая карточка каталога,
+  // не случайная машина (Федор 27.09.2026: одно и то же авто на разных лотах — плохо смотрится).
+  const OG_FALLBACK = {ru:"auctions.png", ro:"auctions-ro.png", en:"auctions-en.png"};
+  let ogImage = `https://apexauto.md/assets/og/${OG_FALLBACK[lang]}`;
   let ogHasCard = false;
 
   const parsed = parseLotSlug(slug);
