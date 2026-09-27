@@ -3742,25 +3742,39 @@
       const nums = range.querySelectorAll(".rangeNumsV2 input"), numLo = nums[0], numHi = nums[1];
       const rangeTitle = (range.closest("details")?.querySelector("summary")?.textContent || "").trim();
       lo.setAttribute("aria-label", rangeTitle + " — от"); hi.setAttribute("aria-label", rangeTitle + " — до");
-      const pct = v => ((v - min) / (max - min)) * 100;
+      // 27.09.2026 (Федор: «пробег до 60к мышкой не выбрать» — на линейной шкале 0–250к каждый пиксель = сотни
+      // миль, а именно малый пробег людям важнее всего). data-curve="sqrt" — родной <input type=range> двигается
+      // по РАВНОМЕРНОЙ внутренней шкале 0..SCALE, а реальное значение = min + (max-min)×t² — нижняя часть трека
+      // (где обычно ищут «до 30–80к») растянута на бОльшую часть длины ползунка, верх сжат. Остальные диапазоны
+      // (год/цена/объём) без data-curve — работают как раньше, один в один.
+      const curved = range.dataset.curve === "sqrt";
+      const SCALE = 1000;
+      const sliderMin = curved ? 0 : min, sliderMax = curved ? SCALE : max;
+      if(curved){ lo.min = hi.min = "0"; lo.max = hi.max = String(SCALE); lo.step = hi.step = "1"; }
+      const toValue = raw => curved ? min + (max - min) * Math.pow((raw - sliderMin) / (sliderMax - sliderMin), 2) : raw;
+      const toRaw = v => curved ? sliderMin + Math.sqrt(Math.max(0, Math.min(1, (v - min) / (max - min)))) * (sliderMax - sliderMin) : v;
+      const pct = v => ((toRaw(v) - sliderMin) / (sliderMax - sliderMin)) * 100;
       const paint = () => {
-        const a = Math.min(Number(lo.value), Number(hi.value)), b = Math.max(Number(lo.value), Number(hi.value));
+        const a = Math.min(toValue(Number(lo.value)), toValue(Number(hi.value))), b = Math.max(toValue(Number(lo.value)), toValue(Number(hi.value)));
         fill.style.left = pct(a) + "%";
         fill.style.width = (pct(b) - pct(a)) + "%";
       };
       const fromSlider = () => {
-        let a = Number(lo.value), b = Number(hi.value);
-        if(a > b){ const t = a; a = b; b = t; lo.value = a; hi.value = b; }
+        if(Number(lo.value) > Number(hi.value)){ const t = lo.value; lo.value = hi.value; hi.value = t; }
+        let a = toValue(Number(lo.value)), b = toValue(Number(hi.value));
         const f = rangeUnitFactor(range);
-        const rd = v => dec ? (Math.round(v * 10) / 10).toFixed(1) : Math.round(v * f);
+        const step = Number(range.dataset.step) || 1;
+        const rd = v => dec ? (Math.round(v * 10) / 10).toFixed(1) : Math.round(Math.round(v / step) * step * f);
         numLo.value = a > min ? rd(a) : "";
         numHi.value = b < max ? rd(b) : "";
         paint();
       };
       const fromNum = () => {
         const f = rangeUnitFactor(range);
-        lo.value = numLo.value !== "" ? Math.min(max, Math.max(min, Number(numLo.value) / f)) : min;
-        hi.value = numHi.value !== "" ? Math.min(max, Math.max(min, Number(numHi.value) / f)) : max;
+        const a = numLo.value !== "" ? Math.min(max, Math.max(min, Number(numLo.value) / f)) : min;
+        const b = numHi.value !== "" ? Math.min(max, Math.max(min, Number(numHi.value) / f)) : max;
+        lo.value = toRaw(a);
+        hi.value = toRaw(b);
         paint();
       };
       lo.addEventListener("input", fromSlider);

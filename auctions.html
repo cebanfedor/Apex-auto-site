@@ -195,9 +195,9 @@
             </details>
             <details class="fSecV2"><summary>Пробег</summary>
               <div class="kmToggleV2"><button type="button" class="active" data-odo-unit="mi">миль</button><button type="button" data-odo-unit="km">км</button></div>
-              <div class="rangeV2" data-range data-min="0" data-max="250000" data-step="1000">
-                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="250000" step="1000" value="0"><input type="range" class="rHiV2" min="0" max="250000" step="1000" value="250000"></div>
-                <div class="rangeNumsV2"><input name="mileageFrom" type="number" inputmode="numeric" placeholder="0"><input name="mileageTo" type="number" inputmode="numeric" placeholder="250 000"></div>
+              <div class="rangeV2" data-range data-min="0" data-max="200000" data-step="1000" data-curve="sqrt">
+                <div class="rangeSliderV2"><div class="rangeFillV2"></div><input type="range" class="rLoV2" min="0" max="1000" step="1" value="0"><input type="range" class="rHiV2" min="0" max="1000" step="1" value="1000"></div>
+                <div class="rangeNumsV2"><input name="mileageFrom" type="number" inputmode="numeric" placeholder="0"><input name="mileageTo" type="number" inputmode="numeric" placeholder="200 000"></div>
               </div>
             </details>
             <details class="fSecV2"><summary>Объём двигателя</summary>
@@ -226,7 +226,6 @@
                 <label class="optV2"><input type="checkbox" name="fuel" value="5"><span>Plug-in гибрид</span></label>
                 <label class="optV2"><input type="checkbox" name="fuel" value="2"><span>Электро</span></label>
               </div>
-              <p class="fuelNoteV1">Тип определяем по VIN (база NHTSA). «Гибрид» — без подзарядки от розетки, «Plug-in» — с ней. Мягкие гибриды 48V считаем бензиновыми.</p>
             </details>
             <details open class="fSecV2"><summary>Бюджет под ключ</summary>
               <div class="budgetBoxV1">
@@ -323,7 +322,7 @@
                 <label class="optV2"><input type="checkbox" name="lotStatus" value="6"><span>Продан</span></label>
               </div>
             </details>
-            <details class="fSecV2"><summary>Статус продажи</summary>
+            <details open class="fSecV2"><summary>Статус продажи</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="checkbox" name="saleStatus" value="no_reserve"><span>Без резерва</span></label>
                 <label class="optV2"><input type="checkbox" name="saleStatus" value="timed"><span>Timed аукцион</span></label>
@@ -432,7 +431,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v515" defer></script>
-  <script src="/auctions.js?v=auctions-v331" defer></script>
+  <script src="/auctions.js?v=auctions-v332" defer></script>
   <script src="/site-content.js?v=admin-v166" defer></script>
 
 <!-- Exit-intent popup -->

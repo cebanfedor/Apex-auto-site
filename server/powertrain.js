@@ -157,10 +157,14 @@ function fullTitle(title, {trim, kind} = {}){
   // 2. Комплектация из VIN, если её слов ещё нет в названии
   trim = cleanTrim(trim);   // и то, что уже лежит в базе (старые разборы), тоже проверяем
   if(trim){
-    const have = new Set(t.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+    // 27.09.2026 (Федор: дубли в названиях, «Gle 350 ... Gle350», «C 300 ... C300»): фид пишет
+    // «Gle 350» с пробелом, vPIC-трим отдаёт «Gle350» слитно — split(/[^a-z0-9]+/) не делит по
+    // границе буква→цифра, слово «gle350» целиком не находилось среди отдельных «gle»/«350» и
+    // дописывалось ещё раз. Сравниваем по СЛИТНОЙ строке (без пробелов/дефисов) — «gle350» ищем
+    // подстрокой в «...gle350...», а не токеном в наборе токенов.
+    const haveJoined = t.toLowerCase().replace(/[^a-z0-9]+/g, "");
     // дописываем только недостающие слова: «Long Range» уже есть → добавится «Dual Motor», а не вся комплектация целиком
-    // слово комплектации «Sport-L» уже есть в названии, если есть все его части (sport, l) — иначе получалось «Sport-L Sport-L»
-    const missing = trim.split(" ").filter(w => w && !w.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).every(x => have.has(x)));
+    const missing = trim.split(" ").filter(w => { const wj = w.toLowerCase().replace(/[^a-z0-9]+/g, ""); return wj && !haveJoined.includes(wj); });
     if(missing.length) t += " " + missing.join(" ");
   }
   // 3. Гибрид / plug-in по VIN
