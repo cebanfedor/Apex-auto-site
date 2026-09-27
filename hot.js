@@ -172,18 +172,22 @@
     var bid = fmtP(lot.currentBid);
     var bn  = fmtP(lot.buyNow);
     var priceVal   = bid || bn || "—";
-    var priceLabel = (lot.buyNow && !lot.currentBid) ? "Buy Now" : "Цена на аукционе";
+    var priceLabel = (lot.buyNow && !lot.currentBid) ? "Купить сейчас" : "Цена на аукционе";
     var title = esc(lot.title || "Автомобиль");
 
     var imgHtml = img
       ? '<img class="hotApiCardImgV351" src="' + img + '" alt="' + title + '" loading="lazy">'
       : '<div class="hotApiCardImgV351 hotApiImgEmptyV351"></div>';
 
+    // 27.09.2026 (Федор, мобильный аудит): топливо/коробка показывались сырыми английскими словами
+    // из фида («hybrid», «automatic») — остальной сайт их переводит, этот блок нет.
+    var FUEL_RU_V351 = {gasoline:"Бензин", petrol:"Бензин", diesel:"Дизель", hybrid:"Гибрид", "plug-in hybrid":"Plug-in гибрид", electric:"Электро", flex:"Бензин"};
+    var TRANS_RU_V351 = {automatic:"Автомат", manual:"Механика"};
     var specs = [];
     if(lot.odometerText) specs.push({l:"Пробег",  v:lot.odometerText});
-    if(lot.fuel)         specs.push({l:"Топливо", v:lot.fuel});
+    if(lot.fuel)         specs.push({l:"Топливо", v:FUEL_RU_V351[String(lot.fuel).toLowerCase()] || lot.fuel});
     if(lot.drive)        specs.push({l:"Привод",  v:lot.drive});
-    if(lot.transmission) specs.push({l:"Коробка", v:lot.transmission});
+    if(lot.transmission) specs.push({l:"Коробка", v:TRANS_RU_V351[String(lot.transmission).toLowerCase()] || lot.transmission});
     var specsHtml = specs.length
       ? '<ul class="hotApiSpecsV351">'
           + specs.slice(0,4).map(function(s){
