@@ -3898,47 +3898,58 @@ async function runPowertrainFill(budgetMs = 42000){
     }catch(_){}
   }
   const since = new Date(Date.now() - 3600e3).toISOString();   // ближайшие торги первыми (ушедшие вчера не нужны)
-  while(Date.now() - t0 < budgetMs - 9000 && out.rounds < 30){
-    out.rounds++;
-    const rows = await syncSbFetch(`/api_lots?select=id,vin,title,year,fuel_id,make:payload->>make,model:payload->>model&${useTrim ? "vin_trim=is.null" : "fuel_x=is.null"}&archived=eq.false&year=gte.2005&sale_date=gte.${encodeURIComponent(since)}&order=sale_date.asc&limit=200`).catch(() => null);
-    if(!Array.isArray(rows) || !rows.length) break;
-    const vins = [...new Set(rows.map(r => String(r.vin || "").toUpperCase()).filter(powertrain.validVin))];
-    const chunks = []; for(let i = 0; i < vins.length; i += 50) chunks.push(vins.slice(i, i + 50));
-    const maps = await Promise.all(chunks.map(c => powertrain.vpicBatch(c)));
-    const byVin = new Map(); let failed = false;
-    maps.forEach(m => { if(!m) failed = true; else m.forEach((v, k) => byVin.set(k, v)); });
-    if(failed) out.failBatches++;
-    const groups = new Map(); const batch = {};
-    for(const r of rows){
-      const vin = String(r.vin || "").toUpperCase();
-      const valid = powertrain.validVin(vin);
-      // vPIC не ответил по этой пачке — строку не помечаем (повторим на следующем тике), иначе цикл ушёл бы в правила навсегда
-      if(valid && failed && !byVin.has(vin)) continue;
-      const d = powertrain.decide({make:r.make, model:r.model, year:r.year, title:r.title, fuelId:r.fuel_id}, valid ? byVin.get(vin) : null);
-      if(d.src === 1) out.vpic++; else if(d.src === 4){ out.vpic++; out.mild++; } else out.rules++;
-      if(useTrim){ batch[r.id] = {x:d.x, s:d.src, t:valid ? powertrain.trimFromVpic(byVin.get(vin)) : ""}; continue; }
-      const k = d.x + "|" + d.src;
-      if(!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(r.id);
-    }
-    if(useTrim){
-      const ids = Object.keys(batch);
-      if(!ids.length) break;
-      try{ await syncSbFetch("/rpc/set_pt", {method:"POST", body:JSON.stringify({p:batch})}); out.done += ids.length; }catch(e){ out.patchErr = (out.patchErr || 0) + 1; out.err = String(e.message || e).slice(0, 100); break; }
-      if(failed) break;
-      continue;
-    }
-    if(!groups.size) break;
-    for(const [k, ids] of groups){
-      const [x, src] = k.split("|").map(Number);
-      for(let i = 0; i < ids.length; i += 50){
-        const chunk = ids.slice(i, i + 50).map(encodeURIComponent).join(",");
-        await syncSbFetch(`/api_lots?id=in.(${chunk})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({fuel_x:x, fuel_src:src})}).catch(() => { out.patchErr = (out.patchErr || 0) + 1; });
+  // Один прогон очереди (общий для живых и архивных лотов — см. ниже). filterQ — доп. условие PostgREST (archived+сортировка).
+  async function pumpQueue(filterQ, deadline){
+    while(Date.now() - t0 < deadline && out.rounds < 30){
+      out.rounds++;
+      const rows = await syncSbFetch(`/api_lots?select=id,vin,title,year,fuel_id,make:payload->>make,model:payload->>model&${useTrim ? "vin_trim=is.null" : "fuel_x=is.null"}&${filterQ}&limit=200`).catch(() => null);
+      if(!Array.isArray(rows) || !rows.length) return true;   // очередь пуста — переходим к следующей фазе
+      const vins = [...new Set(rows.map(r => String(r.vin || "").toUpperCase()).filter(powertrain.validVin))];
+      const chunks = []; for(let i = 0; i < vins.length; i += 50) chunks.push(vins.slice(i, i + 50));
+      const maps = await Promise.all(chunks.map(c => powertrain.vpicBatch(c)));
+      const byVin = new Map(); let failed = false;
+      maps.forEach(m => { if(!m) failed = true; else m.forEach((v, k) => byVin.set(k, v)); });
+      if(failed) out.failBatches++;
+      const groups = new Map(); const batch = {};
+      for(const r of rows){
+        const vin = String(r.vin || "").toUpperCase();
+        const valid = powertrain.validVin(vin);
+        // vPIC не ответил по этой пачке — строку не помечаем (повторим на следующем тике), иначе цикл ушёл бы в правила навсегда
+        if(valid && failed && !byVin.has(vin)) continue;
+        const d = powertrain.decide({make:r.make, model:r.model, year:r.year, title:r.title, fuelId:r.fuel_id}, valid ? byVin.get(vin) : null);
+        if(d.src === 1) out.vpic++; else if(d.src === 4){ out.vpic++; out.mild++; } else out.rules++;
+        if(useTrim){ batch[r.id] = {x:d.x, s:d.src, t:valid ? powertrain.trimFromVpic(byVin.get(vin)) : ""}; continue; }
+        const k = d.x + "|" + d.src;
+        if(!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(r.id);
       }
-      out.done += ids.length;
+      if(useTrim){
+        const ids = Object.keys(batch);
+        if(!ids.length) return true;
+        try{ await syncSbFetch("/rpc/set_pt", {method:"POST", body:JSON.stringify({p:batch})}); out.done += ids.length; }catch(e){ out.patchErr = (out.patchErr || 0) + 1; out.err = String(e.message || e).slice(0, 100); return false; }
+        if(failed) return false;
+        continue;
+      }
+      if(!groups.size) return true;
+      for(const [k, ids] of groups){
+        const [x, src] = k.split("|").map(Number);
+        for(let i = 0; i < ids.length; i += 50){
+          const chunk = ids.slice(i, i + 50).map(encodeURIComponent).join(",");
+          await syncSbFetch(`/api_lots?id=in.(${chunk})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({fuel_x:x, fuel_src:src})}).catch(() => { out.patchErr = (out.patchErr || 0) + 1; });
+        }
+        out.done += ids.length;
+      }
+      if(failed) return false;
     }
-    if(failed) break;
+    return false;   // вышли по бюджету/лимиту раундов, очередь не пуста
   }
+  // Фаза 1 (как раньше) — живые/ближайшие лоты, их видят покупатели прямо сейчас: до 65% бюджета.
+  await pumpQueue(`archived=eq.false&year=gte.2005&sale_date=gte.${encodeURIComponent(since)}&order=sale_date.asc`, (budgetMs - 9000) * 0.65);
+  // Фаза 2 (27.09.2026): АРХИВНЫЕ (уже проданные) лоты — раньше вообще не попадали в эту очередь, поэтому «Ориентир ставки»
+  // почти не мог опереться на fuel_x при поиске похожих продаж (пул comps берётся именно из архива). Свежие продажи первыми —
+  // они полезнее для текущих оценок. Остаток бюджета после фазы 1.
+  out.rounds = 0;
+  await pumpQueue("archived=eq.true&status_id=eq.6&year=gte.2005&order=sale_date.desc", budgetMs - 9000);
   out.ms = Date.now() - t0;
   return out;
 }
