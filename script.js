@@ -1839,23 +1839,3 @@ document.addEventListener("DOMContentLoaded", () => {
   // пересчёт при ручном изменении курса CAD
   if($("cadUsd")) $("cadUsd").addEventListener("input", () => { if(calcMode==="canada") calculateCanada(); });
 });
-
-// Липкая плашка «Итого под ключ» на телефоне: пока правят поля формы, итог виден без прокрутки к нему
-document.addEventListener("DOMContentLoaded", () => {
-  try{
-    const total = $("total"), form = $("calcForm");
-    if(!total || !form || !window.IntersectionObserver || !window.MutationObserver) return;
-    const bar = document.createElement("div");
-    bar.className = "calcStickyV1"; bar.hidden = true;
-    bar.innerHTML = `<div><small>${escapeHtml(aiT("Итого под ключ"))}</small><b></b></div><button type="button">${escapeHtml(aiT("К расчёту"))}</button>`;
-    document.body.appendChild(bar);
-    const val = bar.querySelector("b");
-    const sync = () => { val.textContent = total.textContent.trim(); };
-    new MutationObserver(sync).observe(total, {childList:true, characterData:true, subtree:true}); sync();
-    let formIn = false, totalIn = false;
-    const upd = () => { bar.hidden = !(formIn && !totalIn); };
-    new IntersectionObserver(es => { formIn = es[0].isIntersecting; upd(); }, {threshold:0.05}).observe(form);
-    new IntersectionObserver(es => { totalIn = es[0].isIntersecting; upd(); }, {threshold:0.2}).observe(total);
-    bar.querySelector("button").addEventListener("click", () => total.scrollIntoView({block:"center", behavior:"smooth"}));
-  }catch(e){}
-});
