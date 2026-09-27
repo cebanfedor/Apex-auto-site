@@ -1344,7 +1344,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionLayoutV1 { gap:0; }
   .auctionTabsV1 button.active { box-shadow:none; }
   .auctionToolbarV2 { gap:10px; margin-bottom:10px; }
-  .auctionTabsV1 { gap:6px; margin:0 -14px; padding:0 14px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
+  .auctionTabsV1 { gap:6px; margin:0 -10px; padding:0 10px 2px; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent); }
   .auctionTabsV1 button { height:36px; padding:0 13px; font-size:13px; }
   .auctionToolRightV2 { gap:8px; grid-template-columns:1fr auto; }
   .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; }

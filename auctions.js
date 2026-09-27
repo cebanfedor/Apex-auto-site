@@ -1199,7 +1199,9 @@
     const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
     const tone = isYes ? "good" : isNo ? "bad" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(val))}</span></li>`;
+    // Фид отдаёт "Yes"/"No" по-английски — переводим в «Да»/«Нет», не показываем сырое значение (24.09.2026).
+    const shown = isYes ? "Да" : isNo ? "Нет" : val;
+    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(shown))}</span></li>`;
   }
   function dbCheckHistory(rawHistory, currentLot, noPending = false){
     // Пока VIN-история не пришла, показываем ТОЛЬКО заглушку (данные списка — предварительные и потом меняются: карточка «мигала»).
@@ -3139,8 +3141,9 @@
                 if(!k) return "";
                 const yes = /^(yes|да|present|available)/i.test(k);
                 const no = /^(no|нет|not )/i.test(k);
-                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор)
-                return dPlain("Ключ доступен", escapeHtml(tc(k)), "key", yes ? "good" : no ? "warn" : "neutral");
+                // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор); фид отдаёт "Yes"/"No" — переводим.
+                const shown = yes ? "Да" : no ? "Нет" : tc(k);
+                return dPlain("Ключ доступен", escapeHtml(L(shown)), "key", yes ? "good" : no ? "warn" : "neutral");
               })()}
               ${(() => {
                 const doc = parseDocTitle(docRaw(lot));
@@ -3152,7 +3155,7 @@
                   + dPlain("Тип документа", escapeHtml(docShort(docRaw(lot))), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
-              ${dPlain("Привод", escapeHtml(driveLine), "drive")}
+              ${dPlain("Двигатель и привод", escapeHtml(driveLine), "drive")}
               ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
               ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
