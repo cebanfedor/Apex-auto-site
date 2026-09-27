@@ -1443,3 +1443,28 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 .calcReserveV1 .crSubV1 span { text-transform:none; letter-spacing:0; font-size:12px; font-weight:600; }
 @media (max-width:640px){ .dSec .copyChipV1 { font-size:12.5px; white-space:nowrap; letter-spacing:0; } }
+
+/* Публикация лота в Telegram-канал (админ) */
+.tgPostBtnV1{cursor:pointer}
+.tgComposeV1{position:fixed;inset:0;z-index:var(--z-overlay,10001);background:rgba(15,18,24,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 14px}
+.tgComposeV1[hidden]{display:none}
+.tgBoxV1{position:relative;width:100%;max-width:560px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.28);padding:22px 20px 20px;margin:auto}
+.tgBoxV1 h3{margin:0 0 14px;font-size:19px;font-weight:800;color:var(--aInk,#14181f)}
+.tgCloseV1{position:absolute;top:12px;right:12px;width:34px;height:34px;border:none;border-radius:9px;background:#f0f2f5;color:#333;font-size:16px;cursor:pointer}
+.tgCloseV1:hover{background:#e5e8ec}
+.tgWarnV1{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#fff3cd;border:1px solid #ffd66b;color:#7a5b00;font-size:13px}
+.tgRowLblV1{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--aMuted,#667080);margin:14px 0 7px}
+.tgTplV1{display:flex;flex-wrap:wrap;gap:8px}
+.tgChipV1{border:1px solid var(--aLine,#e2e6ec);background:#fff;border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:600;color:var(--aInk2,#3a4250);cursor:pointer}
+.tgChipV1.is-on{background:var(--aRed,#ed0012);border-color:var(--aRed,#ed0012);color:#fff}
+.tgPhotoOptV1{display:flex;flex-direction:column;gap:7px}
+.tgPhotoOptV1 label{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--aInk2,#3a4250);cursor:pointer}
+.tgCapV1{width:100%;box-sizing:border-box;border:1px solid var(--aLine,#e2e6ec);border-radius:12px;padding:12px 13px;font:14px/1.5 inherit;color:var(--aInk,#14181f);resize:vertical;min-height:210px}
+.tgActionsV1{margin-top:14px}
+.tgPubV1{width:100%;border:none;border-radius:12px;background:var(--aRed,#ed0012);color:#fff;font-size:15px;font-weight:700;padding:14px;cursor:pointer}
+.tgPubV1:disabled{opacity:.6;cursor:default}
+.tgResV1{margin-top:12px;font-size:14px;min-height:20px}
+.tgResV1.is-ok{color:#1a7f45}
+.tgResV1.is-ok a{color:#1a7f45;font-weight:700}
+.tgResV1.is-err{color:var(--aRed,#ed0012)}
+@media (max-width:640px){.tgComposeV1{padding:0}.tgBoxV1{max-width:none;min-height:100dvh;border-radius:0}}

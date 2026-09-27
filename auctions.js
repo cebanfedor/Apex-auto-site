@@ -3020,8 +3020,152 @@
     requestAnimationFrame(go);
     [60, 180, 400, 800].forEach(ms => setTimeout(() => { if(lastTouchAt <= startedAt) go(); }, ms));
   }
+  // ── Публикация лота в Telegram-канал (кнопка видна только админу) ──
+  let tgDiag = null, tgChecked = false;
+  async function checkTgAdmin(){
+    if(tgChecked) { if(tgDiag) document.querySelectorAll(".tgPostBtnV1").forEach(b => b.hidden = false); return; }
+    tgChecked = true;
+    try{
+      const r = await api("/api/auctions?action=tgdiag");   // 401 у не-админа → api() бросит → кнопка скрыта
+      if(r && r.ok){ tgDiag = r; document.querySelectorAll(".tgPostBtnV1").forEach(b => b.hidden = false); }
+    }catch(_){ /* не админ — кнопки остаются скрытыми */ }
+  }
+  const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
+  function tgSpecs(lot){
+    const p = [];
+    const od = lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer).toLocaleString("ru-RU") + " миль" : "");
+    if(od) p.push(od);
+    const cond = (lot.conditionInfo && lot.conditionInfo.name) || lot.condition;
+    if(cond) p.push(cond);
+    const dmg = lot.primaryDamage || lot.damage;
+    if(dmg) p.push(dmg);
+    return p.join(" · ");
+  }
+  function tgDrive(lot){
+    const fk = TG_FUEL[lot.fuelKind] || lot.fuel || "";
+    const eng = lot.engine ? String(lot.engine).replace(/\s+/g, " ").trim() : "";
+    return [eng, fk, lot.drive, lot.transmission].filter(Boolean).join(" · ");
+  }
+  function tgLotUrl(lot){ try{ return location.origin + "/auctions/" + lotSlug(lot); }catch(_){ return location.href; } }
+  function tgHashtags(lot){
+    const slug = s => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]+/gi, "");
+    const tags = [slug(lot.make), slug((lot.model || "").split(" ")[0]), lot.auction ? slug(lot.auction) : "", TG_FUEL[lot.fuelKind] === "Plug-in гибрид" ? "plugin" : ""].filter(Boolean);
+    return [...new Set(tags)].map(t => "#" + t).join(" ");
+  }
+  function tgSaleDate(lot){ const d = lot.auctionDate ? new Date(lot.auctionDate) : null; return (d && !isNaN(d)) ? d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"}) : ""; }
+  // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
+  function buildTgCaption(lot, tpl){
+    const e = escapeHtml;
+    const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
+    const specs = tgSpecs(lot), drive = tgDrive(lot);
+    const bid = Number(lot.currentBid) || 0, bn = Number(lot.buyNow) || 0;
+    const sold = Number(lot.statusId) === 6;
+    const band = state.lotBand && state.lotBand.hi ? state.lotBand : null;
+    const turnkey = (function(){ try{ return Math.round(Number(turnkeyFor(lot, sold ? (Number(lot.finalBid) || bid) : (bid || bn)) ) || 0); }catch(_){ return 0; } })();
+    const url = tgLotUrl(lot), tags = tgHashtags(lot);
+    const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money(lot.finalBid) : ""}</b>`
+      : (bn && !bid) ? `💰 <b>Buy Now: ${money(bn)}</b>`
+      : `💰 <b>Текущая ставка: ${money(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money(bn)}` : ""}`;
+    const bandLine = band ? `📊 Рынок (ориентир): <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
+    const turnkeyLine = turnkey ? `🚗 Под ключ до Кишинёва: <b>≈ ${money(turnkey)}</b>` : "";
+    const dateLine = (!sold && tgSaleDate(lot)) ? `⏰ Торги: ${e(tgSaleDate(lot))}` : "";
+    const link = `🔗 <a href="${e(url)}">Смотреть и рассчитать на сайте</a>`;
+    const L1 = `🔥 <b>${e(title)}</b>`;
+    if(tpl === "deal"){
+      const eco = (band && turnkey && band.lo > turnkey) ? `\n📉 Ниже рынка примерно на ${money(band.lo - turnkey)}` : "";
+      return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+    if(tpl === "urgent"){
+      const head = tgSaleDate(lot) ? `⏰ <b>Торги ${e(tgSaleDate(lot))}</b> — успеваем оформить заявку` : "🔥 <b>Свежий лот</b>";
+      return [head, "", L1, specs ? e(specs) : "", "", priceLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    }
+    if(tpl === "short"){
+      return [L1, specs ? e(specs) : "", priceLine, turnkeyLine, "", link, tags].filter(Boolean).join("\n").trim();
+    }
+    // "auction" — классика
+    return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(lot.location)}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  }
+  function tgPhotoSet(lot, mode){
+    const card = location.origin + "/og/lot/" + encodeURIComponent(lot.id);
+    const real = (Array.isArray(lot.images) && lot.images.length ? lot.images : (lot.image ? [lot.image] : [])).filter(Boolean);
+    if(mode === "real") return real.slice(0, 10);
+    if(mode === "both") return [card, ...real.slice(0, 9)];
+    return [card];
+  }
+  function openTgCompose(lot){
+    if(!lot) return;
+    let modal = document.getElementById("tgComposeV1");
+    if(!modal){
+      modal = document.createElement("div");
+      modal.id = "tgComposeV1";
+      modal.className = "tgComposeV1";
+      modal.innerHTML = `<div class="tgBoxV1">
+        <button type="button" class="tgCloseV1" data-tg-close aria-label="Закрыть">✕</button>
+        <h3>Пост в Telegram-канал</h3>
+        <div class="tgWarnV1" id="tgWarnV1" hidden></div>
+        <div class="tgRowLblV1">Шаблон</div>
+        <div class="tgTplV1" id="tgTplV1">
+          <button type="button" class="tgChipV1 is-on" data-tpl="auction">Аукцион</button>
+          <button type="button" class="tgChipV1" data-tpl="deal">Выгодная сделка</button>
+          <button type="button" class="tgChipV1" data-tpl="urgent">Срочно</button>
+          <button type="button" class="tgChipV1" data-tpl="short">Коротко</button>
+        </div>
+        <div class="tgRowLblV1">Фото</div>
+        <div class="tgPhotoOptV1">
+          <label><input type="radio" name="tgPhotos" value="card" checked> Брендовая карточка</label>
+          <label><input type="radio" name="tgPhotos" value="real"> Реальные фото с аукциона</label>
+          <label><input type="radio" name="tgPhotos" value="both"> Карточка + фото</label>
+        </div>
+        <div class="tgRowLblV1">Текст (можно править)</div>
+        <textarea id="tgCapV1" class="tgCapV1" rows="12"></textarea>
+        <div class="tgActionsV1">
+          <button type="button" class="tgPubV1" id="tgPubV1">Опубликовать в канал</button>
+        </div>
+        <div class="tgResV1" id="tgResV1"></div>
+      </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", ev => { if(ev.target === modal || ev.target.closest("[data-tg-close]")) modal.hidden = true; });
+      modal.querySelector("#tgTplV1").addEventListener("click", ev => {
+        const chip = ev.target.closest("[data-tpl]"); if(!chip) return;
+        modal.querySelectorAll(".tgChipV1").forEach(c => c.classList.toggle("is-on", c === chip));
+        modal.querySelector("#tgCapV1").value = buildTgCaption(modal._lot, chip.dataset.tpl);
+      });
+      modal.querySelector("#tgPubV1").addEventListener("click", () => tgPublish(modal));
+    }
+    modal._lot = lot;
+    modal.querySelectorAll(".tgChipV1").forEach((c, i) => c.classList.toggle("is-on", i === 0));
+    const warn = modal.querySelector("#tgWarnV1");
+    if(tgDiag && !tgDiag.configured){ warn.hidden = false; warn.textContent = "Постинг не настроен: добавьте POST_BOT_TOKEN и POST_CHANNEL_ID в переменные окружения Vercel."; }
+    else if(tgDiag && tgDiag.configured && tgDiag.canPost === false){ warn.hidden = false; warn.textContent = "Бот не может писать в канал: " + (tgDiag.channelError || tgDiag.botError || "проверьте, что бот — админ канала с правом публикации."); }
+    else warn.hidden = true;
+    modal.querySelector("#tgResV1").textContent = "";
+    modal.querySelector("#tgCapV1").value = buildTgCaption(lot, "auction");
+    modal.hidden = false;
+  }
+  async function tgPublish(modal){
+    const lot = modal._lot; if(!lot) return;
+    const btn = modal.querySelector("#tgPubV1"), res = modal.querySelector("#tgResV1");
+    const mode = (modal.querySelector('input[name="tgPhotos"]:checked') || {}).value || "card";
+    const caption = modal.querySelector("#tgCapV1").value;
+    btn.disabled = true; res.className = "tgResV1"; res.textContent = "Публикуем…";
+    try{
+      const r = await api("/api/auctions?action=tgpost", {method:"POST", body:{caption, photos:tgPhotoSet(lot, mode)}});
+      res.className = "tgResV1 is-ok";
+      res.innerHTML = r.link ? `Опубликовано ✓ <a href="${escapeHtml(r.link)}" target="_blank" rel="noopener">открыть пост</a>` : "Опубликовано ✓";
+      setTimeout(() => { modal.hidden = true; }, 2600);
+    }catch(error){
+      res.className = "tgResV1 is-err";
+      res.textContent = "Не удалось: " + String((error && error.message) || error);
+    }finally{ btn.disabled = false; }
+  }
+  document.addEventListener("click", ev => {
+    const b = ev.target.closest("[data-tg-post]");
+    if(b){ ev.preventDefault(); openTgCompose(state.selectedLot); }
+  });
+
   function renderDetail(lot){
     scheduleVinRetry(lot, 1);
+    state.lotBand = null;   // вилка пересчитается в loadStats для этого лота (для поста в Telegram)
     _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
@@ -3108,6 +3252,7 @@
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
             ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Слежу за лотом" : "Следить за лотом"))}</span></button>` : ""}
             ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
+            <button type="button" class="dFavBtnV1 tgPostBtnV1" data-tg-post="${escapeHtml(lot.id)}" hidden>📣 <span>В Telegram</span></button>
           </div>
         </div>
         ${(() => {
@@ -3248,6 +3393,7 @@
     loadSimilarActive(lot);
     loadSimilarArchived(lot);
     loadStats(lot);   // оценка лота под ценой (#lotMarketLineV1)
+    checkTgAdmin();   // кнопка «В Telegram» — только для админа
     fetchLiveRates();
     startLotCountdown(lot);
     startLiveBidWatch(lot);
@@ -3390,6 +3536,7 @@
       if(cr && cr.ok && cr.comps && cr.comps.guide && Number(cr.comps.p25) > 0){
         // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
         const c = cr.comps;
+        state.lotBand = {lo:Number(c.p25) || 0, hi:Number(c.p75) || 0};   // для поста в Telegram
         const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
         const contradicted = Number(lot.currentBid) > Number(c.p75) || Number(lot.sellerReserve) > Number(c.p75) || maxHistBid > Number(c.p75);
         box.innerHTML = `
@@ -3410,6 +3557,7 @@
         const c = cr.comps;
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
         const lo = c.p25 || c.min, hi = c.p75 || c.max;
+        if(lo && hi && hi >= lo) state.lotBand = {lo:Number(lo), hi:Number(hi)};   // для поста в Telegram
         const hasRange = lo && hi && hi > lo;
         // Список отдельных проданных лотов убран — ниже показываем реальные лоты
         // того же года (открытые + архив), их можно открыть.
