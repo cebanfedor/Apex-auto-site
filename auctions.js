@@ -350,9 +350,11 @@
     }
     if(!activeChips.length){ box.hidden = true; box.innerHTML = ""; return; }
     box.hidden = false;
+    // 28.09.2026 (Федор): колокольчик — реальная ценность (Telegram-алерт на новые лоты по фильтру),
+    // «Сохранить поиск» — второстепенная локальная закладка. Идёт первым и визуально, и в DOM-порядке.
     box.innerHTML = activeChips.map((c, i) => `<button type="button" class="afChipV1" data-af="${i}" title="${escapeHtml(L("Убрать"))}">${escapeHtml(c.label)} <span aria-hidden="true">×</span></button>`).join("")
-      + `<button type="button" class="afSaveV1" id="afSaveV1">${escapeHtml(L("Сохранить поиск"))}</button>`
       + (["archived", "favorites"].includes(state.tab) ? "" : `<button type="button" class="afBellV1" id="afBellV1">${dbIco("bell")}<span>${escapeHtml(L("Уведомлять о новых"))}</span></button>`)
+      + `<button type="button" class="afSaveV1" id="afSaveV1">${escapeHtml(L("Сохранить поиск"))}</button>`
       + `<button type="button" class="afClearV1" id="afClearV1">${escapeHtml(L("Очистить всё"))}</button>`;
   }
   function updateSavedCount(){
