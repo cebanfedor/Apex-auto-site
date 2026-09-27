@@ -3012,7 +3012,7 @@ async function computeCompsForQ(q){
         let lo = cc.p25, mid = cc.median, hi = Math.max(cc.p75, cc.p25 * 1.05);
         if(acvBand){
           // Доверие похожим продажам растёт с их числом: до 12 — ACV весит больше половины, от 20 — почти не влияет.
-          const w = cc.count >= 20 ? 0.25 : cc.count >= 12 ? 0.4 : 0.55;
+          const w = cc.count >= 20 ? 0.25 : cc.count >= 12 ? 0.4 : 0.45;
           lo = lo * (1 - w) + acvBand.lo * w; mid = mid * (1 - w) + acvBand.mid * w; hi = hi * (1 - w) + acvBand.hi * w;
         }
         band = {lo:r100(lo), mid:r100(mid), hi:r100(hi)}; src = acvBand ? "data+acv" : "data";
@@ -5071,7 +5071,7 @@ module.exports = async function handler(request, response){
             aIn.push(r.final_bid >= ab.lo && r.final_bid <= ab.hi ? 1 : 0);
             aIn20.push(Math.abs(r.final_bid - ab.mid) / ab.mid <= .2 ? 1 : 0);
             // как в проде: comps побеждает при ≥20 похожих, ниже — доля ACV растёт
-            const w = st.count >= 20 ? 0.25 : st.count >= 12 ? 0.4 : 0.55;
+            const w = st.count >= 20 ? 0.25 : st.count >= 12 ? 0.4 : 0.45;
             const bMid = st.median * (1 - w) + ab.mid * w, bLo = st.p25 * (1 - w) + ab.lo * w, bHi = st.p75 * (1 - w) + ab.hi * w;
             bErrs.push(Math.abs(bMid - r.final_bid) / r.final_bid);
             bIn.push(r.final_bid >= bLo && r.final_bid <= bHi ? 1 : 0);
