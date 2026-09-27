@@ -124,6 +124,65 @@ function esc(s){
     grid.innerHTML = ITEMS.map(card).join("");
   }
 
+  /* ── Лайтбокс фото (27.09.2026): фото объявления не увеличивались на весь экран ──
+     Те же классы/разметка, что у лайтбокса каталога (auctions.js openLightbox) — единый вид. */
+  var lb = {photos:[], index:0};
+  function ensureLightbox(){
+    var el = document.getElementById("transitLightboxV1");
+    if(el) return el;
+    el = document.createElement("div");
+    el.id = "transitLightboxV1";
+    el.className = "lbV1";
+    el.hidden = true;
+    el.innerHTML = '<div class="lbTopV1"><span id="transitLbCountV1" class="lbCountV1"></span>'
+      + '<div class="lbActionsV1"><button class="lbBtnV1 lbCloseV1" type="button" data-lb-close aria-label="Закрыть">✕</button></div></div>'
+      + '<button class="lbNavV1 lbPrevV1" type="button" data-lb-prev aria-label="Предыдущее фото">‹</button>'
+      + '<div id="transitLbStageV1" class="lbStageV1"></div>'
+      + '<button class="lbNavV1 lbNextV1" type="button" data-lb-next aria-label="Следующее фото">›</button>';
+    document.body.appendChild(el);
+    return el;
+  }
+  function renderLightbox(){
+    var stage = document.getElementById("transitLbStageV1");
+    if(stage && lb.photos[lb.index]) stage.innerHTML = '<img class="lbImgV1" src="' + esc(lb.photos[lb.index]) + '" alt="">';
+    var c = document.getElementById("transitLbCountV1");
+    if(c) c.textContent = (lb.index + 1) + " / " + lb.photos.length;
+    var multi = lb.photos.length > 1;
+    document.querySelectorAll("#transitLightboxV1 .lbNavV1").forEach(function(b){ b.style.display = multi ? "" : "none"; });
+  }
+  function openLightbox(photos, index){
+    if(!photos || !photos.length) return;
+    lb.photos = photos;
+    lb.index = Math.max(0, Math.min(index || 0, photos.length - 1));
+    var el = ensureLightbox();
+    el.hidden = false;
+    document.body.classList.add("lbOpenV1");
+    renderLightbox();
+  }
+  function closeLightbox(){
+    var el = document.getElementById("transitLightboxV1");
+    if(el) el.hidden = true;
+    document.body.classList.remove("lbOpenV1");
+  }
+  function lbMove(step){
+    if(!lb.photos.length) return;
+    lb.index = (lb.index + step + lb.photos.length) % lb.photos.length;
+    renderLightbox();
+  }
+  document.addEventListener("click", function(e){
+    if(e.target.closest("[data-lb-prev]")){ lbMove(-1); return; }
+    if(e.target.closest("[data-lb-next]")){ lbMove(1); return; }
+    if(e.target.closest("[data-lb-close]")){ closeLightbox(); return; }
+    if(e.target.id === "transitLightboxV1"){ closeLightbox(); return; }
+  });
+  document.addEventListener("keydown", function(e){
+    var el = document.getElementById("transitLightboxV1");
+    if(!el || el.hidden) return;
+    if(e.key === "Escape"){ closeLightbox(); return; }
+    if(e.key === "ArrowLeft"){ lbMove(-1); return; }
+    if(e.key === "ArrowRight"){ lbMove(1); return; }
+  });
+
   /* ── Карточка объявления ── */
   function waLink(it){
     var text = (lang() === "ro" ? "Bună ziua! Mă interesează auto în tranzit: "
@@ -144,6 +203,7 @@ function esc(s){
     var gallery = photos.length
       ? '<div class="transitGalV1">'
           + '<div class="transitGalMainV1"><img id="transitMainImgV1" src="' + esc(photos[0]) + '" alt="' + esc(it.title) + '">'
+            + '<span class="transitZoomV1" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/></svg></span>'
             + (photos.length > 1 ? '<button type="button" class="transitGalNavV1 isPrevV1" data-gal="-1" aria-label="Предыдущее фото">‹</button><button type="button" class="transitGalNavV1 isNextV1" data-gal="1" aria-label="Следующее фото">›</button><span class="transitGalCntV1" id="transitGalCntV1">1 / ' + photos.length + '</span>' : "")
           + '</div>'
           + (photos.length > 1 ? '<div class="transitThumbsV1">' + photos.map(function(p, i){
@@ -225,15 +285,19 @@ function esc(s){
       }
       else if(t.dataset.transitBack){ e.preventDefault(); history.pushState({}, "", withLang("/in-transit")); route(); }
     };
-    // Свайп по главному фото на телефоне
-    var sx = null;
+    // Свайп по главному фото на телефоне; тап (без свайпа) — открыть увеличенное фото
+    var sx = null, lastSwipeAt = 0;
     if(main){
       main.addEventListener("touchstart", function(e){ sx = e.touches[0].clientX; }, {passive:true});
       main.addEventListener("touchend", function(e){
         if(sx == null) return;
         var dx = e.changedTouches[0].clientX - sx; sx = null;
-        if(Math.abs(dx) > 40) show(idx + (dx < 0 ? 1 : -1));
+        if(Math.abs(dx) > 40){ show(idx + (dx < 0 ? 1 : -1)); lastSwipeAt = Date.now(); }
       }, {passive:true});
+      main.addEventListener("click", function(){
+        if(Date.now() - lastSwipeAt < 400) return;   // клик-фантом сразу после свайпа — игнорируем
+        openLightbox(photos, idx);
+      });
     }
     var form = document.getElementById("transitLeadV1");
     if(form) form.addEventListener("submit", function(e){

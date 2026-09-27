@@ -45,6 +45,19 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Onest", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+  /* z-index шкала для СТРАНИЧНЫХ слоёв (шапка/плавающие кнопки/оверлеи на весь экран) —
+     общая для styles.css/auctions.css/tracking.html (27.09.2026, после бага с лайтбоксом
+     под cookie-плашкой). Локальные z-index внутри карточки/дропдауна (1–70) в шкалу не
+     включены — им конкурировать с полноэкранными слоями не с чем. Порядок снизу вверх:
+     шапка → плавающая кнопка/тост → cookie-плашка → модалка/шторка → лайтбокс (всегда верх). */
+  --z-header: 300;
+  --z-fab: 9000;
+  --z-toast: 9000;
+  --z-cookie: 9999;
+  --z-overlay-backdrop: 10000;
+  --z-overlay: 10001;
+  --z-lightbox: 10002;
 }
 
 /* ---- Base -------------------------------------------------------------- */
@@ -101,7 +114,7 @@ section { position: relative; }
 
 /* ---- Header ------------------------------------------------------------ */
 .siteHeader.apexHdrV201 {
-  position: sticky; top: 0; z-index: 300;
+  position: sticky; top: 0; z-index: var(--z-header);
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: nowrap;
   width: 100%; margin: 0;
   padding: 0 max(24px, calc((100% - var(--maxw)) / 2));
@@ -1097,6 +1110,14 @@ details > summary::-webkit-details-marker { display: none; }
 .footerStats div b { display: block; color: #fff; font-size: 16px; }
 .footerStats div span { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
 .footerContacts { display: flex; flex-direction: column; gap: 10px; }
+/* Ссылки на каталог по маркам/моделям в подвале — для сквозной индексации Google (27.09.2026) */
+.footerModelsV1 { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px;
+  margin-top: 10px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.12); }
+.footerModelsV1 > b { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; }
+.footerModelsBrandV1 { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.45); }
+.footerModelsBrandV1 strong { color: rgba(255,255,255,0.7); font-weight: 600; }
+.footerModelsBrandV1 a { color: rgba(255,255,255,0.55); text-decoration: none; }
+.footerModelsBrandV1 a:hover { color: #fff; text-decoration: underline; }
 .footerSocialV432 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
   margin-top: 10px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.12); }
 .footerSocialV432 b { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
@@ -1313,7 +1334,7 @@ details > summary::-webkit-details-marker { display: none; }
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  z-index: 9000;
+  z-index: var(--z-fab);
 }
 .fabBtnV341 {
   width: 40px;
@@ -1570,7 +1591,7 @@ details > summary::-webkit-details-marker { display: none; }
 .fabContactV341:not(.open) .fabOptionsV341 { visibility:hidden; }
 
 /* ---- Cookie-баннер согласия (закон РМ 195/2024) ---- */
-.cookieConsentV1 { position:fixed; left:0; right:0; bottom:0; z-index:9999; display:flex; justify-content:center; padding:14px 16px; pointer-events:none; }
+.cookieConsentV1 { position:fixed; left:0; right:0; bottom:0; z-index:var(--z-cookie); display:flex; justify-content:center; padding:14px 16px; pointer-events:none; }
 .cookieConsentBoxV1 { pointer-events:auto; width:100%; max-width:760px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:18px 22px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
 .cookieConsentBoxV1 p { margin:0; flex:1 1 320px; font-size:13.5px; line-height:1.6; color:var(--ink-2); }
 .cookieConsentBoxV1 p a { color:var(--red); text-decoration:underline; }
@@ -1589,3 +1610,24 @@ details > summary::-webkit-details-marker { display: none; }
   .formCard .grid:has(#vehicleType), .formCard .grid:has(#engineLiters) { grid-template-columns: 1fr 1fr; gap: 8px; }
   .formCard .grid:has(#vehicleType) label, .formCard .grid:has(#engineLiters) label { font-size: 12.5px; min-height: 2.4em; display: flex; align-items: flex-end; }
 }
+
+/* ===== Лайтбокс фото «Авто в пути» (27.09.2026) — фото на странице объявления не увеличивались ===== */
+/* Те же класс-имена и стили, что у лайтбокса каталога (auctions.css .lbV1) — единый вид на сайте. */
+.lbV1 { position:fixed; inset:0; z-index:var(--z-lightbox); display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
+.lbV1[hidden] { display:none !important; }
+body.lbOpenV1 { overflow:hidden; }
+.lbImgV1 { width:92vw; height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+.lbStageV1 { display:flex; align-items:center; justify-content:center; }
+.lbTopV1 { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:16px 22px; }
+.lbCountV1 { color:#fff; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+.lbActionsV1 { display:flex; gap:10px; }
+.lbBtnV1 { height:44px; padding:0 18px; border:1px solid rgba(255,255,255,.25); border-radius:10px; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-weight:600; font-size:13px; cursor:pointer; transition:.15s; }
+.lbBtnV1:hover { background:rgba(255,255,255,.22) !important; }
+.lbCloseV1 { width:44px; padding:0; font-size:16px; }
+.lbNavV1 { position:absolute; top:50%; transform:translateY(-50%); width:52px; height:52px; border:1px solid rgba(255,255,255,.25); border-radius:50%; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-size:30px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; }
+.lbNavV1:hover { background:rgba(255,255,255,.22) !important; }
+.lbPrevV1 { left:24px; }
+.lbNextV1 { right:24px; }
+@media (max-width:640px){ .lbNavV1 { width:44px; height:44px; font-size:26px; } .lbPrevV1 { left:10px; } .lbNextV1 { right:10px; } .lbBtnV1 { padding:0 12px; } }
+.transitGalMainV1 { cursor:zoom-in; }
+.transitZoomV1 { position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:50%; background:rgba(13,16,22,.55); color:#fff; display:flex; align-items:center; justify-content:center; pointer-events:none; }
