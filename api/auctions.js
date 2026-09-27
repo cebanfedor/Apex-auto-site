@@ -2764,6 +2764,10 @@ async function fetchSoldCompsFromDb(makeId, modelId){
   p.set("archived", "eq.true");
   p.set("status_id", "eq.6");
   p.set("final_bid", "gt.0");
+  // Без явного порядка Postgres может отдавать разные строки на разных запросах (обход растущей таблицы
+  // без ORDER BY не гарантирует стабильный список) — задний план: живая оценка это не портит (берёт ВЕСЬ
+  // ответ), а вот ?action=compstest каждый раз тестировал разные 400 строк из пула, давая несравнимые прогоны.
+  p.set("order", "sale_date.desc");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12000);
   let response;
