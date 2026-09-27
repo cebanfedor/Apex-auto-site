@@ -221,6 +221,25 @@
     document.querySelectorAll("[data-fav]").forEach(s => s.classList.toggle("is-fav", favHas(s.dataset.fav)));
   }
 
+  // ---- Личные заметки по лоту (localStorage, тот же принцип, что избранное) ----
+  const NOTE_KEY = "apexNotesV1";
+  function noteLoad(){ try{ return JSON.parse(localStorage.getItem(NOTE_KEY) || "{}") || {}; }catch(e){ return {}; } }
+  function noteSave(map){ try{ localStorage.setItem(NOTE_KEY, JSON.stringify(map)); }catch(e){} }
+  function noteGet(id){ const m = noteLoad(); return id != null && m[id] ? m[id].text || "" : ""; }
+  function noteSet(id, text){
+    if(id == null) return;
+    const map = noteLoad();
+    const t = String(text || "").trim();
+    if(t) map[id] = {text:t, updatedAt:Date.now()};
+    else delete map[id];
+    noteSave(map);
+  }
+  const noteSaveDebounced = debounce((id, text) => {
+    noteSet(id, text);
+    const s = document.querySelector("[data-note-saved]");
+    if(s){ s.classList.add("is-shown"); clearTimeout(s._hideT); s._hideT = setTimeout(() => s.classList.remove("is-shown"), 1600); }
+  }, 500);
+
   // ---- URL state sync (shareable searches, survives refresh) ----
   // Строка фильтров для уведомлений: сервер ждёт «До» уже сдвинутым на день (исключающая граница), как в запросе к API
   function alertQs(){
@@ -1074,7 +1093,8 @@
     key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M11 12l8-8M16 4l2 2M14 6l2 2"/>',
     drive:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/>',
     fuel:'<path d="M3 22V8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"/><path d="M3 22h12"/><path d="M15 10h2a2 2 0 0 1 2 2v3a1 1 0 0 0 1 1h0a1 1 0 0 0 1-1V9l-3-3"/><path d="M3 14h12"/>',
-    person:'<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>'
+    person:'<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>',
+    note:'<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/><path d="M12 20h9"/>'
   };
   function dbIco(name){
     return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
@@ -3130,6 +3150,10 @@
               ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}"${i > 0 ? ' loading="lazy"' : ""}>`).join("")}
               ${lot.video ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="Видео осмотра"><img src="${escapeHtml(images[0] || "")}" alt="Видео осмотра" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
             </div>
+            <div class="dNoteV1">
+              <label for="dNoteTextV1">${dbIco("note")}<span>${L("Моя заметка")}</span><span class="dNoteSavedV1" data-note-saved>${L("Сохранено ✓")}</span></label>
+              <textarea id="dNoteTextV1" data-note="${escapeHtml(lot.id)}" maxlength="600" placeholder="${escapeHtml(L("Видно только вам на этом устройстве — например, до какой ставки торговаться"))}">${escapeHtml(noteGet(lot.id))}</textarea>
+            </div>
           </div>
           <div class="lotDetailCenterV1">
             <section class="dSec">
@@ -4908,6 +4932,8 @@
     });
     document.addEventListener("input", event => {
       if(event.target.closest("[data-calc-input]")) updateLotCalculator();
+      const noteEl = event.target.closest("[data-note]");
+      if(noteEl) noteSaveDebounced(noteEl.dataset.note, noteEl.value);
     });
     document.addEventListener("change", event => {
       if(event.target.closest("[data-calc-input]")) updateLotCalculator();
