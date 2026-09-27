@@ -546,7 +546,9 @@
 .detailThumbsV1 .dThumbV2:hover { transform:translateY(-1px); border-color:var(--aMuted); }
 .detailThumbsV1 .dThumbV2.isActiveThumbV2 { border-color:var(--aRed); box-shadow:0 0 0 2px rgba(237,0,18,.16); }
 
-.lbV1 { position:fixed; inset:0; z-index:400; display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
+/* z-index выше кнопки контактов (9000) и cookie-плашки (9999, styles.css) — иначе они всплывали
+   поверх увеличенного фото (27.09.2026, найдено при проверке зума на десктопе). */
+.lbV1 { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
 .lbV1[hidden] { display:none !important; }
 body.lbOpenV1 { overflow:hidden; }
 .lbImgV1 { width:92vw; height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }

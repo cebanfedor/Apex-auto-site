@@ -409,9 +409,10 @@
       .trackLogCardV401 { padding: 18px 16px; }
     }
     /* lightbox */
+    /* z-index выше cookie-плашки (9999, styles.css) — иначе она перекрывала увеличенное фото (27.09.2026) */
     .trackLightboxV401 {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.9); z-index: 9999;
+      background: rgba(0,0,0,0.9); z-index: 10000;
       align-items: center; justify-content: center;
       cursor: zoom-out; overflow: hidden;
     }
