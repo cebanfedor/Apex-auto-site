@@ -3292,8 +3292,13 @@ function upsertClosedLot(lot){
     const ts = Date.parse(lot.auctionDate || "");
     const sold = lot.statusId === 6 && Number.isFinite(ts) && ts < Date.now();
     if(!sold){
-      // Живой лот (торги впереди / не продан) — «оживляем» строку в базе, если она там архивная или с устаревшей датой.
-      if(Number.isFinite(ts) && ts > Date.now()){
+      // Живой лот (торги впереди), ИЛИ торги уже прошли, но лот НЕ продан (резерв не выбит —
+      // statusId 8/«Минимальный резерв» и т.п.): в обоих случаях «оживляем» строку в базе, если
+      // она архивная или несёт финалку. 27.09.2026 (Honda CR-V IAAI 45079580): раньше это ветвление
+      // требовало ts > Date.now() — лот с прошедшей датой и НЕ проданный (резерв не выбит) не
+      // подходил НИ под «sold», НИ под «revival» условия и повисал в архиве с чужой ставкой как
+      // finalBid навсегда (сайт показывал «ПРОДАНО», хотя фид уже говорил «не продан»).
+      if(Number.isFinite(ts)){
         const rid = lot.auction + "-" + lot.lot;
         preserveSoldCopies([rid]).then(() => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
           body:JSON.stringify({archived:false, status_id:lot.statusId || 3, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0,
