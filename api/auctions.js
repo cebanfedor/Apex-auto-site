@@ -2181,7 +2181,10 @@ async function tabTotal(tab, auction, vtype){
   }else if(tab === "dated"){
     n = await cnt(`sale_date=gte.${grace}&${live}`);
   }else{
-    n = (await cnt(`sale_date=gte.${grace}&${live}`)) + (await cnt(`sale_date=is.null&${live}`));
+    // 27.09.2026: были ДВА cnt() один за другим — Supabase апгрейднули с Micro (пул больше не узкое
+    // место, замер 14 параллельных запросов держит <1.2с), параллелим.
+    const [datedN, undatedN] = await Promise.all([cnt(`sale_date=gte.${grace}&${live}`), cnt(`sale_date=is.null&${live}`)]);
+    n = datedN + undatedN;
   }
   // n=0 (таймауты) тоже кэшируем, но на 2 мин — иначе каждый запрос каталога заново гонял точные счёты по 5с.
   tabTotalCache.set(ck, {n, at:n > 0 ? Date.now() : Date.now() - 8 * 60e3});
@@ -3756,16 +3759,21 @@ async function computeCatalogCount(){
   };
   let all = 0, copart = 0, iaai = 0, dated = 0, buyNow = 0, soon = 0, archivedN = 0, types = null;
   if(sbUp() && await lotsDbReady().catch(() => false)){
-    // Те же числа, что у вкладок (tabTotal). ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов забивали пул соединений
-    // PostgREST на Micro (~10), остальные запросы каталога ждали и падали по 8с-аборту.
-    // Общий лимит 6с на весь набор: при медленной базе 7 последовательных оценок тянули ответ до 37с (504).
-    const deadline = Date.now() + 9000;
-    const t = async (a, b) => { if(Date.now() > deadline) return 0; try{ return await tabTotal(a, b); }catch(e){ return 0; } };
-    all = await t("all", "all"); soon = await t("soon", "all"); archivedN = await t("archived", "all"); buyNow = await t("buy_now", "all");
-    dated = await t("dated", "all"); copart = await t("all", "copart"); iaai = await t("all", "iaai");
+    // Те же числа, что у вкладок (tabTotal). До 27.09.2026 шли ПОСЛЕДОВАТЕЛЬНО: параллельные 8 запросов
+    // забивали пул соединений PostgREST на Micro (~10), остальные запросы каталога ждали и падали по
+    // 8с-аборту. После апгрейда Supabase (замер: 14 параллельных запросов — все <1.2с, без единой ошибки)
+    // считаем всё разом; общий лимит держит Promise.all — самый медленный внутренний таймаут tabTotal ~6с.
+    const t = async (a, b, vt) => { try{ return await tabTotal(a, b, vt); }catch(e){ return 0; } };
+    const TYPE_VTS = ["1", "2", "5", "7"];
+    const [allR, soonR, archivedR, buyNowR, datedR, copartR, iaaiR, ...typeResults] = await Promise.all([
+      t("all", "all"), t("soon", "all"), t("archived", "all"), t("buy_now", "all"),
+      t("dated", "all"), t("all", "copart"), t("all", "iaai"),
+      ...TYPE_VTS.map(vt => t("all", "all", vt))
+    ]);
+    all = allR; soon = soonR; archivedN = archivedR; buyNow = buyNowR; dated = datedR; copart = copartR; iaai = iaaiR;
     // Витрина по типам кузова — те же числа, что в заголовке (раньше витрина брала оценки своих 4 запросов: 524k «Автомобили» при 192k в шапке).
     types = {};
-    for(const vt of ["1", "2", "5", "7"]){ const n = await (async () => { if(Date.now() > deadline + 4000) return 0; try{ return await tabTotal("all", "all", vt); }catch(e){ return 0; } })(); if(n > 0) types[vt] = n; }
+    TYPE_VTS.forEach((vt, i) => { if(typeResults[i] > 0) types[vt] = typeResults[i]; });
   }
   if(!(all > 0)){
     // база недоступна/пуста → живой фид (то, на чём и так работает каталог в этот момент)
