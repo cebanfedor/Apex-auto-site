@@ -1589,3 +1589,24 @@ details > summary::-webkit-details-marker { display: none; }
   .formCard .grid:has(#vehicleType), .formCard .grid:has(#engineLiters) { grid-template-columns: 1fr 1fr; gap: 8px; }
   .formCard .grid:has(#vehicleType) label, .formCard .grid:has(#engineLiters) label { font-size: 12.5px; min-height: 2.4em; display: flex; align-items: flex-end; }
 }
+
+/* ===== Лайтбокс фото «Авто в пути» (27.09.2026) — фото на странице объявления не увеличивались ===== */
+/* Те же класс-имена и стили, что у лайтбокса каталога (auctions.css .lbV1) — единый вид на сайте. */
+.lbV1 { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; background:rgba(8,10,13,.94); padding:64px 20px; }
+.lbV1[hidden] { display:none !important; }
+body.lbOpenV1 { overflow:hidden; }
+.lbImgV1 { width:92vw; height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+.lbStageV1 { display:flex; align-items:center; justify-content:center; }
+.lbTopV1 { position:absolute; top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between; padding:16px 22px; }
+.lbCountV1 { color:#fff; font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; }
+.lbActionsV1 { display:flex; gap:10px; }
+.lbBtnV1 { height:44px; padding:0 18px; border:1px solid rgba(255,255,255,.25); border-radius:10px; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-weight:600; font-size:13px; cursor:pointer; transition:.15s; }
+.lbBtnV1:hover { background:rgba(255,255,255,.22) !important; }
+.lbCloseV1 { width:44px; padding:0; font-size:16px; }
+.lbNavV1 { position:absolute; top:50%; transform:translateY(-50%); width:52px; height:52px; border:1px solid rgba(255,255,255,.25); border-radius:50%; background:rgba(255,255,255,.1) !important; color:#fff !important; box-shadow:none !important; font-size:30px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.15s; }
+.lbNavV1:hover { background:rgba(255,255,255,.22) !important; }
+.lbPrevV1 { left:24px; }
+.lbNextV1 { right:24px; }
+@media (max-width:640px){ .lbNavV1 { width:44px; height:44px; font-size:26px; } .lbPrevV1 { left:10px; } .lbNextV1 { right:10px; } .lbBtnV1 { padding:0 12px; } }
+.transitGalMainV1 { cursor:zoom-in; }
+.transitZoomV1 { position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:50%; background:rgba(13,16,22,.55); color:#fff; display:flex; align-items:center; justify-content:center; pointer-events:none; }
