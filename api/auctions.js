@@ -3078,7 +3078,7 @@ async function computeCompsForQ(q){
     // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
     // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
     const acvNum = Number(q.get("acv")) || 0;
-    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys")}) : null;
+    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair")}) : null;
     let band = null, src = "guide";
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);

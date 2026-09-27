@@ -1525,6 +1525,10 @@
     if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(Math.round(lot.estimatedRetailValue)));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
+    // 28.09.2026 (Федор, Tesla Model Y IAAI 40084037): оценка ремонта ЭТОГО VIN — прямой факт, которого
+    // не знает ни ACV, ни текстовая категория повреждения («Structural» может быть и копеечной царапиной
+    // по раме, и настоящим тяжёлым случаем — оценка ремонта показывает, какой именно).
+    if(Number(lot.repairCost) > 0) cp.set("repair", String(Math.round(lot.repairCost)));
     // Самодиагностика (guide_miss): чтобы сервер видел, когда реальная ставка/резерв/прошлый раунд
     // выше вилки, и мог залогировать локацию/штат/пробег для будущей правки формулы.
     if(lot.id != null) cp.set("lot_id", `${String(lot.auction || "").toLowerCase()}-${lot.id}`.slice(0, 80));
