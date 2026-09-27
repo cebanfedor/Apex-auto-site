@@ -1269,7 +1269,9 @@ window.__APEX_DICT = (function(){
       "Подключить":"Conectează",
       "Подписок пока нет":"Nu există abonamente",
       "до":"până la",
-      "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"Nu ai căutări salvate. Alege filtrele și apasă „Salvează căutarea”."
+      "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"Nu ai căutări salvate. Alege filtrele și apasă „Salvează căutarea”.",
+      "Моя заметка":"Notița mea",
+      "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Vizibilă doar pentru tine pe acest dispozitiv — de exemplu, până la ce sumă poți licita"
     },
     en:{
       "Меня вы можете знать как":"You may also know me as",
@@ -2552,7 +2554,9 @@ window.__APEX_DICT = (function(){
       "Подключить":"Connect",
       "Подписок пока нет":"No subscriptions yet",
       "до":"to",
-      "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"No saved searches yet. Pick filters and press “Save search”."
+      "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"No saved searches yet. Pick filters and press “Save search”.",
+      "Моя заметка":"My note",
+      "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Visible only to you on this device — e.g. how high you're willing to bid"
     }
   };
 

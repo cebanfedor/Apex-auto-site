@@ -290,6 +290,15 @@
 .detailThumbsV1 { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:8px; }
 .detailThumbsV1 img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:.18s; }
 .detailThumbsV1 img:hover { border-color:var(--aRed); }
+/* Личная заметка по лоту — localStorage, видна только автору (27.09.2026) */
+.dNoteV1 { margin-top:10px; background:var(--aSurf); border:1px solid var(--aLine2); border-radius:14px; padding:12px 14px; }
+.dNoteV1 label { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--aInk2); margin-bottom:7px; }
+.dNoteV1 label .dbIco { width:15px; height:15px; flex:none; color:var(--aMuted); }
+.dNoteSavedV1 { margin-left:auto; font-size:11.5px; font-weight:600; color:#1b9c5b; opacity:0; transition:opacity .25s; }
+.dNoteSavedV1.is-shown { opacity:1; }
+.dNoteV1 textarea { display:block; width:100%; min-height:58px; max-height:220px; resize:vertical; border:1px solid var(--aLine); border-radius:9px; padding:9px 11px; font:inherit; font-size:13.5px; line-height:1.4; color:var(--aInk); background:var(--aSoft); }
+.dNoteV1 textarea:focus { outline:none; border-color:var(--aRed); background:#fff; box-shadow:0 0 0 3px rgba(237,0,18,.1); }
+.dNoteV1 textarea::placeholder { color:var(--aMuted); }
 .lotDetailCenterV1 { display:flex; flex-direction:column; gap:20px; min-width:0; }
 .lotInfoBlockV1 h2 { font-size:18px; margin-bottom:8px; color:var(--aInk); }
 .lotInfoBlockV1 p { color:var(--aInk2); font-size:14px; }
@@ -1382,6 +1391,8 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dHeadActionsV1 .dVinBtn { grid-column:auto; }
   .dHeadActionsV1 { align-items:stretch; }
   .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { align-self:stretch; min-height:56px; height:auto; padding:6px 6px; gap:5px; font-size:12px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
+  .dNoteV1 { margin-top:8px; padding:10px 12px; }
+  .dNoteV1 textarea { min-height:46px; font-size:13px; }
 }
 
 /* ===== Таблица характеристик: линии строк на одном уровне (26.09.2026) ===== */
