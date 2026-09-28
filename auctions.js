@@ -3376,14 +3376,15 @@
                 const no = /^(no|нет|not )/i.test(k);
                 // Ключ есть — зелёный, нет — жёлтый (внимание, но не приговор); фид отдаёт "Yes"/"No" — переводим.
                 const shown = yes ? "Да" : no ? "Нет" : tc(k);
-                return dPlain("Ключ доступен", escapeHtml(L(shown)), "key", yes ? "good" : no ? "warn" : "neutral");
+                const keyTone = yes ? "good" : no ? "warn" : "neutral";
+                return dPlain("Ключ доступен", escapeHtml(L(shown)), toneIcon(keyTone), keyTone);
               })()}
               ${(() => {
                 const doc = parseDocTitle(docRaw(lot));
                 if(!doc) return "";
                 const verdict = doc.tone === "rework" ? "Требуется переделка · 30–40 дней" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
                 const docTone = doc.tone === "rework" ? "warn" : doc.tone === "good" ? "good" : "neutral";
-                return dMain("Статус документов", verdict, toneIcon(docTone))
+                return dMain("Статус документов", verdict)
                   + dPlain("Тип документа", escapeHtml(docShort(docRaw(lot))), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
