@@ -97,6 +97,26 @@ test("repairRatioAdj: дешёвый ремонт относительно ACV �
   assert.equal(pg.repairRatioAdj(19000, 20000), 0.7);     // 95% — ремонт почти как вся машина
 });
 
+test("repairRatioAdj: штраф отключён для гибрид/plug-in (29.09.2026, Федор: «не учитывай ремонт гибрида»)", () => {
+  assert.equal(pg.repairRatioAdj(19000, 20000, 3), 1);   // гибрид, 95% ACV — было бы 0.7
+  assert.equal(pg.repairRatioAdj(19000, 20000, 5), 1);   // plug-in, 95% ACV — было бы 0.7
+  assert.equal(pg.repairRatioAdj(19000, 20000, 4), 0.7); // бензин — штраф как раньше
+  assert.equal(pg.repairRatioAdj(19000, 20000, 1), 0.7); // дизель — штраф как раньше
+});
+
+test("estimateFromAcv: реальный лот (2021 BMW 530e, IAAI 46145648, 29.09.2026)", () => {
+  // ACV $21 875, ремонт $18 578 (≈85%), «Правая сторона / Справа сзади», заводится и едет → coef 0.9.
+  // Федор: реальная цена продажи такой машины $15–17к, ориентир показывал $8 300–$11 200 — штраф за
+  // дорогой ремонт (типичный для PHEV — часто это оценка замены батарейного модуля, не «убитость»
+  // машины) давил цену поверх уже консервативной PHEV-доли ACV.
+  const coef = pg.conditionCoef({dmg:"Right Rear", dmg2:"Right Side", cond:"run_and_drives", run:true, doc:""});
+  assert.ok(Math.abs(coef - 0.9) < 1e-6);
+  const gasWouldBe = pg.estimateFromAcv(21875, coef, 101212, {airbags:"intact", repairCost:18578, fuel:4}); // для сравнения: как считалось бы бензину
+  const phevNow = pg.estimateFromAcv(21875, coef, 101212, {airbags:"intact", repairCost:18578, fuel:5});   // plug-in — штраф за ремонт отключён
+  assert.ok(phevNow.mid > gasWouldBe.mid);
+  assert.ok(phevNow.mid > 8000); // выше прежних ~$6.4к «с полным штрафом за ремонт»
+});
+
 test("estimateFromAcv: реальный лот (2021 Tesla Model Y Performance Dual Motor, IAAI 40084037, 28.09.2026)", () => {
   // Повреждение «Правая сторона / Structural», состояние не указано, документ «VA · Clean» → coef 0.8925.
   // ACV $24 742, пробег 52 895 миль, оценка ремонта $3 045 (≈12% ACV — дёшево чинить несмотря на ярлык

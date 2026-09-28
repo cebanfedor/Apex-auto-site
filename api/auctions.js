@@ -4811,7 +4811,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g31" : "";   // бамп при смене таблицы поколений и формы detail (g31: одометр — доверяем полям mi/km фида напрямую на обеих площадках)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g32" : "";   // бамп при смене таблицы поколений и формы detail (g32: BMW G30/G31 разбит на до/после рестайлинга)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

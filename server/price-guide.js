@@ -206,7 +206,14 @@ function acvExtraAdj({airbags, fuel} = {}){
 // чинить, машина явно не «убитая». Доля ремонта от ACV — прямой факт по лоту, ACV+categoryDamage её не видят.
 // ⚠️ Пороги СТАРТОВЫЕ (тот же принцип, что acvMileageAdj/mileageFactor выше — калибровка по факту, а не
 // подгонка под этот один кейс) — проверить на реальных продажах (`?action=compstest`/`missdiag`) и поправить.
-function repairRatioAdj(repairCost, acv){
+// 29.09.2026 (Федор, BMW 530e IAAI 46145648, repairCost $18 578 при ACV $21 875 ≈85% → штраф ×0.7 давил
+// цену вдвое сверху и без того заниженной PHEV-доли ACV): «ты не должен учитывать ремонт гибрида, это не
+// твоё дело» — у гибрид/plug-in оценка ремонта в фиде часто это прикидка на замену батарейного модуля,
+// а не индикатор «убитости» машины (Tesla-кейс выше был про ЦЕЛУЮ группу электро/PHEV с дорогим ремонтом
+// одинаково). Для fuel_x 3 (гибрид) и 5 (plug-in) штраф отключён — repairCost по-прежнему на странице лота
+// отдельной строкой, решение по ремонту — на покупателе.
+function repairRatioAdj(repairCost, acv, fuelX){
+  if(Number(fuelX) === 3 || Number(fuelX) === 5) return 1;
   const r = Number(repairCost) || 0, a = Number(acv) || 0;
   if(!r || !a) return 1;
   const ratio = r / a;
@@ -221,7 +228,7 @@ function repairRatioAdj(repairCost, acv){
 function estimateFromAcv(acv, coef, odometerMi, extra){
   const a = Number(acv) || 0;
   if(a < 500) return null;
-  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {}) * repairRatioAdj(extra && extra.repairCost, a);
+  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {}) * repairRatioAdj(extra && extra.repairCost, a, extra && extra.fuel);
   const mid = a * Math.min(ratio, 0.9);
   if(!(mid > 0)) return null;
   return {lo:round100(mid * 0.85), mid:round100(mid), hi:round100(Math.min(mid * 1.15, a * 0.9))};
