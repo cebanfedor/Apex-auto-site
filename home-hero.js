@@ -173,7 +173,15 @@
         countEl.textContent = r && r.ok ? fmtLots(Number(r.total) || 0) : "—";
       }catch(e){ if(my === countToken) countEl.textContent = "—"; }
     }
-    refreshCount();
+    // 29.09.2026: словарь RO/EN (i18n-dict.js, ~250 КБ) грузится параллельно с разбором
+    // страницы (см. i18n.js ensureDict) — если запустить refreshCount() (L("лотов") внутри
+    // fmtLots) ДО того, как словарь пришёл, перевод молча не находится и остаётся «лотов» на
+    // RO/EN навсегда (fmtLots вызывается один раз, повторно текст никто не переводит). Тот же
+    // класс гонки, что уже чинили в auctions.js (renderDetailI18nSafe) — здесь просто ждём
+    // словарь перед первым вызовом; все ПОСЛЕДУЮЩИЕ вызовы (смена марки/модели) идут уже после.
+    const lang = window.APEX_LANG || "ru";
+    if(lang !== "ru" && window.__apexEnsureDict) window.__apexEnsureDict(refreshCount);
+    else refreshCount();
 
     btn.addEventListener("click", () => {
       const vin = (vinInp.value || "").trim();
