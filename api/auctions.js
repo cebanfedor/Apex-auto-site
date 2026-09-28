@@ -3129,7 +3129,7 @@ async function computeCompsForQ(q){
     // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
     // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
     const acvNum = Number(q.get("acv")) || 0;
-    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys")}) : null;
+    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), fuel:fuelTextToId(fuelText)}) : null;
     let band = null, src = "guide";
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
@@ -5272,7 +5272,7 @@ module.exports = async function handler(request, response){
             tErrs.push(rel); tRatio.push(r.final_bid / tb.mid);
             (tByYear[r.auction || "?"] = tByYear[r.auction || "?"] || []).push(r.final_bid / tb.mid); tIn20.push(Math.abs(r.final_bid - tb.mid) / tb.mid <= .2 ? 1 : 0);
             if(r.acv > 500){
-              const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
+              const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys, fuel:effFuel(r)});
               if(ab){
                 const w = guideAcvWeight(tb.mid, ab.mid);
                 const bMid = tb.mid * (1 - w) + ab.mid * w;
@@ -5295,7 +5295,7 @@ module.exports = async function handler(request, response){
         if(r.acv > 500){
           const dp = String(r.dmg || "").split(/\s+\/\s+/);
           const cf = priceGuide.conditionCoef({dmg:dp[0], dmg2:dp[1] || "", run:r.run, doc:r.doc});
-          const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
+          const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys, fuel:effFuel(r)});
           if(ab){
             aErrs.push(Math.abs(ab.mid - r.final_bid) / r.final_bid);
             aIn.push(r.final_bid >= ab.lo && r.final_bid <= ab.hi ? 1 : 0);

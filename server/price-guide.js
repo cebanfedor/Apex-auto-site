@@ -181,9 +181,23 @@ function acvMileageAdj(odometerMi){
 // Сработавшие подушки — конкретный факт по ЭТОМУ лоту, ACV его ещё не учла.
 // ⚠️ 28.09.2026 (Федор): отсутствие ключа в 99% случаев НЕ влияет на цену — ключ дублируют/делают
 // новый копеечно, покупатели на аукционах это не считают проблемой. Скидка ×0.6 убрана.
-function acvExtraAdj({airbags} = {}){
+// ⚠️ 28.09.2026 (Федор, BMW X3 xDrive30e Copart 65917076: ориентир $7.3-9.8к при реальной недавней
+// продаже ТОГО ЖЕ трима за $13.4к, «plug-in гибриды всегда дороже») — ACV_RATIO_BY_COEF выше калибровалась
+// по ВСЕМУ каталогу разом, а он на 90% бензин: гибриды/plug-in там разбавлены и топят их надбавку.
+// Отдельная калибровка по топливу (?action=acvcalib&fuel=…, выборка n=5549, гибридов 257, plug-in 39):
+// медиана finalBid/ACV — бензин 0.271 (база, множитель 1.0) · дизель 0.313 (1.15×) · электро 0.361 (1.30×) ·
+// гибрид 0.378 (1.35×) · plug-in 0.496 (1.75×, в 1.8 раза дороже бензина при том же ACV/повреждении —
+// значит батарея+тех.начинка держат цену даже разбитыми). Множители чуть занижены от чистой медианы —
+// подстраховка на случай, если состав выборки сместится. fuel = fuel_x (1 дизель·2 электро·3 гибрид·4
+// бензин·5 plug-in), не сырой fuel_id фида (путает гибрид/plug-in/mild-hybrid).
+const ACV_FUEL_MULT = {1:1.15, 2:1.30, 3:1.35, 5:1.75};
+function acvFuelAdj(fuelX){
+  return ACV_FUEL_MULT[Number(fuelX)] || 1;
+}
+function acvExtraAdj({airbags, fuel} = {}){
   let f = 1;
   if(/deploy/i.test(String(airbags || ""))) f *= 0.8;
+  f *= acvFuelAdj(fuel);
   return f;
 }
 // Вилка по ACV: ±15% вокруг середины, потолок — не выше 90% ACV (дороже целой машины салважный лот не берут).
@@ -197,4 +211,4 @@ function estimateFromAcv(acv, coef, odometerMi, extra){
 }
 
 module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash,
-  acvRatioFor, acvMileageAdj, acvExtraAdj, estimateFromAcv};
+  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, estimateFromAcv};
