@@ -1117,6 +1117,26 @@
     if(Number.isNaN(d.getTime())) return "";
     return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
+  // «2 мес. 20 дн. назад» — как у BidCars рядом с датой сыгравшего аукциона (Федор 28.09.2026: «полезная
+  // штука»). Календарный диффф (не просто ms/86400000): год+месяц+день, чтобы «20 дней» не гуляло из-за
+  // длины месяца. >0 лет — показываем лет+месяцев (дни в этом масштабе не важны), иначе месяцы+дни,
+  // <1 месяца — только дни, <1 дня — часы, <1 часа — «только что». Будущая дата (аукцион ещё не сыграл) → "".
+  function timeAgoRu(value){
+    const then = new Date(value);
+    if(Number.isNaN(then.getTime())) return "";
+    const now = new Date();
+    if(then.getTime() > now.getTime()) return "";
+    let years = now.getFullYear() - then.getFullYear();
+    let months = now.getMonth() - then.getMonth();
+    let days = now.getDate() - then.getDate();
+    if(days < 0){ months -= 1; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+    if(months < 0){ years -= 1; months += 12; }
+    if(years > 0) return `${years} ${L("г.")} ${months} ${L("мес.")} ${L("назад")}`;
+    if(months > 0) return `${months} ${L("мес.")} ${days} ${L("дн.")} ${L("назад")}`;
+    if(days > 0) return `${days} ${L("дн.")} ${L("назад")}`;
+    const hours = Math.floor((now.getTime() - then.getTime()) / 3600000);
+    return hours > 0 ? `${hours} ${L("ч.")} ${L("назад")}` : L("только что");
+  }
   function dbOdo(text){
     // Пробег не пришёл из фида (пусто/0) — так и пишем, а не прячем строку (Федор 25.09.2026)
     if(!text) return L("Пробег не указан");
@@ -3262,7 +3282,10 @@
             ${(() => {
               const st = lotSaleState(lot), b = st.isSold ? (st.finalBid || lot.finalBid || 0) : (lot.currentBid || 0);
               const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
-              if(st.isSold && b) return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${money(b)}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b></span></div>`;
+              if(st.isSold && b){
+                const ago = timeAgoRu(lot.auctionDate);
+                return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${money(b)}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
+              }
               return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
             })()}
           </div>
@@ -3361,7 +3384,11 @@
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.timed && Number(lot.sellerReserve) > 0 ? "Timed аукцион" : lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
-              ${dPlain("Дата аукциона", escapeHtml(lot.auctionDate ? dbDate(lot.auctionDate, true) : L("Не назначена")))}
+              ${(() => {
+                if(!lot.auctionDate) return dPlain("Дата аукциона", L("Не назначена"));
+                const ago = lotSaleState(lot).isSold ? timeAgoRu(lot.auctionDate) : "";
+                return dPlain("Дата аукциона", `${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` <span class="dAgoV1">(${escapeHtml(ago)})</span>` : ""}`);
+              })()}
               ${dPlain("Локация", (findCanadaLocation(lot) ? CA_FLAG_SVG + " " : "") + escapeHtml(lotLocationText(lot)))}
               ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
               ${lot.repairCost ? dPlain("Оценка ремонта", caMoney(lot.repairCost)) : ""}

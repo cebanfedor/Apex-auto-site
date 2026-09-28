@@ -1,6 +1,12 @@
 window.__APEX_DICT = (function(){
   const dict = {
     ro:{
+      "г.":"an",
+      "мес.":"luni",
+      "дн.":"zile",
+      "ч.":"ore",
+      "назад":"în urmă",
+      "только что":"chiar acum",
       "Меня вы можете знать как":"Mă puteți cunoaște și ca",
       "Подбор и проверка лота":"Selecția și verificarea lotului",
       "Участие в торгах":"Participare la licitație",
@@ -1274,6 +1280,12 @@ window.__APEX_DICT = (function(){
       "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Vizibilă doar pentru tine pe acest dispozitiv — de exemplu, până la ce sumă poți licita"
     },
     en:{
+      "г.":"yr",
+      "мес.":"mo",
+      "дн.":"d",
+      "ч.":"hr",
+      "назад":"ago",
+      "только что":"just now",
       "Меня вы можете знать как":"You may also know me as",
       "Подбор и проверка лота":"Lot selection and inspection",
       "Участие в торгах":"Bidding at auction",
