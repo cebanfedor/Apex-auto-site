@@ -333,7 +333,7 @@ section { position: relative; }
 }
 .heroSearchWrapV1 { display: flex; align-items: center; max-width: none; padding-bottom: 0; }
 .heroSearchCardV1 {
-  width: 100%; max-width: 360px; background: rgba(255,255,255,0.97); border-radius: var(--radius-lg);
+  width: 100%; max-width: 460px; background: rgba(255,255,255,0.97); border-radius: var(--radius-lg);
   padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 11px;
   overflow: hidden; /* кнопка внутри — box-shadow не течёт на фон за скруглённый край карточки */
 }
