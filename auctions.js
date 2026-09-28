@@ -1402,8 +1402,11 @@
     // выкупа, а не номинальную стартовую ставку ($25/$50) — иначе Buy Now лоты
     // выглядят копеечными, хотя выкуп стоит тысячи.
     const showBuyNow = !isSold && Number(lot.buyNow) > 0 && (state.tab === "buy_now" || !Number(lot.currentBid));
-    const priceVal = isSold && effectiveFinalBid ? effectiveFinalBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow));
-    const priceLabel = isSold && effectiveFinalBid ? (lotSaleState(lot).onApproval ? "На утверждении" : "Финальная цена")
+    // Продан, но финальная цена по VIN пока неизвестна (старый закрытый лот без истории) — всё равно
+    // подписываем «Продано»/«На утверждении», а не «Текущая цена»/«ставок пока нет»: иначе выглядит,
+    // будто торги ещё не начинались (Федор 28.09.2026, Tesla Model Y IAAI 40041958).
+    const priceVal = isSold ? effectiveFinalBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow));
+    const priceLabel = isSold ? (lotSaleState(lot).onApproval ? "На утверждении" : "Продано")
       : showBuyNow ? "Купить сейчас" : "Текущая цена";
     // Канадские площадки торгуют в CAD
     const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
@@ -1426,7 +1429,7 @@
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1${lot.auctionDate ? "" : " dbNoDateV1"}">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}${(() => { if(!isSold) return ""; const ago = timeAgoRu(lot.auctionDate); return ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""; })()}</span>
-          ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
+          ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : isSold ? "—" : L("ставок пока нет")}</b></span>` : ""}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<span class="dbMobReserveV1">${L("Резерв продавца")}: <b>${findCanadaLocation(lot) ? moneyCad(lot.sellerReserve) : money(lot.sellerReserve)}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
         </div>
@@ -1473,7 +1476,7 @@
         <div class="dbPriceWrap">
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
-            ${Number(priceVal) > 0 ? `<b>${price}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
+            ${Number(priceVal) > 0 ? `<b>${price}</b>` : isSold ? `<b class="dbNoBidV1">—</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
             ${(() => {
               if(isSold) return "";
               const b = budgetValue();
@@ -2570,14 +2573,14 @@
     // timed ИЛИ на всех IAAI-проданных; Copart-живые продажи достоверны — оставляем.
     // 22.09.2026: скрытие снято (Федор). Финал теперь берётся по VIN только у состоявшихся продаж,
     // а история цены ниже и так показывала ту же цифру — «по запросу» сверху выглядело как противоречие.
-    const hidePrice = false;
-    const initialBid = hidePrice ? 0 : ((isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0);
+    const initialBid = (isSold && effectiveFinalBid ? effectiveFinalBid : (lot.currentBid || lot.buyNow)) || 0;
     // Идут ли торги прямо сейчас (аукцион начался ≤3ч назад, ещё не продан).
     // Во время live-аукциона ставка на Copart/IAAI растёт в реальном времени,
     // а фид отдаёт последнюю синхронизированную — честно предупреждаем клиента.
     const [, liveTone] = dbLive(lot);
     const isLive = !isSold && liveTone === "live";
-    const bidLabel = isSold && effectiveFinalBid ? "Финальная цена" : isLive ? "Ставка на торгах" : "Текущая ставка";
+    // isSold теперь всегда уходит в отдельный calcSoldCardV1 (см. ниже) — эта метка только для активных торгов.
+    const bidLabel = isLive ? "Ставка на торгах" : "Текущая ставка";
     const kind = vehicleKind(lot);
     const fuelVal = mapFuel(lot.fuel, false, lot);
     const engL = numberFromEngine(lot.engine);
@@ -2597,16 +2600,18 @@
     const topBidValue = isSold ? initialBid : currOnly;
     const banned = exportBan(lot);
     return `<aside class="lotCalcV2${banned ? " calcBannedV1" : ""}">
-      ${isSold && (effectiveFinalBid || hidePrice) ? `
+      ${isSold ? `
       <div class="calcSoldCardV1">
         <span>${L(lotSaleState(lot).onApproval ? "На утверждении" : "Продано")}</span>
-        ${hidePrice ? `
-        <b class="soldByReqV1">${L("Цена — по запросу")}</b>
-        <button type="button" class="soldRefineNoteV1 soldNoteBtnV1" data-lead="${escapeHtml(lot.id)}">${L("Напишите нам — подскажем точную цену продажи")}</button>
-        ` : `
+        ${effectiveFinalBid ? `
         <b id="soldFinalV1">${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
-        `}
+        ` : `<b id="soldFinalV1" class="soldFinalUnknownV1">—</b>`}
+        ${(() => {
+          if(!lot.auctionDate) return "";
+          const ago = timeAgoRu(lot.auctionDate);
+          return `<i class="soldDateV1">${L("Дата продажи")}: ${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` · ${escapeHtml(ago)}` : ""}</i>`;
+        })()}
       </div>
 ` : `
       <div class="calcTopV2">
@@ -3288,9 +3293,9 @@
             ${(() => {
               const st = lotSaleState(lot), b = st.isSold ? (st.finalBid || lot.finalBid || 0) : (lot.currentBid || 0);
               const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
-              if(st.isSold && b){
+              if(st.isSold){
                 const ago = timeAgoRu(lot.auctionDate);
-                return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${money(b)}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
+                return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${b ? money(b) : "—"}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
               }
               return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
             })()}
