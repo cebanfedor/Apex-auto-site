@@ -1150,8 +1150,10 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* 28.09.2026 (Федор со скриншота BMW 530e IAAI 46145648): без даты и без ставки клиент видел
    пустой блок цены и не понимал, почему торговаться пока не за что — «Дата аукциона: Не назначена»
    была только глубоко в таблице «Аукцион». Дублируем компактной строкой прямо в блоке цены. */
-.calcNoDateNoteV1 { display:flex; align-items:center; gap:8px; margin-top:2px; font-size:12.5px; color:var(--aMuted); }
-.calcNoDateNoteV1 .dbIco { flex:0 0 14px; width:14px; height:14px; }
+/* 28.09.2026 (Федор со скриншота): строка терялась среди серого текста — тот же оранжевый
+   «внимание», что у .dbNoDateV1 на карточках каталога, а не нейтральный муted-серый. */
+.calcNoDateNoteV1 { display:flex; align-items:center; gap:7px; margin-top:2px; padding:4px 10px; font-size:12.5px; font-weight:800; color:#9a4d00; background:#fff4e5; border-radius:7px; align-self:flex-start; }
+.calcNoDateNoteV1 .dbIco { flex:0 0 14px; width:14px; height:14px; color:#c05621; }
 
 /* ---- Мобильная версия: правки после аудита 24.09.2026 ---- */
 .dMobSumV1 { display:none; }
