@@ -2610,7 +2610,7 @@
         ${(() => {
           if(!lot.auctionDate) return "";
           const ago = timeAgoRu(lot.auctionDate);
-          return `<i class="soldDateV1">${L("Дата продажи")}: ${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` · ${escapeHtml(ago)}` : ""}</i>`;
+          return `<div class="soldDateV1"><small>${L("Дата продажи")}</small><b>${escapeHtml(dbDate(lot.auctionDate, true))}</b>${ago ? `<i>${escapeHtml(ago)}</i>` : ""}</div>`;
         })()}
       </div>
 ` : `
