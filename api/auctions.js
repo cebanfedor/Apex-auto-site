@@ -435,17 +435,23 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const location = yard ? [safeName(lot?.location?.city), yard.name].filter(Boolean).join(", ") : (locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location));
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
-  // Канада: Copart CA показывает одометр в КМ, а фид кладёт то же число в odometer.mi и «пересчитывает»
-  // в km (48 349 km на Copart → mi:48349, km:77810). Для канадских лотов число = километры;
+  // Канада: Copart CA показывает одометр в КМ, а фид кладёт то же число в odometer.mi БЕЗ пересчёта
+  // (48 349 km на Copart → odometer.mi:48349) — для канадских лотов Copart число = километры,
   // мили считаем сами (÷1.609). Признак — страна локации CA или провинция в строке локации.
+  // ⚠️ 28.09.2026 (BMW 230i xDrive IAAI 12676264, реальный одометр 45 478 km по фото приборки):
+  // тот же трюк НЕ подходит для IAAI — там odometer.mi для канадских лотов уже настоящие мили
+  // (корректно посчитанные фидом), и деление их ещё раз на 1.609 давало заниженный в 1.6 раза
+  // пробег («28 259 км ≈ 17 559 миль» вместо честных «45 478 км ≈ 28 259 миль»). Поправка на
+  // дублирование раз в поле — только для Copart.
   const odoRaw = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
   const isCanadaLot = (() => {
     const iso = String(lot?.location?.country?.iso || lot?.location?.country_code || lot?.location?.country || "").toLowerCase();
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
   })();
-  const odometerKmVal = isCanadaLot ? odoRaw : safeNumber(lot?.odometer?.km);
-  const odometer = isCanadaLot ? Math.round(odoRaw / 1.609) : odoRaw;
+  const isCanadaCopartDupe = isCanadaLot && auction === "copart";
+  const odometer = isCanadaCopartDupe ? Math.round(odoRaw / 1.609) : odoRaw;
+  const odometerKmVal = isCanadaLot ? (isCanadaCopartDupe ? odoRaw : Math.round(odoRaw * 1.609)) : safeNumber(lot?.odometer?.km);
   // У timed-аукционов ставка живёт в timed_start_bid, а bid пуст
   const currentBid = safeNumber(lot?.bid || lot?.current_bid || lot?.currentBid || item?.current_bid || item?.bid)
     || safeNumber(lot?.timed_start_bid);
@@ -584,7 +590,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     odometer,
     odometerKm:odometerKmVal,
     // Для Канады текст — в км (как на Copart), чтобы клиент не считал дважды.
-    odometerText:isCanadaLot ? (odoRaw ? `${odoRaw.toLocaleString("en-US")} km` : "") : (odometer ? `${odometer.toLocaleString("en-US")} mi` : ""),
+    odometerText:isCanadaLot ? (odometerKmVal ? `${odometerKmVal.toLocaleString("en-US")} km` : "") : (odometer ? `${odometer.toLocaleString("en-US")} mi` : ""),
     odometerUnit:isCanadaLot ? "km" : "mi",
     odometerStatus:safeName(lot?.odometer?.status),
     primaryDamage,
@@ -4748,7 +4754,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g29" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g30" : "";   // бамп при смене таблицы поколений и формы detail (g30: фикс одометра IAAI-Канада, см. isCanadaCopartDupe)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
