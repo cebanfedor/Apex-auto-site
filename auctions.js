@@ -1211,8 +1211,11 @@
   // в колонке чеков один и тот же кружок-галочка/восклицание, отличается только цвет). Раньше в чеках
   // карточки были ТЕМАТИЧЕСКИЕ иконки (ключ, человечек, бензоколонка) вперемешку со СТАТУСНЫМИ (галочка/
   // варн) — отсюда ощущение разнобоя. Единая точка: один и тот же значок на тон, без привязки к теме поля.
+  // check — зелёный (good), dot (минус) — серый (neutral) или жёлтый (warn, напр. «Заводится»),
+  // excl (восклицательный в круге) — жёлтый (warn) или красный (bad/перекуп). Одна форма на тон,
+  // разный только цвет — bad раньше рисовался треугольником ("warn"-глиф), отличным от жёлтого excl.
   function toneIcon(tone){
-    return tone === "good" ? "check" : tone === "bad" ? "warn" : tone === "warn" ? "excl" : "dot";
+    return tone === "good" ? "check" : tone === "bad" ? "excl" : tone === "warn" ? "excl" : "dot";
   }
   function dbCheck(label, value){
     if(value == null || value === "") return ""; // hide fields the API didn't provide
@@ -1272,7 +1275,7 @@
     // «Переставлялся» = были прошлые заходы на торги (по VIN). Номера лотов не сравниваем — они не идентификатор машины.
     const relisted = history.length > 0;
     if(wasSold){
-      return `<li class="dbCheck bad">${dbIco("warn")}<span><b>${L("История:")}</b> ${L("Продаж")}: ${history.filter(h => { const t = String(h.status || "").toLowerCase(); return t.includes("sold") && !t.includes("not"); }).length}</span></li>`;
+      return `<li class="dbCheck bad">${dbIco(toneIcon("bad"))}<span><b>${L("История:")}</b> ${L("Продаж")}: ${history.filter(h => { const t = String(h.status || "").toLowerCase(); return t.includes("sold") && !t.includes("not"); }).length}</span></li>`;
     }
     if(relisted){
       return `<li class="dbCheck neutral">${dbIco("dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${count})</span></li>`;
@@ -1303,7 +1306,7 @@
       return {kind:"evwater", short:"электромобиль после затопления", long:"Электромобиль с повреждением водой (Water/Flood): такие автомобили запрещены к экспорту."};
     return null;
   }
-  const exportBanCard = lot => { const b = exportBan(lot); return b ? `<div class="dbExportBanV1">${dbIco("warn")}<span>${L("Экспорт запрещён")} · ${L(b.short)}</span></div>` : ""; };
+  const exportBanCard = lot => { const b = exportBan(lot); return b ? `<div class="dbExportBanV1">${dbIco(toneIcon("warn"))}<span>${L("Экспорт запрещён")} · ${L(b.short)}</span></div>` : ""; };
   // Компании проката (Sixt, Turo, Avis…): хороший продавец, но не страховая — подпись «Прокат». Фид метит их seller_type=insurance.
   const RENTAL_RE = /\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
   const isRentalName = v => RENTAL_RE.test(String(v || ""));
@@ -1742,17 +1745,17 @@
       if(pastSold.length || lotChanged){
         const last = pastSold[0];
         const laterSale = !!last && curDay && String(last.date).slice(0, 10) > curDay;
-        if(pastSold.length && ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco("warn")}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
+        if(pastSold.length && ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco(toneIcon("bad"))}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
         const txt = pastSold.length
           ? `${laterSale ? L("Перепродана позже") : L("Продаж")}${laterSale ? "" : `: ${pastSold.length}`}${last.bid ? ` · ${money(last.bid)}` : ""}`
           : `${L("Менялся лот")}: ${new Set(past.map(e => String(e.lot))).size}`;
         li.className = "dbCheck bad";
-        li.innerHTML = `${dbIco("warn")}<span><b>${L("История:")}</b> ${txt}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
+        li.innerHTML = `${dbIco(toneIcon("bad"))}<span><b>${L("История:")}</b> ${txt}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }else{
         // Тот же лот повторяется: у страховой это норма; у неизвестного/частного продавца 3+ раза — подозрение на перекупа.
         const shady = !sellerIsInsurance(lot) && past.length >= 3;
         li.className = shady ? "dbCheck bad" : "dbCheck neutral";
-        li.innerHTML = `${dbIco(shady ? "warn" : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${shady ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
+        li.innerHTML = `${dbIco(shady ? toneIcon("bad") : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${shady ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }
       // Feduk Clean Select включён, а по истории это перекуп (метка «Перекуп») — карточке здесь не место: убираем (база могла ещё не пометить лот)
       if(document.querySelector('#auctionFiltersForm input[name="smart"]:checked') && card.querySelector(".dbResaleTagV1")){
@@ -3022,7 +3025,7 @@
       cards.forEach(c => {
         const h = items[c.dataset.simVin]; if(!h || !Array.isArray(h.entries)) return;
         const resold = h.entries.some(e => e.status === "sold" && e.lot && String(e.lot) !== String(c.dataset.simLot));
-        if(resold && !c.querySelector(".simResoldV1")) c.querySelector(".simPhotoV1")?.insertAdjacentHTML("beforeend", `<span class="simResoldV1">${dbIco("warn")}${L("Продан ранее")}</span>`);
+        if(resold && !c.querySelector(".simResoldV1")) c.querySelector(".simPhotoV1")?.insertAdjacentHTML("beforeend", `<span class="simResoldV1">${dbIco(toneIcon("bad"))}${L("Продан ранее")}</span>`);
       });
     }catch(e){}
   }
@@ -3395,7 +3398,7 @@
               ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
-            ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco("warn")}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
+            ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco(toneIcon("warn"))}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
             ${exportBan(lot) || isResaleLot ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">
               <div class="dSecHead">${L("Аукцион")}</div>
