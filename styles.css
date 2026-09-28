@@ -256,6 +256,9 @@ section { position: relative; }
   position: relative; overflow: hidden;
   min-height: 400px; padding: 0; margin-top: 10px;
   border-radius: var(--radius-lg); box-shadow: var(--shadow);
+  background: linear-gradient(165deg, var(--dark), var(--dark-2)); /* 29.09.2026: .heroWideStatsV302 не
+  имел своего фона — трастовая полоса под фото была прозрачной (белый текст на белой странице,
+  «белая полоса» из жалобы Федора). Фон на всей карточке — трастовая полоса теперь тёмная везде. */
 }
 .heroWideBgV302 {
   position: absolute; inset: 0; z-index: 0;
