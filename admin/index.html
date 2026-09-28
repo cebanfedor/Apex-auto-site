@@ -228,13 +228,58 @@
         <section id="guideView" class="view">
           <div class="panel">
             <h2>Таблица оценки — ориентир ставки</h2>
-            <p class="formHintV1">Закрытая таблица: хранится в базе, на сайт уходит только итоговая вилка ставки. Формула: <b>база × K × коэффициент состояния</b> (1.10 почти целая · 1.00 небольшой удар · 0.90 средний · 0.80 сильный · ниже — тяжёлые случаи). Чтобы обновить — выделите в Google Таблице строки с моделями (столбцы A–I, без шапки), скопируйте и вставьте сюда. Импорт <b>заменяет</b> таблицу целиком.</p>
+            <p class="formHintV1">Закрытая таблица: хранится в базе, на сайт уходит только итоговая вилка ставки. Формула: <b>база × K × коэффициент состояния</b> (1.10 почти целая · 1.00 небольшой удар · 0.90 средний · 0.80 сильный · ниже — тяжёлые случаи).</p>
+          </div>
+
+          <form id="guideRowForm" class="panel formPanel">
+            <h2>Добавить / изменить одну модель</h2>
+            <p class="formHintV1">Безопасно — трогает только эту строку, остальные не затрагивает. Чтобы отредактировать существующую строку — нажмите «Править» в таблице внизу, форма заполнится сама.</p>
+            <input type="hidden" name="id" id="guideRowId">
+            <div class="grid2">
+              <label>Марка<input name="make" id="guideRowMake" placeholder="bmw" required></label>
+              <label>Ключевые слова (модель/трим)<input name="tokens" id="guideRowTokens" placeholder="x3 30e" required></label>
+            </div>
+            <div class="grid2">
+              <label>Год от<input name="year_from" id="guideRowYearFrom" type="number" placeholder="2020"></label>
+              <label>Год до<input name="year_to" id="guideRowYearTo" type="number" placeholder="2021"></label>
+            </div>
+            <div class="grid2">
+              <label>Топливо
+                <select name="fuel" id="guideRowFuel">
+                  <option value="any">любое</option>
+                  <option value="gas">бензин</option>
+                  <option value="hybrid">гибрид</option>
+                  <option value="plugin">plug-in</option>
+                  <option value="electric">электро</option>
+                  <option value="diesel">дизель</option>
+                </select>
+              </label>
+              <label>Заметка (необязательно)<input name="note" id="guideRowNote" placeholder="LCI, версия и т.п."></label>
+            </div>
+            <div class="grid2">
+              <label>База, $<input name="base_price" id="guideRowBase" type="number" min="1" required></label>
+              <label>K<input name="k" id="guideRowK" type="number" step="0.01" min="0.5" max="3" value="1.2" required></label>
+            </div>
+            <div class="formActions">
+              <button type="submit" id="guideRowSaveBtn">Сохранить строку</button>
+              <button type="button" id="guideRowResetBtn">Очистить форму</button>
+              <span id="guideRowInfo" class="muted"></span>
+            </div>
+          </form>
+
+          <div class="panel">
+            <h2>Массовый импорт из Google Таблицы</h2>
+            <p class="formHintV1">⚠️ Заменяет <b>ВСЮ</b> таблицу целиком — для одной модели используйте форму выше. Выделите в Google Таблице строки с моделями (столбцы A–I, без шапки), скопируйте и вставьте сюда.</p>
             <textarea id="guidePaste" rows="6" placeholder="Вставьте сюда строки из листа «Таблица расчётов» (A–I)"></textarea>
             <div class="formActions">
               <button type="button" id="guideParseBtn">Разобрать</button>
-              <button type="button" id="guideSaveBtn" disabled>Сохранить таблицу</button>
+              <button type="button" id="guideSaveBtn" disabled>Заменить всю таблицу</button>
               <span id="guideInfo" class="muted"></span>
             </div>
+          </div>
+
+          <div class="panel">
+            <h2>Текущие строки</h2>
             <div id="guideTable" class="guideTableV1"></div>
           </div>
         </section>
@@ -263,6 +308,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v175"></script>
+  <script src="/admin/admin.js?v=admin-v176"></script>
 </body>
 </html>
