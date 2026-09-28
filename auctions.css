@@ -15,11 +15,15 @@
    не доходило), а сам паддинг clamp(24px,5vw,96px) — 5vw на 1920 уже давал 96px с каждой стороны.
    Уже clamp + выше потолок max-width — на 1920px контент теперь ≈1830px (было ≈1728px), на очень
    широких мониторах не разъезжается бесконечно (потолок 1900px). */
-.auctionsShellV1 { width:100%; max-width:1900px; margin:0 auto; padding:24px clamp(20px,2.4vw,64px) 80px; }
+/* 29.09.2026 (Федор: «просил по ширине ДримБида, а не шире») — откат 1900px→1720px
+   (значение, что было до правки «пошире» 27.09.2026); dreambid.pl закрыт Cloudflare
+   bot-check, точный px не сверить, не проходя капчу — если у Федора будет цифра из
+   DevTools, подогнать точнее. */
+.auctionsShellV1 { width:100%; max-width:1720px; margin:0 auto; padding:24px clamp(20px,2.4vw,64px) 80px; }
 /* Шапка сайта общий --maxw (1292px, styles.css) — на странице каталога/лота выглядела ощутимо
    уже контента ниже; auctions.css грузится только тут, поэтому переопределяем без риска для
    остальных (не-каталожных) страниц сайта. */
-.siteHeader.apexHdrV201 { padding: 0 max(24px, calc((100% - 1900px) / 2)); }
+.siteHeader.apexHdrV201 { padding: 0 max(24px, calc((100% - 1720px) / 2)); }
 
 /* Compact header */
 .auctionsHeadV2 { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
