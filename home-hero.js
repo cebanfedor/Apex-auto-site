@@ -57,7 +57,6 @@
       makeSearch = $("#heroSearchMakeSearch"), makeList = $("#heroSearchMakeList"),
       modelBtn = $("#heroSearchModelBtn"), modelPanel = $("#heroSearchModelPanel"),
       modelSearch = $("#heroSearchModelSearch"), modelList = $("#heroSearchModelList"),
-      genSel = $("#heroSearchGen"), genRow = $("#heroSearchGenRow"),
       yearFromSel = $("#heroSearchYearFrom"), yearToSel = $("#heroSearchYearTo"),
       vinInp = $("#heroSearchVin"), archiveChk = $("#heroSearchArchive"),
       btn = $("#heroSearchBtn"), countEl = $("#heroSearchCount");
@@ -74,15 +73,11 @@
       yearToSel.addEventListener("change", scheduleCount);
     }
 
-    const cache = {models:{}, gens:{}};
+    const cache = {models:{}};
     const state = {makeId:"", makeName:"", modelId:"", modelName:""};
     let countToken = 0;
 
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-    function fillSelect(sel, items, phKey){
-      sel.innerHTML = `<option value="">${escapeHtml(L(phKey))}</option>` +
-        items.map(it => `<option value="${it.id}">${escapeHtml(it.name)}</option>`).join("");
-    }
 
     async function ensureModels(makeId){
       if(cache.models[makeId]) return cache.models[makeId];
@@ -91,14 +86,6 @@
         cache.models[makeId] = Array.isArray(r.items) ? r.items : [];
       }catch(e){ cache.models[makeId] = []; }
       return cache.models[makeId];
-    }
-    async function ensureGens(modelId){
-      if(cache.gens[modelId]) return cache.gens[modelId];
-      try{
-        const r = await fetch("/api/auctions?action=generations&model_id=" + encodeURIComponent(modelId)).then(x => x.json());
-        cache.gens[modelId] = Array.isArray(r.items) ? r.items : [];
-      }catch(e){ cache.gens[modelId] = []; }
-      return cache.gens[modelId];
     }
 
     // Свой выпадающий список (поиск + логотипы + счётчики, как «Марка/Модель» на /auctions) —
@@ -161,7 +148,7 @@
         state.modelId = String(it.id); state.modelName = it.name;
         modelBtn.querySelector("span").textContent = it.name;
         modelBtn.classList.add("hasValV1");
-        onModelChange();
+        scheduleCount();
       }
     });
     createPicker({
@@ -176,30 +163,16 @@
         modelBtn.classList.remove("hasValV1");
         modelBtn.disabled = false;
         modelPicker.reset();
-        onModelChange();
         scheduleCount();
       }
     });
 
-    async function onModelChange(){
-      genRow.hidden = true;
-      genSel.innerHTML = `<option value="">${escapeHtml(L("Выбрать поколение"))}</option>`;
-      if(!state.modelId){ scheduleCount(); return; }
-      const items = await ensureGens(state.modelId);
-      if(items.length){
-        fillSelect(genSel, items, "Выбрать поколение");
-        genRow.hidden = false;
-      }
-      scheduleCount();
-    }
-    genSel.addEventListener("change", scheduleCount);
     archiveChk.addEventListener("change", scheduleCount);
 
     function buildParams(){
       const p = new URLSearchParams();
       if(state.makeId) p.set("make", state.makeId);
       if(state.modelId) p.set("model", state.modelId);
-      if(genSel.value) p.set("generation", genSel.value);
       if(yearFromSel && yearFromSel.value) p.set("yearFrom", yearFromSel.value);
       if(yearToSel && yearToSel.value) p.set("yearTo", yearToSel.value);
       p.set("tab", archiveChk.checked ? "archived" : "all");
