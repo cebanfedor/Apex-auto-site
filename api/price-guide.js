@@ -1,5 +1,5 @@
 // Админ-API закрытой таблицы оценки (ориентир ставки). ВСЕ методы — только для админа.
-const {sendJson, methodNotAllowed, readBody} = require("../server/http");
+const {sendJson, methodNotAllowed, readBody, getQuery} = require("../server/http");
 const {requireAdmin} = require("../server/auth");
 const supabase = require("../server/supabase");
 const {resetGuideCache} = require("../server/price-guide");
@@ -41,7 +41,46 @@ module.exports = async function handler(request, response){
       sendJson(response, 200, {ok:true, saved:rows.length});
       return;
     }
-    methodNotAllowed(response, ["GET","PUT"]);
+    // 28.09.2026 (Федор: «не могу ниче добавить») — PUT выше ЗАМЕНЯЕТ таблицу целиком (для массового
+    // импорта листа), одной строкой её пугающе использовать (можно случайно стереть остальные 151+ строк
+    // по невнимательности). POST — безопасное точечное добавление/правка ОДНОЙ модели, остальных не трогает:
+    // с телом {id} — обновление конкретной строки; без id — ищем совпадение по марке+токенам+годам+топливу
+    // (тот же ключ, что использует matchGuide на сайте) и обновляем его, иначе вставляем новую строку.
+    if(request.method === "POST"){
+      const body = await readBody(request);
+      const row = cleanRow(body || {});
+      if(!row){ sendJson(response, 400, {ok:false, error:"Проверьте марку/токены/базу/K"}); return; }
+      const editId = body && body.id != null ? String(body.id).replace(/[^0-9]/g, "") : "";
+      if(editId){
+        const saved = await supabase.update("price_guide", editId, row);
+        resetGuideCache();
+        sendJson(response, 200, {ok:true, item:saved, mode:"updated"});
+        return;
+      }
+      const sameKey = r => r.make === row.make && r.fuel === row.fuel && (r.year_from || null) === row.year_from
+        && (r.year_to || null) === row.year_to && JSON.stringify((r.tokens || []).slice().sort()) === JSON.stringify(row.tokens.slice().sort());
+      const existing = await supabase.list("price_guide", {select:"id,make,tokens,year_from,year_to,fuel", limit:"2000"});
+      const dup = (existing || []).find(sameKey);
+      if(dup){
+        const saved = await supabase.update("price_guide", dup.id, row);
+        resetGuideCache();
+        sendJson(response, 200, {ok:true, item:saved, mode:"updated", note:"Нашлась строка с теми же маркой/токенами/годами/топливом — обновил её, не плодил дубль"});
+        return;
+      }
+      const saved = await supabase.create("price_guide", row);
+      resetGuideCache();
+      sendJson(response, 200, {ok:true, item:saved, mode:"created"});
+      return;
+    }
+    if(request.method === "DELETE"){
+      const id = String(getQuery(request).get("id") || "").replace(/[^0-9]/g, "");
+      if(!id){ sendJson(response, 400, {ok:false, error:"Не указан id"}); return; }
+      await supabase.remove("price_guide", id);
+      resetGuideCache();
+      sendJson(response, 200, {ok:true});
+      return;
+    }
+    methodNotAllowed(response, ["GET","PUT","POST","DELETE"]);
   }catch(error){
     sendJson(response, error.status || 500, {ok:false, error:String(error.message || error).slice(0, 300)});
   }

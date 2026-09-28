@@ -411,20 +411,87 @@ function parseGuidePaste(text){
   return out;
 }
 let guideParsed = [];
+let guideLoaded = [];   // последние строки, загруженные из базы (для «Править»/«Удалить»)
+const GUIDE_FUEL_RU = {any:"любое", gas:"бензин", hybrid:"гибрид", plugin:"плагин", electric:"электро", diesel:"дизель"};
 function renderGuideTable(items, saved){
   const box = document.getElementById("guideTable");
   if(!box) return;
-  const FUEL = {any:"любое", gas:"бензин", hybrid:"гибрид", plugin:"плагин", electric:"электро", diesel:"дизель"};
-  box.innerHTML = items.length ? `<table><thead><tr><th>Строка таблицы</th><th>Марка</th><th>Ключевые слова</th><th>Годы</th><th>Топливо</th><th>База, $</th><th>K</th><th>1.00 →</th></tr></thead><tbody>${items.map(r => `
+  if(saved) guideLoaded = items;
+  box.innerHTML = items.length ? `<table><thead><tr><th>Строка таблицы</th><th>Марка</th><th>Ключевые слова</th><th>Годы</th><th>Топливо</th><th>База, $</th><th>K</th><th>1.00 →</th>${saved ? "<th></th>" : ""}</tr></thead><tbody>${items.map(r => `
     <tr><td>${escapeHtml(r.name)}${r.note ? ` <i>${escapeHtml(r.note)}</i>` : ""}</td><td>${escapeHtml(r.make)}</td><td>${escapeHtml((r.tokens || []).join(" + "))}</td>
-    <td>${r.year_from || "…"}–${r.year_to || "…"}</td><td>${FUEL[r.fuel] || r.fuel}</td><td>${Number(r.base_price).toLocaleString("ru-RU")}</td><td>${r.k}</td><td>${Math.round(r.base_price * r.k).toLocaleString("ru-RU")}</td></tr>`).join("")}</tbody></table>` : "";
-  document.getElementById("guideInfo").textContent = items.length ? (saved ? `В базе: ${items.length} строк` : `Разобрано: ${items.length} строк — проверьте и нажмите «Сохранить таблицу»`) : "";
+    <td>${r.year_from || "…"}–${r.year_to || "…"}</td><td>${GUIDE_FUEL_RU[r.fuel] || r.fuel}</td><td>${Number(r.base_price).toLocaleString("ru-RU")}</td><td>${r.k}</td><td>${Math.round(r.base_price * r.k).toLocaleString("ru-RU")}</td>${saved ? `<td><div class="rowActions"><button type="button" class="guideEditBtnV1" data-guide-id="${r.id}">Править</button><button type="button" class="guideDelBtnV1 danger" data-guide-id="${r.id}">Удалить</button></div></td>` : ""}</tr>`).join("")}</tbody></table>` : "";
+  document.getElementById("guideInfo").textContent = items.length ? (saved ? `В базе: ${items.length} строк` : `Разобрано: ${items.length} строк — проверьте и нажмите «Заменить всю таблицу»`) : "";
 }
 async function loadGuide(){
   try{ const r = await api("/api/price-guide"); renderGuideTable(r.items || [], true); }
   catch(e){ document.getElementById("guideInfo").textContent = "Таблица ещё не создана в базе: выполните SQL 20260922_price_guide.sql. (" + e.message + ")"; }
 }
+function guideRowFormReset(){
+  const f = document.getElementById("guideRowForm");
+  if(!f) return;
+  f.reset();
+  document.getElementById("guideRowId").value = "";
+  document.getElementById("guideRowK").value = "1.2";
+  document.getElementById("guideRowInfo").textContent = "";
+}
+function bindGuideRowForm(){
+  const form = document.getElementById("guideRowForm");
+  if(!form) return;
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const btn = document.getElementById("guideRowSaveBtn");
+    const id = document.getElementById("guideRowId").value.trim();
+    const body = {
+      id: id || undefined,
+      name: `${document.getElementById("guideRowMake").value.trim()} ${document.getElementById("guideRowTokens").value.trim()} ${document.getElementById("guideRowYearFrom").value || ""}-${document.getElementById("guideRowYearTo").value || ""}`.trim(),
+      note: document.getElementById("guideRowNote").value.trim(),
+      make: document.getElementById("guideRowMake").value.trim(),
+      tokens: document.getElementById("guideRowTokens").value.trim(),
+      year_from: document.getElementById("guideRowYearFrom").value || null,
+      year_to: document.getElementById("guideRowYearTo").value || null,
+      fuel: document.getElementById("guideRowFuel").value,
+      base_price: Number(document.getElementById("guideRowBase").value),
+      k: Number(document.getElementById("guideRowK").value)
+    };
+    btn.disabled = true;
+    try{
+      const r = await api("/api/price-guide", {method:"POST", body});
+      showNotice(r.note || (r.mode === "updated" ? "Строка обновлена" : "Строка добавлена"), true);
+      guideRowFormReset();
+      await loadGuide();
+    }catch(e){ alert("Не сохранилось: " + e.message); }
+    btn.disabled = false;
+  });
+  document.getElementById("guideRowResetBtn").addEventListener("click", guideRowFormReset);
+  document.getElementById("guideTable").addEventListener("click", async event => {
+    const editBtn = event.target.closest(".guideEditBtnV1");
+    const delBtn = event.target.closest(".guideDelBtnV1");
+    if(editBtn){
+      const row = guideLoaded.find(r => String(r.id) === editBtn.dataset.guideId);
+      if(!row) return;
+      document.getElementById("guideRowId").value = row.id;
+      document.getElementById("guideRowMake").value = row.make || "";
+      document.getElementById("guideRowTokens").value = (row.tokens || []).join(" ");
+      document.getElementById("guideRowYearFrom").value = row.year_from || "";
+      document.getElementById("guideRowYearTo").value = row.year_to || "";
+      document.getElementById("guideRowFuel").value = row.fuel || "any";
+      document.getElementById("guideRowNote").value = row.note || "";
+      document.getElementById("guideRowBase").value = row.base_price;
+      document.getElementById("guideRowK").value = row.k;
+      document.getElementById("guideRowForm").scrollIntoView({behavior:"smooth", block:"center"});
+    }else if(delBtn){
+      const row = guideLoaded.find(r => String(r.id) === delBtn.dataset.guideId);
+      if(!row || !confirm(`Удалить строку «${row.name}»? Остальные не затронет.`)) return;
+      try{
+        await api(`/api/price-guide?id=${encodeURIComponent(row.id)}`, {method:"DELETE"});
+        showNotice("Строка удалена", true);
+        await loadGuide();
+      }catch(e){ alert("Не удалилось: " + e.message); }
+    }
+  });
+}
 function bindGuide(){
+  bindGuideRowForm();
   const parseBtn = document.getElementById("guideParseBtn"), saveBtn = document.getElementById("guideSaveBtn");
   if(!parseBtn) return;
   parseBtn.addEventListener("click", () => {
@@ -434,7 +501,7 @@ function bindGuide(){
     if(!guideParsed.length) showNotice("Не нашёл строк: нужны столбцы A–I, последний — база, предпоследний — K");
   });
   saveBtn.addEventListener("click", async () => {
-    if(!guideParsed.length || !confirm(`Заменить таблицу оценки на ${guideParsed.length} строк?`)) return;
+    if(!guideParsed.length || !confirm(`Заменить ВСЮ таблицу оценки на эти ${guideParsed.length} строк? Всё, что не попало в список, будет удалено.`)) return;
     saveBtn.disabled = true;
     try{
       const r = await api("/api/price-guide", {method:"PUT", body:{items:guideParsed}});

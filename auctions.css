@@ -2,11 +2,24 @@
    APEX AUTO — auctions catalog + lot detail (v211, modern light theme)
    Matches the site: white cards, #e6e8ec borders, red accent, neutral bg.
    ========================================================================== */
-:root { --aRed:#ed0012; --aRed600:#cc0010; --aInk:#14181f; --aInk2:#5a6472; --aMuted:#667080;
-  --aLine:#e6e8ec; --aLine2:#eef0f3; --aSurf:#ffffff; --aSoft:#f1f4f8;
+/* 28.09.2026 (Федор, сравнение с DreamBid): «чуть больше контраста», затем ещё раз «шрифт описания
+   чуть чернее» — aInk2 (текст спеков/чеков «Состояние:», «Топливо:» и т.п.) в 2 захода потемнел с
+   исходных #5a6472 почти до уровня aInk. aLine чуть темнее для более чёткой границы карточек — сам
+   aInk (заголовки) и aRed не трогал, они и так контрастные. */
+:root { --aRed:#ed0012; --aRed600:#cc0010; --aInk:#14181f; --aInk2:#2c313a; --aMuted:#556071;
+  --aLine:#dee1e6; --aLine2:#eef0f3; --aSurf:#ffffff; --aSoft:#f1f4f8;
   --aShadow:0 1px 2px rgba(16,20,28,.04), 0 14px 34px rgba(16,20,28,.08); }
 
-.auctionsShellV1 { width:100%; max-width:1720px; margin:0 auto; padding:24px clamp(24px,5vw,96px) 80px; }
+/* «шире сам сайт» (Федор 28.09.2026, сравнение с DreamBid — у них каталог почти во весь монитор):
+   раньше на типичном десктопном 1920px реальную ширину контента резал не max-width (1720, до него
+   не доходило), а сам паддинг clamp(24px,5vw,96px) — 5vw на 1920 уже давал 96px с каждой стороны.
+   Уже clamp + выше потолок max-width — на 1920px контент теперь ≈1830px (было ≈1728px), на очень
+   широких мониторах не разъезжается бесконечно (потолок 1900px). */
+.auctionsShellV1 { width:100%; max-width:1900px; margin:0 auto; padding:24px clamp(20px,2.4vw,64px) 80px; }
+/* Шапка сайта общий --maxw (1292px, styles.css) — на странице каталога/лота выглядела ощутимо
+   уже контента ниже; auctions.css грузится только тут, поэтому переопределяем без риска для
+   остальных (не-каталожных) страниц сайта. */
+.siteHeader.apexHdrV201 { padding: 0 max(24px, calc((100% - 1900px) / 2)); }
 
 /* Compact header */
 .auctionsHeadV2 { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
@@ -181,7 +194,9 @@
 .dFavBtnV1.is-fav .dbIco { fill:#f0a500; stroke:#f0a500; }
 
 .dbBody { min-width:0; display:flex; flex-direction:column; gap:8px; }
-.dbTitle { display:block; font-size:16px; font-weight:700; letter-spacing:-.01em; color:var(--aInk); line-height:1.2; }
+/* Заголовок карточки — фирменный дисплейный шрифт сайта (Onest, тот же, что у h1-h4 в styles.css),
+   не обычный текстовый Inter: Федор 28.09.2026 — «читался красиво», сравнение с DreamBid. */
+.dbTitle { display:block; font-family:var(--font-display); font-size:15.5px; font-weight:800; letter-spacing:-.01em; color:var(--aInk); line-height:1.2; }
 .dbTitle:hover { color:var(--aRed); }
 .dbLeftCol { display:flex; flex-direction:column; gap:6px; }
 .dbIds { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -230,23 +245,35 @@
 .dbCols { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:4px 22px; }
 .dbSpecs, .dbChecks { list-style:none; display:flex; flex-direction:column; gap:6px; margin:0; padding:0; }
 .dbSpecs li, .dbChecks li { display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--aInk2); line-height:1.3; }
-.dbSpecs .dbIco { color:var(--aMuted); margin-top:1px; }
+/* 28.09.2026 (Федор: «иконки — более сочные», сравнение с DreamBid, у них цветные плашки-подложки) —
+   вместо голых тонких иконок на белом теперь цветная скруглённая плашка под каждой: у спеков (двигатель/
+   пробег/повреждение/локация/документ) — нейтральная серо-голубая, у чеков — цвет по смыслу состояния
+   (зелёный/жёлтый/красный/серый), у топлива и VIN-отчёта — их собственные акцентные цвета ниже. */
+.dbSpecs .dbIco { color:var(--aMuted); width:13px; height:13px; padding:2px; border-radius:5px; background:var(--aSoft); box-sizing:content-box; }
 .dbVinReport a { color:#1f6bff; font-weight:600; }
-.dbVinReport .dbIco { color:#1f6bff; }
-.dbChecks .dbIco { margin-top:1px; }
-.dbCheck.good .dbIco { color:#1b9c5b; }
-.dbCheck.warn .dbIco { color:#e8a000; }
-.dbCheck.bad .dbIco { color:var(--aRed); }
-.dbCheck.neutral .dbIco { color:var(--aMuted); }
+.dbVinReport .dbIco { color:#1f6bff; width:13px; height:13px; padding:2px; border-radius:5px; background:#eaf2ff; box-sizing:content-box; }
+.dbChecks .dbIco { width:13px; height:13px; padding:2px; border-radius:5px; background:var(--aSoft); box-sizing:content-box; }
+.dbCheck.good .dbIco { color:#1b9c5b; background:#e6f7ee; }
+.dbCheck.warn .dbIco { color:#b3790a; background:#fdf2df; }
+.dbCheck.bad .dbIco { color:var(--aRed); background:#fdeaec; }
+.dbCheck.neutral .dbIco { color:var(--aMuted); background:var(--aSoft); }
 .dbCheck b { font-weight:600; color:var(--aInk2); }
 
-.dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:12px; border-left:1px solid var(--aLine2); padding-left:16px; }
+.dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:12px; border-left:1px solid var(--aLine2); padding-left:16px; min-width:0; }
 .dbChecksCol { display:flex; flex-direction:column; gap:8px; }
 .dbLotRowV1 { display:flex; align-items:center; justify-content:flex-start; gap:8px; flex-wrap:wrap; }
 .dbLotRowV1 .dbLotNo { font-size:12.5px; color:var(--aInk2); font-variant-numeric:tabular-nums; }
-.dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; }
+.dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; min-width:0; max-width:100%; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); white-space:nowrap; }
 .dbWhen .dbIco { color:var(--aMuted); }
+/* «Дата аукциона не назначена» — раньше терялась среди обычных серых дат (Федор 28.09.2026: «не все это видят»).
+   Тот же тёплый «внимание»-тон, что у резерва продавца (.dbReserveV1/.dbMobReserveV1, #9a4d00/#fff4e5).
+   28.09.2026 (Федор со скриншота): в узкой 220px-колонке карточки каталога бейдж (nowrap-текст + паддинг) был
+   ШИРЕ колонки — .dbAside/.dbWhen как flex/grid-элементы по умолчанию не сжимались уже своего контента
+   (min-width:auto), бейдж вылезал за рамку карточки. Добавлен min-width:0 на .dbAside/.dbWhen (чтобы колонка
+   могла сжаться до трека грида) + здесь текст переносится, а не выходит за край. */
+.dbWhen .dbNoDateV1, .dbMobDateV1.dbNoDateV1 { color:#9a4d00; font-weight:800; background:#fff4e5; padding:2px 9px; border-radius:7px; white-space:normal; max-width:100%; line-height:1.35; }
+.dbWhen .dbNoDateV1 .dbIco, .dbMobDateV1.dbNoDateV1 .dbIco { color:#c05621; flex:0 0 auto; }
 .dbLive.live { color:#1b9c5b; } .dbLive.live .dbIco { color:#1b9c5b; }
 .dbLive.soon { color:#e8780c; } .dbLive.soon .dbIco { color:#e8780c; }
 
@@ -365,7 +392,7 @@
 /* Lot detail — DreamBid-style center column */
 .detailHeaderV1 { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
 .dSpecLine { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; font-size:14px; color:var(--aInk2); }
-.dSpecLine .dbIco { width:16px; height:16px; color:var(--aMuted); }
+.dSpecLine .dbIco { width:14px; height:14px; padding:2px; border-radius:6px; background:var(--aSoft); box-sizing:content-box; color:var(--aMuted); }
 .dSpecVin { display:inline-flex; align-items:center; gap:5px; color:var(--aMuted); font-size:13px; font-variant-numeric:tabular-nums; }
 .dVinBtn { flex:none; height:40px; display:inline-flex; align-items:center; padding:0 16px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); font-weight:600; font-size:13px; color:var(--aInk); white-space:nowrap; }
 .dVinBtn:hover { border-color:var(--aMuted); }
@@ -415,11 +442,19 @@
 .calcBidLabelV2 span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); }
 /* Проданный лот — одна карточка в рамке по центру: «Продано», цена (CAD),
    ниже эквивалент в USD для канадских машин */
-.calcSoldCardV1 { border:1px solid #f3c2c7; background:#fdf2f3; border-radius:12px; padding:9px 14px; display:flex; flex-direction:column; align-items:center; gap:1px; text-align:center; }
-.calcSoldCardV1 span { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--aRed); }
-.calcSoldCardV1 b { font-size:23px; font-weight:800; letter-spacing:-.02em; color:var(--aRed); line-height:1.1; }
-.calcSoldCardV1 i { font-style:normal; font-size:13px; color:var(--aMuted); }
+.calcSoldCardV1 { border:1px solid #f3c2c7; background:#fdf2f3; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; align-items:center; gap:1px; text-align:center; }
+.calcSoldCardV1 > span { font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--aRed); }
+.calcSoldCardV1 > b { font-size:23px; font-weight:800; letter-spacing:-.02em; color:var(--aRed); line-height:1.1; margin-top:2px; }
+.calcSoldCardV1 > i { font-style:normal; font-size:13px; color:var(--aMuted); }
 .calcSoldCardV1 b.soldByReqV1 { font-size:18px; color:var(--aInk,#11141a); }
+/* Дата продажи + «N времени назад» под ценой продажи (Федор 28.09.2026: «так будет информативнее»,
+   28.09.2026 вечер: «ПРОДАНО чуть крупнее, дату ниже красиво распиши») — отдельный блок с подписью,
+   разделён тонкой линией от суммы (особенно важно, когда сама цена неизвестна — soldFinalUnknownV1,
+   прочерк вместо суммы, тогда именно дата остаётся главной информацией). */
+.calcSoldCardV1 .soldDateV1 { width:100%; margin-top:9px; padding-top:9px; border-top:1px solid #f3c2c7; display:flex; flex-direction:column; align-items:center; gap:3px; }
+.calcSoldCardV1 .soldDateV1 small { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--aMuted); }
+.calcSoldCardV1 .soldDateV1 b { font-size:15px; font-weight:700; letter-spacing:normal; color:var(--aInk); line-height:1.3; }
+.calcSoldCardV1 .soldDateV1 i { font-style:normal; font-size:12.5px; color:var(--aMuted); }
 /* Плашка «лот продан — подберём похожую» на проданных лотах */
 .soldPitchV1 { margin:2px 0 2px; padding:12px 14px; background:#f6f8fb; border:1px solid #e6eaf0; border-radius:12px; display:flex; flex-direction:column; gap:10px; }
 .soldPitchV1 p { margin:0; font-size:13.5px; line-height:1.4; color:var(--aInk2,#4b5563); }
@@ -719,6 +754,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbCountdownV1 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; color:#1a7f45; }
 .dbCountdownV1 .dbIco { width:14px; height:14px; }
 .dbCountdownSoonV1 { color:#c05621; }
+/* «N времени назад» на карточке проданного лота в каталоге/архиве (Федор 28.09.2026) */
+.dbAgoCardV1 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:var(--aMuted); }
+.dbAgoCardV1 .dbIco { width:14px; height:14px; }
 .dbPhotoPrice { display:none; position:absolute; right:8px; bottom:8px; padding:5px 12px; border-radius:9px;
   background:var(--aRed); color:#fff; font-weight:800; font-size:14px; box-shadow:0 4px 14px rgba(0,0,0,.28); }
 .dbPhotoPriceSold { background:#20242c; }
@@ -922,6 +960,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbReserveV1 { text-align:center; margin-top:-2px; padding:0; background:none; color:#9a4d00; font-size:12px; font-weight:600; }
 .dbReserveV1 b { font-weight:800; }
 .dReserveAtV1 { font-style:normal; font-size:12px; color:var(--aMuted); margin-left:6px; }
+/* «2 мес. 20 дн. назад» рядом с датой сыгравшего аукциона (Федор 28.09.2026, как у BidCars) */
+.dAgoV1 { font-style:normal; font-size:12px; font-weight:600; color:var(--aMuted); margin-left:2px; }
+.dMobSumV1.isSoldV1 .dmsDateV1 .dAgoV1 { display:block; margin-left:0; font-size:11px; }
 .calcReserveV1 { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin:6px 0 10px; padding:10px 12px; border-radius:10px; background:#fff4e5; color:#9a4d00; }
 .calcReserveV1 span { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .calcReserveV1 b { font-size:18px; font-weight:800; }
@@ -1224,9 +1265,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbSpecs li .dbIco, .dbChecks li .dbIco { flex:none; align-self:flex-start; margin-top:calc((1.3em - 17px) / 2); }
 
 /* Значок топлива: электро — голубой, гибрид — зелёный, бензин/дизель — серый */
-.dbCheck.dbFuelEvV1 .dbIco { color:#1d8fe1; }
-.dbCheck.dbFuelHyV1 .dbIco { color:#1b9c5b; }
-.dbCheck.dbFuelGasV1 .dbIco { color:var(--aMuted); }
+.dbCheck.dbFuelEvV1 .dbIco { color:#1d8fe1; background:#e8f2fd; }
+.dbCheck.dbFuelHyV1 .dbIco { color:#1b9c5b; background:#e6f7ee; }
+.dbCheck.dbFuelGasV1 .dbIco { color:var(--aMuted); background:var(--aSoft); }
 /* Иконка у номера лота */
 .dbLotRowV1 .dbLotNo { display:inline-flex; align-items:center; gap:9px; }
 .dbLotRowV1 .dbLotNo .dbIco:first-child { width:17px; height:17px; color:var(--aMuted); }
