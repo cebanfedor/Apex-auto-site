@@ -1424,7 +1424,7 @@
       <div class="dbBody">
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbMobMetaV1">
-          <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
+          <span class="dbMobDateV1">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}${(() => { if(!isSold) return ""; const ago = timeAgoRu(lot.auctionDate); return ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""; })()}</span>
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : L("ставок пока нет")}</b></span>` : ""}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<span class="dbMobReserveV1">${L("Резерв продавца")}: <b>${findCanadaLocation(lot) ? moneyCad(lot.sellerReserve) : money(lot.sellerReserve)}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
@@ -1462,7 +1462,11 @@
       <aside class="dbAside">
         <div class="dbWhen">
           <span>${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}</span>
-          ${(() => { const tl = isSold ? "" : timeLeftLabel(lot.auctionDate); return tl ? `<span class="dbCountdownV1${new Date(lot.auctionDate).getTime() - Date.now() < 6*3600e3 ? " dbCountdownSoonV1" : ""}">${dbIco("clock")}${tl}</span>` : ""; })()}
+          ${(() => {
+            if(isSold){ const ago = timeAgoRu(lot.auctionDate); return ago ? `<span class="dbAgoCardV1">${dbIco("clock")}${escapeHtml(ago)}</span>` : ""; }
+            const tl = timeLeftLabel(lot.auctionDate);
+            return tl ? `<span class="dbCountdownV1${new Date(lot.auctionDate).getTime() - Date.now() < 6*3600e3 ? " dbCountdownSoonV1" : ""}">${dbIco("clock")}${tl}</span>` : "";
+          })()}
           ${liveLabel ? `<span class="dbLive ${liveTone}">${dbIco("clock")}${escapeHtml(liveLabel)}</span>` : ""}
         </div>
         <div class="dbPriceWrap">
