@@ -24,7 +24,7 @@
       b.setAttribute("role", "tab");
       b.setAttribute("aria-label", `${L("Слайд")} ${i + 1}`);
       if(i === idx) b.classList.add("heroDotActiveV1");
-      b.addEventListener("click", () => go(i, true));
+      b.addEventListener("click", () => { go(i); restart(); });
       dotsWrap.appendChild(b);
     });
     const dots = Array.from(dotsWrap.children);
