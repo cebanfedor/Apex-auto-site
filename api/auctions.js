@@ -3189,11 +3189,17 @@ async function computeCompsForQ(q){
     let band = null, src = "guide";
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
-      if(acvBand){
+      const rowFuelX = fuelTextToId(fuelText);
+      // 29.09.2026 (Федор, BMW 530e IAAI 46145648): у гибрид/plug-in даже БАЗОВЫЙ вес ACV (0.3) утягивал
+      // верно заполненную строку таблицы вниз — ACV-доля для этих топлив систематически занижена (три
+      // независимых подтверждения в этой сессии: Tesla Model Y, BMW X3 xDrive30e, этот BMW 530e). Раз строка
+      // в таблице ЕСТЬ — она и так учитывает трим/комплектацию через подбор по токенам, ACV ей тут не поправка,
+      // а помеха. Для fuelX 3/5 таблица используется БЕЗ подмеса ACV вовсе.
+      if(acvBand && rowFuelX !== 3 && rowFuelX !== 5){
         // Таблица Федора не знает комплектацию конкретного VIN — ACV её знает. Базовый вес ACV — 0.3, но растёт,
         // если таблица и ACV сильно расходятся (см. guideAcvWeight) — типичная ситуация для марок, где таблица
-        // систематически завышает (Audi, отчасти BMW/Mercedes/Ford Fusion). У гибрид/plug-in эскалация отключена.
-        const r100 = v => Math.round(v / 100) * 100, w = guideAcvWeight(gb.mid, acvBand.mid, fuelTextToId(fuelText));
+        // систематически завышает (Audi, отчасти BMW/Mercedes/Ford Fusion).
+        const r100 = v => Math.round(v / 100) * 100, w = guideAcvWeight(gb.mid, acvBand.mid, rowFuelX);
         band = {lo:r100(gb.lo * (1 - w) + acvBand.lo * w), mid:r100(gb.mid * (1 - w) + acvBand.mid * w), hi:r100(gb.hi * (1 - w) + acvBand.hi * w)};
         src = "guide+acv";
       }else{ band = gb; src = "guide"; }
