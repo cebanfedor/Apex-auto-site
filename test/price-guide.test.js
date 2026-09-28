@@ -54,6 +54,29 @@ test("conditionCoef: документ почти всегда роли не иг
   assert.ok(Math.abs(pg.conditionCoef({...minor, doc:"NY - Clear"}) - 1.1 * 1.05) < 1e-9);
 });
 
+test("acvFuelAdj/acvExtraAdj: гибриды и plug-in держат цену лучше бензина (Федор 28.09.2026, ?action=acvcalib&fuel=, n=5549)", () => {
+  // Калибровка по реальным продажам: медиана finalBid/ACV — бензин 0.271 (база) · дизель 0.313 (1.15×) ·
+  // электро 0.361 (1.30×) · гибрид 0.378 (1.35×) · plug-in 0.496 (1.75×, почти вдвое дороже бензина).
+  assert.equal(pg.acvFuelAdj(4), 1);        // бензин — без надбавки
+  assert.equal(pg.acvFuelAdj(0), 1);        // топливо не определено — без надбавки
+  assert.equal(pg.acvFuelAdj(1), 1.15);     // дизель
+  assert.equal(pg.acvFuelAdj(2), 1.30);     // электро
+  assert.equal(pg.acvFuelAdj(3), 1.35);     // гибрид
+  assert.equal(pg.acvFuelAdj(5), 1.75);     // plug-in
+  assert.equal(pg.acvExtraAdj({fuel:5}), 1.75);
+  assert.ok(Math.abs(pg.acvExtraAdj({airbags:"Deployed", fuel:5}) - 0.8 * 1.75) < 1e-9);
+});
+
+test("estimateFromAcv: BMW X3 xDrive30e (Copart 65917076, 28.09.2026) — ориентир был $7.3-9.8к при реальной продаже того же трима за $13.4к", () => {
+  // Front End + Side, заводится и едет, Id - Salvage → coef 0.9 (две зоны повреждения, на ходу).
+  const coef = pg.conditionCoef({dmg:"Front End", dmg2:"Side", cond:"run_and_drives"});
+  assert.equal(coef, 0.9);
+  const noFuel = pg.estimateFromAcv(21924, coef, 72287, {keys:"Да"});
+  const phev = pg.estimateFromAcv(21924, coef, 72287, {keys:"Да", fuel:5});
+  assert.ok(phev.mid > noFuel.mid * 1.5);      // plug-in заметно выше «как если бы бензин»
+  assert.ok(phev.mid >= 8000);                  // ближе к жизни, а не в 2 раза ниже реальной продажи
+});
+
 test("estimateFromAcv: реальный лот (2022 Porsche Panamera Base, IAAI 66261236, 26.09.2026)", () => {
   // Minor Dent/Scratches, run_and_drives, Cert Of Title-Salvage → coef 1.1; ACV $66 124, пробег 45 806 миль.
   // Прежняя логика (усреднение всего пула поколения — 4 старых Panamera 2017–2018) давала медиану $16 231, занижая свежий кузов.

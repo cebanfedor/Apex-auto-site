@@ -59,6 +59,48 @@ async function notifyTelegram(data){
   }catch(_){}
 }
 
+// ── Публикация лота в Telegram-канал (админ жмёт кнопку на странице лота) ──
+// Постит бот POST_BOT_TOKEN в канал POST_CHANNEL_ID (@fedukauto). Подпись и выбор
+// фото собирает клиент (там уже есть вилка/под-ключ), сервер только отправляет.
+async function tgApi(token, method, body){
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body)
+  });
+  const payload = await res.json().catch(() => null);
+  if(!payload || !payload.ok) throw new Error((payload && payload.description) || `Telegram HTTP ${res.status}`);
+  return payload.result;
+}
+// Разрешённые хосты фото (админ-only, но подстраховка от произвольных URL).
+const TG_PHOTO_HOSTS = /^https:\/\/([a-z0-9-]+\.)*(apexauto\.md|copart\.com|iaai\.com|import-motor\.com|lionwood\.software|w8shipping\.com)\//i;
+function tgChannelLink(chatId, messageId){
+  const u = String(chatId || "").replace(/^@/, "");
+  return (u && !/^-?\d/.test(u) && messageId) ? `https://t.me/${u}/${messageId}` : "";
+}
+async function postLotToChannel({caption, photos}){
+  const token = process.env.POST_BOT_TOKEN;
+  const chatId = process.env.POST_CHANNEL_ID;
+  if(!token || !chatId){ const e = new Error("Постинг не настроен: добавьте POST_BOT_TOKEN и POST_CHANNEL_ID в переменные окружения Vercel и передеплойте."); e.status = 400; throw e; }
+  const text = String(caption || "").trim();
+  const pics = (Array.isArray(photos) ? photos : []).filter(u => typeof u === "string" && TG_PHOTO_HOSTS.test(u)).slice(0, 10);
+  const CAP = 1024;
+  let first;
+  if(!pics.length){
+    if(!text){ const e = new Error("Пустой пост: нет ни текста, ни фото."); e.status = 400; throw e; }
+    first = await tgApi(token, "sendMessage", {chat_id:chatId, text:text.slice(0, 4096), parse_mode:"HTML", disable_web_page_preview:false});
+  }else if(pics.length === 1){
+    const capFits = text.length <= CAP;
+    first = await tgApi(token, "sendPhoto", {chat_id:chatId, photo:pics[0], caption:capFits ? text : "", parse_mode:"HTML"});
+    if(!capFits && text) await tgApi(token, "sendMessage", {chat_id:chatId, text:text.slice(0, 4096), parse_mode:"HTML"});
+  }else{
+    const capFits = text.length <= CAP;
+    const media = pics.map((url, i) => ({type:"photo", media:url, ...(i === 0 && capFits && text ? {caption:text, parse_mode:"HTML"} : {})}));
+    const arr = await tgApi(token, "sendMediaGroup", {chat_id:chatId, media});
+    first = Array.isArray(arr) ? arr[0] : arr;
+    if(!capFits && text) await tgApi(token, "sendMessage", {chat_id:chatId, text:text.slice(0, 4096), parse_mode:"HTML"});
+  }
+  return {messageId:first && first.message_id, link:tgChannelLink(chatId, first && first.message_id)};
+}
+
 // CACHE_VER бампается при изменении нормализации/сортировки: кеш хранит уже
 // обработанные ответы, и без этого старая выдача живёт до 6 часов.
 const CACHE_VER = "n6";
@@ -393,17 +435,26 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const location = yard ? [safeName(lot?.location?.city), yard.name].filter(Boolean).join(", ") : (locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location));
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
-  // Канада: Copart CA показывает одометр в КМ, а фид кладёт то же число в odometer.mi и «пересчитывает»
-  // в km (48 349 km на Copart → mi:48349, km:77810). Для канадских лотов число = километры;
-  // мили считаем сами (÷1.609). Признак — страна локации CA или провинция в строке локации.
-  const odoRaw = safeNumber(lot?.odometer?.mi || lot?.odometer || item?.odometer || item?.mileage);
+  // Одометр: раньше считалось, что канадские лоты Copart кладут км-значение в odometer.mi БЕЗ
+  // пересчёта (мнимый «дубль»), и мы сами делили его на 1.609. ⚠️ 28.09.2026, перепроверено на живых
+  // данных (BMW 230i xDrive IAAI 12676264 — реальный одометр 45 478 km по фото приборки, плюс выборка
+  // ещё 7 лотов IAAI/Copart × США/Канада через action=rawfields): фид ВСЕГДА отдаёт ОБА поля,
+  // odometer.mi И odometer.km, уже корректно связанные (km = mi × 1.609, без дублирования) — на обеих
+  // площадках. Старое «исправление» само портило цифру (то IAAI, то потом и Copart после точечного
+  // фикса) — делило и без того верное значение ещё раз. Теперь доверяем обоим полям фида напрямую,
+  // сами считаем только если одного из них не хватает (тогда — из другого, а если и того нет —
+  // берём как есть из плоских/легаси форм ответа).
+  const odoMi = safeNumber(lot?.odometer?.mi);
+  const odoKm = safeNumber(lot?.odometer?.km);
+  const odoLegacy = safeNumber(typeof lot?.odometer === "object" ? 0 : lot?.odometer) || safeNumber(item?.odometer) || safeNumber(item?.mileage);
+  const odometer = odoMi || (odoKm ? Math.round(odoKm / 1.609) : odoLegacy);
+  const odometerKmVal = odoKm || (odoMi ? Math.round(odoMi * 1.609) : (odoLegacy ? Math.round(odoLegacy * 1.609) : 0));
+  // Канада — только чтобы показывать км первыми (местным привычнее), сами цифры больше не трогаем.
   const isCanadaLot = (() => {
     const iso = String(lot?.location?.country?.iso || lot?.location?.country_code || lot?.location?.country || "").toLowerCase();
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
   })();
-  const odometerKmVal = isCanadaLot ? odoRaw : safeNumber(lot?.odometer?.km);
-  const odometer = isCanadaLot ? Math.round(odoRaw / 1.609) : odoRaw;
   // У timed-аукционов ставка живёт в timed_start_bid, а bid пуст
   const currentBid = safeNumber(lot?.bid || lot?.current_bid || lot?.currentBid || item?.current_bid || item?.bid)
     || safeNumber(lot?.timed_start_bid);
@@ -542,7 +593,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     odometer,
     odometerKm:odometerKmVal,
     // Для Канады текст — в км (как на Copart), чтобы клиент не считал дважды.
-    odometerText:isCanadaLot ? (odoRaw ? `${odoRaw.toLocaleString("en-US")} km` : "") : (odometer ? `${odometer.toLocaleString("en-US")} mi` : ""),
+    odometerText:isCanadaLot ? (odometerKmVal ? `${odometerKmVal.toLocaleString("en-US")} km` : "") : (odometer ? `${odometer.toLocaleString("en-US")} mi` : ""),
     odometerUnit:isCanadaLot ? "km" : "mi",
     odometerStatus:safeName(lot?.odometer?.status),
     primaryDamage,
@@ -3122,7 +3173,7 @@ async function computeCompsForQ(q){
     // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
     // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
     const acvNum = Number(q.get("acv")) || 0;
-    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair")}) : null;
+    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair"), fuel:fuelTextToId(fuelText)}) : null;
     let band = null, src = "guide";
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
@@ -4212,6 +4263,20 @@ module.exports = async function handler(request, response){
   const action = query.get("action") || "search";
 
   if(action === "lead") return handleLead(request, response);
+  // Публикация лота в канал — POST, поэтому диспетчеризуем ДО общего GET-гейта ниже.
+  if(action === "tgpost"){
+    const {requireAdmin} = require("../server/auth");
+    if(!requireAdmin(request, response)) return;
+    if(request.method !== "POST"){ methodNotAllowed(response, ["POST"]); return; }
+    try{
+      const body = await readBody(request);
+      const result = await postLotToChannel({caption:body.caption, photos:body.photos});
+      sendJson(response, 200, {ok:true, ...result});
+    }catch(error){
+      sendJson(response, error.status || 500, {ok:false, error:String(error.message || error).slice(0, 300)});
+    }
+    return;
+  }
   if(action === "vinhealth"){
     // Здоровье истории по VIN: сбои/запасной источник (в пределах инстанса) и покрытие проверкой Clean Select.
     const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
@@ -4746,7 +4811,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g29" : "";   // бамп при смене таблицы поколений и формы detail
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g31" : "";   // бамп при смене таблицы поколений и формы detail (g31: одометр — доверяем полям mi/km фида напрямую на обеих площадках)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -4919,6 +4984,22 @@ module.exports = async function handler(request, response){
         }
       }
       sendJson(response, 200, payload);
+      return;
+    }
+
+    // Проверка доступа к постингу в канал (только админ): настроен ли бот/канал и может ли бот писать.
+    if(action === "tgdiag"){
+      const {isAuthenticated} = require("../server/auth");
+      if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false}); return; }
+      const token = process.env.POST_BOT_TOKEN;
+      const chatId = process.env.POST_CHANNEL_ID;
+      const out = {ok:true, configured:Boolean(token && chatId), channel:chatId ? String(chatId).replace(/^@/, "") : null};
+      if(token && chatId){
+        try{ const me = await tgApi(token, "getMe", {}); out.bot = me && me.username; }catch(e){ out.botError = String(e.message || e).slice(0, 120); }
+        try{ const chat = await tgApi(token, "getChat", {chat_id:chatId}); out.channelTitle = chat && (chat.title || chat.username); }catch(e){ out.channelError = String(e.message || e).slice(0, 160); }
+        out.canPost = Boolean(out.bot && out.channelTitle && !out.channelError);
+      }
+      sendJson(response, 200, out);
       return;
     }
 
@@ -5157,22 +5238,29 @@ module.exports = async function handler(request, response){
     if(action === "acvcalib"){
       const limit = Math.min(6000, Math.max(500, Number(query.get("limit")) || 3000));
       const makeFilter = String(query.get("make_id") || "").replace(/[^0-9]/g, "");
-      const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}};
+      // 28.09.2026 (Федор, BMW X3 xDrive30e 65917076: занижен ориентир) — раньше ACV_RATIO_BY_COEF
+      // калибровалась по ВСЕМУ каталогу разом (в основном бензин), без разбивки по топливу. &fuel=phev|hybrid|…
+      // проверяет, отличается ли реальная доля ACV у гибридов/plug-in — они держат цену лучше бензина.
+      const fuelFilter = fuelTextToId(String(query.get("fuel") || ""));
+      const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}, fuel:{}};
       try{
         const rows = [];
         for(let off = 0; off < limit && rows.length === off; off += 1000){
-          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=${makeFilter ? "eq." + makeFilter : "not.is.null"}&order=synced_at.desc`,
+          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload,fuel_x,fuel_id&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=${makeFilter ? "eq." + makeFilter : "not.is.null"}&order=synced_at.desc`,
             {headers:{range:`${off}-${off + 999}`, "range-unit":"items"}});
           if(!Array.isArray(page) || !page.length) break;
           rows.push(...page);
           if(page.length < 1000) break;
         }
         out.sampled = rows.length;
-        const byCoef = new Map(), byAirbag = new Map(), byKeys = new Map(), byMi = new Map();
+        const byCoef = new Map(), byAirbag = new Map(), byKeys = new Map(), byMi = new Map(), byFuel = new Map();
         const miBucket = mi => !mi ? "0" : mi <= 30000 ? "0-30k" : mi <= 60000 ? "30-60k" : mi <= 100000 ? "60-100k" : mi <= 150000 ? "100-150k" : "150k+";
+        const FUEL_NAME = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
         for(const r of (rows || [])){
           const p = r.payload || {}; const acv = Number(p.estimatedRetailValue) || 0; const fb = Number(r.final_bid) || 0;
           if(!(acv > 500) || !(fb > 0)) continue;
+          const fx = effFuel(r);
+          if(fuelFilter && fx !== fuelFilter) continue;
           const ratio = fb / acv;
           if(ratio > 3 || ratio < 0.01) continue;
           out.withAcv++;
@@ -5185,6 +5273,8 @@ module.exports = async function handler(request, response){
           (byKeys.get(ky) || byKeys.set(ky, []).get(ky)).push(ratio);
           const mb = miBucket(Number(r.odometer_mi) || 0);
           (byMi.get(mb) || byMi.set(mb, []).get(mb)).push(ratio);
+          const fn = FUEL_NAME[fx] || "unknown";
+          (byFuel.get(fn) || byFuel.set(fn, []).get(fn)).push(ratio);
         }
         const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
         const stat = a => ({n:a.length, medianRatio:Math.round(med(a) * 1000) / 1000});
@@ -5192,6 +5282,7 @@ module.exports = async function handler(request, response){
         for(const [k, a] of byAirbag) out.airbags[k] = stat(a);
         for(const [k, a] of byKeys) out.keys[k] = stat(a);
         for(const [k, a] of byMi) out.mileage[k] = stat(a);
+        for(const [k, a] of byFuel) out.fuel[k] = stat(a);
       }catch(e){ out.error = String(e.message || e).slice(0, 160); }
       sendJson(response, 200, out, {"cache-control":"no-store"});
       return;
@@ -5238,7 +5329,7 @@ module.exports = async function handler(request, response){
             tErrs.push(rel); tRatio.push(r.final_bid / tb.mid);
             (tByYear[r.auction || "?"] = tByYear[r.auction || "?"] || []).push(r.final_bid / tb.mid); tIn20.push(Math.abs(r.final_bid - tb.mid) / tb.mid <= .2 ? 1 : 0);
             if(r.acv > 500){
-              const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
+              const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys, fuel:effFuel(r)});
               if(ab){
                 const w = guideAcvWeight(tb.mid, ab.mid);
                 const bMid = tb.mid * (1 - w) + ab.mid * w;
@@ -5259,7 +5350,7 @@ module.exports = async function handler(request, response){
         }
         if(r.acv > 500){
           const cf = rCoef;
-          const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
+          const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys, fuel:effFuel(r)});
           if(ab){
             aErrs.push(Math.abs(ab.mid - r.final_bid) / r.final_bid);
             aIn.push(r.final_bid >= ab.lo && r.final_bid <= ab.hi ? 1 : 0);
@@ -5407,10 +5498,12 @@ module.exports = async function handler(request, response){
       const score = it => { const r = repairRatio(it); return (r == null ? 9 : r) * 1e6 - Number(it.year) * 1e3 + Math.min(Number(it.odometer) || 0, 300000) / 100; };
       const dbg = query.get("debug") ? {} : null;
       try{
-        // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро.
+        // Топливо — числовыми id (как в каталоге): 3 = гибрид, 2 = электро, 4 = бензин.
         // Отдельного PHEV-id нет (feed кладёт plug-in в гибрид/электро). BMW — по
         // марке (любое топливо). Сырые слова API не фильтрует → берём id.
-        const bases = [{fuel:"3"}, {fuel:"2"}, {make:"16"}];
+        // 28.09.2026 (Федор: «должно быть несколько лотов, меняются при обновлении») — раньше
+        // без бензина и с жёстким отсечением перекупа (см. ниже) на витрине часто оставалась 1 машина.
+        const bases = [{fuel:"3"}, {fuel:"2"}, {fuel:"4"}, {make:"16"}];
         const rawLists = await Promise.all(bases.map(b =>
           fetchSearch(shim({ ...b, yearFrom:"2020", per_page:"150", auction:"all" })).then(r => r.items || []).catch(() => [])
         ));
@@ -5425,10 +5518,13 @@ module.exports = async function handler(request, response){
         }
         if(dbg) dbg.candTotal = cand.length;
         // «Впервые на аукционе»: сегмент почти весь перевыставлен, поэтому строго
-        // «ни разу не был» — редкость. Убираем УЖЕ ПРОДАННЫЕ ранее (перекуп/
-        // повторы), а из чистых ставим truly-first-time (нет прошлых торгов)
-        // вперёд, добирая «ни разу не проданными» (был выставлен, но не купили).
+        // «ни разу не был» — редкость. Ставим truly-first-time (нет прошлых торгов)
+        // вперёд, затем «ни разу не проданными» (был выставлен, не купили).
         // Историю тянем волнами (detail) с бюджетом 48 на всех (раз в 30 мин).
+        // ⚠️ 28.09.2026 (Федор): раньше уже ПРОДАВАВШИЕСЯ ранее (перекуп) жёстко выбрасывались —
+        // на проверке 27.09 это отсекало 17 из 18 кандидатов, прошедших фильтр по состоянию,
+        // и витрина часто схлопывалась до 1 машины. Теперь перекуп — ТРЕТИЙ, запасной уровень
+        // (используется, только если свежих не хватает до 24), а не жёсткое исключение.
         const classify = ph => {
           let sold = false, past = false;
           for(const h of (ph || [])){
@@ -5438,11 +5534,11 @@ module.exports = async function handler(request, response){
           }
           return { sold, first: !past };
         };
-        const firstTier = [], secondTier = [];
+        const firstTier = [], secondTier = [], thirdTier = [];
         let detailChecked = 0, detailFailed = 0, soldOut = 0;
         // Собираем ПУЛ до 24: клиент показывает случайные 8 на каждом заходе —
         // витрина меняется, а не висит одним набором. Бюджет detail — 72 на всех.
-        for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length) < 24; i += 12){
+        for(let i = 0; i < cand.length && i < 72 && (firstTier.length + secondTier.length + thirdTier.length) < 24; i += 12){
           const wave = await Promise.all(cand.slice(i, i + 12).map(it =>
             fetchDetail(shim({ auction: it.auction, lot: it.lot }))
               .then(d => attachVinHistory(d))                 // история ПО VIN, не по номеру лота
@@ -5452,14 +5548,15 @@ module.exports = async function handler(request, response){
           for(const r of wave){
             detailChecked++;
             if(!r){ detailFailed++; continue; }
-            if(r.c.sold){ soldOut++; continue; }             // уже продавалась — вон
+            if(r.c.sold){ soldOut++; thirdTier.push(r.it); continue; }   // уже продавалась — запасной пул
             (r.c.first ? firstTier : secondTier).push(r.it);
           }
         }
-        if(dbg){ dbg.detailChecked = detailChecked; dbg.detailFailed = detailFailed; dbg.soldOut = soldOut; dbg.firstTier = firstTier.length; dbg.secondTier = secondTier.length; }
-        // Итоговый пул — снова по минимальному ремонту (tier «впервые» лишь отсекает
-        // уже проданные; порядок задаёт repairCost / estimatedRetailValue).
-        const items = firstTier.concat(secondTier).sort((a, b) => score(a) - score(b)).slice(0, 24);
+        if(dbg){ dbg.detailChecked = detailChecked; dbg.detailFailed = detailFailed; dbg.soldOut = soldOut; dbg.firstTier = firstTier.length; dbg.secondTier = secondTier.length; dbg.thirdTier = thirdTier.length; }
+        // Итоговый пул: свежие (firstTier+secondTier) впереди, перекуп — только чтобы добрать до 24,
+        // если свежих не хватает. Внутри каждой группы — по минимальному ремонту/году/пробегу.
+        const bySc = arr => arr.sort((a, b) => score(a) - score(b));
+        const items = bySc(firstTier.concat(secondTier)).concat(bySc(thirdTier)).slice(0, 24);
         const payload = dbg ? {ok:true, items, dbg} : {ok:true, items};
         setCached(key, payload, 15 * 60 * 1000);
         sendJson(response, 200, payload, dbg ? {"cache-control":"no-store"} : SHOWCASE_EDGE);

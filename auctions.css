@@ -264,6 +264,24 @@
 .dbBtnPrimary { height:38px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:700; font-size:13.5px; cursor:pointer; transition:.18s; }
 .dbBtnPrimary:hover { background:var(--aRed600); transform:translateY(-1px); }
 
+/* 28.09.2026 (Федор): SEO-блок ссылок на марки/модели — раньше жил в тёмном футере, смотрелся
+   там инородно (бордер + список ссылок на фоне брендовых блоков). Теперь отдельная светлая секция
+   под каталогом/лотом, общая для обоих режимов auctionsShellV1, футер остался просто футером. */
+.popularModelsV1 { padding:32px 0 0; border-top:1px solid var(--aLine); margin-top:24px; }
+.popularModelsV1 h2 { margin:0 0 18px; font-size:19px; font-weight:800; color:var(--aInk); letter-spacing:-.01em; }
+.pmGridV1 { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:14px 28px; padding:22px 24px; background:#fff; border:1px solid var(--aLine); border-radius:16px; }
+.pmGroupV1 { font-size:13px; line-height:1.75; color:var(--aInk2); }
+.pmGroupV1 b { display:block; font-size:13px; font-weight:700; color:var(--aInk); margin-bottom:1px; }
+.pmGroupV1 a { color:var(--aInk2); text-decoration:none; }
+.pmGroupV1 a:hover { color:var(--aRed); text-decoration:underline; }
+@media (max-width: 640px) {
+  .popularModelsV1 { padding:24px 0 0; }
+  .pmGridV1 { grid-template-columns:1fr 1fr; gap:16px; padding:18px 16px; }
+}
+@media (max-width: 420px) {
+  .pmGridV1 { grid-template-columns:1fr; }
+}
+
 /* Lot detail */
 .auctionDetailV1 { padding-top:8px; }
 .detailBackV1 { display:inline-block; margin-bottom:16px; font-weight:600; color:var(--aInk2); }
@@ -997,10 +1015,17 @@ body.leadModalOpenV1 { overflow:hidden; }
 .afChipV1:hover { background:#dde5f0; }
 .afChipV1:hover span { color:#ed0012; }
 .afSaveV1, .afClearV1 { padding:8px 14px; border-radius:999px; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; }
-.afSaveV1 { border:1px solid #ed0012; background:#ed0012; color:#fff; }
-.afSaveV1:hover { background:#c9000f; }
-.afClearV1 { border:1px solid var(--aLine); background:#fff; color:var(--aInk2); }
-.afClearV1:hover { border-color:var(--aMuted); }
+/* 28.09.2026 (Федор): обе кнопки — «Сохранить поиск» и «Уведомлять о новых» — должны выделяться,
+   не только одна из них. Оба цветным контуром (не заливкой): «Сохранить» — синий (как было раньше
+   у колокольчика, ему понравился этот стиль), «Уведомлять» — красный контур (см. .afBellV1 ниже).
+   «Очистить всё» раньше был белым на белом — терялась; теперь видимый серый контур. */
+.afSaveV1 { border:1px solid #c9d8f5; background:#f3f7ff; color:#1d4ed8; }
+.afSaveV1:hover { background:#e6eeff; border-color:#1d4ed8; }
+/* var(--aSoft) фон сливался с фоном самой страницы вокруг панели фильтров (тот же светло-серый
+   тон) — кнопка «терялась» на второй строке при переносе. Белый фон + тёмно-серый контур не
+   зависят от того, что окажется вплотную рядом/сзади. */
+.afClearV1 { border:1px solid var(--aMuted); background:#fff; color:var(--aInk2); }
+.afClearV1:hover { border-color:var(--aInk); background:#f5f6f8; }
 .auctionTabsV1 button.savedTabV1 { color:#1d4ed8; border-color:#c9d8f5; background:#f3f7ff; }
 .auctionTabsV1 button.savedTabV1:hover { border-color:#1d4ed8; }
 .auctionTabsV1 button.savedTabV1.active { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
@@ -1012,9 +1037,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .svDelV1:hover { background:#fff0f0; color:#ed0012; }
 .svEmptyV1 { margin:0; padding:6px 4px; font-size:13px; color:var(--aMuted); }
 
-.afBellV1 { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border:1px solid #c9d8f5; border-radius:999px; background:#f3f7ff; color:#1d4ed8; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; }
+.afBellV1 { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border:1px solid #ed0012; border-radius:999px; background:#ffe9ea; color:#ed0012; font-family:inherit; font-weight:700; font-size:13px; line-height:1.2; cursor:pointer; }
 .afBellV1 .dbIco { width:15px; height:15px; }
-.afBellV1:hover { background:#e6eeff; border-color:#1d4ed8; }
+.afBellV1:hover { background:#ffd9db; border-color:#c9000f; }
 .dbBell { position:absolute; right:46px; top:8px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:rgba(255,255,255,.92); color:var(--aInk2); cursor:pointer; transition:color .15s, transform .1s; }
 .dbBell:hover { color:#1d4ed8; transform:scale(1.06); }
 .dbBell.is-on { color:#1d4ed8; }
@@ -1367,11 +1392,14 @@ body.leadModalOpenV1 { overflow:hidden; }
   .filterBarV1 { gap:6px; }
   .filterBarV1:has(> :not([hidden])) { margin:0 0 12px; }
   .filterBarV1::before { content:""; order:9; flex-basis:100%; height:0; }
-  .afSaveV1, .afBellV1, .afClearV1 { height:38px; padding:0 14px; display:inline-flex; align-items:center; justify-content:center; }
-  .afSaveV1 { order:10; flex:1 1 auto; }
-  .afBellV1 { order:11; flex:none; width:38px; padding:0; }
-  .afBellV1 span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
-  .afClearV1 { order:12; flex:none; border-color:transparent; background:transparent; color:var(--aMuted); padding:0 8px; }
+  /* 28.09.2026: колокольчик — теперь главное действие и на телефоне тоже: раньше схлопывался в
+     иконку 38px без подписи (afBellV1 span был визуально скрыт) — заметить его было невозможно.
+     На всю ширину отдельной строкой (текст «Уведомлять о новых» не помещался рядом с «Сохранить
+     поиск» 50/50 и обрезался многоточием) — второстепенные действия мельче под ним. */
+  .afSaveV1, .afBellV1, .afClearV1 { height:40px; padding:0 12px; display:inline-flex; align-items:center; justify-content:center; }
+  .afBellV1 { order:10; flex:1 1 100%; font-size:14px; }
+  .afSaveV1 { order:11; flex:1 1 auto; }
+  .afClearV1 { order:12; flex:none; padding:0 10px; }
 
   /* --- Страница лота: короткая шапка --- */
   .detailTopRowV1 { margin-bottom:6px; }
@@ -1435,3 +1463,28 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 .calcReserveV1 .crSubV1 span { text-transform:none; letter-spacing:0; font-size:12px; font-weight:600; }
 @media (max-width:640px){ .dSec .copyChipV1 { font-size:12.5px; white-space:nowrap; letter-spacing:0; } }
+
+/* Публикация лота в Telegram-канал (админ) */
+.tgPostBtnV1{cursor:pointer}
+.tgComposeV1{position:fixed;inset:0;z-index:var(--z-overlay,10001);background:rgba(15,18,24,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 14px}
+.tgComposeV1[hidden]{display:none}
+.tgBoxV1{position:relative;width:100%;max-width:560px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.28);padding:22px 20px 20px;margin:auto}
+.tgBoxV1 h3{margin:0 0 14px;font-size:19px;font-weight:800;color:var(--aInk,#14181f)}
+.tgCloseV1{position:absolute;top:12px;right:12px;width:34px;height:34px;border:none;border-radius:9px;background:#f0f2f5;color:#333;font-size:16px;cursor:pointer}
+.tgCloseV1:hover{background:#e5e8ec}
+.tgWarnV1{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#fff3cd;border:1px solid #ffd66b;color:#7a5b00;font-size:13px}
+.tgRowLblV1{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--aMuted,#667080);margin:14px 0 7px}
+.tgTplV1{display:flex;flex-wrap:wrap;gap:8px}
+.tgChipV1{border:1px solid var(--aLine,#e2e6ec);background:#fff;border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:600;color:var(--aInk2,#3a4250);cursor:pointer}
+.tgChipV1.is-on{background:var(--aRed,#ed0012);border-color:var(--aRed,#ed0012);color:#fff}
+.tgPhotoOptV1{display:flex;flex-direction:column;gap:7px}
+.tgPhotoOptV1 label{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--aInk2,#3a4250);cursor:pointer}
+.tgCapV1{width:100%;box-sizing:border-box;border:1px solid var(--aLine,#e2e6ec);border-radius:12px;padding:12px 13px;font:14px/1.5 inherit;color:var(--aInk,#14181f);resize:vertical;min-height:210px}
+.tgActionsV1{margin-top:14px}
+.tgPubV1{width:100%;border:none;border-radius:12px;background:var(--aRed,#ed0012);color:#fff;font-size:15px;font-weight:700;padding:14px;cursor:pointer}
+.tgPubV1:disabled{opacity:.6;cursor:default}
+.tgResV1{margin-top:12px;font-size:14px;min-height:20px}
+.tgResV1.is-ok{color:#1a7f45}
+.tgResV1.is-ok a{color:#1a7f45;font-weight:700}
+.tgResV1.is-err{color:var(--aRed,#ed0012)}
+@media (max-width:640px){.tgComposeV1{padding:0}.tgBoxV1{max-width:none;min-height:100dvh;border-radius:0}}

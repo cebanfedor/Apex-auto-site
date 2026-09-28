@@ -1110,14 +1110,8 @@ details > summary::-webkit-details-marker { display: none; }
 .footerStats div b { display: block; color: #fff; font-size: 16px; }
 .footerStats div span { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
 .footerContacts { display: flex; flex-direction: column; gap: 10px; }
-/* Ссылки на каталог по маркам/моделям в подвале — для сквозной индексации Google (27.09.2026) */
-.footerModelsV1 { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px;
-  margin-top: 10px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.12); }
-.footerModelsV1 > b { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; }
-.footerModelsBrandV1 { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.45); }
-.footerModelsBrandV1 strong { color: rgba(255,255,255,0.7); font-weight: 600; }
-.footerModelsBrandV1 a { color: rgba(255,255,255,0.55); text-decoration: none; }
-.footerModelsBrandV1 a:hover { color: #fff; text-decoration: underline; }
+/* Ссылки на каталог по маркам/моделям — были здесь (в подвале), 28.09.2026 переехали в белую секцию
+   .popularModelsV1 на auctions.html (Федор: в тёмном футере смотрелись инородно). */
 .footerSocialV432 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
   margin-top: 10px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.12); }
 .footerSocialV432 b { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 4px; }
