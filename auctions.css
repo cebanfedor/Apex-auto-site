@@ -259,17 +259,21 @@
 .dbCheck.neutral .dbIco { color:var(--aMuted); background:var(--aSoft); }
 .dbCheck b { font-weight:600; color:var(--aInk2); }
 
-.dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:12px; border-left:1px solid var(--aLine2); padding-left:16px; }
+.dbAside { display:flex; flex-direction:column; justify-content:flex-start; gap:12px; border-left:1px solid var(--aLine2); padding-left:16px; min-width:0; }
 .dbChecksCol { display:flex; flex-direction:column; gap:8px; }
 .dbLotRowV1 { display:flex; align-items:center; justify-content:flex-start; gap:8px; flex-wrap:wrap; }
 .dbLotRowV1 .dbLotNo { font-size:12.5px; color:var(--aInk2); font-variant-numeric:tabular-nums; }
-.dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; }
+.dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; min-width:0; max-width:100%; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); white-space:nowrap; }
 .dbWhen .dbIco { color:var(--aMuted); }
 /* «Дата аукциона не назначена» — раньше терялась среди обычных серых дат (Федор 28.09.2026: «не все это видят»).
-   Тот же тёплый «внимание»-тон, что у резерва продавца (.dbReserveV1/.dbMobReserveV1, #9a4d00/#fff4e5). */
-.dbWhen .dbNoDateV1, .dbMobDateV1.dbNoDateV1 { color:#9a4d00; font-weight:800; background:#fff4e5; padding:2px 9px; border-radius:7px; }
-.dbWhen .dbNoDateV1 .dbIco, .dbMobDateV1.dbNoDateV1 .dbIco { color:#c05621; }
+   Тот же тёплый «внимание»-тон, что у резерва продавца (.dbReserveV1/.dbMobReserveV1, #9a4d00/#fff4e5).
+   28.09.2026 (Федор со скриншота): в узкой 220px-колонке карточки каталога бейдж (nowrap-текст + паддинг) был
+   ШИРЕ колонки — .dbAside/.dbWhen как flex/grid-элементы по умолчанию не сжимались уже своего контента
+   (min-width:auto), бейдж вылезал за рамку карточки. Добавлен min-width:0 на .dbAside/.dbWhen (чтобы колонка
+   могла сжаться до трека грида) + здесь текст переносится, а не выходит за край. */
+.dbWhen .dbNoDateV1, .dbMobDateV1.dbNoDateV1 { color:#9a4d00; font-weight:800; background:#fff4e5; padding:2px 9px; border-radius:7px; white-space:normal; max-width:100%; line-height:1.35; }
+.dbWhen .dbNoDateV1 .dbIco, .dbMobDateV1.dbNoDateV1 .dbIco { color:#c05621; flex:0 0 auto; }
 .dbLive.live { color:#1b9c5b; } .dbLive.live .dbIco { color:#1b9c5b; }
 .dbLive.soon { color:#e8780c; } .dbLive.soon .dbIco { color:#e8780c; }
 
@@ -1143,6 +1147,11 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dRelistBtnV1:hover { background:#c9000f; }
 
 .calcBidLabelV2 b.calcNoDateBV1 { font-size:17px; line-height:1.3; color:var(--aInk2); }
+/* 28.09.2026 (Федор со скриншота BMW 530e IAAI 46145648): без даты и без ставки клиент видел
+   пустой блок цены и не понимал, почему торговаться пока не за что — «Дата аукциона: Не назначена»
+   была только глубоко в таблице «Аукцион». Дублируем компактной строкой прямо в блоке цены. */
+.calcNoDateNoteV1 { display:flex; align-items:center; gap:8px; margin-top:2px; font-size:12.5px; color:var(--aMuted); }
+.calcNoDateNoteV1 .dbIco { flex:0 0 14px; width:14px; height:14px; }
 
 /* ---- Мобильная версия: правки после аудита 24.09.2026 ---- */
 .dMobSumV1 { display:none; }
