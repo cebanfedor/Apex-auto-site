@@ -417,6 +417,14 @@ section { position: relative; }
   .heroSearchBtnV1 { height: 44px; font-size: 13.5px; }
   .heroSearchHintV1 { font-size: 11.5px; }
   .heroDotsV1 { top: auto; bottom: 8px; right: 18px; }
+  /* 28.09.2026 (Федор со скриншота, «перешло за рамки»): .heroSearchPanelV1 стоял left:0 от
+     своей ПОЛОВИНЫ 2-колоночного ряда (.heroSearchPickV1), но min-width 240px (правило выше) —
+     на мобильной колонка уже 240px, «Выбрать модель» (правая колонка) открывал панель, вылезавшую
+     за карточку и за край экрана (текст обрезан). Позиционируем панель от всего ряда (родитель),
+     не от узкой колонки — left:0/right:0 гарантируют, что панель не шире самого ряда. */
+  .heroSearchRowV1 { position: relative; }
+  .heroSearchPickV1 { position: static; }
+  .heroSearchPanelV1 { left: 0; right: 0; width: auto; }
 }
 
 /* ---- Brand strip (v301): marquee of car brands we import --------------- */
