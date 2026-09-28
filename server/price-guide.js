@@ -200,15 +200,32 @@ function acvExtraAdj({airbags, fuel} = {}){
   f *= acvFuelAdj(fuel);
   return f;
 }
+// 28.09.2026 (Федор, Tesla Model Y IAAI 40084037: «Structural» вторичным повреждением роняло коэффициент
+// до 0.85–0.9 («две зоны»), хотя `conditionCoef` не знает НАСКОЛЬКО тяжёлая эта конкретная «Structural» —
+// а оценка ремонта САМОГО ЭТОГО VIN (repairCost) это как раз знает: $3 045 при ACV $24 742 (≈12%) — дёшево
+// чинить, машина явно не «убитая». Доля ремонта от ACV — прямой факт по лоту, ACV+categoryDamage её не видят.
+// ⚠️ Пороги СТАРТОВЫЕ (тот же принцип, что acvMileageAdj/mileageFactor выше — калибровка по факту, а не
+// подгонка под этот один кейс) — проверить на реальных продажах (`?action=compstest`/`missdiag`) и поправить.
+function repairRatioAdj(repairCost, acv){
+  const r = Number(repairCost) || 0, a = Number(acv) || 0;
+  if(!r || !a) return 1;
+  const ratio = r / a;
+  if(ratio <= 0.10) return 1.2;
+  if(ratio <= 0.20) return 1.1;
+  if(ratio <= 0.35) return 1;
+  if(ratio <= 0.55) return 0.9;
+  if(ratio <= 0.8) return 0.8;
+  return 0.7;
+}
 // Вилка по ACV: ±15% вокруг середины, потолок — не выше 90% ACV (дороже целой машины салважный лот не берут).
 function estimateFromAcv(acv, coef, odometerMi, extra){
   const a = Number(acv) || 0;
   if(a < 500) return null;
-  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {});
+  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {}) * repairRatioAdj(extra && extra.repairCost, a);
   const mid = a * Math.min(ratio, 0.9);
   if(!(mid > 0)) return null;
   return {lo:round100(mid * 0.85), mid:round100(mid), hi:round100(Math.min(mid * 1.15, a * 0.9))};
 }
 
 module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash,
-  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, estimateFromAcv};
+  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, repairRatioAdj, estimateFromAcv};

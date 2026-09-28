@@ -1527,6 +1527,10 @@
     if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(Math.round(lot.estimatedRetailValue)));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
+    // 28.09.2026 (Федор, Tesla Model Y IAAI 40084037): оценка ремонта ЭТОГО VIN — прямой факт, которого
+    // не знает ни ACV, ни текстовая категория повреждения («Structural» может быть и копеечной царапиной
+    // по раме, и настоящим тяжёлым случаем — оценка ремонта показывает, какой именно).
+    if(Number(lot.repairCost) > 0) cp.set("repair", String(Math.round(lot.repairCost)));
     // Самодиагностика (guide_miss): чтобы сервер видел, когда реальная ставка/резерв/прошлый раунд
     // выше вилки, и мог залогировать локацию/штат/пробег для будущей правки формулы.
     if(lot.id != null) cp.set("lot_id", `${String(lot.auction || "").toLowerCase()}-${lot.id}`.slice(0, 80));
@@ -4121,7 +4125,7 @@
       }
       return modelsCache[mid];
     }
-    const rowHtml = (kind, id, name, image, qty, checked, sub) => `<label class="msRowV1${checked ? " isOnV1" : ""}"><input type="checkbox" data-ms-${kind}="${escapeHtml(String(id))}"${checked ? " checked" : ""}>${image ? `<img class="msLogoV1" src="${escapeHtml(image)}" alt="" loading="lazy">` : (kind === "make" ? `<span class="msLogoV1 msLogoLetterV1" aria-hidden="true">${escapeHtml(String(name || "?").trim().charAt(0).toUpperCase())}</span>` : "")}<span class="msNameV1">${escapeHtml(name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span>${qty ? `<i>${escapeHtml(String(qty))}</i>` : ""}</label>`;
+    const rowHtml = (kind, id, name, image, qty, checked, sub) => `<label class="msRowV1${checked ? " isOnV1" : ""}"><input type="checkbox" data-ms-${kind}="${escapeHtml(String(id))}"${checked ? " checked" : ""}>${image ? `<img class="msLogoV1" src="${escapeHtml(image)}" alt="" loading="lazy">` : (kind === "make" ? `<span class="msLogoV1 msLogoLetterV1" aria-hidden="true">${escapeHtml(String(name || "?").trim().charAt(0).toUpperCase())}</span>` : "")}<span class="msNameV1">${escapeHtml(name)}${sub ? `<small> · ${escapeHtml(sub)}</small>` : ""}</span>${qty ? `<i>${escapeHtml(String(qty))}</i>` : ""}</label>`;
     // Фасеты: счётчики марок/моделей по ТЕКУЩИМ фильтрам (action=facets). Без фильтров или с неподдерживаемыми — глобальные числа из справочника.
     let facet = null, facetKey = "", facetSeq = 0;
     const FACET_KEYS = new Set(["tab", "auction", "saleStatus", "vehicleType", "fuel", "body", "drive", "transmission", "cylinders", "condition", "country", "state", "yearFrom", "yearTo", "bidFrom", "bidTo", "buyNowFrom", "buyNowTo", "mileageFrom", "mileageTo", "mileageFromKm", "mileageToKm", "engineFrom", "engineTo", "smart"]);
@@ -4170,7 +4174,9 @@
       const list = manufacturers.filter(m => m.id != null && (!q || String(m.name).toLowerCase().includes(q)))
         .filter(m => !FM || (FM[m.id] || 0) > 0 || on.has(String(m.id)))
         .map(m => FM ? {...m, qty:FM[m.id] || 0} : m);
-      const rows = [...list.filter(m => on.has(String(m.id))), ...list.filter(m => !on.has(String(m.id)))];
+      // 28.09.2026 (Федор: «галочка — и марка уходит наверх, пусть остаётся на месте»): раньше
+      // отмеченные марки всплывали в начало списка — убрано, порядок как в справочнике.
+      const rows = list;
       makeList.innerHTML = rows.length ? rows.map(m => rowHtml("make", m.id, m.name, m.image, m.qty, on.has(String(m.id)))).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
       setTimeout(fixBrokenLogos, 400);
     }
@@ -4187,7 +4193,8 @@
       all = all.filter(m => !q || m.name.toLowerCase().includes(q))
         .filter(m => !FMD || (FMD[m.id] || 0) > 0 || on.has(m.id))
         .map(m => FMD ? {...m, qty:FMD[m.id] || 0} : m);
-      const rows = [...all.filter(m => on.has(m.id)), ...all.filter(m => !on.has(m.id))];
+      // 28.09.2026: как и у марок — отмеченная модель больше не улетает наверх списка.
+      const rows = all;
       modelList.innerHTML = rows.length ? rows.map(m => rowHtml("model", m.id, m.name, "", m.qty, on.has(m.id), multi ? m.makeName : "")).join("") : `<p class="msEmptyV1">${escapeHtml(L("Ничего не найдено"))}</p>`;
     }
     async function refreshGenerationsForSelection(){

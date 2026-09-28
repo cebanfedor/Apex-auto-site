@@ -137,3 +137,14 @@ test("fullTitle: комплектация с дефисом не дублиру�
   assert.equal(pt.fullTitle("2025 Honda Cr-V Sport-L", {trim:"Sport-L", kind:3}), "2025 Honda Cr-V Sport-L Hybrid");
   assert.equal(pt.fullTitle("2022 Tesla Model Y", {trim:"Long Range Dual Motor", kind:2}), "2022 Tesla Model Y Long Range Dual Motor");
 });
+
+test("fullTitle: не дублирует комплектацию при обратном порядке слов в названии (28.09.2026)", () => {
+  // Фид иногда пишет «300 Glc» вместо «Glc 300» — прежняя проверка (подстрока в слитном
+  // названии) была order-sensitive и не находила «Glc300», дописывала его повторно.
+  assert.equal(pt.fullTitle("2021 Mercedes-Benz 300 Glc Suv", {trim:"Glc300", kind:4}), "2021 Mercedes-Benz 300 Glc Suv");
+  assert.equal(pt.fullTitle("2020 Mercedes-Benz 350 Gle", {trim:"Gle350", kind:4}), "2020 Mercedes-Benz 350 Gle");
+  // прямой порядок — по-прежнему без дублей
+  assert.equal(pt.fullTitle("2021 Mercedes-Benz Glc 300 Suv", {trim:"Glc300", kind:4}), "2021 Mercedes-Benz Glc 300 Suv");
+  // недостающая часть комплектации всё ещё дописывается
+  assert.equal(pt.fullTitle("2023 Tesla Model 3 Long Range", {trim:"Long Range Dual Motor", kind:2}), "2023 Tesla Model 3 Long Range Dual Motor");
+});

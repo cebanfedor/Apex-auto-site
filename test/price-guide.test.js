@@ -85,3 +85,28 @@ test("estimateFromAcv: реальный лот (2022 Porsche Panamera Base, IAAI
   const b = pg.estimateFromAcv(66124, coef, 45806, {airbags:"", keys:"Да"});
   assert.deepEqual(b, {lo:26700, mid:31400, hi:36100});
 });
+
+test("repairRatioAdj: дешёвый ремонт относительно ACV — поднимает оценку; дорогой — понижает", () => {
+  assert.equal(pg.repairRatioAdj(0, 20000), 1);          // нет данных о ремонте — нейтрально
+  assert.equal(pg.repairRatioAdj(1000, 0), 1);            // нет ACV — нейтрально
+  assert.equal(pg.repairRatioAdj(1500, 20000), 1.2);      // 7.5% от ACV — дёшево чинить
+  assert.equal(pg.repairRatioAdj(3000, 20000), 1.1);      // 15%
+  assert.equal(pg.repairRatioAdj(6000, 20000), 1);        // 30% — типичный диапазон
+  assert.equal(pg.repairRatioAdj(9000, 20000), 0.9);      // 45%
+  assert.equal(pg.repairRatioAdj(15000, 20000), 0.8);     // 75%
+  assert.equal(pg.repairRatioAdj(19000, 20000), 0.7);     // 95% — ремонт почти как вся машина
+});
+
+test("estimateFromAcv: реальный лот (2021 Tesla Model Y Performance Dual Motor, IAAI 40084037, 28.09.2026)", () => {
+  // Повреждение «Правая сторона / Structural», состояние не указано, документ «VA · Clean» → coef 0.8925.
+  // ACV $24 742, пробег 52 895 миль, оценка ремонта $3 045 (≈12% ACV — дёшево чинить несмотря на ярлык
+  // «Structural»). Федор не поверил вилке $5 600–$8 600 («машина должна сыграть дороже») — раньше формула
+  // ИГНОРИРОВАЛА оценку ремонта конкретного VIN, хотя она прямо показывает, что повреждение не тяжёлое.
+  const coef = pg.conditionCoef({dmg:"right side", dmg2:"Structural", cond:"", doc:"VA Clean"});
+  assert.ok(Math.abs(coef - 0.8925) < 1e-6);
+  const without = pg.estimateFromAcv(24742, coef, 52895, {airbags:""});
+  const withRepair = pg.estimateFromAcv(24742, coef, 52895, {airbags:"", repairCost:3045});
+  assert.deepEqual(without, {lo:6400, mid:7500, hi:8700});
+  assert.deepEqual(withRepair, {lo:7100, mid:8300, hi:9500});
+  assert.ok(withRepair.mid > without.mid);
+});

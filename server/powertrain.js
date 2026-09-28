@@ -158,13 +158,27 @@ function fullTitle(title, {trim, kind} = {}){
   trim = cleanTrim(trim);   // и то, что уже лежит в базе (старые разборы), тоже проверяем
   if(trim){
     // 27.09.2026 (Федор: дубли в названиях, «Gle 350 ... Gle350», «C 300 ... C300»): фид пишет
-    // «Gle 350» с пробелом, vPIC-трим отдаёт «Gle350» слитно — split(/[^a-z0-9]+/) не делит по
-    // границе буква→цифра, слово «gle350» целиком не находилось среди отдельных «gle»/«350» и
-    // дописывалось ещё раз. Сравниваем по СЛИТНОЙ строке (без пробелов/дефисов) — «gle350» ищем
-    // подстрокой в «...gle350...», а не токеном в наборе токенов.
-    const haveJoined = t.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    // «Gle 350» с пробелом, vPIC-трим отдаёт «Gle350» слитно — раньше сравнивали ПОДСТРОКОЙ в
+    // слитном названии («gle350» ищем внутри «...gle350...»), но это ловит только ПРЯМОЙ порядок
+    // слов. 28.09.2026 (обратный порядок в фиде — «2021 Mercedes-Benz 300 Glc Suv» + трим «Glc300»
+    // не находился, дублировался «...300 Glc Suv Glc300»): сравниваем НАБОРОМ «кусков» слова
+    // (буквенная часть отдельно от цифровой — «gle350»→[gle,350], «4matic»→[4,matic]), порядок
+    // кусков внутри названия не важен, каждый кусок трима должен найтись в названии (расходуется,
+    // чтобы «300» не засчитался дважды за счёт другого «300» в имени).
+    const chunksOf = s => (String(s || "").toLowerCase().match(/[a-z]+|[0-9]+/g) || []);
+    const haveChunks = chunksOf(t);
     // дописываем только недостающие слова: «Long Range» уже есть → добавится «Dual Motor», а не вся комплектация целиком
-    const missing = trim.split(" ").filter(w => { const wj = w.toLowerCase().replace(/[^a-z0-9]+/g, ""); return wj && !haveJoined.includes(wj); });
+    const missing = trim.split(" ").filter(w => {
+      const wChunks = chunksOf(w);
+      if(!wChunks.length) return false;
+      const pool = haveChunks.slice();
+      for(const c of wChunks){
+        const idx = pool.indexOf(c);
+        if(idx === -1) return true;   // кусок слова не нашёлся — слово считаем недостающим
+        pool.splice(idx, 1);
+      }
+      return false;   // все куски слова уже есть в названии
+    });
     if(missing.length) t += " " + missing.join(" ");
   }
   // 3. Гибрид / plug-in по VIN
