@@ -1131,8 +1131,8 @@
     let days = now.getDate() - then.getDate();
     if(days < 0){ months -= 1; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
     if(months < 0){ years -= 1; months += 12; }
-    if(years > 0) return `${years} ${L("г.")} ${months} ${L("мес.")} ${L("назад")}`;
-    if(months > 0) return `${months} ${L("мес.")} ${days} ${L("дн.")} ${L("назад")}`;
+    if(years > 0) return `${years} ${L("г.")}${months > 0 ? ` ${months} ${L("мес.")}` : ""} ${L("назад")}`;
+    if(months > 0) return `${months} ${L("мес.")}${days > 0 ? ` ${days} ${L("дн.")}` : ""} ${L("назад")}`;
     if(days > 0) return `${days} ${L("дн.")} ${L("назад")}`;
     const hours = Math.floor((now.getTime() - then.getTime()) / 3600000);
     return hours > 0 ? `${hours} ${L("ч.")} ${L("назад")}` : L("только что");
