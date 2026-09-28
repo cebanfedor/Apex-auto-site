@@ -3282,6 +3282,7 @@
             <div class="dTitleRowV1">
               <h1>${escapeHtml(title)}</h1>
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
+              <button type="button" class="dShareBtnV1 tgPostBtnV1" data-tg-post="${escapeHtml(lot.id)}" hidden title="${escapeHtml(L("Опубликовать в Telegram-канал"))}">📣<span>В Telegram</span></button>
             </div>
             <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}</p>
             ${(() => {
@@ -3298,7 +3299,6 @@
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
             ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Слежу за лотом" : "Следить за лотом"))}</span></button>` : ""}
             ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
-            <button type="button" class="dFavBtnV1 tgPostBtnV1" data-tg-post="${escapeHtml(lot.id)}" hidden>📣 <span>В Telegram</span></button>
           </div>
         </div>
         ${(() => {
