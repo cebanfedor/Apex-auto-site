@@ -247,6 +247,10 @@
 .dbWhen { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; }
 .dbWhen span { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--aInk2); white-space:nowrap; }
 .dbWhen .dbIco { color:var(--aMuted); }
+/* «Дата аукциона не назначена» — раньше терялась среди обычных серых дат (Федор 28.09.2026: «не все это видят»).
+   Тот же тёплый «внимание»-тон, что у резерва продавца (.dbReserveV1/.dbMobReserveV1, #9a4d00/#fff4e5). */
+.dbWhen .dbNoDateV1, .dbMobDateV1.dbNoDateV1 { color:#9a4d00; font-weight:800; background:#fff4e5; padding:2px 9px; border-radius:7px; }
+.dbWhen .dbNoDateV1 .dbIco, .dbMobDateV1.dbNoDateV1 .dbIco { color:#c05621; }
 .dbLive.live { color:#1b9c5b; } .dbLive.live .dbIco { color:#1b9c5b; }
 .dbLive.soon { color:#e8780c; } .dbLive.soon .dbIco { color:#e8780c; }
 
