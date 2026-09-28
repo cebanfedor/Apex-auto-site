@@ -3556,7 +3556,16 @@
         const c = cr.comps;
         state.lotBand = {lo:Number(c.p25) || 0, hi:Number(c.p75) || 0};   // для поста в Telegram
         const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
-        const contradicted = Number(lot.currentBid) > Number(c.p75) || Number(lot.sellerReserve) > Number(c.p75) || maxHistBid > Number(c.p75);
+        // 28.09.2026 (Федор со скриншота Tesla Model Y Copart 64229956): бейдж всегда писал «ставка выше
+        // ориентира», даже когда саму СТАВКУ вилка ещё не опровергла (ставка $18 300 ниже низа вилки
+        // $18 400) — опровергал резерв продавца ($23 000 > верха вилки $21 700). Текст должен называть
+        // ИМЕННО ТО значение, которое выше вилки, а не всегда «ставка» — иначе выглядит как противоречие
+        // (ставка меньше показанной вилки, а рядом надпись «ставка выше»).
+        const bidV = Number(lot.currentBid) || 0, reserveV = Number(lot.sellerReserve) || 0;
+        const observed = Math.max(bidV, reserveV, maxHistBid);
+        const contradicted = observed > Number(c.p75);
+        const warnText = !contradicted ? "" : observed === reserveV && reserveV >= bidV && reserveV >= maxHistBid ? "резерв продавца выше ориентира"
+          : observed === maxHistBid && maxHistBid >= bidV && maxHistBid >= reserveV ? "прошлая ставка выше ориентира" : "ставка выше ориентира";
         box.innerHTML = `
           <div class="dSecHead">${L("Ориентир ставки")} <span class="histCountV1">${escapeHtml(title)}</span></div>
           <div class="statGridV1">
@@ -3566,7 +3575,7 @@
         box.hidden = false;
         const marketLine = document.getElementById("lotMarketLineV1");
         if(marketLine){
-          marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>${contradicted ? `<i class="marketLineWarnV1">${L("ставка выше ориентира")}</i>` : ""}`;
+          marketLine.innerHTML = `${dbIco("chart")}<span>${L("Ориентир ставки")}: <b>${money(c.p25)}–${money(c.p75)}</b></span>${contradicted ? `<i class="marketLineWarnV1">${L(warnText)}</i>` : ""}`;
           marketLine.hidden = false;
         }
         return;
