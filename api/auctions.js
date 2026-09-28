@@ -3191,12 +3191,18 @@ async function computeCompsForQ(q){
       const g = await resolveGenRange(modelId, yearG, "");
       const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
         fuelId:fuelTextToId(fuelText), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid"), coef}) : null;
-      if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
+      // 29.09.2026 (Федор, BMW 530e IAAI 46145648, facelift 2021+): порог был 6 — у свежеразделённого
+      // поколения (см. gen-table.js) реальных проданных facelift-530e в базе всего 3 ($12.6к-$29.75к),
+      // и гейт «<6 → выкинуть совсем» отбрасывал их целиком в пользу чистого ACV, хотя 3 живые продажи
+      // точнее, чем усреднённая ACV-доля по всему каталогу. Понижен до 3 (минимум для fuelMatched внутри
+      // computeComps), тонкий пул (3-5) весит меньше в смеси с ACV — не подменяет её, а поправляет.
+      if(cc && cc.count >= 3 && cc.p25 > 0 && cc.p75 >= cc.p25){
         const r100 = v => Math.round(v / 100) * 100;
         let lo = cc.p25, mid = cc.median, hi = Math.max(cc.p75, cc.p25 * 1.05);
         if(acvBand){
-          // Доверие похожим продажам растёт с их числом: до 12 — ACV весит больше половины, от 20 — почти не влияет.
-          const w = cc.count >= 20 ? 0.25 : cc.count >= 12 ? 0.4 : 0.45;
+          // Доверие похожим продажам растёт с их числом: тонкий пул (3-5) — ACV весит больше похожих;
+          // до 12 — ACV весит больше половины, от 20 — почти не влияет.
+          const w = cc.count >= 20 ? 0.25 : cc.count >= 12 ? 0.4 : cc.count >= 6 ? 0.45 : 0.6;
           lo = lo * (1 - w) + acvBand.lo * w; mid = mid * (1 - w) + acvBand.mid * w; hi = hi * (1 - w) + acvBand.hi * w;
         }
         band = {lo:r100(lo), mid:r100(mid), hi:r100(hi)}; src = acvBand ? "data+acv" : "data";
