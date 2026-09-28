@@ -261,6 +261,9 @@ section { position: relative; }
   position: absolute; inset: 0; z-index: 0;
   width: 100%; height: 100%; object-fit: cover; object-position: 72% 96%;
 }
+/* delivery-sea.webp — фото 1200×800 (не 1400×560, как founder-auction), базовый object-position
+   72% 96% (заточен под founder-auction) обрезал корабли/краны, оставляя только асфальт снизу-справа. */
+.heroBgSeaV1 { object-position: 50% 38%; }
 
 
 .heroWideOverlayV302 {
@@ -318,10 +321,21 @@ section { position: relative; }
 .heroDotsV1 button.heroDotActiveV1 { background: #fff; transform: scale(1.25); }
 
 /* ---- Слайд «Быстрый поиск авто» — карточка в духе ДримБида SmartSelect ---- */
+/* 29.09.2026 (Федор: «фотки урезал криво»): mercedes-e300.webp — студийный кадр на белом
+   фоне для блока «экономии», не атмосферное фото для hero — при object-fit:cover в широком
+   баннере обрезался до куска колеса. Своего подходящего широкого фото под этот слайд нет —
+   вместо чужеродной картинки честный тёмный градиент в цветах бренда (--dark/--red). */
+.heroSlideSearchV1 .heroSearchBgV1 {
+  background:
+    radial-gradient(720px 480px at 78% 15%, rgba(237,0,18,0.22), transparent 60%),
+    radial-gradient(600px 420px at 15% 95%, rgba(237,0,18,0.12), transparent 65%),
+    linear-gradient(135deg, var(--dark) 0%, var(--dark-2) 100%);
+}
 .heroSearchWrapV1 { display: flex; align-items: center; max-width: none; padding-bottom: 0; }
 .heroSearchCardV1 {
   width: 100%; max-width: 360px; background: rgba(255,255,255,0.97); border-radius: var(--radius-lg);
   padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 11px;
+  overflow: hidden; /* кнопка внутри — box-shadow не течёт на фон за скруглённый край карточки */
 }
 .heroSearchHeadV1 { display: flex; align-items: center; justify-content: space-between; }
 .heroSearchTitleV1 { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink); }

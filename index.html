@@ -39,7 +39,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v453">
+  <link rel="stylesheet" href="styles.css?v=v454">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -93,9 +93,8 @@
 <section class="hero heroV45 heroWideV302">
   <div class="heroSlidesV1" id="heroSlidesV1">
 
-    <div class="heroSlideV1 heroSlideActiveV1" data-slide-idx="0">
-      <img class="heroWideBgV302" src="/assets/hot/mercedes-e300.webp" width="1400" height="560" alt="Поиск авто на аукционах США — Apex Auto" loading="eager" fetchpriority="high" data-fb="/assets/hot/mercedes-e300.jpg">
-      <span class="heroWideOverlayV302" aria-hidden="true"></span>
+    <div class="heroSlideV1 heroSlideSearchV1 heroSlideActiveV1" data-slide-idx="0">
+      <span class="heroWideOverlayV302 heroSearchBgV1" aria-hidden="true"></span>
       <div class="heroWideContentV302 heroSearchWrapV1">
         <div class="heroSearchCardV1">
           <div class="heroSearchHeadV1">
@@ -108,6 +107,10 @@
           </div>
           <div class="heroSearchRowV1" id="heroSearchGenRow" hidden>
             <select id="heroSearchGen"><option value="">Выбрать поколение</option></select>
+          </div>
+          <div class="heroSearchRowV1">
+            <select id="heroSearchYearFrom"><option value="">Год от</option></select>
+            <select id="heroSearchYearTo"><option value="">Год до</option></select>
           </div>
           <input id="heroSearchVin" type="text" inputmode="search" placeholder="Или укажите VIN / номер лота">
           <button id="heroSearchBtn" type="button" class="heroSearchBtnV1">Показать <span id="heroSearchCount">…</span></button>
@@ -140,7 +143,7 @@
     </div>
 
     <div class="heroSlideV1" data-slide-idx="2">
-      <img class="heroWideBgV302" src="/assets/hot/delivery-sea.webp" width="1400" height="560" alt="Морская доставка авто в Молдову — Apex Auto" loading="lazy" data-fb="/assets/hot/delivery-sea.jpg">
+      <img class="heroWideBgV302 heroBgSeaV1" src="/assets/hot/delivery-sea.webp" width="1400" height="560" alt="Морская доставка авто в Молдову — Apex Auto" loading="lazy" data-fb="/assets/hot/delivery-sea.jpg">
       <span class="heroWideOverlayV302" aria-hidden="true"></span>
       <div class="heroWideContentV302">
         <div class="heroMainV45">
@@ -459,10 +462,10 @@
   <script src="calc-core.js?v=core-v9" defer></script>
   <script src="script.js?v=calc-v432" defer></script>
   <script src="site-content.js?v=admin-v166" defer></script>
-  <script src="i18n.js?v=multilang-v522" defer></script>
+  <script src="i18n.js?v=multilang-v523" defer></script>
   <script src="home-transit.js?v=ht-v8" defer></script>
   <script src="home-lots.js?v=home-v13" defer></script>
-  <script src="home-hero.js?v=hh-v2" defer></script>
+  <script src="home-hero.js?v=hh-v3" defer></script>
 
   <section class="apexProcessV205" id="how">
     <span class="sectionKicker">Как мы работаем</span>

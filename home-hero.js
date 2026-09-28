@@ -53,9 +53,21 @@
   /* ================= Виджет «Быстрый поиск авто» ================= */
   function initSearch(){
     const makeSel = $("#heroSearchMake"), modelSel = $("#heroSearchModel"), genSel = $("#heroSearchGen"),
-      genRow = $("#heroSearchGenRow"), vinInp = $("#heroSearchVin"), archiveChk = $("#heroSearchArchive"),
+      genRow = $("#heroSearchGenRow"), yearFromSel = $("#heroSearchYearFrom"), yearToSel = $("#heroSearchYearTo"),
+      vinInp = $("#heroSearchVin"), archiveChk = $("#heroSearchArchive"),
       btn = $("#heroSearchBtn"), countEl = $("#heroSearchCount");
     if(!makeSel || !btn) return;
+
+    // Года — те же границы, что у полей yearFrom/yearTo в фильтрах каталога (1980..текущий+1).
+    if(yearFromSel && yearToSel){
+      const curYear = new Date().getFullYear() + 1;
+      let opts = "";
+      for(let y = curYear; y >= 1980; y--) opts += `<option value="${y}">${y}</option>`;
+      yearFromSel.insertAdjacentHTML("beforeend", opts);
+      yearToSel.insertAdjacentHTML("beforeend", opts);
+      yearFromSel.addEventListener("change", scheduleCount);
+      yearToSel.addEventListener("change", scheduleCount);
+    }
 
     const cache = {makes:null, models:{}, gens:{}};
     let countToken = 0;
@@ -128,6 +140,8 @@
       if(makeSel.value) p.set("make", makeSel.value);
       if(modelSel.value) p.set("model", modelSel.value);
       if(genSel.value) p.set("generation", genSel.value);
+      if(yearFromSel && yearFromSel.value) p.set("yearFrom", yearFromSel.value);
+      if(yearToSel && yearToSel.value) p.set("yearTo", yearToSel.value);
       p.set("tab", archiveChk.checked ? "archived" : "all");
       p.set("auction", "all");
       return p;
