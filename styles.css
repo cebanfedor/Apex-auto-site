@@ -333,7 +333,7 @@ section { position: relative; }
 }
 .heroSearchWrapV1 { display: flex; align-items: center; max-width: none; padding-bottom: 0; }
 .heroSearchCardV1 {
-  width: 100%; max-width: 460px; background: rgba(255,255,255,0.97); border-radius: var(--radius-lg);
+  width: 100%; max-width: 520px; background: rgba(255,255,255,0.97); border-radius: var(--radius-lg);
   padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 11px;
   overflow: hidden; /* кнопка внутри — box-shadow не течёт на фон за скруглённый край карточки */
 }
@@ -359,8 +359,16 @@ section { position: relative; }
 .heroSearchHintV1 { font-size: 12.5px; color: var(--muted); text-align: center; }
 .heroSearchHintV1 b { color: var(--red); font-weight: 700; }
 @media (max-width: 720px) {
-  .heroSearchWrapV1 { padding: 20px 18px; }
-  .heroSearchCardV1 { max-width: none; padding: 16px; }
+  /* 29.09.2026 (Федор: «для мобильной чуть уже, шрифт может меньше»): карточка с полями
+     от края до края читалась «во всю ширину» — небольшой отступ + компактный шрифт вместо
+     desktop-размеров, растянутых на маленький экран. */
+  .heroSearchWrapV1 { padding: 20px 26px; }
+  .heroSearchCardV1 { max-width: none; padding: 14px; gap: 9px; }
+  .heroSearchTitleV1 { font-size: 13.5px; }
+  .heroSearchArchiveV1 { font-size: 11.5px; }
+  .heroSearchCardV1 select, .heroSearchCardV1 input[type="text"] { height: 40px; font-size: 12.5px; }
+  .heroSearchBtnV1 { height: 44px; font-size: 13.5px; }
+  .heroSearchHintV1 { font-size: 11.5px; }
   .heroDotsV1 { top: auto; bottom: 8px; right: 18px; }
 }
 
