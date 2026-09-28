@@ -2587,6 +2587,7 @@
       <div class="calcTopV2">
         ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Ставок пока нет"))}</b>${usdHint(topBidValue)}</div>` : ""}
+        ${!isSold && !lot.auctionDate ? `<div class="calcNoDateNoteV1">${dbIco("calendar")}<span>${L("Дата аукциона не назначена")}</span></div>` : ""}
         ${!banned ? `<div id="lotMarketLineV1" class="lotMarketLineV1" hidden></div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
