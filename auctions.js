@@ -3163,6 +3163,20 @@
     if(b){ ev.preventDefault(); openTgCompose(state.selectedLot); }
   });
 
+  // 28.09.2026: renderDetail собирает составные строки (Продавец/Пробег/Двигатель и привод/Локация —
+  // join(" · ") из кусков, переведённых через L() ПРИ СБОРКЕ) — если это самый первый, самый быстрый
+  // рендер страницы лота (SSR-лот из #ssrLotV1, синхронно, без сетевого запроса) и словарь RO/EN (250 КБ)
+  // ещё не успел догрузиться, эти куски остаются русскими НАВСЕГДА: общий MutationObserver-переводчик
+  // (i18n.js) чинит потом только ОДИНОЧНЫЕ узлы текста, целиком совпадающие с ключом словаря — склеенную
+  // через " · " фразу так не найти. Зовём обычный renderDetail сразу (быстрый первый показ), а следом —
+  // ещё раз тем же лотом, когда словарь точно готов (для ru или уже загруженного словаря коллбек прилетает
+  // немедленно, лишней перерисовки не будет заметно).
+  function renderDetailI18nSafe(lot){
+    renderDetail(lot);
+    if(window.APEX_LANG !== "ru" && typeof window.__apexEnsureDict === "function"){
+      window.__apexEnsureDict(() => { if(state.selectedLot === lot) renderDetail(lot); });
+    }
+  }
   function renderDetail(lot){
     scheduleVinRetry(lot, 1);
     state.lotBand = null;   // вилка пересчитается в loadStats для этого лота (для поста в Telegram)
@@ -3807,17 +3821,17 @@
     }
     if(ssr && String(ssr.lot) === String(slug.lot) && ssr.auction === slug.auction){
       window.__ssrLot = null;
-      renderDetail(ssr);
+      renderDetailI18nSafe(ssr);
       return true;
     }
     $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Загружаем данные лота...</div>';
     try{
       const payload = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(slug.auction)}&lot=${encodeURIComponent(slug.lot)}`);
-      renderDetail(payload.lot);
+      renderDetailI18nSafe(payload.lot);
     }catch(error){
       const demo = isLocalHost() && demoLots().find(l => String(l.lot) === String(slug.lot));
       if(demo){
-        renderDetail(demo);
+        renderDetailI18nSafe(demo);
       }else{
         $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">${escapeHtml(error.message || "Лот временно недоступен.")}</div>`;
       }
@@ -3845,7 +3859,7 @@
     $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Получаем отчёт по VIN…</div>';
     try{
       const payload = await api(`/api/auctions?action=vin&vin=${encodeURIComponent(clean)}`);
-      renderDetail(payload.lot);
+      renderDetailI18nSafe(payload.lot);
     }catch(error){
       $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Назад к каталогу</a>
         <div class="vinEmptyV1">
