@@ -118,8 +118,18 @@
             </div>
           </div>
           <div class="heroSearchRowV1">
-            <select id="heroSearchYearFrom"><option value="">Год от</option></select>
-            <select id="heroSearchYearTo"><option value="">Год до</option></select>
+            <div class="heroSearchPickV1" id="heroSearchYearFromPick">
+              <button type="button" class="heroSearchPickBtnV1" id="heroSearchYearFromBtn" aria-haspopup="listbox" aria-expanded="false"><span>Год от</span></button>
+              <div class="heroSearchPanelV1" id="heroSearchYearFromPanel" hidden>
+                <div class="heroSearchPanelListV1" id="heroSearchYearFromList" role="listbox"></div>
+              </div>
+            </div>
+            <div class="heroSearchPickV1" id="heroSearchYearToPick">
+              <button type="button" class="heroSearchPickBtnV1" id="heroSearchYearToBtn" aria-haspopup="listbox" aria-expanded="false"><span>Год до</span></button>
+              <div class="heroSearchPanelV1" id="heroSearchYearToPanel" hidden>
+                <div class="heroSearchPanelListV1" id="heroSearchYearToList" role="listbox"></div>
+              </div>
+            </div>
           </div>
           <input id="heroSearchVin" type="text" inputmode="search" placeholder="Или укажите VIN / номер лота">
           <button id="heroSearchBtn" type="button" class="heroSearchBtnV1">Показать <span id="heroSearchCount">…</span></button>
@@ -474,7 +484,7 @@
   <script src="i18n.js?v=multilang-v523" defer></script>
   <script src="home-transit.js?v=ht-v8" defer></script>
   <script src="home-lots.js?v=home-v13" defer></script>
-  <script src="home-hero.js?v=hh-v6" defer></script>
+  <script src="home-hero.js?v=hh-v7" defer></script>
 
   <section class="apexProcessV205" id="how">
     <span class="sectionKicker">Как мы работаем</span>

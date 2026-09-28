@@ -57,24 +57,22 @@
       makeSearch = $("#heroSearchMakeSearch"), makeList = $("#heroSearchMakeList"),
       modelBtn = $("#heroSearchModelBtn"), modelPanel = $("#heroSearchModelPanel"),
       modelSearch = $("#heroSearchModelSearch"), modelList = $("#heroSearchModelList"),
-      yearFromSel = $("#heroSearchYearFrom"), yearToSel = $("#heroSearchYearTo"),
+      yearFromBtn = $("#heroSearchYearFromBtn"), yearFromPanel = $("#heroSearchYearFromPanel"), yearFromList = $("#heroSearchYearFromList"),
+      yearToBtn = $("#heroSearchYearToBtn"), yearToPanel = $("#heroSearchYearToPanel"), yearToList = $("#heroSearchYearToList"),
       vinInp = $("#heroSearchVin"), archiveChk = $("#heroSearchArchive"),
       btn = $("#heroSearchBtn"), countEl = $("#heroSearchCount");
     if(!makeBtn || !btn) return;
 
     // Года — те же границы, что у полей yearFrom/yearTo в фильтрах каталога (1980..текущий+1).
-    if(yearFromSel && yearToSel){
-      const curYear = new Date().getFullYear() + 1;
-      let opts = "";
-      for(let y = curYear; y >= 1980; y--) opts += `<option value="${y}">${y}</option>`;
-      yearFromSel.insertAdjacentHTML("beforeend", opts);
-      yearToSel.insertAdjacentHTML("beforeend", opts);
-      yearFromSel.addEventListener("change", scheduleCount);
-      yearToSel.addEventListener("change", scheduleCount);
-    }
+    // 29.09.2026 (Федор: «выпадашка по году не выходит за пределы блока») — были нативные <select>:
+    // браузер рисует их выпадающий список как системный попап поверх всего экрана, а не как свою
+    // стилизованную панель внутри карточки (в отличие от марки/модели). Тот же createPicker, что и
+    // у них — список просто статичный (без похода в сеть), без строки поиска.
+    const yearItems = [];
+    { const curYear = new Date().getFullYear() + 1; for(let y = curYear; y >= 1980; y--) yearItems.push({id:y, name:String(y)}); }
 
     const cache = {models:{}};
-    const state = {makeId:"", makeName:"", modelId:"", modelName:""};
+    const state = {makeId:"", makeName:"", modelId:"", modelName:"", yearFrom:"", yearTo:""};
     let countToken = 0;
 
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -111,18 +109,18 @@
         panel.hidden = false;
         btn.setAttribute("aria-expanded", "true");
         if(card) card.classList.add("heroSearchPanelOpenV1");
-        search.value = "";
+        if(search) search.value = "";
         render("");
         if(!loaded){
           if(!loading) loading = getItems().then(r => { items = r || []; loaded = true; });
           await loading;
           render("");
         }
-        search.focus();
+        if(search) search.focus();
       }
       function close(){ panel.hidden = true; btn.setAttribute("aria-expanded", "false"); }
       btn.addEventListener("click", () => { if(btn.disabled) return; panel.hidden ? open() : close(); });
-      search.addEventListener("input", () => render(search.value));
+      if(search) search.addEventListener("input", () => render(search.value));
       list.addEventListener("click", e => {
         const row = e.target.closest(".msRowV1");
         if(!row) return;
@@ -167,14 +165,37 @@
       }
     });
 
+    if(yearFromBtn && yearToBtn){
+      createPicker({
+        btn: yearFromBtn, panel: yearFromPanel, list: yearFromList,
+        getItems: () => Promise.resolve(yearItems),
+        onPick(it){
+          state.yearFrom = String(it.id);
+          yearFromBtn.querySelector("span").textContent = it.name;
+          yearFromBtn.classList.add("hasValV1");
+          scheduleCount();
+        }
+      });
+      createPicker({
+        btn: yearToBtn, panel: yearToPanel, list: yearToList,
+        getItems: () => Promise.resolve(yearItems),
+        onPick(it){
+          state.yearTo = String(it.id);
+          yearToBtn.querySelector("span").textContent = it.name;
+          yearToBtn.classList.add("hasValV1");
+          scheduleCount();
+        }
+      });
+    }
+
     archiveChk.addEventListener("change", scheduleCount);
 
     function buildParams(){
       const p = new URLSearchParams();
       if(state.makeId) p.set("make", state.makeId);
       if(state.modelId) p.set("model", state.modelId);
-      if(yearFromSel && yearFromSel.value) p.set("yearFrom", yearFromSel.value);
-      if(yearToSel && yearToSel.value) p.set("yearTo", yearToSel.value);
+      if(state.yearFrom) p.set("yearFrom", state.yearFrom);
+      if(state.yearTo) p.set("yearTo", state.yearTo);
       p.set("tab", archiveChk.checked ? "archived" : "all");
       p.set("auction", "all");
       return p;
