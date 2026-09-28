@@ -3372,7 +3372,7 @@
               ${dPlain("Цвет кузова", escapeHtml(ruEnum(RU_COLOR, lot.color)))}
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
-              ${lot.airbags ? dPlain("Подушки безопасности", /intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags))) : ""}
+              ${lot.airbags ? dPlain("Подушки безопасности", L(/intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags)))) : ""}
               ${lot.preAccidentPrice ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
               ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
