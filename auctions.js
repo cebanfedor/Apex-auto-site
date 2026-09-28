@@ -1309,6 +1309,7 @@
     if(Date.parse(e.date) > Date.now()) return true;
     return lotSaleState(lot).isSold && e.lot && String(e.lot) === String(lot.lot) && /^sold$/i.test(String(e.status || ""));
   }
+  const HIST_VISIBLE = 5;   // сколько записей истории цены показываем сразу, остальное — по кнопке «Показать все» (Федор 28.09.2026: короче список, кнопка сворачивает обратно)
   function renderPriceHistory(rawHistory, isCad, curLot){
     // Запись текущих торгов (h.current) — не история продаж: снапшоты
     // незавершённого аукциона не должны выглядеть как прошлые торги
@@ -1334,7 +1335,7 @@
       const isCur = curLot && lotNo && String(curLot.lot) === lotNo && (!h.auction || auc === String(curLot.auction).toLowerCase());
       const lotHtml = lotNo ? (isCur ? `<span class="histLotV1 histLotCurV1">#${escapeHtml(lotNo)}</span>`
         : `<a class="histLotV1" href="/auctions/${encodeURIComponent(auc || "copart")}-${encodeURIComponent(lotNo)}">#${escapeHtml(lotNo)}${auc ? ` · ${escapeHtml(auc === "iaai" ? "IAAI" : "Copart")}` : ""}</a>`) : "";
-      return `<div class="histRowV1${idx >= 12 ? " histHiddenV1" : ""}">
+      return `<div class="histRowV1${idx >= HIST_VISIBLE ? " histHiddenV1" : ""}">
         <span class="histDateV1">${escapeHtml(dbDate(h.date))}${lotHtml ? `<br>${lotHtml}` : ""}</span>
         <span class="histBarWrapV1"><span class="histBarV1" style="width:${pct}%"></span></span>
         <span class="histStatusV1 ${cls}">${escapeHtml(L(label))}</span>
@@ -1345,7 +1346,7 @@
     return `<section class="dSec">
       <div class="dSecHead">${L("История цены")} <span class="histCountV1">${history.length} ${recordsWord(history.length)}${range ? ` · ${escapeHtml(range)}` : ""}</span></div>
       <div class="histListV1">${rows}</div>
-      ${history.length > 12 ? `<button type="button" class="histMoreBtnV1" data-hist-more>${escapeHtml(L("Показать все"))} (${history.length})</button>` : ""}
+      ${history.length > HIST_VISIBLE ? `<button type="button" class="histMoreBtnV1" data-hist-more data-hist-total="${history.length}">${escapeHtml(L("Показать все"))} (${history.length})</button>` : ""}
     </section>`;
   }
 
@@ -4993,7 +4994,21 @@
         return;
       }
       const histMore = event.target.closest("[data-hist-more]");
-      if(histMore){ histMore.closest(".dSec")?.querySelectorAll(".histHiddenV1").forEach(r => r.classList.remove("histHiddenV1")); histMore.remove(); return; }
+      if(histMore){
+        const total = Number(histMore.dataset.histTotal) || 0;
+        const rows = [...(histMore.closest(".dSec")?.querySelectorAll(".histRowV1") || [])];
+        const isOpen = histMore.dataset.histOpen === "1";
+        if(isOpen){
+          rows.forEach((r, i) => r.classList.toggle("histHiddenV1", i >= HIST_VISIBLE));
+          histMore.textContent = `${L("Показать все")} (${total})`;
+          histMore.dataset.histOpen = "0";
+        }else{
+          rows.forEach(r => r.classList.remove("histHiddenV1"));
+          histMore.textContent = L("Скрыть");
+          histMore.dataset.histOpen = "1";
+        }
+        return;
+      }
       const bellBtn = event.target.closest("[data-alert-lot]");
       if(bellBtn){
         event.preventDefault();
