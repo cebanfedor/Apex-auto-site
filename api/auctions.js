@@ -2927,6 +2927,18 @@ function computeComps(rows, meta){
   const genFrom = Number(meta.genFrom) || 0, genTo = Number(meta.genTo) || 0;
   const hasGenRange = genFrom > 0 && genTo >= genFrom;
   const inGenRange = r => !hasGenRange || ((Number(r.year) || 0) >= genFrom && (Number(r.year) || 0) <= genTo);
+  // 28.09.2026 (Федор, Tesla Model Y Copart 59336256: «вилка до $31700 — супер дорого») — коэффициент
+  // состояния ЭТОГО лота (та же шкала, что у таблицы Федора/ACV, conditionCoef 0.5–1.155). Строки пула
+  // из нашей БД (fetchSoldCompsFromDb) несут собственные dmg/doc/run — их тоже можно прогнать через
+  // conditionCoef и довесить похожесть состояния наравне с годом/пробегом (см. wOf ниже). Живой фолбэк
+  // (fetchSoldCompsLive) повреждений не отдаёт вовсе (r.dmg === undefined) — для таких строк довес не
+  // применяется, вес остаётся прежним (только год/пробег), как было раньше.
+  const targetCoef = Number(meta.coef) || 0;
+  const rowCoef = r => {
+    if(r.dmg === undefined) return null;
+    const parts = String(r.dmg || "").split(/\s+\/\s+/);
+    return priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
+  };
 
   // Оценка по ПОХОЖЕСТИ, а не одна медиана на всё поколение. Внутри одного кузова
   // цена сильно зависит от года и пробега: свежий малопробежный стоит вдвое больше
@@ -2963,11 +2975,43 @@ function computeComps(rows, meta){
   const fuelSensitive = fuel === 1 || fuel === 2 || fuel === 3;
   if(fuelSensitive && !fuelMatched && !yearMatched && base.length < 8) return null;
 
-  // Вес похожести: 1 год ≈ 40к миль по влиянию; далёкие быстро затухают.
+  // Сужение пула по СОСТОЯНИЮ (28.09.2026, тот же приём, что фильтр топлива/года выше) — если похожих
+  // по состоянию (coef из шкалы conditionCoef, та же, что у таблицы Федора/ACV) набралось достаточно,
+  // дальше сравниваем ТОЛЬКО с ними. Иначе, как показал Tesla Model Y Copart 59336256, почти целые
+  // экземпляры того же года/пробега даже с уменьшенным весом (см. wOf ниже) всё равно попадали в верхний
+  // перцентиль вилки для тяжело повреждённого лота — довеса веса одного мало, нужно реально сузить пул,
+  // когда данных хватает. Порог 6 — своих по состоянию мало → пул остаётся широким (лучше цифра по всем
+  // годным продажам кузова, чем 5 случайных с похожим повреждением). Окно 0.1→0.2→0.35 — как год выше.
+  let coefMatched = false;
+  if(targetCoef > 0){
+    const withCoef = base.filter(r => rowCoef(r) != null);
+    if(withCoef.length >= 6){
+      for(const w of [0.1, 0.2, 0.35]){
+        const near = withCoef.filter(r => Math.abs(rowCoef(r) - targetCoef) <= w);
+        if(near.length >= 6){ base = near; coefMatched = true; break; }
+      }
+    }
+  }
+
+  // Вес похожести: 1 год ≈ 40к миль по влиянию; далёкие быстро затухают. + довес по состоянию
+  // (28.09.2026): раньше состояние повреждений самого лота в отборе ПУЛА не участвовало вовсе — только
+  // сдвигало, с какого перцентиля брать цифру (centerP ниже). Из-за этого почти целые экземпляры того же
+  // года/пробега наравне с битыми тянули верхнюю границу вилки вверх для тяжело повреждённого лота (и
+  // наоборот). 0.15 ≈ один «шаг» шкалы conditionCoef (0.8→0.9→1.0…) — совпадающее состояние вес не трогает,
+  // соседний шаг снижает вдвое, дальний почти обнуляет. Не фильтр (машины другого состояния не выкидываем
+  // совсем — вдруг похожих по году/пробегу мало), просто сильнее доверяем похожим по состоянию.
   const wOf = r => {
     const dy = yr ? Math.abs((Number(r.year) || 0) - yr) : 0;
     const dm = odo ? Math.abs((Number(r.odometer_mi) || 0) - odo) : 0;
-    return 1 / (1 + (dy / 2) * (dy / 2) + (dm / 40000) * (dm / 40000));
+    let w = 1 / (1 + (dy / 2) * (dy / 2) + (dm / 40000) * (dm / 40000));
+    if(targetCoef > 0){
+      const rc = rowCoef(r);
+      if(rc != null){
+        const dc = (rc - targetCoef) / 0.15;
+        w *= 1 / (1 + dc * dc);
+      }
+    }
+    return w;
   };
   // Взвешенный перцентиль С ИНТЕРПОЛЯЦИЕЙ между соседними лотами: при малой
   // выборке ступенчатый перцентиль прыгает (p82=$3025, p88=$5800), а нужное
@@ -3013,7 +3057,7 @@ function computeComps(rows, meta){
     trueMedian:wPct(50),
     min:Math.min(...prices), max:Math.max(...prices),
     p25:wPct(loP), p75:wPct(hiP),
-    match:{fuel:fuelMatched, year:yearMatched, mileage:!!odo, gen:hasGenRange},
+    match:{fuel:fuelMatched, year:yearMatched, mileage:!!odo, gen:hasGenRange, condition:coefMatched},
     samples
   };
 }
@@ -3095,7 +3139,7 @@ async function computeCompsForQ(q){
       const pool = await fetchSoldComps(makeId, modelId);
       const g = await resolveGenRange(modelId, yearG, "");
       const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
-        fuelId:fuelTextToId(fuelText), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid")}) : null;
+        fuelId:fuelTextToId(fuelText), genFrom:g.genFrom, genTo:g.genTo, cq:String(q.get("cq") || "mid"), coef}) : null;
       if(cc && cc.count >= 6 && cc.p25 > 0 && cc.p75 >= cc.p25){
         const r100 = v => Math.round(v / 100) * 100;
         let lo = cc.p25, mid = cc.median, hi = Math.max(cc.p75, cc.p25 * 1.05);
@@ -3136,7 +3180,11 @@ async function computeCompsForQ(q){
       if(parseSynGen(genIdQ)) genIdQ = "";
       const {genFrom, genTo} = await resolveGenRange(modelId, yearQ, genIdQ);
       const cqQ = String(q.get("cq") || "");
-      const stats = computeComps(rows, {year:yearQ, odometer:q.get("odometer"), fuelId:fuelTextToId(resolveFuelText(q)), genId:genIdQ, genFrom, genTo, run, cq:cqQ});
+      // Тот же коэффициент состояния, что и в основной ветке выше (там он в другом блоке try — не виден
+      // отсюда), для довеса пула по состоянию (см. wOf в computeComps). Эта ветка — последний резерв
+      // (основной расчёт с таблицей/ACV не сработал), но пул похожих продаж строим так же аккуратно.
+      const coefQ = priceGuide.conditionCoef({dmg:q.get("dmg"), dmg2:q.get("dmg2"), cond:q.get("cond"), run, doc:q.get("doc")});
+      const stats = computeComps(rows, {year:yearQ, odometer:q.get("odometer"), fuelId:fuelTextToId(resolveFuelText(q)), genId:genIdQ, genFrom, genTo, run, cq:cqQ, coef:coefQ});
       if(stats) return stats;
     }
   }catch(e){ /* база недоступна — выше уровень (compsbatch) откатится на /statistics */ }
@@ -5171,14 +5219,17 @@ module.exports = async function handler(request, response){
         if(!genCache.has(r.year)) genCache.set(r.year, await resolveGenRange(modelId, r.year, ""));
         const g = genCache.get(r.year);
         const rest = rows.filter(x => x !== r);
-        const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:effFuel(r), genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor"});
+        // Коэффициент состояния ИСКЛЮЧЁННОГО лота — один раз, дальше переиспользуем (та же величина,
+        // что уходит в computeComps как meta.coef для довеса пула по состоянию, см. 28.09.2026 выше).
+        const rParts = String(r.dmg || "").split(/\s+\/\s+/);
+        const rCoef = priceGuide.conditionCoef({dmg:rParts[0], dmg2:rParts[1] || "", run:r.run, doc:r.doc});
+        const st = computeComps(rest, {year:r.year, odometer:r.odometer_mi, fuelId:effFuel(r), genId:"", genFrom:g.genFrom, genTo:g.genTo, run:r.run, cq:r.run ? "good" : "poor", coef:rCoef});
         if(!st || !st.median){ nulls++; continue; }
         errs.push(Math.abs(st.median - r.final_bid) / r.final_bid);
         if(mkName && guideRows.length){
-          const parts = String(r.dmg || "").split(/\s+\/\s+/);
           const row = priceGuide.matchGuide(guideRows, {make:mkName, model:mdName, title:r.title, gen:((tableGens(modelId) || []).find(x => x.from === g.genFrom) || {}).name || "", year:r.year, fuel:FUEL_TXT[effFuel(r)] || ""});
           if(row){
-            const cf = priceGuide.conditionCoef({dmg:parts[0], dmg2:parts[1] || "", run:r.run, doc:r.doc});
+            const cf = rCoef;
             // Таблица Федора рассчитана на пробег до 100 тыс. миль — считаем отдельно «как в таблице» и «пробежные».
             const lowMi = r.odometer_mi > 0 && r.odometer_mi < 100000;
             (lowMi ? tLow : tHigh).push(r.final_bid / priceGuide.guideBand(row.base_price * priceGuide.mileageFactor(r.odometer_mi), row.k, cf).mid);
@@ -5199,8 +5250,7 @@ module.exports = async function handler(request, response){
         }
         const gb = dataGuideBase(rest, g, effFuel(r), r.year);
         if(gb){
-          const dp = String(r.dmg || "").split(/\s+\/\s+/);
-          const cf = priceGuide.conditionCoef({dmg:dp[0], dmg2:dp[1] || "", run:r.run, doc:r.doc});
+          const cf = rCoef;
           const b = priceGuide.guideBand(gb, DATA_GUIDE_K, cf);
           gErrs.push(Math.abs(b.mid - r.final_bid) / r.final_bid);
           gIn.push(r.final_bid >= b.lo && r.final_bid <= b.hi ? 1 : 0);
@@ -5208,8 +5258,7 @@ module.exports = async function handler(request, response){
           gRatio.push(r.final_bid / (gb * cf));
         }
         if(r.acv > 500){
-          const dp = String(r.dmg || "").split(/\s+\/\s+/);
-          const cf = priceGuide.conditionCoef({dmg:dp[0], dmg2:dp[1] || "", run:r.run, doc:r.doc});
+          const cf = rCoef;
           const ab = priceGuide.estimateFromAcv(r.acv, cf, r.odometer_mi, {airbags:r.airbags, keys:r.keys});
           if(ab){
             aErrs.push(Math.abs(ab.mid - r.final_bid) / r.final_bid);
@@ -5491,3 +5540,6 @@ module.exports = async function handler(request, response){
     });
   }
 };
+// Для юнит-тестов (test/comps.test.js) — сам модуль экспортирует только handler (Vercel зовёт его как
+// функцию), computeComps довешена свойством отдельно, вызов handler(req,res) это не задевает.
+module.exports.computeComps = computeComps;
