@@ -1174,22 +1174,22 @@
   // 5 unconfirmed, 6 engine_starts, 7 enhanced.
   function conditionInfo(raw){
     const t = String(raw || "").toLowerCase().replace(/[_-]+/g, " ").trim();
-    if(!t) return {label:"—", tone:"neutral", icon:"q"};
+    if(!t) return {label:"—", tone:"neutral"};
     if(/run and drive|runs and drives|заводится и едет/.test(t))
-      return {label:"Заводится и едет", tone:"good", icon:"check"};
+      return {label:"Заводится и едет", tone:"good"};
     if(/engine start|стартует|^заводится$|заводится(?!.*едет)/.test(t))
-      return {label:"Заводится", tone:"warn", icon:"excl"};
+      return {label:"Заводится", tone:"warn"};
     if(/to be dismantled|dismantl|на разбор/.test(t))
-      return {label:"На разбор", tone:"bad", icon:"warn"};
+      return {label:"На разбор", tone:"bad"};
     if(/for repair|на запчаст|ремонт/.test(t))
-      return {label:"На запчасти / ремонт", tone:"warn", icon:"excl"};
+      return {label:"На запчасти / ремонт", tone:"warn"};
     if(/unconfirmed|не подтвержд/.test(t))
-      return {label:"Не подтверждено", tone:"neutral", icon:"q"};
+      return {label:"Не подтверждено", tone:"neutral"};
     if(/^used$|^б ?\/? ?у$|^used /.test(t))
-      return {label:"Б/у", tone:"neutral", icon:"dot"};
+      return {label:"Б/у", tone:"neutral"};
     if(/enhanced|inop|non run|not run|stationary|не на ходу|не заводится/.test(t))
-      return {label:"Не на ходу", tone:"neutral", icon:"q"};
-    return {label: tc(raw), tone: statusTone(raw) || "neutral", icon:"q"};
+      return {label:"Не на ходу", tone:"neutral"};
+    return {label: tc(raw), tone: statusTone(raw) || "neutral"};
   }
   // Auction brand badge — links straight to the lot on Copart/IAAI.
   function aucLinkBadge(lot){
@@ -1207,15 +1207,21 @@
     if(!value) return "";
     return `<li>${dbIco(icon)}<span>${value}</span></li>`;
   }
+  // 28.09.2026 (Федор: «иконки смущают… у нас все разные, не в один ряд» — сравнение с DreamBid, у них
+  // в колонке чеков один и тот же кружок-галочка/восклицание, отличается только цвет). Раньше в чеках
+  // карточки были ТЕМАТИЧЕСКИЕ иконки (ключ, человечек, бензоколонка) вперемешку со СТАТУСНЫМИ (галочка/
+  // варн) — отсюда ощущение разнобоя. Единая точка: один и тот же значок на тон, без привязки к теме поля.
+  function toneIcon(tone){
+    return tone === "good" ? "check" : tone === "bad" ? "warn" : tone === "warn" ? "excl" : "dot";
+  }
   function dbCheck(label, value){
     if(value == null || value === "") return ""; // hide fields the API didn't provide
     const tone = statusTone(value) || "neutral";
-    const icon = tone === "good" ? "check" : tone === "bad" ? "warn" : tone === "warn" ? "warn" : "q";
-    return `<li class="dbCheck ${tone}">${dbIco(icon)}<span><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(toneIcon(tone))}<span><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</span></li>`;
   }
   function dbCondition(raw){
     const c = conditionInfo(raw);
-    return `<li class="dbCheck ${c.tone}">${dbIco(c.icon)}<span><b>${L("Состояние:")}</b> ${escapeHtml(L(c.label))}</span></li>`;
+    return `<li class="dbCheck ${c.tone}">${dbIco(toneIcon(c.tone))}<span><b>${L("Состояние:")}</b> ${escapeHtml(L(c.label))}</span></li>`;
   }
   function dbCheckFuel(raw, lot){
     if(!raw && !(lot && lot.fuelKind)) return "";
@@ -1226,7 +1232,7 @@
     const low = (kindRu ? (lot.fuelKind === 2 ? "electric" : lot.fuelKind === 3 || lot.fuelKind === 5 ? "hybrid" : "gasoline") : String(raw)).toLowerCase();
     // Цвет значка по типу: электро — голубой, гибрид — зелёный, бензин/дизель — серый (Федор 25.09.2026)
     const fuelCls = /electric|электро/.test(low) && !/hybrid|гибрид/.test(low) ? "dbFuelEvV1" : /hybrid|гибрид|phev|plug/.test(low) ? "dbFuelHyV1" : "dbFuelGasV1";
-    return `<li class="dbCheck neutral ${fuelCls}">${dbIco("fuel")}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
+    return `<li class="dbCheck neutral ${fuelCls}">${dbIco(toneIcon("neutral"))}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
   }
   function dbCheckSeller(raw){
     const val = raw ? tc(raw) : "";
@@ -1235,7 +1241,7 @@
     if(rental) display = display.replace(/\s*·\s*(Страховая|Прокат)\s*$/i, "") + " · Прокат";
     const isInsurance = rental || /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
-    return `<li class="dbCheck ${tone}">${dbIco(isInsurance ? "check" : "person")}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display).replace(/Страховая/g, L("Страховая")).replace(/Прокат/g, L("Прокат")).replace(/^Неизвестен$/, L("Неизвестен")))}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(toneIcon(tone))}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display).replace(/Страховая/g, L("Страховая")).replace(/Прокат/g, L("Прокат")).replace(/^Неизвестен$/, L("Неизвестен")))}</span></li>`;
   }
   function dbCheckKey(raw){
     if(!raw) return "";
@@ -1248,7 +1254,7 @@
     const tone = isYes ? "good" : isNo ? "warn" : "neutral";
     // Фид отдаёт "Yes"/"No" по-английски — переводим в «Да»/«Нет», не показываем сырое значение (24.09.2026).
     const shown = isYes ? "Да" : isNo ? "Нет" : val;
-    return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(shown))}</span></li>`;
+    return `<li class="dbCheck ${tone}">${dbIco(toneIcon(tone))}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(shown))}</span></li>`;
   }
   function dbCheckHistory(rawHistory, currentLot, noPending = false){
     // Пока VIN-история не пришла, показываем ТОЛЬКО заглушку (данные списка — предварительные и потом меняются: карточка «мигала»).
@@ -2822,7 +2828,7 @@
   function dMain(label, value, iconOverride){
     if(value == null || value === "") return "";
     const t = statusTone(value) || "neutral";
-    const ic = iconOverride || (t === "good" ? "check" : t === "bad" ? "warn" : t === "warn" ? "warn" : "q");
+    const ic = iconOverride || toneIcon(t);
     return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(L(label))}</span><span class="dRowVal dTone-${t}"><span class="dValUnit">${dbIco(ic)}<span>${escapeHtml(L(value))}</span></span></span></div>`;
   }
   function dPlain(label, valueHtml, iconName, tone){
@@ -3362,7 +3368,7 @@
             <section class="dSec">
               <div class="dSecHead">${L("Главное")}</div>
               ${dMain("Состояние", conditionInfo(lot.condition).label)}
-              ${lot.seller ? dMain("Продавец", isIns ? `${L(isRentalName(lot.seller) ? "Прокат" : "Страховая")} · ${sellerName}` : sellerName, isIns ? "check" : "person") : ""}
+              ${lot.seller ? dMain("Продавец", isIns ? `${L(isRentalName(lot.seller) ? "Прокат" : "Страховая")} · ${sellerName}` : sellerName) : ""}
               ${(() => {
                 const k = String(lot.keys || "").trim();
                 if(!k) return "";
@@ -3376,9 +3382,8 @@
                 const doc = parseDocTitle(docRaw(lot));
                 if(!doc) return "";
                 const verdict = doc.tone === "rework" ? "Требуется переделка · 30–40 дней" : doc.tone === "good" ? "Хорошие" : tc(doc.label);
-                const icon = doc.tone === "rework" ? "excl" : "doc";
                 const docTone = doc.tone === "rework" ? "warn" : doc.tone === "good" ? "good" : "neutral";
-                return dMain("Статус документов", verdict, icon)
+                return dMain("Статус документов", verdict, toneIcon(docTone))
                   + dPlain("Тип документа", escapeHtml(docShort(docRaw(lot))), "doc", docTone);
               })()}
               ${dMain("История", histStr)}
