@@ -267,7 +267,7 @@
 /* 28.09.2026 (Федор): SEO-блок ссылок на марки/модели — раньше жил в тёмном футере, смотрелся
    там инородно (бордер + список ссылок на фоне брендовых блоков). Теперь отдельная светлая секция
    под каталогом/лотом, общая для обоих режимов auctionsShellV1, футер остался просто футером. */
-.popularModelsV1 { padding:36px 0 44px; border-top:1px solid var(--aLine); margin-top:24px; }
+.popularModelsV1 { padding:32px 0 0; border-top:1px solid var(--aLine); margin-top:24px; }
 .popularModelsV1 h2 { margin:0 0 18px; font-size:19px; font-weight:800; color:var(--aInk); letter-spacing:-.01em; }
 .pmGridV1 { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:14px 28px; padding:22px 24px; background:#fff; border:1px solid var(--aLine); border-radius:16px; }
 .pmGroupV1 { font-size:13px; line-height:1.75; color:var(--aInk2); }
@@ -275,7 +275,7 @@
 .pmGroupV1 a { color:var(--aInk2); text-decoration:none; }
 .pmGroupV1 a:hover { color:var(--aRed); text-decoration:underline; }
 @media (max-width: 640px) {
-  .popularModelsV1 { padding:28px 0 32px; }
+  .popularModelsV1 { padding:24px 0 0; }
   .pmGridV1 { grid-template-columns:1fr 1fr; gap:16px; padding:18px 16px; }
 }
 @media (max-width: 420px) {
