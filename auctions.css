@@ -196,7 +196,7 @@
 .dbBody { min-width:0; display:flex; flex-direction:column; gap:8px; }
 /* Заголовок карточки — фирменный дисплейный шрифт сайта (Onest, тот же, что у h1-h4 в styles.css),
    не обычный текстовый Inter: Федор 28.09.2026 — «читался красиво», сравнение с DreamBid. */
-.dbTitle { display:block; font-family:var(--font-display); font-size:16.5px; font-weight:800; letter-spacing:-.015em; color:var(--aInk); line-height:1.22; }
+.dbTitle { display:block; font-family:var(--font-display); font-size:15.5px; font-weight:800; letter-spacing:-.01em; color:var(--aInk); line-height:1.2; }
 .dbTitle:hover { color:var(--aRed); }
 .dbLeftCol { display:flex; flex-direction:column; gap:6px; }
 .dbIds { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
@@ -249,10 +249,10 @@
    вместо голых тонких иконок на белом теперь цветная скруглённая плашка под каждой: у спеков (двигатель/
    пробег/повреждение/локация/документ) — нейтральная серо-голубая, у чеков — цвет по смыслу состояния
    (зелёный/жёлтый/красный/серый), у топлива и VIN-отчёта — их собственные акцентные цвета ниже. */
-.dbSpecs .dbIco { color:var(--aMuted); width:13px; height:13px; padding:3.5px; border-radius:7px; background:var(--aSoft); box-sizing:content-box; }
+.dbSpecs .dbIco { color:var(--aMuted); width:13px; height:13px; padding:2px; border-radius:5px; background:var(--aSoft); box-sizing:content-box; }
 .dbVinReport a { color:#1f6bff; font-weight:600; }
-.dbVinReport .dbIco { color:#1f6bff; width:13px; height:13px; padding:3.5px; border-radius:7px; background:#eaf2ff; box-sizing:content-box; }
-.dbChecks .dbIco { width:13px; height:13px; padding:3.5px; border-radius:7px; background:var(--aSoft); box-sizing:content-box; }
+.dbVinReport .dbIco { color:#1f6bff; width:13px; height:13px; padding:2px; border-radius:5px; background:#eaf2ff; box-sizing:content-box; }
+.dbChecks .dbIco { width:13px; height:13px; padding:2px; border-radius:5px; background:var(--aSoft); box-sizing:content-box; }
 .dbCheck.good .dbIco { color:#1b9c5b; background:#e6f7ee; }
 .dbCheck.warn .dbIco { color:#b3790a; background:#fdf2df; }
 .dbCheck.bad .dbIco { color:var(--aRed); background:#fdeaec; }
@@ -388,7 +388,7 @@
 /* Lot detail — DreamBid-style center column */
 .detailHeaderV1 { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
 .dSpecLine { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; font-size:14px; color:var(--aInk2); }
-.dSpecLine .dbIco { width:13px; height:13px; padding:4px; border-radius:8px; background:var(--aSoft); box-sizing:content-box; color:var(--aMuted); }
+.dSpecLine .dbIco { width:14px; height:14px; padding:2px; border-radius:6px; background:var(--aSoft); box-sizing:content-box; color:var(--aMuted); }
 .dSpecVin { display:inline-flex; align-items:center; gap:5px; color:var(--aMuted); font-size:13px; font-variant-numeric:tabular-nums; }
 .dVinBtn { flex:none; height:40px; display:inline-flex; align-items:center; padding:0 16px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); font-weight:600; font-size:13px; color:var(--aInk); white-space:nowrap; }
 .dVinBtn:hover { border-color:var(--aMuted); }
@@ -1253,7 +1253,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Выравнивание колонок иконок в карточке: VIN и номер лота начинаются от левого края иконок строк ниже (у чипа копирования был внутренний отступ 5px) */
 .dbIds .copyChipV1, .dbLotRowV1 .copyChipV1 { padding-left:0; margin-left:0; }
 .dbSpecs li, .dbChecks li { align-items:center; }
-.dbSpecs li .dbIco, .dbChecks li .dbIco { flex:none; align-self:flex-start; margin-top:calc((1.3em - 20px) / 2); }
+.dbSpecs li .dbIco, .dbChecks li .dbIco { flex:none; align-self:flex-start; margin-top:calc((1.3em - 17px) / 2); }
 
 /* Значок топлива: электро — голубой, гибрид — зелёный, бензин/дизель — серый */
 .dbCheck.dbFuelEvV1 .dbIco { color:#1d8fe1; background:#e8f2fd; }

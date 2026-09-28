@@ -1102,7 +1102,7 @@
   // иконки на плашках, у нас были тонкие однотонно-серые): жирнее штрих (1.6→2) — плюс цветные
   // «плашки»-подложки под иконками спеков/чеков в auctions.css (.dbSpecs .dbIco/.dbCheck.* .dbIco).
   function dbIco(name){
-    return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
+    return `<svg class="dbIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${DB_ICONS[name] || ""}</svg>`;
   }
   function dbDate(value, withYear){
     if(!value) return L("Дата аукциона не назначена");
