@@ -345,6 +345,42 @@ section { position: relative; }
 .heroSearchArchiveV1 input:checked { background: var(--red); }
 .heroSearchArchiveV1 input:checked::after { transform: translateX(13px); }
 .heroSearchRowV1 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* 29.09.2026 (Федор: «соедини с общим фильтром каталога»): марка/модель были нативными <select> —
+   список марок грузится асинхронно (action=manufacturers), а браузер НЕ перерисовывает уже открытый
+   нативный select при добавлении option на лету (частый баг) — человек видел пустой список, только
+   плейсхолдер. Свой выпадающий список (как «Марка/Модель» на /auctions: поиск + логотипы + счётчики)
+   вместо нативного select — живое обновление, тот же API. */
+.heroSearchPickV1 { position: relative; }
+.heroSearchPickBtnV1 {
+  width: 100%; height: 44px; padding: 0 30px 0 12px; border-radius: 10px; border: 1px solid var(--field-line);
+  background: var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23667080' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 6px center / 18px;
+  font-size: 13.5px; font-weight: 600; color: var(--ink); font-family: var(--font); text-align: left;
+  cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.heroSearchPickBtnV1:disabled { opacity: 0.55; cursor: not-allowed; }
+.heroSearchPickBtnV1 span { color: var(--muted); }
+.heroSearchPickBtnV1.hasValV1 span { color: var(--ink); }
+.heroSearchPanelV1 {
+  position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; width: max(100%, 240px);
+  background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 8px; display: flex; flex-direction: column; gap: 6px;
+}
+.heroSearchPanelSearchV1 {
+  height: 36px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--field-line);
+  background: var(--field); font-size: 13px; font-family: var(--font); color: var(--ink);
+}
+.heroSearchPanelListV1 { max-height: 216px; overflow-y: auto; display: flex; flex-direction: column; }
+.heroSearchPanelListV1 .msRowV1 {
+  display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--ink); text-align: left; background: none; border: none; width: 100%;
+}
+.heroSearchPanelListV1 .msRowV1:hover { background: var(--field); }
+.heroSearchPanelListV1 .msRowV1.isOnV1 { background: var(--red-soft); color: var(--red-700); }
+.heroSearchPanelListV1 .msLogoV1 { width: 20px; height: 20px; object-fit: contain; flex: none; }
+.heroSearchPanelListV1 .msNameV1 { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heroSearchPanelListV1 .msRowV1 i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); }
+.heroSearchPanelEmptyV1 { padding: 10px 6px; font-size: 12.5px; color: var(--muted); text-align: center; }
+.heroSearchCardV1.heroSearchPanelOpenV1 { overflow: visible; }
 .heroSearchCardV1 select, .heroSearchCardV1 input[type="text"] {
   width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--field-line);
   background: var(--field); font-size: 13.5px; font-weight: 600; color: var(--ink); font-family: var(--font);
@@ -367,6 +403,7 @@ section { position: relative; }
   .heroSearchTitleV1 { font-size: 13.5px; }
   .heroSearchArchiveV1 { font-size: 11.5px; }
   .heroSearchCardV1 select, .heroSearchCardV1 input[type="text"] { height: 40px; font-size: 12.5px; }
+  .heroSearchPickBtnV1 { height: 40px; font-size: 12.5px; }
   .heroSearchBtnV1 { height: 44px; font-size: 13.5px; }
   .heroSearchHintV1 { font-size: 11.5px; }
   .heroDotsV1 { top: auto; bottom: 8px; right: 18px; }

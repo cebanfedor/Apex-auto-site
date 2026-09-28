@@ -39,7 +39,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v456">
+  <link rel="stylesheet" href="styles.css?v=v457">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -102,8 +102,20 @@
             <label class="heroSearchArchiveV1"><input type="checkbox" id="heroSearchArchive">Архив</label>
           </div>
           <div class="heroSearchRowV1">
-            <select id="heroSearchMake"><option value="">Выбрать марку</option></select>
-            <select id="heroSearchModel" disabled><option value="">Выбрать модель</option></select>
+            <div class="heroSearchPickV1" id="heroSearchMakePick">
+              <button type="button" class="heroSearchPickBtnV1" id="heroSearchMakeBtn" aria-haspopup="listbox" aria-expanded="false"><span>Выбрать марку</span></button>
+              <div class="heroSearchPanelV1" id="heroSearchMakePanel" hidden>
+                <input type="text" class="heroSearchPanelSearchV1" id="heroSearchMakeSearch" placeholder="Поиск марки">
+                <div class="heroSearchPanelListV1" id="heroSearchMakeList" role="listbox"></div>
+              </div>
+            </div>
+            <div class="heroSearchPickV1" id="heroSearchModelPick">
+              <button type="button" class="heroSearchPickBtnV1" id="heroSearchModelBtn" disabled aria-haspopup="listbox" aria-expanded="false"><span>Выбрать модель</span></button>
+              <div class="heroSearchPanelV1" id="heroSearchModelPanel" hidden>
+                <input type="text" class="heroSearchPanelSearchV1" id="heroSearchModelSearch" placeholder="Поиск модели">
+                <div class="heroSearchPanelListV1" id="heroSearchModelList" role="listbox"></div>
+              </div>
+            </div>
           </div>
           <div class="heroSearchRowV1" id="heroSearchGenRow" hidden>
             <select id="heroSearchGen"><option value="">Выбрать поколение</option></select>
@@ -465,7 +477,7 @@
   <script src="i18n.js?v=multilang-v523" defer></script>
   <script src="home-transit.js?v=ht-v8" defer></script>
   <script src="home-lots.js?v=home-v13" defer></script>
-  <script src="home-hero.js?v=hh-v4" defer></script>
+  <script src="home-hero.js?v=hh-v5" defer></script>
 
   <section class="apexProcessV205" id="how">
     <span class="sectionKicker">Как мы работаем</span>

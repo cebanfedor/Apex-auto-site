@@ -52,11 +52,16 @@
 
   /* ================= Виджет «Быстрый поиск авто» ================= */
   function initSearch(){
-    const makeSel = $("#heroSearchMake"), modelSel = $("#heroSearchModel"), genSel = $("#heroSearchGen"),
-      genRow = $("#heroSearchGenRow"), yearFromSel = $("#heroSearchYearFrom"), yearToSel = $("#heroSearchYearTo"),
+    const card = $(".heroSearchCardV1");
+    const makeBtn = $("#heroSearchMakeBtn"), makePanel = $("#heroSearchMakePanel"),
+      makeSearch = $("#heroSearchMakeSearch"), makeList = $("#heroSearchMakeList"),
+      modelBtn = $("#heroSearchModelBtn"), modelPanel = $("#heroSearchModelPanel"),
+      modelSearch = $("#heroSearchModelSearch"), modelList = $("#heroSearchModelList"),
+      genSel = $("#heroSearchGen"), genRow = $("#heroSearchGenRow"),
+      yearFromSel = $("#heroSearchYearFrom"), yearToSel = $("#heroSearchYearTo"),
       vinInp = $("#heroSearchVin"), archiveChk = $("#heroSearchArchive"),
       btn = $("#heroSearchBtn"), countEl = $("#heroSearchCount");
-    if(!makeSel || !btn) return;
+    if(!makeBtn || !btn) return;
 
     // Года — те же границы, что у полей yearFrom/yearTo в фильтрах каталога (1980..текущий+1).
     if(yearFromSel && yearToSel){
@@ -69,24 +74,16 @@
       yearToSel.addEventListener("change", scheduleCount);
     }
 
-    const cache = {makes:null, models:{}, gens:{}};
+    const cache = {models:{}, gens:{}};
+    const state = {makeId:"", makeName:"", modelId:"", modelName:""};
     let countToken = 0;
 
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
     function fillSelect(sel, items, phKey){
       sel.innerHTML = `<option value="">${escapeHtml(L(phKey))}</option>` +
         items.map(it => `<option value="${it.id}">${escapeHtml(it.name)}</option>`).join("");
     }
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
-    async function ensureMakes(){
-      if(cache.makes) return cache.makes;
-      try{
-        const r = await fetch("/api/auctions?action=manufacturers").then(x => x.json());
-        cache.makes = Array.isArray(r.items) ? r.items : [];
-      }catch(e){ cache.makes = []; }
-      fillSelect(makeSel, cache.makes, "Выбрать марку");
-      return cache.makes;
-    }
     async function ensureModels(makeId){
       if(cache.models[makeId]) return cache.models[makeId];
       try{
@@ -104,41 +101,104 @@
       return cache.gens[modelId];
     }
 
-    // Марки грузим один раз, как только человек впервые коснулся выпадашки (не мешаем LCP главной).
-    let makesLoading = null;
-    makeSel.addEventListener("pointerdown", () => { if(!makesLoading) makesLoading = ensureMakes(); }, {once:true});
-    makeSel.addEventListener("focus", () => { if(!makesLoading) makesLoading = ensureMakes(); }, {once:true});
+    // Свой выпадающий список (поиск + логотипы + счётчики, как «Марка/Модель» на /auctions) —
+    // нативный <select> не перерисовывает уже открытый список при догрузке option'ов асинхронно,
+    // человек видел пустой список пока марки ещё летели по сети (action=manufacturers).
+    const pickers = [];
+    function closeAllPanels(except){ pickers.forEach(p => { if(p !== except) p.close(); }); }
+    function createPicker({btn, panel, search, list, getItems, onPick, emptyMsg}){
+      let items = [], loaded = false, loading = null;
+      function rowHtml(it){
+        const logo = it.image ? `<img class="msLogoV1" src="${escapeHtml(it.image)}" alt="" loading="lazy">` : "";
+        const qty = it.qty ? `<i>${Number(it.qty).toLocaleString("ru-RU")}</i>` : "";
+        return `<button type="button" class="msRowV1" data-id="${escapeHtml(String(it.id))}">${logo}<span class="msNameV1">${escapeHtml(it.name)}</span>${qty}</button>`;
+      }
+      function render(filter){
+        const f = (filter || "").trim().toLowerCase();
+        const shown = f ? items.filter(it => it.name.toLowerCase().includes(f)) : items;
+        list.innerHTML = shown.length ? shown.map(rowHtml).join("")
+          : `<div class="heroSearchPanelEmptyV1">${escapeHtml(L(items.length ? "Ничего не найдено" : (emptyMsg || "Загрузка…")))}</div>`;
+      }
+      async function open(){
+        closeAllPanels(pub);
+        panel.hidden = false;
+        btn.setAttribute("aria-expanded", "true");
+        if(card) card.classList.add("heroSearchPanelOpenV1");
+        search.value = "";
+        render("");
+        if(!loaded){
+          if(!loading) loading = getItems().then(r => { items = r || []; loaded = true; });
+          await loading;
+          render("");
+        }
+        search.focus();
+      }
+      function close(){ panel.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+      btn.addEventListener("click", () => { if(btn.disabled) return; panel.hidden ? open() : close(); });
+      search.addEventListener("input", () => render(search.value));
+      list.addEventListener("click", e => {
+        const row = e.target.closest(".msRowV1");
+        if(!row) return;
+        const it = items.find(x => String(x.id) === row.dataset.id);
+        if(it) onPick(it);
+        close();
+      });
+      const pub = {close, reset(){ items = []; loaded = false; loading = null; }};
+      pickers.push(pub);
+      return pub;
+    }
+    document.addEventListener("click", e => {
+      if(e.target.closest(".heroSearchPickV1")) return;
+      closeAllPanels();
+      if(card) card.classList.remove("heroSearchPanelOpenV1");
+    });
+    document.addEventListener("keydown", e => { if(e.key === "Escape"){ closeAllPanels(); if(card) card.classList.remove("heroSearchPanelOpenV1"); } });
 
-    makeSel.addEventListener("change", async () => {
-      modelSel.innerHTML = `<option value="">${escapeHtml(L("Выбрать модель"))}</option>`;
-      modelSel.disabled = true;
-      genRow.hidden = true;
-      genSel.innerHTML = `<option value="">${escapeHtml(L("Выбрать поколение"))}</option>`;
-      if(!makeSel.value){ scheduleCount(); return; }
-      const items = await ensureModels(makeSel.value);
-      fillSelect(modelSel, items, "Выбрать модель");
-      modelSel.disabled = false;
-      scheduleCount();
+    const modelPicker = createPicker({
+      btn: modelBtn, panel: modelPanel, search: modelSearch, list: modelList,
+      getItems: () => ensureModels(state.makeId),
+      onPick(it){
+        state.modelId = String(it.id); state.modelName = it.name;
+        modelBtn.querySelector("span").textContent = it.name;
+        modelBtn.classList.add("hasValV1");
+        onModelChange();
+      }
+    });
+    createPicker({
+      btn: makeBtn, panel: makePanel, search: makeSearch, list: makeList,
+      getItems: () => fetch("/api/auctions?action=manufacturers").then(x => x.json()).then(r => Array.isArray(r.items) ? r.items : []).catch(() => []),
+      onPick(it){
+        state.makeId = String(it.id); state.makeName = it.name;
+        makeBtn.querySelector("span").textContent = it.name;
+        makeBtn.classList.add("hasValV1");
+        state.modelId = ""; state.modelName = "";
+        modelBtn.querySelector("span").textContent = L("Выбрать модель");
+        modelBtn.classList.remove("hasValV1");
+        modelBtn.disabled = false;
+        modelPicker.reset();
+        onModelChange();
+        scheduleCount();
+      }
     });
 
-    modelSel.addEventListener("change", async () => {
+    async function onModelChange(){
       genRow.hidden = true;
       genSel.innerHTML = `<option value="">${escapeHtml(L("Выбрать поколение"))}</option>`;
-      if(!modelSel.value){ scheduleCount(); return; }
-      const items = await ensureGens(modelSel.value);
+      if(!state.modelId){ scheduleCount(); return; }
+      const items = await ensureGens(state.modelId);
       if(items.length){
         fillSelect(genSel, items, "Выбрать поколение");
         genRow.hidden = false;
       }
       scheduleCount();
-    });
+    }
     genSel.addEventListener("change", scheduleCount);
     archiveChk.addEventListener("change", scheduleCount);
 
     function buildParams(){
       const p = new URLSearchParams();
-      if(makeSel.value) p.set("make", makeSel.value);
-      if(modelSel.value) p.set("model", modelSel.value);
+      if(state.makeId) p.set("make", state.makeId);
+      if(state.modelId) p.set("model", state.modelId);
       if(genSel.value) p.set("generation", genSel.value);
       if(yearFromSel && yearFromSel.value) p.set("yearFrom", yearFromSel.value);
       if(yearToSel && yearToSel.value) p.set("yearTo", yearToSel.value);
