@@ -295,6 +295,61 @@ section { position: relative; }
   .heroWideBgV302 { object-position: 66% center; }
 }
 
+/* ---- Hero slider (29.09.2026, Федор: «как у ДримБида», слайд с поиском авто)
+   Слайды абсолютно уложены друг на друга внутри того же героя (.heroV45.heroWideV302
+   остаётся контейнером-вьюпортом), переключение — кроссфейд по opacity. Первый слайд
+   (поиск) — активен по умолчанию; .heroWideStatsV302 остаётся ОБЩИМ для всех слайдов
+   (как трастовая плашка под фото у ДримБида), внутрь слайдов не идёт. */
+/* Контейнер сам держит высоту (те же min-height, что раньше были у .heroV45.heroWideV302) —
+   слайды ВСЕ абсолютные, ни один не влияет на высоту через контент (иначе короткий слайд-поиск
+   обрезал бы фон, а трастовая плашка снизу падала на белый фон страницы). */
+.heroSlidesV1 { position: relative; flex: 1 1 auto; min-height: 400px; }
+.heroSlideV1 {
+  position: absolute; inset: 0; opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.6s var(--ease), visibility 0s linear 0.6s;
+}
+.heroSlideV1.heroSlideActiveV1 { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.6s var(--ease); }
+.heroDotsV1 { position: absolute; right: 22px; bottom: 14px; z-index: 3; display: flex; gap: 7px; }
+.heroWideStatsV302 ~ .heroDotsV1, .heroDotsV1 { bottom: auto; top: 18px; } /* точки сверху-справа — не мешают трастовой плашке снизу */
+.heroDotsV1 button {
+  width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
+  background: rgba(255,255,255,0.4); transition: background 0.2s, transform 0.2s;
+}
+.heroDotsV1 button.heroDotActiveV1 { background: #fff; transform: scale(1.25); }
+
+/* ---- Слайд «Быстрый поиск авто» — карточка в духе ДримБида SmartSelect ---- */
+.heroSearchWrapV1 { display: flex; align-items: center; max-width: none; padding-bottom: 0; }
+.heroSearchCardV1 {
+  width: 100%; max-width: 360px; background: rgba(255,255,255,0.97); border-radius: var(--radius-lg);
+  padding: 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 11px;
+}
+.heroSearchHeadV1 { display: flex; align-items: center; justify-content: space-between; }
+.heroSearchTitleV1 { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--ink); }
+.heroSearchArchiveV1 { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none; }
+.heroSearchArchiveV1 input { width: 30px; height: 17px; appearance: none; background: var(--field-line); border-radius: 20px; position: relative; cursor: pointer; transition: background 0.18s; flex: none; }
+.heroSearchArchiveV1 input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: transform 0.18s; }
+.heroSearchArchiveV1 input:checked { background: var(--red); }
+.heroSearchArchiveV1 input:checked::after { transform: translateX(13px); }
+.heroSearchRowV1 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.heroSearchCardV1 select, .heroSearchCardV1 input[type="text"] {
+  width: 100%; height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--field-line);
+  background: var(--field); font-size: 13.5px; font-weight: 600; color: var(--ink); font-family: var(--font);
+}
+.heroSearchCardV1 select:disabled { opacity: 0.55; cursor: not-allowed; }
+.heroSearchBtnV1 {
+  height: 48px; border: none; border-radius: 12px; background: var(--red); color: #fff; font-weight: 800; font-size: 15px;
+  cursor: pointer; transition: transform 0.18s, background 0.18s; box-shadow: var(--shadow-red);
+}
+.heroSearchBtnV1:hover { background: var(--red-600); transform: translateY(-1px); }
+.heroSearchBtnV1:disabled { opacity: 0.6; cursor: wait; transform: none; }
+.heroSearchHintV1 { font-size: 12.5px; color: var(--muted); text-align: center; }
+.heroSearchHintV1 b { color: var(--red); font-weight: 700; }
+@media (max-width: 720px) {
+  .heroSearchWrapV1 { padding: 20px 18px; }
+  .heroSearchCardV1 { max-width: none; padding: 16px; }
+  .heroDotsV1 { top: auto; bottom: 8px; right: 18px; }
+}
+
 /* ---- Brand strip (v301): marquee of car brands we import --------------- */
 .brandStripV301 {
   width: calc(100% - 48px); max-width: var(--maxw); margin: 6px auto 2px;

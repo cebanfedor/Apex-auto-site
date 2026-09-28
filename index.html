@@ -39,7 +39,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v452">
+  <link rel="stylesheet" href="styles.css?v=v453">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -91,10 +91,36 @@
 
 
 <section class="hero heroV45 heroWideV302">
-  <img class="heroWideBgV302" src="/assets/hot/founder-auction.webp" srcset="/assets/hot/founder-auction-1000.webp 1000w, /assets/hot/founder-auction.webp 1400w" sizes="(max-width: 700px) 330px, 100vw" width="1400" height="560" alt="Федор Чебан на аукционной площадке в США — Apex Auto, авто под ключ в Молдову" loading="eager" fetchpriority="high" data-fb="/assets/hot/founder-auction.jpg">
-  <span class="heroWideOverlayV302" aria-hidden="true"></span>
-  <div class="heroWideContentV302">
-    <div class="heroMainV45">
+  <div class="heroSlidesV1" id="heroSlidesV1">
+
+    <div class="heroSlideV1 heroSlideActiveV1" data-slide-idx="0">
+      <img class="heroWideBgV302" src="/assets/hot/mercedes-e300.webp" width="1400" height="560" alt="Поиск авто на аукционах США — Apex Auto" loading="eager" fetchpriority="high" data-fb="/assets/hot/mercedes-e300.jpg">
+      <span class="heroWideOverlayV302" aria-hidden="true"></span>
+      <div class="heroWideContentV302 heroSearchWrapV1">
+        <div class="heroSearchCardV1">
+          <div class="heroSearchHeadV1">
+            <span class="heroSearchTitleV1">Быстрый поиск авто</span>
+            <label class="heroSearchArchiveV1"><input type="checkbox" id="heroSearchArchive">Архив</label>
+          </div>
+          <div class="heroSearchRowV1">
+            <select id="heroSearchMake"><option value="">Выбрать марку</option></select>
+            <select id="heroSearchModel" disabled><option value="">Выбрать модель</option></select>
+          </div>
+          <div class="heroSearchRowV1" id="heroSearchGenRow" hidden>
+            <select id="heroSearchGen"><option value="">Выбрать поколение</option></select>
+          </div>
+          <input id="heroSearchVin" type="text" inputmode="search" placeholder="Или укажите VIN / номер лота">
+          <button id="heroSearchBtn" type="button" class="heroSearchBtnV1">Показать <span id="heroSearchCount">…</span></button>
+          <a class="heroSearchHintV1" href="/auctions">Не знаете, с чего начать? <b>Смотреть каталог →</b></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="heroSlideV1" data-slide-idx="1">
+      <img class="heroWideBgV302" src="/assets/hot/founder-auction.webp" srcset="/assets/hot/founder-auction-1000.webp 1000w, /assets/hot/founder-auction.webp 1400w" sizes="(max-width: 700px) 330px, 100vw" width="1400" height="560" alt="Федор Чебан на аукционной площадке в США — Apex Auto, авто под ключ в Молдову" loading="lazy" data-fb="/assets/hot/founder-auction.jpg">
+      <span class="heroWideOverlayV302" aria-hidden="true"></span>
+      <div class="heroWideContentV302">
+        <div class="heroMainV45">
 <span class="heroEyebrowV207">Apex Auto · в авто-бизнесе с 2016 года</span>
 <h1>Авто из США, Канады и Европы в Кишинёв — цена под ключ до того, как участвовать в торгах</h1>
     <ul class="heroAucV1" data-no-i18n="true" aria-label="Аукционы"><li>Copart</li><li>IAAI</li><li>Manheim</li><li>Adesa</li><li>Openlane</li><li>BCA</li></ul>
@@ -111,6 +137,26 @@
     </ul>
     </div>
   </div>
+    </div>
+
+    <div class="heroSlideV1" data-slide-idx="2">
+      <img class="heroWideBgV302" src="/assets/hot/delivery-sea.webp" width="1400" height="560" alt="Морская доставка авто в Молдову — Apex Auto" loading="lazy" data-fb="/assets/hot/delivery-sea.jpg">
+      <span class="heroWideOverlayV302" aria-hidden="true"></span>
+      <div class="heroWideContentV302">
+        <div class="heroMainV45">
+          <span class="heroEyebrowV207">Apex Auto · доставка под ключ</span>
+          <h1>Доставка в Кишинёв за 6–12 недель — отслеживание на каждом этапе</h1>
+          <p>Морская перевозка, таможня, растаможка — сопровождаем сделку от ставки до выдачи авто.</p>
+          <div class="heroCtasV207">
+            <a class="heroBtnPrimaryV207" href="/tracking">Отследить авто</a>
+            <a class="heroBtnGhostV207" href="#how">Как проходит доставка</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="heroDotsV1" id="heroDotsV1" role="tablist" aria-label="Слайды"></div>
   <div class="heroWideStatsV302">
     <div><b>с 2016 года</b><span>в авто-бизнесе</span></div>
     <div><b>Под ключ</b><span>подбор · торги · доставка · таможня</span></div>
@@ -413,9 +459,10 @@
   <script src="calc-core.js?v=core-v9" defer></script>
   <script src="script.js?v=calc-v432" defer></script>
   <script src="site-content.js?v=admin-v166" defer></script>
-  <script src="i18n.js?v=multilang-v521" defer></script>
+  <script src="i18n.js?v=multilang-v522" defer></script>
   <script src="home-transit.js?v=ht-v8" defer></script>
   <script src="home-lots.js?v=home-v13" defer></script>
+  <script src="home-hero.js?v=hh-v1" defer></script>
 
   <section class="apexProcessV205" id="how">
     <span class="sectionKicker">Как мы работаем</span>
