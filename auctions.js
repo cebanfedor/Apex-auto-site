@@ -1243,7 +1243,9 @@
     const low = val.toLowerCase();
     const isYes = /^да$|^yes$|^present$|^available$/i.test(low);
     const isNo = /^нет$|^no$|not present|not available/i.test(low);
-    const tone = isYes ? "good" : isNo ? "bad" : "neutral";
+    // Нет ключа — жёлтый (внимание, не приговор), как уже на странице лота: ключ копеечно дублируют
+    // (Федор 22.09.2026, чуть выше в файле), это не критичный минус, красный тут вводил в заблуждение.
+    const tone = isYes ? "good" : isNo ? "warn" : "neutral";
     // Фид отдаёт "Yes"/"No" по-английски — переводим в «Да»/«Нет», не показываем сырое значение (24.09.2026).
     const shown = isYes ? "Да" : isNo ? "Нет" : val;
     return `<li class="dbCheck ${tone}">${dbIco("key")}<span><b>${L("Ключ:")}</b> ${escapeHtml(L(shown))}</span></li>`;
