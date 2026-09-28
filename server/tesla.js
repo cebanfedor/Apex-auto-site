@@ -15,22 +15,39 @@ function teslaModelFromVin(vin){
   const m = MODELS[v[3]];
   return m ? m : null;
 }
-// Правит сырой элемент фида на месте (идемпотентно): модель, название, кузов. true — что-то изменилось.
+const TESLA_MAKE_ID = 187;
+// Правит сырой элемент фида на месте (идемпотентно): марку, модель, название, кузов. true — что-то изменилось.
+// 28.09.2026 (Федор, IAAI 40084037, VIN 5YJY…: в фиде марка была «Subaru», не только модель) — раньше функция
+// сначала проверяла, что марка УЖЕ «Tesla», и только тогда чинила модель: если фид путает саму марку, проверка
+// проваливалась и лот оставался «Subaru Impreza» с фото и названием Tesla. WMI-префикс VIN однозначно определяет
+// Tesla независимо от того, что сейчас написано в марке — теперь именно он решает, применять ли фикс вообще.
 function fixTeslaItem(item){
   try{
     if(!item || typeof item !== "object") return false;
-    const mk = item.manufacturer && typeof item.manufacturer === "object" ? item.manufacturer.name : item.manufacturer;
-    if(!/tesla/i.test(String(mk || ""))) return false;
     const m = teslaModelFromVin(item.vin || (Array.isArray(item.lots) && item.lots[0] && item.lots[0].vin));
     if(!m) return false;
+    let changed = false;
+    const mk = item.manufacturer && typeof item.manufacturer === "object" ? item.manufacturer.name : item.manufacturer;
+    if(!/tesla/i.test(String(mk || ""))){
+      item.manufacturer = {...(item.manufacturer && typeof item.manufacturer === "object" ? item.manufacturer : {}), id:TESLA_MAKE_ID, name:"Tesla"};
+      changed = true;
+    }
     const cur = item.model && typeof item.model === "object" ? item.model : {name:String(item.model || "")};
-    if(Number(cur.id) === m.id && String(cur.name).toLowerCase() === m.name.toLowerCase()) return false;
-    const old = String(cur.name || "");
-    item.model = {...cur, id:m.id, name:m.name};
-    if(item.title && old) item.title = String(item.title).replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), m.name);
-    else if(item.title) item.title = String(item.title).replace(/Model [3SXY]|Cybertruck/i, m.name);
-    if(m.body) item.body_type = {...(item.body_type && typeof item.body_type === "object" ? item.body_type : {}), id:m.body.id, name:m.body.name};
-    return true;
+    if(!(Number(cur.id) === m.id && String(cur.name).toLowerCase() === m.name.toLowerCase())){
+      const old = String(cur.name || "");
+      item.model = {...cur, id:m.id, name:m.name};
+      if(item.title && old) item.title = String(item.title).replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), m.name);
+      else if(item.title) item.title = String(item.title).replace(/Model [3SXY]|Cybertruck/i, m.name);
+      changed = true;
+    }
+    if(m.body){
+      const curBody = item.body_type && typeof item.body_type === "object" ? item.body_type : {};
+      if(!(Number(curBody.id) === m.body.id && String(curBody.name || "").toLowerCase() === m.body.name.toLowerCase())){
+        item.body_type = {...curBody, id:m.body.id, name:m.body.name};
+        changed = true;
+      }
+    }
+    return changed;
   }catch(_){ return false; }
 }
-module.exports = {teslaModelFromVin, fixTeslaItem, MODELS};
+module.exports = {teslaModelFromVin, fixTeslaItem, MODELS, TESLA_MAKE_ID};

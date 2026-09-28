@@ -4352,21 +4352,27 @@ module.exports = async function handler(request, response){
     const cursor = String(query.get("cursor") || "").replace(/[^\w.-]/g, "");
     const out = {ok:true, scanned:0, fixed:0, done:false, nextCursor:cursor};
     const t0 = Date.now();
+    // 28.09.2026 (Федор, IAAI 40084037 — в базе марка была «Subaru», не только модель): раньше сканировали
+    // только make_id=eq.187 — не находило лоты, где фид перепутал ещё и МАРКУ. WMI-префикс VIN («5YJ», «7SA»…)
+    // однозначно определяет Tesla независимо от того, что сейчас записано в make_id — теперь ищем по нему.
+    const WMI_OR = "vin.like.5YJ*,vin.like.7SA*,vin.like.LRW*,vin.like.XP7*,vin.like.7G2*,vin.like.SFZ*";
     try{
       while(Date.now() - t0 < 30000){
-        const rows = await syncSbFetch(`/api_lots?select=id,vin,model_id,body_id,title,payload&make_id=eq.187${out.nextCursor ? `&id=gt.${encodeURIComponent(out.nextCursor)}` : ""}&order=id.asc&limit=400`);
+        const rows = await syncSbFetch(`/api_lots?select=id,vin,make_id,model_id,body_id,title,payload&or=(${WMI_OR})${out.nextCursor ? `&id=gt.${encodeURIComponent(out.nextCursor)}` : ""}&order=id.asc&limit=400`);
         if(!Array.isArray(rows) || !rows.length){ out.done = true; break; }
         const todo = [];
         for(const r of rows){
           out.scanned++; out.nextCursor = r.id;
           const m = tesla.teslaModelFromVin(r.vin);
-          if(!m || (Number(r.model_id) === m.id && /model|cyber/i.test(String((r.payload && r.payload.model) || "")) && String(r.payload.model).toLowerCase() === m.name.toLowerCase())) continue;
+          const makeOk = Number(r.make_id) === tesla.TESLA_MAKE_ID;
+          const modelOk = m && Number(r.model_id) === m.id && /model|cyber/i.test(String((r.payload && r.payload.model) || "")) && String(r.payload.model).toLowerCase() === m.name.toLowerCase();
+          if(!m || (makeOk && modelOk)) continue;
           const pl = {...(r.payload || {})};
           const old = String(pl.model || "");
-          pl.model = m.name; pl.modelId = m.id;
+          pl.make = "Tesla"; pl.makeId = tesla.TESLA_MAKE_ID; pl.model = m.name; pl.modelId = m.id;
           if(pl.title) pl.title = old ? String(pl.title).replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), m.name) : pl.title;
           if(m.body) pl.body = m.body.name;
-          const patch = {model_id:m.id, payload:pl};
+          const patch = {make_id:tesla.TESLA_MAKE_ID, model_id:m.id, payload:pl};
           if(r.title) patch.title = old ? String(r.title).replace(new RegExp(old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), m.name) : r.title;
           if(m.body) patch.body_id = m.body.id;
           todo.push({id:r.id, patch});
