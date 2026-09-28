@@ -39,8 +39,8 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/styles.css?v=v451">
-  <link rel="stylesheet" href="/auctions.css?v=v553">
+  <link rel="stylesheet" href="/styles.css?v=v452">
+  <link rel="stylesheet" href="/auctions.css?v=v554">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -366,6 +366,33 @@
     </section>
 
     <section id="auctionDetail" class="auctionDetailV1" hidden></section>
+
+    <!-- 28.09.2026 (Федор: «в тёмном футере смотрится плохо, закинь на белую часть, внизу машин»):
+         SEO-блок ссылок на популярные марки/модели — был внутри футера, теперь отдельная белая
+         секция под списком/карточкой лота (общая для обоих режимов auctionsShellV1), футер — просто футер. -->
+    <section class="popularModelsV1">
+      <div class="container">
+        <h2>Популярные модели на аукционах</h2>
+        <div class="pmGridV1">
+          <div class="pmGroupV1"><b>Toyota</b><span><a href="/auctions?make=140&model=872">Camry</a> · <a href="/auctions?make=140&model=876">Corolla</a> · <a href="/auctions?make=140&model=906">RAV4</a> · <a href="/auctions?make=140&model=910">Sienna</a> · <a href="/auctions?make=140&model=1390">Tundra</a> · <a href="/auctions?make=140&model=860">4Runner</a></span></div>
+          <div class="pmGroupV1"><b>Honda</b><span><a href="/auctions?make=56&model=354">Civic</a> · <a href="/auctions?make=56&model=356">CR-V</a></span></div>
+          <div class="pmGroupV1"><b>Hyundai</b><span><a href="/auctions?make=58&model=394">Elantra</a> · <a href="/auctions?make=58&model=398">Santa Fe</a></span></div>
+          <div class="pmGroupV1"><b>Nissan</b><span><a href="/auctions?make=99&model=1364">Rogue</a> · <a href="/auctions?make=99&model=1449">Versa</a> · <a href="/auctions?make=99&model=678">Pathfinder</a> · <a href="/auctions?make=99&model=1020">Maxima</a> · <a href="/auctions?make=99&model=1097">Frontier</a> · <a href="/auctions?make=99&model=2999">Kicks</a></span></div>
+          <div class="pmGroupV1"><b>Ford</b><span><a href="/auctions?make=48&model=323">Escape</a> · <a href="/auctions?make=48&model=1904">Fusion</a> · <a href="/auctions?make=48&model=1483">Edge</a> · <a href="/auctions?make=48&model=305">Focus</a> · <a href="/auctions?make=48&model=324">Mustang</a> · <a href="/auctions?make=48&model=302">Expedition</a></span></div>
+          <div class="pmGroupV1"><b>Jeep</b><span><a href="/auctions?make=68&model=431">Grand Cherokee</a> · <a href="/auctions?make=68&model=429">Cherokee</a> · <a href="/auctions?make=68&model=432">Wrangler</a> · <a href="/auctions?make=68&model=1321">Compass</a> · <a href="/auctions?make=68&model=2231">Renegade</a></span></div>
+          <div class="pmGroupV1"><b>Chevrolet</b><span><a href="/auctions?make=26&model=1600">Cruze</a> · <a href="/auctions?make=26&model=1686">Traverse</a> · <a href="/auctions?make=26&model=3219">Trax</a> · <a href="/auctions?make=26&model=138">Impala</a> · <a href="/auctions?make=26&model=150">Tahoe</a> · <a href="/auctions?make=26&model=1427">Colorado</a> · <a href="/auctions?make=26&model=131">Camaro</a></span></div>
+          <div class="pmGroupV1"><b>Kia</b><span><a href="/auctions?make=70&model=448">Sorento</a> · <a href="/auctions?make=70&model=1385">Optima</a></span></div>
+          <div class="pmGroupV1"><b>Subaru</b><span><a href="/auctions?make=132&model=828">Forester</a> · <a href="/auctions?make=132&model=1501">Outback</a> · <a href="/auctions?make=132&model=1884">Crosstrek</a></span></div>
+          <div class="pmGroupV1"><b>Tesla</b><span><a href="/auctions?make=187&model=2741">Model 3</a> · <a href="/auctions?make=187&model=3119">Model Y</a></span></div>
+          <div class="pmGroupV1"><b>BMW</b><span><a href="/auctions?make=16&model=93">3 Series</a></span></div>
+          <div class="pmGroupV1"><b>Lexus</b><span><a href="/auctions?make=76&model=481">RX</a> · <a href="/auctions?make=76&model=476">ES</a></span></div>
+          <div class="pmGroupV1"><b>GMC</b><span><a href="/auctions?make=52&model=1471">Acadia</a> · <a href="/auctions?make=52&model=338">Yukon</a></span></div>
+          <div class="pmGroupV1"><b>Dodge</b><span><a href="/auctions?make=41&model=243">Durango</a> · <a href="/auctions?make=41&model=1016">RAM</a></span></div>
+          <div class="pmGroupV1"><b>Volkswagen</b><span><a href="/auctions?make=147&model=1485">Tiguan</a></span></div>
+          <div class="pmGroupV1"><b>Chrysler</b><span><a href="/auctions?make=27&model=163">Pacifica</a></span></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="siteFooter">
@@ -390,26 +417,6 @@
         <a href="https://maps.app.goo.gl/yMxzxbYW87x3gfhz7" target="_blank" rel="noopener" class="contactBtn footerAddrV308">Chișinău, Bucovina 9F</a>
         <a href="/customs" class="contactBtn footerPrivacyV365">Растаможка в Молдове</a>
       </div>
-      <div class="footerModelsV1">
-        <b>Популярные модели на аукционах:</b>
-        <span class="footerModelsBrandV1"><strong>Toyota:</strong> <a href="/auctions?make=140&model=872">Camry</a> · <a href="/auctions?make=140&model=876">Corolla</a> · <a href="/auctions?make=140&model=906">RAV4</a> · <a href="/auctions?make=140&model=910">Sienna</a> · <a href="/auctions?make=140&model=1390">Tundra</a> · <a href="/auctions?make=140&model=860">4Runner</a></span>
-        <span class="footerModelsBrandV1"><strong>Honda:</strong> <a href="/auctions?make=56&model=354">Civic</a> · <a href="/auctions?make=56&model=356">CR-V</a></span>
-        <span class="footerModelsBrandV1"><strong>Hyundai:</strong> <a href="/auctions?make=58&model=394">Elantra</a> · <a href="/auctions?make=58&model=398">Santa Fe</a></span>
-        <span class="footerModelsBrandV1"><strong>Nissan:</strong> <a href="/auctions?make=99&model=1364">Rogue</a> · <a href="/auctions?make=99&model=1449">Versa</a> · <a href="/auctions?make=99&model=678">Pathfinder</a> · <a href="/auctions?make=99&model=1020">Maxima</a> · <a href="/auctions?make=99&model=1097">Frontier</a> · <a href="/auctions?make=99&model=2999">Kicks</a></span>
-        <span class="footerModelsBrandV1"><strong>Ford:</strong> <a href="/auctions?make=48&model=323">Escape</a> · <a href="/auctions?make=48&model=1904">Fusion</a> · <a href="/auctions?make=48&model=1483">Edge</a> · <a href="/auctions?make=48&model=305">Focus</a> · <a href="/auctions?make=48&model=324">Mustang</a> · <a href="/auctions?make=48&model=302">Expedition</a></span>
-        <span class="footerModelsBrandV1"><strong>Jeep:</strong> <a href="/auctions?make=68&model=431">Grand Cherokee</a> · <a href="/auctions?make=68&model=429">Cherokee</a> · <a href="/auctions?make=68&model=432">Wrangler</a> · <a href="/auctions?make=68&model=1321">Compass</a> · <a href="/auctions?make=68&model=2231">Renegade</a></span>
-        <span class="footerModelsBrandV1"><strong>Chevrolet:</strong> <a href="/auctions?make=26&model=1600">Cruze</a> · <a href="/auctions?make=26&model=1686">Traverse</a> · <a href="/auctions?make=26&model=3219">Trax</a> · <a href="/auctions?make=26&model=138">Impala</a> · <a href="/auctions?make=26&model=150">Tahoe</a> · <a href="/auctions?make=26&model=1427">Colorado</a> · <a href="/auctions?make=26&model=131">Camaro</a></span>
-        <span class="footerModelsBrandV1"><strong>Kia:</strong> <a href="/auctions?make=70&model=448">Sorento</a> · <a href="/auctions?make=70&model=1385">Optima</a></span>
-        <span class="footerModelsBrandV1"><strong>Subaru:</strong> <a href="/auctions?make=132&model=828">Forester</a> · <a href="/auctions?make=132&model=1501">Outback</a> · <a href="/auctions?make=132&model=1884">Crosstrek</a></span>
-        <span class="footerModelsBrandV1"><strong>Tesla:</strong> <a href="/auctions?make=187&model=2741">Model 3</a> · <a href="/auctions?make=187&model=3119">Model Y</a></span>
-        <span class="footerModelsBrandV1"><strong>BMW:</strong> <a href="/auctions?make=16&model=93">3 Series</a></span>
-        <span class="footerModelsBrandV1"><strong>Lexus:</strong> <a href="/auctions?make=76&model=481">RX</a> · <a href="/auctions?make=76&model=476">ES</a></span>
-        <span class="footerModelsBrandV1"><strong>GMC:</strong> <a href="/auctions?make=52&model=1471">Acadia</a> · <a href="/auctions?make=52&model=338">Yukon</a></span>
-        <span class="footerModelsBrandV1"><strong>Dodge:</strong> <a href="/auctions?make=41&model=243">Durango</a> · <a href="/auctions?make=41&model=1016">RAM</a></span>
-        <span class="footerModelsBrandV1"><strong>Volkswagen:</strong> <a href="/auctions?make=147&model=1485">Tiguan</a></span>
-        <span class="footerModelsBrandV1"><strong>Chrysler:</strong> <a href="/auctions?make=27&model=163">Pacifica</a></span>
-      </div>
-
       <div class="footerSocialV432">
         <b>Мы на связи:</b>
         <a href="https://t.me/fedukauto" target="_blank" rel="noopener">Telegram-канал</a>
