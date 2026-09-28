@@ -5184,22 +5184,29 @@ module.exports = async function handler(request, response){
     if(action === "acvcalib"){
       const limit = Math.min(6000, Math.max(500, Number(query.get("limit")) || 3000));
       const makeFilter = String(query.get("make_id") || "").replace(/[^0-9]/g, "");
-      const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}};
+      // 28.09.2026 (Федор, BMW X3 xDrive30e 65917076: занижен ориентир) — раньше ACV_RATIO_BY_COEF
+      // калибровалась по ВСЕМУ каталогу разом (в основном бензин), без разбивки по топливу. &fuel=phev|hybrid|…
+      // проверяет, отличается ли реальная доля ACV у гибридов/plug-in — они держат цену лучше бензина.
+      const fuelFilter = fuelTextToId(String(query.get("fuel") || ""));
+      const out = {ok:true, sampled:0, withAcv:0, coefBuckets:{}, airbags:{}, keys:{}, mileage:{}, fuel:{}};
       try{
         const rows = [];
         for(let off = 0; off < limit && rows.length === off; off += 1000){
-          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=${makeFilter ? "eq." + makeFilter : "not.is.null"}&order=synced_at.desc`,
+          const page = await syncSbFetch(`/api_lots?select=final_bid,odometer_mi,payload,fuel_x,fuel_id&archived=eq.true&status_id=eq.6&final_bid=gt.0&make_id=${makeFilter ? "eq." + makeFilter : "not.is.null"}&order=synced_at.desc`,
             {headers:{range:`${off}-${off + 999}`, "range-unit":"items"}});
           if(!Array.isArray(page) || !page.length) break;
           rows.push(...page);
           if(page.length < 1000) break;
         }
         out.sampled = rows.length;
-        const byCoef = new Map(), byAirbag = new Map(), byKeys = new Map(), byMi = new Map();
+        const byCoef = new Map(), byAirbag = new Map(), byKeys = new Map(), byMi = new Map(), byFuel = new Map();
         const miBucket = mi => !mi ? "0" : mi <= 30000 ? "0-30k" : mi <= 60000 ? "30-60k" : mi <= 100000 ? "60-100k" : mi <= 150000 ? "100-150k" : "150k+";
+        const FUEL_NAME = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
         for(const r of (rows || [])){
           const p = r.payload || {}; const acv = Number(p.estimatedRetailValue) || 0; const fb = Number(r.final_bid) || 0;
           if(!(acv > 500) || !(fb > 0)) continue;
+          const fx = effFuel(r);
+          if(fuelFilter && fx !== fuelFilter) continue;
           const ratio = fb / acv;
           if(ratio > 3 || ratio < 0.01) continue;
           out.withAcv++;
@@ -5212,6 +5219,8 @@ module.exports = async function handler(request, response){
           (byKeys.get(ky) || byKeys.set(ky, []).get(ky)).push(ratio);
           const mb = miBucket(Number(r.odometer_mi) || 0);
           (byMi.get(mb) || byMi.set(mb, []).get(mb)).push(ratio);
+          const fn = FUEL_NAME[fx] || "unknown";
+          (byFuel.get(fn) || byFuel.set(fn, []).get(fn)).push(ratio);
         }
         const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
         const stat = a => ({n:a.length, medianRatio:Math.round(med(a) * 1000) / 1000});
@@ -5219,6 +5228,7 @@ module.exports = async function handler(request, response){
         for(const [k, a] of byAirbag) out.airbags[k] = stat(a);
         for(const [k, a] of byKeys) out.keys[k] = stat(a);
         for(const [k, a] of byMi) out.mileage[k] = stat(a);
+        for(const [k, a] of byFuel) out.fuel[k] = stat(a);
       }catch(e){ out.error = String(e.message || e).slice(0, 160); }
       sendJson(response, 200, out, {"cache-control":"no-store"});
       return;
