@@ -355,6 +355,9 @@ section { position: relative; }
 .heroSearchArchiveV1 input:checked { background: var(--red); }
 .heroSearchArchiveV1 input:checked::after { transform: translateX(13px); }
 .heroSearchRowV1 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* 28.09.2026 (Федор, референс DreamBid): марка и модель — каждая на всю ширину карточки
+   отдельной строкой (не в 2 колонки, как год от/до ниже) — так виднее длинные названия марок. */
+.heroSearchRowSingleV1 { grid-template-columns: 1fr; }
 /* 29.09.2026 (Федор: «соедини с общим фильтром каталога»): марка/модель были нативными <select> —
    список марок грузится асинхронно (action=manufacturers), а браузер НЕ перерисовывает уже открытый
    нативный select при добавлении option на лету (частый баг) — человек видел пустой список, только
