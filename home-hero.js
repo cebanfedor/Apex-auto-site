@@ -15,7 +15,7 @@
     const slides = Array.from(track.querySelectorAll(".heroSlideV1"));
     if(slides.length < 2) return;
     let idx = Math.max(0, slides.findIndex(s => s.classList.contains("heroSlideActiveV1")));
-    const AUTOPLAY_MS = 7000;
+    const AUTOPLAY_MS = 10000;
     let timer = null;
 
     slides.forEach((s, i) => {
@@ -38,8 +38,13 @@
       if(dots[idx]) dots[idx].classList.add("heroDotActiveV1");
     }
     function next(){ go((idx + 1) % slides.length); }
+    function prev(){ go((idx - 1 + slides.length) % slides.length); }
     function restart(){ clearInterval(timer); timer = setInterval(next, AUTOPLAY_MS); }
     restart();
+
+    const prevBtn = document.getElementById("heroArrowPrevV1"), nextBtn = document.getElementById("heroArrowNextV1");
+    if(prevBtn) prevBtn.addEventListener("click", () => { prev(); restart(); });
+    if(nextBtn) nextBtn.addEventListener("click", () => { next(); restart(); });
 
     // Не дёргать слайд, пока открыт/в фокусе виджет поиска (не сбрасывать выбор марки/модели).
     const card = document.querySelector(".heroSearchCardV1");
