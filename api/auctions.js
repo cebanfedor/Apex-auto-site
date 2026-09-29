@@ -385,13 +385,25 @@ function locationLabel(loc){
 
 // Sale status = reserve type of the lot (not the vehicle condition).
 // Sources: lots[0].auction_type ("pure_sale"), lots[0].seller_reserve, is_timed_auction.
-function saleStatusInfo(lot, item){
+function saleStatusInfo(lot, item, auction){
   // seller_reserve: раньше число, с сентября 2026 — объект {price, updated_at} (резерв продавца на Timed).
   const rawRes = lot?.seller_reserve != null ? lot.seller_reserve : item?.seller_reserve;
   const reserve = rawRes && typeof rawRes === "object" ? Number(rawRes.price) || 0 : Number(rawRes) || 0;
   const reserveAt = rawRes && typeof rawRes === "object" ? (rawRes.updated_at || "") : "";
   const auctionType = safeName(lot?.auction_type || item?.auction_type).toLowerCase();
-  const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true;
+  // 30.09.2026 (Федор: «Timed показывает 426, а реально ~4182» — проверил: в БД лежит ~19.7k «скоро»
+  // IAAI-лотов, 23% из них по факту должно быть Timed (≈4.5k, почти сходится с 4182), а timed:true
+  // стоит только у 426 — 90%+ настоящих Timed-лотов ТЕРЯЛИСЬ). Причина: is_timed_auction на массовом
+  // /cars (используется синком upcoming/changes) не всегда отдаётся — а те же самые доп. сигналы
+  // (auction_type/sale_type текстом, характерное НЕ :00/:15/:30/:45 время закрытия) УЖЕ применялись
+  // в этом файле для прошлых раундов истории цены (priceHistoryRaw, looksTimed — исправление 23.09.2026),
+  // но не были подключены сюда, к статусу САМОГО лота — источнику бейджа «Timed» и фильтра saleStatus=timed.
+  // looksTimed — только для IAAI: у Copart Timed не бывает вовсе (правило подтверждено ?action=feedcount
+  // 23.09.2026), не хотим ложных «Timed» на его собственных нестандартных датах.
+  const saleTypeText = safeName(lot?.sale_type || item?.sale_type || lot?.type || item?.type).toLowerCase();
+  const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true
+    || /timed/.test(auctionType) || /timed/.test(saleTypeText)
+    || (auction === "iaai" && looksTimed(lot?.sale_date || item?.sale_date));
   let key = "", label = "";
   if(reserve != null && Number(reserve) > 0){ key = "min_reserve"; label = "Минимальный резерв"; }
   else if(auctionType === "pure_sale"){ key = "no_reserve"; label = "Без резерва"; }
@@ -514,7 +526,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const statusId = typeof rawStatusId === "number" ? rawStatusId
     : typeof rawStatusId === "string" && /^\d+$/.test(rawStatusId) ? Number(rawStatusId)
     : (rawStatusId?.id != null ? Number(rawStatusId.id) : null);
-  const sale = saleStatusInfo(lot, item);
+  const sale = saleStatusInfo(lot, item, auction);
   const rawHistory = (Array.isArray(lot?.prices) && lot.prices.length) ? lot.prices
     : (Array.isArray(item?.prices) && item.prices.length) ? item.prices
     : (() => {
