@@ -224,6 +224,13 @@ function row(name,value,detail,type="usd",badgeHtml=""){
   return `<div class="row"><span>${escapeHtml(name)}${badgeHtml}${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</span><b>${escapeHtml(shown)}</b></div>`;
 }
 
+// Разбивка по срокам оплаты (Федор 29.09.2026): лот+аукционный сбор — сразу после
+// покупки лота, всё остальное (доставка, страховка, комиссия, таможня) — при получении
+// авто в Кишинёве (~2 мес. спустя). Один заголовок на каждую группу платежей.
+function calcSectionHeader(text){
+  return `<div class="breakdownSecV1">${escapeHtml(text)}</div>`;
+}
+
 function numberFromText(value){
   const number = String(value || "").replace(/[^\d.]/g, "");
   return Number(number) || 0;
@@ -1184,9 +1191,11 @@ function calculate(){
   const dangerBadge = greenFuel ? ` <span class="rowBadgeV374" data-type="danger">Опасный груз</span>` : "";
   const exportDocsBadge = exportDocs ? ` <span class="rowBadgeV374" data-type="docs">✓ 30–45 дней</span>` : "";
 
-  const rows = [
+  const payNowRows = [
     ["Стоимость лота", lot, "", "usd"],
-    ["Аукционный сбор", auctionFee, afd.detail, "usd"],
+    ["Аукционный сбор", auctionFee, afd.detail, "usd"]
+  ];
+  const payLaterRows = [
     [landName, land, "", "usd", offsiteBadge],
     ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd", dangerBadge],
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
@@ -1204,10 +1213,13 @@ function calculate(){
       : lng === "en"
       ? `calculated from lot + auction fee + sea: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
       : `считается от лот + аукцион + море: ${luxBaseStr} MDL · ${customs.luxuryPct}%`;
-    rows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
+    payLaterRows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
   }
 
-  $("breakdown").innerHTML = rows.map(r => row(...r)).join("");
+  const rows = [...payNowRows, ...payLaterRows];
+  $("breakdown").innerHTML =
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
@@ -1759,16 +1771,18 @@ function calculateCanada(){
   const dispatchDetail = zone === "bc"
     ? (_roCA ? "auto-carrier BC → Montreal" : _enCA ? "auto carrier BC → Montreal" : "автовоз BC → Монреаль")
     : "";
-  const rows = [
+  const payNowRows = [
     ["Стоимость лота",          lot,        "",             "usd"],
-    ["Аукционный сбор",         auctionFee, afd.detail,     "usd"],
+    ["Аукционный сбор",         auctionFee, afd.detail,     "usd"]
+  ];
+  const payLaterRows = [
     ["Доставка по Канаде",      dispatch,   dispatchDetail, "usd", offsiteBadge],
   ];
-  if(bankFee > 0) rows.push(["Комиссия банка TD", bankFee, "", "usd"]);
-  rows.push(["Услуги канадской компании", canadaFee, lot > 15000 ? "2% от цены лота" : "", "usd"]);
-  rows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
-  rows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
-  rows.push(
+  if(bankFee > 0) payLaterRows.push(["Комиссия банка TD", bankFee, "", "usd"]);
+  payLaterRows.push(["Услуги канадской компании", canadaFee, lot > 15000 ? "2% от цены лота" : "", "usd"]);
+  payLaterRows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
+  payLaterRows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
+  payLaterRows.push(
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Комиссия",                    company,      "",                              "usd"],
@@ -1785,10 +1799,13 @@ function calculateCanada(){
       : en
       ? `calculated from lot + auction fee + sea: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
       : `считается от лот + аукцион + море: ${luxBaseStr} MDL · ${customs.luxuryPct}%`;
-    rows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
+    payLaterRows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
   }
 
-  $("breakdown").innerHTML = rows.map(r => row(...r)).join("");
+  const rows = [...payNowRows, ...payLaterRows];
+  $("breakdown").innerHTML =
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
   updateShare();
 }
