@@ -1564,21 +1564,28 @@
     if(lot.model) cp.set("model_name", String(lot.model).slice(0, 40));
     if(lot.title) cp.set("title", String(lot.title).slice(0, 80));
     if(lot.generationName) cp.set("gen", String(lot.generationName).slice(0, 60));
-    if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(Math.round(lot.estimatedRetailValue)));
+    // Канадские лоты: ACV/оценка ремонта/ставка/резерв/история ставок приходят из фида в CAD (как и bid,
+    // см. caMoney/moneyCad выше) — сервер же считает вилку в USD (comps-пул — final_bid проданных, USD).
+    // Слать сырые CAD-числа под именем «acv»/«bid» и т.п. раздувало бы вилку/ложно триггерило «ставка выше
+    // ориентира» (Федор 29.09.2026: «одна и та же машина, а вилка разная» — гонка «ACV ещё не подъехал» vs
+    // «уже есть» отсюда и давала два разных числа на одном и том же лоте между перезагрузками страницы).
+    const cadUsd = findCanadaLocation(lot) ? ((typeof liveRates !== "undefined" && Number(liveRates.cadUsd) > 0) ? Number(liveRates.cadUsd) : 0.7325) : 1;
+    const toUsd = v => Math.round(Number(v) * cadUsd);
+    if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(toUsd(lot.estimatedRetailValue)));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
     // 28.09.2026 (Федор, Tesla Model Y IAAI 40084037): оценка ремонта ЭТОГО VIN — прямой факт, которого
     // не знает ни ACV, ни текстовая категория повреждения («Structural» может быть и копеечной царапиной
     // по раме, и настоящим тяжёлым случаем — оценка ремонта показывает, какой именно).
-    if(Number(lot.repairCost) > 0) cp.set("repair", String(Math.round(lot.repairCost)));
+    if(Number(lot.repairCost) > 0) cp.set("repair", String(toUsd(lot.repairCost)));
     // Самодиагностика (guide_miss): чтобы сервер видел, когда реальная ставка/резерв/прошлый раунд
     // выше вилки, и мог залогировать локацию/штат/пробег для будущей правки формулы.
     if(lot.id != null) cp.set("lot_id", `${String(lot.auction || "").toLowerCase()}-${lot.id}`.slice(0, 80));
     if(lot.auction) cp.set("auction", String(lot.auction).slice(0, 10));
-    if(Number(lot.currentBid) > 0) cp.set("bid", String(Math.round(lot.currentBid)));
-    if(Number(lot.sellerReserve) > 0) cp.set("reserve", String(Math.round(lot.sellerReserve)));
+    if(Number(lot.currentBid) > 0) cp.set("bid", String(toUsd(lot.currentBid)));
+    if(Number(lot.sellerReserve) > 0) cp.set("reserve", String(toUsd(lot.sellerReserve)));
     const maxHistBid = Array.isArray(lot.priceHistory) ? Math.max(0, ...lot.priceHistory.map(h => Number(h && h.bid) || 0)) : 0;
-    if(maxHistBid > 0) cp.set("histbid", String(Math.round(maxHistBid)));
+    if(maxHistBid > 0) cp.set("histbid", String(toUsd(maxHistBid)));
     if(lot.stateCode) cp.set("state", String(lot.stateCode).slice(0, 10));
     if(lot.location) cp.set("loc", String(lot.location).slice(0, 80));
     return cp;
