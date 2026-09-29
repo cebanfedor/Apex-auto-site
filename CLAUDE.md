@@ -968,3 +968,37 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - **Каталог — два одинаковых красных «Все».** Ряд статуса (`.auctionTabsV1`: Все/Сегодня-завтра/…) и переключатель площадки (`.auctionSwitchV1`: Все/Copart/IAAI) оба были красными пиллами с активным «Все» → неясно, что выбрано. `.auctionSwitchV1` переделан в нейтральный сегмент-контрол (светлый трек `--aSoft`, активный белый пилл `--aSurf` с тенью, тёмный текст) — визуально отдельный от красных вкладок. Перебивает легаси `button.active{background:red!important}` своим `!important`-правилом (после блока на ~строке 794 в `auctions.css`).
 - **Осознанно НЕ трогал:** (1) «под ключ» у junk/утиль-лотов (сгоревшая машина за $75 показывала абсурдный расчёт) — ниша, лезть в калькулятор ради неё рискованно; (2) стрелки карусели на телефоне слегка на краю карточки — некритично.
 - Бамп `styles.css?v=v472`, `auctions.css?v=v572`, `home-hero.js?v=hh-v9`. Коммиты `a979b99` (основной) + `9dbe089` (hero 400→350 после проверки на проде).
+
+## Пакет исправлений по аудиту — Волны 1–2 (30.09.2026, Федор: «чиним всё по очереди»)
+Волна 1 (безопасность/корректность, только сервер/конфиг — клиентские ассеты не трогались):
+- **Авторизация служебных экшенов `api/auctions.js`** (централизованный гейт в начале handler):
+  `ADMIN_ONLY_ACTIONS` (диагностики explain/compstest/missdiag/acvcalib/ptaudit/ptstatus/vinhealth/
+  feedcount/salescoverage/archprobe/rawfields/rawgens/dbstatus + ручная запись teslafix/syncghosts/
+  salesbackfill) → только `isAuthenticated`. `CRON_ACTIONS` (synclots/syncclosed/syncsettle/alerttick/
+  resalecheck/enginefill/warm/ptfill/buynowcheck) → валидный `Bearer CRON_SECRET` ИЛИ админ; если
+  env `CRON_SECRET` не задан — НЕ блокируем (нельзя залочить синк). **Env `CRON_SECRET` заведён в
+  Vercel (Production) и в GitHub Actions secrets**; Vercel Cron шлёт заголовок сам, `sync-lots.yml`
+  добавляет `Authorization: Bearer` на write-вызовы. Проверено: аноним→401, валидный секрет→200, каталог(search/count)→200.
+- **vercel.json**: +HSTS (`Strict-Transport-Security` 2 года); живые экшены `detail|vin|count|livebids|
+  vinhist` выведены из 900с-blanket (`missing`-список) в своё правило `s-maxage=30` — чинит детект
+  «продан» (раньше кэшировались 15 мин).
+- **SSRF**: self-fetch строился из клиентского `x-forwarded-host` → общий `server/origin.js`
+  (`selfOrigin`, аллоулист apexauto.md/*.vercel.app, всегда https). Подключён в og/lot-page/
+  transit-page/catalog-page/tracking-page.
+- **Таймауты внешних fetch** (зависание держало функцию до лимита 60с): `server/supabase.js`
+  (`sbFetch` 8с — все методы), общий `server/fetchx.js` (`fetchT`) в content.js (курсы 6с),
+  hot-lots.js (7с), w8-tracking.js (W8 8с + NHTSA 6с), track.js (аналитика 5с), lot.js (10с),
+  bid-advice.js (OpenAI 30с).
+- **notifyTelegram**: Markdown→HTML+escape (ввод лида мог инъектить/ломать уведомление менеджеру).
+Волна 2 (UX/конверсия):
+- **auctions.js `api()`**: AbortController 12с — на «мёртвом» коннекте каталог больше не висит вечно
+  (срабатывает существующий авто-ретрай/сообщение). Бамп `auctions.js?v=auctions-v365`.
+- **styles.css**: «Почему Apex» (`.apexWhyV212`), «Горячие лоты» (`.hotLots`/intro), «Доставка морем»
+  (`.seaDeliveryV305`) больше НЕ скрыты на ≤480px — контент доверия/витрина вернулись мобильной
+  аудитории (90%). Проверено: рендерятся в 1 колонку, без горизонтального скролла. Бамп `styles.css?v=v473`.
+- **index.html**: на странице теперь один `<h1>` (слайд 2); слайд 3 `h1`→`h2.heroSlideH1V1` (визуал
+  сохранён CSS-классом) — SEO-структура заголовков.
+- **guide.css**: тусклый `#79828f` (контраст 3.9) → `#5a6472` (AA) в крошках/подписях. Бамп `guide.css?v=v2`.
+⚠️ Осознанно НЕ трогали (риск/ниша): «под ключ» у junk-лотов; тач-цели 44px (тонкая полировка,
+  риск reflow тулбара); дубль налога роскоши script.js↔calc-core (значения совпадают, live-бага нет —
+  рефакторить отдельно и аккуратно, не под «срочно»); декомпозиция монолитов, линтер/билд-шаг — Волна 3.
