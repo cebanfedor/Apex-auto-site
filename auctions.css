@@ -41,9 +41,12 @@
 .auctionToolRightV2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .filterDrawerBtnV1 { height:38px; padding:0 14px; border:1px solid var(--aLine); border-radius:10px; background:var(--aSurf); font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:.18s; }
 .filterDrawerBtnV1:hover { border-color:var(--aMuted); }
-.auctionSwitchV1 { display:inline-flex; border:1px solid var(--aLine); border-radius:10px; overflow:hidden; }
-.auctionSwitchV1 button { height:38px; padding:0 16px; border:none; background:var(--aSurf); font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:.18s; }
-.auctionSwitchV1 button.active { background:var(--aRed); color:#fff; }
+/* 30.09.2026 (дизайн-аудит): переключатель площадки — нейтральный сегмент-контрол (светлый трек,
+   активный белый пилл с тенью), НЕ красные пиллы как у вкладок статуса — иначе два одинаковых «Все». */
+.auctionSwitchV1 { display:inline-flex; gap:2px; padding:3px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); overflow:hidden; }
+.auctionSwitchV1 button { height:32px; padding:0 15px; border:none; border-radius:8px; background:transparent; font-weight:600; font-size:13px; color:var(--aInk2); cursor:pointer; transition:.18s; }
+.auctionSwitchV1 button:hover:not(.active) { color:var(--aInk); }
+.auctionSwitchV1 button.active { background:var(--aSurf); color:var(--aInk); box-shadow:0 1px 3px rgba(13,16,22,.14); }
 .sortDropV1 { position:relative; }
 .sortDropTrigV1 { display:flex; align-items:center; gap:7px; height:38px; padding:0 12px; border:1px solid var(--aLine); border-radius:10px; background:var(--aSurf); font-size:13px; font-weight:500; color:var(--aInk); cursor:pointer; white-space:nowrap; transition:border-color .15s; }
 .sortDropTrigV1:hover { border-color:var(--aMuted); }
@@ -791,7 +794,10 @@ body.leadModalOpenV1 { overflow:hidden; }
 .auctionLeadFormV1 button[type="submit"], .stickyCtasV1 button {
   background: var(--aRed) !important; color: #fff !important; box-shadow: 0 8px 22px rgba(237,0,18,.25) !important;
 }
-.auctionTabsV1 button.active, .auctionSwitchV1 button.active { color: #fff !important; }
+.auctionTabsV1 button.active { color: #fff !important; }
+/* 30.09.2026: переключатель площадки — свой сегмент-контрол, перебиваем красный !important выше. */
+.auctionSwitchV1 button { background: transparent !important; color: var(--aInk2) !important; box-shadow: none !important; }
+.auctionSwitchV1 button.active { background: var(--aSurf) !important; color: var(--aInk) !important; box-shadow: 0 1px 3px rgba(13,16,22,.14) !important; }
 
 /* ---- Мобильная полировка каталога и страницы лота ---- */
 @media (max-width:640px) {

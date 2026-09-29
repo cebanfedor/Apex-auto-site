@@ -243,7 +243,9 @@
     else refreshCount();
 
     btn.addEventListener("click", () => {
-      const vin = (vinInp.value || "").trim();
+      // VIN-поле убрано из hero (дублировало «Разобрать» под hero, 30.09.2026); vinInp может
+      // отсутствовать — тогда всегда собираем поиск по марке/модели/году.
+      const vin = vinInp ? (vinInp.value || "").trim() : "";
       const p = new URLSearchParams();
       if(vin){
         p.set("vin", vin);
@@ -254,7 +256,7 @@
       }
       location.href = "/auctions?" + p.toString();
     });
-    vinInp.addEventListener("keydown", e => { if(e.key === "Enter") btn.click(); });
+    if(vinInp) vinInp.addEventListener("keydown", e => { if(e.key === "Enter") btn.click(); });
   }
 
   function boot(){ initSlider(); initSearch(); }

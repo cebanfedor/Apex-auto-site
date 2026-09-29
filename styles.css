@@ -422,6 +422,15 @@ section { position: relative; }
 /* 29.09.2026 (Федор: убрал бейдж «Apex Auto · каталог» — h2 теперь первым, margin-top не нужен;
    «описание крупнее» — абзац 15.5→17px; тень чуть плотнее на обоих. */
 .heroSearchInfoV1 { margin-left: auto; max-width: 400px; align-self: flex-start; padding-top: 44px; }
+/* 30.09.2026 (дизайн-аудит): на десктопе текст справа налезал на карточку поиска (карточка
+   width:100% во флекс-ряду съедала место, info с margin-left:auto оставался почти без ширины и
+   наезжал). Карточку фиксируем по ширине, info занимает остаток с зазором. Показываем текст ТОЛЬКО
+   когда реально есть место (≥1121px) — на узких десктопах (1021–1120) он всё равно жался. */
+@media (min-width: 1121px) {
+  .heroSearchWrapV1 { gap: 40px; }
+  .heroSearchWrapV1 .heroSearchCardV1 { flex: 0 0 520px; }
+  .heroSearchInfoV1 { flex: 1 1 0; min-width: 0; margin-left: 0; max-width: none; }
+}
 .heroSearchInfoV1 h2 {
   color: #fff; font-size: clamp(26px, 3.1vw, 38px); line-height: 1.1; margin: 0; text-wrap: balance;
   text-shadow: 0 2px 16px rgba(0,0,0,0.6), 0 1px 5px rgba(0,0,0,0.75);
@@ -431,7 +440,7 @@ section { position: relative; }
   color: rgba(255,255,255,0.9); font-size: 17px; line-height: 1.5; margin: 16px 0 0;
   text-shadow: 0 2px 12px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.7);
 }
-@media (max-width: 1020px) { .heroSearchInfoV1 { display: none; } }
+@media (max-width: 1120px) { .heroSearchInfoV1 { display: none; } }
 /* ---- Стрелки карусели (29.09.2026, Федор: «в нахлест блока» — были left/right:16px, карточка
    поиска начинается от padding 48px (28px 48px), зазор всего 6px, край кружка залезал на карточку) */
 .heroArrowV1 {
@@ -1369,7 +1378,12 @@ details > summary::-webkit-details-marker { display: none; }
   .headerPhoneV308 { padding: 0 12px; font-size: 12.5px; height: 44px; white-space: nowrap; }
 
   /* --- Hero: текст сверху, лицо справа -------------------------------- */
-  .heroV45.heroWideV302 { min-height: 310px; }
+  /* 30.09.2026 (дизайн-аудит): слайд поиска облегал карточку (~381px), но .heroSlidesV1
+     держал min-height:520 (базовое) → под карточкой оставалась тёмная пустота ~140px.
+     Фиксируем высоту под самый высокий слайд (поиск ≈381) — пустоты нет, прыжков при
+     автопрокрутке нет (высота одна на все слайды), контент не обрезается. */
+  .heroV45.heroWideV302 { min-height: 400px; }
+  .heroSlidesV1 { min-height: 400px; }
   .heroWideBgV302 { object-position: 60% center; }
   .heroWideOverlayV302 {
     background:
