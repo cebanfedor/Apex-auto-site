@@ -40,8 +40,8 @@ function displayMdl(mdl){if(currency==="mdl")return moneyMdl(mdl);if(currency===
 function interpolateFee(price){if(price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
 /* Ядро расчёта живёт в calc-core.js — его же использует /api/calc и расширение Chrome.
    Здесь остаются только чтение формы и оформление вывода, чтобы формулы не расходились. */
-function calculateAuctionFeeFor(price, auction){
-  return ApexCalc.auctionFeeFor(price, auction);
+function calculateAuctionFeeFor(price, auction, isCanada){
+  return ApexCalc.auctionFeeFor(price, auction, isCanada);
 }
 function calculateAuctionFee(){return calculateAuctionFeeFor(num("lotPrice"), $("auction")?.value||"copart")}
 function initYears(){const y=$("year");if(!y)return;y.innerHTML="";for(let year=YEAR_NOW;year>=1980;year--){let o=document.createElement("option");o.value=year;o.textContent=year;if(year===YEAR_NOW)o.selected=true;y.appendChild(o)}refreshGlassSelect(y)}
@@ -1697,7 +1697,7 @@ function calculateCanada(){
 
   const cadRate = getCadUsdRate();
   const lot = num("lotPrice");
-  const afd = calculateAuctionFeeFor(lot, $("auction")?.value || "copart");
+  const afd = calculateAuctionFeeFor(lot, $("auction")?.value || "copart", true); // Канада — без надбавки US_AUCTION_FEE_SURCHARGE
   const auctionFee = afd.total;
   $("auctionFeeView").value = Math.round(auctionFee).toString();
 

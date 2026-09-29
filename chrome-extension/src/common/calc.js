@@ -13,9 +13,13 @@
   const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
 
   function interpolateFee(price){if(price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
+  // 29.09.2026: +$100 к аукционному сбору (США) — синхронизировано с calc-core.js.
+  // В расширении Канады нет (нет CAD/dispatch-логики нигде в этом файле), поэтому без isCanada-параметра.
+  const US_AUCTION_FEE_SURCHARGE = 100;
   function auctionFeeFor(price, auction){
     let total=interpolateFee(price);
     if(auction==="iaai")total+=50;
+    if(total>0) total += US_AUCTION_FEE_SURCHARGE;
     return {total, detail:""};
   }
   function landMultiplier(type){if(type==="pickup"||type==="pickupLarge"||type==="vanLarge"||type==="pickupOversized")return 1.5;return 1}

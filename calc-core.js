@@ -23,10 +23,15 @@
   const OFFSITE_FEE = 100;          // off-site / саблот
   const EXPORT_DOCS_FEE = 400;
   const INSURANCE_MIN = 100;        // страховка: 1%, но не меньше $100
+  const US_AUCTION_FEE_SURCHARGE = 100; // 29.09.2026 (Федор): +$100 к аукционному сбору — только США,
+  // Канада (calculateCanada/calcCanadaLotTotal) передаёт isCanada=true и надбавку не получает.
 
   function interpolateFee(price){if(!Number.isFinite(price)||price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
 
-  function auctionFeeFor(price, auction){
+  /** isCanada: true — пропустить надбавку US_AUCTION_FEE_SURCHARGE (вызывающий сам знает страну —
+   *  compute() всегда США (Канада считается отдельно, см. calculateCanada/calcCanadaLotTotal), поэтому
+   *  третий параметр там не передаётся и по умолчанию (undefined→falsy) надбавка применяется. */
+  function auctionFeeFor(price, auction, isCanada){
     let total=interpolateFee(price);
     if(auction==="iaai")total+=50;
     if(auction==="manheim"){
@@ -39,6 +44,7 @@
       else if(price<=50000)total=1700;
       else total=2000;
     }
+    if(!isCanada && total>0) total += US_AUCTION_FEE_SURCHARGE;
     return{total,detail:""};
   }
 
@@ -226,6 +232,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v7"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v8"
   };
 });

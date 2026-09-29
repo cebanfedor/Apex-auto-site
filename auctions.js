@@ -709,11 +709,11 @@
   // главного калькулятора и /api/calc. Раньше здесь была своя таблица, которая
   // расходилась с ядром → разные суммы на странице лота и в калькуляторе.
   // Фолбэк-процент срабатывает только если ядро не загрузилось (не должно).
-  function auctionFeeFor(price, auction){
+  function auctionFeeFor(price, auction, isCanada){
     const p = Number(price || 0);
     if(!p) return 0;
     if(window.ApexCalc && window.ApexCalc.auctionFeeFor){
-      return Math.round(window.ApexCalc.auctionFeeFor(p, auction).total || 0);
+      return Math.round(window.ApexCalc.auctionFeeFor(p, auction, isCanada).total || 0);
     }
     return Math.round(p * (auction === "iaai" ? 0.08 : 0.075));
   }
@@ -939,7 +939,7 @@
     const engineLiters = options.engineLiters != null ? Number(options.engineLiters) : numberFromEngine(lot.engine);
     const usdMdl = Number(options.usdMdl) > 0 ? Number(options.usdMdl) : liveRates.usdMdl;
     const eurMdl = Number(options.eurMdl) > 0 ? Number(options.eurMdl) : liveRates.eurMdl;
-    const auctionFee = auctionFeeFor(bid, lot.auction);
+    const auctionFee = auctionFeeFor(bid, lot.auction, true); // Канада — без надбавки US_AUCTION_FEE_SURCHARGE
     const ip = kind === "pickup" || kind === "vanLarge";
     const green = ["hybrid","phev","electric"].includes(fuel);
     const zone = caLoc.zone || "east";
