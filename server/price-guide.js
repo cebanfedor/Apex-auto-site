@@ -94,6 +94,17 @@ const RE_TOTAL = /flood|water|burn|biohazard|bio ?chemical/i;
 const RE_STRUCT = /all over|roll ?over|undercarriage|frame|strip/i;
 const RE_MECH = /mechanical|engine|transmission|electrical/i;
 const RE_COSMETIC = /minor dent|scratch|normal wear|wear (and|&) tear|^none$|damage history|vandalism|^unknown$|^-$/i;
+// Front End + Left/Right Front (или Rear End + Left/Right Rear) — фид описывает ОДИН угловой удар двумя
+// категориями (общая + уточняющая сторона), а не повреждение в двух разных местах. Без этой проверки
+// «две зоны» ниже занижала coef для самого частого вида ДТП — удара в угол (29.09.2026, Федор: «на X3
+// не бывает копеечных цен», BMW X3 IAAI 12704662 — Front End / Left Front уходил в «две зоны» 0.85
+// вместо «один удар» 0.95, хотя это один и тот же угол машины).
+const RE_FRONT_CORNER = /\bfront end\b/i, RE_FRONT_SIDE = /\b(left|right) front\b/i;
+const RE_REAR_CORNER = /\brear end\b/i, RE_REAR_SIDE = /\b(left|right) rear\b/i;
+function sameCornerZone(a, b){
+  return (RE_FRONT_CORNER.test(a) && RE_FRONT_SIDE.test(b)) || (RE_FRONT_CORNER.test(b) && RE_FRONT_SIDE.test(a))
+    || (RE_REAR_CORNER.test(a) && RE_REAR_SIDE.test(b)) || (RE_REAR_CORNER.test(b) && RE_REAR_SIDE.test(a));
+}
 function conditionCoef(meta){
   const d1 = String(meta.dmg || "").trim(), d2 = String(meta.dmg2 || "").trim();
   const all = `${d1} / ${d2}`;
@@ -106,7 +117,7 @@ function conditionCoef(meta){
   else if(RE_STRUCT.test(all)) coef = runs ? 0.8 : 0.7;
   else if(RE_MECH.test(d1)) coef = runs ? 0.85 : 0.75;
   else{
-    const has2 = d2 && !RE_COSMETIC.test(d2);
+    const has2 = d2 && !RE_COSMETIC.test(d2) && !sameCornerZone(d1, d2);
     const cosmetic1 = !d1 || RE_COSMETIC.test(d1);
     if(cosmetic1 && !has2) coef = runs ? 1.1 : (noStart ? 0.95 : 1.0);
     else if(/hail/i.test(d1) && !has2) coef = runs ? 1.0 : 0.9;
