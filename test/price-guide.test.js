@@ -130,3 +130,20 @@ test("estimateFromAcv: реальный лот (2021 Tesla Model Y Performance D
   assert.deepEqual(withRepair, {lo:7100, mid:8300, hi:9500});
   assert.ok(withRepair.mid > without.mid);
 });
+
+test("conditionCoef: удар в угол (Front End + Left/Right Front, Rear End + Left/Right Rear) — не «две зоны» (29.09.2026, Федор: «на X3 не бывает копеечных цен», BMW X3 IAAI 12704662)", () => {
+  // Фид описывает ОДИН угловой удар двумя категориями (общая «Front End» + уточняющая сторона «Left Front») —
+  // это то же самое место повреждения, не два разных. Раньше любая непустая dmg2 (кроме явно косметической)
+  // считалась «две зоны» и занижала coef с ~0.95 (один удар, не на ходу неизвестно) до 0.85.
+  const cornerHit = pg.conditionCoef({dmg:"Front End", dmg2:"Left Front", cond:"", doc:""});
+  const trueTwoZones = pg.conditionCoef({dmg:"Front End", dmg2:"Rear End", cond:"", doc:""}); // реально два разных места
+  assert.ok(Math.abs(cornerHit - 0.95) < 1e-6);
+  assert.ok(Math.abs(trueTwoZones - 0.85) < 1e-6);
+  assert.ok(cornerHit > trueTwoZones);
+  assert.ok(Math.abs(pg.conditionCoef({dmg:"Front End", dmg2:"Right Front"}) - 0.95) < 1e-6);
+  assert.ok(Math.abs(pg.conditionCoef({dmg:"Rear End", dmg2:"Left Rear"}) - 0.95) < 1e-6);
+  // Порядок d1/d2 не важен — фид иногда кладёт уточняющую сторону первой
+  assert.ok(Math.abs(pg.conditionCoef({dmg:"Left Front", dmg2:"Front End"}) - 0.95) < 1e-6);
+  // «Side» (не Left/Right Front) — по-прежнему настоящая вторая зона (не корневой угол)
+  assert.ok(Math.abs(pg.conditionCoef({dmg:"Front End", dmg2:"Side"}) - 0.85) < 1e-6);
+});
