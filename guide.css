@@ -2,8 +2,8 @@
 .guideMain { background: #f1f4f8; min-height: 100vh; padding: 32px 0 80px; }
 .guideShell { width: calc(100% - 48px); max-width: var(--maxw); margin: 0 auto; }
 
-.guideBreadcrumb { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #79828f; margin-bottom: 24px; }
-.guideBreadcrumb a { color: #79828f; text-decoration: none; }
+.guideBreadcrumb { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #5a6472; margin-bottom: 24px; }
+.guideBreadcrumb a { color: #5a6472; text-decoration: none; }
 .guideBreadcrumb a:hover { color: #ed0012; }
 
 .guideArticle { background: #fff; border: 1px solid #e6e8ec; border-radius: 20px; box-shadow: 0 1px 2px rgba(16,20,28,.04), 0 14px 34px rgba(16,20,28,.08); overflow: hidden; }
@@ -15,7 +15,7 @@
 .guideAuthor { display: flex; align-items: center; gap: 12px; }
 .guideAuthorPhoto { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #eef0f3; }
 .guideAuthor strong { display: block; font-size: 14px; color: #14181f; }
-.guideAuthor span { font-size: 12px; color: #79828f; }
+.guideAuthor span { font-size: 12px; color: #5a6472; }
 
 .guideBody { padding: 40px 48px; }
 .guideBody h2 { font-size: 22px; font-weight: 700; color: #14181f; letter-spacing: -.02em; margin: 36px 0 14px; }

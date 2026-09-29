@@ -609,12 +609,21 @@
   }
 
   async function api(path, options = {}){
-    const response = await fetch(path, {
-      credentials:"same-origin",
-      headers: options.body ? {"content-type":"application/json"} : undefined,
-      ...options,
-      body: options.body ? JSON.stringify(options.body) : undefined
-    });
+    // Таймаут на КАЖДЫЙ запрос каталога: на «мёртвом» мобильном коннекте голый fetch
+    // висел минутами — скелетон не убирался, авто-ретрай (он срабатывает на reject) не
+    // запускался. Теперь по таймауту fetch reject-ится → отрабатывает ретрай/сообщение.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), options.timeout || 12000);
+    let response;
+    try{
+      response = await fetch(path, {
+        credentials:"same-origin",
+        headers: options.body ? {"content-type":"application/json"} : undefined,
+        signal: ctrl.signal,
+        ...options,
+        body: options.body ? JSON.stringify(options.body) : undefined
+      });
+    }finally{ clearTimeout(timer); }
     const payload = await response.json().catch(() => ({}));
     if(!response.ok || payload.ok === false) throw new Error(payload.error || "Запрос не выполнен");
     return payload;

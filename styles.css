@@ -207,6 +207,10 @@ section { position: relative; }
 }
 .heroMainV45 h1 { text-wrap: balance; }
 .heroMainV45 h1::after { content: ""; display: block; width: 64px; height: 4px; margin-top: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--red), #ff7a44); }
+/* Слайд-заголовок семантически h2 (единственный h1 на странице — слайд 2, SEO), но
+   визуально идентичен hero-h1 (аудит 30.09.2026). */
+.heroMainV45 .heroSlideH1V1 { font-size: clamp(24px, 3.1vw, 38px); line-height: 1.06; text-wrap: balance; }
+.heroMainV45 .heroSlideH1V1::after { content: ""; display: block; width: 64px; height: 4px; margin-top: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--red), #ff7a44); }
 .heroMainV45 p { margin-top: 16px; font-size: 15.5px; color: var(--ink-2); max-width: 44ch; }
 .heroCtasV207 { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
 /* Чипы площадок в hero — только мобильная версия (на десктопе площадки уже в trust-списке). */
@@ -279,7 +283,7 @@ section { position: relative; }
 }
 .heroWideContentV302 { position: relative; z-index: 2; padding: 28px 48px 8px; max-width: 660px; }
 .heroV45.heroWideV302 .heroMainV45 { align-self: auto; }
-.heroV45.heroWideV302 .heroMainV45 h1 { color: #fff; }
+.heroV45.heroWideV302 .heroMainV45 h1, .heroV45.heroWideV302 .heroMainV45 .heroSlideH1V1 { color: #fff; }
 .heroV45.heroWideV302 .heroMainV45 p { color: rgba(255,255,255,0.82); }
 .heroV45.heroWideV302 .heroTrustV207 li { color: rgba(255,255,255,0.92); }
 .heroV45.heroWideV302 .heroBtnGhostV207 {
@@ -1393,9 +1397,9 @@ details > summary::-webkit-details-marker { display: none; }
   }
   .heroWideContentV302 { padding: 16px 18px 20px; display: flex; flex-direction: column; flex: 1; }
   .heroV45.heroWideV302 .heroMainV45 { display: flex; flex-direction: column; flex: 1; }
-  .heroMainV45 h1 { font-size: 18px; line-height: 1.2; }
+  .heroMainV45 h1, .heroMainV45 .heroSlideH1V1 { font-size: 18px; line-height: 1.2; }
   .heroEyebrowV207 { display: none; }
-  .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
+  .heroMainV45 h1::after, .heroMainV45 .heroSlideH1V1::after { margin-top: 10px; width: 44px; height: 3px; }
   .heroMainV45 p { display: none; }
   /* Список площадок сверху вниз, просто текстом с маркерами. */
   .heroAucV1 { display: block; margin: 12px 0 0; padding: 0; list-style: none; }
@@ -1433,10 +1437,10 @@ details > summary::-webkit-details-marker { display: none; }
   .apexStepV205 h3 { font-size: 13px; margin: 4px 0 4px; min-height: 0; }
   .apexStepV205 p { font-size: 12px; min-height: 0; }
 
-  /* --- Скрыть тяжёлые секции ------------------------------------------ */
-  .hotSectionIntroV89, .hotLots { display: none; }
-  .seaDeliveryV305 { display: none; }
-  .apexWhyV212 { display: none; }
+  /* --- Контент доверия и витрина ВИДНЫ на мобильном (аудит 30.09.2026): ------
+     раньше «Почему Apex», «Горячие лоты» и «Доставка морем» скрывались на ≤480px
+     ради перфа — но 90% трафика мобильный, и для сайта, продающего доверием, это
+     било по конверсии. Секции уже имеют мобильную раскладку (grid 1fr на ≤640). */
   .apexReviewsGridV212 { grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
 
   /* --- Отзывы: убрать лишнее ------------------------------------------ */
