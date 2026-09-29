@@ -55,6 +55,16 @@ module.exports = async function(req, res){
     .replace(/<meta name="twitter:title"[^>]*>/, `<meta name="twitter:title" content="${esc(title)}">`)
     .replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${esc(desc)}">`)
     .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${esc(img)}">`);
+  // JSON-LD CollectionPage: фильтрованная страница каталога (make/model) — сущность-коллекция
+  // для поисковиков/LLM (эти страницы в sitemap). Breadcrumb уже есть в шаблоне — не дублируем.
+  try{
+    const ld = JSON.stringify({
+      "@context":"https://schema.org", "@type":"CollectionPage",
+      name: title, description: desc, url,
+      isPartOf: {"@type":"WebSite", name:"Apex Auto", url:"https://apexauto.md"}
+    }).replace(/</g, "\\u003c");
+    html = html.replace("</head>", `<script type="application/ld+json">${ld}</script>\n</head>`);
+  }catch(e){ /* schema не критично */ }
   res.setHeader("Cache-Control", "public, s-maxage=600, max-age=60, stale-while-revalidate=3600");
   res.status(200).send(html);
 };
