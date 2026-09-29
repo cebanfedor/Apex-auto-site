@@ -132,6 +132,21 @@ const SB_WAIT_MS = 2500;   // 23.09.2026: под нагрузкой (purge + т�
 let sbFails = 0, sbDownUntil = 0;
 function sbUp(){ return Date.now() > sbDownUntil; }
 const SB_TIMEOUT = Symbol("sbTimeout");
+
+// AuctionsAPI 429 circuit breaker (29.09.2026, Федор: «идёт большой расход запросов»): у пользовательских
+// action уже была обработка 429 (см. конец файла), а крон-пути (sync/buynow/resale/settle/closed) её не
+// проверяли вовсе — получив «limit reached», просто продолжали дёргать API на следующем тике (2–10 мин)
+// с тем же объёмом, превращая разовое превышение лимита в затяжное. Общий на весь модуль брейкер: как
+// только ЛЮБОЙ вызов (крон или пользовательский) поймал 429 — 5 минут все вызовы отваливаются мгновенно
+// синтетической 429-ошибкой, без реального похода к API. Отдельно от sbUp — разные апстримы.
+let apiDownUntil = 0;
+function apiUp(){ return Date.now() > apiDownUntil; }
+function noteApiRateLimit(){ apiDownUntil = Date.now() + 5 * 60e3; }
+function apiLimitedError(){
+  const error = new Error("AuctionsAPI rate-limited (circuit breaker)");
+  error.status = 429;
+  return error;
+}
 async function sbGuard(promise, ms){
   if(!sbUp()) return null;
   try{
@@ -815,6 +830,7 @@ function buildSearchParams(query){
 }
 
 async function fetchJson(url){
+  if(!apiUp()) throw apiLimitedError();
   const key = process.env.AUCTIONS_API_KEY;
   if(!key){
     const error = new Error("AUCTIONS_API_KEY is not configured");
@@ -834,6 +850,7 @@ async function fetchJson(url){
     error.status = 502;
     throw error;
   }finally{ clearTimeout(timer); }
+  if(response.status === 429) noteApiRateLimit();
   const payload = await response.json().catch(() => null);
   if(!response.ok || payload?.error){
     const error = new Error(payload?.message || payload?.error || "Auctions API request failed");
@@ -3376,12 +3393,14 @@ async function syncSetState(v){
 
 // Свой фетч с таймаутом 30с: страницы по 1000 лотов тяжелее обычных запросов.
 async function syncApiFetch(url, timeoutMs){
+  if(!apiUp()) throw apiLimitedError();
   const key = process.env.AUCTIONS_API_KEY;
   if(!key) throw new Error("AUCTIONS_API_KEY is not configured");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs || 30000);
   try{
     const res = await fetch(url, {headers:{"x-api-key":key, accept:"application/json"}, signal:controller.signal});
+    if(res.status === 429) noteApiRateLimit();
     const payload = await res.json().catch(() => null);
     if(!res.ok || payload?.error){
       const error = new Error(payload?.message || payload?.error || `AuctionsAPI ${res.status}`);
@@ -3810,9 +3829,17 @@ async function handleSyncLots(response){
       // Полный обход (743 страницы принудительной записи) — ТОЛЬКО ночью UTC 0–5: днём он перегружал Micro-базу,
       // и каталог для посетителей отвечал по 10–16с (23.09 09:00).
       const nightNow = new Date().getUTCHours() <= 5;
+      // 29.09.2026 (Федор: «большой расход запросов», нашёл — sweep висел «активным» больше суток на
+      // одной странице): бюджет тут раньше мерился от started (начало ВСЕЙ функции) — к этой строке
+      // changes (12с) + upcoming (42с) фазы уже могли выесть все 45с SYNC_RUN_BUDGET_MS ДО того, как
+      // цикл ниже успевал сделать хоть одну попытку → sweep застревал без прогресса (и без лишних
+      // запросов — цикл просто не запускался). Свой независимый бюджет — гарантированный шанс на
+      // прогресс каждый ночной тик, а не выедание остатков чужого времени.
+      const SWEEP_BUDGET_MS = 20000;
       if(sweep.active && sweep.stage === "crawl" && nightNow){
-        while(Date.now() - started < SYNC_RUN_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
-          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, started + SYNC_RUN_BUDGET_MS, {force:true});
+        const sweepT0 = Date.now();
+        while(Date.now() - sweepT0 < SWEEP_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
+          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, sweepT0 + SWEEP_BUDGET_MS, {force:true});
           if(got && !syncImportPage.lastComplete) break;   // не успели записать страницу — повторим её в следующем вызове
           sweep.imported += got;
           if(got === 0){ sweep.di += 1; sweep.page = 1; } else { sweep.page += 1; }
