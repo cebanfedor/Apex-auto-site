@@ -276,8 +276,8 @@
    ШИРЕ колонки — .dbAside/.dbWhen как flex/grid-элементы по умолчанию не сжимались уже своего контента
    (min-width:auto), бейдж вылезал за рамку карточки. Добавлен min-width:0 на .dbAside/.dbWhen (чтобы колонка
    могла сжаться до трека грида) + здесь текст переносится, а не выходит за край. */
-.dbWhen .dbNoDateV1, .dbMobDateV1.dbNoDateV1 { color:#9a4d00; font-weight:800; background:#fff4e5; padding:2px 9px; border-radius:7px; white-space:normal; max-width:100%; line-height:1.35; }
-.dbWhen .dbNoDateV1 .dbIco, .dbMobDateV1.dbNoDateV1 .dbIco { color:#c05621; flex:0 0 auto; }
+.dbWhen .dbNoDateV1, .dbMobDateV1.dbNoDateV1 { color:#9a4d00; font-weight:800; background:#fff4e5; padding:2px 8px; border-radius:7px; white-space:normal; max-width:100%; line-height:1.3; font-size:10.5px; letter-spacing:-.01em; }
+.dbWhen .dbNoDateV1 .dbIco, .dbMobDateV1.dbNoDateV1 .dbIco { color:#c05621; flex:0 0 auto; width:12px; height:12px; }
 .dbLive.live { color:#1b9c5b; } .dbLive.live .dbIco { color:#1b9c5b; }
 .dbLive.soon { color:#e8780c; } .dbLive.soon .dbIco { color:#e8780c; }
 
