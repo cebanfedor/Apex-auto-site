@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const {lotSlug, parseLotSlug} = require("../server/slug");
 const ogLot = require("../server/og-lot");
+const {lotJsonLd} = require("../server/lot-jsonld");
 
 // SSR-обёртка страницы лота: OG-теги для шаринга + данные лота, вшитые
 // в HTML (window.__ssrLot) — фронт рендерит мгновенно, без второго запроса.
@@ -138,6 +139,11 @@ module.exports = async function(req, res){
     // (инлайн <script>window.__ssrLot=…</script> блокировался — хеш у него каждый раз новый,
     // и SSR-ускорение молча не работало). Клиент читает #ssrLotV1.
     html = html.replace("</head>", `<script type="application/json" id="ssrLotV1">${json}</script>\n</head>`);
+    // JSON-LD Car+Offer для страницы лота (SEO/AEO): факты авто для поисковиков и LLM.
+    try{
+      const ld = JSON.stringify(lotJsonLd(lot, {url:ogUrl, lang, description:ogDesc})).replace(/</g, "\\u003c");
+      html = html.replace("</head>", `<script type="application/ld+json">${ld}</script>\n</head>`);
+    }catch(e){ /* schema — не критично, страница всё равно отдаётся */ }
   }
 
   // Лота не существует → честный 404 + noindex. Раньше отдавали 200 с общей страницей
