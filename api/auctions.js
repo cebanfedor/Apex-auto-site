@@ -4090,12 +4090,21 @@ async function runBuyNowCheck(budgetMs = 44000){
   if(!sbUp()) return {ok:true, skipped:"db down"};
   const meta = await syncSbFetch(`/alert_meta?k=eq.bn_cursor&select=v`).catch(() => null);
   let cur = (Array.isArray(meta) && meta[0] && meta[0].v) || {};
-  const q = (extra, lim) => `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString())}${extra}&order=sale_date.asc,id.asc&limit=${lim}`;
+  // 30.09.2026 (Федор: «расход API 40k→108k за 3 часа при простое сайта») — нашёл: этот прогон ходил
+  // по ВСЕМ лотам с buy_now без верхней границы даты (пул — десятки тысяч, action=count даёт buyNow
+  // total 43k+) и БЕЗ отметки «уже проверен» — курсор просто крутится по кругу вечно, каждый полный
+  // круг заново тратит по 1 запросу AuctionsAPI (fetchDetail=/search-lot) НА КАЖДЫЙ лот, включая те,
+  // что выставлены на продажу через месяцы и никак не горят. При 900 лотов/тик и тике раз в 3 мин —
+  // потолок ~18 000 запросов/час только с этого крона, постоянно, независимо от трафика сайта.
+  // Сужаю окно до +21 дня (актуальный «Buy Now скоро» горизонт, дальние лоты не нуждаются в проверке
+  // раз в минуты — их подхватят syncsettle/syncclosed по факту прошедшей даты) и режу лимит 900→250 —
+  // это одновременно и чаще освежает действительно горящий пул (круг короче), и режет потолок до ~5000/ч.
+  const q = (extra, lim) => `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString())}&sale_date=lte.${encodeURIComponent(new Date(Date.now() + 21 * 86400e3).toISOString())}${extra}&order=sale_date.asc,id.asc&limit=${lim}`;
   const after = cur.sd ? `&or=(sale_date.gt.${encodeURIComponent(cur.sd)},and(sale_date.eq.${encodeURIComponent(cur.sd)},id.gt.${encodeURIComponent(cur.id || "")}))` : "";
-  let rows = await syncSbFetch(q(after, 900)).catch(() => null);
+  let rows = await syncSbFetch(q(after, 250)).catch(() => null);
   if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
   out.wrapped = !rows.length;
-  if(!rows.length){ rows = await syncSbFetch(q("", 900)).catch(() => []); cur = {}; }
+  if(!rows.length){ rows = await syncSbFetch(q("", 250)).catch(() => []); cur = {}; }
   let idx = 0, last = null;
   const worker = async () => {
     while(idx < rows.length && Date.now() - t0 < budgetMs){
