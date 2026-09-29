@@ -76,9 +76,14 @@ function tgChannelLink(chatId, messageId){
   const u = String(chatId || "").replace(/^@/, "");
   return (u && !/^-?\d/.test(u) && messageId) ? `https://t.me/${u}/${messageId}` : "";
 }
+// Имена переменных окружения для постинга. Поддерживаем оба варианта: короткий
+// (POST_BOT_TOKEN/POST_CHANNEL_ID) и с префиксом TELEGRAM_ — на Vercel Федор
+// завёл их как TELEGRAM_POST_BOT_TOKEN/TELEGRAM_POST_CHANNEL_ID.
+function tgPostToken(){ return process.env.POST_BOT_TOKEN || process.env.TELEGRAM_POST_BOT_TOKEN || ""; }
+function tgPostChannel(){ return process.env.POST_CHANNEL_ID || process.env.TELEGRAM_POST_CHANNEL_ID || ""; }
 async function postLotToChannel({caption, photos}){
-  const token = process.env.POST_BOT_TOKEN;
-  const chatId = process.env.POST_CHANNEL_ID;
+  const token = tgPostToken();
+  const chatId = tgPostChannel();
   if(!token || !chatId){ const e = new Error("Постинг не настроен: добавьте POST_BOT_TOKEN и POST_CHANNEL_ID в переменные окружения Vercel и передеплойте."); e.status = 400; throw e; }
   const text = String(caption || "").trim();
   const pics = (Array.isArray(photos) ? photos : []).filter(u => typeof u === "string" && TG_PHOTO_HOSTS.test(u)).slice(0, 10);
@@ -5017,8 +5022,8 @@ module.exports = async function handler(request, response){
     if(action === "tgdiag"){
       const {isAuthenticated} = require("../server/auth");
       if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false}); return; }
-      const token = process.env.POST_BOT_TOKEN;
-      const chatId = process.env.POST_CHANNEL_ID;
+      const token = tgPostToken();
+      const chatId = tgPostChannel();
       const out = {ok:true, configured:Boolean(token && chatId), channel:chatId ? String(chatId).replace(/^@/, "") : null};
       if(token && chatId){
         try{ const me = await tgApi(token, "getMe", {}); out.bot = me && me.username; }catch(e){ out.botError = String(e.message || e).slice(0, 120); }
