@@ -1764,10 +1764,12 @@
         li.className = "dbCheck bad";
         li.innerHTML = `${dbIco(toneIcon("bad"))}<span><b>${L("История:")}</b> ${txt}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
       }else{
-        // Тот же лот повторяется: у страховой это норма; у неизвестного/частного продавца 3+ раза — подозрение на перекупа.
-        const shady = !sellerIsInsurance(lot) && past.length >= 3;
-        li.className = shady ? "dbCheck bad" : "dbCheck neutral";
-        li.innerHTML = `${dbIco(shady ? toneIcon("bad") : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${shady ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
+        // Тот же НОМЕР ЛОТА повторяется (не продан, не менялся номер) — это НЕ перекуп, машину просто
+        // не покупают (частый случай у прокатных компаний). Перекуп бывает только когда номер лота
+        // МЕНЯЕТСЯ (см. lotChanged выше) — тогда машина реально уходила на новые торги (Федор 29.09.2026).
+        const unknownSeller = !sellerIsInsurance(lot) && past.length >= 3;
+        li.className = unknownSeller ? "dbCheck warn" : "dbCheck neutral";
+        li.innerHTML = `${dbIco(unknownSeller ? toneIcon("warn") : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${unknownSeller ? `<em class="dbUnknownSellerTagV1">${L("Неизвестный продавец")}</em>` : ""}</span>`;
       }
       // Feduk Clean Select включён, а по истории это перекуп (метка «Перекуп») — карточке здесь не место: убираем (база могла ещё не пометить лот)
       if(document.querySelector('#auctionFiltersForm input[name="smart"]:checked') && card.querySelector(".dbResaleTagV1")){
@@ -3258,8 +3260,10 @@
       ? (lot.vinChecked === false ? L("История по VIN временно недоступна") : lotSaleState(lot).isSold ? L("Единственная продажа") : L("Ранее не продавалась"))
       : pastSold.length ? `${histCount} ${recordsWord(histCount)} • ${L(soldEarlier.length ? "Был продан ранее!" : "Продан снова позже!")}${soldTotal >= 2 ? ` • ${L("Продаж по VIN")}: ${soldTotal}` : ""}${sellerIsInsurance(lot) ? "" : ` • ${L("Перекуп")}`}`
       : `${L("Выставлялась ранее")}: ${histCount} ${recordsWord(histCount)}, ${L("не продана")}`;
-    // Перекуп (те же правила, что метка в карточке): менялся номер лота / была продажа / 3+ захода — и продавец не страховая. Блок «Apex рекомендует» такому лоту не показываем.
-    const isResaleLot = !sellerIsInsurance(lot) && (pastSold.length > 0 || pastHistory.some(h => h.lot && String(h.lot) !== curLotNo) || histCount >= 3);
+    // Перекуп (те же правила, что метка в карточке): была продажа ИЛИ менялся номер лота — и продавец не
+    // страховая. Просто много повторов ТОГО ЖЕ номера (не продан) — не перекуп, машину не покупают
+    // (Федор 29.09.2026). Блок «Apex рекомендует» такому лоту не показываем.
+    const isResaleLot = !sellerIsInsurance(lot) && (pastSold.length > 0 || pastHistory.some(h => h.lot && String(h.lot) !== curLotNo));
     // Seller type detection — как у DreamBid: галочка в слоте иконки + обычный
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
     // Первичен seller_type из API (mapfre и др. по имени не распознать).
