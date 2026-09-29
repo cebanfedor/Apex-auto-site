@@ -410,10 +410,11 @@ section { position: relative; }
    центрируется по вертикали как карточка поиска (margin-left:auto внутри флекс-ряда, а не
    absolute) — тот же приём, что и раньше, только теперь с полноценным контентом, а не двумя
    голыми строками. */
-/* 29.09.2026 (Федор со стрелкой на скриншоте): было по центру строки (align-items:center у
-   .heroSearchWrapV1) — визуально прижато к точкам-навигации сверху. Подвинул к низу фото
-   (align-self:flex-end), в тот же правый столбец — ближе к асфальту/капоту McLaren, как показано. */
-.heroSearchInfoV1 { margin-left: auto; max-width: 320px; align-self: flex-end; padding-bottom: 26px; }
+/* 29.09.2026 (Федор со стрелкой): сначала было по центру строки, потом подвинул к низу (под
+   McLaren-фото) — на новом фото (hero-carfleet) низ уже занят машинами, а стрелка теперь наоборot,
+   к верхнему углу («пропорционально блоку» — как точки-навигация в углу). align-self:flex-start
+   + padding-top с запасом под точки (top:18px + их высота), чтобы бейдж не касался точек. */
+.heroSearchInfoV1 { margin-left: auto; max-width: 320px; align-self: flex-start; padding-top: 44px; }
 .heroSearchInfoV1 h2 { color: #fff; font-size: 26px; line-height: 1.15; margin: 14px 0 0; text-wrap: balance; }
 .heroSearchInfoV1 h2::after { content: ""; display: block; width: 56px; height: 4px; margin-top: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--red), #ff7a44); }
 .heroSearchInfoV1 p { color: rgba(255,255,255,0.82); font-size: 13.5px; line-height: 1.5; margin: 14px 0 0; }
