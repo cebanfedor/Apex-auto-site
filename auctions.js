@@ -764,7 +764,9 @@
     if(/suv|utility|cuv|crossover/.test(b)) return "suv";
     return "sedan";
   }
-  function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
+  // Фид отдаёт локацию строчными («laurel, maryland») — приводим к Title Case для показа.
+  function titleCaseLoc(s){ return String(s || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase()); }
+  function landRouteLabel(lot){ const from = titleCaseLoc(lot.location) || "Локация США"; return `${from} → порт США`; }
   function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
 
   // Реальный тип силовой установки по VIN (NHTSA vPIC), приходит с сервера как lot.fuelKind: 1 дизель · 2 электро · 3 гибрид · 4 бензин (в т.ч. mild-hybrid) · 5 plug-in гибрид
@@ -2533,11 +2535,11 @@
       return calcSec("ship", "Калькулятор стоимости", shipSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
-        ${calcRow("Доставка по Канаде", calc.dispatch)}
+        ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
         ${calcRow("Услуги канадской компании", calc.canadaFee, calc.bid > 15000 ? "2% от цены лота" : "")}
         ${calcRow("Складирование и погрузка", calc.keeper)}
-        ${calcRow("Морская перевозка", calc.ocean)}
+        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}`)
         + calcSec("clear", "Таможня и оформление", clearSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
@@ -2550,8 +2552,8 @@
     return calcSec("ship", "Калькулятор стоимости", shippingSub, `
         ${calcRow("Ставка", calc.bid)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
-        ${calcRow("Доставка по США", calc.land)}
-        ${calcRow("Доставка морем", calc.sea)}`)
+        ${calcRow("Доставка по США", calc.land, calc.landRoute)}
+        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}`)
       + calcSec("clear", "Таможня и оформление", clearingSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
@@ -2779,7 +2781,7 @@
     ];
     // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
     // Фид отдаёт место строчными («hillsborough, new jersey») — приводим к Title Case.
-    const place = String(lot.location || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase());
+    const place = titleCaseLoc(lot.location);
     const landRoute = calc.canada ? calc.dispatchRoute : calc.landRoute;
     const locParts = [place, landRoute && landRoute !== place ? landRoute : ""].filter(Boolean);
     const siteUrl = `${location.origin}${detailHref(lot)}`;
