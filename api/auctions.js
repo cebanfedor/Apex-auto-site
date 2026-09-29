@@ -50,22 +50,36 @@ async function notifyTelegram(data){
   if(data.auction) lines.push(`🏷 *Аукцион:* ${data.auction.toUpperCase()}`);
   // Прямая ссылка на лот — менеджер открывает машину одним кликом, без поиска.
   if(data.lotUrl) lines.push(`🔗 ${data.lotUrl}`);
+  // 29.09.2026 (аудит): без AbortController зависший fetch к Telegram мог держать весь запрос
+  // до истечения общего таймаута платформы — таймаут 8с, как у аналогичной обёртки в server/alerts.js.
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
   try{
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:chatId, text:lines.join("\n"), parse_mode:"Markdown"})
+      body:JSON.stringify({chat_id:chatId, text:lines.join("\n"), parse_mode:"Markdown"}),
+      signal:ctl.signal
     });
   }catch(_){}
+  finally{ clearTimeout(timer); }
 }
 
 // ── Публикация лота в Telegram-канал (админ жмёт кнопку на странице лота) ──
 // Постит бот POST_BOT_TOKEN в канал POST_CHANNEL_ID (@fedukauto). Подпись и выбор
 // фото собирает клиент (там уже есть вилка/под-ключ), сервер только отправляет.
 async function tgApi(token, method, body){
-  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body)
-  });
+  // 29.09.2026 (аудит): был без AbortController — зависший fetch держал бы весь admin-запрос tgpost.
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10000);
+  let res;
+  try{
+    res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body), signal:ctl.signal
+    });
+  }catch(e){
+    throw new Error(e.name === "AbortError" ? "Telegram не отвечает (таймаут)" : String(e.message || e));
+  }finally{ clearTimeout(timer); }
   const payload = await res.json().catch(() => null);
   if(!payload || !payload.ok) throw new Error((payload && payload.description) || `Telegram HTTP ${res.status}`);
   return payload.result;
@@ -889,11 +903,18 @@ async function getEridanToken(){
     err.status = 500;
     throw err;
   }
-  const res = await fetch(`${ERIDAN_BASE}/auth/login/`, {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({username:user, password:pass})
-  });
+  // 29.09.2026 (аудит): логин был без таймаута — сам eridanFetch защищён (12с), а вход в аккаунт нет.
+  const loginCtl = new AbortController();
+  const loginTimer = setTimeout(() => loginCtl.abort(), 12000);
+  let res;
+  try{
+    res = await fetch(`${ERIDAN_BASE}/auth/login/`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username:user, password:pass}),
+      signal:loginCtl.signal
+    });
+  }finally{ clearTimeout(loginTimer); }
   const data = await res.json().catch(() => null);
   if(!res.ok || !data?.token){
     const err = new Error(data?.detail || "Eridan auth failed");
@@ -3835,11 +3856,19 @@ async function handleSyncLots(response){
       // цикл ниже успевал сделать хоть одну попытку → sweep застревал без прогресса (и без лишних
       // запросов — цикл просто не запускался). Свой независимый бюджет — гарантированный шанс на
       // прогресс каждый ночной тик, а не выедание остатков чужого времени.
+      // 29.09.2026 (второй проход, аудит): независимый sweepT0 без верхнего потолка от started мог в
+      // сумме с CH(≤12с)+UP(≤42с) вылезти за vercel.json maxDuration:60000 — функцию убивает платформа
+      // ПОСЛЕ upsert, ДО snapshot state.lock_at=null → лок зависает до истечения TTL (3 мин), блокируя
+      // sync/closed/settle. FUNC_HARD_DEADLINE_MS — потолок ОТ started с запасом под ответ; sweep берёт
+      // min(свои 20с, остаток до этого потолка) — в типичном тике (CH/UP «same», ~5–6с суммарно) sweep
+      // всё равно получает почти полные 20с, а в редком медленном тике не даёт функции превысить лимит.
       const SWEEP_BUDGET_MS = 20000;
+      const FUNC_HARD_DEADLINE_MS = 54000;
       if(sweep.active && sweep.stage === "crawl" && nightNow){
         const sweepT0 = Date.now();
-        while(Date.now() - sweepT0 < SWEEP_BUDGET_MS && sweep.di < SYNC_DOMAINS.length){
-          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, sweepT0 + SWEEP_BUDGET_MS, {force:true});
+        const sweepDeadline = Math.min(sweepT0 + SWEEP_BUDGET_MS, started + FUNC_HARD_DEADLINE_MS);
+        while(Date.now() < sweepDeadline && sweep.di < SYNC_DOMAINS.length){
+          const got = await syncImportPage("/cars", sweep.page, {domain_id:SYNC_DOMAINS[sweep.di]}, {}, sweepDeadline, {force:true});
           if(got && !syncImportPage.lastComplete) break;   // не успели записать страницу — повторим её в следующем вызове
           sweep.imported += got;
           if(got === 0){ sweep.di += 1; sweep.page = 1; } else { sweep.page += 1; }
@@ -3959,8 +3988,15 @@ async function computeCatalogCount(){
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const grace = new Date(Date.now() - LIVE_GRACE_MS).toISOString();
   const cnt = async extra => {
-    const r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
-      {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
+    // 29.09.2026 (аудит): без AbortController — зависший запрос к Supabase держал бы весь action=count
+    // (его дёргает КАЖДЫЙ визит каталога) до общего таймаута платформы. count=planned и так «мгновенно».
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 6000);
+    let r;
+    try{
+      r = await fetch(`${url}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(grace)}${extra}`,
+        {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}, signal:ctl.signal});
+    }catch(e){ return 0; }
+    finally{ clearTimeout(timer); }
     // count=planned: оценка планировщика по индексу (archived, sale_date) — мгновенно; exact на 786k строк рвался по таймауту → 0
     return r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : 0;
   };
@@ -4303,11 +4339,18 @@ async function runResaleCheck(budgetMs){
   };
   await Promise.all(Array.from({length:6}, worker));
   const stamp = new Date().toISOString();
+  // 29.09.2026 (аудит): PATCH раньше был безусловным по id — а «мгновенная» запись resale из
+  // detail/vinhist (живой просмотр лота во время этого прогона, до ~42с) пишет ТОЛЬКО когда
+  // resale_at ещё null (compare-and-set), поэтому могла успеть проскочить МЕЖДУ чтением батча
+  // (строка 4286) и этим PATCH — и тут же стиралась нашим более старым результатом. Гонка чинится
+  // условием «трогаем только то, что не переписали ПОСЛЕ старта этого прогона» (t0): свежая
+  // мгновенная запись (resale_at ≥ t0) остаётся, старое/пустое (resale_at < t0 или null) — как раньше.
+  const t0Iso = encodeURIComponent(new Date(t0).toISOString());
   for(const level of [0, 1, 2]){
     const ids = buckets[level];
     for(let i = 0; i < ids.length; i += 60){
       const chunk = ids.slice(i, i + 60);
-      await syncSbFetch(`/api_lots?id=in.(${chunk.map(encodeURIComponent).join(",")})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale:level, resale_at:stamp})}).catch(() => { out.fail++; });
+      await syncSbFetch(`/api_lots?id=in.(${chunk.map(encodeURIComponent).join(",")})&or=(resale_at.is.null,resale_at.lt.${t0Iso})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale:level, resale_at:stamp})}).catch(() => { out.fail++; });
     }
     out.checked += ids.length;
   }
@@ -4339,10 +4382,12 @@ module.exports = async function handler(request, response){
     // Здоровье истории по VIN: сбои/запасной источник (в пределах инстанса) и покрытие проверкой Clean Select.
     const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
     const cnt = async path => {
+      const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 6000);
       try{
-        const r = await fetch(`${url}/rest/v1${path}`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}});
+        const r = await fetch(`${url}/rest/v1${path}`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=planned", range:"0-0", "range-unit":"items"}, signal:ctl.signal});
         return Number(String(r.headers.get("content-range") || "").split("/").pop()) || 0;
       }catch(_){ return null; }
+      finally{ clearTimeout(timer); }
     };
     const out = {ok:true, instance:{...vinFailStat, minutes:Math.round((Date.now() - vinFailStat.since) / 60000)}};
     out.vinStored = await cnt("/vin_hist?select=vin");
@@ -4402,8 +4447,11 @@ module.exports = async function handler(request, response){
     const tabs = []; for(const tab of ["all", "soon", "buy_now", "archived"]) for(const a of ["all", "copart", "iaai"]) tabs.push(`${S}auction=${a}&tab=${tab}&sort=smart&page=1&per_page=30`);
     const types = ["1", "2", "5", "7"].map(t => `${S}vehicleType=${t}&auction=all&tab=all&sort=smart&page=1&per_page=30`);
     let makes = [];
+    // 29.09.2026 (аудит): fetch внутри warm был без AbortController — цикл проверяет бюджет только
+    // МЕЖДУ запросами, а зависший fetch внутри итерации мог съесть весь тик до убийства платформой.
     try{
-      const mr = await fetch(base + "/api/auctions?action=manufacturers", {headers:{"user-agent":"apex-cache-warm"}}).then(r => r.json());
+      const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 10000);
+      const mr = await fetch(base + "/api/auctions?action=manufacturers", {headers:{"user-agent":"apex-cache-warm"}, signal:ctl.signal}).then(r => r.json()).finally(() => clearTimeout(timer));
       makes = (mr.items || []).slice().sort((a, b) => (b.qty || 0) - (a.qty || 0)).slice(0, 12).map(m => `${S}make=${m.id}&auction=all&tab=all&sort=soon&page=1&per_page=30`);
     }catch(_){}
     // Фасеты (счётчики марок по фильтрам): холодный расчёт 4–8 с — греем самые частые наборы, в том же порядке ключей, что шлёт клиент.
@@ -4415,8 +4463,10 @@ module.exports = async function handler(request, response){
     const worker = async () => {
       while(idx < paths.length && Date.now() - t0 < 45000){
         const path = paths[idx++], st = Date.now();
-        try{ const r = await fetch(base + path, {headers:{"user-agent":"apex-cache-warm"}}); await r.arrayBuffer(); out.push(`${path.slice(12, 90)} ${r.status} ${r.headers.get("x-vercel-cache") || "-"} ${Date.now() - st}ms`); }
+        const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 10000);
+        try{ const r = await fetch(base + path, {headers:{"user-agent":"apex-cache-warm"}, signal:ctl.signal}); await r.arrayBuffer(); out.push(`${path.slice(12, 90)} ${r.status} ${r.headers.get("x-vercel-cache") || "-"} ${Date.now() - st}ms`); }
         catch(e){ out.push(`${path.slice(12, 60)} err`); }
+        finally{ clearTimeout(timer); }
       }
     };
     await Promise.all([worker(), worker(), worker()]);
@@ -4559,7 +4609,11 @@ module.exports = async function handler(request, response){
   }
   if(action === "ptstatus"){
     if(!(await fuelXReady())){ sendJson(response, 200, {ok:true, ready:false, note:"нет колонок fuel_x — выполните миграцию 20260925_fuel_x.sql"}, {"cache-control":"no-store"}); return; }
-    const cnt = async q => { try{ const r = await fetch(`${(process.env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(new Date().toISOString())}${q}`, {headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY, authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}}); return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0; }catch(e){ return -1; } };
+    const cnt = async q => {
+      const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 6000);
+      try{ const r = await fetch(`${(process.env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/api_lots?select=id&archived=eq.false&sale_date=gte.${encodeURIComponent(new Date().toISOString())}${q}`, {headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY, authorization:`Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}, signal:ctl.signal}); return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0; }catch(e){ return -1; }
+      finally{ clearTimeout(timer); }
+    };
     const out = {ok:true, ready:true, upcoming:{}};
     out.upcoming.pending = await cnt("&fuel_x=is.null");
     for(const [n, x] of [["diesel", 1], ["electric", 2], ["hybrid", 3], ["gasoline", 4], ["plugin", 5]]) out.upcoming[n] = await cnt(`&fuel_x=eq.${x}`);
@@ -4638,7 +4692,11 @@ module.exports = async function handler(request, response){
       out.coveragePct = out.inDb + out.missing ? Math.round(out.archived / (out.inDb + out.missing) * 1000) / 10 : null;
       // «Застрявшие» живые строки: торги прошли 6–72 часа назад, а строка не архив и не продана
       const url = (process.env.SUPABASE_URL || "").replace(/\/$/, ""), skey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-      const cnt = async q => { try{ const r = await fetch(`${url}/rest/v1/api_lots?select=id&${q}`, {headers:{apikey:skey, authorization:`Bearer ${skey}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}}); return r.ok || r.status === 206 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`; }catch(e){ return "err"; } };
+      const cnt = async q => {
+        const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 6000);
+        try{ const r = await fetch(`${url}/rest/v1/api_lots?select=id&${q}`, {headers:{apikey:skey, authorization:`Bearer ${skey}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}, signal:ctl.signal}); return r.ok || r.status === 206 ? Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0 : `HTTP ${r.status}`; }catch(e){ return "err"; }
+        finally{ clearTimeout(timer); }
+      };
       const a = new Date(Date.now() - 72 * 3600e3).toISOString(), b = new Date(Date.now() - 6 * 3600e3).toISOString();
       out.stale.past6to72h = await cnt(`archived=eq.false&sale_date=gte.${a}&sale_date=lt.${b}&or=(status_id.neq.6,status_id.is.null)`);
       out.stale.past6to72hBuyNow = await cnt(`archived=eq.false&sale_date=gte.${a}&sale_date=lt.${b}&buy_now=gt.0`);
