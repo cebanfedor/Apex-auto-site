@@ -3083,8 +3083,10 @@
   function tgLotUrl(lot){ try{ return location.origin + "/auctions/" + lotSlug(lot); }catch(_){ return location.href; } }
   function tgHashtags(lot){
     const slug = s => String(s || "").toLowerCase().replace(/[^a-zа-я0-9]+/gi, "");
-    const tags = [slug(lot.make), slug((lot.model || "").split(" ")[0]), lot.auction ? slug(lot.auction) : "", TG_FUEL[lot.fuelKind] === "Plug-in гибрид" ? "plugin" : ""].filter(Boolean);
-    return [...new Set(tags)].map(t => "#" + t).join(" ");
+    // Обязательные бренд-теги идут первыми на КАЖДОМ посте (просьба Федора 29.09.2026).
+    const fixed = ["apexautoimport", "fedukusa"];
+    const dyn = [slug(lot.make), slug((lot.model || "").split(" ")[0]), lot.auction ? slug(lot.auction) : "", TG_FUEL[lot.fuelKind] === "Plug-in гибрид" ? "plugin" : ""].filter(Boolean);
+    return [...new Set([...fixed, ...dyn])].map(t => "#" + t).join(" ");
   }
   function tgSaleDate(lot){ const d = lot.auctionDate ? new Date(lot.auctionDate) : null; return (d && !isNaN(d)) ? d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"}) : ""; }
   // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
@@ -3117,7 +3119,7 @@
       return [L1, specs ? e(specs) : "", priceLine, turnkeyLine, "", link, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
-    return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(lot.location)}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
   function tgPhotoSet(lot, mode){
     const card = location.origin + "/og/lot/" + encodeURIComponent(lot.id);
