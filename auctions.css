@@ -696,7 +696,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbCard .dbExpandV1 { display:block; }
   .dbPhoto .dbPhotoCount { top:8px; left:8px; right:auto; bottom:auto; }
   .dbCard:not(.dbOpenV1) .dbSpecs li:nth-child(n+3) { display:none; }
-  .dbCard:not(.dbOpenV1) .dbChecks li:nth-child(n+2) { display:none; }
+  /* 29.09.2026 (Федор: «перекуп и плохую историю должен видеть, листая каталог») — «История» (перекуп/
+     продажи) всегда последний <li> в .dbChecks (dbCheckHistory зовётся последним, dbCheckFuel/dbCheckKey
+     могут не отрендериться пустой строкой, но История — никогда), поэтому :last-child надёжно её ловит
+     независимо от того, сколько строк перед ней реально есть. Раньше пряталась вместе с Топливо/Продавец/
+     Ключ до «Развернуть» — самое важное (перекуп) было не видно без лишнего тапа по каждой карточке. */
+  .dbCard:not(.dbOpenV1) .dbChecks li:nth-child(n+2):not(:last-child) { display:none; }
   .dbCard:not(.dbOpenV1) .dbAside { display:none; }
   /* Compact tab row: keep «Все» и «Архивные», rest duplicated in filters */
   /* Все вкладки видны — горизонтальный скролл вместо скрытия */
