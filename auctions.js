@@ -2533,17 +2533,20 @@
   // комиссия, таможня) — при получении авто в Кишинёве, через ~2 месяца.
   function renderCalcRows(calc){
     if(calc.canada){
-      const payNowSub = calc.bid + calc.auctionFee;
-      const payLaterSub = calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.road + calc.canadaFee + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
+      // Канада (Федор 29.09.2026): вся канадская логистика до Клайпеды (включая море) оплачивается
+      // сразу, одним платежом — не только ставка+сбор, как в США. Позже, при получении в Кишинёве, —
+      // только дорога от Клайпеды, таможня, страховка и наша комиссия.
+      const payNowSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.canadaFee;
+      const payLaterSub = calc.road + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
       return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
-        ${calcRow("Аукционный сбор", calc.auctionFee)}`)
-        + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
+        ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
         ${calcRow("Услуги канадской компании", calc.canadaFee, calc.bid > 15000 ? "2% от цены лота" : "")}
         ${calcRow("Складирование и погрузка", calc.keeper)}
-        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
+        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}`)
+        + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
