@@ -626,6 +626,8 @@ details > summary::-webkit-details-marker { display: none; }
 .breakdown > div, .breakdown > p { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-size: 14.5px; color: rgba(255, 255, 255, 0.72); }
 .breakdown b, .breakdown strong { color: #fff; font-variant-numeric: tabular-nums; font-weight: 700; }
 .breakdown small { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.45); }
+.breakdown .breakdownSecV1 { justify-content: flex-start; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; font-weight: 700; color: rgba(255, 255, 255, 0.4); margin-top: 2px; padding-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.14); }
+.breakdown .breakdownSecV1:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .totalFooter { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 12px; }
 .resultLabel { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
 .total { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
