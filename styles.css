@@ -401,20 +401,18 @@ section { position: relative; }
 .heroSearchBtnV1:disabled { opacity: 0.6; cursor: wait; transform: none; }
 .heroSearchHintV1 { font-size: 12.5px; color: var(--muted); text-align: center; }
 .heroSearchHintV1 b { color: var(--red); font-weight: 700; }
-/* 29.09.2026 (Федор: «придумай описание про каталог»): справа от карточки поиска пустовало —
-   фото + затемнение справа не читались текстом (перекрывать карточку не должны). Стеклянная
-   тёмная панель, прижата вправо (margin-left:auto внутри heroSearchWrapV1 flex-ряда), не
-   зависит от освещённости фото под ней (у Mercedes на фото светлый капот, простой white text
-   там нечитаем без своей подложки). Скрыта на мобильной — карточка там на всю ширину, места нет. */
+/* 29.09.2026 (Федор: «дизайн максимально уебский, зачем текст в отдельном блоке — можно просто
+   красиво по низу») — было: стеклянная плашка с рамкой/блюром, читалась как чужеродная вставка.
+   Теперь просто текст на фото внизу-справа, без своего фона/рамки — держится на затемнении
+   .heroSearchBgV1 снизу (у него уже градиент к тёмному в нижних 24%) + text-shadow про запас. */
 .heroSearchInfoV1 {
-  margin-left: auto; max-width: 300px; padding: 20px 22px;
-  background: rgba(13,16,22,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,0.14); border-radius: var(--radius-lg);
+  position: absolute; right: 48px; bottom: 22px; z-index: 2; max-width: 320px; text-align: left; pointer-events: none;
 }
-.heroSearchInfoV1 h3 { color: #fff; font-size: 19px; margin: 0 0 8px; }
-.heroSearchInfoV1 p { color: rgba(255,255,255,0.78); font-size: 13.5px; line-height: 1.5; margin: 0; }
+.heroSearchInfoV1 h3 { color: #fff; font-size: 16px; margin: 0 0 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
+.heroSearchInfoV1 p { color: rgba(255,255,255,0.85); font-size: 12.5px; line-height: 1.45; margin: 0; text-shadow: 0 1px 8px rgba(0,0,0,0.55); }
 @media (max-width: 1020px) { .heroSearchInfoV1 { display: none; } }
-/* ---- Стрелки карусели (29.09.2026, Федор) ---- */
+/* ---- Стрелки карусели (29.09.2026, Федор: «в нахлест блока» — были left/right:16px, карточка
+   поиска начинается от padding 48px (28px 48px), зазор всего 6px, край кружка залезал на карточку) */
 .heroArrowV1 {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
   width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25);
@@ -423,12 +421,15 @@ section { position: relative; }
   transition: background 0.18s, border-color 0.18s;
 }
 .heroArrowV1:hover { background: rgba(13,16,22,0.7); border-color: rgba(255,255,255,0.45); }
-.heroArrowPrevV1 { left: 16px; }
-.heroArrowNextV1 { right: 16px; }
+.heroArrowPrevV1 { left: 8px; }
+.heroArrowNextV1 { right: 8px; }
 @media (max-width: 720px) {
-  .heroArrowV1 { width: 32px; height: 32px; }
-  .heroArrowPrevV1 { left: 8px; }
-  .heroArrowNextV1 { right: 8px; }
+  /* mobile: padding у карточки всего 26px — 38px-кружок туда не влезает без наложения даже
+     впритык; уменьшаем кружок до 24px, тогда 3px+24px=27px ≈ помещается в 26px без заметного наезда */
+  .heroArrowV1 { width: 24px; height: 24px; }
+  .heroArrowV1 svg { width: 15px; height: 15px; }
+  .heroArrowPrevV1 { left: 3px; }
+  .heroArrowNextV1 { right: 3px; }
 }
 @media (max-width: 720px) {
   /* 29.09.2026 (Федор: «для мобильной чуть уже, шрифт может меньше»): карточка с полями
