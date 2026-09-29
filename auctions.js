@@ -1548,7 +1548,12 @@
     if(runFlag) cp.set("run", runFlag);
     const dmgTxt = `${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.damage || ""}`.toLowerCase();
     const heavyDmg = /all over|roll ?over|undercarriage|frame|burn|flood|water|strip|biohazard/.test(dmgTxt);
-    const multiDmg = /&|,|\band\b|\+/.test(dmgTxt) || (lot.secondaryDamage && lot.secondaryDamage !== "-" && !/unknown|none|normal/.test(String(lot.secondaryDamage).toLowerCase()));
+    // Front End + Left/Right Front (или Rear End + Left/Right Rear) — один угловой удар двумя категориями
+    // фида (общая + уточняющая сторона), не повреждение в двух местах (29.09.2026, Федор: «на X3 не бывает
+    // копеечных цен» — зеркалит sameCornerZone в server/price-guide.js, менять синхронно).
+    const cornerHit = /\bfront end\b/.test(String(lot.primaryDamage || "").toLowerCase()) && /\b(left|right) front\b/.test(String(lot.secondaryDamage || "").toLowerCase())
+      || /\brear end\b/.test(String(lot.primaryDamage || "").toLowerCase()) && /\b(left|right) rear\b/.test(String(lot.secondaryDamage || "").toLowerCase());
+    const multiDmg = !cornerHit && (/&|,|\band\b|\+/.test(dmgTxt) || (lot.secondaryDamage && lot.secondaryDamage !== "-" && !/unknown|none|normal/.test(String(lot.secondaryDamage).toLowerCase())));
     let cq = "mid";
     if(ci.tone === "good" && !heavyDmg && !multiDmg) cq = "good";
     else if(ci.tone === "bad" || heavyDmg) cq = "poor";
