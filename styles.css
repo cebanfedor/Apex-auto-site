@@ -584,6 +584,8 @@ details > summary::-webkit-details-marker { display: none; }
 /* Разделитель между группами оплаты (Федор 29.09.2026): пара линий сверху/снизу + жирный заголовок, без карточек */
 .breakdown .breakdownSecV1 { display: block; font-size: 13.5px; font-weight: 700; color: #fff; margin-top: 4px; padding: 10px 0 6px; border-top: 1px solid rgba(255, 255, 255, 0.16); border-bottom: 1px solid rgba(255, 255, 255, 0.16); }
 .breakdown .breakdownSecV1:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+/* Черта между смысловыми кучками внутри группы «Оплата при получении» (доставка / доп. услуги / таможня) */
+.breakdown .breakdownDividerV1 { border-top: 1px dashed rgba(255, 255, 255, 0.2); margin: 2px 0; }
 .totalFooter { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 12px; }
 .resultLabel { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
 .total { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
