@@ -264,11 +264,12 @@ section { position: relative; }
 /* delivery-sea.webp — фото 1200×800 (не 1400×560, как founder-auction), базовый object-position
    72% 96% (заточен под founder-auction) обрезал корабли/краны, оставляя только асфальт снизу-справа. */
 .heroBgSeaV1 { object-position: 50% 38%; }
-/* hero-carmeet.jpg — 2000×1333 (те же 1.5:1, что у delivery-sea): центр чуть выше середины,
-   чтобы попадали решётки McLaren/BMW/Mercedes, а не голое небо/асфальт. Компаундный селектор
-   (.heroSlideSearchV1 .heroBgCarsV1) — специфичность выше, чем у .heroWideBgV302 в медиа-блоках
-   ниже, порядок в файле неважен. */
-.heroSlideSearchV1 .heroBgCarsV1 { object-position: 50% 46%; }
+/* hero-parking-fall.jpg — 29.09.2026 (Федор: «осень всё-таки»), вид сверху на парковку с
+   осенними деревьями, портретное фото 1100×1467 (0.75:1) в широкий блок (2.48:1) — кроет по
+   ширине, обрезка по высоте сильная (видно ~30% высоты). Центр (50% 50%) — средний ряд с
+   рыжими деревьями и красной машиной, самое яркое место кадра; TOP/BOTTOM там же голый асфальт.
+   Компаундный селектор — специфичность выше .heroWideBgV302 в медиа-блоках ниже. */
+.heroSlideSearchV1 .heroBgCarsV1 { object-position: 50% 50%; }
 
 
 .heroWideOverlayV302 {
@@ -291,7 +292,6 @@ section { position: relative; }
   .heroV45.heroWideV302 { min-height: 500px; }
   .heroWideContentV302 { padding: 30px 22px 6px; max-width: none; }
   .heroWideBgV302 { object-position: 66% center; }
-  .heroSlideSearchV1 .heroBgCarsV1 { object-position: 56% 42%; }
 }
 
 /* ---- Hero slider (29.09.2026, Федор: «как у ДримБида», слайд с поиском авто)
@@ -1352,7 +1352,6 @@ details > summary::-webkit-details-marker { display: none; }
   /* --- Hero: текст сверху, лицо справа -------------------------------- */
   .heroV45.heroWideV302 { min-height: 310px; }
   .heroWideBgV302 { object-position: 60% center; }
-  .heroSlideSearchV1 .heroBgCarsV1 { object-position: 58% 40%; }
   .heroWideOverlayV302 {
     background:
       linear-gradient(90deg, rgba(13,16,22,0.97) 0%, rgba(13,16,22,0.90) 38%, rgba(13,16,22,0.55) 65%, rgba(13,16,22,0.10) 100%),
