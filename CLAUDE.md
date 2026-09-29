@@ -1013,3 +1013,17 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - **Убран мёртвый дубль калькулятора в `script.js`** (GASOLINE_RATES/DIESEL_RATES/LUXURY_RATES/AUCTION_FEE_POINTS/interpolateFee/ageKey/gasolineColumn/dieselColumn/fuelDiscount/luxuryPct/getLandMultiplier — 0 ссылок, расчёт давно через `calc-core.js`). Устраняет риск дрейфа формул главной vs лота. Проверено на проде: итог идентичен ($18 886), JS-ошибок нет. Бамп `script.js?v=calc-v440`.
 - **Тесты `server/slug.js`** (`test/slug.test.js`) — фиксируют генерацию канонических URL/301, чтобы клиентские копии не разошлись незаметно. Тесты 61→67.
 - ⏸️ **НЕ делал под «срочно/без ошибок»** (крупные рискованные рефакторы — отдельной аккуратной фазой): унификация slug (4 копии, трогает все URL сайта), декомпозиция монолитов `api/auctions.js`/`auctions.js`, билд-шаг/шаблонизация HTML (nav/footer в 28 файлах, `ro-*`), ESLint/Prettier.
+
+## SEO/AEO — Волна 3 (30.09.2026, Федор: «пройдись по SEO и AEO»)
+Аудит показал: сайт уже силён (FAQPage/HowTo/LocalBusiness/Service/WebSite/Article+Person/BreadcrumbList,
+OG на все страницы, sitemap 76 URL с lastmod, hreflang ru/ro/en, robots не блокирует AI-краулеры — условие AEO выполнено,
+Organization sameAs с 6 соцсетями). Закрыл пробелы:
+- **Страницы лотов — были БЕЗ structured data (самый массовый класс, тысячи страниц).** Добавлен `server/lot-jsonld.js`
+  (schema.org **Car + Offer**), инъекция в `api/lot-page.js`: марка/модель/год/пробег(SMI)/VIN/топливо/привод/КПП/
+  itemCondition + Offer(price, USD|CAD, InStock|SoldOut, seller Apex Auto) + description(факты). Только данные фида.
+  Проверено на проде (Honda Civic: VIN/пробег/Offer $1850). Тесты `test/lot-jsonld.test.js`. Даёт и SEO, и AEO (LLM извлекают факты).
+- **WebSite SearchAction** (index.html): право на sitelinks searchbox, target `/auctions?q={term}` (реально ищет).
+- **CollectionPage** на фильтрованных `/auctions?make=&model=` (api/catalog-page.js) — они в sitemap.
+- CSP не мешает ld+json (это данные). BreadcrumbList в шаблоне auctions.html не дублировал.
+⚠️ **Нужны РЕАЛЬНЫЕ данные Федора (не выдумывать)**: (1) `aggregateRating` в LocalBusiness — рейтинг+число отзывов из Google
+  Business Profile (даёт звёзды в выдаче, большой CTR); (2) verification-код Google Search Console (нет тега — измерять индексацию нечем).
