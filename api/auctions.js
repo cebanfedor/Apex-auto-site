@@ -9,6 +9,17 @@ const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
 const CACHE_TTL = 7 * 60 * 1000;
 const cache = new Map();
 
+// Учёт расхода запросов к auctionsapi (аудит 30.09.2026): счётчик по эндпоинтам,
+// в памяти инстанса (без записи в БД, per-instance, сбрасывается на холодном старте).
+// Читается admin-экшеном ?action=apiusage — «разобраться, куда уходят запросы».
+const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, byEndpoint: Object.create(null) };
+function noteApiCall(url){
+  apiUsage.total++;
+  const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
+  const ep = m ? m[1] : "other";
+  apiUsage.byEndpoint[ep] = (apiUsage.byEndpoint[ep] || 0) + 1;
+}
+
 // Rate limiting: max 3 lead submissions per IP per 10 minutes
 const LEAD_RATE_LIMIT = 3;
 const LEAD_RATE_WINDOW = 10 * 60 * 1000;
@@ -159,7 +170,7 @@ const SB_TIMEOUT = Symbol("sbTimeout");
 // синтетической 429-ошибкой, без реального похода к API. Отдельно от sbUp — разные апстримы.
 let apiDownUntil = 0;
 function apiUp(){ return Date.now() > apiDownUntil; }
-function noteApiRateLimit(){ apiDownUntil = Date.now() + 5 * 60e3; }
+function noteApiRateLimit(){ apiDownUntil = Date.now() + 5 * 60e3; apiUsage.rateLimited++; }
 function apiLimitedError(){
   const error = new Error("AuctionsAPI rate-limited (circuit breaker)");
   error.status = 429;
@@ -849,6 +860,7 @@ function buildSearchParams(query){
 
 async function fetchJson(url){
   if(!apiUp()) throw apiLimitedError();
+  noteApiCall(url);
   const key = process.env.AUCTIONS_API_KEY;
   if(!key){
     const error = new Error("AUCTIONS_API_KEY is not configured");
@@ -3419,6 +3431,7 @@ async function syncSetState(v){
 // Свой фетч с таймаутом 30с: страницы по 1000 лотов тяжелее обычных запросов.
 async function syncApiFetch(url, timeoutMs){
   if(!apiUp()) throw apiLimitedError();
+  noteApiCall(url);
   const key = process.env.AUCTIONS_API_KEY;
   if(!key) throw new Error("AUCTIONS_API_KEY is not configured");
   const controller = new AbortController();
@@ -4384,11 +4397,26 @@ module.exports = async function handler(request, response){
     // read-only диагностики
     "explain", "compstest", "missdiag", "acvcalib", "ptaudit", "ptstatus", "vinhealth", "feedcount", "salescoverage", "archprobe", "rawfields", "rawgens", "dbstatus",
     // ручные maintenance-экшены С ЗАПИСЬЮ (не в кронах и не в GitHub Actions) — только админ
-    "teslafix", "syncghosts", "salesbackfill"
+    "teslafix", "syncghosts", "salesbackfill",
+    // учёт расхода запросов к auctionsapi
+    "apiusage"
   ]);
   if(ADMIN_ONLY_ACTIONS.has(action)){
     const {isAuthenticated} = require("../server/auth");
     if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false, error:"Нет доступа"}); return; }
+  }
+
+  // Расход запросов к auctionsapi по эндпоинтам (per-instance, с холодного старта).
+  if(action === "apiusage"){
+    const mins = Math.max(1, (Date.now() - apiUsage.since) / 60000);
+    const eps = Object.entries(apiUsage.byEndpoint).sort((a, b) => b[1] - a[1])
+      .map(([ep, n]) => ({endpoint: ep, calls: n, perHour: Math.round(n / mins * 60)}));
+    sendJson(response, 200, {
+      ok: true, note: "per-instance, in-memory (сбрасывается на холодном старте); hot-lots.js/lot.js — отдельные функции, сюда не входят",
+      sinceMinutes: Math.round(mins), total: apiUsage.total, perHour: Math.round(apiUsage.total / mins * 60),
+      rateLimited: apiUsage.rateLimited, byEndpoint: eps
+    }, {"cache-control": "no-store"});
+    return;
   }
 
   // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
