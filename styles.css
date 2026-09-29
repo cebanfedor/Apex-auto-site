@@ -402,14 +402,19 @@ section { position: relative; }
 .heroSearchHintV1 { font-size: 12.5px; color: var(--muted); text-align: center; }
 .heroSearchHintV1 b { color: var(--red); font-weight: 700; }
 /* 29.09.2026 (Федор: «дизайн максимально уебский, зачем текст в отдельном блоке — можно просто
-   красиво по низу») — было: стеклянная плашка с рамкой/блюром, читалась как чужеродная вставка.
-   Теперь просто текст на фото внизу-справа, без своего фона/рамки — держится на затемнении
-   .heroSearchBgV1 снизу (у него уже градиент к тёмному в нижних 24%) + text-shadow про запас. */
-.heroSearchInfoV1 {
-  position: absolute; right: 48px; bottom: 22px; z-index: 2; max-width: 320px; text-align: left; pointer-events: none;
-}
-.heroSearchInfoV1 h3 { color: #fff; font-size: 16px; margin: 0 0 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.6); }
-.heroSearchInfoV1 p { color: rgba(255,255,255,0.85); font-size: 12.5px; line-height: 1.45; margin: 0; text-shadow: 0 1px 8px rgba(0,0,0,0.55); }
+   красиво по низу») — убрал стеклянную плашку (фон/рамка/блюр), текст прямо на фото.
+   29.09.2026 (вечер, Федор: «смотри как красиво тут [founder-слайд] и как уебски в том блоке» —
+   сравнение с соседним слайдом): дело было не только в плашке, а в том, что справа просто две
+   строчки текста без иерархии — на founder-слайде та же композиция (бейдж + заголовок + текст +
+   подчёркивание) выглядит «дизайном», а голый h3+p — как дописанное наспех. Тот же язык, что у
+   .heroMainV45 (heroEyebrowV207 + h2 с ::after подчёркиванием), просто справа вместо слева;
+   центрируется по вертикали как карточка поиска (margin-left:auto внутри флекс-ряда, а не
+   absolute) — тот же приём, что и раньше, только теперь с полноценным контентом, а не двумя
+   голыми строками. */
+.heroSearchInfoV1 { margin-left: auto; max-width: 320px; }
+.heroSearchInfoV1 h2 { color: #fff; font-size: 26px; line-height: 1.15; margin: 14px 0 0; text-wrap: balance; }
+.heroSearchInfoV1 h2::after { content: ""; display: block; width: 56px; height: 4px; margin-top: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--red), #ff7a44); }
+.heroSearchInfoV1 p { color: rgba(255,255,255,0.82); font-size: 13.5px; line-height: 1.5; margin: 14px 0 0; }
 @media (max-width: 1020px) { .heroSearchInfoV1 { display: none; } }
 /* ---- Стрелки карусели (29.09.2026, Федор: «в нахлест блока» — были left/right:16px, карточка
    поиска начинается от padding 48px (28px 48px), зазор всего 6px, край кружка залезал на карточку) */
