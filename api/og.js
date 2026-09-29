@@ -5,11 +5,9 @@ const ogLot = require("../server/og-lot");
 const ogCatalog = require("../server/og-catalog");
 
 const {describeTrack} = require("../server/og-track");
+const {selfOrigin} = require("../server/origin");
 
-function origin(req){
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "apexauto.md";
-  return `${req.headers["x-forwarded-proto"] || "https"}://${host}`;
-}
+function origin(req){ return selfOrigin(req); }
 async function getJson(url, ms = 7000){
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), ms);
   try{ const r = await fetch(url, {signal:ctrl.signal, headers:{accept:"application/json"}}); return r.ok ? await r.json().catch(() => null) : null; }

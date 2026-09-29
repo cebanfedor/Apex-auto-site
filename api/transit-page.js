@@ -10,12 +10,12 @@ const {transitSlug} = require("../server/slug");
 const SSR_FETCH_MS = 4000;
 
 async function fetchItems(req){
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "apexauto.md";
-  const proto = req.headers["x-forwarded-proto"] || "https";
+  const {selfOrigin} = require("../server/origin");
+  const _origin = selfOrigin(req);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{
-    const r = await fetch(`${proto}://${host}/api/hot-lots?type=transit`, {headers:{accept:"application/json"}, signal:controller.signal});
+    const r = await fetch(`${_origin}/api/hot-lots?type=transit`, {headers:{accept:"application/json"}, signal:controller.signal});
     const payload = await r.json().catch(() => null);
     if(!r.ok || !payload || payload.mode === "fallback") return null;   // база не ответила — не знаем
     return Array.isArray(payload.items) ? payload.items : null;

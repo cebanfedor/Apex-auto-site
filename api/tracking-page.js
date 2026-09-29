@@ -7,10 +7,10 @@ const {describeTrack, TR} = require("../server/og-track");
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 async function fetchTrack(req, param, value){
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "apexauto.md";
+  const {selfOrigin} = require("../server/origin");
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 5000);
   try{
-    const r = await fetch(`${req.headers["x-forwarded-proto"] || "https"}://${host}/api/w8-tracking?${param}=${encodeURIComponent(value)}`, {signal:ctrl.signal, headers:{accept:"application/json"}});
+    const r = await fetch(`${selfOrigin(req)}/api/w8-tracking?${param}=${encodeURIComponent(value)}`, {signal:ctrl.signal, headers:{accept:"application/json"}});
     return r.ok ? await r.json().catch(() => null) : null;
   }catch(e){ return null; }
   finally{ clearTimeout(timer); }

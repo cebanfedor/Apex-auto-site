@@ -39,17 +39,21 @@ async function notifyTelegram(data){
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
   if(!token || !chatId) return;
+  // parse_mode=HTML + экранирование значений: поля лида (имя/коммент/лот/vin) —
+  // пользовательский ввод. На Markdown клиент мог вставить [текст](ссылку) или сломать
+  // разметку (`*`/`_`) → Telegram 400 и молчаливая потеря уведомления менеджеру.
+  const esc = v => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const lines = [
-    "🚗 *Новая заявка — Apex Auto*",
-    `👤 *Имя:* ${data.name || "—"}`,
-    `📞 *Телефон:* ${data.phone || "—"}`,
+    "🚗 <b>Новая заявка — Apex Auto</b>",
+    `👤 <b>Имя:</b> ${esc(data.name) || "—"}`,
+    `📞 <b>Телефон:</b> ${esc(data.phone) || "—"}`,
   ];
-  if(data.comment) lines.push(`💬 *Комментарий:* ${data.comment}`);
-  if(data.lot) lines.push(`📋 *Лот:* ${data.lot}`);
-  if(data.vin) lines.push(`🔑 *VIN:* ${data.vin}`);
-  if(data.auction) lines.push(`🏷 *Аукцион:* ${data.auction.toUpperCase()}`);
+  if(data.comment) lines.push(`💬 <b>Комментарий:</b> ${esc(data.comment)}`);
+  if(data.lot) lines.push(`📋 <b>Лот:</b> ${esc(data.lot)}`);
+  if(data.vin) lines.push(`🔑 <b>VIN:</b> ${esc(data.vin)}`);
+  if(data.auction) lines.push(`🏷 <b>Аукцион:</b> ${esc(String(data.auction).toUpperCase())}`);
   // Прямая ссылка на лот — менеджер открывает машину одним кликом, без поиска.
-  if(data.lotUrl) lines.push(`🔗 ${data.lotUrl}`);
+  if(data.lotUrl) lines.push(`🔗 ${esc(data.lotUrl)}`);
   // 29.09.2026 (аудит): без AbortController зависший fetch к Telegram мог держать весь запрос
   // до истечения общего таймаута платформы — таймаут 8с, как у аналогичной обёртки в server/alerts.js.
   const ctl = new AbortController();
@@ -58,7 +62,7 @@ async function notifyTelegram(data){
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:chatId, text:lines.join("\n"), parse_mode:"Markdown"}),
+      body:JSON.stringify({chat_id:chatId, text:lines.join("\n"), parse_mode:"HTML", disable_web_page_preview:true}),
       signal:ctl.signal
     });
   }catch(_){}
@@ -4362,6 +4366,16 @@ async function runResaleCheck(budgetMs){
 module.exports = async function handler(request, response){
   const query = getQuery(request);
   const action = query.get("action") || "search";
+
+  // ── Гейт диагностик (аудит 30.09.2026): read-only служебные экшены раскрывали
+  // внутренние данные и ПРОИЗВОДНЫЕ закрытой таблицы Федора (actualToGuideRatio/impliedK,
+  // строки guide_miss), а также давали произвольный read-запрос к БД (explain) и жгли
+  // квоту фида. Теперь только для админа (клиент их не вызывает — проверено). ──
+  const ADMIN_ONLY_ACTIONS = new Set(["explain", "compstest", "missdiag", "acvcalib", "ptaudit", "ptstatus", "vinhealth", "feedcount", "salescoverage", "archprobe", "rawfields", "rawgens", "dbstatus"]);
+  if(ADMIN_ONLY_ACTIONS.has(action)){
+    const {isAuthenticated} = require("../server/auth");
+    if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false, error:"Нет доступа"}); return; }
+  }
 
   if(action === "lead") return handleLead(request, response);
   // Публикация лота в канал — POST, поэтому диспетчеризуем ДО общего GET-гейта ниже.

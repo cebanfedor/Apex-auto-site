@@ -1,6 +1,7 @@
 // Rate-limit по IP: публичный трекинг инициирует исходящий скрейп w8shipping.ua
 // (+ иногда NHTSA). Без лимита эндпоинт можно использовать как усилитель нагрузки
 // или для перебора VIN. In-memory (per-instance), как в других роутах. P2-5.
+const {fetchT} = require("../server/fetchx");
 const w8RateMap = new Map();
 const W8_RATE_MAX = 20;             // запросов
 const W8_RATE_WINDOW = 10 * 60e3;   // за 10 минут
@@ -251,12 +252,12 @@ module.exports = async function handler(req, res) {
 
   let html;
   try {
-    const r = await fetch(url, {
+    const r = await fetchT(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; ApexAutoTracker/1.0)",
         "Accept": "text/html,application/xhtml+xml",
       },
-    });
+    }, 8000);
     if (!r.ok) return res.status(502).json({ error: "W8 fetch failed" });
     html = await r.text();
   } catch (e) {
@@ -351,9 +352,9 @@ module.exports = async function handler(req, res) {
   let vehicleDecoded = vehicleName;
   if (!vehicleDecoded && vinCode) {
     try {
-      const r = await fetch(
+      const r = await fetchT(
         `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vinCode)}?format=json`,
-        { headers: { "Accept": "application/json" } }
+        { headers: { "Accept": "application/json" } }, 6000
       );
       if (r.ok) {
         const j = await r.json();

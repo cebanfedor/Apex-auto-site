@@ -1,5 +1,6 @@
 const {sendJson, methodNotAllowed} = require("../server/http");
 const supabase = require("../server/supabase");
+const {fetchT} = require("../server/fetchx");
 
 const BASE = "https://auctionsapi.com/api";
 const CACHE = new Map();
@@ -64,9 +65,12 @@ async function fetchLot(lot, auction){
   const apiKey = process.env.AUCTIONS_API_KEY;
   if(!apiKey) return null;
 
-  const res = await fetch(`${BASE}/search-lot/${encodeURIComponent(lot)}/${domain}`, {
-    headers:{"x-api-key": apiKey, "accept": "application/json"},
-  });
+  let res;
+  try{
+    res = await fetchT(`${BASE}/search-lot/${encodeURIComponent(lot)}/${domain}`, {
+      headers:{"x-api-key": apiKey, "accept": "application/json"},
+    }, 7000);
+  }catch(e){ return null; }
   if(!res.ok) return null;
   const payload = await res.json();
   const data = parseLot(payload, auction);

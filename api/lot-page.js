@@ -12,9 +12,8 @@ const ogLot = require("../server/og-lot");
 const SSR_FETCH_MS = 4000;
 
 async function fetchOwnDetail(req, auction, lotId){
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "apexauto.md";
-  const proto = req.headers["x-forwarded-proto"] || "https";
-  const url = `${proto}://${host}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}`;
+  const {selfOrigin} = require("../server/origin");
+  const url = `${selfOrigin(req)}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{

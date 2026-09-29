@@ -1,3 +1,4 @@
+const {fetchT} = require("../server/fetchx");
 const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
 
 function auctionFromUrl(value){
@@ -208,12 +209,12 @@ async function fetchAuctionApiLot(lotUrl, withRaw){
   if(auction === "iaai" && parsed.searchById) params.set("search_by_id", "1");
 
   const endpoint = `${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(parsed.lot)}/${auction}?${params.toString()}`;
-  const upstream = await fetch(endpoint, {
+  const upstream = await fetchT(endpoint, {
     headers:{
       "x-api-key":key,
       "accept":"application/json"
     }
-  });
+  }, 10000);
   const payload = await upstream.json().catch(() => null);
   if(!upstream.ok || payload?.error) return null;
   const normalized = normalizeAuctionApiCar(payload, lotUrl, auction);

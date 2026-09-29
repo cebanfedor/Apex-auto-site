@@ -1,3 +1,5 @@
+const {fetchT} = require("../server/fetchx");
+
 function safeNumber(value){
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
@@ -336,14 +338,14 @@ module.exports = async function handler(request, response){
     });
 
     const callOpenAi = async (body) => {
-      const upstream = await fetch("https://api.openai.com/v1/responses", {
+      const upstream = await fetchT("https://api.openai.com/v1/responses", {
       method:"POST",
       headers:{
         "authorization":`Bearer ${key}`,
         "content-type":"application/json"
       },
       body:JSON.stringify(body)
-      });
+      }, 30000);
       const payload = await upstream.json().catch(() => null);
       if(!upstream.ok){
         const error = new Error(payload?.error?.message || "OpenAI request failed");

@@ -1,6 +1,7 @@
 const {sendJson, methodNotAllowed, readBody} = require("../server/http");
 const {requireAdmin} = require("../server/auth");
 const supabase = require("../server/supabase");
+const {fetchT} = require("../server/fetchx");
 
 const CONTENT_KEY = "site";
 
@@ -25,9 +26,7 @@ const RATES_TTL = 3600;
 const BANK_SELL_MARGIN = 1.012;
 
 async function fetchBnmRates() {
-  const r = await fetch("https://bnm.md/ro", {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" },
-  });
+  const r = await fetchT("https://bnm.md/ro", { headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" } }, 6000);
   if (!r.ok) throw new Error(`BNM fetch ${r.status}`);
   const html = await r.text();
 
@@ -52,9 +51,7 @@ async function fetchBnmRates() {
 // им оплачиваются канадские аукционы. Fallback — frankfurter (ECB), затем 0.6923.
 async function fetchCadUsdRate() {
   try {
-    const r = await fetch("https://ix0.apps.td.com/api/fxcal/non-cash-gfx-rates/en", {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" },
-    });
+    const r = await fetchT("https://ix0.apps.td.com/api/fxcal/non-cash-gfx-rates/en", { headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" } }, 6000);
     const data = await r.json();
     const usd = (data?.conversionTableFXCAL || []).find((row) => row.currencyCode === "USD");
     // Направление «отправляем USD → получаем CAD»: за 1 USD дают currencyRateRec CAD
@@ -63,7 +60,7 @@ async function fetchCadUsdRate() {
     if (rec > 0) return +(1 / rec).toFixed(4);
   } catch {}
   try {
-    const r = await fetch("https://api.frankfurter.app/latest?from=CAD&to=USD");
+    const r = await fetchT("https://api.frankfurter.app/latest?from=CAD&to=USD", {}, 6000);
     const data = await r.json();
     const rate = Number(data?.rates?.USD);
     if (rate > 0) return +rate.toFixed(4);
@@ -74,7 +71,7 @@ async function fetchCadUsdRate() {
 async function fetchFallbackRates() {
   const apiKey = process.env.FXRATES_API_KEY;
   const url = `https://api.fxratesapi.com/latest?currencies=MDL,EUR&base=USD${apiKey ? `&api_key=${apiKey}` : ""}`;
-  const r = await fetch(url);
+  const r = await fetchT(url, {}, 6000);
   if (!r.ok) throw new Error(`fxrates ${r.status}`);
   const data = await r.json();
   if (!data.success) throw new Error("fxrates error");

@@ -17,10 +17,18 @@ function sbConf(){
 }
 async function sb(path, options = {}){
   const {url, key} = sbConf();
-  const res = await fetch(`${url}/rest/v1${path}`, {
-    ...options,
-    headers:{apikey:key, authorization:`Bearer ${key}`, "content-type":"application/json", ...(options.headers || {})}
-  });
+  // Таймаут: зависшая аналитическая запись не должна держать высокочастотный
+  // публичный эндпоинт до платформенного лимита. Ошибка ловится вызывающим (аналитика не критична).
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  let res;
+  try{
+    res = await fetch(`${url}/rest/v1${path}`, {
+      ...options,
+      signal:ctrl.signal,
+      headers:{apikey:key, authorization:`Bearer ${key}`, "content-type":"application/json", ...(options.headers || {})}
+    });
+  }finally{ clearTimeout(timer); }
   const text = await res.text();
   if(!res.ok) throw new Error(`Supabase ${res.status}: ${text.slice(0, 160)}`);
   return text ? JSON.parse(text) : null;

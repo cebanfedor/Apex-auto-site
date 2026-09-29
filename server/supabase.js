@@ -35,6 +35,20 @@ function buildUrl(table, params = {}){
   return `${url}${SUPABASE_REST_PATH}/${encodeURIComponent(table)}${search.toString() ? `?${search}` : ""}`;
 }
 
+// Таймаут на все запросы к Supabase: зависшая (не упавшая) база иначе держит
+// функцию до платформенного лимита (60с). 8с — с запасом на медленный, но живой ответ.
+const SB_TIMEOUT_MS = 8000;
+async function sbFetch(url, opts = {}, ms = SB_TIMEOUT_MS){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try{
+    return await fetch(url, {...opts, signal:ctrl.signal});
+  }catch(e){
+    if(e && e.name === "AbortError"){ const err = new Error("Supabase request timed out"); err.status = 504; throw err; }
+    throw e;
+  }finally{ clearTimeout(timer); }
+}
+
 async function parseSupabaseResponse(response){
   const text = await response.text();
   const payload = text ? JSON.parse(text) : null;
@@ -48,7 +62,7 @@ async function parseSupabaseResponse(response){
 }
 
 async function list(table, params = {}){
-  const response = await fetch(buildUrl(table, params), {
+  const response = await sbFetch(buildUrl(table, params), {
     method:"GET",
     headers:headers({"prefer":"count=exact"})
   });
@@ -56,7 +70,7 @@ async function list(table, params = {}){
 }
 
 async function count(table, params = {}){
-  const response = await fetch(buildUrl(table, {select:"id", ...params}), {
+  const response = await sbFetch(buildUrl(table, {select:"id", ...params}), {
     method:"HEAD",
     headers:headers({"prefer":"count=exact"})
   });
@@ -68,7 +82,7 @@ async function count(table, params = {}){
 }
 
 async function create(table, payload){
-  const response = await fetch(buildUrl(table), {
+  const response = await sbFetch(buildUrl(table), {
     method:"POST",
     headers:headers(),
     body:JSON.stringify(payload)
@@ -78,7 +92,7 @@ async function create(table, payload){
 }
 
 async function update(table, id, payload){
-  const response = await fetch(buildUrl(table, {id:`eq.${id}`}), {
+  const response = await sbFetch(buildUrl(table, {id:`eq.${id}`}), {
     method:"PATCH",
     headers:headers(),
     body:JSON.stringify(payload)
@@ -89,7 +103,7 @@ async function update(table, id, payload){
 
 async function upsert(table, payload, onConflict){
   const params = onConflict ? {on_conflict:onConflict} : {};
-  const response = await fetch(buildUrl(table, params), {
+  const response = await sbFetch(buildUrl(table, params), {
     method:"POST",
     headers:headers({"prefer":"resolution=merge-duplicates,return=representation"}),
     body:JSON.stringify(payload)
@@ -99,7 +113,7 @@ async function upsert(table, payload, onConflict){
 }
 
 async function remove(table, id){
-  const response = await fetch(buildUrl(table, {id:`eq.${id}`}), {
+  const response = await sbFetch(buildUrl(table, {id:`eq.${id}`}), {
     method:"DELETE",
     headers:headers()
   });

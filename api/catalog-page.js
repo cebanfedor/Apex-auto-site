@@ -33,8 +33,8 @@ module.exports = async function(req, res){
     res.status(200).send(html);
     return;
   }
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "apexauto.md";
-  const origin = `${req.headers["x-forwarded-proto"] || "https"}://${host}`;
+  const {selfOrigin} = require("../server/origin");
+  const origin = selfOrigin(req);
   let d = null;
   try{ d = await describeCatalog(origin, p, lang); }catch(e){ d = null; }
   if(!d){ res.setHeader("Cache-Control", "public, s-maxage=60, max-age=0"); res.status(200).send(html); return; }
