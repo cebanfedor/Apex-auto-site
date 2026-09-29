@@ -1772,23 +1772,24 @@ function calculateCanada(){
   const dispatchDetail = zone === "bc"
     ? (_roCA ? "auto-carrier BC → Montreal" : _enCA ? "auto carrier BC → Montreal" : "автовоз BC → Монреаль")
     : "";
+  // Канада (Федор 29.09.2026): вся канадская логистика до Клайпеды (включая море) оплачивается
+  // сразу, одним платежом — не только ставка+сбор, как в США. Позже, при получении в Кишинёве, —
+  // только дорога от Клайпеды, таможня, страховка и наша комиссия.
   const payNowRows = [
     ["Стоимость лота",          lot,        "",             "usd"],
-    ["Аукционный сбор",         auctionFee, afd.detail,     "usd"]
-  ];
-  const payLaterRows = [
+    ["Аукционный сбор",         auctionFee, afd.detail,     "usd"],
     ["Доставка по Канаде",      dispatch,   dispatchDetail, "usd", offsiteBadge],
   ];
-  if(bankFee > 0) payLaterRows.push(["Комиссия банка TD", bankFee, "", "usd"]);
-  payLaterRows.push(["Услуги канадской компании", canadaFee, lot > 15000 ? "2% от цены лота" : "", "usd"]);
-  payLaterRows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
-  payLaterRows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
-  payLaterRows.push(
+  if(bankFee > 0) payNowRows.push(["Комиссия банка TD", bankFee, "", "usd"]);
+  payNowRows.push(["Услуги канадской компании", canadaFee, lot > 15000 ? "2% от цены лота" : "", "usd"]);
+  payNowRows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
+  payNowRows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
+  const payLaterRows = [
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Комиссия",                    company,      "",                              "usd"],
     ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
-  );
+  ];
 
   const lng = window.APEX_LANG || "ru";
   if(customs.luxury > 0){
