@@ -696,7 +696,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbCard .dbExpandV1 { display:block; }
   .dbPhoto .dbPhotoCount { top:8px; left:8px; right:auto; bottom:auto; }
   .dbCard:not(.dbOpenV1) .dbSpecs li:nth-child(n+3) { display:none; }
-  .dbCard:not(.dbOpenV1) .dbChecks li:nth-child(n+2) { display:none; }
+  /* 29.09.2026 (Федор: «перекуп и плохую историю должен видеть, листая каталог») — «История» (перекуп/
+     продажи) всегда последний <li> в .dbChecks (dbCheckHistory зовётся последним, dbCheckFuel/dbCheckKey
+     могут не отрендериться пустой строкой, но История — никогда), поэтому :last-child надёжно её ловит
+     независимо от того, сколько строк перед ней реально есть. Раньше пряталась вместе с Топливо/Продавец/
+     Ключ до «Развернуть» — самое важное (перекуп) было не видно без лишнего тапа по каждой карточке. */
+  .dbCard:not(.dbOpenV1) .dbChecks li:nth-child(n+2):not(:last-child) { display:none; }
   .dbCard:not(.dbOpenV1) .dbAside { display:none; }
   /* Compact tab row: keep «Все» и «Архивные», rest duplicated in filters */
   /* Все вкладки видны — горизонтальный скролл вместо скрытия */
@@ -812,14 +817,6 @@ body.leadModalOpenV1 { overflow:hidden; }
   .calcOptColV1 > span { font-size:9px; letter-spacing:.03em; white-space:nowrap; }
   .calcPairRowV1 .calcOptV2 { font-size:11.5px; }
 }
-
-/* Чипы поколений над выдачей (как у DreamBid) */
-.genChipsV1 { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
-.genChipV1 { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border:1px solid var(--aLine2); border-radius:999px; background:var(--aCard); font-size:12.5px; font-weight:600; color:var(--aInk); cursor:pointer; transition:border-color .15s, background .15s; }
-.genChipV1:hover { border-color:var(--aInk); }
-.genChipV1 i { font-style:normal; font-size:10.5px; color:var(--aMuted); font-weight:500; }
-.genChipV1.isActiveGenV1 { background:#14181f; border-color:#14181f; color:#fff; }
-.genChipV1.isActiveGenV1 i { color:rgba(255,255,255,.65); }
 
 /* Прогноз финальной ставки в карточке (вилка из архива продаж) */
 .dbForecastV1 { display:flex; flex-direction:column; align-items:flex-start; gap:2px; margin-top:8px; }
@@ -1395,14 +1392,11 @@ body.leadModalOpenV1 { overflow:hidden; }
   body.filtersOpenV1 .auctionFiltersV1 { z-index:var(--z-overlay); }
 }
 
-/* Чипы фильтров, кнопки и поколения — одной строкой (переносится только когда не хватает ширины) */
+/* Чипы фильтров и кнопки — одной строкой (переносится только когда не хватает ширины) */
 .filterBarV1 { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0; }
 .filterBarV1:has(> :not([hidden])) { margin:0 0 14px; }
-.filterBarV1 > .activeFiltersV1:not([hidden]), .filterBarV1 > .genChipsV1 { display:contents; }
+.filterBarV1 > .activeFiltersV1:not([hidden]) { display:contents; }
 .filterBarV1 .activeFiltersV1 { margin:0; }
-.filterBarV1 .genChipsV1 { margin:0; }
-.filterBarV1 > .genChipsV1 .genChipV1:first-child { margin-left:14px; position:relative; }
-.filterBarV1 > .genChipsV1 .genChipV1:first-child::before { content:""; position:absolute; left:-10px; top:50%; height:20px; width:1px; margin-top:-10px; background:var(--aLine); }
 
 /* Флаг Канады на канадских лотах */
 .dbCaFlagV1 { display:inline-flex; align-items:center; height:22px; padding:0 5px; border-radius:6px; background:rgba(255,255,255,.96); box-shadow:0 1px 3px rgba(15,23,42,.25); }
