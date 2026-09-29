@@ -401,9 +401,16 @@ function saleStatusInfo(lot, item, auction){
   // looksTimed — только для IAAI: у Copart Timed не бывает вовсе (правило подтверждено ?action=feedcount
   // 23.09.2026), не хотим ложных «Timed» на его собственных нестандартных датах.
   const saleTypeText = safeName(lot?.sale_type || item?.sale_type || lot?.type || item?.type).toLowerCase();
+  // 30.09.2026 (второй проход): проверил напрямую по данным — для лотов дальше ~14ч до торгов ни
+  // is_timed_auction, ни «кривая» минута sale_date ещё не проставлены фидом вообще (это не наш баг
+  // детекции, IAAI решает/публикует Timed-статус близко к торгам). Но чуть выше в этой же функции
+  // (currentBid) уже используется timed_start_bid — поле, которое, по документированному наблюдению,
+  // бывает заполнено ТОЛЬКО у timed-лотов (у обычных живёт bid/current_bid). Раз оно уже используется
+  // как признак «это timed» для расчёта ставки, но не для самого флага timed — добавляю сюда тоже.
+  const hasTimedStartBid = lot?.timed_start_bid != null && lot?.timed_start_bid !== "";
   const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true
     || /timed/.test(auctionType) || /timed/.test(saleTypeText)
-    || (auction === "iaai" && looksTimed(lot?.sale_date || item?.sale_date));
+    || (auction === "iaai" && (hasTimedStartBid || looksTimed(lot?.sale_date || item?.sale_date)));
   let key = "", label = "";
   if(reserve != null && Number(reserve) > 0){ key = "min_reserve"; label = "Минимальный резерв"; }
   else if(auctionType === "pure_sale"){ key = "no_reserve"; label = "Без резерва"; }
