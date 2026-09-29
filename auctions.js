@@ -3097,7 +3097,11 @@
     const bid = Number(lot.currentBid) || 0, bn = Number(lot.buyNow) || 0;
     const sold = Number(lot.statusId) === 6;
     const band = state.lotBand && state.lotBand.hi ? state.lotBand : null;
-    const turnkey = (function(){ try{ return Math.round(Number(turnkeyFor(lot, sold ? (Number(lot.finalBid) || bid) : (bid || bn)) ) || 0); }catch(_){ return 0; } })();
+    // «Под ключ» считаем от рыночного ориентира (середина вилки), а не от текущей
+    // ставки: ставка ранняя/заниженная, реально лот уйдёт по рынку (просьба Федора 29.09.2026).
+    const marketMid = band ? Math.round((Number(band.lo) + Number(band.hi)) / 2) : 0;
+    const turnkeyBasis = sold ? (Number(lot.finalBid) || bid) : (marketMid || bid || bn);
+    const turnkey = (function(){ try{ return Math.round(Number(turnkeyFor(lot, turnkeyBasis)) || 0); }catch(_){ return 0; } })();
     const url = tgLotUrl(lot), tags = tgHashtags(lot);
     const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money(lot.finalBid) : ""}</b>`
       : (bn && !bid) ? `💰 <b>Buy Now: ${money(bn)}</b>`
@@ -3121,9 +3125,17 @@
     // "auction" — классика
     return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
+  // Для Telegram берём МАКСИМАЛЬНОЕ разрешение фото (Telegram сам ужмёт по своим правилам):
+  // Copart _thb/_ful → _hrs (1280×960), IAAI resizer → width=1280&height=960.
+  function tgImg(url){
+    let u = String(url || "");
+    if(/cs\.copart\.com\/.*_(thb|ful|hrs)\.jpg/i.test(u)) return u.replace(/_(thb|ful)\.jpg/i, "_hrs.jpg");
+    if(/vis\.iaai\.com\/resizer/i.test(u)) return u.replace(/width=\d+/i, "width=1280").replace(/height=\d+/i, "height=960");
+    return u;
+  }
   function tgPhotoSet(lot, mode){
     const card = location.origin + "/og/lot/" + encodeURIComponent(lot.id);
-    const real = (Array.isArray(lot.images) && lot.images.length ? lot.images : (lot.image ? [lot.image] : [])).filter(Boolean);
+    const real = (Array.isArray(lot.images) && lot.images.length ? lot.images : (lot.image ? [lot.image] : [])).filter(Boolean).map(tgImg);
     if(mode === "real") return real.slice(0, 10);
     if(mode === "both") return [card, ...real.slice(0, 9)];
     return [card];
