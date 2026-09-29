@@ -17,9 +17,11 @@ jobs:
     timeout-minutes: 55
     steps:
       - name: Pump sync endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           for i in $(seq 1 20); do
-            out=$(curl -s --max-time 120 "https://apexauto.md/api/sync-lots?source=gha" || echo '{"ok":false}')
+            out=$(curl -s --max-time 120 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/sync-lots?source=gha" || echo '{"ok":false}')
             echo "[$i] $out"
             echo "$out" | grep -q '"continue":true' || break
             sleep 2
@@ -45,8 +47,10 @@ jobs:
     # Каждые 10 минут: только закрытые за последние 90 мин торги → архив без часового лага.
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Sync closed lots
-        run: curl -s --max-time 60 "https://apexauto.md/api/auctions?action=syncclosed&source=gha"
+        run: curl -s --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/auctions?action=syncclosed&source=gha"
       - name: Settle lots whose auction just ended
-        run: curl -s --max-time 60 "https://apexauto.md/api/auctions?action=syncsettle&source=gha"
+        run: curl -s --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/auctions?action=syncsettle&source=gha"

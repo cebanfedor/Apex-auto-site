@@ -4371,10 +4371,35 @@ module.exports = async function handler(request, response){
   // внутренние данные и ПРОИЗВОДНЫЕ закрытой таблицы Федора (actualToGuideRatio/impliedK,
   // строки guide_miss), а также давали произвольный read-запрос к БД (explain) и жгли
   // квоту фида. Теперь только для админа (клиент их не вызывает — проверено). ──
-  const ADMIN_ONLY_ACTIONS = new Set(["explain", "compstest", "missdiag", "acvcalib", "ptaudit", "ptstatus", "vinhealth", "feedcount", "salescoverage", "archprobe", "rawfields", "rawgens", "dbstatus"]);
+  const ADMIN_ONLY_ACTIONS = new Set([
+    // read-only диагностики
+    "explain", "compstest", "missdiag", "acvcalib", "ptaudit", "ptstatus", "vinhealth", "feedcount", "salescoverage", "archprobe", "rawfields", "rawgens", "dbstatus",
+    // ручные maintenance-экшены С ЗАПИСЬЮ (не в кронах и не в GitHub Actions) — только админ
+    "teslafix", "syncghosts", "salesbackfill"
+  ]);
   if(ADMIN_ONLY_ACTIONS.has(action)){
     const {isAuthenticated} = require("../server/auth");
     if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false, error:"Нет доступа"}); return; }
+  }
+
+  // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
+  // разрешаем валидному секрету ИЛИ админу. Если CRON_SECRET не задан в env — НЕ блокируем
+  // (обратная совместимость: исключаем риск залочить синк при отсутствии переменной).
+  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck"]);
+  if(CRON_ACTIONS.has(action)){
+    const secret = process.env.CRON_SECRET;
+    if(secret){
+      const auth = String(request.headers["authorization"] || "");
+      const m = auth.match(/^Bearer\s+(.+)$/i);
+      let ok = false;
+      if(m){
+        try{ const a = Buffer.from(m[1]), b = Buffer.from(secret); ok = a.length === b.length && require("crypto").timingSafeEqual(a, b); }catch(_){ ok = false; }
+      }
+      if(!ok){
+        const {isAuthenticated} = require("../server/auth");
+        if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false, error:"Нет доступа"}); return; }
+      }
+    }
   }
 
   if(action === "lead") return handleLead(request, response);
