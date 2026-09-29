@@ -3507,16 +3507,21 @@
     const draw = () => {
       const box = document.getElementById("lotQueueV1");
       if(seq !== queueSeq || !box || !info){ if(queueTimer && !box){ clearInterval(queueTimer); queueTimer = null; } return; }
-      const paceSec = String(lot.auction).toLowerCase() === "iaai" ? 30 : 60;   // IAAI ≈ 30 с на лот, Copart ≈ 60 с
+      // 29.09.2026 (Федор: лот №2050, реально 50-й в очереди — сайт писал «сейчас в эфире»): 60с/лот
+      // для Copart было занижено (реальный темп ≈76–79с/лот, см. refresh_live_until в CLAUDE.md) —
+      // на 50-м лоте это уже ~13–16 мин systematic-ошибки, а буфер до «сейчас в эфире» был всего 4 мин.
+      // Темп поднят до замеренного; формулировки мимо ETA смягчены — не утверждаем факт, оценка есть оценка.
+      const paceSec = String(lot.auction).toLowerCase() === "iaai" ? 30 : 78;   // IAAI ≈ 30 с/лот, Copart ≈ 78 с/лот
       const start = Date.parse(info.startsAt), etaAt = start + info.position * paceSec * 1000, now = Date.now();
       let line;
       if(now < start){
         line = `${L("Старт в")} <b>${hm(start)}</b> · ${L("ваш лот")} ≈ <b>${hm(etaAt)}</b> (${L("через")} ${fmtEta(info.position * paceSec / 60)} ${L("после старта")})`;
       }else{
         const left = Math.ceil((etaAt - now) / 60e3);
+        const GRACE_MIN = 15; // запас на реальный разброс темпа (торги, задержки) — не считаем «в эфире» категорично сразу после ETA
         line = `<span class="calcLiveDotV1"></span><b class="lqLiveV1">${L("Идут онлайн-торги")}</b> · ` + (left > 0
           ? `${L("до вашего лота")} ≈ ${fmtEta(left)} (${hm(etaAt)})`
-          : L(left > -4 ? "ваш лот сейчас в эфире" : "лот в эфире или уже сыгран"));
+          : L(left > -GRACE_MIN ? "должны дойти прямо сейчас — точное время зависит от темпа торгов" : "лот, скорее всего, уже сыгран — уточните у нас"));
       }
       box.hidden = false;
       box.innerHTML = `<div class="lqHeadV1"><span>${L("Онлайн-торги")}</span><span>${L("Линия")} ${escapeHtml(info.lane)} · №${escapeHtml(String(info.runNo))}</span></div><div class="lqLineV1">${line}</div>`;
