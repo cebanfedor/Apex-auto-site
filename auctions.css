@@ -1267,10 +1267,6 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbSpecs li, .dbChecks li { align-items:center; }
 .dbSpecs li .dbIco, .dbChecks li .dbIco { flex:none; align-self:flex-start; margin-top:calc((1.3em - 17px) / 2); }
 
-/* Значок топлива: электро — голубой, гибрид — зелёный, бензин/дизель — серый */
-.dbCheck.dbFuelEvV1 .dbIco { color:#1d8fe1; background:#e8f2fd; }
-.dbCheck.dbFuelHyV1 .dbIco { color:#1b9c5b; background:#e6f7ee; }
-.dbCheck.dbFuelGasV1 .dbIco { color:var(--aMuted); background:var(--aSoft); }
 /* Иконка у номера лота */
 .dbLotRowV1 .dbLotNo { display:inline-flex; align-items:center; gap:9px; }
 .dbLotRowV1 .dbLotNo .dbIco:first-child { width:17px; height:17px; color:var(--aMuted); }

@@ -1231,10 +1231,9 @@
     const kindRu = fuelKindRu(lot);
     if(kindRu) val = kindRu;
     else if(lot && /hybrid|гибрид/i.test(String(raw)) && !/plug|phev/i.test(String(raw)) && window.ApexCalc && window.ApexCalc.isPluginHybrid && window.ApexCalc.isPluginHybrid(lot.make, lot.model, lot.title, lot.year)) val = "Plug-in гибрид";
-    const low = (kindRu ? (lot.fuelKind === 2 ? "electric" : lot.fuelKind === 3 || lot.fuelKind === 5 ? "hybrid" : "gasoline") : String(raw)).toLowerCase();
-    // Цвет значка по типу: электро — голубой, гибрид — зелёный, бензин/дизель — серый (Федор 25.09.2026)
-    const fuelCls = /electric|электро/.test(low) && !/hybrid|гибрид/.test(low) ? "dbFuelEvV1" : /hybrid|гибрид|phev|plug/.test(low) ? "dbFuelHyV1" : "dbFuelGasV1";
-    return `<li class="dbCheck neutral ${fuelCls}">${dbIco(toneIcon("neutral"))}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
+    // Топливо — не проблема сама по себе, зелёная галочка для любого типа (Федор 29.09.2026: раньше бензин/дизель
+    // шли серым «нейтральным» кружком, а электро/гибрид — цветными — бессистемно, будто с бензином что-то не так.
+    return `<li class="dbCheck good">${dbIco(toneIcon("good"))}<span><b>${L("Топливо:")}</b> ${escapeHtml(L(val))}</span></li>`;
   }
   function dbCheckSeller(raw){
     const val = raw ? tc(raw) : "";
