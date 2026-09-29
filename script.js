@@ -2,10 +2,10 @@
 const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
 function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
 const YEAR_NOW=new Date().getFullYear();
-const GASOLINE_RATES={"0-2":[9.56,12.23,18.90,31.14,55.60],"3-4":[10,12.67,19.34,31.68,56.04],"5-6":[10.23,12.90,19.57,31.81,56.27],"7":[11.25,14.19,21.53,34.99,61.90],"8":[12.38,15.61,23.68,38.49,68.09],"9":[13.62,17.17,26.05,42.34,74.90],"10":[16.34,20.60,31.26,50.81,89.87],"11":[21.24,26.79,40.63,66.05,116.84],"12":[26.24,31.79,45.79,71.05,121.84],"13":[31.24,36.79,50.63,76.05,126.84],"14":[36.24,41.79,55.63,81.05,131.84],"15":[41.24,46.79,60.63,86.05,136.84],"16":[46.24,51.79,65.63,91.05,141.84],"17":[51.24,56.79,70.63,96.05,146.84],"18":[56.24,61.79,75.63,101.05,151.84],"19":[61.24,66.79,80.63,106.05,156.84],"20+":[66.24,71.79,85.63,111.05,161.84]};
-const DIESEL_RATES={"0-2":[12.23,31.14,55.60],"3-4":[12.67,31.58,56.04],"5-6":[12.90,31.81,56.27],"7":[14.19,34.99,61.90],"8":[15.61,38.49,68.90],"9":[17.17,42.34,74.90],"10":[20.60,50.81,89.87],"11":[26.79,66.05,116.84],"12":[31.79,71.05,121.84],"13":[36.79,76.05,126.84],"14":[41.79,81.05,131.84],"15":[46.79,86.05,136.84],"16":[51.79,91.05,141.84],"17":[56.79,96.05,146.84],"18":[61.79,101.05,151.84],"19":[66.79,106.05,156.84],"20+":[71.79,111.05,161.84]};
-const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
-const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
+/* Таблицы акциза/роскоши/аукционного сбора и функции по ним ЖИВУТ в calc-core.js
+   (единый источник для главной, страницы лота, /api/calc и расширения). Их локальные
+   копии в script.js были мёртвыми (не вызывались) и создавали риск дрейфа формул —
+   удалены 30.09.2026 (аудит техдолга). Не возвращать: считать только через ApexCalc. */
 const $=id=>document.getElementById(id);
 /* num: конечное неотрицательное число из поля. Отрицательное → 0, Infinity/NaN → 0
    (ручной ввод -5000 давал отрицательный итог, 1e999 → $∞ в выводе; P2-2).
@@ -37,7 +37,6 @@ function rateOf(id){const el=$(id);const v=Number(el&&el.value);if(v>0)return v;
 function usdToMdl(v){return v*rateOf("usdMdl")}function mdlToUsd(v){return v/rateOf("usdMdl")}function mdlToEur(v){return v/rateOf("eurMdl")}
 function displayUsd(usd){if(currency==="mdl")return moneyMdl(usdToMdl(usd));if(currency==="eur")return moneyEur(usdToMdl(usd)/rateOf("eurMdl"));return moneyUsd(usd)}
 function displayMdl(mdl){if(currency==="mdl")return moneyMdl(mdl);if(currency==="eur")return moneyEur(mdlToEur(mdl));return moneyUsd(mdlToUsd(mdl))}
-function interpolateFee(price){if(price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
 /* Ядро расчёта живёт в calc-core.js — его же использует /api/calc и расширение Chrome.
    Здесь остаются только чтение формы и оформление вывода, чтобы формулы не расходились. */
 function calculateAuctionFeeFor(price, auction, isCanada){
@@ -50,12 +49,8 @@ function normalizeAuction(v){return String(v||"").toLowerCase().replace(/\s+/g,"
 function getFilteredLocations(){return (window.LOCATIONS||[]).filter(matchesAuction)}
 function initLocations(){let select=$("location");if(!select)return;select.innerHTML='<option value="">Выбери локацию</option>';const locs=getFilteredLocations();locs.forEach((item,i)=>{let o=document.createElement("option");o.value=String(i);o.textContent=item.displayName||"Локация";select.appendChild(o)});if(locs.length)select.value="0";refreshGlassSelect(select);updateLocation();}
 function updateLocation(){let locationEl=$("location");if(!locationEl)return;let idx=locationEl.value;selectedLocation=idx===""?null:getFilteredLocations()[Number(idx)];if(!selectedLocation){if($("portView"))$("portView").value="—";if($("landView"))$("landView").value="0";return}if($("portView"))$("portView").value=selectedLocation.portLabel||SEA[selectedLocation.autoPort]?.label||"—";if($("landView"))$("landView").value=getLandShipping().toFixed(0)}
-function getLandMultiplier(){let t=$("vehicleType")?.value||"sedan";if(t==="pickup"||t==="pickupLarge"||t==="vanLarge"||t==="pickupOversized")return 1.5;return 1}
 function getLandShipping(){return ApexCalc.landShippingFor(selectedLocation, $("vehicleType")?.value||"sedan", !!($("offsite")&&$("offsite").checked))}
 function getSeaShipping(){return ApexCalc.seaShippingFor($("vehicleType")?.value||"sedan", $("fuel")?.value||"gasoline", selectedLocation?.autoPort||"nj")}
-function ageKey(){let age=Math.max(0,YEAR_NOW-num("year"));if(age<=2)return"0-2";if(age<=4)return"3-4";if(age<=6)return"5-6";if(age>=20)return"20+";return String(age)}
-function gasolineColumn(cc){if(cc<=1000)return 0;if(cc<=1500)return 1;if(cc<=2000)return 2;if(cc<=3000)return 3;return 4}function dieselColumn(cc){if(cc<=1500)return 0;if(cc<=2500)return 1;return 2}
-function fuelDiscount(){let f=$("fuel")?.value||"gasoline";if(f==="phev")return .5;if(f==="hybrid")return .75;return 1}function luxuryPct(mdl){let r=LUXURY_RATES.find(x=>mdl>=x.min&&mdl<=x.max);return r?r.pct:0}
 function updateHybridGuard(data){
   const box = $("hybridGuard");
   if(!box) return;
