@@ -2533,11 +2533,11 @@
       return calcSec("ship", "Калькулятор стоимости", shipSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
-        ${calcRow("Доставка по Канаде", calc.dispatch)}
+        ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
         ${calcRow("Услуги канадской компании", calc.canadaFee, calc.bid > 15000 ? "2% от цены лота" : "")}
         ${calcRow("Складирование и погрузка", calc.keeper)}
-        ${calcRow("Морская перевозка", calc.ocean)}
+        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}`)
         + calcSec("clear", "Таможня и оформление", clearSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
@@ -2550,8 +2550,8 @@
     return calcSec("ship", "Калькулятор стоимости", shippingSub, `
         ${calcRow("Ставка", calc.bid)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
-        ${calcRow("Доставка по США", calc.land)}
-        ${calcRow("Доставка морем", calc.sea)}`)
+        ${calcRow("Доставка по США", calc.land, calc.landRoute)}
+        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}`)
       + calcSec("clear", "Таможня и оформление", clearingSub, `
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
