@@ -254,7 +254,7 @@ section { position: relative; }
 .heroV45.heroWideV302 {
   display: flex; flex-direction: column; justify-content: space-between; gap: 0;
   position: relative; overflow: hidden;
-  min-height: 400px; padding: 0; margin-top: 10px;
+  min-height: 520px; padding: 0; margin-top: 10px;
   border-radius: var(--radius-lg); box-shadow: var(--shadow);
   background: linear-gradient(165deg, var(--dark), var(--dark-2)); /* 29.09.2026: .heroWideStatsV302 не
   имел своего фона — трастовая полоса под фото была прозрачной (белый текст на белой странице,
@@ -315,9 +315,18 @@ section { position: relative; }
 /* Контейнер сам держит высоту (те же min-height, что раньше были у .heroV45.heroWideV302) —
    слайды ВСЕ абсолютные, ни один не влияет на высоту через контент (иначе короткий слайд-поиск
    обрезал бы фон, а трастовая плашка снизу падала на белый фон страницы). */
-.heroSlidesV1 { position: relative; flex: 1 1 auto; min-height: 400px; }
+.heroSlidesV1 { position: relative; flex: 1 1 auto; min-height: 520px; }
+/* 29.09.2026 (Федор: «текст наезжает» + «качество фото испортилось») — было 400px: контент
+   founder-photo слайда (h1 в 3 строки + 5-пунктовый trust-список) требовал 506px и вытекал под
+   трастовую полосу (раньше невидимо — полоса была прозрачной, см. фикс выше; теперь видно). 520px
+   вмещает контент БЕЗ обрезки. Заодно у founder-auction.webp (1400×560, соотношение 2.5:1) новое
+   соотношение блока (1292:520 ≈ 2.48:1) почти совпадает — фото почти не кропается/не апскейлится,
+   явно резче, чем при старых 400px (3.23:1, фото растягивалось сильнее). hero-carmeet.webp (1.5:1)
+   при той же object-position (50% 46%) показывает БОЛЬШЕ кадра (меньше «зума») — тот же центр, шире окно.
+   overflow:hidden — стоп-кран на будущее: если контент слайда когда-то снова не влезет, обрежется
+   аккуратно, а не наедет на трастовую полосу под ним. */
 .heroSlideV1 {
-  position: absolute; inset: 0; opacity: 0; visibility: hidden; pointer-events: none;
+  position: absolute; inset: 0; opacity: 0; visibility: hidden; pointer-events: none; overflow: hidden;
   transition: opacity 0.6s var(--ease), visibility 0s linear 0.6s;
 }
 .heroSlideV1.heroSlideActiveV1 { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.6s var(--ease); }
