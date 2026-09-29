@@ -4088,9 +4088,12 @@ function resaleLevel(stub, lotNo, saleIso){
   const soldBefore = past.some(e => e.status === "sold");
   const lots = new Set(past.map(e => e.lot).filter(Boolean)); lots.add(String(lotNo));
   if(soldBefore) return 2;
+  // Перекуп — только когда МЕНЯЕТСЯ номер лота (машина реально уходила на новые торги под другим
+  // номером). Просто повтор ТОГО ЖЕ номера много раз (прокат, непроданный лот) — это не перекуп,
+  // убрали триггер по количеству повторов (Федор 29.09.2026).
   const sellerKnown = stub.seller !== undefined || stub.sellerType !== undefined;
-  if(sellerKnown && !sellerIsIns(stub)) return (lots.size >= 2 || past.length >= 3) ? 1 : 0;
-  return (past.length >= 8 || lots.size >= 3) ? 1 : 0;
+  if(sellerKnown && !sellerIsIns(stub)) return lots.size >= 2 ? 1 : 0;
+  return lots.size >= 3 ? 1 : 0;
 }
 // Окно «идут торги» для текущих вкладок: лот с датой старта старше 30 мин уже почти наверняка продан (лоты аукциона идут по одному), а проверить каждый нельзя.
 const LIVE_GRACE_MS = 30 * 60e3;
@@ -4381,7 +4384,7 @@ async function runEngineFill(){
   return out;
 }
 
-const RESALE_RULES_AT = "2026-09-25T14:00:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
+const RESALE_RULES_AT = "2026-09-29T20:30:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
 async function runResaleCheck(budgetMs){
   const t0 = Date.now();
   const out = {ok:true, checked:0, clean:0, relisted:0, resold:0, skipped:0, fail:0};
