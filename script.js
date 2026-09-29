@@ -231,12 +231,6 @@ function row(name,value,detail,type="usd",badgeHtml=""){
 function calcSectionHeader(text){
   return `<div class="breakdownSecV1">${escapeHtml(text)}</div>`;
 }
-// Внутри группы «Оплата при получении» — тонкая пунктирная черта между смысловыми
-// кучками строк (доставка / доп. услуги Apex / таможня), без отдельных заголовков —
-// пустой массив [] в списке рядов служит меткой «здесь черта» (Федор 29.09.2026).
-function calcRowOrDivider(r){
-  return r.length ? row(...r) : `<div class="breakdownDividerV1"></div>`;
-}
 
 function numberFromText(value){
   const number = String(value || "").replace(/[^\d.]/g, "");
@@ -1205,11 +1199,9 @@ function calculate(){
   const payLaterRows = [
     [landName, land, "", "usd", offsiteBadge],
     ["Доставка в Кишинёв", sea, selectedLocation ? selectedLocation.portLabel : "", "usd", dangerBadge],
-    [],
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
     ["Комиссия", company, "", "usd"],
-    [],
     ["Таможенные платежи", customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
 
@@ -1225,10 +1217,10 @@ function calculate(){
     payLaterRows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
   }
 
-  const rows = [...payNowRows, ...payLaterRows].filter(r => r.length);
+  const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => calcRowOrDivider(r)).join("") +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => calcRowOrDivider(r)).join("");
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
@@ -1793,10 +1785,8 @@ function calculateCanada(){
   payLaterRows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
   payLaterRows.push(
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
-    [],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Комиссия",                    company,      "",                              "usd"],
-    [],
     ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
   );
 
@@ -1813,10 +1803,10 @@ function calculateCanada(){
     payLaterRows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
   }
 
-  const rows = [...payNowRows, ...payLaterRows].filter(r => r.length);
+  const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => calcRowOrDivider(r)).join("") +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => calcRowOrDivider(r)).join("");
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
   updateShare();
 }
