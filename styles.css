@@ -256,9 +256,6 @@ section { position: relative; }
   position: relative; overflow: hidden;
   min-height: 520px; padding: 0; margin-top: 10px;
   border-radius: var(--radius-lg); box-shadow: var(--shadow);
-  background: linear-gradient(165deg, var(--dark), var(--dark-2)); /* 29.09.2026: .heroWideStatsV302 не
-  имел своего фона — трастовая полоса под фото была прозрачной (белый текст на белой странице,
-  «белая полоса» из жалобы Федора). Фон на всей карточке — трастовая полоса теперь тёмная везде. */
 }
 .heroWideBgV302 {
   position: absolute; inset: 0; z-index: 0;
@@ -290,19 +287,9 @@ section { position: relative; }
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
 }
 .heroV45.heroWideV302 .heroBtnGhostV207:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.55); }
-.heroWideStatsV302 {
-  position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: flex-end;
-  justify-content: space-between; gap: 14px 40px;
-  padding: 12px 48px 16px;
-}
-.heroWideStatsV302 > div { display: flex; flex-direction: column; gap: 2px; }
-.heroWideStatsV302 b { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
-.heroWideStatsV302 span { font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; color: rgba(255,255,255,0.6); text-transform: uppercase; }
 @media (max-width: 720px) {
   .heroV45.heroWideV302 { min-height: 500px; }
   .heroWideContentV302 { padding: 30px 22px 6px; max-width: none; }
-  .heroWideStatsV302 { padding: 14px 22px 20px; gap: 12px 24px; justify-content: flex-start; }
-  .heroWideStatsV302 b { font-size: 15.5px; }
   .heroWideBgV302 { object-position: 66% center; }
   .heroSlideSearchV1 .heroBgCarsV1 { object-position: 56% 42%; }
 }
@@ -310,28 +297,23 @@ section { position: relative; }
 /* ---- Hero slider (29.09.2026, Федор: «как у ДримБида», слайд с поиском авто)
    Слайды абсолютно уложены друг на друга внутри того же героя (.heroV45.heroWideV302
    остаётся контейнером-вьюпортом), переключение — кроссфейд по opacity. Первый слайд
-   (поиск) — активен по умолчанию; .heroWideStatsV302 остаётся ОБЩИМ для всех слайдов
-   (как трастовая плашка под фото у ДримБида), внутрь слайдов не идёт. */
-/* Контейнер сам держит высоту (те же min-height, что раньше были у .heroV45.heroWideV302) —
-   слайды ВСЕ абсолютные, ни один не влияет на высоту через контент (иначе короткий слайд-поиск
-   обрезал бы фон, а трастовая плашка снизу падала на белый фон страницы). */
+   (поиск) — активен по умолчанию. Контейнер сам держит высоту, слайды ВСЕ абсолютные,
+   ни один не влияет на высоту через контент (иначе короткий слайд-поиск обрезал бы фон). */
+/* 29.09.2026 (Федор: «текст наезжает» + «качество фото испортилось») — было 400px: контенту
+   founder-photo слайда (h1 в 3 строки + 5-пунктовый trust-список) нужно 506px. 520px вмещает
+   без обрезки. Заодно у founder-auction.webp (1400×560, 2.5:1) новое соотношение блока
+   (1292:520 ≈ 2.48:1) почти совпадает — фото почти не кропается/не апскейлится (было 3.23:1 —
+   растягивало сильнее). hero-carmeet.webp (1.5:1) при той же object-position показывает больше
+   кадра (меньше «зума»). overflow:hidden — стоп-кран: контент, который вдруг не влезет, аккуратно
+   обрежется, а не вытечет за карточку. Трастовую плашку под фото (Федор: «убери полосу снизу,
+   раньше её не было») убрали — дублировала то, что уже в тексте каждого слайда. */
 .heroSlidesV1 { position: relative; flex: 1 1 auto; min-height: 520px; }
-/* 29.09.2026 (Федор: «текст наезжает» + «качество фото испортилось») — было 400px: контент
-   founder-photo слайда (h1 в 3 строки + 5-пунктовый trust-список) требовал 506px и вытекал под
-   трастовую полосу (раньше невидимо — полоса была прозрачной, см. фикс выше; теперь видно). 520px
-   вмещает контент БЕЗ обрезки. Заодно у founder-auction.webp (1400×560, соотношение 2.5:1) новое
-   соотношение блока (1292:520 ≈ 2.48:1) почти совпадает — фото почти не кропается/не апскейлится,
-   явно резче, чем при старых 400px (3.23:1, фото растягивалось сильнее). hero-carmeet.webp (1.5:1)
-   при той же object-position (50% 46%) показывает БОЛЬШЕ кадра (меньше «зума») — тот же центр, шире окно.
-   overflow:hidden — стоп-кран на будущее: если контент слайда когда-то снова не влезет, обрежется
-   аккуратно, а не наедет на трастовую полосу под ним. */
 .heroSlideV1 {
   position: absolute; inset: 0; opacity: 0; visibility: hidden; pointer-events: none; overflow: hidden;
   transition: opacity 0.6s var(--ease), visibility 0s linear 0.6s;
 }
 .heroSlideV1.heroSlideActiveV1 { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.6s var(--ease); }
-.heroDotsV1 { position: absolute; right: 22px; bottom: 14px; z-index: 3; display: flex; gap: 7px; }
-.heroWideStatsV302 ~ .heroDotsV1, .heroDotsV1 { bottom: auto; top: 18px; } /* точки сверху-справа — не мешают трастовой плашке снизу */
+.heroDotsV1 { position: absolute; right: 22px; top: 18px; z-index: 3; display: flex; gap: 7px; }
 .heroDotsV1 button {
   width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
   background: rgba(255,255,255,0.4); transition: background 0.2s, transform 0.2s;
@@ -1352,7 +1334,6 @@ details > summary::-webkit-details-marker { display: none; }
   .heroBtnPrimaryV207 { height: 40px; padding: 0 20px; font-size: 14px; align-self: flex-start; }
   .heroBtnGhostV207 { display: none; }
   .heroTrustV207 { display: none; }
-  .heroWideStatsV302 { display: none; }
 
   /* --- Страница "Моя история" ----------------------------------------- */
   .aboutHeroV344 { border-radius: 14px; margin-top: 20px; margin-bottom: 32px; }
