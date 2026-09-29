@@ -764,7 +764,9 @@
     if(/suv|utility|cuv|crossover/.test(b)) return "suv";
     return "sedan";
   }
-  function landRouteLabel(lot){ const from = lot.location || "Локация США"; return `${from} → порт США`; }
+  // Фид отдаёт локацию строчными («laurel, maryland») — приводим к Title Case для показа.
+  function titleCaseLoc(s){ return String(s || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase()); }
+  function landRouteLabel(lot){ const from = titleCaseLoc(lot.location) || "Локация США"; return `${from} → порт США`; }
   function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
 
   // Реальный тип силовой установки по VIN (NHTSA vPIC), приходит с сервера как lot.fuelKind: 1 дизель · 2 электро · 3 гибрид · 4 бензин (в т.ч. mild-hybrid) · 5 plug-in гибрид
@@ -2779,7 +2781,7 @@
     ];
     // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
     // Фид отдаёт место строчными («hillsborough, new jersey») — приводим к Title Case.
-    const place = String(lot.location || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase());
+    const place = titleCaseLoc(lot.location);
     const landRoute = calc.canada ? calc.dispatchRoute : calc.landRoute;
     const locParts = [place, landRoute && landRoute !== place ? landRoute : ""].filter(Boolean);
     const siteUrl = `${location.origin}${detailHref(lot)}`;
