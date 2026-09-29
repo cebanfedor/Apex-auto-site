@@ -577,12 +577,14 @@ details > summary::-webkit-details-marker { display: none; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
 .auctionBadge { padding: 4px 10px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
-.breakdown { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-.breakdown > div, .breakdown > p { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-size: 14.5px; color: rgba(255, 255, 255, 0.72); }
+.breakdown { display: flex; flex-direction: column; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.breakdown .row, .breakdown > p { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0; font-size: 14.5px; color: rgba(255, 255, 255, 0.72); }
 .breakdown b, .breakdown strong { color: #fff; font-variant-numeric: tabular-nums; font-weight: 700; }
 .breakdown small { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.45); }
-.breakdown .breakdownSecV1 { justify-content: flex-start; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; font-weight: 700; color: rgba(255, 255, 255, 0.4); margin-top: 2px; padding-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.14); }
-.breakdown .breakdownSecV1:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+/* Группы платежей — блоками (Федор 29.09.2026): «сразу после покупки лота» vs «при получении», а не сплошным списком */
+.breakdown .breakdownGroupV1 { display: flex; flex-direction: column; gap: 9px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 13px 15px; }
+.breakdown .breakdownGroupHeadV1 { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: rgba(255, 255, 255, 0.62); }
+.breakdown .breakdownStepV1 { display: inline-flex; align-items: center; justify-content: center; width: 19px; height: 19px; border-radius: 50%; background: var(--red); color: #fff; font-size: 11px; font-weight: 800; flex: none; font-style: normal; }
 .totalFooter { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 12px; }
 .resultLabel { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
 .total { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
