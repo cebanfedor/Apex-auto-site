@@ -304,8 +304,7 @@
     const resetGen = () => { clear(gn, gnId); if(gn) setPhV1(gn, "Сначала выберите модель"); };
     msIdsOf("filterMakeIdV2").forEach(id => add(`${L("Марка")}: ${(ms.makes.find(m => String(m.id) === id) || {}).name || id}`, () => msApi.removeMake(id)));
     msIdsOf("filterModelIdV2").forEach(id => add(`${L("Модель")}: ${(ms.models.find(m => String(m.id) === id) || {}).name || id}`, () => msApi.removeModel(id)));
-    // Есть ряд чипов поколений (CD391 / CD3) — активное подсвечено там, второй раз в чипах фильтров не дублируем
-    if(gnId && gnId.value && !document.querySelector("#genChipsV1 .genChipV1")) add(`${L("Поколение")}: ${(gn && gn.value) || gnId.value}`, resetGen);
+    if(gnId && gnId.value) add(`${L("Поколение")}: ${(gn && gn.value) || gnId.value}`, resetGen);
     const range = (title, a, b, fmt) => {
       const x = val(a), y = val(b);
       if(!x && !y) return;
@@ -1938,35 +1937,6 @@
     return one.repeat(n);
   }
 
-  // Чипы поколений над выдачей при выбранной модели — как у DreamBid:
-  // один клик вместо похода в фильтры. Повторный клик по активному чипу снимает фильтр.
-  const genChipsCache = {};
-  async function updateGenChips(){
-    let box = document.getElementById("genChipsV1");
-    const modelId = document.getElementById("filterModelIdV2")?.value || "";
-    if(!modelId || /,/.test(modelId)){ if(box){ box.remove(); try{ renderActiveFilters(); }catch(e){} } return; }
-    if(!box){
-      box = document.createElement("div");
-      box.id = "genChipsV1";
-      box.className = "genChipsV1";
-      const bar = document.getElementById("filterBarV1");   // в одной строке с чипами фильтров
-      if(!bar) return;
-      bar.appendChild(box);
-    }
-    try{
-      if(!genChipsCache[modelId]){
-        const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(modelId)}`);
-        genChipsCache[modelId] = r.items || [];
-      }
-      const gens = genChipsCache[modelId];
-      if(gens.length < 2){ box.remove(); try{ renderActiveFilters(); }catch(e){} return; }
-      if((document.getElementById("filterModelIdV2")?.value || "") !== modelId) return; // модель сменили, пока грузили
-      const activeGen = document.getElementById("filterGenIdV2")?.value || "";
-      box.innerHTML = gens.map(g => `<button type="button" class="genChipV1${String(g.id) === activeGen ? " isActiveGenV1" : ""}" data-gen-id="${escapeHtml(String(g.id))}" data-gen-name="${escapeHtml(g.name || "")}">${escapeHtml(g.name || "")}${g.qty ? `<i>${escapeHtml(String(g.qty))}</i>` : ""}</button>`).join("");
-      try{ renderActiveFilters(); }catch(e){}
-    }catch(e){ /* чипы — необязательный блок */ }
-  }
-
   // Пагинация по ВСЕМУ каталогу: страница = запрос к серверу (30 лотов, уже отсортированных
   // по всей выборке). Раньше грузили 100 лотов и строили «страницы 1–4» только из них —
   // казалось, что каталог и сортировка — это пара страниц, остальное пряталось за «Показать ещё».
@@ -2414,7 +2384,6 @@
         ? (discoveryMode ? "лотов доступно на аукционах" : archived ? "лотов в архиве" : "лотов найдено")
         : `${L("Показано")} ${state.items.length} ${L("лотов")}`;
       renderCards();
-      updateGenChips();
       // История по VIN и «Ориентир» — сразу после отрисовки (не ждём простоя браузера): заглушки в карточках заменяются за доли секунды.
       updateCardVinHistory();
       updateCardForecasts();
@@ -3746,15 +3715,6 @@
       loadLots();
       return;
     }
-    const chip = event.target.closest(".genChipV1");
-    if(!chip) return;
-    const genId = document.getElementById("filterGenIdV2");
-    const genInput = document.getElementById("filterGenV2");
-    const wasActive = chip.classList.contains("isActiveGenV1");
-    if(genId) genId.value = wasActive ? "" : chip.dataset.genId;
-    if(genInput) genInput.value = wasActive ? "" : chip.dataset.genName;
-    state.page = 1; state.displayPage = 1;
-    loadLots();
   });
 
   // Телефон: строка поиска — под заголовком, до вкладок и фильтров (в HTML она внутри блока результатов, ниже панели инструментов).
