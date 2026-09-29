@@ -51,6 +51,8 @@ jobs:
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Sync closed lots
-        run: curl -s --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/auctions?action=syncclosed&source=gha"
+        run: |
+          curl -s --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/auctions?action=syncclosed&source=gha"
       - name: Settle lots whose auction just ended
-        run: curl -s --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/auctions?action=syncsettle&source=gha"
+        run: |
+          curl -s --max-time 60 -H "Authorization: Bearer $CRON_SECRET" "https://apexauto.md/api/auctions?action=syncsettle&source=gha"
