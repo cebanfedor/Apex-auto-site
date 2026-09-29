@@ -1807,6 +1807,11 @@ details > summary::-webkit-details-marker { display: none; }
   /* короткие пары полей калькулятора — в два столбца: форма заметно короче */
   .formCard .grid:has(#vehicleType), .formCard .grid:has(#engineLiters) { grid-template-columns: 1fr 1fr; gap: 8px; }
   .formCard .grid:has(#vehicleType) label, .formCard .grid:has(#engineLiters) label { font-size: 12.5px; min-height: 2.4em; display: flex; align-items: flex-end; }
+  /* 30.09.2026 (Федор со скриншота: «блоки кривые») — «Тип транспортного средства» переносится на 2 строки
+     (реально ~3.1em при 12.5px), а общий min-height:2.4em рассчитан на 1 строку — «Тип топлива» рядом
+     оставался короче, и селекты «Седан»/«Бензин» стартовали на разной высоте. Только эта пара — у
+     «Объём двигателя»/«Год производства» оба лейбла и так в одну строку, их не трогаем. */
+  .formCard .grid:has(#vehicleType) label { min-height: 3.1em; }
 }
 
 /* ===== Лайтбокс фото «Авто в пути» (27.09.2026) — фото на странице объявления не увеличивались ===== */

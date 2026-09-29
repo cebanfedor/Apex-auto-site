@@ -4097,10 +4097,58 @@ function engineLitersOf(text){
 // Заливка api_lots.engine_l из payload.engine («2.0l i-4 …» → 2.0). Порция — SQL-функция fill_engine_l (skip locked).
 // ---- Перепроверка лотов «Купить сейчас» (25.09.2026): покупка по Buy Now не меняет основную запись лота в фиде (BMW 530e 45914882 висел «купить за $9 100» после продажи),
 // поэтому лоты выкупа опрашиваем по кругу. Курсор (sale_date, id) — в alert_meta.bn_cursor; за тик ≈250 лотов, ближайшие торги первыми.
+// Готова ли колонка bn_checked_at (миграция 20260930): включает режим кулдауна.
+let bnColState = {ok:false, at:0};
+async function bnColReady(){
+  const ttl = bnColState.ok ? 600e3 : 60e3;
+  if(Date.now() - bnColState.at < ttl) return bnColState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=bn_checked_at&limit=1`); ok = true; }catch(_){ ok = false; }
+  bnColState = {ok, at:Date.now()};
+  return ok;
+}
+const BN_COOLDOWN_MS = 6 * 3600e3;   // проверенный buy-now лот не трогаем ~6ч
 async function runBuyNowCheck(budgetMs = 44000){
   const t0 = Date.now();
   const out = {ok:true, checked:0, sold:0, fail:0};
   if(!sbUp()) return {ok:true, skipped:"db down"};
+
+  // ── Режим кулдауна (аудит расхода API 30.09.2026): помечаем проверенные лоты
+  // bn_checked_at и не перепроверяем их ~6ч. После первого прохода пула крон тратит
+  // запросы только на новые/подгоревшие лоты — расход падает в разы. ──
+  if(await bnColReady()){
+    const winFrom = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+    const winTo = encodeURIComponent(new Date(Date.now() + 21 * 86400e3).toISOString());
+    const cutoff = encodeURIComponent(new Date(Date.now() - BN_COOLDOWN_MS).toISOString());
+    const url = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${winFrom}&sale_date=lte.${winTo}&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutoff})&order=sale_date.asc&limit=250`;
+    const rows = await syncSbFetch(url).catch(() => null);
+    if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
+    out.mode = "cooldown"; out.due = rows.length;
+    let idx = 0; const checkedIds = [];
+    const worker = async () => {
+      while(idx < rows.length && Date.now() - t0 < budgetMs){
+        const r = rows[idx++];
+        checkedIds.push(r.id);
+        try{
+          const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
+          out.checked++;
+          const ts = Date.parse(lot.auctionDate || "");
+          if(Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now()){ upsertClosedLot(lot); out.sold++; }
+        }catch(e){ out.fail++; }
+      }
+    };
+    await Promise.all(Array.from({length:8}, worker));
+    // Отмечаем все опрошенные (одним PATCH) — чтобы не перепроверять до истечения кулдауна.
+    if(checkedIds.length){
+      const now = new Date().toISOString();
+      const ids = checkedIds.map(id => `"${String(id).replace(/"/g, "")}"`).join(",");
+      await syncSbFetch(`/api_lots?id=in.(${ids})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({bn_checked_at:now})}).catch(() => {});
+    }
+    out.ms = Date.now() - t0;
+    return out;
+  }
+
+  // ── Фолбэк без колонки: прежний курсорный обход (перепроверяет по кругу). ──
   const meta = await syncSbFetch(`/alert_meta?k=eq.bn_cursor&select=v`).catch(() => null);
   let cur = (Array.isArray(meta) && meta[0] && meta[0].v) || {};
   // 30.09.2026 (Федор: «расход API 40k→108k за 3 часа при простое сайта») — нашёл: этот прогон ходил
