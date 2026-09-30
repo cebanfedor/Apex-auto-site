@@ -1034,3 +1034,8 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 добавлен `aggregateRating` в LocalBusiness (даёт звёзды в выдаче). ⚠️ Цифры хардкожены — при заметном изменении числа
 отзывов/рейтинга обновить: `aggregateRating` в index.html + бейдж `gRatingBadgeV430`/`gRatingCountV430` + строка «Рейтинг …» + футеры. НЕ выдумывать — брать с профиля Google.
 Ещё НЕ подключено (ждём Федора): verification-код Google Search Console.
+
+## Google Search Console — подключён (30.09.2026)
+- Ресурс «с префиксом в URL» https://apexauto.md/ подтверждён методом **HTML-файл**: `googlefdbfd1023306e144.html` в корне репозитория (содержимое `google-site-verification: googlefdbfd1023306e144.html`). ⚠️ НЕ удалять — Google перепроверяет.
+- Доменный ресурс (DNS TXT) не пошёл: у Vercel-MCP-токена нет прав на DNS-записи (401), а замена зоны целиком рискованна. URL-prefix метода достаточно.
+- Дальше: отправить sitemap в GSC (Файлы Sitemap → `sitemap.xml`); через несколько дней анализ запросов.
