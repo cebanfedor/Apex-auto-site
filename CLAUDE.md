@@ -1039,3 +1039,15 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 - Ресурс «с префиксом в URL» https://apexauto.md/ подтверждён методом **HTML-файл**: `googlefdbfd1023306e144.html` в корне репозитория (содержимое `google-site-verification: googlefdbfd1023306e144.html`). ⚠️ НЕ удалять — Google перепроверяет.
 - Доменный ресурс (DNS TXT) не пошёл: у Vercel-MCP-токена нет прав на DNS-записи (401), а замена зоны целиком рискованна. URL-prefix метода достаточно.
 - Дальше: отправить sitemap в GSC (Файлы Sitemap → `sitemap.xml`); через несколько дней анализ запросов.
+
+## Комиссия на оплату — галочка во всех калькуляторах (30.09.2026, Федор)
+- Опция «Комиссия на оплату 1% (мин. $50)» = **1% от (стоимость лота + аукционный сбор), но не меньше $50**. По умолчанию ВКЛючена, снимается галочкой.
+  База подтверждена Федором (лот + аукционный сбор, не итог). Считается от РЕАЛЬНОГО аукционного сбора (`auctionFeeFor`), не от введённого вручную.
+- **Единый источник — `calc-core.js`**: `paymentFeeFor(lotPrice, auctionFee)` + флаг `input.paymentFee` (undefined → true, как `input.insurance`); входит в `totalUsdPart`, возвращается полем `paymentFee`. `VERSION` = **core-v9**.
+- Где добавлено (Федор: «на всех калькуляторах и просчётах где считаем или показываем»):
+  (1) главный калькулятор — `index.html` (галочка `#paymentFee` в `.options`, checked) + `script.js`: US `calculate()`, `calculateCanada()`, `estimateTotalUsdForBid` (расчёт под целевую ставку), строка «Комиссия на оплату» в разбивке, i18n `textCalc`, слушатель `paymentFee`, снимок формы;
+  (2) страница лота — `auctions.js`: галочка `#lotCalcPaymentFee` в `.calcPairRowV1` (checked), `calcLotTotal` US-ветка (через `compute`, поле `paymentFee`), `calcCanadaLotTotal` (инлайн `Math.max(50,(bid+auctionFee)*0.01)`), `renderCalcRows` (US+Канада), `updateLotCalculator`, `buildCalcText`; **`turnkeyFor` включает комиссию по умолчанию** → цена «под ключ» на карточках, бюджет-фильтр и Telegram-пост её учитывают;
+  (3) `/api/calc` — `server/calc-handler.js` (`buildInput` принимает `paymentFee`, поле в `breakdown`);
+  (4) расширение Chrome — `chrome-extension/src/common/calc.js` (своя `compute`: те же min $50 и флаг) + строка в `panel.js`. ⚠️ Упакованный zip устарел — пересобрать при публикации.
+- ⚠️ **script.js/auctions.js считают суммы ИНЛАЙН, не через `compute`** — комиссию добавлять в КАЖДЫЙ `totalUsdPart`/`usdPart` и в каждый список строк разбивки (US и Канада — отдельные ветки). Канадская страховка там `min $100` (не $150), комиссия на оплату — везде `min $50`.
+- Тесты: `test/calc-core.test.js` (`paymentFeeFor`, `compute` вкл/выкл). Бамп `?v=`: `calc-core v11` (внутр. core-v9), `script calc-v441`, `auctions v372`, `i18n multilang-v531`. Проверено локально (Playwright/браузер: галочка есть, итог $19 069 → $18 936 при снятии) и на проде (calc-core core-v9 live).
