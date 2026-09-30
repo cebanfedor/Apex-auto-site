@@ -34,6 +34,29 @@ function escapeHtml(str){
   return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// 30.09.2026 (SEO/AEO-аудит): раньше страница лота отдавала JS-краулеру только meta-теги + JSON-LD —
+// сам факт-текст (VIN/пробег/состояние/локация/цена) собирался ЦЕЛИКОМ на клиенте (renderDetail в
+// auctions.js), поэтому не-JS краулер (большинство AEO-ботов — GPTBot/PerplexityBot и т.п. — HTML не
+// рендерят) видел пустую страницу с общим заголовком каталога. Кладём краткий факт-блок ПРЯМО в
+// #auctionDetail (он у страницы и так `hidden` — реальный браузер тут же перезапишет innerHTML тем же
+// JS, как и раньше, визуально ничего не меняется), используя ту же facts()/description(), что уже
+// питают og:description — числа гарантированно совпадают, ничего не придумываем заново.
+function factsBlock(lot, title, description, lang){
+  const f = ogLot.facts(lot, lang);
+  const t = f.t;
+  const vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "")) ? String(lot.vin).toUpperCase() : "";
+  const rows = [
+    vin && `<li>VIN: ${escapeHtml(vin)}</li>`,
+    `<li>${escapeHtml(t.lot)}: ${escapeHtml(String(lot.auction || "").toUpperCase())} ${escapeHtml(String(lot.lot || ""))}</li>`,
+    f.odo && `<li>${escapeHtml(t.odo)}: ${escapeHtml(f.odo)}</li>`,
+    f.cond && `<li>${escapeHtml(t.cond)}: ${escapeHtml(f.cond)}</li>`,
+    f.loc && `<li>${escapeHtml(t.loc)}: ${escapeHtml(f.loc)}</li>`,
+    f.dateShort && `<li>${escapeHtml(t.date)}: ${escapeHtml(f.dateShort)}</li>`,
+    f.price && `<li>${escapeHtml(f.priceLabel)}: ${escapeHtml(f.price)}</li>`
+  ].filter(Boolean).join("");
+  return `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(description)}</p><ul>${rows}</ul><p><a href="/auctions">Каталог аукционов Copart и IAAI — Apex Auto</a></p>`;
+}
+
 module.exports = async function(req, res){
   const slug = String(req.query.slug || "").replace(/[^a-zA-Z0-9_-]/g, "");
 
@@ -68,13 +91,14 @@ module.exports = async function(req, res){
   let lot = null;
   let notFound = false;
   let debugError = null;
+  let plainTitle = "";
   if(match){
     try{
       const got = await fetchOwnDetail(req, match[1].toLowerCase(), match[2]);
       lot = got.lot; notFound = got.notFound;
       if(lot && lot.title){
-        const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title;
-        ogTitle = `${title} — ${match[1].toUpperCase()} ${TXT.lot} ${match[2]} | Apex Auto`;
+        plainTitle = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") || lot.title;
+        ogTitle = `${plainTitle} — ${match[1].toUpperCase()} ${TXT.lot} ${match[2]} | Apex Auto`;
         ogDesc = ogLot.description(lot, lang);
         // Своя картинка-карточка (фото + название + цена + бренд), а не сырое фото аукциона
         ogImage = lot.id ? `https://apexauto.md/og/lot/${lot.id}?v=3${lang === "ru" ? "" : "&lang=" + lang}` : (lot.image || ogImage);
@@ -144,6 +168,13 @@ module.exports = async function(req, res){
       const ld = JSON.stringify(lotJsonLd(lot, {url:ogUrl, lang, description:ogDesc})).replace(/</g, "\\u003c");
       html = html.replace("</head>", `<script type="application/ld+json">${ld}</script>\n</head>`);
     }catch(e){ /* schema — не критично, страница всё равно отдаётся */ }
+    // Факт-текст в САМ HTML (не только meta/JSON-LD) — для не-JS краулеров (большинство AEO-ботов).
+    // #auctionDetail и так `hidden` в шаблоне — реальный браузер тут же перезапишет innerHTML этим же
+    // JS (renderDetail), визуально ничего не меняется.
+    try{
+      const fb = factsBlock(lot, plainTitle || ogTitle, ogDesc, lang);
+      html = html.replace('<section id="auctionDetail" class="auctionDetailV1" hidden></section>', `<section id="auctionDetail" class="auctionDetailV1" hidden>${fb}</section>`);
+    }catch(e){ /* факт-блок — не критично, страница всё равно отдаётся */ }
   }
 
   // Лота не существует → честный 404 + noindex. Раньше отдавали 200 с общей страницей

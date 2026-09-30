@@ -5982,6 +5982,8 @@ module.exports = async function handler(request, response){
     });
   }
 };
-// Для юнит-тестов (test/comps.test.js) — сам модуль экспортирует только handler (Vercel зовёт его как
-// функцию), computeComps довешена свойством отдельно, вызов handler(req,res) это не задевает.
+// Для юнит-тестов (test/comps.test.js, test/attach-vin-history.test.js) — сам модуль экспортирует только
+// handler (Vercel зовёт его как функцию), computeComps/attachVinHistory довешены свойствами отдельно,
+// вызов handler(req,res) это не задевает.
 module.exports.computeComps = computeComps;
+module.exports.attachVinHistory = attachVinHistory;
