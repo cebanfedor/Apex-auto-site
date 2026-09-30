@@ -1787,7 +1787,8 @@
         // МЕНЯЕТСЯ (см. lotChanged выше) — тогда машина реально уходила на новые торги (Федор 29.09.2026).
         const unknownSeller = !sellerIsInsurance(lot) && past.length >= 3;
         li.className = unknownSeller ? "dbCheck warn" : "dbCheck neutral";
-        li.innerHTML = `${dbIco(unknownSeller ? toneIcon("warn") : "dot")}<span><b>${L("История:")}</b> ${L("Выставлялась ранее")} (${past.length})${unknownSeller ? `<em class="dbUnknownSellerTagV1">${L("Неизвестный продавец")}</em>` : ""}</span>`;
+        const histTxt = L("Выставлялась ранее");
+        li.innerHTML = `${dbIco(unknownSeller ? toneIcon("warn") : "dot")}<span><b>${L("История:")}</b> ${unknownSeller ? `<span class="dbHistWarnTxtV1">${histTxt}</span>` : histTxt} (${past.length})</span>`;
       }
       // Feduk Clean Select включён, а по истории это перекуп (метка «Перекуп») — карточке здесь не место: убираем (база могла ещё не пометить лот)
       if(document.querySelector('#auctionFiltersForm input[name="smart"]:checked') && card.querySelector(".dbResaleTagV1")){

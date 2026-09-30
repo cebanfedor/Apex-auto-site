@@ -1249,8 +1249,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 
 .dbResaleTagV1 { display:inline-block; margin-left:7px; padding:1px 6px; border-radius:5px; background:#fdeceb; color:#d33a2c; font-style:normal; font-size:10.5px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; vertical-align:1px; }
-/* Тот же номер лота повторяется много раз, но не менялся и не продан — не перекуп, просто отметка (Федор 29.09.2026) */
-.dbUnknownSellerTagV1 { display:inline-block; margin-left:7px; padding:1px 6px; border-radius:5px; background:#fdf2df; color:#b3790a; font-style:normal; font-size:10.5px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; white-space:nowrap; vertical-align:1px; }
+/* Тот же номер лота повторяется много раз, но не менялся и не продан — не перекуп, просто «Выставлялась ранее» жёлтым, без отдельной плашки (Федор 30.09.2026) */
+.dbHistWarnTxtV1 { color:#b3790a; font-weight: 700; }
 
 /* Запрет экспорта (Гавайи, электромобиль после затопления) */
 .dbExportBanV1 { display:flex; align-items:center; gap:7px; align-self:flex-start; padding:5px 10px; border:1px solid #f0d36a; border-radius:9px; background:#fff6d1; color:#7a5800; font-size:12.5px; font-weight:700; line-height:1.3; }
