@@ -39,12 +39,20 @@
     }
     function next(){ go((idx + 1) % slides.length); }
     function prev(){ go((idx - 1 + slides.length) % slides.length); }
-    function restart(){ clearInterval(timer); timer = setInterval(next, AUTOPLAY_MS); }
+    // 30.09.2026 (дизайн-аудит: автопрокрутка без паузы на hover и без учёта prefers-reduced-motion) —
+    // тем, кто просил браузер/ОС меньше двигать интерфейс, автопрокрутку вообще не включаем (стрелки/точки
+    // по-прежнему работают вручную); остальным — пауза, пока курсор над hero, как у любого приличного слайдера.
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let hovered = false;
+    function restart(){ clearInterval(timer); if(!reduceMotion && !hovered) timer = setInterval(next, AUTOPLAY_MS); }
     restart();
 
     const prevBtn = document.getElementById("heroArrowPrevV1"), nextBtn = document.getElementById("heroArrowNextV1");
     if(prevBtn) prevBtn.addEventListener("click", () => { prev(); restart(); });
     if(nextBtn) nextBtn.addEventListener("click", () => { next(); restart(); });
+
+    track.addEventListener("mouseenter", () => { hovered = true; clearInterval(timer); });
+    track.addEventListener("mouseleave", () => { hovered = false; restart(); });
 
     // Не дёргать слайд, пока открыт/в фокусе виджет поиска (не сбрасывать выбор марки/модели).
     const card = document.querySelector(".heroSearchCardV1");

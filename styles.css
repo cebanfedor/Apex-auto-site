@@ -316,12 +316,18 @@ section { position: relative; }
   transition: opacity 0.6s var(--ease), visibility 0s linear 0.6s;
 }
 .heroSlideV1.heroSlideActiveV1 { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.6s var(--ease); }
-.heroDotsV1 { position: absolute; right: 22px; top: 18px; z-index: 3; display: flex; gap: 7px; }
+.heroDotsV1 { position: absolute; right: 12px; top: 8px; z-index: 3; display: flex; gap: 2px; }
+/* 30.09.2026 (дизайн-аудит: точки 8×8px — ниже минимума WCAG 2.5.8 Target Size, 24px). Тап-зона
+   выросла до 24×24, сам видимый кружок остался 8px (::after, по центру) — визуально не изменилось. */
 .heroDotsV1 button {
-  width: 8px; height: 8px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
-  background: rgba(255,255,255,0.4); transition: background 0.2s, transform 0.2s;
+  width: 24px; height: 24px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
+  background: transparent; position: relative; transition: transform 0.2s;
 }
-.heroDotsV1 button.heroDotActiveV1 { background: #fff; transform: scale(1.25); }
+.heroDotsV1 button::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; border-radius: 50%;
+  transform: translate(-50%, -50%); background: rgba(255,255,255,0.4); transition: background 0.2s, transform 0.2s;
+}
+.heroDotsV1 button.heroDotActiveV1::after { background: #fff; transform: translate(-50%, -50%) scale(1.25); }
 
 /* ---- Слайд «Быстрый поиск авто» — карточка в духе ДримБида SmartSelect ---- */
 /* 29.09.2026 (Федор: «фотки урезал криво»): mercedes-e300.webp — студийный кадр на белом

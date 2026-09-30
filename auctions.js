@@ -2644,6 +2644,7 @@
       <div class="calcTopV2">
         ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Ставок пока нет"))}</b>${usdHint(topBidValue)}</div>` : ""}
+        <div class="calcTopTurnkeyV1" id="calcTopTurnkeyV1"><span>${L("Под ключ в Кишинёве")}</span><b>≈ ${money(calc.total)}</b></div>
         ${!isSold && !lot.auctionDate ? `<div class="calcNoDateNoteV1">${dbIco("calendar")}<span>${L("Дата аукциона не назначена")}</span></div>` : ""}
         ${!banned ? `<div id="lotMarketLineV1" class="lotMarketLineV1" hidden></div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
@@ -2771,6 +2772,12 @@
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
+    // 30.09.2026 (дизайн-аудит: «под ключ» на десктопе был виден только в самом низу калькулятора,
+    // после ставки/кнопок/степпера/чекбоксов — а это и есть главное УТП, которое человек должен увидеть
+    // сразу). Компактная копия итога сразу под ставкой (только десктоп ≥1100px — на телефоне для этого
+    // уже есть липкая панель, syncStickyTotal ниже) — обновляем тем же пересчётом.
+    const topTurnkey = $("#calcTopTurnkeyV1 b");
+    if(topTurnkey) topTurnkey.textContent = `≈ ${money(calc.total)}`;
     syncStickyTotal();
     // ≈USD (карточка «Продано» и текущая ставка) пересчитываем живым курсом TD
     if(calc.canada){

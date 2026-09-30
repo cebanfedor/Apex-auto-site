@@ -2325,8 +2325,6 @@ async function tabTotal(tab, auction, vtype){
   tabTotalCache.set(ck, {n, at:n > 0 ? Date.now() : Date.now() - 8 * 60e3});
   return n;
 }
-// Датированные торги (как у DreamBid «current») — для сводки в count.
-async function datedTotal(auction){ return tabTotal("dated", auction); }
 // Счёт для выборок с «широкими» фильтрами (топливо, год, цена, повреждения, статус продажи, даты…). Оценка планировщика по ним
 // врёт в разы (timed и «без резерва» показывали одно и то же «2491»), а count=exact в одном запросе с выборкой держал ответ.
 // Поэтому считаем ОТДЕЛЬНЫМ параллельным запросом: точно (3.5с), не успели — оценка планировщика; результат кэшируем на 5 минут.
@@ -2572,7 +2570,13 @@ async function searchFromDb(query){
   }
   // Без лотов, запрещённых к экспорту: Гавайи и электромобили после затопления (те же правила, что exportBan на клиенте)
   if(query.get("noBan") === "1"){
+    // 30.09.2026 (аудит кода): клиентский exportBan() ловит Гавайи ЕЩЁ и по названию города в строке
+    // локации (Honolulu/Kapolei/Kahului/Hilo/Wailuku/Lihue — тот же regex, что в auctions.js), а этот
+    // серверный фильтр проверял ТОЛЬКО state_code. У части лотов state_code бывает пуст/неверен (та же
+    // категория проблем, что чинил yardFix) — «Скрыть запрещённые к экспорту» мог показать лот, который
+    // клиент на странице лота тут же помечает как запрещённый. location — только в payload (не флэт-колонка).
     ands.push("or(state_code.neq.hi,state_code.is.null)");
+    for(const city of ["Hawaii", "Honolulu", "Kapolei", "Kahului", "Hilo", "Wailuku", "Lihue"]) ands.push(`payload->>location.not.ilike.*${city}*`);
     ands.push("or(fuel_id.neq.2,fuel_id.is.null,and(or(damage.is.null,damage.not.ilike.*water*),or(damage.is.null,damage.not.ilike.*flood*),or(document.is.null,document.not.ilike.*flood*)))");
   }
   // Статус лота (мультивыбор): 10 скоро торги · 3 в продаже · 4 на одобрении · 6 продан · 8 не продан
@@ -3442,7 +3446,11 @@ async function acquireSyncLock(){
 }
 // info — короткий итог для диагностики (?action=dbstatus → sync.v.last_<name>).
 async function releaseSyncLock(name, info){
-  try{ const st = await syncGetState(); st.lock_at = null; if(name) st["last_" + name] = {at:new Date().toISOString(), ...(info || {})}; await syncSetState(st); }catch(e){}
+  // 30.09.2026 (аудит кода): ошибка глоталась молча — а это именно момент, когда БД, скорее всего,
+  // и была недоступна (самый интересный для диагностики случай), плюс без этого запись last_<name>
+  // просто терялась без следа. Лог виден в Vercel Runtime Logs; лок сам снимется по истечении
+  // SYNC_LOCK_MINUTES (self-heal), поэтому throw/retry тут не нужен — важна только видимость сбоя.
+  try{ const st = await syncGetState(); st.lock_at = null; if(name) st["last_" + name] = {at:new Date().toISOString(), ...(info || {})}; await syncSetState(st); }catch(e){ console.error(`releaseSyncLock(${name}) failed:`, e && e.message || e); }
 }
 
 async function syncSetState(v){
