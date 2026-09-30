@@ -4097,8 +4097,8 @@ async function takeMetaLock(k, ms){
   }).catch(() => null);
   return Array.isArray(rows) && rows.length === 1;
 }
-// Страховая/прокат — тот же список, что sellerIsInsurance/isRentalName в auctions.js
-const INS_SELLER_RE = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre|\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
+// Страховая/прокат/лизинговые автопарки — тот же список, что sellerIsInsurance/isRentalName/isFleetName в auctions.js
+const INS_SELLER_RE = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre|corporate services|financial services|\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
 const sellerIsIns = s => /insurance/i.test(String(s.sellerType || "")) || INS_SELLER_RE.test(String(s.seller || ""));
 // Метка перекупа для Clean Select (правила Федора, едины с карточкой): 2 — уже продавался; 1 — подозрительный: у НЕ страховой менялся номер лота или 3+ выставлений
 // (страховая выставляет тот же лот 2–4 раза — норма; у неё 1 только при 8+ выставлениях или 3+ номерах лота). Продавец неизвестен коду (нет полей) — старые мягкие пороги.
@@ -4462,7 +4462,7 @@ async function runTimedSync(budgetMs = 45000){
   return out;
 }
 
-const RESALE_RULES_AT = "2026-09-29T20:30:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
+const RESALE_RULES_AT = "2026-09-30T18:00:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
 async function runResaleCheck(budgetMs){
   const t0 = Date.now();
   const out = {ok:true, checked:0, clean:0, relisted:0, resold:0, skipped:0, fail:0};
