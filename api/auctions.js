@@ -4417,6 +4417,7 @@ async function runTimedSync(budgetMs = 45000){
     const got = await syncImportPage("/cars", page, {next_hours_auction:String(TIMED_SYNC_WINDOW_HOURS), domain_id:"1"}, {}, deadline);
     out.pages++;
     out.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
+    out._dbg = {got, complete:syncImportPage.lastComplete, written:syncImportPage.lastWritten, unchanged:syncImportPage.lastUnchanged, fetchMs:syncImportPage.lastFetchMs, page};   // временная диагностика 30.09.2026 — убрать после разбора
     if(got && !syncImportPage.lastComplete) break;   // не успели дописать страницу — продолжим с неё же в следующем тике окна
     if(got < SYNC_PER_PAGE){
       out.doneToday = true;
