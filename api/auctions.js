@@ -3709,7 +3709,14 @@ async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, de
   const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
   syncImportPage.lastFetchMs = Date.now() - tA;
   await syncUpsertRows(rows, deadline, upsertOpts);
-  syncImportPage.lastComplete = syncUpsertRows.written >= rows.length;
+  // 30.09.2026 (нашёл при срочной диагностике timedsync, курсор стоял на одной странице 12+ минут):
+  // written не учитывал строки, СОЗНАТЕЛЬНО пропущенные degrading() в syncUpsertRows (защита уже
+  // подтверждённой продажи от понижения свежими «сырыми» данными, 23.09.2026) — такой пропуск
+  // окончательный, повтор страницы его не «допишет». written+skippedDegrading<rows.length считалось
+  // «страница не дописана» НАВСЕГДА для страниц с хотя бы одним таким лотом — обход эту страницу
+  // повторял на каждом вызове и не продвигался дальше. Затрагивало ВСЕ обходы, использующие
+  // lastComplete: incr, changes, upcoming, sweep, queue (6+ мест) — не только timedsync.
+  syncImportPage.lastComplete = (syncUpsertRows.written + (syncUpsertRows.skippedDegrading || 0)) >= rows.length;
   syncImportPage.lastUnchanged = syncUpsertRows.unchanged || 0;
   syncImportPage.lastWritten = syncUpsertRows.written;
   return items.length;
@@ -4129,7 +4136,14 @@ async function bnColReady(){
   bnColState = {ok, at:Date.now()};
   return ok;
 }
-const BN_COOLDOWN_MS = 6 * 3600e3;   // проверенный buy-now лот не трогаем ~6ч
+// 30.09.2026 (Федор: «байнау смотри сам, чтобы не пропускать интересные лоты») — единый 6-часовой
+// кулдаун одинаково редко освежал и лот, который сыграет через 21 день, и лот, который сыграет через
+// час: самые «горящие» (где Buy Now кто-то мог перехватить прямо сейчас) рисковали устареть на многие
+// часы. Три пояса срочности вместо одного — близкие к торгам лоты освежаются в разы чаще, дальние
+// остаются на прежнем 6-часовом ритме (там торопиться некуда).
+const BN_COOLDOWN_URGENT_MS = 20 * 60e3;    // ≤4ч до торгов — самое интересное, почти на каждом тике (крон раз в 10 мин)
+const BN_COOLDOWN_SOON_MS = 2 * 3600e3;     // 4ч–3дня
+const BN_COOLDOWN_MS = 6 * 3600e3;          // 3–21 день — как было, тут не горит
 async function runBuyNowCheck(budgetMs = 44000){
   const t0 = Date.now();
   const out = {ok:true, checked:0, sold:0, fail:0};
@@ -4139,10 +4153,19 @@ async function runBuyNowCheck(budgetMs = 44000){
   // bn_checked_at и не перепроверяем их ~6ч. После первого прохода пула крон тратит
   // запросы только на новые/подгоревшие лоты — расход падает в разы. ──
   if(await bnColReady()){
-    const winFrom = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
-    const winTo = encodeURIComponent(new Date(Date.now() + 21 * 86400e3).toISOString());
-    const cutoff = encodeURIComponent(new Date(Date.now() - BN_COOLDOWN_MS).toISOString());
-    const url = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${winFrom}&sale_date=lte.${winTo}&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutoff})&order=sale_date.asc&limit=250`;
+    const now = Date.now();
+    const winFrom = encodeURIComponent(new Date(now - 2 * 3600e3).toISOString());
+    const winTo = encodeURIComponent(new Date(now + 21 * 86400e3).toISOString());
+    const urgentEdge = encodeURIComponent(new Date(now + 4 * 3600e3).toISOString());
+    const soonEdge = encodeURIComponent(new Date(now + 3 * 86400e3).toISOString());
+    const cutUrgent = encodeURIComponent(new Date(now - BN_COOLDOWN_URGENT_MS).toISOString());
+    const cutSoon = encodeURIComponent(new Date(now - BN_COOLDOWN_SOON_MS).toISOString());
+    const cutFar = encodeURIComponent(new Date(now - BN_COOLDOWN_MS).toISOString());
+    const dueExpr = `or=(bn_checked_at.is.null,` +
+      `and(sale_date.lte.${urgentEdge},bn_checked_at.lt.${cutUrgent}),` +
+      `and(sale_date.gt.${urgentEdge},sale_date.lte.${soonEdge},bn_checked_at.lt.${cutSoon}),` +
+      `and(sale_date.gt.${soonEdge},bn_checked_at.lt.${cutFar}))`;
+    const url = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${winFrom}&sale_date=lte.${winTo}&${dueExpr}&order=sale_date.asc&limit=250`;
     const rows = await syncSbFetch(url).catch(() => null);
     if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
     out.mode = "cooldown"; out.due = rows.length;
@@ -4417,16 +4440,9 @@ async function runTimedSync(budgetMs = 45000){
     const got = await syncImportPage("/cars", page, {next_hours_auction:String(TIMED_SYNC_WINDOW_HOURS), domain_id:"1"}, {}, deadline);
     out.pages++;
     out.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
-    // 30.09.2026 (срочная диагностика по просьбе Федора — нашёл, почему курсор сутки стоял на
-    // странице 5): syncImportPage.lastComplete = written>=rows.length НЕ учитывает строки,
-    // сознательно пропущенные degrading() в syncUpsertRows (защита уже подтверждённой продажи от
-    // понижения свежими «сырыми» данными) — на этой конкретной странице такой лот ровно один,
-    // lastComplete стабильно false НАВСЕГДА для неё, и «повтори эту же страницу» превращалось в
-    // бесконечный повтор одной и той же страницы 5 на каждом тике (проверил вручную — pages:1,
-    // written:999, unchanged:999, cursorPage не двигался). Учитываем skippedDegrading в подсчёте —
-    // такие лоты не «недописаны», это финальное решение, повтор их не допишет.
-    const accountedFor = syncImportPage.lastWritten + (syncUpsertRows.skippedDegrading || 0);
-    if(got && accountedFor < got) break;   // реально не успели дописать страницу — продолжим с неё же в следующем тике окна
+    // Баг «курсор стоит на одной странице навсегда» пофикшен в первоисточнике — syncImportPage.lastComplete
+    // теперь сам учитывает degrading-пропуски (см. комментарий там же).
+    if(got && !syncImportPage.lastComplete) break;   // реально не успели дописать страницу — продолжим с неё же в следующем тике окна
     if(got < SYNC_PER_PAGE){
       out.doneToday = true;
       await saveCursor({date:today, page:1, done:true});
