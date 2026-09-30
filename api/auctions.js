@@ -4417,8 +4417,16 @@ async function runTimedSync(budgetMs = 45000){
     const got = await syncImportPage("/cars", page, {next_hours_auction:String(TIMED_SYNC_WINDOW_HOURS), domain_id:"1"}, {}, deadline);
     out.pages++;
     out.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
-    out._dbg = {got, complete:syncImportPage.lastComplete, written:syncImportPage.lastWritten, unchanged:syncImportPage.lastUnchanged, fetchMs:syncImportPage.lastFetchMs, page};   // временная диагностика 30.09.2026 — убрать после разбора
-    if(got && !syncImportPage.lastComplete) break;   // не успели дописать страницу — продолжим с неё же в следующем тике окна
+    // 30.09.2026 (срочная диагностика по просьбе Федора — нашёл, почему курсор сутки стоял на
+    // странице 5): syncImportPage.lastComplete = written>=rows.length НЕ учитывает строки,
+    // сознательно пропущенные degrading() в syncUpsertRows (защита уже подтверждённой продажи от
+    // понижения свежими «сырыми» данными) — на этой конкретной странице такой лот ровно один,
+    // lastComplete стабильно false НАВСЕГДА для неё, и «повтори эту же страницу» превращалось в
+    // бесконечный повтор одной и той же страницы 5 на каждом тике (проверил вручную — pages:1,
+    // written:999, unchanged:999, cursorPage не двигался). Учитываем skippedDegrading в подсчёте —
+    // такие лоты не «недописаны», это финальное решение, повтор их не допишет.
+    const accountedFor = syncImportPage.lastWritten + (syncUpsertRows.skippedDegrading || 0);
+    if(got && accountedFor < got) break;   // реально не успели дописать страницу — продолжим с неё же в следующем тике окна
     if(got < SYNC_PER_PAGE){
       out.doneToday = true;
       await saveCursor({date:today, page:1, done:true});
@@ -4533,11 +4541,7 @@ module.exports = async function handler(request, response){
   // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
   // разрешаем валидному секрету ИЛИ админу. Если CRON_SECRET не задан в env — НЕ блокируем
   // (обратная совместимость: исключаем риск залочить синк при отсутствии переменной).
-  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck"]);
-  // 30.09.2026 (временно, срочная ручная диагностика по просьбе Федора — почему timedsync за 8 минут
-  // внутри своего же окна не сдвинул счётчик): гейт с timedsync на пару минут снят, чтобы дёрнуть его
-  // вручную и увидеть диагностику ответа (pages/imported/error) без доступа к логам Vercel (403 для
-  // MCP-токена этой сессии). Вернуть в CRON_ACTIONS сразу после диагностики — см. коммит следом.
+  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync"]);
   if(CRON_ACTIONS.has(action)){
     const secret = process.env.CRON_SECRET;
     if(secret){
