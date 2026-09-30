@@ -4391,6 +4391,46 @@ async function runEngineFill(){
   return out;
 }
 
+// ── Прицельный обход IAAI под публикацию Timed (30.09.2026, Федор: «Timed публикуется раз в
+// сутки ночью по нашему времени, хочу видеть все разом 3 раза в день — 8-9, 12-13, после 18»).
+// Обычный курсор upcoming идёт по кругу ЧАСАМИ (делит бюджет с changes на каждом 2-мин тике) —
+// пока он сам дойдёт до IAAI, свежая суточная пачка Timed уже устареет наполовину. Этот крон
+// гоняет ТУ ЖЕ syncImportPage (обычная, не forced-запись — sameKeyFields уже сравнивает
+// payload.timed после сегодняшнего фикса детектора, лишнего не переписывает) прицельно и часто,
+// но ТОЛЬКО в узкие окна вокруг публикации (расписание — vercel.json, domain_id IAAI=1). Курсор —
+// свой (alert_meta.timed_cursor), не трогает общий lock_at основного синка, значит не мешает ему.
+const TIMED_SYNC_WINDOW_HOURS = 96;   // с запасом покрывает суточный цикл публикации Timed
+async function runTimedSync(budgetMs = 45000){
+  const t0 = Date.now();
+  const out = {ok:true, pages:0, imported:0};
+  if(!sbUp()) return {ok:true, skipped:"db down"};
+  if(!(await takeMetaLock("timed_sync", 90000))) return {ok:true, lockedOut:true};
+  const today = new Date().toISOString().slice(0, 10);
+  const meta = await syncSbFetch(`/alert_meta?k=eq.timed_cursor&select=v`).catch(() => null);
+  let cur = (Array.isArray(meta) && meta[0] && meta[0].v) || {};
+  if(cur.date !== today) cur = {date:today, page:1};       // новый день — новая пачка Timed, обход заново
+  if(cur.done){ out.alreadyDone = true; return out; }       // сегодняшний обход уже завершён — следующий тик в это же окно не тратит квоту зря
+  let page = cur.page || 1;
+  const deadline = t0 + budgetMs;
+  const saveCursor = async v => { try{ await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({k:"timed_cursor", v, updated_at:new Date().toISOString()})}); }catch(_){} };
+  while(Date.now() < deadline){
+    const got = await syncImportPage("/cars", page, {next_hours_auction:String(TIMED_SYNC_WINDOW_HOURS), domain_id:"1"}, {}, deadline);
+    out.pages++;
+    out.imported += Math.max(0, syncImportPage.lastWritten - syncImportPage.lastUnchanged);
+    if(got && !syncImportPage.lastComplete) break;   // не успели дописать страницу — продолжим с неё же в следующем тике окна
+    if(got < SYNC_PER_PAGE){
+      out.doneToday = true;
+      await saveCursor({date:today, page:1, done:true});
+      return out;
+    }
+    page++;
+  }
+  await saveCursor({date:today, page});
+  out.cursorPage = page;
+  out.ms = Date.now() - t0;
+  return out;
+}
+
 const RESALE_RULES_AT = "2026-09-29T20:30:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
 async function runResaleCheck(budgetMs){
   const t0 = Date.now();
@@ -4492,7 +4532,7 @@ module.exports = async function handler(request, response){
   // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
   // разрешаем валидному секрету ИЛИ админу. Если CRON_SECRET не задан в env — НЕ блокируем
   // (обратная совместимость: исключаем риск залочить синк при отсутствии переменной).
-  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck"]);
+  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync"]);
   if(CRON_ACTIONS.has(action)){
     const secret = process.env.CRON_SECRET;
     if(secret){
@@ -4776,6 +4816,10 @@ module.exports = async function handler(request, response){
   }
   if(action === "resalecheck"){
     sendJson(response, 200, await runResaleCheck(42000).catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
+    return;
+  }
+  if(action === "timedsync"){
+    sendJson(response, 200, await runTimedSync().catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
     return;
   }
   if(action.startsWith("alert")){
