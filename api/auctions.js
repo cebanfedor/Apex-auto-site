@@ -698,6 +698,12 @@ function normalizeLot(source, fallbackAuction = "copart"){
     saleStatus:bnSale ? "Продан по Buy Now" : sale.label,
     sellerReserve:sale.reserve || 0,          // резерв продавца, $ (0 = не указан)
     sellerReserveAt:sale.reserveAt || "",
+    // 30.09.2026 (Федор: «стартовая цена на Timed — тоже можно вывести»): раньше timed_start_bid
+    // использовался ТОЛЬКО как запасное значение currentBid, когда bid/current_bid пустые — свою
+    // «стартовую цену» лот терял, как только на него ставили выше старта. Отдельное поле сохраняет
+    // её всегда. Полезно и как замена резерву — у части Timed-лотов IAAI seller_reserve в фиде вообще
+    // не приходит (26.09.2026), а timed_start_bid есть почти всегда: честная нижняя граница вместо «нет данных».
+    timedStartBid:safeNumber(lot?.timed_start_bid) || 0,
     ...(() => {
       // Copart: "B/2113"; IAAI: "1 - #40" (или "tbd" — ещё не назначено). Нумерация идёт внутри филиала, поэтому ключ линии = филиал|линия.
       const m = /^([A-Za-z0-9]+)\s*[-\/]\s*#?(\d{1,6})$/.exec(String((lot?.line ?? item?.line) || "").trim());

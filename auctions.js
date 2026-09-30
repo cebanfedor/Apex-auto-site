@@ -200,7 +200,7 @@
   function favSave(map){ try{ localStorage.setItem(FAV_KEY, JSON.stringify(map)); }catch(e){} }
   function favHas(id){ return id != null && !!favLoad()[id]; }
   function favCompact(lot){
-    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","sellerType","horsePower","generationName","keys","estimatedRetailValue","repairCost","airbags","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory","sellerReserve","sellerReserveAt"];
+    const keep = ["id","auction","title","year","make","model","vin","lot","url","location","auctionDate","currentBid","finalBid","buyNow","odometer","odometerText","primaryDamage","secondaryDamage","damage","document","engine","drive","transmission","fuel","condition","seller","sellerType","horsePower","generationName","keys","estimatedRetailValue","repairCost","airbags","photoCount","image","images","lotStatus","statusId","statusName","saleStatus","saleStatusKey","timed","priceHistory","sellerReserve","sellerReserveAt","timedStartBid"];
     const o = {}; keep.forEach(k => { if(lot[k] !== undefined) o[k] = lot[k]; }); return o;
   }
   function track(ev){ try{ if(window.apexTrack) window.apexTrack(ev); }catch(e){} }
@@ -2654,10 +2654,19 @@
       ${!isSold ? `<button class="dbBtnPrimary calcTopCtaV1" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>` : ""}
       ${(() => { const t = Number(lot.sellerReserve) > 0 ? "" : lot.saleStatus; return t && !isSold ? `<div class="calcSaleV2 ${saleClass(t)}">${escapeHtml(t)}</div>` : ""; })()}
       ${(() => {
-        if(!(Number(lot.sellerReserve) > 0) || isSold) return "";
-        const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve;
-        const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""].filter(Boolean).join(`<i class="crDotV1">·</i>`);
-        return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${isTimed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>`;
+        if(isSold) return "";
+        if(Number(lot.sellerReserve) > 0){
+          const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve;
+          const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""].filter(Boolean).join(`<i class="crDotV1">·</i>`);
+          return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${isTimed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>`;
+        }
+        // 30.09.2026 (Федор: «стартовую цену на Timed тоже можно вывести»): у части Timed-лотов IAAI
+        // seller_reserve в фиде вообще не приходит — раньше в этом блоке не было ничего. timed_start_bid
+        // почти всегда есть: честная «с чего начинаются торги» вместо пустоты.
+        if(lot.timed && Number(lot.timedStartBid) > 0){
+          return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Стартовая цена")}</span><b>${fmtBid(lot.timedStartBid)}</b></div><div class="crSubV1"><em>${L("Timed аукцион")}</em></div></div>`;
+        }
+        return "";
       })()}
       <div class="calcStepperV2">
         <button type="button" data-bid-step="-1" aria-label="Уменьшить ставку">−</button>
@@ -3430,6 +3439,7 @@
               ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("от")} ${escapeHtml(shortDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
+              ${lot.timed && Number(lot.timedStartBid) > 0 ? dPlain("Стартовая цена", `<b>${findCanadaLocation(lot) ? moneyCad(lot.timedStartBid) : money(lot.timedStartBid)}</b>`) : ""}
               ${lot.saleStatus ? dPlain("Статус продажи", escapeHtml(lot.timed && Number(lot.sellerReserve) > 0 ? "Timed аукцион" : lot.saleStatus)) : ""}
               ${lot.seller ? dPlain("Тип продавца", sellerTypeLabel) : ""}
               ${dPlain("Продавец", escapeHtml(sellerName))}
