@@ -242,17 +242,26 @@
     if(lang !== "ru" && window.__apexEnsureDict) window.__apexEnsureDict(refreshCount);
     else refreshCount();
 
+    // Тот же роутер VIN/номер лота/название, что и умный поиск на /auctions (parseSmartSearch) —
+    // полный keyword-парсер (марка/повреждение/штат/цена) туда специально не тащим: главная
+    // намеренно не грузит тяжёлый auctions.js (см. шапку файла), а router — 5 строк.
+    // 30.09.2026 (Федор: «верни сюда поиск по VIN, лоту, названию — как умный поиск с /auctions»).
+    function parseSmartSearch(raw){
+      const value = String(raw || "").trim();
+      if(!value) return {};
+      const compact = value.replace(/[^A-Za-z0-9]/g, "");
+      if(compact.length >= 11 && /[A-Za-z]/.test(compact) && /\d/.test(compact) && !/\s/.test(value)) return {vin:compact};
+      if(/^\d{6,10}$/.test(compact) && /^[\d\s-]+$/.test(value)) return {lot:compact};
+      return {name:value};
+    }
     btn.addEventListener("click", () => {
-      // VIN-поле убрано из hero (дублировало «Разобрать» под hero, 30.09.2026); vinInp может
-      // отсутствовать — тогда всегда собираем поиск по марке/модели/году.
-      const vin = vinInp ? (vinInp.value || "").trim() : "";
-      const p = new URLSearchParams();
-      if(vin){
-        p.set("vin", vin);
-        if(archiveChk.checked) p.set("tab", "archived");
-      }else{
-        const fp = buildParams();
-        for(const [k, v] of fp.entries()) p.set(k, v);
+      const raw = vinInp ? (vinInp.value || "").trim() : "";
+      const p = buildParams();
+      if(raw){
+        const s = parseSmartSearch(raw);
+        if(s.vin) p.set("vin", s.vin);
+        else if(s.lot) p.set("q", s.lot);
+        else if(s.name) p.set("name", s.name);
       }
       location.href = "/auctions?" + p.toString();
     });
