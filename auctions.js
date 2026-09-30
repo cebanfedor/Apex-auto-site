@@ -1653,6 +1653,12 @@
     let live = {};
     try{ const r = await api(`/api/auctions?action=livebids&ids=${encodeURIComponent(ids.slice(0, 30).join(","))}`); live = r.items || {}; }catch(e){ return; }
     let healed = false;
+    // 30.09.2026 (Федор со скриншота: лот с фильтром «дата 30.09–30.09» показывал машину с торгами 5 окт.) —
+    // торги перенесли ПОСЛЕ того, как лот попал в отфильтрованную выдачу; карточка ниже просто перерисовывалась
+    // с новой датой на месте, не проверяя, что эта дата вообще ещё попадает в явно выбранный пользователем
+    // диапазон. Читаем диапазон один раз до цикла — те же поля, что заполняет форма фильтров.
+    const dateFromF = document.querySelector('input[name="auctionDateFrom"]')?.value || "";
+    const dateToF = document.querySelector('input[name="auctionDateTo"]')?.value || "";
     cards.forEach(cd => {
       const lid = cd.querySelector(".dbPhoto")?.dataset.lid; const lot = byId.get(String(lid)); const lv = live[lid];
       if(!lot || !lv) return;
@@ -1660,11 +1666,14 @@
       // Данные самого лота расходятся со списком: лот уже продан, либо торги перенесены — перерисовываем карточку и лечим базу.
       const liveMs = Date.parse(lv.auctionDate || ""), listMs = Date.parse(lot.auctionDate || "");
       const dateMoved = Number.isFinite(liveMs) && Number.isFinite(listMs) && Math.abs(liveMs - listMs) > 2 * 3600e3;
+      const newDay = String(lv.auctionDate || "").slice(0, 10);
+      const dateOutOfFilter = dateMoved && (dateFromF || dateToF) && ((dateFromF && newDay < dateFromF) || (dateToF && newDay > dateToF));
       if(lv.sold || dateMoved){
         Object.assign(lot, {auctionDate:lv.auctionDate || lot.auctionDate}, lv.sold ? {statusId:6, statusName:"sold", lotStatus:"sold", finalBid:lv.finalBid || lv.currentBid} : {});
-        // Текущие вкладки показывают только актуальные торги: сыгравший лот убираем (в «Архиве»/«Избранном» и при поиске по VIN/номеру — оставляем как «продан»).
+        // Текущие вкладки показывают только актуальные торги: сыгравший лот (или перенесённый мимо явного
+        // фильтра по дате) убираем (в «Архиве»/«Избранном» и при поиске по VIN/номеру — оставляем как есть).
         const keepSold = ["archived", "favorites"].includes(state.tab) || !!String($("#auctionSmartSearch")?.value || "").trim();
-        if(lv.sold && !keepSold){
+        if((lv.sold || dateOutOfFilter) && !keepSold){
           cd.classList.add("dbCardGoneV1");
           setTimeout(() => { try{ cd.remove(); }catch(e){} }, 350);
           const ix = state.items.indexOf(lot); if(ix >= 0) state.items.splice(ix, 1);
