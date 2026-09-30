@@ -1251,7 +1251,7 @@
     let display = val || "Неизвестен";
     const rental = isRentalName(display);
     if(rental) display = display.replace(/\s*·\s*(Страховая|Прокат)\s*$/i, "") + " · Прокат";
-    const isInsurance = rental || /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
+    const isInsurance = rental || isFleetName(display) || /страховая|insurance|geico|progressive|allstate|usaa|state farm|farmers|nationwide|liberty mutual|travelers|erie|metlife|kemper|csaa/i.test(display);
     const tone = isInsurance ? "good" : "neutral";
     return `<li class="dbCheck ${tone}">${dbIco(toneIcon(tone))}<span><b>${L("Продавец:")}</b> ${escapeHtml(L(display).replace(/Страховая/g, L("Страховая")).replace(/Прокат/g, L("Прокат")).replace(/^Неизвестен$/, L("Неизвестен")))}</span></li>`;
   }
@@ -1319,8 +1319,12 @@
   // Компании проката (Sixt, Turo, Avis…): хороший продавец, но не страховая — подпись «Прокат». Фид метит их seller_type=insurance.
   const RENTAL_RE = /\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
   const isRentalName = v => RENTAL_RE.test(String(v || ""));
+  // Лизинговые/корпоративные автопарки (ESC Corporate Services, Ari Financial Services…) — легитимные компании,
+  // сдающие с лизинга/утилизирующие флот, такой же «хороший» продавец, как страховая/прокат (Федор 30.09.2026).
+  const FLEET_RE = /\b(corporate services|financial services)\b/i;
+  const isFleetName = v => FLEET_RE.test(String(v || ""));
   function sellerIsInsurance(lot){
-    if(isRentalName(lot && lot.seller)) return true;
+    if(isRentalName(lot && lot.seller) || isFleetName(lot && lot.seller)) return true;
     return /insurance/.test(String(lot.sellerType || "").toLowerCase())
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
   }
@@ -3303,7 +3307,8 @@
     const sellerTypeRaw = String(lot.sellerType || "").toLowerCase();
     const isIns = /insurance/.test(sellerTypeRaw)
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
-    const sellerTypeLabel = L(isRentalName(lot.seller) ? "Прокат" : isIns ? "Страховая"
+    const isFleet = isFleetName(lot.seller);
+    const sellerTypeLabel = L(isRentalName(lot.seller) ? "Прокат" : isFleet ? "Автопарк / лизинг" : isIns ? "Страховая"
       : /financ|credit|bank/.test(sellerTypeRaw) ? "Банк / кредитная"
       : /fleet|lease|rental/.test(sellerTypeRaw) ? "Автопарк / лизинг"
       : /dealer/.test(sellerTypeRaw) ? "Дилер"
