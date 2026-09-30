@@ -509,11 +509,12 @@
 .calcOptColV1 { display:flex; flex-direction:column; gap:4px; cursor:pointer; }
 .calcOptColV1 > span { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
 .calcOptColV1 .calcSelectV2 { max-width:none; width:100%; }
-/* Опции калькулятора — две симметричные колонки, без рамок */
-.calcPairRowV1 { display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:center; }
-.calcPairRowV1 .calcOptV2 { border:none; padding:6px 0; font-size:12px; gap:8px; white-space:nowrap; justify-content:center; }
+/* Опции калькулятора — компактные «таблетки»-тумблеры по центру, переносятся при нехватке места */
+.calcPairRowV1 { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; padding:2px 0 4px; }
+.calcPairRowV1 .calcOptV2 { flex:0 0 auto; justify-content:center; border:1px solid var(--aLine2); border-radius:999px; padding:8px 14px; font-size:12px; gap:7px; white-space:nowrap; background:var(--aSurf,#fff); color:var(--aInk); transition:border-color .15s, background .15s, color .15s; }
 .calcPairRowV1 .calcOptV2 span { flex:none; }
 .calcPairRowV1 .calcOptV2 input { width:15px; height:15px; }
+.calcPairRowV1 .calcOptV2:has(input:checked) { border-color:var(--aRed); background:rgba(237,0,18,.06); color:var(--aRed); }
 .calcPairRowV1 .calcOptV2:has(input:checked) span { color:var(--aRed); font-weight:600; }
 .calcSelectV2 { height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:12.5px; padding:0 6px; cursor:pointer; max-width:140px; }
 .calcEngineWrapV2 { display:flex; align-items:center; gap:5px; }
