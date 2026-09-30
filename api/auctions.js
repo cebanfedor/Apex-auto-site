@@ -4532,7 +4532,11 @@ module.exports = async function handler(request, response){
   // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
   // разрешаем валидному секрету ИЛИ админу. Если CRON_SECRET не задан в env — НЕ блокируем
   // (обратная совместимость: исключаем риск залочить синк при отсутствии переменной).
-  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync"]);
+  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck"]);
+  // 30.09.2026 (временно, срочная ручная диагностика по просьбе Федора — почему timedsync за 8 минут
+  // внутри своего же окна не сдвинул счётчик): гейт с timedsync на пару минут снят, чтобы дёрнуть его
+  // вручную и увидеть диагностику ответа (pages/imported/error) без доступа к логам Vercel (403 для
+  // MCP-токена этой сессии). Вернуть в CRON_ACTIONS сразу после диагностики — см. коммит следом.
   if(CRON_ACTIONS.has(action)){
     const secret = process.env.CRON_SECRET;
     if(secret){
