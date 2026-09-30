@@ -1027,3 +1027,10 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 - CSP не мешает ld+json (это данные). BreadcrumbList в шаблоне auctions.html не дублировал.
 ⚠️ **Нужны РЕАЛЬНЫЕ данные Федора (не выдумывать)**: (1) `aggregateRating` в LocalBusiness — рейтинг+число отзывов из Google
   Business Profile (даёт звёзды в выдаче, большой CTR); (2) verification-код Google Search Console (нет тега — измерять индексацию нечем).
+
+## Рейтинг Google — реальные 4,4 / 41 отзыв (30.09.2026)
+Профиль Google Business «Apex Auto Import» (Автоброкер в Кишинёве, Strada Bucovinei 9F, MD-2045): **4,4 ★, 41 отзыв**.
+На сайте раньше стояло ложно «5,0 / 25 отзывов» — исправлено на 4,4/41 (бейдж+тексты index.html, футер всех 27 страниц),
+добавлен `aggregateRating` в LocalBusiness (даёт звёзды в выдаче). ⚠️ Цифры хардкожены — при заметном изменении числа
+отзывов/рейтинга обновить: `aggregateRating` в index.html + бейдж `gRatingBadgeV430`/`gRatingCountV430` + строка «Рейтинг …» + футеры. НЕ выдумывать — брать с профиля Google.
+Ещё НЕ подключено (ждём Федора): verification-код Google Search Console.
