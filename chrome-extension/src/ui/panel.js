@@ -658,7 +658,7 @@
       money(est.company),
       Number(calc.marginUsd) ? `база + ваша наценка ${money(calc.marginUsd)}` : "фикс $300, от $40 000 — 1%"
     );
-    if (est.paymentFee) add("Комиссия на оплату", money(est.paymentFee), "1% от ставки и сбора аукциона, минимум $50");
+    if (est.paymentFee) add("Комиссия на оплату", money(est.paymentFee), "1% при оплате в MDL — от ставки и сбора аукциона, минимум $50");
     add("Растаможка в Молдове", money(est.customsUsd), customsHint(est));
 
     $("calcRows").innerHTML = rows.join("");

@@ -2563,8 +2563,8 @@
       // Канада (Федор 29.09.2026): вся канадская логистика до Клайпеды (включая море) оплачивается
       // сразу, одним платежом — не только ставка+сбор, как в США. Позже, при получении в Кишинёве, —
       // только дорога от Клайпеды, таможня, страховка и наша комиссия.
-      const payNowSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.canadaFee;
-      const payLaterSub = calc.road + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service + (calc.paymentFee || 0);
+      const payNowSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.canadaFee + (calc.paymentFee || 0);
+      const payLaterSub = calc.road + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
       return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
@@ -2572,28 +2572,28 @@
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
         ${calcRow("Услуги канадской компании", calc.canadaFee, calc.bid > 15000 ? "2% от цены лота" : "")}
         ${calcRow("Складирование и погрузка", calc.keeper)}
-        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}`)
+        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
+        ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "1% при оплате в MDL") : ""}`)
         + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Комиссия", calc.service)}
-        ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee) : ""}`);
+        ${calcRow("Комиссия", calc.service)}`);
     }
-    const payNowSub = calc.bid + calc.auctionFee;
-    const payLaterSub = calc.land + calc.sea + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service + (calc.paymentFee || 0);
+    const payNowSub = calc.bid + calc.auctionFee + (calc.paymentFee || 0);
+    const payLaterSub = calc.land + calc.sea + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
     return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid)}
-        ${calcRow("Аукционный сбор", calc.auctionFee)}`)
+        ${calcRow("Аукционный сбор", calc.auctionFee)}
+        ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "1% при оплате в MDL") : ""}`)
       + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
         ${calcRow("Доставка по США", calc.land, calc.landRoute)}
         ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Комиссия", calc.service)}
-        ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee) : ""}`);
+        ${calcRow("Комиссия", calc.service)}`);
   }
 
   function renderLotCalculator(lot){
@@ -2710,7 +2710,7 @@
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
-          <label class="calcOptV2" title="Комиссия за перевод оплаты — 1% от ставки и аукционного сбора, минимум $50"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Комиссия на оплату")} 1%</span></label>
+          <label class="calcOptV2" title="Комиссия 1% при оплате в MDL — от ставки и аукционного сбора, минимум $50"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Комиссия на оплату")} 1%</span></label>
         </div>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
