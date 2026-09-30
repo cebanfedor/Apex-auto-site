@@ -29,7 +29,7 @@ module.exports = async function(req, res){
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if(!t || !/^[A-HJ-NPR-Z0-9]{17}$/.test(t.vin)){
     if(lang){
-      const {PAGES} = require("../server/og-pages"); const tr = PAGES.tracking[lang], u = `https://apexauto.md/tracking?lang=${lang}`, im = `https://apexauto.md/assets/og/tracking-${lang}.png?v=4`;
+      const {PAGES} = require("../server/og-pages"); const tr = PAGES.tracking[lang], u = `https://apexauto.md/tracking?lang=${lang}`, im = `https://apexauto.md/assets/og/tracking-${lang}.png?v=5`;
       html = html.replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`).replace(/<title>[^<]*<\/title>/, `<title>${esc(tr.t)}</title>`).replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(tr.d)}">`)
         .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(tr.t)}">`).replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(tr.d)}">`)
         .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${esc(u)}">`).replace(/<meta property="og:image"[^>]*>/, `<meta property="og:image" content="${esc(im)}">`)
@@ -45,7 +45,7 @@ module.exports = async function(req, res){
   const desc = L
     ? [`VIN ${t.vin}.`, `${lang === "ro" ? "Stare" : "Status"}: ${t.statusLabel}.`, t.total ? `${L.stageWord} ${Math.min(t.done, t.total)} ${L.of} ${t.total}.` : "", t.eta ? t.eta + "." : "", lang === "ro" ? "Urmărirea livrării auto din SUA și Canada în Moldova — Apex Auto." : "Tracking car delivery from the USA and Canada to Moldova — Apex Auto."].filter(Boolean).join(" ")
     : [`VIN ${t.vin}.`, `Статус: ${t.statusLabel}.`, t.total ? `Этап ${Math.min(t.done, t.total)} из ${t.total}.` : "", t.eta ? t.eta + "." : "", "Отслеживание доставки авто из США и Канады в Молдову — Apex Auto."].filter(Boolean).join(" ");
-  const img = `https://apexauto.md/og/track/${t.vin}?v=1${lang ? "&lang=" + lang : ""}`;
+  const img = `https://apexauto.md/og/track/${t.vin}?v=2${lang ? "&lang=" + lang : ""}`;
   const url = `https://apexauto.md/tracking?vin=${t.vin}${lang ? "&lang=" + lang : ""}`;
   html = html
     .replace(/<html lang="[a-z-]*"/, `<html lang="${lang || "ru"}"`)

@@ -86,7 +86,12 @@ function bigPhoto(url){
   return u;
 }
 
-const LOGO = `<g><rect width="52" height="52" rx="14" fill="${RED}"/><path d="M13 36l9-20h8l9 20h-7l-2-5.2h-8L20 36zm11.5-11h5l-2.5-6.4z" fill="#fff"/></g>`;
+// 30.09.2026 (Федор прислал новый логотип, assets/logo-01.svg — фирменный знак «домик/гора», сейчас
+// в src="/Users/feduk/Downloads/logo-01 (1).svg"): те же 2 polygon из его SVG (viewBox 500×500,
+// исходный bbox x:160.91–357.85 y:90.38–237.81), пересчитаны translate/scale так, чтобы вписаться
+// в те же 52×52 с отступом ~6px, что и старый значок — красная плашка-подложка не трогалась (уже
+// проверенный контраст на любом фоне фото), поменялась только сама фигура внутри.
+const LOGO = `<g><rect width="52" height="52" rx="14" fill="${RED}"/><g transform="translate(-26.7 -7.37) scale(0.2032)" fill="#fff"><polygon points="307.87 162.98 283.66 175.31 204.96 215.38 160.91 237.81 198.91 224.43 293.03 191.3 315.52 229.66 357.85 237.81 307.87 162.98"/><polygon points="303.17 155.94 279.45 168.13 259.38 133.9 214.09 201.7 169.84 224.44 259.38 90.38 303.17 155.94"/></g></g>`;
 const FLAG_CA = `<g><rect width="44" height="24" rx="4" fill="#fff"/><rect width="11" height="24" rx="4" fill="#d52b1e"/><rect x="33" width="11" height="24" rx="4" fill="#d52b1e"/><rect x="9" width="4" height="24" fill="#d52b1e"/><rect x="31" width="4" height="24" fill="#d52b1e"/><rect x="11" width="22" height="24" fill="#fff"/><path fill="#d52b1e" transform="translate(11 2) scale(.9)" d="M11 1.5l1.6 3.2 2.3-.9-.8 4.9 2.6-2 .7 1.9-2.6 2 3.2 1-.6 2-4.5-.5.5 2.7H11.4v3.5h-1.8v-3.5H7.2l.5-2.7-4.5.5-.6-2 3.2-1-2.6-2 .7-1.9 2.6 2-.8-4.9 2.3.9z"/></g>`;
 
 function pill(x, y, text, opts = {}){

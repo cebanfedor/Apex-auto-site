@@ -17,7 +17,7 @@ module.exports = async function(req, res){
   const suffix = lang === "ru" ? "" : `lang=${lang}`;
   // Каталог без фильтров, но на RO/EN — готовые тексты страницы
   if(lang !== "ru" && (!isFiltered(p) || req.query.vin || req.query.q)){
-    const tr = PAGES.auctions[lang], url = `https://apexauto.md/auctions?lang=${lang}`, img = `https://apexauto.md/assets/og/auctions-${lang}.png?v=4`;
+    const tr = PAGES.auctions[lang], url = `https://apexauto.md/auctions?lang=${lang}`, img = `https://apexauto.md/assets/og/auctions-${lang}.png?v=5`;
     html = html.replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`).replace(/<title>[^<]*<\/title>/, `<title>${esc(tr.t)}</title>`)
       .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(tr.d)}">`)
       .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(tr.t)}">`).replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(tr.d)}">`)
@@ -41,7 +41,7 @@ module.exports = async function(req, res){
   const X = d.X;
   const title = `${d.headline}${d.totalTxt ? " — " + d.totalTxt + " " + X.onAuctions : " — " + X.auctionsCatalog} | Apex Auto`;
   const desc = `${d.headline}: ${d.totalTxt ? d.totalTxt + " " + X.descWith + ", " : X.descNo + ", "}${X.descTail}`;
-  const img = `https://apexauto.md/og/catalog?${p.toString()}${suffix ? "&" + suffix : ""}&v=1`;
+  const img = `https://apexauto.md/og/catalog?${p.toString()}${suffix ? "&" + suffix : ""}&v=2`;
   const url = `https://apexauto.md/auctions?${p.toString()}${suffix ? "&" + suffix : ""}`;
   html = html
     .replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`)

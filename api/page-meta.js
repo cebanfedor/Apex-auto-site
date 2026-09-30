@@ -22,7 +22,7 @@ module.exports = async function(req, res){
     return;
   }
   const url = `https://apexauto.md${def.path ? "/" + def.path : "/"}?lang=${lang}`;
-  const img = `https://apexauto.md/assets/og/${key}-${lang}.png?v=4`;
+  const img = `https://apexauto.md/assets/og/${key}-${lang}.png?v=5`;
   const loc = {ro:"ro_RO", en:"en_US"}[lang];
   html = html
     .replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`)
