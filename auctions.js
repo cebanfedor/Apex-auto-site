@@ -961,17 +961,18 @@
     const road = kind === "crossover" ? 1750 : (kind === "sedan" || kind === "moto" || kind === "atv") ? 1600 : 1900;
     const insurance = Math.max(100, (bid + auctionFee) * 0.01);
     const service = (window.ApexCalc ? Math.round(window.ApexCalc.companyFeeFor(bid, auctionFee)) : 300);
+    const paymentFee = options.paymentFee === false ? 0 : (window.ApexCalc ? Math.round(window.ApexCalc.paymentFeeFor(bid, auctionFee)) : Math.max(50, (bid + auctionFee) * 0.01));
     const canadaFee = Math.max(300, bid * 0.02);
     const exportDocs = options.exportDocs ? 400 : 0;
     const customsBaseMdl = (bid + auctionFee + ocean) * usdMdl;
     const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year:Number(lot.year) || new Date().getFullYear()}) : {total:0};
     const customsUsd = Math.round(c.total / usdMdl);
-    const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs;
+    const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs + paymentFee;
     const totalMdl = usdPart * usdMdl + c.total;
     const total = Math.round(totalMdl / usdMdl);
     return {
       canada:true, bidCad, cadUsd, bid, auctionFee, dispatch, bankFee, keeper, ocean, road,
-      canadaFee:Math.round(canadaFee), insurance:Math.round(insurance), service, exportDocs,
+      canadaFee:Math.round(canadaFee), insurance:Math.round(insurance), service, exportDocs, paymentFee,
       customsUsd, total, totalMdl:Math.round(totalMdl), totalEur:Math.round(totalMdl / eurMdl),
       kind, green, usdMdl, eurMdl,
       dispatchRoute:`${caLoc.name ? String(caLoc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") : "Канада"} → Монреаль`,
@@ -994,17 +995,18 @@
       vehicleType:kind, fuel, engineLiters,
       year:Number(lot.year) || new Date().getFullYear(),
       insurance:options.insurance !== false, exportDocs:!!options.exportDocs, offsite:!!options.offsite,
+      paymentFee:options.paymentFee !== false,
       location:loc, usdMdl, eurMdl
     }) : null;
     if(!r){
       const auctionFee = auctionFeeFor(bid, lot.auction);
-      return {bid, auctionFee, land:0, sea:0, insurance:0, exportDocs:0, service:300, customsUsd:0,
+      return {bid, auctionFee, land:0, sea:0, insurance:0, exportDocs:0, service:300, paymentFee:0, customsUsd:0,
         total:bid + auctionFee, totalMdl:0, totalEur:0, kind, green:false, usdMdl, eurMdl,
         landRoute:landRouteLabel(lot), seaRoute:seaRouteLabel(lot)};
     }
     return {
       bid:r.lot, auctionFee:r.auctionFee, land:r.land, sea:r.sea,
-      insurance:Math.round(r.insurance), exportDocs:r.exportDocs, service:Math.round(r.company),
+      insurance:Math.round(r.insurance), exportDocs:r.exportDocs, service:Math.round(r.company), paymentFee:Math.round(r.paymentFee),
       customsUsd:Math.round(r.customsUsd), total:Math.round(r.totalUsd),
       totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
       kind, green:["hybrid","phev","electric"].includes(fuel), usdMdl, eurMdl,
@@ -2562,7 +2564,7 @@
       // сразу, одним платежом — не только ставка+сбор, как в США. Позже, при получении в Кишинёве, —
       // только дорога от Клайпеды, таможня, страховка и наша комиссия.
       const payNowSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.canadaFee;
-      const payLaterSub = calc.road + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
+      const payLaterSub = calc.road + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service + (calc.paymentFee || 0);
       return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
@@ -2576,10 +2578,11 @@
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Комиссия", calc.service)}`);
+        ${calcRow("Комиссия", calc.service)}
+        ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee) : ""}`);
     }
     const payNowSub = calc.bid + calc.auctionFee;
-    const payLaterSub = calc.land + calc.sea + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
+    const payLaterSub = calc.land + calc.sea + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service + (calc.paymentFee || 0);
     return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}`)
@@ -2589,7 +2592,8 @@
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
-        ${calcRow("Комиссия", calc.service)}`);
+        ${calcRow("Комиссия", calc.service)}
+        ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee) : ""}`);
   }
 
   function renderLotCalculator(lot){
@@ -2611,7 +2615,7 @@
     const kind = vehicleKind(lot);
     const fuelVal = mapFuel(lot.fuel, false, lot);
     const engL = numberFromEngine(lot.engine);
-    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, vehicleType:kind, fuel:fuelVal, engineLiters:engL});
+    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, paymentFee:true, vehicleType:kind, fuel:fuelVal, engineLiters:engL});
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     const countdown = isSold ? "" : timeLeftLabel(lot.auctionDate);
@@ -2706,6 +2710,7 @@
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
+          <label class="calcOptV2" title="Комиссия за перевод оплаты — 1% от ставки и аукционного сбора, минимум $50"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Комиссия на оплату")} 1%</span></label>
         </div>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
@@ -2766,6 +2771,7 @@
       insurance:true, // страховка обязательна — в стоимости всегда
       exportDocs:$("#lotCalcExportDocs")?.checked,
       offsite:$("#lotCalcOffsite")?.checked,
+      paymentFee:$("#lotCalcPaymentFee") ? $("#lotCalcPaymentFee").checked : true,
       vehicleType:veh, fuel, engineLiters, usdMdl, eurMdl
     });
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
@@ -2808,7 +2814,8 @@
       row("Таможенные платежи", calc.customsUsd),
       row("Страховка (1%)", calc.insurance),
       row("Экспортные документы", calc.exportDocs),
-      row("Комиссия", calc.service)
+      row("Комиссия", calc.service),
+      row("Комиссия на оплату", calc.paymentFee)
     ] : [
       row("Ставка", calc.bid),
       row("Аукционный сбор", calc.auctionFee),
@@ -2817,7 +2824,8 @@
       row("Таможенные платежи", calc.customsUsd),
       row("Страховка (1%)", calc.insurance),
       row("Экспортные документы", calc.exportDocs),
-      row("Комиссия", calc.service)
+      row("Комиссия", calc.service),
+      row("Комиссия на оплату", calc.paymentFee)
     ];
     // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
     // Фид отдаёт место строчными («hillsborough, new jersey») — приводим к Title Case.

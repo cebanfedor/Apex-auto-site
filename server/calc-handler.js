@@ -201,6 +201,7 @@ function buildInput(params, rates) {
     insurance: bool(params.insurance, true),
     exportDocs: bool(params.exportDocs, false),
     offsite: bool(params.offsite, false),
+    paymentFee: bool(params.paymentFee, true),
     marginUsd: num(params.marginUsd, 0),
     usdMdl: num(params.usdMdl, rates.usdMdl),
     eurMdl: num(params.eurMdl, rates.eurMdl),
@@ -262,6 +263,7 @@ module.exports = async function handler(request, response) {
         exportDocs: Math.round(result.exportDocs),
         insurance: Math.round(result.insurance),
         company: Math.round(result.company),
+        paymentFee: Math.round(result.paymentFee),
         customsUsd: Math.round(result.customsUsd),
         customsMdl: Math.round(result.customsMdlValue)
       },

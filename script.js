@@ -463,9 +463,10 @@ function estimateTotalUsdForBid(bid){
   const exportDocs = $("exportDocs")?.checked ? 400 : 0;
   const insurance = $("insurance")?.checked ? ApexCalc.insuranceFor(Number(bid || 0), auctionFee) : 0;
   const company = companyFeeFor(Number(bid || 0), auctionFee);
+  const paymentFee = ($("paymentFee") ? $("paymentFee").checked : true) ? ApexCalc.paymentFeeFor(Number(bid || 0), auctionFee) : 0;
   const customsBaseMdl = usdToMdl(Number(bid || 0) + auctionFee + sea);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
-  const totalUsdPart = Number(bid || 0) + auctionFee + land + sea + exportDocs + insurance + company;
+  const totalUsdPart = Number(bid || 0) + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
   return mdlToUsd(usdToMdl(totalUsdPart) + customs.total);
 }
 
@@ -589,7 +590,8 @@ function collectAiBidPayload(){
       engineLiters:$("engineLiters")?.value || "",
       year:$("year")?.value || "",
       exportDocs:Boolean($("exportDocs")?.checked),
-      insurance:Boolean($("insurance")?.checked)
+      insurance:Boolean($("insurance")?.checked),
+      paymentFee:$("paymentFee") ? Boolean($("paymentFee").checked) : true
     }
   };
 }
@@ -1158,6 +1160,7 @@ function calculate(){
   const carfax = 0;
   const insurance = $("insurance").checked ? ApexCalc.insuranceFor(lot, auctionFee) : 0;
   const company = companyFee(auctionFee);
+  const paymentFee = ($("paymentFee") ? $("paymentFee").checked : true) ? ApexCalc.paymentFeeFor(lot, auctionFee) : 0;
 
   // Важно:
   // базовый акциз считаем по таблице двигателя;
@@ -1167,7 +1170,7 @@ function calculate(){
   const customsBaseMdl = usdToMdl(lot + auctionFee + sea);
   const customs = customsMdl(customsBaseMdl, luxuryBaseMdl);
 
-  const totalUsdPart = lot + auctionFee + land + sea + exportDocs + carfax + insurance + company;
+  const totalUsdPart = lot + auctionFee + land + sea + exportDocs + carfax + insurance + company + paymentFee;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total;
   const totalUsd = mdlToUsd(totalMdl);
   const route = selectedLocation ? selectedLocation.displayName : "Локация не выбрана";
@@ -1197,6 +1200,7 @@ function calculate(){
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
     ["Комиссия", company, "", "usd"],
+    ["Комиссия на оплату", paymentFee, "", "usd"],
     ["Таможенные платежи", customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
 
@@ -1239,6 +1243,7 @@ function textCalc(){
     "Доставка в Кишинёв":      ro ? "Transport la Chișinău" : en ? "Delivery to Chișinău" : "Доставка в Кишинёв",
     "Страховка":               ro ? "Asigurare"             : en ? "Insurance"            : "Страховка",
     "Комиссия":                ro ? "Comision"              : en ? "Commission"           : "Комиссия",
+    "Комиссия на оплату":      ro ? "Comision de plată"     : en ? "Payment fee"          : "Комиссия на оплату",
     "Экспортные документы":    ro ? "Acte de export"        : en ? "Export documents"     : "Экспортные документы",
     "Таможенные платежи":      ro ? "Taxe vamale"           : en ? "Customs fees"         : "Таможенные платежи",
   };
@@ -1286,7 +1291,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
   // Prevent mouse wheel from changing number inputs while they're focused
   $("calcForm").addEventListener("wheel",()=>{if(document.activeElement?.type==="number")document.activeElement.blur();},{passive:true});
-  ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
+  ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","paymentFee","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();calculate()}));
   if($("auction"))$("auction").addEventListener("change",()=>{if(calcMode==="canada"){initCanadaLocations();}else{initLocations();}calculate();});
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);
@@ -1723,6 +1728,7 @@ function calculateCanada(){
   const roadKlaipeda = getRoadKlaipedaPrice();
   const insurance = Math.max(100, (lot + auctionFee) * 0.01);
   const company = companyFee(auctionFee);
+  const paymentFee = ($("paymentFee") ? $("paymentFee").checked : true) ? ApexCalc.paymentFeeFor(lot, auctionFee) : 0;
   // Комиссия канадской компании (Tyras): минимум $300, для лотов дороже
   // $15,000 — 2% от цены лота.
   const canadaFee = Math.max(300, lot * 0.02);
@@ -1732,7 +1738,7 @@ function calculateCanada(){
   const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase + hazardFee);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
 
-  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company + canadaFee;
+  const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company + canadaFee + paymentFee;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total;
   const totalUsd = mdlToUsd(totalMdl);
 
@@ -1783,6 +1789,7 @@ function calculateCanada(){
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Комиссия",                    company,      "",                              "usd"],
+    ["Комиссия на оплату",          paymentFee,   "",                              "usd"],
     ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
 

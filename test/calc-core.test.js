@@ -58,3 +58,23 @@ test("insuranceFor: не ниже минимума и конечно", () => {
     assert.ok(Number.isFinite(ins) && ins >= 100, `insurance@${v} = ${ins}`);
   }
 });
+
+test("paymentFeeFor: 1% от (лот + сбор), не ниже $50", () => {
+  assert.equal(ApexCalc.paymentFeeFor(12000, 800), 128);      // 1% от 12800
+  assert.equal(ApexCalc.paymentFeeFor(2000, 300), 50);         // 1% = 23 → минимум 50
+  assert.equal(ApexCalc.paymentFeeFor(0, 0), 50);              // минимум держится
+  for(const [lot, fee] of [[0,0],[3000,300],[50000,2000]]){
+    const p = ApexCalc.paymentFeeFor(lot, fee);
+    assert.ok(Number.isFinite(p) && p >= 50, `paymentFee@${lot}/${fee} = ${p}`);
+  }
+});
+
+test("compute: комиссия на оплату включена по умолчанию и снимается флагом", () => {
+  const base = {lotPrice:12000, auction:"copart", vehicleType:"sedan", fuel:"gasoline", engineLiters:2, year:2020, usdMdl:17.45, eurMdl:20.28};
+  const on = ApexCalc.compute(base);
+  const off = ApexCalc.compute(Object.assign({}, base, {paymentFee:false}));
+  assert.ok(on.paymentFee > 0, "по умолчанию комиссия > 0");
+  assert.equal(off.paymentFee, 0, "с paymentFee:false комиссии нет");
+  // разница итога ≈ величине комиссии (комиссия входит в USD-часть 1:1)
+  assert.ok(Math.abs((on.totalUsd - off.totalUsd) - on.paymentFee) < 1, "итог отличается ровно на комиссию");
+});

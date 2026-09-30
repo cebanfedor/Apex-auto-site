@@ -161,6 +161,8 @@
   function luxuryPct(mdl){let r=LUXURY_RATES.find(x=>mdl>=x.min&&mdl<=x.max);return r?r.pct:0}
   function insuranceFor(lotPrice, auctionFee){return Math.max(INSURANCE_MIN,(Number(lotPrice||0)+Number(auctionFee||0))*0.01)}
   function companyFeeFor(lotPrice, auctionFee){const base=Number(lotPrice||0)+Number(auctionFee||0);return base>40000?base*0.01:300}
+  const PAYMENT_FEE_MIN = 50;   // комиссия на оплату: 1% от (лот + аукционный сбор), но не меньше $50
+  function paymentFeeFor(lotPrice, auctionFee){return Math.max(PAYMENT_FEE_MIN,(Number(lotPrice||0)+Number(auctionFee||0))*0.01)}
 
   /* Мото, пикапы и van large — НДС 20%; электро — только налог на роскошь;
      остальные — акциз по объёму со скидкой для гибридов. */
@@ -209,19 +211,22 @@
     const insuranceOn = input.insurance === undefined ? true : !!input.insurance;
     const insurance = insuranceOn ? insuranceFor(lot, auctionFee) : 0;
     const company = companyFeeFor(lot, auctionFee) + Number(input.marginUsd || 0);
+    // Комиссия на оплату: 1% от (лот + аукционный сбор), мин $50. По умолчанию включена, можно снять.
+    const paymentFeeOn = input.paymentFee === undefined ? true : !!input.paymentFee;
+    const paymentFee = paymentFeeOn ? paymentFeeFor(lot, auctionFee) : 0;
 
     // Налог на роскошь и акциз считаются от: лот + сбор аукциона + море.
     // Суша по США и страховка в базу не входят.
     const baseMdl = (lot + auctionFee + sea) * usdMdl;
     const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year});
 
-    const totalUsdPart = lot + auctionFee + land + sea + exportDocs + insurance + company;
+    const totalUsdPart = lot + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
     const totalMdl = totalUsdPart * usdMdl + customs.total;
     const totalUsd = totalMdl / usdMdl;
     const totalEur = totalMdl / eurMdl;
 
     return {
-      lot, auctionFee, auctionDetail:afd.detail, land, sea, exportDocs, insurance, company,
+      lot, auctionFee, auctionDetail:afd.detail, land, sea, exportDocs, insurance, company, paymentFee,
       customs, customsMdlValue:customs.total, customsUsd:customs.total / usdMdl,
       totalUsd, totalMdl, totalEur,
       usdMdl, eurMdl,
@@ -231,7 +236,7 @@
   }
 
   return {
-    compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v8"
+    compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v9"
   };
 });
