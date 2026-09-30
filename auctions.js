@@ -962,17 +962,19 @@
     const insurance = Math.max(100, (bid + auctionFee) * 0.01);
     const service = (window.ApexCalc ? Math.round(window.ApexCalc.companyFeeFor(bid, auctionFee)) : 300);
     const paymentFee = options.paymentFee === false ? 0 : (window.ApexCalc ? Math.round(window.ApexCalc.paymentFeeFor(bid, auctionFee)) : Math.max(50, (bid + auctionFee) * 0.01));
+    const brokerUtilMdl = options.paymentFee === false ? 0 : 2000; // брокер + утиль сбор, фикс 2000 MDL, при оплате в MDL
     const canadaFee = Math.max(300, bid * 0.02);
     const exportDocs = options.exportDocs ? 400 : 0;
     const customsBaseMdl = (bid + auctionFee + ocean) * usdMdl;
     const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year:Number(lot.year) || new Date().getFullYear()}) : {total:0};
     const customsUsd = Math.round(c.total / usdMdl);
     const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs + paymentFee;
-    const totalMdl = usdPart * usdMdl + c.total;
+    const totalMdl = usdPart * usdMdl + c.total + brokerUtilMdl;
     const total = Math.round(totalMdl / usdMdl);
     return {
       canada:true, bidCad, cadUsd, bid, auctionFee, dispatch, bankFee, keeper, ocean, road,
       canadaFee:Math.round(canadaFee), insurance:Math.round(insurance), service, exportDocs, paymentFee,
+      brokerUsd:Math.round(brokerUtilMdl / usdMdl),
       customsUsd, total, totalMdl:Math.round(totalMdl), totalEur:Math.round(totalMdl / eurMdl),
       kind, green, usdMdl, eurMdl,
       dispatchRoute:`${caLoc.name ? String(caLoc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") : "Канада"} → Монреаль`,
@@ -1000,13 +1002,14 @@
     }) : null;
     if(!r){
       const auctionFee = auctionFeeFor(bid, lot.auction);
-      return {bid, auctionFee, land:0, sea:0, insurance:0, exportDocs:0, service:300, paymentFee:0, customsUsd:0,
+      return {bid, auctionFee, land:0, sea:0, insurance:0, exportDocs:0, service:300, paymentFee:0, brokerUsd:0, customsUsd:0,
         total:bid + auctionFee, totalMdl:0, totalEur:0, kind, green:false, usdMdl, eurMdl,
         landRoute:landRouteLabel(lot), seaRoute:seaRouteLabel(lot)};
     }
     return {
       bid:r.lot, auctionFee:r.auctionFee, land:r.land, sea:r.sea,
       insurance:Math.round(r.insurance), exportDocs:r.exportDocs, service:Math.round(r.company), paymentFee:Math.round(r.paymentFee),
+      brokerUsd:Math.round((r.brokerUtilMdl || 0) / usdMdl),
       customsUsd:Math.round(r.customsUsd), total:Math.round(r.totalUsd),
       totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
       kind, green:["hybrid","phev","electric"].includes(fuel), usdMdl, eurMdl,
@@ -2564,7 +2567,7 @@
       // сразу, одним платежом — не только ставка+сбор, как в США. Позже, при получении в Кишинёве, —
       // только дорога от Клайпеды, таможня, страховка и наша комиссия.
       const payNowSub = calc.bid + calc.auctionFee + calc.dispatch + calc.bankFee + calc.keeper + calc.ocean + calc.canadaFee + (calc.paymentFee || 0);
-      const payLaterSub = calc.road + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
+      const payLaterSub = calc.road + calc.customsUsd + (calc.brokerUsd || 0) + calc.insurance + calc.exportDocs + calc.service;
       return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
@@ -2577,12 +2580,13 @@
         + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
+        ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "2000 MDL при оплате в MDL") : ""}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
         ${calcRow("Комиссия", calc.service)}`);
     }
     const payNowSub = calc.bid + calc.auctionFee + (calc.paymentFee || 0);
-    const payLaterSub = calc.land + calc.sea + calc.customsUsd + calc.insurance + calc.exportDocs + calc.service;
+    const payLaterSub = calc.land + calc.sea + calc.customsUsd + (calc.brokerUsd || 0) + calc.insurance + calc.exportDocs + calc.service;
     return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
@@ -2591,6 +2595,7 @@
         ${calcRow("Доставка по США", calc.land, calc.landRoute)}
         ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
+        ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "2000 MDL при оплате в MDL") : ""}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
         ${calcRow("Комиссия", calc.service)}`);
@@ -2812,6 +2817,7 @@
       row("Морская перевозка", calc.ocean),
       row("Дорога Клайпеда → Кишинёв", calc.road),
       row("Таможенные платежи", calc.customsUsd),
+      row("Брокер + утиль сбор", calc.brokerUsd),
       row("Страховка (1%)", calc.insurance),
       row("Экспортные документы", calc.exportDocs),
       row("Комиссия", calc.service),
@@ -2822,6 +2828,7 @@
       row("Доставка по США", calc.land),
       row("Доставка морем", calc.sea),
       row("Таможенные платежи", calc.customsUsd),
+      row("Брокер + утиль сбор", calc.brokerUsd),
       row("Страховка (1%)", calc.insurance),
       row("Экспортные документы", calc.exportDocs),
       row("Комиссия", calc.service),

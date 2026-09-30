@@ -660,6 +660,7 @@
     );
     if (est.paymentFee) add("Комиссия на оплату", money(est.paymentFee), "1% при оплате в MDL — от ставки и сбора аукциона, минимум $50");
     add("Растаможка в Молдове", money(est.customsUsd), customsHint(est));
+    if (est.brokerUtilMdl) add("Брокер + утиль сбор", money(est.brokerUtilMdl / (est.input?.usdMdl || 17.45)), "2000 MDL при оплате в MDL");
 
     $("calcRows").innerHTML = rows.join("");
     $("totalUsd").textContent = money(est.totalUsd);

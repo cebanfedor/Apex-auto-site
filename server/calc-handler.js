@@ -264,6 +264,7 @@ module.exports = async function handler(request, response) {
         insurance: Math.round(result.insurance),
         company: Math.round(result.company),
         paymentFee: Math.round(result.paymentFee),
+        brokerUtilMdl: Math.round(result.brokerUtilMdl),
         customsUsd: Math.round(result.customsUsd),
         customsMdl: Math.round(result.customsMdlValue)
       },

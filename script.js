@@ -463,11 +463,13 @@ function estimateTotalUsdForBid(bid){
   const exportDocs = $("exportDocs")?.checked ? 400 : 0;
   const insurance = $("insurance")?.checked ? ApexCalc.insuranceFor(Number(bid || 0), auctionFee) : 0;
   const company = companyFeeFor(Number(bid || 0), auctionFee);
-  const paymentFee = ($("paymentFee") ? $("paymentFee").checked : true) ? ApexCalc.paymentFeeFor(Number(bid || 0), auctionFee) : 0;
+  const payMdl = ($("paymentFee") ? $("paymentFee").checked : true);
+  const paymentFee = payMdl ? ApexCalc.paymentFeeFor(Number(bid || 0), auctionFee) : 0;
+  const brokerUtilMdl = payMdl ? 2000 : 0;
   const customsBaseMdl = usdToMdl(Number(bid || 0) + auctionFee + sea);
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
   const totalUsdPart = Number(bid || 0) + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
-  return mdlToUsd(usdToMdl(totalUsdPart) + customs.total);
+  return mdlToUsd(usdToMdl(totalUsdPart) + customs.total + brokerUtilMdl);
 }
 
 function bidForTargetTotal(targetTotal){
@@ -1160,7 +1162,9 @@ function calculate(){
   const carfax = 0;
   const insurance = $("insurance").checked ? ApexCalc.insuranceFor(lot, auctionFee) : 0;
   const company = companyFee(auctionFee);
-  const paymentFee = ($("paymentFee") ? $("paymentFee").checked : true) ? ApexCalc.paymentFeeFor(lot, auctionFee) : 0;
+  const payMdl = ($("paymentFee") ? $("paymentFee").checked : true);
+  const paymentFee = payMdl ? ApexCalc.paymentFeeFor(lot, auctionFee) : 0;
+  const brokerUtilMdl = payMdl ? 2000 : 0; // брокер + утиль сбор, фикс 2000 MDL, при оплате в MDL
 
   // Важно:
   // базовый акциз считаем по таблице двигателя;
@@ -1171,7 +1175,7 @@ function calculate(){
   const customs = customsMdl(customsBaseMdl, luxuryBaseMdl);
 
   const totalUsdPart = lot + auctionFee + land + sea + exportDocs + carfax + insurance + company + paymentFee;
-  const totalMdl = usdToMdl(totalUsdPart) + customs.total;
+  const totalMdl = usdToMdl(totalUsdPart) + customs.total + brokerUtilMdl;
   const totalUsd = mdlToUsd(totalMdl);
   const route = selectedLocation ? selectedLocation.displayName : "Локация не выбрана";
   const portState = selectedLocation ? (SEA[selectedLocation.autoPort]?.label?.split(", ")[1] || "") : "";
@@ -1203,6 +1207,7 @@ function calculate(){
     ["Комиссия", company, "", "usd"],
     ["Таможенные платежи", customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
+  if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "при оплате в MDL", "mdl"]);
 
   if(customs.luxury > 0){
     const lng = window.APEX_LANG || document.documentElement.lang || "ru";
@@ -1244,6 +1249,7 @@ function textCalc(){
     "Страховка":               ro ? "Asigurare"             : en ? "Insurance"            : "Страховка",
     "Комиссия":                ro ? "Comision"              : en ? "Commission"           : "Комиссия",
     "Комиссия на оплату":      ro ? "Comision de plată"     : en ? "Payment fee"          : "Комиссия на оплату",
+    "Брокер + утиль сбор":     ro ? "Broker + taxă utilizare" : en ? "Broker + recycling fee" : "Брокер + утиль сбор",
     "Экспортные документы":    ro ? "Acte de export"        : en ? "Export documents"     : "Экспортные документы",
     "Таможенные платежи":      ro ? "Taxe vamale"           : en ? "Customs fees"         : "Таможенные платежи",
   };
@@ -1728,7 +1734,9 @@ function calculateCanada(){
   const roadKlaipeda = getRoadKlaipedaPrice();
   const insurance = Math.max(100, (lot + auctionFee) * 0.01);
   const company = companyFee(auctionFee);
-  const paymentFee = ($("paymentFee") ? $("paymentFee").checked : true) ? ApexCalc.paymentFeeFor(lot, auctionFee) : 0;
+  const payMdl = ($("paymentFee") ? $("paymentFee").checked : true);
+  const paymentFee = payMdl ? ApexCalc.paymentFeeFor(lot, auctionFee) : 0;
+  const brokerUtilMdl = payMdl ? 2000 : 0; // брокер + утиль сбор, фикс 2000 MDL, при оплате в MDL
   // Комиссия канадской компании (Tyras): минимум $300, для лотов дороже
   // $15,000 — 2% от цены лота.
   const canadaFee = Math.max(300, lot * 0.02);
@@ -1739,7 +1747,7 @@ function calculateCanada(){
   const customs = customsMdl(customsBaseMdl, customsBaseMdl);
 
   const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company + canadaFee + paymentFee;
-  const totalMdl = usdToMdl(totalUsdPart) + customs.total;
+  const totalMdl = usdToMdl(totalUsdPart) + customs.total + brokerUtilMdl;
   const totalUsd = mdlToUsd(totalMdl);
 
   const route = selectedCanadaLocation
@@ -1792,6 +1800,7 @@ function calculateCanada(){
     ["Комиссия",                    company,      "",                              "usd"],
     ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
   ];
+  if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "при оплате в MDL", "mdl"]);
 
   const lng = window.APEX_LANG || "ru";
   if(customs.luxury > 0){

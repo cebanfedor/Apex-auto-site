@@ -87,20 +87,21 @@
     const exportDocs = input.exportDocs ? 400 : 0;
     const insurance = input.insurance ? Math.max(100, (lot + auctionFee) * 0.01) : 0;
     const company = companyFeeFor(lot, auctionFee) + Number(input.marginUsd || 0);
-    // Комиссия на оплату: 1% от (лот + аукционный сбор), мин $50. По умолчанию включена.
+    // При оплате в MDL: комиссия 1% (мин $50) + фикс «брокер + утиль сбор» 2000 MDL. Оба по флагу paymentFee.
     const paymentFeeOn = input.paymentFee === undefined ? true : !!input.paymentFee;
     const paymentFee = paymentFeeOn ? Math.max(50, (lot + auctionFee) * 0.01) : 0;
+    const brokerUtilMdl = paymentFeeOn ? 2000 : 0;
 
     const baseMdl = (lot + auctionFee + sea) * usdMdl;
     const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year});
 
     const totalUsdPart = lot + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
-    const totalMdl = totalUsdPart * usdMdl + customs.total;
+    const totalMdl = totalUsdPart * usdMdl + customs.total + brokerUtilMdl;
     const totalUsd = totalMdl / usdMdl;
     const totalEur = totalMdl / eurMdl;
 
     return {
-      lot, auctionFee, land, sea, exportDocs, insurance, company, paymentFee,
+      lot, auctionFee, land, sea, exportDocs, insurance, company, paymentFee, brokerUtilMdl,
       customs, customsMdlValue:customs.total, customsUsd:customs.total / usdMdl,
       totalUsd, totalMdl, totalEur,
       route: loc ? (loc.displayName || "") : "",
