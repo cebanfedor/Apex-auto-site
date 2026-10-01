@@ -807,6 +807,17 @@ async function fetchAllPages(path, cap = 12){
   });
 }
 
+// Сдвигает YYYY-MM-DD на deltaDays (может быть отрицательным), возвращает тоже YYYY-MM-DD или null,
+// если строка не распарсилась. Нужно для sale_date_from/sale_date_to API — они EXCLUSIVE и сравнивают
+// по календарному дню UTC (раздел 4 офиц. доки), поэтому включительный диапазон требует сдвига границ.
+function shiftYmd(ymd, deltaDays){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(ymd || ""))) return null;
+  const d = new Date(`${ymd}T00:00:00Z`);
+  if(Number.isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
 function buildSearchParams(query){
   const params = new URLSearchParams();
   const map = {
@@ -884,25 +895,35 @@ function buildSearchParams(query){
   if(tab === "archived" && !params.get("status") && query.get("lotStatus") == null){
     params.set("status", "6");   // Архив = только ПРОДАННЫЕ (Федор 22.09.2026): непроданные раунды никому не нужны
   }
-  // sale_date_in_days is the only reliable date filter in this API.
-  // sale_date_from/to are NOT sent to the API — they confuse it and return 0 results.
-  // We use sale_date_in_days to get a broad window, then matchDateRange() on the client
-  // provides exact-match guarantee.
+  // 02.10.2026 (аудит офиц. доки auctionsapi.com/docs/ai-prompt): sale_date_from/sale_date_to —
+  // рабочий документированный фильтр, НЕ «ломает API», как считал старый комментарий. Два нюанса,
+  // из-за которых прошлая попытка, похоже, увидела «0 результатов» и отказалась от параметров:
+  // (1) сравнение EXCLUSIVE (строго «после»/«до», не включительно) — from=X&to=X для одного дня
+  // при такой семантике и правда даёт пустой диапазон; (2) сравнение ПО КАЛЕНДАРНОМУ ДНЮ (UTC),
+  // формат ровно YYYY-MM-DD. Чтобы получить ВКЛЮЧИТЕЛЬНЫЙ диапазон «с X по Y», границы сдвигаются
+  // на 1 день (from-1, to+1) — shiftYmd ниже. Старый код эти параметры вообще не слал, тянул широкое
+  // окно через sale_date_in_days и обещал в комментарии «matchDateRange() на клиенте» — такой функции
+  // в файле не было: точный диапазон на самом деле НЕ применялся, live-фолбэк отдавал лишние даты.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasExplicitDays = params.get("sale_date_in_days") || params.get("next_hours_auction");
-  // Always delete sale_date_from/to — never send to API (they break results).
   const userDateFrom = params.get("sale_date_from");
   const userDateTo   = params.get("sale_date_to");
   params.delete("sale_date_from");
   params.delete("sale_date_to");
   if(tabUpcoming && !hasExplicitDays){
     if(userDateFrom || userDateTo){
-      // Compute how many days ahead we need to cover the chosen date + 7 days buffer.
-      const farStr = userDateTo || userDateFrom;
-      const today = new Date(); today.setHours(0,0,0,0);
-      const far   = new Date(farStr + "T00:00:00");
-      const days  = Number.isNaN(far.getTime()) ? 90 : Math.max(14, Math.ceil((far - today) / 86400000) + 7);
-      params.set("sale_date_in_days", String(Math.min(days, 180)));
+      const fromShifted = userDateFrom ? shiftYmd(userDateFrom, -1) : null;
+      const toShifted = userDateTo ? shiftYmd(userDateTo, 1) : null;
+      if(fromShifted) params.set("sale_date_from", fromShifted);
+      if(toShifted) params.set("sale_date_to", toShifted);
+      // Дата не распарсилась (не YYYY-MM-DD) — не шлём мусор в API (400), берём старое широкое окно.
+      if(!fromShifted && !toShifted){
+        const farStr = userDateTo || userDateFrom;
+        const today = new Date(); today.setHours(0,0,0,0);
+        const far   = new Date(farStr + "T00:00:00");
+        const days  = Number.isNaN(far.getTime()) ? 90 : Math.max(14, Math.ceil((far - today) / 86400000) + 7);
+        params.set("sale_date_in_days", String(Math.min(days, 180)));
+      }
     } else {
       params.set("sale_date_in_days", "60"); // default: no user date selected
     }
@@ -6087,3 +6108,5 @@ module.exports = async function handler(request, response){
 // вызов handler(req,res) это не задевает.
 module.exports.computeComps = computeComps;
 module.exports.attachVinHistory = attachVinHistory;
+module.exports.shiftYmd = shiftYmd;
+module.exports.buildSearchParams = buildSearchParams;
