@@ -2729,13 +2729,29 @@
           <label class="calcOptColV1">
             <span>Объём</span>
             <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
-              ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} ${L("л")}</option>`).join("")}
+              ${(() => {
+                // Компактный список 1.0–5.0 л (41 пункт) — как у «Год». Реальный объём лота вне диапазона
+                // (kei <1.0, крупные V8 >5.0) добавляем, чтобы значение не терялось.
+                const vals = Array.from({length:41}, (_, i) => ((10 + i) / 10).toFixed(1));
+                const act = engL > 0 ? (Math.round(engL * 10) / 10).toFixed(1) : "";
+                if(act && !vals.includes(act)) vals.push(act);
+                vals.sort((a, b) => Number(a) - Number(b));
+                const sel = act && vals.includes(act) ? act : "2.0";
+                return vals.map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${v} ${L("л")}</option>`).join("");
+              })()}
             </select>
           </label>
           <label class="calcOptColV1">
             <span>Год</span>
             <select id="lotCalcYear" data-calc-input class="calcSelectV2">
-              ${Array.from({length:new Date().getFullYear() - 1980 + 1}, (_, i) => new Date().getFullYear() - i).map(v => `<option value="${v}"${v === yearVal ? " selected" : ""}>${v}</option>`).join("")}
+              ${(() => {
+                // Компактный список: текущий год … −40 (41 пункт, как у «Объём»). Старый год лота добавляем.
+                const cur = new Date().getFullYear();
+                const vals = Array.from({length:41}, (_, i) => cur - i);
+                if(yearVal && !vals.includes(yearVal)) vals.push(yearVal);
+                vals.sort((a, b) => b - a);
+                return vals.map(v => `<option value="${v}"${v === yearVal ? " selected" : ""}>${v}</option>`).join("");
+              })()}
             </select>
           </label>
         </div>
