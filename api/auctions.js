@@ -1665,10 +1665,8 @@ async function handleLead(request, response){
     return;
   }
 
-  let diagOn = false;
   try{
     const body = await readBody(request);
-    diagOn = String(body.__diag || "") === "apex-leaddiag"; // временная диагностика
     if(String(body.hp_website || "")){
       sendJson(response, 200, {ok:true});
       return;
@@ -1690,8 +1688,18 @@ async function handleLead(request, response){
     // (подбор / контакт) передают свой source, чтобы различать в CRM.
     const source = String(body.source || "").trim().slice(0, 40) || "Аукционы";
 
-    // upsert by phone: creates new customer or returns existing one — no duplicate key errors
-    const customer = await supabase.upsert("customers", {name, phone, status:"Новый", source}, "phone");
+    // Найти-или-создать клиента по телефону. Раньше был upsert с on_conflict=phone,
+    // но это требует UNIQUE-констрейнта на customers.phone — он пропал при обслуживании базы,
+    // и Supabase отвечал 400 «no unique or exclusion constraint matching the ON CONFLICT».
+    // Делаем то же самое в коде: не зависим от констрейнта, заявка не теряется.
+    let customer = null;
+    try{
+      const found = await supabase.list("customers", {phone:`eq.${phone}`, select:"*", order:"id.desc", limit:1});
+      if(Array.isArray(found) && found[0]) customer = found[0];
+    }catch(_){ /* чтение не критично — создадим нового */ }
+    if(!customer){
+      customer = await supabase.create("customers", {name, phone, status:"Новый", source});
+    }
 
     const comment = String(body.comment || "").trim().slice(0, 1000);
     const vin = String(body.vin || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 17);
@@ -1718,9 +1726,7 @@ async function handleLead(request, response){
     notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => {});
     sendJson(response, 200, {ok:true,customer,lead});
   }catch(error){
-    // Временная диагностика (под секретным флагом __diag): реальная причина 4xx/5xx от Supabase.
-    const diag = diagOn ? {status:error.status, msg:error.message, det:(error.details && (error.details.message || error.details.hint || error.details.details)) || null} : null;
-    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.",...(diag?{diag}:{})});
+    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
   }
 }
 
