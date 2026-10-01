@@ -3782,7 +3782,11 @@ async function handleSyncLots(response){
       let page = Number(state.next_page) || 1;
       for(let i = 0; i < SYNC_PAGES_PER_RUN && di < SYNC_DOMAINS.length; i++){
         if(Date.now() - started > SYNC_RUN_BUDGET_MS) break;
-        const got = await syncImportPage("/cars", page, {domain_id:SYNC_DOMAINS[di]});
+        // 01.10.2026 (авария: «Task timed out after 60 seconds», алерт Vercel — фид подвис, цикл
+        // проверял бюджет ТОЛЬКО перед стартом страницы, а сам запрос без deadline получал полные
+        // дефолтные 30с у syncApiFetch — проверка на 44.9с + зависший запрос на 30с = ~75с, за хардлимит
+        // функции 60с. Деадлайн заставляет syncImportPage урезать таймаут запроса под остаток бюджета.
+        const got = await syncImportPage("/cars", page, {domain_id:SYNC_DOMAINS[di]}, {}, started + SYNC_RUN_BUDGET_MS);
         result.imported += got;
         page += 1;
         // Домен закрываем только на ПУСТОЙ странице: /cars часто отдаёт
@@ -3989,7 +3993,9 @@ async function handleSyncLots(response){
         let apage = Number(state.arch_page) || 1;
         let archImported = 0;
         while(Date.now() - started < SYNC_RUN_BUDGET_MS && !state.arch_done){
-          const got = await syncImportPage("/cars", apage, {status:st}, {archived:true});
+          // 01.10.2026: тот же класс бага, что в full-import выше — без deadline запрос страницы
+          // архива мог зависнуть на полные 30с сверх уже почти исчерпанного бюджета прогона.
+          const got = await syncImportPage("/cars", apage, {status:st}, {archived:true}, started + SYNC_RUN_BUDGET_MS);
           archImported += got;
           if(got === 0){
             if(st === "6"){ st = "8"; apage = 1; }
