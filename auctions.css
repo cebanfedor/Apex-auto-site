@@ -1496,6 +1496,13 @@ body.leadModalOpenV1 { overflow:hidden; }
 .calcReserveV1 .crSubV1 em { font-style:normal; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:11px; color:#e8780c; }
 .calcReserveV1 .crSubV1 .crDotV1 { font-style:normal; color:#d6a45e; }
 .calcReserveV1 p { margin:3px 0 0; font-size:11.5px; line-height:1.35; color:#7c3f00; font-weight:500; opacity:.85; }
+/* 01.10.2026 (Федор: «стартовая цена для вида, важнее резерв») — нет данных о реальном резерве продавца
+   (фид их просто не прислал для этого лота), timed_start_bid показываем как второстепенный факт,
+   не как hero-число: нейтральный фон вместо оранжевого, маленькая цифра вместо крупной жирной. */
+.calcReserveV1.crStartOnlyV1 { background:var(--aSoft); color:var(--aMuted); }
+.calcReserveV1.crStartOnlyV1 .crRowV1 b { font-size:14px; font-weight:700; color:var(--aInk); }
+.calcReserveV1.crStartOnlyV1 .crSubV1 { color:var(--aMuted); }
+.calcReserveV1.crStartOnlyV1 .crSubV1 em { color:var(--aMuted); }
 
 /* ===== Проданный лот на телефоне: два блока «Продано за» и «Дата продажи» ===== */
 @media (max-width:640px){
