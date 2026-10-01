@@ -1169,6 +1169,9 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dMobSumV1 span { display:flex; flex-direction:column; gap:1px; padding:8px 12px; border-radius:12px; background:var(--aSoft); }
   .dMobSumV1 small { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
   .dMobSumV1 b { font-size:15px; color:var(--aInk); }
+  /* 01.10.2026 (Федор со скриншота): дата отдельной строкой под лейблом переносилась на 2 строки —
+     лейбл и значение в один ряд, нижний регистр лейбла не трогаем (uppercase через CSS). */
+  .dMobSumV1 span.dmsDateRowV1 { flex-direction:row; align-items:baseline; flex-wrap:wrap; gap:5px 7px; }
   /* «Показать / Сбросить» в шторке фильтров всегда под рукой, а не в конце двухтысячепиксельного списка */
   body.filtersOpenV1 .auctionFiltersV1 { padding-bottom:0; }   /* иначе липкая панель встаёт выше нижнего края на величину padding */
   .auctionFiltersV1 .filterActionsV1 { position:sticky; bottom:0; z-index:6; margin:14px -16px 0; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid var(--aLine); box-shadow:0 -8px 18px rgba(15,23,42,.08); }
@@ -1467,6 +1470,9 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dSpecLine { gap:4px 12px; margin-top:6px; font-size:13px; }
   .dMobSumV1 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
   .dMobSumV1 span { padding:8px 12px; }
+  /* Без ставки (торги не начались) дата — единственный элемент: на половине грида лейблу
+     и значению тесно в один ряд, значение переносилось. На всю ширину грида — помещается. */
+  .dMobSumV1 span.dmsDateRowV1:only-child { grid-column:1 / -1; }
   .dHeadActionsV1 { display:grid !important; grid-auto-flow:column; grid-auto-columns:1fr; grid-template-columns:none; gap:8px; }
   .dHeadActionsV1 .dVinBtn { grid-column:auto; }
   .dHeadActionsV1 { align-items:stretch; }
