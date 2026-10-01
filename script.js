@@ -1297,20 +1297,21 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
   // Prevent mouse wheel from changing number inputs while they're focused
   $("calcForm").addEventListener("wheel",()=>{if(document.activeElement?.type==="number")document.activeElement.blur();},{passive:true});
-  ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","paymentFee","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();calculate()})}});
-  document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();calculate()}));
+  ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","paymentFee","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()})}});
+  document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();markCalcTouchedV1();calculate()}));
   if($("auction"))$("auction").addEventListener("change",()=>{if(calcMode==="canada"){initCanadaLocations();}else{initLocations();}calculate();});
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);
   if($("auctionUrl")){
     $("auctionUrl").addEventListener("paste",()=>setTimeout(applyAuctionImport,80));
     // полный VIN набран руками — считаем сразу, без кнопки
     let lastAutoVin = "", lotTimer = 0;
-    $("auctionUrl").addEventListener("input",()=>{const v=pureVin($("auctionUrl").value);if(v&&v!==lastAutoVin){lastAutoVin=v;applyAuctionImport();}else if(!v)lastAutoVin="";clearTimeout(lotTimer);const ref=pureLot($("auctionUrl").value);if(ref&&ref.lot.length>=7)lotTimer=setTimeout(()=>{const again=pureLot($("auctionUrl").value);if(again&&again.lot===ref.lot)applyAuctionImport();},700);});
+    $("auctionUrl").addEventListener("input",()=>{markCalcTouchedV1();const v=pureVin($("auctionUrl").value);if(v&&v!==lastAutoVin){lastAutoVin=v;applyAuctionImport();}else if(!v)lastAutoVin="";clearTimeout(lotTimer);const ref=pureLot($("auctionUrl").value);if(ref&&ref.lot.length>=7)lotTimer=setTimeout(()=>{const again=pureLot($("auctionUrl").value);if(again&&again.lot===ref.lot)applyAuctionImport();},700);});
     $("auctionUrl").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();applyAuctionImport();}});
     applyLotParamImport();
   }
-  document.querySelectorAll(".currency").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".currency").forEach(i=>i.classList.remove("active"));b.classList.add("active");currency=b.dataset.currency;calculate()}));
-  if($("copyBtn"))$("copyBtn").addEventListener("click",copyCalc);
+  document.querySelectorAll(".currency").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".currency").forEach(i=>i.classList.remove("active"));b.classList.add("active");currency=b.dataset.currency;markCalcTouchedV1();calculate()}));
+  if($("copyBtn"))$("copyBtn").addEventListener("click",()=>{markCalcActedV1();copyCalc();});
+  if($("tgBtn"))$("tgBtn").addEventListener("click",markCalcActedV1);
   if($("pngBtn"))$("pngBtn").addEventListener("click",downloadPng);
   if($("aiBidBtn"))$("aiBidBtn").addEventListener("click",requestAiBidAdvice);
 });
@@ -1350,6 +1351,7 @@ function openTelegramMessage(text){
 // пользователь не дожал «отправить». Теперь лид пишется в Supabase+Telegram-бот
 // через тот же серверный путь, что и форма аукционов, а Telegram-share — доп-канал.
 async function postMainLead(payload){
+  markCalcActedV1(); // уже пытается оставить заявку — больше не нужно подталкивать «отправить расчёт»
   try{
     const r = await fetch("/api/auctions?action=lead", {
       method:"POST",
@@ -1869,3 +1871,46 @@ document.addEventListener("DOMContentLoaded", () => {
   // пересчёт при ручном изменении курса CAD
   if($("cadUsd")) $("cadUsd").addEventListener("input", () => { if(calcMode==="canada") calculateCanada(); });
 });
+
+// ---- «Захват брошенного расчёта» (30.09.2026, Федор: exit-intent, лёгкий ненавязчивый пуш) ----
+// calculate() запускается уже при загрузке страницы с дефолтными полями — lastCalc существует
+// почти всегда, поэтому триггером служит НЕ «есть расчёт», а «человек реально трогал калькулятор»
+// (calcTouchedV1). Десктоп-only (курсор к верхней границе окна — на телефоне курсора нет), один
+// раз за сессию, не показываем тем, кто уже оставил заявку или сам нажал «Скопировать»/«Поделиться».
+let calcTouchedV1 = false, calcActedV1 = false, calcExitShownV1 = false;
+function markCalcTouchedV1(){ calcTouchedV1 = true; }
+function markCalcActedV1(){ calcActedV1 = true; }
+function showCalcExitPushV1(){
+  if(calcExitShownV1 || !calcTouchedV1 || calcActedV1 || !lastCalc) return;
+  try{ if(sessionStorage.getItem("apexCalcExitPushV1")) return; sessionStorage.setItem("apexCalcExitPushV1", "1"); }catch(e){}
+  calcExitShownV1 = true;
+  const lng = window.APEX_LANG || "ru";
+  const msg = lng === "ro" ? "Nu pierdeți calculul — trimiteți-l în Telegram"
+    : lng === "en" ? "Don't lose your estimate — send it to Telegram"
+    : "Не теряйте расчёт — отправьте его себе в Telegram";
+  const btnTxt = lng === "ro" ? "Trimite" : lng === "en" ? "Send" : "Отправить";
+  const el = document.createElement("div");
+  el.id = "calcExitPushV1";
+  el.innerHTML = `<span>🚗 ${msg} <b>${moneyUsd(lastCalc.totalUsd)}</b></span><div class="calcExitBtnsV1"><a href="#" id="calcExitSendV1">${btnTxt}</a><button type="button" id="calcExitCloseV1" aria-label="Закрыть">&times;</button></div>`;
+  document.body.appendChild(el);
+  // Отступ сверху — под реальной высотой шапки (sticky-хедер на 821–1290px ужимается по-другому,
+  // см. CLAUDE.md «шапка ужимается» — поэтому высоту берём из DOM, а не захардкоженным числом).
+  // Ставим inline top ПОСЛЕ первого кадра (пока элемент ещё на -80 из CSS) — иначе анимация выезда
+  // сверху не сыграет (inline-стиль перебивал бы дефолт ещё до начала transition).
+  requestAnimationFrame(() => {
+    const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom || 0;
+    el.style.top = `${Math.max(18, headerBottom + 12)}px`;
+    el.classList.add("calcExitShowV1");
+  });
+  const closePush = () => { el.classList.remove("calcExitShowV1"); setTimeout(() => el.remove(), 300); };
+  document.getElementById("calcExitCloseV1").addEventListener("click", closePush);
+  document.getElementById("calcExitSendV1").addEventListener("click", e => { e.preventDefault(); markCalcActedV1(); openTelegramMessage(textCalc()); closePush(); });
+  setTimeout(closePush, 12000);
+}
+if(window.matchMedia && window.matchMedia("(hover:hover) and (pointer:fine)").matches){
+  let exitArmedV1 = false;
+  setTimeout(() => { exitArmedV1 = true; }, 8000); // не дёргать за случайное движение курсора сразу после загрузки
+  document.addEventListener("mouseleave", e => {
+    if(exitArmedV1 && e.clientY <= 0 && !e.relatedTarget) showCalcExitPushV1();
+  });
+}

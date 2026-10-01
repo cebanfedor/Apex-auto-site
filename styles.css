@@ -1848,3 +1848,27 @@ body.lbOpenV1 { overflow:hidden; }
 @media (max-width:640px){ .lbNavV1 { width:44px; height:44px; font-size:26px; } .lbPrevV1 { left:10px; } .lbNextV1 { right:10px; } .lbBtnV1 { padding:0 12px; } }
 .transitGalMainV1 { cursor:zoom-in; }
 .transitZoomV1 { position:absolute; right:10px; bottom:10px; width:30px; height:30px; border-radius:50%; background:rgba(13,16,22,.55); color:#fff; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+
+/* ---- «Захват брошенного расчёта» — exit-intent пуш в калькуляторе (30.09.2026) ---- */
+/* Лёгкая плашка сверху по центру (не модалка с фоном — Федор: «ненавязчивый пуш»), один раз за
+   сессию, только десктоп (см. script.js — курсор к верхней границе окна). */
+#calcExitPushV1 {
+  position: fixed; top: -80px; left: 50%; transform: translate(-50%, 0);
+  z-index: var(--z-toast); display: flex; align-items: center; gap: 14px;
+  background: var(--ink, #11141a); color: #fff; border-radius: 14px;
+  padding: 12px 14px 12px 18px; box-shadow: 0 16px 40px rgba(0,0,0,.28);
+  font-size: 13.5px; max-width: min(92vw, 480px); transition: top .3s ease;
+}
+#calcExitPushV1.calcExitShowV1 { top: 18px; }
+#calcExitPushV1 span { line-height: 1.4; }
+#calcExitPushV1 b { color: #ff6b76; }
+.calcExitBtnsV1 { display: flex; align-items: center; gap: 8px; flex: none; }
+.calcExitBtnsV1 a {
+  background: var(--red, #ed0012); color: #fff; font-weight: 700; font-size: 13px;
+  padding: 8px 14px; border-radius: 9px; text-decoration: none; white-space: nowrap;
+}
+.calcExitBtnsV1 button {
+  width: 26px; height: 26px; border: none; border-radius: 50%; background: rgba(255,255,255,.14);
+  color: #fff; font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+@media (max-width: 640px) { #calcExitPushV1 { display: none; } }
