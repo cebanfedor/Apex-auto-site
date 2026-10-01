@@ -638,6 +638,21 @@ function normalizeLot(source, fallbackAuction = "copart"){
     return null;
   })();
 
+  // Timed-аукцион (IAAI) закрывается РОВНО в дату торгов. Если дата уже прошла (>1ч),
+  // а финальная ставка достигла/превысила резерв продавца — лот ПРОДАН по этой ставке
+  // (так же видят DreamBid/BidCars), даже если auctionsapi ещё не переставил статус в
+  // sold (лаг провайдера). Для Timed это детерминировано: резерв достигнут = молоток.
+  // Требуем и резерв, и ставку из фида — без них не утверждаем продажу (у части Timed
+  // IAAI резерв не приходит → такой лот останется «торги завершены, уточняем»).
+  const timedSold = (() => {
+    if(bnSale || Number(statusId) === 6) return null;
+    if(!sale.timed) return null;
+    if(!(Number.isFinite(saleTsN) && saleTsN < Date.now() - 60 * 60e3)) return null; // торги завершились
+    const reserve = Number(sale.reserve) || 0;
+    if(!(reserve > 0 && currentBid > 0 && currentBid >= reserve)) return null;         // резерв достигнут → продан
+    return {bid:currentBid, date:new Date(saleTsN).toISOString()};
+  })();
+
   return {
     id:`${auction}-${lotNumber || item?.vin || Math.random().toString(36).slice(2)}`,
     auction,
@@ -656,9 +671,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     stateCode:yard ? yard.code : String(lot?.location?.state?.code || lot?.location?.state_code || "").toLowerCase(),
     auctionDate:bnSale ? bnSale.date : (lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || ""),
     currentBid:bnSale ? bnSale.bid : (preBidSold ? Math.max(currentBid, resolvedFinalBid) : currentBid),
-    finalBid:bnSale ? bnSale.bid : (preBidSold ? 0 : resolvedFinalBid),
+    finalBid:bnSale ? bnSale.bid : (timedSold ? timedSold.bid : (preBidSold ? 0 : resolvedFinalBid)),
     buyNow:bnSale ? 0 : buyNow,
     soldByBuyNow:!!bnSale,
+    soldOnTimed:!!timedSold,
     odometer,
     odometerKm:odometerKmVal,
     // Для Канады текст — в км (как на Copart), чтобы клиент не считал дважды.
@@ -693,10 +709,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     condition:safeName(lot?.condition || item?.condition),
     priceHistory,
     photoCount:images.length,
-    lotStatus:bnSale ? "sold" : (preBidSold ? "sale" : lotStatus(item, lot)),
-    statusName:bnSale ? "sold" : (preBidSold ? "On sale" : statusName),
-    statusId:bnSale ? 6 : (preBidSold ? 3 : statusId),
-    saleStatus:bnSale ? "Продан по Buy Now" : sale.label,
+    lotStatus:bnSale ? "sold" : (timedSold ? "sold" : (preBidSold ? "sale" : lotStatus(item, lot))),
+    statusName:bnSale ? "sold" : (timedSold ? "sold" : (preBidSold ? "On sale" : statusName)),
+    statusId:(bnSale || timedSold) ? 6 : (preBidSold ? 3 : statusId),
+    saleStatus:bnSale ? "Продан по Buy Now" : (timedSold ? "Продан на Timed" : sale.label),
     sellerReserve:sale.reserve || 0,          // резерв продавца, $ (0 = не указан)
     sellerReserveAt:sale.reserveAt || "",
     // 30.09.2026 (Федор: «стартовая цена на Timed — тоже можно вывести»): раньше timed_start_bid
@@ -1474,7 +1490,9 @@ async function attachVinHistory(lot){
       const sid = Number(enumIdOf(curEntry.status)), fb = safeNumber(curEntry.final_bid || curEntry.winning_bid);
       const sd = curEntry.sale_date || curEntry.auction_date || "";
       const sold = sid === 6 && fb > 0 && sd && Date.parse(sd) < Date.now();
-      if(!lot.soldByBuyNow) lot.finalBid = sold ? fb : 0;
+      // soldByBuyNow и soldOnTimed — проданность определена на стороне лота (не из VIN-истории),
+      // VIN-ветка не должна обнулять их финал (фид по VIN отстаёт от факта закрытия Timed).
+      if(!lot.soldByBuyNow && !lot.soldOnTimed) lot.finalBid = sold ? fb : 0;
     }
   }catch(e){
     if(lot && isValidVin(String(lot.vin || ""))){
