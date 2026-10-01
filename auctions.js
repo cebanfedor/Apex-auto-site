@@ -3410,7 +3410,7 @@
                 const ago = timeAgoRu(lot.auctionDate);
                 return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${b ? money(b) : "—"}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
               }
-              return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
+              return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span class="dmsDateRowV1"><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
             })()}
           </div>
           <div class="dHeadActionsV1">
