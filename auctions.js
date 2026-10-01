@@ -698,7 +698,7 @@
     if(!value) return "";
     if(/не на ходу|\bнет\b|non[ -]|not |bill of sale|parts only|flood|water|missing|отсут|продан ранее|переставлялся/.test(text)) return "bad";
     if(/approval|утвержд|minimum|минимум|timed|salvage|starts|стартует|резерв|upcoming|unknown|переделк/.test(text)) return "warn";
-    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|не продавалась|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
+    if(/run|drive|clear|\byes\b|\bда\b|заводится|едет|хорош|впервые|не продавалась|единственная продажа|есть|на ходу|live|available|no reserve|без резерва|страховая|\bpresent\b/.test(text)) return "good";
     return "";
   }
 
