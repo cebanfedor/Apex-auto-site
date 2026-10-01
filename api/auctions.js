@@ -563,6 +563,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // final_bid_updated_at — это время обновления записи в API, не дата торгов:
   // с ним снапшоты ставок выглядели как «2 аукциона за ночь с разницей 7 минут».
   if(rawHistory[0] && typeof rawHistory[0] === "object") normalizeLot.lastRawHistKeys = Object.keys(rawHistory[0]);
+  normalizeLot.lastRawReserve = {seller_reserve:lot?.seller_reserve, timed_start_bid:lot?.timed_start_bid, details:lot?.details, min_prebid:lot?.min_prebid, tags:lot?.tags}; // TEMP diag
   const priceHistoryRaw = rawHistory.map(p => ({
     bid:safeNumber(p?.bid || p?.final_bid || p?.current_bid),
     buyNow:safeNumber(p?.buy_now_price || p?.buy_now),
@@ -5417,7 +5418,7 @@ module.exports = async function handler(request, response){
       await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);
       await attachGenRange(lot);
       upsertClosedLot(lot);
-      const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};
+      const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null, _rawReserve:normalizeLot.lastRawReserve || null} : {})};
       // История по VIN не загрузилась (таймаут фида) — НЕ кэшируем: иначе «Единственная продажа» висит до получаса.
       if(lot.vinChecked !== false){
         setCached(key, payload);
