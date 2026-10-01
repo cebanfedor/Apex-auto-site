@@ -504,24 +504,24 @@
 .calcOptFixedV1 { cursor:default; }
 .calcOptFixedV1 .dbIco { width:18px; height:18px; flex:none; color:#1b9c5b; }
 .calcOptRowV2 { display:flex; align-items:center; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--aLine2); font-size:13px; color:var(--aInk); gap:10px; }
-/* Компактный калькулятор: кузов/топливо/объём в один ряд, документы+страховка в один ряд */
-.calcPairV1 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:2px 0 8px; }
-.calcOptColV1 { display:flex; flex-direction:column; gap:4px; cursor:pointer; }
+/* Компактный калькулятор: кузов/топливо/объём/год — один ряд из 4 равных колонок (01.10.2026,
+   Федор: добавить год выпуска, не плодя лишних строк). Селекты сами обрезают длинный текст —
+   не «вылезают» за колонку, как было бы с пилюлями-тумблерами. */
+.calcPairV1 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; padding:2px 0 8px; }
+.calcOptColV1 { display:flex; flex-direction:column; gap:4px; cursor:pointer; min-width:0; }
 .calcOptColV1 > span { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
 .calcOptColV1 .calcSelectV2 { max-width:none; width:100%; }
-/* Опции калькулятора — компактные «таблетки»-тумблеры (01.10.2026: было flex+justify-center —
-   3 пилюли разной ширины переносились «2+1», и одинокая третья смотрелась криво. Теперь «Экспорт-
-   документы»/«Offsite» — два РАВНЫХ по ширине столбца грида (всегда ровная пара, на любой ширине),
-   а «Оплата в MDL» — отдельная пилюля НА ВСЮ ШИРИНУ под ними: она влияет на весь расчёт, достойна
-   своей строки, а не третьего места в тройке). */
-.calcPairRowV1 { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:2px 0 8px; }
-.calcPairRowV1 .calcOptV2, .calcPaymentOptV1 { justify-content:center; border:1px solid var(--aLine2); border-radius:999px; padding:8px 14px; font-size:12px; gap:7px; background:var(--aSurf,#fff); color:var(--aInk); transition:border-color .15s, background .15s, color .15s; }
-.calcPairRowV1 .calcOptV2 span, .calcPaymentOptV1 span { flex:none; text-align:center; }
-.calcPairRowV1 .calcOptV2 input, .calcPaymentOptV1 input { width:15px; height:15px; flex:none; }
-.calcPairRowV1 .calcOptV2:has(input:checked), .calcPaymentOptV1:has(input:checked) { border-color:var(--aRed); background:rgba(237,0,18,.06); color:var(--aRed); }
-.calcPairRowV1 .calcOptV2:has(input:checked) span, .calcPaymentOptV1:has(input:checked) span { color:var(--aRed); font-weight:600; }
-.calcPaymentOptV1 { width:100%; margin:0 0 4px; }
-.calcSelectV2 { height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:12.5px; padding:0 6px; cursor:pointer; max-width:140px; }
+/* Опции калькулятора — 3 РАВНЫЕ по ширине «таблетки»-тумблера в один ряд (01.10.2026: было то
+   flex+justify-center с переносом «2+1», то пара+отдельная строка — Федор: «коряво», «все три
+   в один ряд, компактно»). Текст переносится ВНУТРИ пилюли (не вылезает за линии), при нужде —
+   на 2 строки; на мобильном шрифт/паддинги чуть меньше (медиа-блок ниже). */
+.calcPairRowV1 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; padding:2px 0 8px; }
+.calcPairRowV1 .calcOptV2 { justify-content:center; align-items:center; text-align:center; border:1px solid var(--aLine2); border-radius:12px; padding:7px 6px; font-size:11px; line-height:1.2; gap:5px; white-space:normal; background:var(--aSurf,#fff); color:var(--aInk); transition:border-color .15s, background .15s, color .15s; }
+.calcPairRowV1 .calcOptV2 span { flex:none; }
+.calcPairRowV1 .calcOptV2 input { width:14px; height:14px; flex:none; }
+.calcPairRowV1 .calcOptV2:has(input:checked) { border-color:var(--aRed); background:rgba(237,0,18,.06); color:var(--aRed); }
+.calcPairRowV1 .calcOptV2:has(input:checked) span { color:var(--aRed); font-weight:600; }
+.calcSelectV2 { height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:12.5px; padding:0 4px; cursor:pointer; max-width:none; width:100%; }
 .calcEngineWrapV2 { display:flex; align-items:center; gap:5px; }
 .calcEngineV2 { width:58px; height:30px; border:1px solid var(--aLine); border-radius:7px; background:var(--aSoft); color:var(--aInk); font-size:13px; padding:0 6px; text-align:center; }
 .calcEngineUnitV2 { font-size:12px; color:var(--aMuted); }
@@ -825,9 +825,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   .histRowV1 { grid-template-columns:1fr auto auto !important; gap:8px; }
   .histRowV1 .histBarWrapV1 { display:none; }
   .histDateV1 { font-size:12px; }
-  /* Калькулятор: подписи селектов и опции в одну строку */
+  /* Калькулятор: подписи селектов в одну строку, опции-пилюли чуть компактнее под 3 колонки */
   .calcOptColV1 > span { font-size:9px; letter-spacing:.03em; white-space:nowrap; }
-  .calcPairRowV1 .calcOptV2, .calcPaymentOptV1 { font-size:11.5px; padding:8px 10px; }
+  .calcPairV1 { gap:5px; }
+  .calcPairRowV1 { gap:5px; }
+  .calcPairRowV1 .calcOptV2 { font-size:9.5px; padding:6px 4px; gap:3px; border-radius:10px; }
+  .calcPairRowV1 .calcOptV2 input { width:12px; height:12px; }
 }
 
 /* Прогноз финальной ставки в карточке (вилка из архива продаж) */

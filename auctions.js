@@ -966,7 +966,8 @@
     const canadaFee = Math.max(300, bid * 0.02);
     const exportDocs = options.exportDocs ? 400 : 0;
     const customsBaseMdl = (bid + auctionFee + ocean) * usdMdl;
-    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year:Number(lot.year) || new Date().getFullYear()}) : {total:0};
+    const year = options.year != null ? Number(options.year) : (Number(lot.year) || new Date().getFullYear());
+    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year}) : {total:0};
     const customsUsd = Math.round(c.total / usdMdl);
     const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs + paymentFee;
     const totalMdl = usdPart * usdMdl + c.total + brokerUtilMdl;
@@ -992,10 +993,11 @@
     const engineLiters = options.engineLiters != null ? Number(options.engineLiters) : numberFromEngine(lot.engine);
     const usdMdl = Number(options.usdMdl) > 0 ? Number(options.usdMdl) : liveRates.usdMdl;
     const eurMdl = Number(options.eurMdl) > 0 ? Number(options.eurMdl) : liveRates.eurMdl;
+    const year = options.year != null ? Number(options.year) : (Number(lot.year) || new Date().getFullYear());
     const r = (window.ApexCalc && window.ApexCalc.compute) ? window.ApexCalc.compute({
       lotPrice:bid, auction:String(lot.auction || "copart").toLowerCase(),
       vehicleType:kind, fuel, engineLiters,
-      year:Number(lot.year) || new Date().getFullYear(),
+      year,
       insurance:options.insurance !== false, exportDocs:!!options.exportDocs, offsite:!!options.offsite,
       paymentFee:options.paymentFee !== false,
       location:loc, usdMdl, eurMdl
@@ -2626,7 +2628,8 @@
     const kind = vehicleKind(lot);
     const fuelVal = mapFuel(lot.fuel, false, lot);
     const engL = numberFromEngine(lot.engine);
-    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, paymentFee:true, vehicleType:kind, fuel:fuelVal, engineLiters:engL});
+    const yearVal = Number(lot.year) || new Date().getFullYear();
+    const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, paymentFee:true, vehicleType:kind, fuel:fuelVal, engineLiters:engL, year:yearVal});
     const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     const countdown = isSold ? "" : timeLeftLabel(lot.auctionDate);
@@ -2706,7 +2709,7 @@
         <button type="button" data-bid-step="1" aria-label="Увеличить ставку">+</button>
       </div>
       <div class="calcOptsV2">
-        <div class="calcPairV1">
+        <div class="calcPairV1 calcPairV2Row1">
           <label class="calcOptColV1">
             <span>Тип кузова</span>
             <select id="lotCalcVehType" data-calc-input class="calcSelectV2">
@@ -2724,17 +2727,23 @@
             </select>
           </label>
           <label class="calcOptColV1">
-            <span>Объём двигателя</span>
+            <span>Объём</span>
             <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
               ${Array.from({length:70}, (_, i) => ((i + 1) / 10).toFixed(1)).map(v => `<option value="${v}"${Number(v) === Math.min(7, Math.max(0.1, Math.round((engL || 2) * 10) / 10)) ? " selected" : ""}>${v} ${L("л")}</option>`).join("")}
+            </select>
+          </label>
+          <label class="calcOptColV1">
+            <span>Год</span>
+            <select id="lotCalcYear" data-calc-input class="calcSelectV2">
+              ${Array.from({length:new Date().getFullYear() - 1980 + 1}, (_, i) => new Date().getFullYear() - i).map(v => `<option value="${v}"${v === yearVal ? " selected" : ""}>${v}</option>`).join("")}
             </select>
           </label>
         </div>
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
+          <label class="calcOptV2" title="При оплате в MDL: комиссия 1% (от ставки и аукционного сбора, мин. $50) + брокер и утиль сбор 2000 MDL"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Оплата в MDL")}</span></label>
         </div>
-        <label class="calcOptV2 calcPaymentOptV1" title="При оплате в MDL: комиссия 1% (от ставки и аукционного сбора, мин. $50) + брокер и утиль сбор 2000 MDL"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Оплата в MDL")}</span></label>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
       <div class="calcGrandV2">
@@ -2787,6 +2796,7 @@
     const veh = $("#lotCalcVehType")?.value || vehicleKind(state.selectedLot);
     const fuel = $("#lotCalcFuel")?.value || mapFuel(state.selectedLot.fuel, false, state.selectedLot);
     const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
+    const year = Number($("#lotCalcYear")?.value) || Number(state.selectedLot.year) || new Date().getFullYear();
     const usdMdl = Number($("#lotCalcUsdMdl")?.value) || liveRates.usdMdl;
     const eurMdl = Number($("#lotCalcEurMdl")?.value) || liveRates.eurMdl;
     const calc = calcLotTotal(state.selectedLot, {
@@ -2795,7 +2805,7 @@
       exportDocs:$("#lotCalcExportDocs")?.checked,
       offsite:$("#lotCalcOffsite")?.checked,
       paymentFee:$("#lotCalcPaymentFee") ? $("#lotCalcPaymentFee").checked : true,
-      vehicleType:veh, fuel, engineLiters, usdMdl, eurMdl
+      vehicleType:veh, fuel, engineLiters, year, usdMdl, eurMdl
     });
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
