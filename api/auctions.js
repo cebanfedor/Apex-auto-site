@@ -49,7 +49,7 @@ function checkLeadRate(ip){
 async function notifyTelegram(data){
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
-  if(!token || !chatId) return;
+  if(!token || !chatId) return false;
   // parse_mode=HTML + экранирование значений: поля лида (имя/коммент/лот/vin) —
   // пользовательский ввод. На Markdown клиент мог вставить [текст](ссылку) или сломать
   // разметку (`*`/`_`) → Telegram 400 и молчаливая потеря уведомления менеджеру.
@@ -70,13 +70,14 @@ async function notifyTelegram(data){
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 8000);
   try{
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({chat_id:chatId, text:lines.join("\n"), parse_mode:"HTML", disable_web_page_preview:true}),
       signal:ctl.signal
     });
-  }catch(_){}
+    return !!(r && r.ok); // успех уведомления менеджеру — критический канал заявки
+  }catch(_){ return false; }
   finally{ clearTimeout(timer); }
 }
 
@@ -1665,10 +1666,8 @@ async function handleLead(request, response){
     return;
   }
 
-  let diagOn = false, diagStage = "";
   try{
     const body = await readBody(request);
-    diagOn = String(body.__diag || "") === "apex-leaddiag";
     if(String(body.hp_website || "")){
       sendJson(response, 200, {ok:true});
       return;
@@ -1689,22 +1688,6 @@ async function handleLead(request, response){
     // Источник заявки: с формы аукционов по умолчанию, но формы главной
     // (подбор / контакт) передают свой source, чтобы различать в CRM.
     const source = String(body.source || "").trim().slice(0, 40) || "Аукционы";
-
-    // Найти-или-создать клиента по телефону. Раньше был upsert с on_conflict=phone,
-    // но это требует UNIQUE-констрейнта на customers.phone — он пропал при обслуживании базы,
-    // и Supabase отвечал 400 «no unique or exclusion constraint matching the ON CONFLICT».
-    // Делаем то же самое в коде: не зависим от констрейнта, заявка не теряется.
-    let customer = null;
-    try{
-      diagStage = "customers.list";
-      const found = await supabase.list("customers", {phone:`eq.${phone}`, select:"*", order:"id.desc", limit:1});
-      if(Array.isArray(found) && found[0]) customer = found[0];
-    }catch(e){ if(diagOn) throw e; /* чтение не критично — создадим нового */ }
-    if(!customer){
-      diagStage = "customers.create";
-      customer = await supabase.create("customers", {name, phone, status:"Новый", source});
-    }
-
     const comment = String(body.comment || "").trim().slice(0, 1000);
     const vin = String(body.vin || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 17);
     const lot = String(body.lot || "").replace(/[^A-Za-z0-9_~-]/g, "").slice(0, 30);
@@ -1713,26 +1696,62 @@ async function handleLead(request, response){
     // открывал нужную машину одним кликом.
     const lotUrl = (auction && lot) ? `https://apexauto.md/auctions/${auction}-${lot.replace(/~.*/, "")}` : "";
 
-    diagStage = "leads.create";
-    const lead = await supabase.create("leads", {
-      customer_id:customer?.id || null,
-      title:`Заявка по лоту ${auction} ${lot}`.trim(),
-      message:[
-        comment,
-        vin ? `VIN: ${vin}` : "",
-        lot ? `LOT: ${lot}` : "",
-        auction ? `Аукцион: ${auction.toUpperCase()}` : "",
-        lotUrl ? `Ссылка: ${lotUrl}` : ""
-      ].filter(Boolean).join("\n"),
-      status:"Новый",
-      source
-    });
+    // Уведомление менеджеру в Telegram — КРИТИЧЕСКИЙ канал заявки. Шлём ПЕРВЫМ и
+    // независимо от БД: даже если CRM-таблицы недоступны/со старой схемой, заявка
+    // всё равно дойдёт до менеджера. (Фон: после обслуживания базы у leads пропала
+    // колонка message, у customers — UNIQUE на phone → запись в CRM падала и
+    // блокировала всю заявку.)
+    const tgOk = await notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => false);
 
-    notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => {});
-    sendJson(response, 200, {ok:true,customer,lead});
+    // Запись в CRM — best-effort, не должна валить заявку. Снисходительный insert:
+    // если схема таблицы отстала и колонки нет («Could not find the 'X' column»),
+    // выкидываем её и повторяем — пишем в то, что есть.
+    async function insertLenient(table, row){
+      let payload = {...row};
+      for(let i = 0; i < 8; i++){
+        try{ return await supabase.create(table, payload); }
+        catch(e){
+          const m = String((e && (e.message || (e.details && e.details.message))) || "");
+          const col = (m.match(/Could not find the '([^']+)' column/) || [])[1];
+          if(col && Object.prototype.hasOwnProperty.call(payload, col)){ delete payload[col]; continue; }
+          throw e;
+        }
+      }
+      return null;
+    }
+
+    let customer = null, lead = null;
+    try{
+      // найти-или-создать клиента по телефону (без on_conflict — UNIQUE на phone пропал)
+      try{
+        const found = await supabase.list("customers", {phone:`eq.${phone}`, select:"*", order:"id.desc", limit:1});
+        if(Array.isArray(found) && found[0]) customer = found[0];
+      }catch(_){ /* чтение не критично */ }
+      if(!customer) customer = await insertLenient("customers", {name, phone, status:"Новый", source});
+
+      lead = await insertLenient("leads", {
+        customer_id:customer?.id || null,
+        title:`Заявка по лоту ${auction} ${lot}`.trim(),
+        message:[
+          comment,
+          vin ? `VIN: ${vin}` : "",
+          lot ? `LOT: ${lot}` : "",
+          auction ? `Аукцион: ${auction.toUpperCase()}` : "",
+          lotUrl ? `Ссылка: ${lotUrl}` : ""
+        ].filter(Boolean).join("\n"),
+        status:"Новый",
+        source
+      });
+    }catch(_){ /* CRM недоступна — заявка уже у менеджера в Telegram */ }
+
+    // Успех, если заявка дошла ХОТЯ БЫ одним путём (Telegram или CRM).
+    if(tgOk || lead){
+      sendJson(response, 200, {ok:true, customer, lead});
+    }else{
+      sendJson(response, 502, {ok:false, error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
+    }
   }catch(error){
-    const diag = diagOn ? {stage:diagStage, status:error.status, msg:error.message, det:(error.details && (error.details.message || error.details.hint || error.details.details)) || null} : null;
-    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.",...(diag?{diag}:{})});
+    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
   }
 }
 
