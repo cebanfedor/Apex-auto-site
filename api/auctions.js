@@ -1505,6 +1505,19 @@ async function attachVinHistory(lot){
       // VIN-ветка не должна обнулять их финал (фид по VIN отстаёт от факта закрытия Timed).
       if(!lot.soldByBuyNow && !lot.soldOnTimed) lot.finalBid = sold ? fb : 0;
     }
+    // Проданный Timed: реальный молоток часто лежит в ИСТОРИИ по VIN (мислейбл not_sold рядом с
+    // датой торгов), а не в current_bid. Поднимаем финал до лучшей ставки истории ТОГО ЖЕ лота в
+    // окне ±14 дней от даты торгов (Lexus RX 46048508: current_bid $34 750 → молоток $36 250).
+    if(lot.soldOnTimed){
+      const saleTs = Date.parse(lot.auctionDate || "");
+      let best = Number(lot.finalBid) || 0;
+      for(const ph of (lot.priceHistory || [])){
+        const b = Number(ph.bid) || 0, pt = Date.parse(ph.date);
+        if(b > best && Number.isFinite(pt) && Number.isFinite(saleTs) && Math.abs(pt - saleTs) < 14 * 864e5 &&
+           String(ph.lot || "").replace(/~.*/, "") === String(lot.lot)) best = b;
+      }
+      lot.finalBid = best;
+    }
   }catch(e){
     if(lot && isValidVin(String(lot.vin || ""))){
       if(e && e.status === 404){ lot.vinChecked = true; }                 // фид не знает этот VIN — истории нет, это не сбой
