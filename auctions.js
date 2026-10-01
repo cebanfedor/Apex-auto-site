@@ -2696,7 +2696,7 @@
         // crStartOnlyV1 визуально приглушает блок (мелкий номер, нейтральный фон), чтобы не читался
         // как настоящий резерв, когда реального lot.sellerReserve у фида для этого лота просто нет.
         if(lot.timed && Number(lot.timedStartBid) > 0){
-          return `<div class="calcReserveV1 crStartOnlyV1"><div class="crRowV1"><span>${L("Стартовая цена")}</span><b>${fmtBid(lot.timedStartBid)}</b></div><div class="crSubV1"><em>${L("Timed аукцион")}</em></div></div>`;
+          return `<div class="calcReserveV1 crStartOnlyV1"><div class="crRowV1"><span>${L("Стартовая цена")}</span><b>${fmtBid(lot.timedStartBid)}</b></div></div>`;
         }
         return "";
       })()}
