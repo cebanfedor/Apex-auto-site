@@ -2715,7 +2715,7 @@
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
-          <label class="calcOptV2" title="Комиссия 1% при оплате в MDL — от ставки и аукционного сбора, минимум $50"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Комиссия на оплату")} 1%</span></label>
+          <label class="calcOptV2" title="При оплате в MDL: комиссия 1% (от ставки и аукционного сбора, мин. $50) + брокер и утиль сбор 2000 MDL"><input type="checkbox" id="lotCalcPaymentFee" data-calc-input checked><span>${L("Оплата в MDL")}</span></label>
         </div>
       </div>
       <div id="lotCalcBody" class="calcBodyV2">${renderCalcRows(calc)}</div>
