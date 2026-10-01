@@ -2615,8 +2615,14 @@
     // а фид отдаёт последнюю синхронизированную — честно предупреждаем клиента.
     const [, liveTone] = dbLive(lot);
     const isLive = !isSold && liveTone === "live";
+    // Timed-аукцион закрывается РОВНО в дату торгов (не лейнами). Если дата Timed-лота
+    // прошла (>1.5ч назад), а фид ещё не пометил продажу (лаг auctionsapi; на самом
+    // аукционе лот уже снят) — не показываем его как активный/торгуемый.
+    const aucTs = lot.auctionDate ? new Date(lot.auctionDate).getTime() : NaN;
+    const timedEnded = !isSold && !!lot.timed && Number.isFinite(aucTs) && aucTs < Date.now() - 90 * 60 * 1000;
+    const reserveMet = Number(lot.currentBid) > 0 && Number(lot.sellerReserve) > 0 && Number(lot.currentBid) >= Number(lot.sellerReserve);
     // isSold теперь всегда уходит в отдельный calcSoldCardV1 (см. ниже) — эта метка только для активных торгов.
-    const bidLabel = isLive ? "Ставка на торгах" : "Текущая ставка";
+    const bidLabel = timedEnded ? "Ставка на закрытии Timed" : isLive ? "Ставка на торгах" : "Текущая ставка";
     const kind = vehicleKind(lot);
     const fuelVal = mapFuel(lot.fuel, false, lot);
     const engL = numberFromEngine(lot.engine);
@@ -2654,6 +2660,7 @@
         ${isLive ? `<div class="calcLiveBadgeV1"><span class="calcLiveDotV1"></span>${L("Идут торги")}</div>` : ""}
         ${topBidValue || !buyNowPrice ? `<div class="calcBidLabelV2"><span>${L(bidLabel)}</span><b id="liveBidValueV1"${!topBidValue && !lot.auctionDate ? ' class="calcNoDateBV1"' : ""}>${topBidValue ? fmtBid(topBidValue) : (lot.auctionDate ? "—" : L("Ставок пока нет"))}</b>${usdHint(topBidValue)}</div>` : ""}
         ${!isSold && !lot.auctionDate ? `<div class="calcNoDateNoteV1">${dbIco("calendar")}<span>${L("Дата аукциона не назначена")}</span></div>` : ""}
+        ${timedEnded ? `<div class="calcTimedEndedV1">${dbIco("clock")}<span>${L(reserveMet ? "Timed-торги завершены — ставка превысила резерв, уточняем финал у аукциона." : "Timed-торги завершены — уточняем результат у аукциона.")}</span></div>` : ""}
         ${!banned ? `<div id="lotMarketLineV1" class="lotMarketLineV1" hidden></div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
@@ -2670,9 +2677,17 @@
       ${(() => {
         if(isSold) return "";
         if(Number(lot.sellerReserve) > 0){
-          const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && lot.currentBid < lot.sellerReserve;
-          const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : ""].filter(Boolean).join(`<i class="crDotV1">·</i>`);
-          return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${isTimed ? `<p>${L("Не достигнут — лот выйдет на онлайн-торги.")}</p>` : ""}</div>`;
+          const isTimed = !!lot.timed, belowReserve = Number(lot.currentBid) > 0 && Number(lot.currentBid) < Number(lot.sellerReserve);
+          const sub = [isTimed ? `<em>${L("Timed аукцион")}</em>` : "", belowReserve ? `<span>${L("ставка ниже резерва")}</span>` : (reserveMet ? `<span>${L("резерв достигнут")}</span>` : "")].filter(Boolean).join(`<i class="crDotV1">·</i>`);
+          // Надпись о резерве: раньше «не достигнут» висела у ЛЮБОГО timed, даже когда резерв достигнут.
+          // Теперь по факту: завершённый timed → «вероятно продан» (резерв достигнут) / «уходит на онлайн» (не достигнут);
+          // активный timed → предупреждаем только если ставка пока ниже резерва.
+          let note = "";
+          if(isTimed){
+            if(timedEnded) note = reserveMet ? L("Ставка превысила резерв — лот, вероятно, продан. Уточняем финал у аукциона.") : L("Резерв не достигнут — лот уходит на онлайн-торги.");
+            else if(belowReserve) note = L("Не достигнут — лот выйдет на онлайн-торги.");
+          }
+          return `<div class="calcReserveV1"><div class="crRowV1"><span>${L("Резерв продавца")}</span><b>${fmtBid(lot.sellerReserve)}</b></div>${sub ? `<div class="crSubV1">${sub}</div>` : ""}${note ? `<p>${note}</p>` : ""}</div>`;
         }
         // 30.09.2026 (Федор: «стартовую цену на Timed тоже можно вывести»): у части Timed-лотов IAAI
         // seller_reserve в фиде вообще не приходит — раньше в этом блоке не было ничего. timed_start_bid
