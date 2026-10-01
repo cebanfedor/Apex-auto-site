@@ -409,9 +409,19 @@ function saleStatusInfo(lot, item, auction){
   // бывает заполнено ТОЛЬКО у timed-лотов (у обычных живёт bid/current_bid). Раз оно уже используется
   // как признак «это timed» для расчёта ставки, но не для самого флага timed — добавляю сюда тоже.
   const hasTimedStartBid = lot?.timed_start_bid != null && lot?.timed_start_bid !== "";
+  // 01.10.2026 (Федор: «Timed работает только на сегодня ночью — если торгов пока не видно на
+  // площадке, значит и даты у фида быть не должно; дата отсутствует → это НЕ активный Timed, а
+  // залежавшееся значение timed_start_bid от прошлого захода»): реальный пример — IAAI 44896282
+  // и ещё ~1% текущих Timed-лотов отдавали бейдж «Timed» вообще без даты торгов, что по словам
+  // Федора физически не бывает. Комментарий 30.09.2026 ниже предполагал обратное (ловить Timed
+  // ДО того, как фид проставит дату) — по факту это была неверная гипотеза, проверка на живых
+  // лотах (41632468: timed_start_bid $66k при реальной ставке $5.2k) показала как раз залежь.
+  // Теперь hasTimedStartBid/looksTimed доверяем ТОЛЬКО когда у лота есть сама дата торгов.
+  const feedSaleDate = lot?.sale_date || item?.sale_date;
+  const hasFeedSaleDate = Number.isFinite(Date.parse(feedSaleDate || ""));
   const timed = lot?.is_timed_auction === true || item?.is_timed_auction === true
     || /timed/.test(auctionType) || /timed/.test(saleTypeText)
-    || (auction === "iaai" && (hasTimedStartBid || looksTimed(lot?.sale_date || item?.sale_date)));
+    || (auction === "iaai" && hasFeedSaleDate && (hasTimedStartBid || looksTimed(feedSaleDate)));
   let key = "", label = "";
   if(reserve != null && Number(reserve) > 0){ key = "min_reserve"; label = "Минимальный резерв"; }
   else if(auctionType === "pure_sale"){ key = "no_reserve"; label = "Без резерва"; }
@@ -524,9 +534,12 @@ function normalizeLot(source, fallbackAuction = "copart"){
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
   })();
-  // У timed-аукционов ставка живёт в timed_start_bid, а bid пуст
+  // У timed-аукционов ставка живёт в timed_start_bid, а bid пуст. 01.10.2026 (тот же разбор, что
+  // у saleStatusInfo ниже): доверяем timed_start_bid как ставке, только если у лота есть дата
+  // торгов — без даты это не реальный активный Timed, а залежавшееся значение прошлого захода.
+  const hasFeedSaleDateForBid = Number.isFinite(Date.parse(lot?.sale_date || item?.sale_date || ""));
   const currentBid = safeNumber(lot?.bid || lot?.current_bid || lot?.currentBid || item?.current_bid || item?.bid)
-    || safeNumber(lot?.timed_start_bid);
+    || (hasFeedSaleDateForBid ? safeNumber(lot?.timed_start_bid) : 0);
   const finalBid = safeNumber(lot?.final_bid || lot?.finalBid || lot?.winning_bid || lot?.sale_price);
   const buyNow = safeNumber(lot?.buy_now || lot?.buyNow || item?.buy_now || item?.buyNow);
   const statusName = safeName(lot?.status || item?.status);
