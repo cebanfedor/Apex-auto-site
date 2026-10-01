@@ -716,8 +716,18 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionTabsV1 button.favTabV2::before { content:"★"; font-size:15px; }
   .dbCard { grid-template-columns:1fr; gap:14px; padding:16px; }
   .dbCols { grid-template-columns:1fr; gap:9px; }
-  .dbAside { flex-direction:column; }
+  /* 01.10.2026 (Федор со скриншота): align-items:flex-start наследовался из правила на ≤1100px
+     (там .dbAside — строка, flex-start держит бейджи по верхнему краю) — на ≤640px, где .dbAside уже
+     колонка, то же flex-start мешало детям тянуться на всю ширину (.dbPriceBox сжимался по контенту
+     и не доставал до правого края карточки, как кнопка «Свернуть»). stretch возвращает полную ширину. */
+  .dbAside { flex-direction:column; align-items:stretch; }
   .dbWhen { align-items:flex-start; }
+  /* Статус продажи («Без резерва»/Timed) был по центру (общий стиль для узкой десктопной колонки-аside) —
+     на телефоне, где блок теперь на всю ширину, центр выглядит оторванным от цены слева; просьба Федора —
+     прижать к левому краю. «Ориентир ставки»/«Резерв продавца» — тем же правилом, но ниже в файле
+     (их базовые .dbPriceWrap > .dbForecastInPriceV1 / .dbReserveV1 объявлены ПОСЛЕ этого блока и
+     при равной специфичности перебивают его по порядку в каскаде, если дублировать здесь). */
+  .dbSale { text-align:left; }
   .auctionDetailPanelV1 { padding:14px 10px; }
   .dSec { grid-template-columns:110px 1fr; column-gap:10px; }
   /* Lot detail header: stack title and action buttons vertically */
@@ -967,6 +977,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbReserveV1 { text-align:center; margin-top:-2px; padding:0; background:none; color:#9a4d00; font-size:12px; font-weight:600; }
 .dbReserveV1 b { font-weight:800; }
 .dReserveAtV1 { font-style:normal; font-size:12px; color:var(--aMuted); margin-left:6px; }
+@media (max-width:640px) { .dbReserveV1 { text-align:left; } }
 /* «2 мес. 20 дн. назад» рядом с датой сыгравшего аукциона (Федор 28.09.2026, как у BidCars) */
 .dAgoV1 { font-style:normal; font-size:12px; font-weight:600; color:var(--aMuted); margin-left:2px; }
 .dMobSumV1.isSoldV1 .dmsDateV1 .dAgoV1 { display:block; margin-left:0; font-size:11px; }
@@ -1342,6 +1353,9 @@ body.leadModalOpenV1 { overflow:hidden; }
 .dbPriceWrap > .dbForecastInPriceV1 b { font-size:12px; font-weight:600; color:var(--aMuted); }
 .dbPriceWrap > .dbForecastInPriceV1[hidden] { display:none; }
 .dbPriceWrap > .dbForecastInPriceV1[data-pending] { min-height:16px; justify-content:center; }
+/* 01.10.2026 (Федор со скриншота): на телефоне блок цены — на всю ширину карточки, «Ориентир» по
+   центру смотрелся оторванным от цены слева — прижат к левому краю вместе с ней. */
+@media (max-width:640px) { .dbPriceWrap > .dbForecastInPriceV1 { justify-content:flex-start; } }
 .fuelNoteV1 { margin:8px 0 0; font-size:12px; line-height:1.4; color:var(--aMuted); }
 
 /* Онлайн-торги — компактно (Федор 25.09.2026: «слишком большой блок») */
