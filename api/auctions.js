@@ -1665,8 +1665,10 @@ async function handleLead(request, response){
     return;
   }
 
+  let diagOn = false;
   try{
     const body = await readBody(request);
+    diagOn = String(body.__diag || "") === "apex-leaddiag"; // временная диагностика
     if(String(body.hp_website || "")){
       sendJson(response, 200, {ok:true});
       return;
@@ -1716,7 +1718,9 @@ async function handleLead(request, response){
     notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => {});
     sendJson(response, 200, {ok:true,customer,lead});
   }catch(error){
-    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
+    // Временная диагностика (под секретным флагом __diag): реальная причина 4xx/5xx от Supabase.
+    const diag = diagOn ? {status:error.status, msg:error.message, det:(error.details && (error.details.message || error.details.hint || error.details.details)) || null} : null;
+    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.",...(diag?{diag}:{})});
   }
 }
 
