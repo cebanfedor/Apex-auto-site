@@ -1665,8 +1665,10 @@ async function handleLead(request, response){
     return;
   }
 
+  let diagOn = false, diagStage = "";
   try{
     const body = await readBody(request);
+    diagOn = String(body.__diag || "") === "apex-leaddiag";
     if(String(body.hp_website || "")){
       sendJson(response, 200, {ok:true});
       return;
@@ -1694,10 +1696,12 @@ async function handleLead(request, response){
     // Делаем то же самое в коде: не зависим от констрейнта, заявка не теряется.
     let customer = null;
     try{
+      diagStage = "customers.list";
       const found = await supabase.list("customers", {phone:`eq.${phone}`, select:"*", order:"id.desc", limit:1});
       if(Array.isArray(found) && found[0]) customer = found[0];
-    }catch(_){ /* чтение не критично — создадим нового */ }
+    }catch(e){ if(diagOn) throw e; /* чтение не критично — создадим нового */ }
     if(!customer){
+      diagStage = "customers.create";
       customer = await supabase.create("customers", {name, phone, status:"Новый", source});
     }
 
@@ -1709,6 +1713,7 @@ async function handleLead(request, response){
     // открывал нужную машину одним кликом.
     const lotUrl = (auction && lot) ? `https://apexauto.md/auctions/${auction}-${lot.replace(/~.*/, "")}` : "";
 
+    diagStage = "leads.create";
     const lead = await supabase.create("leads", {
       customer_id:customer?.id || null,
       title:`Заявка по лоту ${auction} ${lot}`.trim(),
@@ -1726,7 +1731,8 @@ async function handleLead(request, response){
     notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => {});
     sendJson(response, 200, {ok:true,customer,lead});
   }catch(error){
-    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
+    const diag = diagOn ? {stage:diagStage, status:error.status, msg:error.message, det:(error.details && (error.details.message || error.details.hint || error.details.details)) || null} : null;
+    sendJson(response, error.status || 500, {ok:false,error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже.",...(diag?{diag}:{})});
   }
 }
 
