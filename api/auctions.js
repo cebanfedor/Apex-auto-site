@@ -649,8 +649,19 @@ function normalizeLot(source, fallbackAuction = "copart"){
     if(!sale.timed) return null;
     if(!(Number.isFinite(saleTsN) && saleTsN < Date.now() - 60 * 60e3)) return null; // торги завершились
     const reserve = Number(sale.reserve) || 0;
-    if(!(reserve > 0 && currentBid > 0 && currentBid >= reserve)) return null;         // резерв достигнут → продан
-    return {bid:currentBid, date:new Date(saleTsN).toISOString()};
+    if(!(reserve > 0)) return null;
+    // Финальная ставка Timed: фид в current_bid часто кладёт УСТАРЕВШЕЕ значение, а реальная
+    // закрывающая ставка лежит в истории (мислейбл not_sold рядом с датой торгов — Lexus RX
+    // 46048508: current_bid $34 750, а молоток $36 250 в истории; DreamBid/autoAstat = $36 250).
+    // Берём максимум из current_bid и ставок истории ТОГО ЖЕ лота в окне ±14 дней от даты торгов.
+    let best = currentBid;
+    for(const ph of priceHistory){
+      const b = Number(ph.bid) || 0, pt = Date.parse(ph.date);
+      if(b > best && Number.isFinite(pt) && Math.abs(pt - saleTsN) < 14 * 864e5 &&
+         String(ph.lot || "").replace(/~.*/, "") === String(lotNumber)) best = b;
+    }
+    if(!(best > 0 && best >= reserve)) return null;  // закрывающая ставка достигла резерва → продан
+    return {bid:best, date:new Date(saleTsN).toISOString()};
   })();
 
   return {
