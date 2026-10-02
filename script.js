@@ -3,23 +3,18 @@ const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",
 function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
 
 // Горизонтальный таймлайн (степпер) этапов доставки — заполняет форму калькулятора (под курсами).
-// Шаги разные для США и Канады; итоговый срок — тот же getDeliveryWeeks()/канадский расчёт.
+// Этапы ОДНИ И ТЕ ЖЕ для США и Канады (4 шага); отличается только итоговый срок «Срок под ключ»
+// (weeksText — реальный getDeliveryWeeks()/канадский расчёт). `mode` оставлен для совместимости.
 function renderCalcStages(mode, weeksText){
   const box = document.getElementById("calcStagesV1");
   if(!box) return;
   // Текст — чистыми узлами (каждый = целиком ключ словаря), чтобы i18n.js (перевод по полному
   // совпадению текстового узла через MutationObserver) переводил их на RO/EN автоматически.
-  const stages = mode === "canada" ? [
-    {ic:"🏁", t:"Аукцион", s:"лот куплен и оплачен", d:""},
-    {ic:"🚚", t:"Доставка в Монреаль", s:"автовозом по Канаде", d:"~5–10 дней"},
-    {ic:"🚢", t:"Монреаль → Клайпеда", s:"морская перевозка", d:"~2,5–3 недели"},
-    {ic:"🛣️", t:"Клайпеда → Кишинёв", s:"автовозом по ЕС", d:"~1 неделя"},
-    {ic:"🇲🇩", t:"Выдача в Кишинёве", s:"таможня и получение", d:""}
-  ] : [
-    {ic:"🏁", t:"Аукцион", s:"лот куплен и оплачен", d:""},
-    {ic:"🚚", t:"Доставка в порт", s:"до порта отправки", d:"~5–7 дней"},
-    {ic:"🚢", t:"Морская перевозка", s:"контейнер в Европу", d:"~3–4 недели"},
-    {ic:"🇲🇩", t:"Выдача в Кишинёве", s:"таможня и получение", d:"~1–2 недели"}
+  const stages = [
+    {ic:"🏁", t:"Аукцион", d:""},
+    {ic:"🚚", t:"Доставка в порт", d:"~5–7 дней"},
+    {ic:"🚢", t:"Морская перевозка", d:"~3–4 недели"},
+    {ic:"🇲🇩", t:"Выдача в Кишинёве", d:"~1–2 недели"}
   ];
   const items = stages.map(x => `<li class="csStepV1"><span class="csDotV1" aria-hidden="true">${x.ic}</span><span class="csTtlV1">${x.t}</span>${x.d ? `<span class="csDurV1">${x.d}</span>` : ""}</li>`).join("");
   box.innerHTML = `
