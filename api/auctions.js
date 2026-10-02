@@ -3511,17 +3511,33 @@ async function computeCompsForQ(q){
       }
     }
     if(band){
-      // Пол оценки для машин «на ходу» (cq=good): середина не ниже ЧИСТОЙ стоимости (ACV − оценка
-      // ремонта). Running-авто с хорошими документами на аукционе редко уходят ниже неё (Федор,
-      // BMW 530i 70326796: таблица давала $5.9–8.1к при ACV $19 370 и ремонте $11 297 → чистыми
-      // $8 073; реальный живой 530i 67k миль ушёл за $13.5к). Нужны И ACV, И оценка ремонта (иначе
-      // «пол» = весь ACV, что завышает). Поднимаем всю вилку так, чтобы середина = ACV−ремонт;
-      // лифт ограничен ×1.8 (страховка от кривых данных). Только cq=good — для битых/не на ходу не применяем.
       const cqG = String(q.get("cq") || "") === "good";
+      const r100 = v => Math.round(v / 100) * 100;
+      // (1) Машины «НА ХОДУ» (cq=good): главный ориентир — РЕАЛЬНЫЕ продажи ходовых экземпляров того
+      // же кузова, а не таблица/ACV (они систематически занижают running-авто). Федор, BMW 530i 70326796:
+      // таблица давала ~$8к, а реальные ходовые 530i уходят за $13–14к (живой 67k миль — $13.5к). Если есть
+      // надёжный пул похожих продаж (≥4) и его медиана заметно выше нашей вилки (>+15%) — поднимаем ориентир
+      // К РЕАЛЬНЫМ СДЕЛКАМ (вес 0.6 на реальные продажи). Только повышаем недооценённые; где таблица точна
+      // или завышает — медиана ≈/ниже вилки, лифт не срабатывает.
+      if(cqG && yearG && band.mid > 0){
+        try{
+          const pool = await fetchSoldComps(makeId, modelId);
+          const g = await resolveGenRange(modelId, yearG, "");
+          const cc = (g && g.genFrom) ? computeComps(pool, {year:yearG, odometer:String(q.get("odometer") || "").replace(/[^0-9]/g, ""),
+            fuelId:fuelTextToId(fuelText), genFrom:g.genFrom, genTo:g.genTo, cq:"good", coef}) : null;
+          if(cc && cc.count >= 4 && cc.median > band.mid * 1.15){
+            const w = 0.6, mid = band.mid * (1 - w) + cc.median * w;
+            band = {lo:r100(Math.min(band.lo * (mid / band.mid), mid * 0.9)), mid:r100(mid), hi:r100(Math.max(Number(cc.p75) || 0, mid * 1.12))};
+            src += "+run";
+          }
+        }catch(_){ /* реальных продаж нет — остаётся таблица/ACV + пол ниже */ }
+      }
+      // (2) Пол оценки для «на ходу»: середина не ниже ЧИСТОЙ стоимости (ACV − оценка ремонта). Нужны И ACV,
+      // И оценка ремонта (иначе «пол» = весь ACV, что завышает). Лифт ≤ ×1.8. Для битых/не на ходу — не применяем.
       const repairQ = Number(q.get("repair")) || 0;
       const acvNet = (acvNum > 500 && repairQ > 0) ? acvNum - repairQ : 0;
       if(cqG && acvNet > 0 && band.mid > 0 && band.mid < acvNet){
-        const f = Math.min(acvNet / band.mid, 1.8), r100 = v => Math.round(v / 100) * 100;
+        const f = Math.min(acvNet / band.mid, 1.8);
         band = {lo:r100(band.lo * f), mid:r100(band.mid * f), hi:r100(band.hi * f)};
         src += "+netfloor";
       }
