@@ -514,7 +514,7 @@ section { position: relative; }
 @media (prefers-reduced-motion: reduce) { .brandStripTrackV301 { animation: none; } }
 
 /* ---- Calculator -------------------------------------------------------- */
-.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin: 12px 0 8px; }
+.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; margin: 12px 0 8px; }
 .lotImportV118 { grid-column: 1 / -1; background: #f6f7f9; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .lotImportV118 > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
 .lotImportControlV118 { display: flex; gap: 10px; align-items: stretch; }
@@ -590,15 +590,10 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .infoTipV65:hover, .infoTipV65:focus { background: var(--ink); color: #fff; border-color: var(--ink); }
 .infoTipV65:hover::after, .infoTipV65:focus::after { content: attr(aria-label); position: absolute; bottom: calc(100% + 8px); right: 0; left: auto; width: 260px; max-width: 260px; padding: 10px 12px; background: #000; color: #fff; font-size: 12.5px; font-weight: 400; line-height: 1.45; border-radius: 10px; box-shadow: var(--shadow); z-index: 20; pointer-events: none; white-space: normal; }
 
-/* Оплата в MDL + экспортные документы + валюта — ОДНА строка (валюта прижата вправо) */
-.exportCurrencyRowV374 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.exportCurrencyRowV374 .check { font-size: 12px; gap: 6px; }
-.exportCurrencyRowV374 .check input[type="checkbox"] { width: 32px; height: 19px; }
-.exportCurrencyRowV374 .check input[type="checkbox"]::after { width: 15px; height: 15px; }
-.exportCurrencyRowV374 .check input[type="checkbox"]:checked::after { transform: translateX(13px); }
-.exportCurrencyRowV374 .infoTipV65 { width: 15px; height: 15px; font-size: 10px; }
-.currencyMiniV374 { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
-.currencyMiniV374 .currency { height: 27px; padding: 0 7px; font-size: 11px; border-radius: 8px; }
+/* export docs + currency buttons inline */
+.exportCurrencyRowV374 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.currencyMiniV374 { display: flex; gap: 5px; flex-shrink: 0; }
+.currencyMiniV374 .currency { height: 30px; padding: 0 11px; font-size: 12.5px; border-radius: 8px; }
 
 .currencyBox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .currency { height: 38px; padding: 0 18px; border: 1px solid var(--field-line); border-radius: 9px; background: var(--field); font-weight: 700; font-size: 14px; color: var(--ink-2); transition: all 0.18s; }
@@ -610,27 +605,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .rateHintV404 { width: 100%; margin: 0; font-size: 11px; color: var(--muted); }
 .rateHintV404 #mdlRateSourceV404 { color: #15803d; font-weight: 600; }
 .rateFieldV374 { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
-
-/* Таймлайн этапов доставки — компактный горизонтальный степпер в форме калькулятора (под курсами) */
-.calcStagesV1 { margin: 2px 0; padding: 9px 12px; background: var(--bg, #f6f7f9); border: 1px solid var(--line, #e6e8ec); border-radius: 12px; }
-.calcStagesV1:empty { display: none; }
-.csHeadV1 { font-size: 12px; font-weight: 800; color: var(--ink, #12151a); margin-bottom: 8px; letter-spacing: -.01em; }
-.csListV1 { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; position: relative; }
-/* одна сплошная линия во всю ширину за кружками (левее первого и правее последнего её нет) */
-.csListV1::before { content: ""; position: absolute; top: 11px; left: 12px; right: 12px; height: 2px; background: var(--line, #e2e5ea); z-index: 0; }
-.csStepV1 { position: relative; z-index: 1; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 5px; }
-.csStepV1:first-child { align-items: flex-start; text-align: left; padding-left: 0; }
-.csStepV1:last-child { align-items: flex-end; text-align: right; padding-right: 0; }
-.csDotV1 { position: relative; z-index: 1; width: 24px; height: 24px; display: grid; place-items: center; font-size: 12px; background: #fff; border: 1.5px solid var(--line, #e2e5ea); border-radius: 50%; }
-.csTtlV1 { margin-top: 5px; font-size: 11px; font-weight: 700; color: var(--ink, #12151a); line-height: 1.15; }
-.csDurV1 { margin-top: 3px; font-size: 9.5px; font-weight: 700; color: var(--muted, #667080); white-space: nowrap; }
-@media (max-width: 560px){
-  .csStepV1 { padding: 0 2px; }
-  .csDotV1 { width: 22px; height: 22px; font-size: 11px; }
-  .csListV1::before { top: 10px; left: 11px; right: 11px; }
-  .csTtlV1 { font-size: 9.5px; }
-  .csDurV1 { font-size: 8.5px; }
-}
 .rateFieldV374 label { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; flex: none; }
 .rateFieldV374 input { flex: 1; min-width: 0; height: 30px; padding: 0 8px; font-size: 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--ink); }
 
@@ -677,10 +651,6 @@ details > summary::-webkit-details-marker { display: none; }
 /* Точка перед каждым платежом (Федор 29.09.2026, со скриншота-мокапа) */
 .breakdown .row > span:first-child { position: relative; padding-left: 13px; }
 .breakdown .row > span:first-child::before { content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); }
-/* Разбивка в 2 колонки — чтобы правая панель не была выше левой формы (особенно в Канаде) */
-.breakdown .breakdownColsV1 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; row-gap: 13px; align-items: start; }
-.breakdown .breakdownColsV1 .row { font-size: 14px; }
-@media (max-width: 560px) { .breakdown .breakdownColsV1 { grid-template-columns: 1fr; } }
 .totalFooter { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 12px; }
 .resultLabel { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
 .total { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }

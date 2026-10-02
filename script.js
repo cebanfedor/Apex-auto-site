@@ -2,25 +2,6 @@
 const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
 function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
 
-// Горизонтальный таймлайн (степпер) этапов доставки — заполняет форму калькулятора (под курсами).
-// Этапы ОДНИ И ТЕ ЖЕ для США и Канады (4 шага). Итоговый «Срок под ключ» НЕ дублируем здесь —
-// он уже показан в разбивке справа («Срок до Кишинёва»). `mode`/`weeksText` оставлены для совместимости.
-function renderCalcStages(mode, weeksText){
-  const box = document.getElementById("calcStagesV1");
-  if(!box) return;
-  // Текст — чистыми узлами (каждый = целиком ключ словаря), чтобы i18n.js (перевод по полному
-  // совпадению текстового узла через MutationObserver) переводил их на RO/EN автоматически.
-  const stages = [
-    {ic:"🏁", t:"Аукцион", d:""},
-    {ic:"🚚", t:"Доставка в порт", d:"~5–7 дней"},
-    {ic:"🚢", t:"Морская перевозка", d:"~3–4 недели"},
-    {ic:"🇲🇩", t:"Выдача в Кишинёве", d:"~1–2 недели"}
-  ];
-  const items = stages.map(x => `<li class="csStepV1"><span class="csDotV1" aria-hidden="true">${x.ic}</span><span class="csTtlV1">${x.t}</span>${x.d ? `<span class="csDurV1">${x.d}</span>` : ""}</li>`).join("");
-  box.innerHTML = `
-    <div class="csHeadV1">Как авто доедет до Кишинёва</div>
-    <ol class="csListV1">${items}</ol>`;
-}
 const YEAR_NOW=new Date().getFullYear();
 /* Таблицы акциза/роскоши/аукционного сбора и функции по ним ЖИВУТ в calc-core.js
    (единый источник для главной, страницы лота, /api/calc и расширения). Их локальные
@@ -1205,7 +1186,6 @@ function calculate(){
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
   $("chosenRoute").textContent = route;
   if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = getDeliveryWeeks();
-  renderCalcStages("usa", getDeliveryWeeks());
   if($("auctionBadge")) $("auctionBadge").textContent = $("auction").value.toUpperCase();
   if($("insuranceWarning")) $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
@@ -1244,8 +1224,8 @@ function calculate(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + `<div class="breakdownColsV1">` + payNowRows.map(r => row(...r)).join("") + `</div>` +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + `<div class="breakdownColsV1">` + payLaterRows.map(r => row(...r)).join("") + `</div>`;
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
@@ -1787,7 +1767,6 @@ function calculateCanada(){
   const _prov = selectedCanadaLocation?.province || "";
   const _wk = zone === "bc" ? "10–11" : (_prov === "AB" || _prov === "SK") ? "8–9" : "6–8";
   if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = _wk + (_roCA ? " săptămâni" : _enCA ? " weeks" : " недель");
-  renderCalcStages("canada", _wk + (_roCA ? " săptămâni" : _enCA ? " weeks" : " недель"));
 
   // update portView to reflect actual ocean route
   const pvEl = $("portView");
@@ -1841,8 +1820,8 @@ function calculateCanada(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + `<div class="breakdownColsV1">` + payNowRows.map(r => row(...r)).join("") + `</div>` +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + `<div class="breakdownColsV1">` + payLaterRows.map(r => row(...r)).join("") + `</div>`;
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
   updateShare();
 }
