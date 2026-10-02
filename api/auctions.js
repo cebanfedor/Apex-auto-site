@@ -6152,9 +6152,15 @@ module.exports = async function handler(request, response){
       normalizeFuelParam(query);
       // Локальная база (DreamBid-модель) — честная сортировка/фильтры по всему
       // каталогу; live-запрос к API остаётся фоллбеком, пока база не готова.
+      // forceLive=1 (только админ): пропускает searchFromDb и идёт прямо в fetchSearch (live-фолбэк) —
+      // диагностика 02.10.2026, чтобы живьём проверять фиксы buildSearchParams без необходимости
+      // реально ронять базу. Публично не доступен — лишний живой запрос к auctionsapi.com дороже обычного.
+      const forceLive = query.get("forceLive") === "1" && (() => { try{ return require("../server/auth").isAuthenticated(request); }catch(_){ return false; } })();
       let result = null;
       let dbErr = null;
-      try{ result = await searchFromDb(query); }catch(e){ dbErr = String(e && e.message || e).slice(0, 200); result = null; }
+      if(!forceLive){
+        try{ result = await searchFromDb(query); }catch(e){ dbErr = String(e && e.message || e).slice(0, 200); result = null; }
+      }
       if(!result){
         result = await fetchSearch(query);
         // Live-фолбэк без фильтров: total фида — ВСЕ домены (с Кореей, 782k) и «прыгает» относительно базы.
