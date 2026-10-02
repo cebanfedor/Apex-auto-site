@@ -3452,6 +3452,7 @@ async function computeCompsForQ(q){
     const coef = priceGuide.conditionCoef({dmg:q.get("dmg"), dmg2:q.get("dmg2"), cond:q.get("cond"),
       run:runG === "1" ? true : runG === "0" ? false : null, doc:q.get("doc")});
     const hasCond = !!(q.get("dmg") || q.get("cond"));
+    const cqGood = String(q.get("cq") || "") === "good";
     // fuel_x (пересчёт по VIN) приоритетнее сырого текста фида — тот путает гибрид/plug-in/mild-hybrid
     // (см. «Тип силовой установки по VIN»). Единая точка разбора — дальше используем везде.
     const fuelText = resolveFuelText(q);
@@ -3479,6 +3480,10 @@ async function computeCompsForQ(q){
         const r100 = v => Math.round(v / 100) * 100, w = guideAcvWeight(gb.mid, acvBand.mid, rowFuelX);
         band = {lo:r100(gb.lo * (1 - w) + acvBand.lo * w), mid:r100(gb.mid * (1 - w) + acvBand.mid * w), hi:r100(gb.hi * (1 - w) + acvBand.hi * w)};
         src = "guide+acv";
+        // Машина «на ходу» (cq=good): таблица Федора — это РЕАЛЬНАЯ средняя цена, её нельзя занижать
+        // ACV-подмесом (ACV битых/с дорогим ремонтом систематически ниже). Для хороших лотов таблица —
+        // пол: берём максимум таблицы и смеси по каждой границе (Федор 02.10.2026, BMW 530i).
+        if(cqGood){ band = {lo:Math.max(band.lo, gb.lo), mid:Math.max(band.mid, gb.mid), hi:Math.max(band.hi, gb.hi)}; }
       }else{ band = gb; src = "guide"; }
     }
     if(!band && hasCond && yearG){
