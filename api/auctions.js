@@ -1617,18 +1617,24 @@ async function attachVinHistory(lot){
       // VIN-ветка не должна обнулять их финал (фид по VIN отстаёт от факта закрытия Timed).
       if(!lot.soldByBuyNow && !lot.soldOnTimed) lot.finalBid = sold ? fb : 0;
     }
-    // Проданный Timed: реальный молоток часто лежит в ИСТОРИИ по VIN (мислейбл not_sold рядом с
-    // датой торгов), а не в current_bid. Поднимаем финал до лучшей ставки истории ТОГО ЖЕ лота в
-    // окне ±14 дней от даты торгов (Lexus RX 46048508: current_bid $34 750 → молоток $36 250).
-    if(lot.soldOnTimed){
+    // Проданный Timed — финал = РЕАЛЬНЫЙ молоток. Касается и soldOnTimed (наша инференция), и
+    // feed-sold (statusId 6): фид часто кладёт в финал/историю устаревшую/заниженную ставку.
+    // Берём максимум из: финал, текущая ставка, лучший раунд истории того же лота в окне ±14 дней,
+    // и РЕЗЕРВ ПРОДАВЦА как жёсткий пол (Timed НЕ продаётся ниже резерва).
+    // Lexus RX 46048508: current_bid $34 750 → молоток из истории $36 250.
+    // Tesla M3 45937998: фид «продан $8 300» при резерве $9 100 (невозможно) → пол по резерву $9 100
+    //   (реальный молоток $9 500 в наш фид не попал — показываем минимально корректное, не заниженное).
+    if(lot.timed && (lot.soldOnTimed || Number(lot.statusId) === 6)){
       const saleTs = Date.parse(lot.auctionDate || "");
-      let best = Number(lot.finalBid) || 0;
+      let best = Math.max(Number(lot.finalBid) || 0, Number(lot.currentBid) || 0);
       for(const ph of (lot.priceHistory || [])){
         const b = Number(ph.bid) || 0, pt = Date.parse(ph.date);
         if(b > best && Number.isFinite(pt) && Number.isFinite(saleTs) && Math.abs(pt - saleTs) < 14 * 864e5 &&
            String(ph.lot || "").replace(/~.*/, "") === String(lot.lot)) best = b;
       }
-      lot.finalBid = best;
+      const reserve = Number(lot.sellerReserve) || 0;
+      if(reserve > 0 && reserve > best) best = reserve;   // резерв — пол: Timed не продаётся ниже него
+      if(best > 0) lot.finalBid = best;
     }
   }catch(e){
     if(lot && isValidVin(String(lot.vin || ""))){
@@ -5442,7 +5448,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g33" : "";   // бамп при смене таблицы поколений и формы detail (g33: Timed-финал из VIN-истории — сброс устаревших detail-кэшей с current_bid)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g34" : "";   // бамп при смене таблицы поколений и формы detail (g34: Timed-финал — пол по резерву продавца для feed-sold)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
