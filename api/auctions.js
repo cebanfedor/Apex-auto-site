@@ -4985,7 +4985,14 @@ module.exports = async function handler(request, response){
         const [auction, lotNo] = String(id).split("-");
         const lot = await fetchDetail(new URLSearchParams({auction, lot:lotNo}));
         const sold = Number(lot.statusId) === 6 && Date.parse(lot.auctionDate || "") < Date.now();
-        if(sold) upsertClosedLot(lot);
+        // 02.10.2026 (Федор: «машина появилась байнау, а ты этого так и не увидел»): раньше писали в
+        // базу только подтверждённую продажу — лот «на утверждении», на который IAAI на следующее утро
+        // повесил Buy Now, в api_lots оставался со вчерашним статусом/ценой даже после того, как
+        // alertTick успешно увидел это вживую (liveLot отдавал свежие данные ТОЛЬКО подписчику в
+        // Telegram). upsertClosedLot уже умеет и «оживлять» непроданный/перевыставленный лот
+        // (ветка !sold внутри неё, PATCH status_id/current_bid/buy_now/sale_date) — её просто не звали
+        // для этого случая. Теперь зовём всегда: подписка на лот становится попутным обновлением сайта.
+        upsertClosedLot(lot);
         return {auctionDate:lot.auctionDate || "", statusId:Number(lot.statusId) || 0, currentBid:Number(lot.currentBid) || 0, buyNow:Number(lot.buyNow) || 0, finalBid:Number(lot.finalBid) || Number(lot.currentBid) || 0, sold};
       },
       isAdmin:req => { try{ return require("../server/auth").isAuthenticated(req); }catch(_){ return false; } }
