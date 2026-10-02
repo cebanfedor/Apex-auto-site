@@ -606,20 +606,25 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .rateHintV404 #mdlRateSourceV404 { color: #15803d; font-weight: 600; }
 .rateFieldV374 { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 
-/* Таймлайн этапов доставки — заполняет форму калькулятора (под курсами, перед кнопкой) */
-.calcStagesV1 { margin: 4px 0 2px; padding: 14px 16px; background: var(--bg, #f6f7f9); border: 1px solid var(--line, #e6e8ec); border-radius: 14px; }
+/* Таймлайн этапов доставки — горизонтальный степпер в форме калькулятора (под курсами, перед кнопкой) */
+.calcStagesV1 { margin: 4px 0 2px; padding: 13px 14px; background: var(--bg, #f6f7f9); border: 1px solid var(--line, #e6e8ec); border-radius: 14px; }
 .calcStagesV1:empty { display: none; }
-.csHeadV1 { font-size: 13px; font-weight: 800; color: var(--ink, #12151a); margin-bottom: 10px; letter-spacing: -.01em; }
-.csListV1 { list-style: none; margin: 0; padding: 0; position: relative; }
-.csListV1::before { content: ""; position: absolute; left: 14px; top: 14px; bottom: 14px; width: 2px; background: var(--line, #e2e5ea); border-radius: 2px; }
-.csStepV1 { position: relative; display: flex; align-items: flex-start; gap: 11px; padding: 5px 0; }
-.csDotV1 { flex: 0 0 28px; width: 28px; height: 28px; display: grid; place-items: center; font-size: 14px; background: #fff; border: 1.5px solid var(--line, #e2e5ea); border-radius: 50%; z-index: 1; }
-.csTxtV1 { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
-.csTxtV1 b { font-size: 13px; font-weight: 700; color: var(--ink, #12151a); }
-.csTxtV1 i { font-style: normal; font-size: 11.5px; color: var(--muted, #667080); }
-.csDurV1 { flex: 0 0 auto; align-self: center; font-size: 11.5px; font-weight: 700; color: var(--muted, #667080); white-space: nowrap; background: #fff; border: 1px solid var(--line, #e6e8ec); border-radius: 999px; padding: 2px 8px; }
-.csFootV1 { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line, #e2e5ea); font-size: 12.5px; color: var(--ink, #12151a); }
+.csHeadV1 { font-size: 13px; font-weight: 800; color: var(--ink, #12151a); margin-bottom: 12px; letter-spacing: -.01em; }
+.csListV1 { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
+.csStepV1 { position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 3px; }
+.csStepV1::after { content: ""; position: absolute; top: 13px; left: 50%; width: 100%; height: 2px; background: var(--line, #e2e5ea); z-index: 0; }
+.csStepV1:last-child::after { display: none; }
+.csDotV1 { position: relative; z-index: 1; width: 28px; height: 28px; display: grid; place-items: center; font-size: 14px; background: #fff; border: 1.5px solid var(--line, #e2e5ea); border-radius: 50%; }
+.csTtlV1 { margin-top: 7px; font-size: 11.5px; font-weight: 700; color: var(--ink, #12151a); line-height: 1.2; }
+.csDurV1 { margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--muted, #667080); white-space: nowrap; background: #fff; border: 1px solid var(--line, #e6e8ec); border-radius: 999px; padding: 1px 7px; }
+.csFootV1 { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line, #e2e5ea); font-size: 12.5px; color: var(--ink, #12151a); }
 .csFootV1 b { color: var(--red, #ed0012); font-weight: 800; }
+@media (max-width: 560px){
+  .csListV1 { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .csListV1::-webkit-scrollbar { display: none; }
+  .csStepV1 { flex: 0 0 auto; width: 92px; }
+  .csTtlV1 { font-size: 10.5px; }
+}
 .rateFieldV374 label { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; flex: none; }
 .rateFieldV374 input { flex: 1; min-width: 0; height: 30px; padding: 0 8px; font-size: 13px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--ink); }
 

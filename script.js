@@ -2,7 +2,7 @@
 const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
 function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
 
-// Вертикальный таймлайн этапов доставки — заполняет форму калькулятора (под курсами).
+// Горизонтальный таймлайн (степпер) этапов доставки — заполняет форму калькулятора (под курсами).
 // Шаги разные для США и Канады; итоговый срок — тот же getDeliveryWeeks()/канадский расчёт.
 function renderCalcStages(mode, weeksText){
   const box = document.getElementById("calcStagesV1");
@@ -21,7 +21,7 @@ function renderCalcStages(mode, weeksText){
     {ic:"🚢", t:"Морская перевозка", s:"контейнер в Европу", d:"~3–4 недели"},
     {ic:"🇲🇩", t:"Выдача в Кишинёве", s:"таможня и получение", d:"~1–2 недели"}
   ];
-  const items = stages.map(x => `<li class="csStepV1"><span class="csDotV1" aria-hidden="true">${x.ic}</span><span class="csTxtV1"><b>${x.t}</b><i>${x.s}</i></span>${x.d ? `<span class="csDurV1">${x.d}</span>` : ""}</li>`).join("");
+  const items = stages.map(x => `<li class="csStepV1"><span class="csDotV1" aria-hidden="true">${x.ic}</span><span class="csTtlV1">${x.t}</span>${x.d ? `<span class="csDurV1">${x.d}</span>` : ""}</li>`).join("");
   box.innerHTML = `
     <div class="csHeadV1">Как авто доедет до Кишинёва</div>
     <ol class="csListV1">${items}</ol>
