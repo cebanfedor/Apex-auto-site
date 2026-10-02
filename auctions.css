@@ -507,7 +507,7 @@
 /* Компактный калькулятор: кузов/топливо/объём/год — один ряд из 4 равных колонок (01.10.2026,
    Федор: добавить год выпуска, не плодя лишних строк). Селекты сами обрезают длинный текст —
    не «вылезают» за колонку, как было бы с пилюлями-тумблерами. */
-.calcPairV1 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; padding:2px 0 8px; }
+.calcPairV1 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; padding:2px 0 8px; align-items:end; }
 .calcOptColV1 { display:flex; flex-direction:column; gap:4px; cursor:pointer; min-width:0; }
 .calcOptColV1 > span { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
 .calcOptColV1 .calcSelectV2 { max-width:none; width:100%; }
