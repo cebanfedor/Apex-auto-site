@@ -1244,8 +1244,8 @@ function calculate(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
+    calcSectionHeader("Оплата после покупки лота") + `<div class="breakdownColsV1">` + payNowRows.map(r => row(...r)).join("") + `</div>` +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + `<div class="breakdownColsV1">` + payLaterRows.map(r => row(...r)).join("") + `</div>`;
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
@@ -1841,8 +1841,8 @@ function calculateCanada(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
+    calcSectionHeader("Оплата после покупки лота") + `<div class="breakdownColsV1">` + payNowRows.map(r => row(...r)).join("") + `</div>` +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + `<div class="breakdownColsV1">` + payLaterRows.map(r => row(...r)).join("") + `</div>`;
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
   updateShare();
 }

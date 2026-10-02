@@ -677,6 +677,10 @@ details > summary::-webkit-details-marker { display: none; }
 /* Точка перед каждым платежом (Федор 29.09.2026, со скриншота-мокапа) */
 .breakdown .row > span:first-child { position: relative; padding-left: 13px; }
 .breakdown .row > span:first-child::before { content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); }
+/* Разбивка в 2 колонки — чтобы правая панель не была выше левой формы (особенно в Канаде) */
+.breakdown .breakdownColsV1 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; row-gap: 13px; align-items: start; }
+.breakdown .breakdownColsV1 .row { font-size: 14px; }
+@media (max-width: 560px) { .breakdown .breakdownColsV1 { grid-template-columns: 1fr; } }
 .totalFooter { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-top: 12px; }
 .resultLabel { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5a64; font-weight: 700; }
 .total { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; color: #fff; line-height: 1.05; }
