@@ -17,6 +17,11 @@
   const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
   const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
   const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
+  // Фиксированные цены моря для «Бус» (vanLarge) по порту — Федор 02.10.2026, исправленные цены
+  // (не «база порта + 500», как у остальных крупногабаритных — у Буса свои ставки за габарит).
+  // ⚠️ Indianapolis своей ставки не получил (не называлась) — для него Бус считается по старой формуле
+  // (база+500) до уточнения у Федора.
+  const SEA_BUS={nj:3400,savannah:3550,houston:3650,la:4450};
 
   const APEX_LAND_SURCHARGE = 50;   // фиксированный сбор Apex на наземной доставке
   const SUV_LAND_EXTRA = 100;       // надбавка за внедорожник
@@ -146,10 +151,15 @@
   function seaShippingFor(type, fuel, port){
     if(type==="moto") return 900;
     if(type==="atv") return 1200;
-    let price = (SEA[port] && SEA[port].price) || 2400;
-    if(type==="crossover") price += 100;
-    else if(type==="suv"||type==="suvLarge") price += 300;
-    else if(type==="pickup"||type==="pickupLarge"||type==="pickupOversized"||type==="vanLarge") price += 500;
+    let price;
+    if(type==="vanLarge" && SEA_BUS[port] != null){
+      price = SEA_BUS[port];
+    }else{
+      price = (SEA[port] && SEA[port].price) || 2400;
+      if(type==="crossover") price += 100;
+      else if(type==="suv"||type==="suvLarge") price += 300;
+      else if(type==="pickup"||type==="pickupLarge"||type==="pickupOversized"||type==="vanLarge") price += 500;
+    }
     if(["hybrid","phev","electric"].includes(fuel)) price += 100;  // опасный груз
     return price;
   }
@@ -232,6 +242,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v8"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v9"
   };
 });
