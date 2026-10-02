@@ -1,6 +1,32 @@
 
 const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
 function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
+
+// Вертикальный таймлайн этапов доставки — заполняет форму калькулятора (под курсами).
+// Шаги разные для США и Канады; итоговый срок — тот же getDeliveryWeeks()/канадский расчёт.
+function renderCalcStages(mode, weeksText){
+  const box = document.getElementById("calcStagesV1");
+  if(!box) return;
+  // Текст — чистыми узлами (каждый = целиком ключ словаря), чтобы i18n.js (перевод по полному
+  // совпадению текстового узла через MutationObserver) переводил их на RO/EN автоматически.
+  const stages = mode === "canada" ? [
+    {ic:"🏁", t:"Аукцион", s:"лот куплен и оплачен", d:""},
+    {ic:"🚚", t:"Доставка в Монреаль", s:"автовозом по Канаде", d:"~5–10 дней"},
+    {ic:"🚢", t:"Монреаль → Клайпеда", s:"морская перевозка", d:"~2,5–3 недели"},
+    {ic:"🛣️", t:"Клайпеда → Кишинёв", s:"автовозом по ЕС", d:"~1 неделя"},
+    {ic:"🇲🇩", t:"Выдача в Кишинёве", s:"таможня и получение", d:""}
+  ] : [
+    {ic:"🏁", t:"Аукцион", s:"лот куплен и оплачен", d:""},
+    {ic:"🚚", t:"Доставка в порт", s:"до порта отправки", d:"~5–7 дней"},
+    {ic:"🚢", t:"Морская перевозка", s:"контейнер в Европу", d:"~3–4 недели"},
+    {ic:"🇲🇩", t:"Выдача в Кишинёве", s:"таможня и получение", d:"~1–2 недели"}
+  ];
+  const items = stages.map(x => `<li class="csStepV1"><span class="csDotV1" aria-hidden="true">${x.ic}</span><span class="csTxtV1"><b>${x.t}</b><i>${x.s}</i></span>${x.d ? `<span class="csDurV1">${x.d}</span>` : ""}</li>`).join("");
+  box.innerHTML = `
+    <div class="csHeadV1">Как авто доедет до Кишинёва</div>
+    <ol class="csListV1">${items}</ol>
+    <div class="csFootV1"><span class="csFootLblV1">Срок под ключ</span>: <b>${weeksText || ""}</b></div>`;
+}
 const YEAR_NOW=new Date().getFullYear();
 /* Таблицы акциза/роскоши/аукционного сбора и функции по ним ЖИВУТ в calc-core.js
    (единый источник для главной, страницы лота, /api/calc и расширения). Их локальные
@@ -1185,6 +1211,7 @@ function calculate(){
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
   $("chosenRoute").textContent = route;
   if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = getDeliveryWeeks();
+  renderCalcStages("usa", getDeliveryWeeks());
   if($("auctionBadge")) $("auctionBadge").textContent = $("auction").value.toUpperCase();
   if($("insuranceWarning")) $("insuranceWarning").classList.toggle("hidden", $("insurance").checked);
 
@@ -1766,6 +1793,7 @@ function calculateCanada(){
   const _prov = selectedCanadaLocation?.province || "";
   const _wk = zone === "bc" ? "10–11" : (_prov === "AB" || _prov === "SK") ? "8–9" : "6–8";
   if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = _wk + (_roCA ? " săptămâni" : _enCA ? " weeks" : " недель");
+  renderCalcStages("canada", _wk + (_roCA ? " săptămâni" : _enCA ? " weeks" : " недель"));
 
   // update portView to reflect actual ocean route
   const pvEl = $("portView");
