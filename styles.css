@@ -514,7 +514,7 @@ section { position: relative; }
 @media (prefers-reduced-motion: reduce) { .brandStripTrackV301 { animation: none; } }
 
 /* ---- Calculator -------------------------------------------------------- */
-.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin: 12px 0 8px; }
+.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; margin: 12px 0 8px; }
 .lotImportV118 { grid-column: 1 / -1; background: #f6f7f9; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .lotImportV118 > label { display: block; font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
 .lotImportControlV118 { display: flex; gap: 10px; align-items: stretch; }
@@ -530,7 +530,7 @@ section { position: relative; }
 .lotImportCheckBtnV120 { flex: none; height: 36px; padding: 0 14px; font-size: 13px; white-space: nowrap; margin-left: auto; }
 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow-sm); }
-.formCard { display: flex; flex-direction: column; gap: 10px; }
+.formCard { display: flex; flex-direction: column; gap: 10px; justify-content: space-between; }
 .formRow { display: flex; flex-direction: column; gap: 4px; }
 .formRow.wide { width: 100%; }
 .formRow > label, .formCard > label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
@@ -650,7 +650,7 @@ details > summary::-webkit-details-marker { display: none; }
 .resultCard .actions { margin-top: auto; }
 /* отступ между «Срок до Кишинёва» и кнопкой «Скопировать расчет» */
 .resultCard .calcDeliveryV366 { margin-bottom: 16px; }
-.formCard > button[type="submit"] { margin-top: auto; }
+.formCard > button[type="submit"] { margin-top: 2px; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
 .auctionBadge { padding: 4px 10px; border-radius: 999px; background: rgba(237, 0, 18, 0.16); border: 1px solid var(--red-line); font-size: 12px; font-weight: 700; color: #fff; }
@@ -676,7 +676,7 @@ details > summary::-webkit-details-marker { display: none; }
 .actions #copyBtn, .actions a { width: 100%; height: 46px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 700; font-size: 15px; }
 .actions a { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.14); transition: background 0.18s; }
 .actions a:hover { background: rgba(255, 255, 255, 0.16); }
-#calcForm button[type="submit"] { height: 46px; font-size: 15px; margin-top: auto;
+#calcForm button[type="submit"] { height: 46px; font-size: 15px; margin-top: 2px;
   background: #eef1f6; color: var(--ink); border: 1px solid var(--field-line); box-shadow: none; }
 #calcForm button[type="submit"]:hover { background: #e2e7ef; color: var(--ink); box-shadow: none; transform: translateY(-1px); }
 
