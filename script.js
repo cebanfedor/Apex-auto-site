@@ -45,7 +45,13 @@ function calculateAuctionFeeFor(price, auction, isCanada){
 }
 function calculateAuctionFee(){return calculateAuctionFeeFor(num("lotPrice"), $("auction")?.value||"copart")}
 function initYears(){const y=$("year");if(!y)return;y.innerHTML="";for(let year=YEAR_NOW;year>=1980;year--){let o=document.createElement("option");o.value=year;o.textContent=year;if(year===YEAR_NOW)o.selected=true;y.appendChild(o)}refreshGlassSelect(y)}
-function initLiters(){const e=$("engineLiters");if(!e)return;e.innerHTML="";for(let i=1;i<=70;i++){let v=(i/10).toFixed(1),o=document.createElement("option");o.value=v;o.textContent=`${v} л`;if(v==="2.0")o.selected=true;e.appendChild(o)}refreshGlassSelect(e)}
+function initLiters(){const e=$("engineLiters");if(!e)return;const unit=(typeof window.i18nT==="function"?window.i18nT("л"):"л");e.innerHTML="";for(let i=1;i<=70;i++){let v=(i/10).toFixed(1),o=document.createElement("option");o.value=v;o.textContent=`${v} ${unit}`;if(v==="2.0")o.selected=true;e.appendChild(o)}refreshGlassSelect(e);
+  // Единица «л» строится до готовности словаря (RO/EN грузится асинхронно) — опции <select> наблюдатель i18n не чинит.
+  // Один раз перелокализуем единицу по готовности словаря, не сбрасывая выбранное значение. Для RU словарь не трогаем.
+  if(!initLiters._i18nHooked && window.APEX_LANG && window.APEX_LANG !== "ru" && typeof window.__apexEnsureDict === "function"){
+    initLiters._i18nHooked = true;
+    window.__apexEnsureDict(() => { const el = $("engineLiters"); if(!el) return; const u = (typeof window.i18nT === "function" ? window.i18nT("л") : "л"); [...el.options].forEach(o => { o.textContent = `${o.value} ${u}`; }); refreshGlassSelect(el); });
+  }}
 function normalizeAuction(v){return String(v||"").toLowerCase().replace(/\s+/g,"")}function matchesAuction(item){let a=normalizeAuction(item.auction),s=$("auction")?.value||"copart";if(s==="copart")return a.includes("copart");if(s==="iaai")return a.includes("iaai");return a.includes("manheim")||a.includes("manhei")}
 function getFilteredLocations(){return (window.LOCATIONS||[]).filter(matchesAuction)}
 function initLocations(){let select=$("location");if(!select)return;select.innerHTML='<option value="">Выбери локацию</option>';const locs=getFilteredLocations();locs.forEach((item,i)=>{let o=document.createElement("option");o.value=String(i);o.textContent=item.displayName||"Локация";select.appendChild(o)});if(locs.length)select.value="0";refreshGlassSelect(select);updateLocation();}
