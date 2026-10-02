@@ -900,10 +900,17 @@ function buildSearchParams(query){
   // из-за которых прошлая попытка, похоже, увидела «0 результатов» и отказалась от параметров:
   // (1) сравнение EXCLUSIVE (строго «после»/«до», не включительно) — from=X&to=X для одного дня
   // при такой семантике и правда даёт пустой диапазон; (2) сравнение ПО КАЛЕНДАРНОМУ ДНЮ (UTC),
-  // формат ровно YYYY-MM-DD. Чтобы получить ВКЛЮЧИТЕЛЬНЫЙ диапазон «с X по Y», границы сдвигаются
-  // на 1 день (from-1, to+1) — shiftYmd ниже. Старый код эти параметры вообще не слал, тянул широкое
-  // окно через sale_date_in_days и обещал в комментарии «matchDateRange() на клиенте» — такой функции
-  // в файле не было: точный диапазон на самом деле НЕ применялся, live-фолбэк отдавал лишние даты.
+  // формат ровно YYYY-MM-DD. Старый код эти параметры вообще не слал, тянул широкое окно через
+  // sale_date_in_days и обещал в комментарии «matchDateRange() на клиенте» — такой функции в файле
+  // не было: точный диапазон на самом деле НЕ применялся, live-фолбэк отдавал лишние даты.
+  // ⚠️ АСИММЕТРИЯ from/to (нашёл при повторной проверке — чуть не сделал двойной сдвиг): клиент
+  // (auctions.js formParams(), строка «sale_date_to is exclusive — bump the "До" day by 1») УЖЕ
+  // сдвигает auctionDateTo на +1 день ДО отправки — это нужно для своего Postgres-запроса в
+  // searchFromDb (.lt. там же, без повторного сдвига, см. комментарий «dateTo приходит уже
+  // сдвинутым»). Этот же +1 ровно совпадает с тем, что нужно live-API для sale_date_to — значит
+  // sale_date_to сюда приходит УЖЕ готовым, сдвигать второй раз нельзя. auctionDateFrom клиент НЕ
+  // трогает (Postgres .gte. и так включительный) — для live-API это сырое значение, сдвиг -1 нужен
+  // именно здесь.
   const tabUpcoming = tab !== "buy_now" && tab !== "sold" && tab !== "archived";
   const hasExplicitDays = params.get("sale_date_in_days") || params.get("next_hours_auction");
   const userDateFrom = params.get("sale_date_from");
@@ -913,7 +920,7 @@ function buildSearchParams(query){
   if(tabUpcoming && !hasExplicitDays){
     if(userDateFrom || userDateTo){
       const fromShifted = userDateFrom ? shiftYmd(userDateFrom, -1) : null;
-      const toShifted = userDateTo ? shiftYmd(userDateTo, 1) : null;
+      const toShifted = userDateTo ? shiftYmd(userDateTo, 0) : null;   // уже +1 от клиента — только валидируем формат
       if(fromShifted) params.set("sale_date_from", fromShifted);
       if(toShifted) params.set("sale_date_to", toShifted);
       // Дата не распарсилась (не YYYY-MM-DD) — не шлём мусор в API (400), берём старое широкое окно.
