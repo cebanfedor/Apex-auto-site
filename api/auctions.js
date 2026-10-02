@@ -475,6 +475,17 @@ function makeFromTitle(title, year){
   if(!best) return null;
   return {make:best, model:rest.slice(best.length).trim()};
 }
+// Фид иногда отдаёт item.manufacturer/model от СТАРОЙ машины, переиспользовавшей номер лота: площадка обновляет
+// title/VIN/фото под новый автомобиль, а ссылка на марку/модель у поставщика феда — нет (02.10.2026, IAAI 40081510:
+// title «2015 Toyota Rav4 Le», VIN Toyota, но manufacturer/model = Tesla/Model Y — лот вылезал в каталоге по фильтру
+// «Tesla Model Y»). Title почти всегда содержит имя производителя целиком (оба поля — из одного источника феда);
+// если нет — доверять make_id/model_id для ФИЛЬТРА каталога нельзя. Title/VIN/фото не трогаем, только числовые id.
+function titleMakeMismatch(title, manufacturerName){
+  const mk = String(manufacturerName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if(mk.length < 3) return false;   // короткое/пустое имя — не на чем надёжно сверять
+  const t = String(title || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return t.length > 0 && !t.includes(mk);
+}
 
 // /archived-lots (simple_paginate=1) отдаёт числа и даты объектами {value, updated_at} — bid, final_bid, sale_date…
 // (26.09.2026: из-за этого ВСЕ закрытые лоты из этого фида писались живыми без финала и в архив не попадали). Разворачиваем на месте:
@@ -676,6 +687,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     if(!(best > 0 && best >= reserve)) return null;  // закрывающая ставка достигла резерва → продан
     return {bid:best, date:new Date(saleTsN).toISOString()};
   })();
+  const makeModelTrusted = !titleMakeMismatch(title, item?.manufacturer?.name || make);
 
   return {
     id:`${auction}-${lotNumber || item?.vin || Math.random().toString(36).slice(2)}`,
@@ -684,8 +696,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     year,
     make,
     model,
-    makeId:(item?.manufacturer && item.manufacturer.id) || null,
-    modelId:(item?.model && item.model.id) || null,
+    makeId:makeModelTrusted ? (item?.manufacturer && item.manufacturer.id) || null : null,
+    modelId:makeModelTrusted ? (item?.model && item.model.id) || null : null,
     generationId:(item?.generation && item.generation.id) || null,
     engineId:(item?.engine && item.engine.id) || null,
     vin:item?.vin || lot?.vin || "",
@@ -3717,8 +3729,8 @@ function syncRowFromItem(item, {archived = false} = {}){
     vin:normalized.vin || null,
     title:normalized.title || null,
     year:num(normalized.year),
-    make_id:enumId(item?.manufacturer),
-    model_id:enumId(item?.model),
+    make_id:num(normalized.makeId),
+    model_id:num(normalized.modelId),
     generation_id:enumId(item?.generation),
     vehicle_type_id:enumId(item?.vehicle_type),
     body_id:enumId(item?.body_type),
@@ -6243,3 +6255,5 @@ module.exports.computeComps = computeComps;
 module.exports.attachVinHistory = attachVinHistory;
 module.exports.shiftYmd = shiftYmd;
 module.exports.buildSearchParams = buildSearchParams;
+module.exports.titleMakeMismatch = titleMakeMismatch;
+module.exports.normalizeLot = normalizeLot;
