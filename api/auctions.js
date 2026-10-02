@@ -4320,6 +4320,46 @@ async function runBuyNowCheck(budgetMs = 44000){
       const ids = checkedIds.map(id => `"${String(id).replace(/"/g, "")}"`).join(",");
       await syncSbFetch(`/api_lots?id=in.(${ids})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({bn_checked_at:now})}).catch(() => {});
     }
+
+    // 02.10.2026 (Федор: «надо проверять такие байнау лоты чаще, чтобы мы видели актуальную информацию»):
+    // лоты «на утверждении» (status_id=4) БЕЗ Buy Now в выборку выше не попадали вовсе — её фильтр
+    // buy_now=gt.0 их отсекал, а другие кроны их тоже не трогают (syncsettle — только ±3ч от торгов,
+    // синк — только недавно изменившиеся). Именно они могли неделями висеть со вчерашним статусом
+    // в базе и на сайте, хотя IAAI/Copart часто вешают Buy Now на такой лот на следующее утро (Honda
+    // Clarity IAAI 46183031 — тот же кейс, что чинили час назад для подписок на алерты; здесь — то же
+    // самое для ВСЕХ таких лотов, не только тех, на кого подписались в Telegram). Отдельный бюджетный
+    // проход в том же кроне (не плодим новый): тот же bn_checked_at-кулдаун (~6ч) — хватает, чтобы
+    // поймать «на утро» в течение дня, не разгоняя расход API. Окно — 14 дней назад (дальше лот почти
+    // наверняка уже не оживёт, добьёт ночной sweep). upsertClosedLot сама решает: продан → в архив,
+    // появился Buy Now/статус сменился → «оживляет» строку, ничего не изменилось → не трогает.
+    const remain = budgetMs - (Date.now() - t0);
+    if(remain > 4000){
+      const apFrom = encodeURIComponent(new Date(Date.now() - 14 * 86400e3).toISOString());
+      const apUrl = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&status_id=eq.4&buy_now=eq.0&sale_date=gte.${apFrom}&sale_date=lte.${encodeURIComponent(new Date().toISOString())}&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutoff})&order=sale_date.desc&limit=120`;
+      const apRows = await syncSbFetch(apUrl).catch(() => null);
+      if(Array.isArray(apRows) && apRows.length){
+        out.approvalDue = apRows.length;
+        const t1 = Date.now(); let aIdx = 0; const apChecked = [];
+        const apWorker = async () => {
+          while(aIdx < apRows.length && Date.now() - t1 < remain - 1500){
+            const r = apRows[aIdx++]; apChecked.push(r.id);
+            try{
+              const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
+              out.checked++;
+              upsertClosedLot(lot);
+              if(Number(lot.buyNow) > 0) out.gotBuyNow = (out.gotBuyNow || 0) + 1;
+            }catch(e){ out.fail++; }
+          }
+        };
+        await Promise.all(Array.from({length:6}, apWorker));
+        if(apChecked.length){
+          const now2 = new Date().toISOString();
+          const ids2 = apChecked.map(id => `"${String(id).replace(/"/g, "")}"`).join(",");
+          await syncSbFetch(`/api_lots?id=in.(${ids2})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({bn_checked_at:now2})}).catch(() => {});
+        }
+      }
+    }
+
     out.ms = Date.now() - t0;
     return out;
   }
