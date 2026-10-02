@@ -10,6 +10,13 @@ const SEARCH_MIN_GAP_MS = 30 * 60e3;   // не чаще одного сообщ�
 const SEARCH_CHECK_GAP_MS = 5 * 60e3;
 const LOT_REMIND_MS = 60 * 60e3;
 const DAY_NOTIFY_HOUR = 10;              // «в день торгов» — в 10:00 по Кишинёву
+// 02.10.2026 (Федор: «машина появилась байнау, а ты этого пока так и не увидел» — IAAI/Copart часто
+// выставляют Buy Now на лот без резерва на следующее утро, не сразу после торгов). Раньше подписка
+// «умирала» ровно через 12ч после торгов без продажи (stage=3, active=false) и живой опрос лота
+// (liveLot) делался только в окне −3ч…+36ч от даты торгов — «утренний» Buy Now (12–24ч+ после торгов)
+// система уже не видела никогда. Теперь после «не продан» подписка не выключается, а продолжает
+// следить NOTSOLD_WATCH_MS — достаточно, чтобы поймать перевыставление на следующий день.
+const NOTSOLD_WATCH_MS = 4 * 24 * 3600e3;
 
 const TXT = {
   ru: {
@@ -260,10 +267,19 @@ function create(deps){
       for(const r of cr) copies[r.id] = r;
     }
     // Данные списка в базе могут отставать (лот продан на Timed, а в списке ещё «сегодня торги»): для ближайших лотов подписчиков
-    // спрашиваем сам лот — его дата и статус точнее.
+    // спрашиваем сам лот — его дата и статус точнее. Лоты в стадии 2 (торги прошли, исход ещё не «продан»/
+    // «не продан» навсегда) опрашиваем дольше — до NOTSOLD_WATCH_MS, а не только −3ч, иначе Buy Now,
+    // появившийся на следующее утро, никто не увидит (02.10.2026).
     const liveMap = {};
     if(liveLot){
-      const soonIds = [...new Set(live.filter(x => Number(x.stage) < 3 && (!x.sale_date || (Date.parse(x.sale_date) < now + 36 * 3600e3 && Date.parse(x.sale_date) > now - 3 * 3600e3))).map(x => x.lot_id))].slice(0, 60);
+      const soonIds = [...new Set(live.filter(x => {
+        const st = Number(x.stage) || 0;
+        if(st >= 3) return false;
+        if(!x.sale_date) return true;
+        const dt = Date.parse(x.sale_date);
+        if(dt < now + 36 * 3600e3 && dt > now - 3 * 3600e3) return true;
+        return st === 2 && now - dt < NOTSOLD_WATCH_MS;
+      }).map(x => x.lot_id))].slice(0, 60);
       for(let i = 0; i < soonIds.length; i += 8) await Promise.all(soonIds.slice(i, i + 8).map(async id => { try{ liveMap[id] = await liveLot(id); }catch(_){} }));
     }
     for(const s of live){
@@ -346,8 +362,14 @@ function create(deps){
             if(prefs.play) await say(T.playing(curTimed));
             patch.stage = 2; out.playing++;
           }else if(now - saleMs > 12 * 3600e3){
-            if(stage < 3 && prefs.play){ await say(T.notSold); out.notSold++; }
-            patch.stage = 3; patch.active = false;
+            // «Не продан» шлём один раз (флаг в state, не в stage — stage остаётся 2, иначе лот
+            // выпадает из soonIds и мы больше не узнаем о Buy Now/перевыставлении). Подписку глушим
+            // насовсем только после NOTSOLD_WATCH_MS без изменений — раньше это происходило сразу
+            // через 12ч, и «утренний» Buy Now никто уже не видел.
+            if(!st.notSold && prefs.play){ await say(T.notSold); out.notSold++; }
+            st.notSold = true;
+            patch.stage = 2;
+            if(now - saleMs > NOTSOLD_WATCH_MS){ patch.stage = 3; patch.active = false; }
           }
         }else{
           const hourKey = saleIso;
