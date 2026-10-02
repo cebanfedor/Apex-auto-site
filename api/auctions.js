@@ -2772,7 +2772,15 @@ async function searchFromDb(query){
     // клиент на странице лота тут же помечает как запрещённый. location — только в payload (не флэт-колонка).
     ands.push("or(state_code.neq.hi,state_code.is.null)");
     for(const city of ["Hawaii", "Honolulu", "Kapolei", "Kahului", "Hilo", "Wailuku", "Lihue"]) ands.push(`payload->>location.not.ilike.*${city}*`);
-    ands.push("or(fuel_id.neq.2,fuel_id.is.null,and(or(damage.is.null,damage.not.ilike.*water*),or(damage.is.null,damage.not.ilike.*flood*),or(document.is.null,document.not.ilike.*flood*)))");
+    // 02.10.2026 (Федор: «почему решил что гибрид/plug-in нельзя экспортировать?!», Hyundai Tucson PHEV
+    // IAAI 12688403): сырой fuel_id фида путает plug-in гибриды с электро (fuel_id=2 у лота, который по VIN —
+    // настоящий plug-in с бензиновым двигателем) — та же путаница, что чинили для fuel_x везде в проекте.
+    // «Электро» для бана должен определяться по fuel_x (vPIC), когда он уже проставлен; fuel_id — только
+    // запасной вариант для лотов, где fuel_x ещё null (зеркалит fuelKind-приоритет клиентского exportBan).
+    const notElectricExpr = fxOk
+      ? "or(fuel_x.neq.2,and(fuel_x.is.null,or(fuel_id.neq.2,fuel_id.is.null)))"
+      : "or(fuel_id.neq.2,fuel_id.is.null)";
+    ands.push(`or(${notElectricExpr},and(or(damage.is.null,damage.not.ilike.*water*),or(damage.is.null,damage.not.ilike.*flood*),or(document.is.null,document.not.ilike.*flood*)))`);
   }
   // Статус лота (мультивыбор): 10 скоро торги · 3 в продаже · 4 на одобрении · 6 продан · 8 не продан
   const stIds = String(query.get("lotStatus") || "").replace(/[^0-9,]/g, "").split(",").filter(x => x && x !== "8");

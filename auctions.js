@@ -1317,8 +1317,17 @@
     const loc = String(lot.location || "");
     if(/\(HI\)\s*$/i.test(loc) || /,\s*HI\b/i.test(loc) || /\b(hawaii|honolulu|kapolei|kahului|hilo|wailuku|lihue)\b/i.test(loc))
       return {kind:"hi", short:"Гавайи (HI)", long:"Штат Гавайи: вывоз автомобилей с островов невозможен, отправить такую машину в Молдову нельзя."};
-    const fuel = String(lot.fuel || "");
-    if(/electric|электро/i.test(fuel) && !/hybrid|гибрид/i.test(fuel) && /water|flood|затоп|утоп/i.test(`${lot.damage || ""} ${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.document || ""}`))
+    // 02.10.2026 (Федор: «почему решил что гибрид/plug-in нельзя экспортировать с Канады?!», Hyundai Tucson PHEV
+    // IAAI 12688403): сырой lot.fuel фида путает plug-in гибриды с электро (та же путаница, что и везде у fuel_id —
+    // см. «Тип силовой установки по VIN» в заметках) — у этого VIN fuel:"electric", а реальный тип по vPIC
+    // (lot.fuelKind, достовернее) — 5 (plug-in гибрид), есть обычный бензиновый двигатель 1.6 Turbo. Запрет
+    // экспорта должен бить ТОЛЬКО по настоящим BEV. Доверяем fuelKind, когда он определён; сырой текст — только
+    // как запасной вариант для лотов, где VIN ещё не разобран (fuelKind пуст).
+    const fuelKind = Number(lot.fuelKind);
+    const isElectric = Number.isFinite(fuelKind) && fuelKind > 0
+      ? fuelKind === 2
+      : (() => { const fuel = String(lot.fuel || ""); return /electric|электро/i.test(fuel) && !/hybrid|гибрид/i.test(fuel); })();
+    if(isElectric && /water|flood|затоп|утоп/i.test(`${lot.damage || ""} ${lot.primaryDamage || ""} ${lot.secondaryDamage || ""} ${lot.document || ""}`))
       return {kind:"evwater", short:"электромобиль после затопления", long:"Электромобиль с повреждением водой (Water/Flood): такие автомобили запрещены к экспорту."};
     return null;
   }
