@@ -1256,6 +1256,12 @@ async function fetchSearch(query){
         .filter(item => !isAll || !isEncar(item))
         .map(item => normalizeLot(item, isAll ? (item?.domain || auction) : auction))
         .filter(lot => !isFakeLot(lot))
+        // 02.10.2026 (аудит офиц. доки): search_query (поиск по номеру лота из умного поиска) «works
+        // best on its own: combined with other filters it can return vehicles outside them» — у нас
+        // он может уйти в одном запросе вместе с фильтрами боковой панели (make/body/...). Раз ищем
+        // ОДИН конкретный номер лота, просто отсекаем всё, что ему не равно — нейтрализует риск
+        // полностью, не трогая остальную логику.
+        .filter(lot => { const q = query.get("q"); return !q || !/^\d{6,10}$/.test(q) || String(lot.lot) === q; })
         // For live tabs strip definitively sold/unsold lots (status 6/8).
         // Don't filter by past auction date — recently ended lots may not have
         // status 6/8 yet (feed lag). sortItems("soon") puts future lots first,
