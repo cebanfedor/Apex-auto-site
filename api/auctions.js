@@ -3776,8 +3776,13 @@ function upsertClosedLot(lot){
       // finalBid навсегда (сайт показывал «ПРОДАНО», хотя фид уже говорил «не продан»).
       if(Number.isFinite(ts)){
         const rid = lot.auction + "-" + lot.lot;
+        // make_id/model_id: без них строка, однажды «ожившая» с чужой маркой (лот IAAI 40081510 — номер
+        // переиспользован под другую машину, см. titleMakeMismatch выше), оставалась в чужом фильтре каталога
+        // НАВСЕГДА — эта PATCH-ветка их раньше не трогала вовсе (только payload/ставки/дату). 02.10.2026.
+        const idOrNull = v => { const x = Number(v); return Number.isFinite(x) ? Math.round(x) : null; };
         preserveSoldCopies([rid]).then(() => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
           body:JSON.stringify({archived:false, status_id:lot.statusId || 3, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0,
+            make_id:idOrNull(lot.makeId), model_id:idOrNull(lot.modelId),
             sale_date:new Date(ts).toISOString(), payload:{...lot, finalBid:0}, synced_at:new Date().toISOString()})})).catch(() => {});
       }
       return;
