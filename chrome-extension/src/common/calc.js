@@ -11,6 +11,8 @@
   const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
   const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
   const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
+  // Фиксированные цены моря для «Бус» (vanLarge) по порту — синхронизировано с calc-core.js (02.10.2026).
+  const SEA_BUS={nj:3400,savannah:3550,houston:3650,la:4450};
 
   function interpolateFee(price){if(price<=0)return 0;for(let i=0;i<AUCTION_FEE_POINTS.length-1;i++){let [x1,y1]=AUCTION_FEE_POINTS[i],[x2,y2]=AUCTION_FEE_POINTS[i+1];if(price>=x1&&price<=x2){let fee=y1+(y2-y1)*((price-x1)/(x2-x1));return Math.ceil(fee/10)*10}}return Math.ceil(price*0.06/10)*10}
   // 29.09.2026: +$100 к аукционному сбору (США) — синхронизировано с calc-core.js.
@@ -77,10 +79,14 @@
     else if(type === "atv") sea = 1200;
     else {
       const port = (loc && loc.autoPort) || input.port || "nj";
-      sea = (SEA[port] && SEA[port].price) || 2400;
-      if(type === "crossover") sea += 100;
-      else if(type === "suv" || type === "suvLarge") sea += 300;
-      else if(type === "pickup" || type === "pickupLarge" || type === "pickupOversized" || type === "vanLarge") sea += 500;
+      if(type === "vanLarge" && SEA_BUS[port] != null){
+        sea = SEA_BUS[port];
+      }else{
+        sea = (SEA[port] && SEA[port].price) || 2400;
+        if(type === "crossover") sea += 100;
+        else if(type === "suv" || type === "suvLarge") sea += 300;
+        else if(type === "pickup" || type === "pickupLarge" || type === "pickupOversized" || type === "vanLarge") sea += 500;
+      }
       if(["hybrid","phev","electric"].includes(fuel)) sea += 100;
     }
 

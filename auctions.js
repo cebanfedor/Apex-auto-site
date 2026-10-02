@@ -123,7 +123,7 @@
   const RU_BODY = {
     sedan:"Седан",suv:"Внедорожник","sport utility vehicle":"Внедорожник",crossover:"Кроссовер",
     coupe:"Купе",convertible:"Кабриолет",hatchback:"Хэтчбек",wagon:"Универсал",liftback:"Лифтбек",
-    fastback:"Фастбек",roadster:"Родстер",pickup:"Пикап","pickup truck":"Пикап",van:"Минивен / Бус",
+    fastback:"Фастбек",roadster:"Родстер",pickup:"Пикап","pickup truck":"Пикап",van:"Бус",
     minivan:"Минивэн","cargo van":"Грузовой бус",truck:"Грузовик",motorcycle:"Мотоцикл",
     atv:"Квадроцикл",bus:"Автобус",limousine:"Лимузин","chassis cab":"Шасси-кабина"
   };
@@ -2722,7 +2722,7 @@
           <label class="calcOptColV1">
             <span>Тип кузова</span>
             <select id="lotCalcVehType" data-calc-input class="calcSelectV2">
-              ${["sedan","crossover","suv","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",pickup:"Пикап",vanLarge:"Минивен / Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
+              ${["sedan","crossover","suv","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",pickup:"Пикап",vanLarge:"Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
             </select>
           </label>
           <label class="calcOptColV1">

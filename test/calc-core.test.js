@@ -46,6 +46,18 @@ test("seaShippingFor: конечная положительная цена дл�
   }
 });
 
+test("seaShippingFor: Бус (vanLarge) — своя цена по порту, не формула «база+500», как у пикапа", () => {
+  for(const port of ["nj", "savannah", "houston", "la"]){
+    const bus = ApexCalc.seaShippingFor("vanLarge", "gasoline", port);
+    assert.ok(Number.isFinite(bus) && bus > 0, `Бус@${port} = ${bus}`);
+  }
+  const pickupNj = ApexCalc.seaShippingFor("pickup", "gasoline", "nj");
+  const busNj = ApexCalc.seaShippingFor("vanLarge", "gasoline", "nj");
+  assert.notEqual(busNj, pickupNj, "у Буса отдельная ставка, не общая «крупногабаритная» надбавка");
+  const busLa = ApexCalc.seaShippingFor("vanLarge", "gasoline", "la");
+  assert.ok(busLa > busNj, "дальний порт (CA) дороже ближнего (NJ) и для Буса тоже");
+});
+
 test("landShippingFor: без локации → 0, с локацией → конечно", () => {
   assert.equal(ApexCalc.landShippingFor(null, "sedan", false), 0);
   const land = ApexCalc.landShippingFor({landPrice: 500}, "suv", true);
