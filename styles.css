@@ -605,11 +605,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   .exportCurrencyRowV374 .currencyMiniV374 { order: 2; margin-left: auto; }
   .exportCurrencyRowV374 [data-usa-only] { order: 3; }
 }
-/* Блок преимуществ в форме калькулятора — заполняет пустоту слева (особенно в Канаде, где правая разбивка длиннее) */
-.calcTrustV1 { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: 10px; margin: 6px 0 2px; padding: 14px 16px; background: var(--bg, #f6f7f9); border: 1px solid var(--line, #e6e8ec); border-radius: 14px; }
-.calcTrustItemV1 { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; color: var(--ink-2, #3a4150); line-height: 1.35; }
-.calcTrustIcoV1 { flex: none; width: 19px; height: 19px; border-radius: 50%; background: #0a8f3c; color: #fff; font-size: 11px; font-weight: 800; line-height: 19px; text-align: center; margin-top: 1px; }
-@media (max-width: 640px){ .calcTrustV1 { flex: 0 0 auto; padding: 12px 14px; gap: 8px; } .calcTrustItemV1 { font-size: 12.5px; } }
 
 .currencyBox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .currency { height: 38px; padding: 0 18px; border: 1px solid var(--field-line); border-radius: 9px; background: var(--field); font-weight: 700; font-size: 14px; color: var(--ink-2); transition: all 0.18s; }
