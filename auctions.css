@@ -842,7 +842,10 @@ body.leadModalOpenV1 { overflow:hidden; }
   .histDateV1 { font-size:12px; }
   /* Калькулятор: подписи селектов в одну строку, опции-пилюли чуть компактнее под 3 колонки */
   .calcOptColV1 > span { font-size:9px; letter-spacing:.03em; white-space:nowrap; }
-  .calcPairV1 { gap:5px; }
+  /* 02.10.2026 (аудит мобильной): 4 равные колонки на 375px оставляли select'у ~70px — «Кроссовер»
+     обрезался нативным select'ом до «Кроссове» (читать нельзя, что выбрано). 2×2, как у калькулятора
+     на главной (тип ТС/топливо и объём/год тоже в два столбца на мобильном) — вдвое больше места. */
+  .calcPairV1 { grid-template-columns:1fr 1fr; gap:5px; }
   .calcPairRowV1 { gap:5px; }
   .calcPairRowV1 .calcOptV2 { font-size:9.5px; padding:6px 4px; gap:3px; border-radius:10px; }
   .calcPairRowV1 .calcOptV2 input { width:12px; height:12px; }
