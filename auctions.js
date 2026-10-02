@@ -776,7 +776,7 @@
   // Фид отдаёт локацию строчными («laurel, maryland») — приводим к Title Case для показа.
   function titleCaseLoc(s){ return String(s || "").trim().toLowerCase().replace(/(^|[\s,(-])([a-zа-яё])/g, (m, p, c) => p + c.toUpperCase()); }
   function landRouteLabel(lot){ const from = titleCaseLoc(lot.location) || "Локация США"; return `${from} → порт США`; }
-  function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : "порт США"); return `${port} → Кишинёв`; }
+  function seaRouteLabel(lot){ const port = lot.port || (String(lot.location||"").toLowerCase().includes("tx") ? "Houston" : L("порт США")); return `${port} → ${L("Кишинёв")}`; }
 
   // Реальный тип силовой установки по VIN (NHTSA vPIC), приходит с сервера как lot.fuelKind: 1 дизель · 2 электро · 3 гибрид · 4 бензин (в т.ч. mild-hybrid) · 5 plug-in гибрид
   const FUEL_KIND = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"phev"};
@@ -978,8 +978,8 @@
       brokerUsd:Math.round(brokerUtilMdl / usdMdl),
       customsUsd, total, totalMdl:Math.round(totalMdl), totalEur:Math.round(totalMdl / eurMdl),
       kind, green, usdMdl, eurMdl,
-      dispatchRoute:`${caLoc.name ? String(caLoc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") : "Канада"} → Монреаль`,
-      seaRoute:"Монреаль → Клайпеда → Кишинёв"
+      dispatchRoute:`${caLoc.name ? String(caLoc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") : L("Канада")} → ${L("Монреаль")}`,
+      seaRoute:`${L("Монреаль")} → ${L("Клайпеда")} → ${L("Кишинёв")}`
     };
   }
 
@@ -1016,7 +1016,7 @@
       totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
       kind, green:["hybrid","phev","electric"].includes(fuel), usdMdl, eurMdl,
       landRoute: r.route || landRouteLabel(lot),
-      seaRoute: r.port ? `${r.port} → Кишинёв` : seaRouteLabel(lot)
+      seaRoute: r.port ? `${r.port} → ${L("Кишинёв")}` : seaRouteLabel(lot)
     };
   }
 

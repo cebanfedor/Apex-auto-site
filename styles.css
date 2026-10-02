@@ -599,6 +599,8 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .exportCurrencyRowV374 .infoTipV65 { width: 15px; height: 15px; font-size: 10px; }
 .currencyMiniV374 { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
 .currencyMiniV374 .currency { height: 27px; padding: 0 7px; font-size: 11px; border-radius: 8px; }
+/* Телефон: ряд переносится — валюту не прижимаем вправо (чтобы не висела одна справа), ставим слева под чекбоксами */
+@media (max-width: 560px){ .exportCurrencyRowV374 .currencyMiniV374 { margin-left: 0; } }
 
 .currencyBox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .currency { height: 38px; padding: 0 18px; border: 1px solid var(--field-line); border-radius: 9px; background: var(--field); font-weight: 700; font-size: 14px; color: var(--ink-2); transition: all 0.18s; }
