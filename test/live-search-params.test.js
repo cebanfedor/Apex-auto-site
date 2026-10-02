@@ -77,3 +77,29 @@ test("buildSearchParams: tab=archived/sold/buy_now — дата-окно не п
   assert.strictEqual(params.get("sale_date_from"), null);
   assert.strictEqual(params.get("sale_date_in_days"), null);
 });
+
+// 02.10.2026 (аудит офиц. доки): body_type/transmission/drive_wheel/condition/vehicle_type/cylinders
+// принимают только ОДНО значение у /cars (не массив, как domain_id) — доки прямо называют «unknown
+// transmission/drive_wheel» среди причин 400. Каталог отдаёт их чекбоксами (мультивыбор) — при 2+
+// выбранных генерик-петля раньше слала «1,2» как есть, рискуя уронить ВЕСЬ live-фолбэк-запрос 400-кой.
+test("buildSearchParams: мультивыбор condition/body/transmission/drive/vehicleType/cylinders НЕ шлётся в API как CSV (защита от 400)", () => {
+  const q = new URLSearchParams({condition:"0,3", body:"1,5", transmission:"1,2", drive:"1,2", vehicleType:"1,2", cylinders:"4,6"});
+  const params = buildSearchParams(q);
+  assert.strictEqual(params.get("condition"), null);
+  assert.strictEqual(params.get("body_type"), null);
+  assert.strictEqual(params.get("transmission"), null);
+  assert.strictEqual(params.get("drive_wheel"), null);
+  assert.strictEqual(params.get("vehicle_type"), null);
+  assert.strictEqual(params.get("cylinders"), null);
+});
+
+test("buildSearchParams: ОДНО значение condition/body/... — шлётся в API как есть (не затронуто фиксом)", () => {
+  const q = new URLSearchParams({condition:"0", body:"5", transmission:"1", drive:"3", vehicleType:"1", cylinders:"4"});
+  const params = buildSearchParams(q);
+  assert.strictEqual(params.get("condition"), "0");
+  assert.strictEqual(params.get("body_type"), "5");
+  assert.strictEqual(params.get("transmission"), "1");
+  assert.strictEqual(params.get("drive_wheel"), "3");
+  assert.strictEqual(params.get("vehicle_type"), "1");
+  assert.strictEqual(params.get("cylinders"), "4");
+});

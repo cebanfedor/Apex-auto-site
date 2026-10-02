@@ -861,6 +861,17 @@ function buildSearchParams(query){
     if(from === "damage" && value) value = damageTerms(value)[0] || "";
     if(value) params.set(to, value);
   }
+  // 02.10.2026 (аудит офиц. доки): body_type/transmission/drive_wheel/condition/vehicle_type —
+  // ОДНО числовое значение, не массив (как domain_id; доки прямо перечисляют «unknown transmission/
+  // drive_wheel» среди причин 400). Фильтры в каталоге — чекбоксы (мультивыбор), генерик-петля выше
+  // слала «1,2» как есть → на live-фолбэке такой запрос падал бы 400 и ронял ВЕСЬ поиск, не только
+  // этот фильтр. Модель/fuel уже были защищены так же (см. ниже/выше) — теперь остальные тоже:
+  // при мультивыборе параметр вообще не шлём в API (дофильтровываем в normalizeItems ниже), один
+  // выбранный — шлём как есть.
+  for(const key of ["body_type", "transmission", "drive_wheel", "condition", "vehicle_type", "cylinders"]){
+    const v = params.get(key);
+    if(v && v.includes(",")) params.delete(key);
+  }
   const fuelCsv = String(query.get("fuel") || "");
   if(/^\d+$/.test(fuelCsv)) params.set("fuel_type", fuelCsv === "5" ? "3" : fuelCsv);
   // Поколение из нашей таблицы (синтетический id) → диапазон лет вместо generation_id.
@@ -1268,6 +1279,48 @@ async function fetchSearch(query){
           if(eng.from == null && eng.to == null) return true;
           const l = engineLitersOf(lot.engine);
           return l > 0 && (eng.from == null || l >= eng.from) && (eng.to == null || l <= eng.to);
+        })
+        // Мультивыбор состояния (live, найдено аудитом 02.10.2026): фильтр «Состояние» в каталоге —
+        // чекбоксы (мультивыбор), но /cars принимает только ОДНО числовое значение condition
+        // (как domain_id/transmission/drive_wheel — не массив, CSV не задокументирован). Генерик-map
+        // слал «0,3» как есть — для большинства таких параметров доки говорят, что невалидное
+        // значение вернёт 400. Остальные значения, кроме первого, дофильтровываем здесь по тексту
+        // lot.condition (тот же приём, что уже был для damage/model/fuel).
+        .filter(lot => {
+          const ids = String(query.get("condition") || "").split(",").filter(x => /^\d+$/.test(x));
+          if(ids.length < 2) return true;
+          const names = {0:"run_and_drives", 1:"for_repair", 2:"to_be_dismantled", 3:"not_run", 4:"used", 5:"unconfirmed", 6:"engine_starts", 7:"enhanced"};
+          const c = String(lot.condition || "").toLowerCase();
+          return ids.some(id => names[id] && c === names[id]);
+        })
+        // Мультивыбор кузова (live, тот же класс бага, что у condition выше)
+        .filter(lot => {
+          const ids = String(query.get("body") || "").split(",").filter(x => /^\d+$/.test(x));
+          if(ids.length < 2) return true;
+          const names = {1:"sedan", 2:"wagon", 3:"coupe", 4:"pickup", 5:"suv", 6:"cabrio", 7:"van", 8:"moto", 9:"furgon", 10:"combi", 11:"hatchback", 12:"roadster", 13:"limousine", 14:"truck"};
+          const b = String(lot.body || "").toLowerCase();
+          return ids.some(id => names[id] && b === names[id]);
+        })
+        // Мультивыбор привода (live) — lot.drive уже человекочитаемый (driveLabel): AWD/FWD/RWD/4×4
+        .filter(lot => {
+          const ids = String(query.get("drive") || "").split(",").filter(x => /^\d+$/.test(x));
+          if(ids.length < 2) return true;
+          const names = {1:"RWD", 2:"FWD", 3:"AWD"};
+          return ids.some(id => names[id] && lot.drive === names[id]);
+        })
+        // Мультивыбор КПП (live)
+        .filter(lot => {
+          const ids = String(query.get("transmission") || "").split(",").filter(x => /^\d+$/.test(x));
+          if(ids.length < 2) return true;
+          const names = {1:"automatic", 2:"manual"};
+          const t = String(lot.transmission || "").toLowerCase();
+          return ids.some(id => names[id] && t === names[id]);
+        })
+        // Мультивыбор цилиндров (live) — lot.cylinders уже строка-число из фида
+        .filter(lot => {
+          const vals = String(query.get("cylinders") || "").split(",").filter(x => /^\d+$/.test(x));
+          if(vals.length < 2) return true;
+          return vals.includes(String(lot.cylinders || "").trim());
         })
         // Мультивыбор моделей (live): фид принимает одну — остальные отсекаем здесь
         .filter(lot => {
