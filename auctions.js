@@ -4260,6 +4260,10 @@
     let manufacturers = [];
     let models = [];
     let generations = [];
+    // 02.10.2026 (Федор: «на странице лота года по поколениям пишешь, а в фильтрах — нет»): на лоте
+    // крошки подмешивают годы к названию (fromYear–toYear · код), а список в панели фильтров показывал
+    // голый код кузова без годов — то же самое оформление здесь, чтобы было видно, что за поколение выбираешь.
+    const withGenYears = items => (items || []).map(g => ({...g, name:(g.fromYear ? `${g.fromYear}–${g.toYear || "…"} · ` : "") + g.name}));
 
     function resetGenerations(){
       generations = [];
@@ -4357,7 +4361,7 @@
       resetGenerations();
       if(ms.models.length !== 1){ if(genInput) setPhV1(genInput, ms.models.length > 1 ? "Выберите одну модель" : "Сначала выберите модель"); return; }
       if(genInput) setPhV1(genInput, "Загрузка поколений…");
-      try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(ms.models[0].id)}`); generations = r.items || []; }
+      try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(ms.models[0].id)}`); generations = withGenYears(r.items); }
       catch(e){ generations = []; }
       if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
     }
@@ -4758,7 +4762,7 @@
       ms.models = mdIds.map(id => { for(const mk of ms.makes){ const f = (modelsCache[mk.id] || []).find(x => x.id === id); if(f) return {id, name:f.name, makeId:mk.id}; } return null; }).filter(Boolean);
       renderMakes(); renderModels();
       if(ms.models.length === 1){
-        try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(ms.models[0].id)}`); generations = r.items || []; }catch(e){ generations = []; }
+        try{ const r = await api(`/api/auctions?action=generations&model_id=${encodeURIComponent(ms.models[0].id)}`); generations = withGenYears(r.items); }catch(e){ generations = []; }
         if(genInput) setPhV1(genInput, generations.length ? "Любое поколение" : "Поколения не найдены");
         if(gn && genInput && !genInput.value){ const g = generations.find(x => String(x.id) === String(gn)); if(g) genInput.value = g.name; }
       }
