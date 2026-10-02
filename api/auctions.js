@@ -4409,15 +4409,21 @@ async function runBuyNowCheck(budgetMs = 44000){
   // запросы только на новые/подгоревшие лоты — расход падает в разы. ──
   if(await bnColReady()){
     const now = Date.now();
-    const winFrom = encodeURIComponent(new Date(now - 2 * 3600e3).toISOString());
+    // 02.10.2026 (Федор, Mercedes GLS IAAI 45986218: «забрал байнау, ты этого не видишь»): окно начиналось
+    // с now−2ч — лоты, купленные по Buy Now ПОСЛЕ дня торгов (на следующий день и т.п.), в опрос не попадали
+    // вовсе. Пост-аукционный выкуп — ровно когда реально покупают не-проданный лот. Расширяю окно на 3 дня
+    // назад; «после-торговым» buy-now даю отдельный кулдаун 2ч (не 20-мин «urgent», чтобы не разгонять расход).
+    const winFrom = encodeURIComponent(new Date(now - 3 * 86400e3).toISOString());
     const winTo = encodeURIComponent(new Date(now + 21 * 86400e3).toISOString());
+    const nowIso = encodeURIComponent(new Date(now).toISOString());
     const urgentEdge = encodeURIComponent(new Date(now + 4 * 3600e3).toISOString());
     const soonEdge = encodeURIComponent(new Date(now + 3 * 86400e3).toISOString());
     const cutUrgent = encodeURIComponent(new Date(now - BN_COOLDOWN_URGENT_MS).toISOString());
     const cutSoon = encodeURIComponent(new Date(now - BN_COOLDOWN_SOON_MS).toISOString());
     const cutFar = encodeURIComponent(new Date(now - BN_COOLDOWN_MS).toISOString());
     const dueExpr = `or=(bn_checked_at.is.null,` +
-      `and(sale_date.lte.${urgentEdge},bn_checked_at.lt.${cutUrgent}),` +
+      `and(sale_date.lte.${nowIso},bn_checked_at.lt.${cutSoon}),` +                                  // пост-аукционный buy-now (дата прошла) — 2ч
+      `and(sale_date.gt.${nowIso},sale_date.lte.${urgentEdge},bn_checked_at.lt.${cutUrgent}),` +      // ≤4ч до торгов — 20 мин
       `and(sale_date.gt.${urgentEdge},sale_date.lte.${soonEdge},bn_checked_at.lt.${cutSoon}),` +
       `and(sale_date.gt.${soonEdge},bn_checked_at.lt.${cutFar}))`;
     const url = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${winFrom}&sale_date=lte.${winTo}&${dueExpr}&order=sale_date.asc&limit=250`;
@@ -4500,7 +4506,7 @@ async function runBuyNowCheck(budgetMs = 44000){
   // Сужаю окно до +21 дня (актуальный «Buy Now скоро» горизонт, дальние лоты не нуждаются в проверке
   // раз в минуты — их подхватят syncsettle/syncclosed по факту прошедшей даты) и режу лимит 900→250 —
   // это одновременно и чаще освежает действительно горящий пул (круг короче), и режет потолок до ~5000/ч.
-  const q = (extra, lim) => `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString())}&sale_date=lte.${encodeURIComponent(new Date(Date.now() + 21 * 86400e3).toISOString())}${extra}&order=sale_date.asc,id.asc&limit=${lim}`;
+  const q = (extra, lim) => `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 3 * 86400e3).toISOString())}&sale_date=lte.${encodeURIComponent(new Date(Date.now() + 21 * 86400e3).toISOString())}${extra}&order=sale_date.asc,id.asc&limit=${lim}`;
   const after = cur.sd ? `&or=(sale_date.gt.${encodeURIComponent(cur.sd)},and(sale_date.eq.${encodeURIComponent(cur.sd)},id.gt.${encodeURIComponent(cur.id || "")}))` : "";
   let rows = await syncSbFetch(q(after, 250)).catch(() => null);
   if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
