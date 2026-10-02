@@ -41,9 +41,9 @@ function esc(s){
     if(!m) return String(v || "");
     var n = Number(m[1].replace(/[\s.,]/g, ""));
     if(!isFinite(n) || n <= 0) return String(v || "");
-    return n.toLocaleString("en-US").replace(/,/g, "\u00a0") + "\u00a0" + (m[2] || "км").toLowerCase().replace("miles", "миль").replace("mi", "миль").replace("km", "км");
+    return n.toLocaleString("en-US").replace(/,/g, "\u00a0") + "\u00a0" + T((m[2] || "км").toLowerCase().replace("miles", "миль").replace("mi", "миль").replace("km", "км"));
   }
-  function fmtEngine(v){ var s = String(v == null ? "" : v).trim(); return /^\d(\.\d)?$/.test(s) ? s + "\u00a0л" : s; }
+  function fmtEngine(v){ var s = String(v == null ? "" : v).trim(); return /^\d(\.\d)?$/.test(s) ? s + "\u00a0" + T("л") : s; }
   function fmtFuel(v){ var s = String(v == null ? "" : v).trim(); var r = FUEL_RU[s.toLowerCase()]; return r ? T(r) : s; }
 
   function money(n){ return n ? "$" + Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : ""; }
