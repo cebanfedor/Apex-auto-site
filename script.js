@@ -3,8 +3,8 @@ const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",
 function getDeliveryWeeks(){const port=selectedLocation?.autoPort||null;if(!port)return"6–11 недель";if(port==="la")return"9–11 недель";if(port==="houston"||port==="indianapolis")return"7–9 недель";return"6–8 недель";}
 
 // Горизонтальный таймлайн (степпер) этапов доставки — заполняет форму калькулятора (под курсами).
-// Этапы ОДНИ И ТЕ ЖЕ для США и Канады (4 шага); отличается только итоговый срок «Срок под ключ»
-// (weeksText — реальный getDeliveryWeeks()/канадский расчёт). `mode` оставлен для совместимости.
+// Этапы ОДНИ И ТЕ ЖЕ для США и Канады (4 шага). Итоговый «Срок под ключ» НЕ дублируем здесь —
+// он уже показан в разбивке справа («Срок до Кишинёва»). `mode`/`weeksText` оставлены для совместимости.
 function renderCalcStages(mode, weeksText){
   const box = document.getElementById("calcStagesV1");
   if(!box) return;
@@ -19,8 +19,7 @@ function renderCalcStages(mode, weeksText){
   const items = stages.map(x => `<li class="csStepV1"><span class="csDotV1" aria-hidden="true">${x.ic}</span><span class="csTtlV1">${x.t}</span>${x.d ? `<span class="csDurV1">${x.d}</span>` : ""}</li>`).join("");
   box.innerHTML = `
     <div class="csHeadV1">Как авто доедет до Кишинёва</div>
-    <ol class="csListV1">${items}</ol>
-    <div class="csFootV1"><span class="csFootLblV1">Срок под ключ</span>: <b>${weeksText || ""}</b></div>`;
+    <ol class="csListV1">${items}</ol>`;
 }
 const YEAR_NOW=new Date().getFullYear();
 /* Таблицы акциза/роскоши/аукционного сбора и функции по ним ЖИВУТ в calc-core.js
