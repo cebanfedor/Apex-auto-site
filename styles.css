@@ -642,6 +642,8 @@ details > summary::-webkit-details-marker { display: none; }
 /* result card */
 .resultCard { background: linear-gradient(165deg, var(--dark), var(--dark-2)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-lg); padding: 18px; color: #e8eaee; display: flex; flex-direction: column; box-shadow: var(--shadow); overflow: hidden; }
 .resultCard .actions { margin-top: auto; }
+/* отступ между «Срок до Кишинёва» и кнопкой «Скопировать расчет» */
+.resultCard .calcDeliveryV366 { margin-bottom: 16px; }
 .formCard > button[type="submit"] { margin-top: auto; }
 .resultHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .route, .topRoute { font-size: 14px; color: rgba(255, 255, 255, 0.7); font-weight: 500; }
