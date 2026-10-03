@@ -3223,11 +3223,17 @@
   // 03.10.2026 (Федор: «доставка - таможня - комиссия итд, укажи эти расходы») — короткая раскладка
   // суммы «под ключ», чтобы цифра не выглядела взятой с потолка. calcLotTotal (тот же расчёт, что
   // и сама цифра турникея) у США и Канады отдаёт разные поля — своя логистика сводится в один пункт.
-  // 03.10.2026 (Федор: «зачем ты в доставку-таможню пишешь сборы и стоимость лота?! для этого я и
-  // написал!!!») — ставка и аукционный сбор уже видны строками выше (Текущая ставка/Резерв продавца),
-  // в этой строке им не место вообще: ни в раскладке, ни в самой сумме заголовка. Отдаёт сумму ТОЛЬКО
-  // доставки+таможни+страховки+комиссии (без цены лота и аукционного сбора) и построчную раскладку —
-  // цифры в заголовке и под ним теперь совпадают друг с другом.
+  // 03.10.2026 (Федор, зол на предыдущую версию):
+  // 1) «откуда такая комиссия, когда она у меня 300дол» — «Комиссия» ДОЛЖНА быть company-сбор
+  //    (companyFeeFor = фикс $300 для обычных лотов), а я туда же приплюсовывал paymentFee (1% —
+  //    «комиссия на оплату») и exportDocs, отсюда $521 вместо $300.
+  // 2) «почему нельзя написать что страховка 1% (если победная ставка неизвестна)» — insuranceFor
+  //    и paymentFeeFor ОБЕ считаются как 1% от цены лота (calc-core.js), а цена лота на активных
+  //    торгах — это наша ПРИКИДКА (ориентир/Buy Now), не факт. Вместо выдуманного доллара от
+  //    прикидочной базы — показываем формулой (1%), это и точнее, и честнее.
+  // 3) «зачем пишешь общую цену, если она ниже расписана» — убрал сумму из заголовка строки вовсе,
+  //    только название + раскладка (доставка/таможня — у них dollar-сумма стабильна и НЕ зависит
+  //    от того, насколько точна наша прикидка цены лота, в отличие от страховки/комиссии на оплату).
   function tgBreakdown(lot, basis){
     try{
       const c = calcLotTotal(lot, {bid:basis, insurance:true});
@@ -3235,16 +3241,13 @@
         ? (c.dispatch || 0) + (c.bankFee || 0) + (c.keeper || 0) + (c.ocean || 0) + (c.road || 0) + (c.canadaFee || 0)
         : (c.land || 0) + (c.sea || 0);
       const customs = (c.customsUsd || 0) + (c.brokerUsd || 0);
-      const insurance = c.insurance || 0;
-      const commission = (c.service || 0) + (c.paymentFee || 0) + (c.exportDocs || 0);
       const lines = [];
       if(logistics) lines.push(`Доставка: ${money(Math.round(logistics))}`);
       if(customs) lines.push(`Таможенное оформление: ${money(customs)}`);
-      if(insurance) lines.push(`Страховка: ${money(insurance)}`);
-      if(commission) lines.push(`Комиссия: ${money(Math.round(commission))}`);
-      const total = Math.round(logistics) + Math.round(customs) + Math.round(insurance) + Math.round(commission);
-      return {lines, total};
-    }catch(_){ return {lines:[], total:0}; }
+      lines.push(`Страховка: 1% от цены лота`);
+      lines.push(`Комиссия: ${money(c.service || 300)} (+1% при оплате в MDL)`);
+      return lines;
+    }catch(_){ return []; }
   }
   // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
   function buildTgCaption(lot, tpl){
@@ -3286,13 +3289,12 @@
     // под ключ в Кишинёве — отдельная строка ниже, её и так не спутать).
     const bandLine = band ? `📊 Ориентир на аукционе: <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
     // 03.10.2026 (Федор: «не пиши слово под ключ, пиши "Доставка - таможня - комиссия"», затем:
-    // «зачем в доставку-таможню пишешь сборы и стоимость лота?!») — и заголовок, и раскладка под
-    // ним — ТОЛЬКО сумма доставки+таможни+страховки+комиссии, без цены лота и аукционного сбора
-    // (те уже видны в «Текущая ставка»/«Резерв продавца» выше). Числа в заголовке и в раскладке
-    // теперь одного происхождения — обязаны совпасть.
-    const extras = tgBreakdown(lot, turnkeyBasis);
-    const turnkeyHead = extras.total ? `🚗 Доставка - таможня - комиссия: <b>≈ ${money(extras.total)}</b>` : "";
-    const turnkeyBreakdown = extras.lines.map(x => `   – ${e(x)}`).join("\n");
+    // «зачем в доставку-таможню пишешь сборы и стоимость лота?!», затем: «зачем пишешь общую цену,
+    // если она ниже расписана!») — только заголовок-подпись БЕЗ суммы (страховка/комиссия на оплату
+    // внизу — формулой в процентах, не долларом: вместе их в одну цифру уже не сложить осмысленно).
+    const breakdownLines = tgBreakdown(lot, turnkeyBasis);
+    const turnkeyHead = breakdownLines.length ? `🚗 <b>Доставка - таможня - комиссия:</b>` : "";
+    const turnkeyBreakdown = breakdownLines.map(x => `   – ${e(x)}`).join("\n");
     // «Коротко» — без раскладки (сама суть шаблона), везде ещё — полная расшифровка под итогом.
     const turnkeyLine = [turnkeyHead, turnkeyBreakdown].filter(Boolean).join("\n");
     const dateLabel = tgDateLabel(lot);
@@ -3308,7 +3310,9 @@
       return [head, "", L1, specs, "", priceLine, reserveLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "short"){
-      return [L1, specs, priceLine, turnkeyHead, "", link, tags].filter(Boolean).join("\n").trim();
+      // Без цельной цифры «под ключ» (см. выше) короткому шаблону показывать нечего — сама
+      // раскладка многострочная и для «Коротко» не подходит; оставляем только ставку и ссылку.
+      return [L1, specs, priceLine, "", link, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
     return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
