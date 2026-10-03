@@ -3179,24 +3179,27 @@
     }catch(_){ /* не админ — кнопки остаются скрытыми */ }
   }
   const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
-  // 03.10.2026 (Федор: «характеристики пиши по одной в строчку») — раньше склеивались через
-  // « · » в 1-2 строки («13 129 миль ≈ 21 129 км · Заводится и едет · Undercarriage»), читать
-  // в Telegram неудобно. Возвращают МАССИВ отдельных характеристик, buildTgCaption кладёт
-  // каждую на свою строку.
+  // 03.10.2026 (Федор прислал живой пример поста Kia Sorento — «давай вот так описание сделаем»):
+  // пробег ОТДЕЛЬНОЙ строкой, состояние+повреждение вместе (связанные факты), мотор/топливо/привод/
+  // КПП вместе отдельной строкой — полностью «по одной характеристике в строке» (прошлая правка
+  // этого же дня) оказалось мельче, чем нужно. tgSpecs отдаёт МАССИВ ГОТОВЫХ СТРОК (не отдельных
+  // значений) — buildTgCaption просто кладёт их через \n, ничего больше не склеивая.
   function tgSpecs(lot){
-    const p = [];
-    try{ const od = dbOdo(lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer) + " mi" : "")); if(od) p.push(od); }catch(_){}
-    try{ const ci = conditionInfo(lot.condition); if(ci && ci.label) p.push(ci.label); }catch(_){ if(lot.condition) p.push(lot.condition); }
+    const lines = [];
+    try{ const od = dbOdo(lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer) + " mi" : "")); if(od) lines.push(od); }catch(_){}
+    const condDmg = [];
+    try{ const ci = conditionInfo(lot.condition); if(ci && ci.label) condDmg.push(ci.label); }catch(_){ if(lot.condition) condDmg.push(lot.condition); }
     const dmg = lot.primaryDamage || lot.damage;
-    if(dmg) p.push(dmg);
-    return p;
+    if(dmg) condDmg.push(dmg);
+    if(condDmg.length) lines.push(condDmg.join(" · "));
+    return lines;
   }
   function tgDrive(lot){
     const fk = TG_FUEL[lot.fuelKind] || lot.fuel || "";
     const liters = String(lot.engine || "").match(/(\d[.,]\d)\s*l/i);
     const eng = liters ? liters[1].replace(",", ".") + "L" : "";
     const tr = /auto/i.test(lot.transmission || "") ? "Автомат" : /manu/i.test(lot.transmission || "") ? "Механика" : (lot.transmission || "");
-    return [eng, fk, lot.drive, tr].filter(Boolean);
+    return [eng, fk, lot.drive, tr].filter(Boolean).join(" · ");
   }
   function tgLotUrl(lot){ try{ return location.origin + "/auctions/" + lotSlug(lot); }catch(_){ return location.href; } }
   function tgHashtags(lot){
@@ -3206,26 +3209,24 @@
     const dyn = [slug(lot.make), slug((lot.model || "").split(" ")[0]), lot.auction ? slug(lot.auction) : "", TG_FUEL[lot.fuelKind] === "Plug-in гибрид" ? "plugin" : ""].filter(Boolean);
     return [...new Set([...fixed, ...dyn])].map(t => "#" + t).join(" ");
   }
-  // 03.10.2026 (Федор: «это Таймед аукцион, пиши торги сегодня ночью в ХХХ»): Timed у IAAI закрывается
-  // В ТУ ЖЕ НОЧЬ (см. правило в проекте — Timed никогда не «на следующей неделе», это не обычная дата
-  // торгов) — календарная дата закрытия (часто уже следующее число из-за ночных часов) читалась как
-  // «торги когда-то потом», хотя реально лот играет прямо сейчас/сегодня вечером-ночью.
-  function tgSaleDate(lot){
-    const d = lot.auctionDate ? new Date(lot.auctionDate) : null;
-    if(!d || isNaN(d)) return "";
-    if(lot.timed){
-      const hh = String(d.getHours()).padStart(2, "0"), mm = String(d.getMinutes()).padStart(2, "0");
-      return `сегодня ночью в ${hh}:${mm}`;
-    }
-    return d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"});
+  function tgSaleDate(lot){ const d = lot.auctionDate ? new Date(lot.auctionDate) : null; return (d && !isNaN(d)) ? d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"}) : ""; }
+  // 03.10.2026 (Федор: «это Таймед аукцион, пиши торги сегодня ночью в ХХХ», затем живой пример Kia
+  // Sorento — «Торги сегодня ночью: 4 октября»): Timed у IAAI закрывается В ТУ ЖЕ НОЧЬ (см. правило
+  // в проекте), голая календарная дата («Торги: 4 октября») читается как «когда-то потом», хотя лот
+  // играет сегодня вечером-ночью — дату саму НЕ убираем (часто уже следующее число из-за ночных часов,
+  // и это та дата, что увидят, открыв пост утром), только добавляем «сегодня ночью» для обычных Timed.
+  function tgDateLabel(lot){
+    const d = tgSaleDate(lot);
+    if(!d) return "";
+    return lot.timed ? `Торги сегодня ночью: ${d}` : `Торги: ${d}`;
   }
   // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
   function buildTgCaption(lot, tpl){
     const e = escapeHtml;
     const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
-    // 03.10.2026 (Федор: «характеристики пиши по одной в строчку») — каждое значение своей
-    // строкой вместо «13 129 миль · Заводится и едет · Undercarriage» одной склеенной строкой.
-    const specs = tgSpecs(lot).map(e).join("\n"), drive = tgDrive(lot).map(e).join("\n");
+    const specs = tgSpecs(lot).map(e).join("\n"), drive = e(tgDrive(lot));
+    const isCaLot = !!findCanadaLocation(lot);
+    const money1 = v => isCaLot ? moneyCad(v) : money(v);
     const bid = Number(lot.currentBid) || 0, bn = Number(lot.buyNow) || 0;
     const sold = Number(lot.statusId) === 6;
     // 03.10.2026 (Федор, Audi Q6 e-tron IAAI 45450047: ставка $18 100, а пост писал «Рынок (ориентир):
@@ -3240,29 +3241,33 @@
     const turnkey = (function(){ try{ return Math.round(Number(turnkeyFor(lot, turnkeyBasis)) || 0); }catch(_){ return 0; } })();
     const url = tgLotUrl(lot), tags = tgHashtags(lot);
     const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money(lot.finalBid) : ""}</b>`
-      : (bn && !bid) ? `💰 <b>Buy Now: ${money(bn)}</b>`
-      : `💰 <b>Текущая ставка: ${money(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money(bn)}` : ""}`;
+      : (bn && !bid) ? `💰 <b>Buy Now: ${money1(bn)}</b>`
+      : `💰 <b>Текущая ставка: ${money1(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money1(bn)}` : ""}`;
+    // 03.10.2026 (Федор, живой пример Kia Sorento): резерв продавца — отдельной строкой сразу под
+    // ставкой, видно без захода на сайт, важно для решения «имеет ли смысл участвовать».
+    const reserveLine = (!sold && Number(lot.sellerReserve) > 0) ? `📊 Резерв продавца: <b>${money1(lot.sellerReserve)}</b>` : "";
     // 03.10.2026 (Федор: «рынок ориентир люди думаю что это в молдове рыночная») — слово «Рынок»
     // читается как розничная цена в Молдове. Это ориентир цены самого лота НА АУКЦИОНЕ в США (цена
     // под ключ в Кишинёве — отдельная строка ниже, её и так не спутать).
     const bandLine = band ? `📊 Ориентир на аукционе: <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
     const turnkeyLine = turnkey ? `🚗 Под ключ до Кишинёва: <b>≈ ${money(turnkey)}</b>` : "";
-    const dateLine = (!sold && tgSaleDate(lot)) ? `⏰ Торги: ${e(tgSaleDate(lot))}` : "";
+    const dateLabel = tgDateLabel(lot);
+    const dateLine = (!sold && dateLabel) ? `⏰ ${e(dateLabel)}` : "";
     const link = `🔗 <a href="${e(url)}">Смотреть и рассчитать на сайте</a>`;
     const L1 = `🔥 <b>${e(title)}</b>`;
     if(tpl === "deal"){
       const eco = (band && turnkey && band.lo > turnkey) ? `\n📉 Ниже рынка примерно на ${money(band.lo - turnkey)}` : "";
-      return [L1, specs, drive, "", priceLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      return [L1, specs, drive, "", priceLine, reserveLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "urgent"){
-      const head = tgSaleDate(lot) ? `⏰ <b>Торги ${e(tgSaleDate(lot))}</b> — успеваем оформить заявку` : "🔥 <b>Свежий лот</b>";
-      return [head, "", L1, specs, "", priceLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      const head = dateLabel ? `⏰ <b>${e(dateLabel)}</b> — успеваем оформить заявку` : "🔥 <b>Свежий лот</b>";
+      return [head, "", L1, specs, "", priceLine, reserveLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "short"){
       return [L1, specs, priceLine, turnkeyLine, "", link, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
-    return [L1, specs, drive, "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
   // Для Telegram берём МАКСИМАЛЬНОЕ разрешение фото (Telegram сам ужмёт по своим правилам):
   // Copart _thb/_ful → _hrs (1280×960), IAAI resizer → width=1280&height=960.
