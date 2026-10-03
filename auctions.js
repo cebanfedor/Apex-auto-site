@@ -3223,7 +3223,10 @@
   // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
   function buildTgCaption(lot, tpl){
     const e = escapeHtml;
-    const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
+    // 03.10.2026 (Федор: «ты также пропускаешь полное название авто») — год+марка+модель обрезали
+    // комплектацию/трим («2025 Kia Sorento» вместо «2025 Kia Sorento Plug-In Hybrid SX Prestige»).
+    // lotTitle() — тот же источник полного имени с версией из API, что на самой странице лота (H1).
+    const title = lotTitle(lot) || [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
     const specs = tgSpecs(lot).map(e).join("\n"), drive = e(tgDrive(lot));
     const isCaLot = !!findCanadaLocation(lot);
     const money1 = v => isCaLot ? moneyCad(v) : money(v);
