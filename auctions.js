@@ -3245,7 +3245,8 @@
       if(logistics) lines.push(`Доставка: ${money(Math.round(logistics))}`);
       if(customs) lines.push(`Таможенное оформление: ${money(customs)}`);
       lines.push(`Страховка: 1% от цены лота`);
-      lines.push(`Комиссия: ${money(c.service || 300)} (+1% при оплате в MDL)`);
+      // 03.10.2026 (Федор: «нам это в телеграме не нужно») — пометку про 1% при оплате в MDL убрал.
+      lines.push(`Комиссия: ${money(c.service || 300)}`);
       return lines;
     }catch(_){ return []; }
   }
