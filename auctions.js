@@ -3194,12 +3194,12 @@
     if(condDmg.length) lines.push(condDmg.join(" · "));
     return lines;
   }
+  // 03.10.2026 (Федор: «Тип коробки писать не будем») — убрал КПП (Автомат/Механика) из строки.
   function tgDrive(lot){
     const fk = TG_FUEL[lot.fuelKind] || lot.fuel || "";
     const liters = String(lot.engine || "").match(/(\d[.,]\d)\s*l/i);
     const eng = liters ? liters[1].replace(",", ".") + "L" : "";
-    const tr = /auto/i.test(lot.transmission || "") ? "Автомат" : /manu/i.test(lot.transmission || "") ? "Механика" : (lot.transmission || "");
-    return [eng, fk, lot.drive, tr].filter(Boolean).join(" · ");
+    return [eng, fk, lot.drive].filter(Boolean).join(" · ");
   }
   function tgLotUrl(lot){ try{ return location.origin + "/auctions/" + lotSlug(lot); }catch(_){ return location.href; } }
   function tgHashtags(lot){
