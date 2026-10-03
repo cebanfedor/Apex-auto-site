@@ -3179,20 +3179,24 @@
     }catch(_){ /* не админ — кнопки остаются скрытыми */ }
   }
   const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
+  // 03.10.2026 (Федор: «характеристики пиши по одной в строчку») — раньше склеивались через
+  // « · » в 1-2 строки («13 129 миль ≈ 21 129 км · Заводится и едет · Undercarriage»), читать
+  // в Telegram неудобно. Возвращают МАССИВ отдельных характеристик, buildTgCaption кладёт
+  // каждую на свою строку.
   function tgSpecs(lot){
     const p = [];
     try{ const od = dbOdo(lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer) + " mi" : "")); if(od) p.push(od); }catch(_){}
     try{ const ci = conditionInfo(lot.condition); if(ci && ci.label) p.push(ci.label); }catch(_){ if(lot.condition) p.push(lot.condition); }
     const dmg = lot.primaryDamage || lot.damage;
     if(dmg) p.push(dmg);
-    return p.join(" · ");
+    return p;
   }
   function tgDrive(lot){
     const fk = TG_FUEL[lot.fuelKind] || lot.fuel || "";
     const liters = String(lot.engine || "").match(/(\d[.,]\d)\s*l/i);
     const eng = liters ? liters[1].replace(",", ".") + "L" : "";
     const tr = /auto/i.test(lot.transmission || "") ? "Автомат" : /manu/i.test(lot.transmission || "") ? "Механика" : (lot.transmission || "");
-    return [eng, fk, lot.drive, tr].filter(Boolean).join(" · ");
+    return [eng, fk, lot.drive, tr].filter(Boolean);
   }
   function tgLotUrl(lot){ try{ return location.origin + "/auctions/" + lotSlug(lot); }catch(_){ return location.href; } }
   function tgHashtags(lot){
@@ -3202,15 +3206,33 @@
     const dyn = [slug(lot.make), slug((lot.model || "").split(" ")[0]), lot.auction ? slug(lot.auction) : "", TG_FUEL[lot.fuelKind] === "Plug-in гибрид" ? "plugin" : ""].filter(Boolean);
     return [...new Set([...fixed, ...dyn])].map(t => "#" + t).join(" ");
   }
-  function tgSaleDate(lot){ const d = lot.auctionDate ? new Date(lot.auctionDate) : null; return (d && !isNaN(d)) ? d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"}) : ""; }
+  // 03.10.2026 (Федор: «это Таймед аукцион, пиши торги сегодня ночью в ХХХ»): Timed у IAAI закрывается
+  // В ТУ ЖЕ НОЧЬ (см. правило в проекте — Timed никогда не «на следующей неделе», это не обычная дата
+  // торгов) — календарная дата закрытия (часто уже следующее число из-за ночных часов) читалась как
+  // «торги когда-то потом», хотя реально лот играет прямо сейчас/сегодня вечером-ночью.
+  function tgSaleDate(lot){
+    const d = lot.auctionDate ? new Date(lot.auctionDate) : null;
+    if(!d || isNaN(d)) return "";
+    if(lot.timed){
+      const hh = String(d.getHours()).padStart(2, "0"), mm = String(d.getMinutes()).padStart(2, "0");
+      return `сегодня ночью в ${hh}:${mm}`;
+    }
+    return d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"});
+  }
   // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
   function buildTgCaption(lot, tpl){
     const e = escapeHtml;
     const title = [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
-    const specs = tgSpecs(lot), drive = tgDrive(lot);
+    // 03.10.2026 (Федор: «характеристики пиши по одной в строчку») — каждое значение своей
+    // строкой вместо «13 129 миль · Заводится и едет · Undercarriage» одной склеенной строкой.
+    const specs = tgSpecs(lot).map(e).join("\n"), drive = tgDrive(lot).map(e).join("\n");
     const bid = Number(lot.currentBid) || 0, bn = Number(lot.buyNow) || 0;
     const sold = Number(lot.statusId) === 6;
-    const band = state.lotBand && state.lotBand.hi ? state.lotBand : null;
+    // 03.10.2026 (Федор, Audi Q6 e-tron IAAI 45450047: ставка $18 100, а пост писал «Рынок (ориентир):
+    // $5 900–$10 800» — вилка для СОВСЕМ другого состояния/выборки, рынок её давно опроверг). Тот же
+    // contradicted, что на странице лота уже прячет/помечает вилку (см. loadStats) — раньше сюда не
+    // доезжал, пост уходил с заведомо неверной, самим рынком отменённой цифрой.
+    const band = state.lotBand && state.lotBand.hi && !state.lotBandContradicted ? state.lotBand : null;
     // «Под ключ» считаем от рыночного ориентира (середина вилки), а не от текущей
     // ставки: ставка ранняя/заниженная, реально лот уйдёт по рынку (просьба Федора 29.09.2026).
     const marketMid = band ? Math.round((Number(band.lo) + Number(band.hi)) / 2) : 0;
@@ -3220,24 +3242,27 @@
     const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money(lot.finalBid) : ""}</b>`
       : (bn && !bid) ? `💰 <b>Buy Now: ${money(bn)}</b>`
       : `💰 <b>Текущая ставка: ${money(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money(bn)}` : ""}`;
-    const bandLine = band ? `📊 Рынок (ориентир): <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
+    // 03.10.2026 (Федор: «рынок ориентир люди думаю что это в молдове рыночная») — слово «Рынок»
+    // читается как розничная цена в Молдове. Это ориентир цены самого лота НА АУКЦИОНЕ в США (цена
+    // под ключ в Кишинёве — отдельная строка ниже, её и так не спутать).
+    const bandLine = band ? `📊 Ориентир на аукционе: <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
     const turnkeyLine = turnkey ? `🚗 Под ключ до Кишинёва: <b>≈ ${money(turnkey)}</b>` : "";
     const dateLine = (!sold && tgSaleDate(lot)) ? `⏰ Торги: ${e(tgSaleDate(lot))}` : "";
     const link = `🔗 <a href="${e(url)}">Смотреть и рассчитать на сайте</a>`;
     const L1 = `🔥 <b>${e(title)}</b>`;
     if(tpl === "deal"){
       const eco = (band && turnkey && band.lo > turnkey) ? `\n📉 Ниже рынка примерно на ${money(band.lo - turnkey)}` : "";
-      return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      return [L1, specs, drive, "", priceLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "urgent"){
       const head = tgSaleDate(lot) ? `⏰ <b>Торги ${e(tgSaleDate(lot))}</b> — успеваем оформить заявку` : "🔥 <b>Свежий лот</b>";
-      return [head, "", L1, specs ? e(specs) : "", "", priceLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      return [head, "", L1, specs, "", priceLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "short"){
-      return [L1, specs ? e(specs) : "", priceLine, turnkeyLine, "", link, tags].filter(Boolean).join("\n").trim();
+      return [L1, specs, priceLine, turnkeyLine, "", link, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
-    return [L1, specs ? e(specs) : "", drive ? e(drive) : "", "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return [L1, specs, drive, "", priceLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
   // Для Telegram берём МАКСИМАЛЬНОЕ разрешение фото (Telegram сам ужмёт по своим правилам):
   // Copart _thb/_ful → _hrs (1280×960), IAAI resizer → width=1280&height=960.
@@ -3342,6 +3367,7 @@
   function renderDetail(lot){
     scheduleVinRetry(lot, 1);
     state.lotBand = null;   // вилка пересчитается в loadStats для этого лота (для поста в Telegram)
+    state.lotBandContradicted = false;
     _caLotFlag = !!findCanadaLocation(lot);
     // Keep the address bar shareable: VIN/lot search renders the detail in place,
     // so push the canonical /auctions/<auction>-<lot> URL if we're not on it yet.
@@ -3725,6 +3751,11 @@
       // в каталоге та же карточка его показывает (там этой проверки нет вовсе). Теперь
       // (Федор 27.09.2026) ориентир не прячем — помечаем «ставка выше ориентира».
       const maxHistBid = Math.max(0, ...(Array.isArray(lot.priceHistory) ? lot.priceHistory.map(h => Number(h.bid) || 0) : [0]));
+      // Ставка/резерв/прошлый раунд — одни и те же «наблюдаемые» значения для обеих ветвей
+      // ниже (таблица Федора и фолбэк-статистика), нужны и для бейджа на странице, и для
+      // поста в Telegram (03.10.2026: там этот contradicted раньше не учитывался вовсе —
+      // Audi Q6 e-tron co ставкой $18 100 постился с «Рынок (ориентир): $5 900–$10 800»).
+      const bidV = Number(lot.currentBid) || 0, reserveV = Number(lot.sellerReserve) || 0;
       if(cr && cr.ok && cr.comps && cr.comps.guide && Number(cr.comps.p25) > 0){
         // Ориентир ставки по формуле «база × K × состояние» (см. server/price-guide.js).
         const c = cr.comps;
@@ -3735,9 +3766,9 @@
         // $18 400) — опровергал резерв продавца ($23 000 > верха вилки $21 700). Текст должен называть
         // ИМЕННО ТО значение, которое выше вилки, а не всегда «ставка» — иначе выглядит как противоречие
         // (ставка меньше показанной вилки, а рядом надпись «ставка выше»).
-        const bidV = Number(lot.currentBid) || 0, reserveV = Number(lot.sellerReserve) || 0;
         const observed = Math.max(bidV, reserveV, maxHistBid);
         const contradicted = observed > Number(c.p75);
+        state.lotBandContradicted = contradicted;   // для поста в Telegram — не показывать опровергнутый ориентир
         const warnText = !contradicted ? "" : observed === reserveV && reserveV >= bidV && reserveV >= maxHistBid ? "резерв продавца выше ориентира"
           : observed === maxHistBid && maxHistBid >= bidV && maxHistBid >= reserveV ? "прошлая ставка выше ориентира" : "ставка выше ориентира";
         box.innerHTML = `
@@ -3758,7 +3789,10 @@
         const c = cr.comps;
         const title = [lot.year, lot.make, lot.model].filter(Boolean).join(" ");
         const lo = c.p25 || c.min, hi = c.p75 || c.max;
-        if(lo && hi && hi >= lo) state.lotBand = {lo:Number(lo), hi:Number(hi)};   // для поста в Telegram
+        if(lo && hi && hi >= lo){
+          state.lotBand = {lo:Number(lo), hi:Number(hi)};   // для поста в Telegram
+          state.lotBandContradicted = Math.max(bidV, reserveV, maxHistBid) > Number(hi);
+        }
         const hasRange = lo && hi && hi > lo;
         // Список отдельных проданных лотов убран — ниже показываем реальные лоты
         // того же года (открытые + архив), их можно открыть.
