@@ -3239,8 +3239,12 @@
     const band = state.lotBand && state.lotBand.hi && !state.lotBandContradicted ? state.lotBand : null;
     // «Под ключ» считаем от рыночного ориентира (середина вилки), а не от текущей
     // ставки: ставка ранняя/заниженная, реально лот уйдёт по рынку (просьба Федора 29.09.2026).
+    // 03.10.2026 (Федор: «не логично писать под ключ до Кишинёва от текущей цены») — фолбэк «|| bid»
+    // нарушал именно этот принцип: без вилки (нет данных / рынок её опроверг) тихо считал «под ключ»
+    // от той же ранней/заниженной ставки, от которой явно просили не считать. Buy Now — фиксированная
+    // цена (не растущая ставка), от неё считать можно; без вилки и без Buy Now строку просто не пишем.
     const marketMid = band ? Math.round((Number(band.lo) + Number(band.hi)) / 2) : 0;
-    const turnkeyBasis = sold ? (Number(lot.finalBid) || bid) : (marketMid || bid || bn);
+    const turnkeyBasis = sold ? (Number(lot.finalBid) || bid) : (marketMid || bn);
     const turnkey = (function(){ try{ return Math.round(Number(turnkeyFor(lot, turnkeyBasis)) || 0); }catch(_){ return 0; } })();
     const url = tgLotUrl(lot), tags = tgHashtags(lot);
     const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money(lot.finalBid) : ""}</b>`
