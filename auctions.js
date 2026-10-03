@@ -3220,6 +3220,26 @@
     if(!d) return "";
     return lot.timed ? `Торги сегодня ночью: ${d}` : `Торги: ${d}`;
   }
+  // 03.10.2026 (Федор: «доставка - таможня - комиссия итд, укажи эти расходы») — короткая раскладка
+  // суммы «под ключ», чтобы цифра не выглядела взятой с потолка. calcLotTotal (тот же расчёт, что
+  // и сама цифра турникея) у США и Канады отдаёт разные поля — своя логистика сводится в один пункт.
+  function tgBreakdown(lot, basis){
+    try{
+      const c = calcLotTotal(lot, {bid:basis, insurance:true});
+      const logistics = c.canada
+        ? (c.dispatch || 0) + (c.bankFee || 0) + (c.keeper || 0) + (c.ocean || 0) + (c.road || 0) + (c.canadaFee || 0)
+        : (c.land || 0) + (c.sea || 0);
+      const customs = (c.customsUsd || 0) + (c.brokerUsd || 0);
+      const fees = (c.service || 0) + (c.paymentFee || 0) + (c.insurance || 0) + (c.exportDocs || 0);
+      const lines = [];
+      if(c.bid) lines.push(`Ставка: ${money(c.bid)}`);
+      if(c.auctionFee) lines.push(`Аукционный сбор: ${money(c.auctionFee)}`);
+      if(logistics) lines.push(`Доставка: ${money(Math.round(logistics))}`);
+      if(customs) lines.push(`Таможня: ${money(customs)}`);
+      if(fees) lines.push(`Комиссии и услуги: ${money(Math.round(fees))}`);
+      return lines;
+    }catch(_){ return []; }
+  }
   // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
   function buildTgCaption(lot, tpl){
     const e = escapeHtml;
@@ -3257,7 +3277,10 @@
     // читается как розничная цена в Молдове. Это ориентир цены самого лота НА АУКЦИОНЕ в США (цена
     // под ключ в Кишинёве — отдельная строка ниже, её и так не спутать).
     const bandLine = band ? `📊 Ориентир на аукционе: <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
-    const turnkeyLine = turnkey ? `🚗 Под ключ до Кишинёва: <b>≈ ${money(turnkey)}</b>` : "";
+    const turnkeyHead = turnkey ? `🚗 Под ключ до Кишинёва: <b>≈ ${money(turnkey)}</b>` : "";
+    const turnkeyBreakdown = turnkey ? tgBreakdown(lot, turnkeyBasis).map(x => `   – ${e(x)}`).join("\n") : "";
+    // «Коротко» — без раскладки (сама суть шаблона), везде ещё — полная расшифровка под итогом.
+    const turnkeyLine = [turnkeyHead, turnkeyBreakdown].filter(Boolean).join("\n");
     const dateLabel = tgDateLabel(lot);
     const dateLine = (!sold && dateLabel) ? `⏰ ${e(dateLabel)}` : "";
     const link = `🔗 <a href="${e(url)}">Смотреть и рассчитать на сайте</a>`;
@@ -3271,7 +3294,7 @@
       return [head, "", L1, specs, "", priceLine, reserveLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "short"){
-      return [L1, specs, priceLine, turnkeyLine, "", link, tags].filter(Boolean).join("\n").trim();
+      return [L1, specs, priceLine, turnkeyHead, "", link, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
     return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
