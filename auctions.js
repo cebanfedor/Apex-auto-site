@@ -3277,7 +3277,8 @@
     // читается как розничная цена в Молдове. Это ориентир цены самого лота НА АУКЦИОНЕ в США (цена
     // под ключ в Кишинёве — отдельная строка ниже, её и так не спутать).
     const bandLine = band ? `📊 Ориентир на аукционе: <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
-    const turnkeyHead = turnkey ? `🚗 Под ключ до Кишинёва: <b>≈ ${money(turnkey)}</b>` : "";
+    // 03.10.2026 (Федор: «не пиши слово под ключ, пиши "Доставка - таможня - комиссия"»).
+    const turnkeyHead = turnkey ? `🚗 Доставка - таможня - комиссия: <b>≈ ${money(turnkey)}</b>` : "";
     const turnkeyBreakdown = turnkey ? tgBreakdown(lot, turnkeyBasis).map(x => `   – ${e(x)}`).join("\n") : "";
     // «Коротко» — без раскладки (сама суть шаблона), везде ещё — полная расшифровка под итогом.
     const turnkeyLine = [turnkeyHead, turnkeyBreakdown].filter(Boolean).join("\n");
