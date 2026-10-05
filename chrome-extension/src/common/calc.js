@@ -75,7 +75,7 @@
     const land = landShipping(loc, type, input.offsite);
 
     let sea;
-    if(type === "moto") sea = 900;
+    if(type === "moto") sea = 1400;   // 05.10.2026, Федор: цена доставки мото → $1400 во всех калькуляторах (синхронно с calc-core.js)
     else if(type === "atv") sea = 1200;
     else {
       const port = (loc && loc.autoPort) || input.port || "nj";

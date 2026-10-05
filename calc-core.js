@@ -149,7 +149,7 @@
 
   /** Морская перевозка от порта США до Европы. */
   function seaShippingFor(type, fuel, port){
-    if(type==="moto") return 900;
+    if(type==="moto") return 1400;   // 05.10.2026, Федор: цена доставки мото → $1400 во всех калькуляторах
     if(type==="atv") return 1200;
     let price;
     if(type==="vanLarge" && SEA_BUS[port] != null){
@@ -250,6 +250,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v11"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v12"
   };
 });
