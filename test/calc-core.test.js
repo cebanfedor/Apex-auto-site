@@ -93,3 +93,35 @@ test("compute: оплата в MDL (комиссия 1% + брокер 2000 MDL)
   const expectedDiff = on.paymentFee + on.brokerUtilMdl / base.usdMdl;
   assert.ok(Math.abs((on.totalUsd - off.totalUsd) - expectedDiff) < 1, "итог отличается ровно на комиссию + брокер");
 });
+
+test("customsMdl: мото — НДС 27% от landBaseMdl (суша), а не от customsBaseMdl (море)", () => {
+  const seaBase = 400000, landBase = 150000;
+  const c = ApexCalc.customsMdl(seaBase, seaBase, {vehicleType:"moto", landBaseMdl:landBase});
+  assert.equal(c.total, landBase * 0.27, "считает от суши, не от моря");
+  assert.equal(c.vatPct, 27);
+  // Рост «морской» базы без изменения «сухопутной» не должен менять растаможку мото.
+  const c2 = ApexCalc.customsMdl(seaBase * 3, seaBase * 3, {vehicleType:"moto", landBaseMdl:landBase});
+  assert.equal(c2.total, c.total, "customsBaseMdl (море) не влияет на мото, когда передан landBaseMdl");
+});
+
+test("customsMdl: мото без landBaseMdl — деградирует на customsBaseMdl (страховка от падения, не основной путь)", () => {
+  const c = ApexCalc.customsMdl(200000, 200000, {vehicleType:"moto"});
+  assert.equal(c.total, 200000 * 0.27);
+});
+
+test("customsMdl: пикап/van large остаются на 20% от customsBaseMdl — ставка мото их не задевает", () => {
+  for(const type of ["pickup", "vanLarge"]){
+    const c = ApexCalc.customsMdl(300000, 300000, {vehicleType:type, landBaseMdl:999});
+    assert.equal(c.total, 300000 * 0.20, `${type} игнорирует landBaseMdl и ставку мото`);
+    assert.equal(c.vatPct, 20);
+  }
+});
+
+test("compute: у мото landBaseMdl считается сервером из (лот+сбор+суша), не из моря", () => {
+  const loc = {landPrice:500, autoLand:500, autoPort:"nj"};
+  const withLand = ApexCalc.compute({lotPrice:8000, auction:"copart", vehicleType:"moto", fuel:"gasoline", year:2023, usdMdl:17.45, eurMdl:20.28, location:loc});
+  const noLand = ApexCalc.compute({lotPrice:8000, auction:"copart", vehicleType:"moto", fuel:"gasoline", year:2023, usdMdl:17.45, eurMdl:20.28, location:null});
+  assert.ok(withLand.land > 0, "с локацией есть сухопутная доставка");
+  assert.equal(noLand.land, 0, "без локации суши нет");
+  assert.notEqual(withLand.customsUsd, noLand.customsUsd, "растаможка мото меняется вместе с сушей (а не остаётся по морю)");
+});

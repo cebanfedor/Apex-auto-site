@@ -175,14 +175,23 @@
   function paymentFeeFor(lotPrice, auctionFee){return Math.max(PAYMENT_FEE_MIN,(Number(lotPrice||0)+Number(auctionFee||0))*0.01)}
   const BROKER_UTIL_MDL = 2000; // брокер + утиль сбор, фикс в MDL, только при оплате в MDL
 
-  /* Мото, пикапы и van large — НДС 20%; электро — только налог на роскошь;
+  /* Мото, пикапы и van large — НДС; электро — только налог на роскошь;
      остальные — акциз по объёму со скидкой для гибридов. */
   function customsMdl(customsBaseMdl, luxuryBaseMdl, opts){
     const type = opts.vehicleType || "sedan";
     const fuel = opts.fuel || "gasoline";
-    if(type === "moto" || type === "pickup" || type === "vanLarge"){
+    // 05.10.2026, Федор: у мото — НДС 27% (не 20%, как у пикап/van large), и считается от
+    // (лот + аукционный сбор + СУША по США/Канаде), а не от моря — другой порядок ввоза
+    // для мотоциклов. opts.landBaseMdl считает caller (compute() ниже, либо инлайн-копии
+    // в script.js/auctions.js/chrome-extension) — без него падаем на customsBaseMdl (море).
+    if(type === "moto"){
+      const base = opts.landBaseMdl != null ? opts.landBaseMdl : customsBaseMdl;
+      const vat = base * 0.27;
+      return {total:vat, baseExcise:vat, luxury:0, luxuryPct:0, luxuryBase:luxuryBaseMdl, vat:true, vatPct:27};
+    }
+    if(type === "pickup" || type === "vanLarge"){
       const vat = customsBaseMdl * 0.20;
-      return {total:vat, baseExcise:vat, luxury:0, luxuryPct:0, luxuryBase:luxuryBaseMdl, vat:true};
+      return {total:vat, baseExcise:vat, luxury:0, luxuryPct:0, luxuryBase:luxuryBaseMdl, vat:true, vatPct:20};
     }
     const luxuryBase = Number(luxuryBaseMdl || 0);
     const pct = luxuryPct(luxuryBase);
@@ -229,9 +238,10 @@
     const brokerUtilMdl = paymentFeeOn ? BROKER_UTIL_MDL : 0;
 
     // Налог на роскошь и акциз считаются от: лот + сбор аукциона + море.
-    // Суша по США и страховка в базу не входят.
+    // Суша по США и страховка в базу не входят. У мото — НДС отдельно от (лот + сбор + СУША), см. customsMdl.
     const baseMdl = (lot + auctionFee + sea) * usdMdl;
-    const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year});
+    const landBaseMdl = (lot + auctionFee + land) * usdMdl;
+    const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year, landBaseMdl});
 
     const totalUsdPart = lot + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
     const totalMdl = totalUsdPart * usdMdl + customs.total + brokerUtilMdl;
@@ -250,6 +260,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v12"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v13"
   };
 });

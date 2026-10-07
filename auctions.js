@@ -972,8 +972,11 @@
     const canadaFee = Math.max(300, bid * 0.02);
     const exportDocs = options.exportDocs ? 400 : 0;
     const customsBaseMdl = (bid + auctionFee + ocean) * usdMdl;
+    // У мото — НДС 27% (не 20%) от (ставка + сбор + СУША), суша в Канаде — dispatch (до терминала
+    // в Монреале/BC), аналог «land» в США (05.10.2026, Федор, синхронно с calc-core.js/script.js).
+    const landBaseMdl = (bid + auctionFee + dispatch) * usdMdl;
     const year = options.year != null ? Number(options.year) : (Number(lot.year) || new Date().getFullYear());
-    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year}) : {total:0};
+    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year, landBaseMdl}) : {total:0};
     const customsUsd = Math.round(c.total / usdMdl);
     const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs + paymentFee;
     const totalMdl = usdPart * usdMdl + c.total + brokerUtilMdl;

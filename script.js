@@ -176,18 +176,10 @@ document.addEventListener("click", event => {
   if(!event.target.closest(".glassSelectV152")) closeGlassSelects();
 });
 
-function customsMdl(customsBaseMdl, luxuryBaseMdl){
+function customsMdl(customsBaseMdl, luxuryBaseMdl, landBaseMdl){
   const type = $("vehicleType")?.value || "sedan";
   const fuel = $("fuel")?.value || "gasoline";
   const lang = window.APEX_LANG || document.documentElement.lang || "ru";
-  const L = {
-    vat: lang === "ro" ? "TVA 20% din valoarea vamală" : lang === "en" ? "VAT 20% of the customs value" : "НДС 20% от таможенной стоимости",
-    electric: lang === "ro" ? "electric: acciză 0" : lang === "en" ? "electric: excise 0" : "электро: акциз 0",
-    lux: lang === "ro" ? "taxa de lux" : lang === "en" ? "luxury" : "люкс",
-    cc: lang === "ru" ? "см³" : "cm³",
-    from: lang === "ro" ? "din" : lang === "en" ? "of" : "от",
-    hybrid: lang === "ro" ? "hibrid -25%" : lang === "en" ? "hybrid -25%" : "гибрид -25%"
-  };
 
   // Числа считает calc-core.js — тот же модуль, что у /api/calc и расширения.
   // Здесь только подпись под строкой «Таможенные платежи».
@@ -195,8 +187,20 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl){
     vehicleType: type,
     fuel,
     engineLiters: num("engineLiters"),
-    year: num("year")
+    year: num("year"),
+    landBaseMdl
   });
+
+  // 05.10.2026: у мото НДС 27% (не 20%, как у пикап/van large) — процент берём из ответа calc-core.js.
+  const vatPct = result.vatPct || 20;
+  const L = {
+    vat: lang === "ro" ? `TVA ${vatPct}% din valoarea vamală` : lang === "en" ? `VAT ${vatPct}% of the customs value` : `НДС ${vatPct}% от таможенной стоимости`,
+    electric: lang === "ro" ? "electric: acciză 0" : lang === "en" ? "electric: excise 0" : "электро: акциз 0",
+    lux: lang === "ro" ? "taxa de lux" : lang === "en" ? "luxury" : "люкс",
+    cc: lang === "ru" ? "см³" : "cm³",
+    from: lang === "ro" ? "din" : lang === "en" ? "of" : "от",
+    hybrid: lang === "ro" ? "hibrid -25%" : lang === "en" ? "hybrid -25%" : "гибрид -25%"
+  };
 
   // Люкс-акциз в подпись не включаем: он показывается отдельной строкой
   // «Доп. акциз люкс», а «Таможенные платежи» — только базовый акциз/НДС.
@@ -474,7 +478,8 @@ function estimateTotalUsdForBid(bid){
   const paymentFee = payMdl ? ApexCalc.paymentFeeFor(Number(bid || 0), auctionFee) : 0;
   const brokerUtilMdl = payMdl ? 2000 : 0;
   const customsBaseMdl = usdToMdl(Number(bid || 0) + auctionFee + sea);
-  const customs = customsMdl(customsBaseMdl, customsBaseMdl);
+  const landBaseMdl = usdToMdl(Number(bid || 0) + auctionFee + land);
+  const customs = customsMdl(customsBaseMdl, customsBaseMdl, landBaseMdl);
   const totalUsdPart = Number(bid || 0) + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
   return mdlToUsd(usdToMdl(totalUsdPart) + customs.total + brokerUtilMdl);
 }
@@ -1179,7 +1184,8 @@ function calculate(){
   // Суша по США и страховка в luxury base не входят.
   const luxuryBaseMdl = usdToMdl(lot + auctionFee + sea);
   const customsBaseMdl = usdToMdl(lot + auctionFee + sea);
-  const customs = customsMdl(customsBaseMdl, luxuryBaseMdl);
+  const landBaseMdl = usdToMdl(lot + auctionFee + land);
+  const customs = customsMdl(customsBaseMdl, luxuryBaseMdl, landBaseMdl);
 
   const totalUsdPart = lot + auctionFee + land + sea + exportDocs + carfax + insurance + company + paymentFee;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total + brokerUtilMdl;
@@ -1751,9 +1757,11 @@ function calculateCanada(){
   const canadaFee = Math.max(300, lot * 0.02);
 
   // Таможенная база для Канады — всё до Клайпеды: лот + аукционный сбор + море
-  // (подтверждено Федором)
+  // (подтверждено Федором). У мото — НДС 27% от (лот + сбор + СУША), суша в Канаде —
+  // это dispatch (наземная доставка до терминала в Монреале/BC), аналог «land» в США.
   const customsBaseMdl = usdToMdl(lot + auctionFee + oceanBase + hazardFee);
-  const customs = customsMdl(customsBaseMdl, customsBaseMdl);
+  const landBaseMdl = usdToMdl(lot + auctionFee + dispatch);
+  const customs = customsMdl(customsBaseMdl, customsBaseMdl, landBaseMdl);
 
   const totalUsdPart = lot + auctionFee + dispatch + bankFee + keeperFees + oceanBase + hazardFee + roadKlaipeda + insurance + company + canadaFee + paymentFee;
   const totalMdl = usdToMdl(totalUsdPart) + customs.total + brokerUtilMdl;

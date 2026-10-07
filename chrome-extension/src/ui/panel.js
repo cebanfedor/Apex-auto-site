@@ -615,7 +615,8 @@
     const mdl = (value) => Math.round(Number(value || 0)).toLocaleString("ru-RU").replace(/ /g, " ");
 
     if (type === "moto" || type === "pickup" || type === "vanLarge") {
-      return `НДС 20% от таможенной стоимости — ${mdl(customs.baseExcise)} MDL`;
+      const pct = customs.vatPct || (type === "moto" ? 27 : 20);
+      return `НДС ${pct}% от таможенной стоимости — ${mdl(customs.baseExcise)} MDL`;
     }
     const parts = [];
     if (fuel === "electric") parts.push("электромобиль — акциза нет");

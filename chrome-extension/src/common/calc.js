@@ -42,9 +42,15 @@
   function customsMdl(customsBaseMdl, luxuryBaseMdl, opts){
     const type = opts.vehicleType || "sedan";
     const fuel = opts.fuel || "gasoline";
-    if(type === "moto" || type === "pickup" || type === "vanLarge"){
+    // 05.10.2026, Федор: мото — НДС 27% от (лот+сбор+СУША), не 20% от моря (синхронно с calc-core.js).
+    if(type === "moto"){
+      const base = opts.landBaseMdl != null ? opts.landBaseMdl : customsBaseMdl;
+      const vat = base * 0.27;
+      return {total:vat, baseExcise:vat, luxury:0, luxuryPct:0, luxuryBase:luxuryBaseMdl, vatPct:27};
+    }
+    if(type === "pickup" || type === "vanLarge"){
       const vat = customsBaseMdl * 0.20;
-      return {total:vat, baseExcise:vat, luxury:0, luxuryPct:0, luxuryBase:luxuryBaseMdl};
+      return {total:vat, baseExcise:vat, luxury:0, luxuryPct:0, luxuryBase:luxuryBaseMdl, vatPct:20};
     }
     const luxuryBase = Number(luxuryBaseMdl || 0);
     const pct = luxuryPct(luxuryBase);
@@ -99,7 +105,8 @@
     const brokerUtilMdl = paymentFeeOn ? 2000 : 0;
 
     const baseMdl = (lot + auctionFee + sea) * usdMdl;
-    const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year});
+    const landBaseMdl = (lot + auctionFee + land) * usdMdl;
+    const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year, landBaseMdl});
 
     const totalUsdPart = lot + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
     const totalMdl = totalUsdPart * usdMdl + customs.total + brokerUtilMdl;
