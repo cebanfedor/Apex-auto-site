@@ -107,6 +107,7 @@ function resetForm(id){
   const form = document.getElementById(id);
   form.reset();
   if(id === "vehicleForm") setTimeout(renderVehiclePhotoThumbs, 0);
+  if(id === "leadForm") updateLeadCustomerContact();
   form.querySelector('[name="id"]').value = "";
   const title = document.getElementById(`${id.replace("Form", "FormTitle")}`);
   if(title){
@@ -178,11 +179,27 @@ function fillLeadSelects(){
   const customerSelect = $("#leadCustomerSelect");
   const vehicleSelect = $("#leadVehicleSelect");
   customerSelect.innerHTML = '<option value="">Без клиента</option>' + state.customers
-    .map(item => `<option value="${item.id}">${escapeHtml(item.name || item.phone || item.id)}</option>`)
+    .map(item => `<option value="${item.id}">${escapeHtml([item.name, item.phone].filter(Boolean).join(" · ") || item.id)}</option>`)
     .join("");
   vehicleSelect.innerHTML = '<option value="">Без автомобиля</option>' + state.vehicles
     .map(item => `<option value="${item.id}">${escapeHtml([item.year,item.make,item.model,item.lot].filter(Boolean).join(" · "))}</option>`)
     .join("");
+  updateLeadCustomerContact();
+}
+
+// Телефон клиента в заявке виден только внутри названия в выпадающем списке —
+// Федор: «в CRM у нас нет номера телефона клиента» (искал его рядом с полем «Клиент»).
+// Кликабельная строка tel:/Telegram под селектом, обновляется при выборе и при открытии заявки на редактирование.
+function updateLeadCustomerContact(){
+  const box = $("#leadCustomerContact");
+  if(!box) return;
+  const id = $("#leadCustomerSelect")?.value;
+  const item = id ? state.customers.find(row => String(row.id) === String(id)) : null;
+  if(!item || (!item.phone && !item.telegram)){ box.innerHTML = ""; return; }
+  const parts = [];
+  if(item.phone) parts.push(`<a href="tel:${escapeHtml(item.phone)}">${escapeHtml(item.phone)}</a>`);
+  if(item.telegram) parts.push(`<a href="https://t.me/${escapeHtml(String(item.telegram).replace(/^@/, ""))}" target="_blank" rel="noopener">${escapeHtml(item.telegram)}</a>`);
+  box.innerHTML = parts.join(" · ");
 }
 
 async function loadDashboard(){
@@ -515,6 +532,7 @@ function bindGuide(){
 function bindForms(){
   bindGuide();
   bindVehiclePhotoThumbs();
+  $("#leadCustomerSelect").addEventListener("change", updateLeadCustomerContact);
   $("#vehicleForm").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -609,6 +627,7 @@ function bindLists(){
     if(leadId){
       const item = state.leads.find(row => String(row.id) === String(leadId));
       setForm($("#leadForm"), item);
+      updateLeadCustomerContact();
       $("#leadFormTitle").textContent = "Редактировать заявку";
     }
 

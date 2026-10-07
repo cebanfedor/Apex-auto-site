@@ -223,6 +223,9 @@ button{cursor:pointer}
 .badge.red{background:var(--red)}
 
 .formPanel{display:grid;gap:12px}
+#leadCustomerContact{margin:-6px 0 0;font-size:13px;color:var(--muted);font-weight:700}
+#leadCustomerContact a{color:var(--red);text-decoration:none}
+#leadCustomerContact a:hover{text-decoration:underline}
 .grid2{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
