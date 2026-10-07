@@ -3454,7 +3454,10 @@
     const fuelRu = fuelKindRu(lot) ? L(fuelKindRu(lot)) : lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "";   // в составной строке «2.0 · Бензин · AWD» словарь i18n не сработает сам
     const driveLine = [cleanEngine(lot.engine), fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" · ");
     const specLine  = [cleanEngine(lot.engine), Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "", fuelRu, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
-    const vinReport = lot.vin ? `https://www.google.com/search?q=${encodeURIComponent(lot.vin)}` : "";
+    // «Отчёт истории VIN» — раньше уводил в гугл-поиск по VIN (тупик, никак не связан с нами).
+    // 07.10.2026, Федор: сделать так, чтобы люди писали ему в Telegram — диплинк с предзаполненным
+    // сообщением (тот же приём, что у «Отправить заявку» на главной, index.html).
+    const vinReport = lot.vin ? `https://t.me/fedukusa?text=${encodeURIComponent(`Здравствуйте! Хочу получить отчёт истории VIN.\n\nАвтомобиль: ${title}\nVIN: ${lot.vin}\nЛот: ${String(lot.auction || "").toUpperCase()} ${lot.lot || ""}\n\nСсылка: ${tgLotUrl(lot)}`)}` : "";
     // History summary for Главное section
     // Запись текущих торгов (h.current) — не история: впервые выставленная
     // машина не должна выглядеть как «продавалась ранее»
