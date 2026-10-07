@@ -47,6 +47,12 @@ module.exports = async function(req, res){
     .replace(/<html lang="[a-z-]*"/, `<html lang="${lang}"`)
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(desc)}">`)
+    // ⚠️ 07.10.2026: canonical раньше оставался захардкожен на голый /auctions (из шаблона) — Google
+    // видел противоречие с og:url/JSON-LD (те уже указывали на фильтрованный адрес) и отказывался
+    // индексировать эти страницы отдельно (GSC: «Вариант страницы с тегом canonical», Федор со
+    // скриншота Search Console). Теперь canonical = сама фильтрованная страница, БЕЗ ?lang= (та же
+    // логика, что у og:url ниже, но без суффикса языка — у каждого языка свой hreflang, не отдельный canonical).
+    .replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${esc(`https://apexauto.md/auctions?${p.toString()}`)}">`)
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(desc)}">`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${esc(url)}">`)
