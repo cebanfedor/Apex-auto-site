@@ -5902,6 +5902,41 @@ module.exports = async function handler(request, response){
       return;
     }
 
+    // 05.10.2026 (Федор: «хочу попадать в поиске по VIN, как BidCars») — постоянная страница /vin/<VIN>.
+    // Источник: fetchVin (факты о машине) + attachVinHistory (ПОЛНАЯ история по ВСЕМ заходам, не только
+    // текущему раунду — её не делает action=vin, чтобы не дублировать fetch и не грузить калькулятор
+    // лишним на каждый вставленный VIN). attachVinHistory попутно пишет найденное в vin_hist — поэтому
+    // при повторном сбое фида для ТОГО ЖЕ VIN у нас уже есть что показать.
+    // Если сам фид не знает VIN (старый лот, давно не на торгах) — отдаём то, что уже накоплено в
+    // vin_hist (без свежих фактов о машине, только история раундов): так страница не исчезает с возрастом
+    // лота, в отличие от /auctions/<slug>, которая умирает вместе с лотом.
+    if(action === "vinarchive"){
+      const vinRaw = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if(!isValidVin(vinRaw)){ sendJson(response, 400, {ok:false, error:"bad vin"}, {"cache-control":"no-store"}); return; }
+      let lot = null;
+      try{
+        lot = await fetchVin(new URLSearchParams({vin:vinRaw}));
+        await attachVinHistory(lot);
+        await attachPowertrain(lot);
+        await attachGenRange(lot);
+      }catch(e){ lot = null; }
+      if(lot && lot.vin){
+        sendJson(response, 200, {ok:true, vin:vinRaw, lot, history:lot.priceHistory || [], source:"feed"});
+        return;
+      }
+      // Фид не ответил/не знает VIN — пробуем то, что уже накоплено в vin_hist.
+      try{
+        const rows = await syncSbFetch(`/vin_hist?vin=eq.${encodeURIComponent(vinRaw)}&select=entries,latest,sold_n,rounds_n,checked_at&limit=1`);
+        const r = rows && rows[0];
+        if(r && Array.isArray(r.entries) && r.entries.length){
+          sendJson(response, 200, {ok:true, vin:vinRaw, lot:null, history:r.entries, latest:r.latest || null, soldN:r.sold_n, roundsN:r.rounds_n, checkedAt:r.checked_at, source:"cache"});
+          return;
+        }
+      }catch(e){}
+      sendJson(response, 404, {ok:false, notFound:true}, {"cache-control":"public, s-maxage=300, max-age=60"});
+      return;
+    }
+
     if(action === "dbstatus"){
       // Диагностика БД: доступность, фаза синка, счётчики (read-only).
       const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");

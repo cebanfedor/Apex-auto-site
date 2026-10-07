@@ -93,6 +93,8 @@
     { "source": "/auctions", "destination": "/auctions.html" },
     { "source": "/og/catalog", "destination": "/api/og?type=catalog" },
     { "source": "/auctions/:slug", "destination": "/api/lot-page?slug=:slug" },
+    { "source": "/vin/:vin", "destination": "/api/vin-page?vin=:vin" },
+    { "source": "/sitemap-vin.xml", "destination": "/api/vin-sitemap" },
     { "source": "/tracking", "destination": "/api/tracking-page" },
     { "source": "/og/lot/:id", "destination": "/api/og?type=lot&id=:id" },
     { "source": "/og/transit/:id", "destination": "/api/og?type=transit&id=:id" },
@@ -188,6 +190,13 @@
       "source": "/api/hot-lots",
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=300, max-age=60, stale-while-revalidate=3600" }
+      ]
+    },
+    {
+      "source": "/api/vin-sitemap",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=3600, stale-while-revalidate=21600" },
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" }
       ]
     },
     {

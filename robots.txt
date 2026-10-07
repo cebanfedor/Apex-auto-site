@@ -4,3 +4,4 @@ Disallow: /admin
 Disallow: /api
 
 Sitemap: https://apexauto.md/sitemap.xml
+Sitemap: https://apexauto.md/sitemap-vin.xml
