@@ -34,9 +34,11 @@ async function getJson(url, ms = 6000){
 
 async function describeCatalog(origin, p, lang){
   const X = LOC[lang] || LOC.ru;
-  const search = await getJson(`${origin}/api/auctions?action=search&per_page=1&${p.toString()}`);
+  // per_page=12 (не 1): первый лот — для фото/названия превью, как раньше; весь набор — для ItemList schema ниже.
+  const search = await getJson(`${origin}/api/auctions?action=search&per_page=12&${p.toString()}`);
   const total = search && Number(search.total) >= 0 ? Number(search.total) : null;
-  const first = search && search.items && search.items[0];
+  const items = (search && Array.isArray(search.items)) ? search.items : [];
+  const first = items[0];
   const makeIds = String(p.get("make") || "").split(",").filter(Boolean);
   const modelIds = String(p.get("model") || "").split(",").filter(Boolean);
   let names = "";
@@ -65,7 +67,7 @@ async function describeCatalog(origin, p, lang){
   const base = names || (chips.length ? chips.shift() : X.catalog);
   const headline = [base, ...chips].join(" · ");
   const totalTxt = total != null && total >= 0 && total < 1e5 ? `${total.toLocaleString("en-US").replace(/,/g, " ")} ${plural(total, X.lots[0], X.lots[1], X.lots[2], lang)}` : "";
-  return {X, names: base, chips, headline, total, totalTxt, image: first && (first.images && first.images[0] || first.image)};
+  return {X, names: base, chips, headline, total, totalTxt, image: first && (first.images && first.images[0] || first.image), items};
 }
 function plural(n, a, b, c, lang){
   if(lang === "ro"){ const m = n % 100; return n === 1 ? a : (n === 0 || (m >= 1 && m <= 19)) ? b : c; }   // 1 lot · 2–19 loturi · 20+ de loturi
