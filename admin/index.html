@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>APEX AUTO CRM</title>
-  <link rel="stylesheet" href="/admin/admin.css?v=admin-v175">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css?v=admin-v176">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -30,15 +33,15 @@
           <span>CRM</span>
         </div>
         <nav class="tabs">
-          <button class="active" data-view="dashboard">Dashboard</button>
-          <button data-view="vehicles">Автомобили</button>
-          <button data-view="customers">Клиенты</button>
-          <button data-view="leads">Заявки</button>
-          <button data-view="analytics">Аналитика</button>
-          <button data-view="guide">Оценка лотов</button>
-          <button data-view="content">Контент сайта</button>
+          <button class="active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span class="navLabelV1">Dashboard</span></button>
+          <button data-view="vehicles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l1.6-5.4A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.6L20 16"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><circle cx="7.5" cy="20.5" r="1.3"/><circle cx="16.5" cy="20.5" r="1.3"/></svg><span class="navLabelV1">Автомобили</span></button>
+          <button data-view="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.2c2.7.3 4.8 2.6 4.9 5.3"/></svg><span class="navLabelV1">Клиенты</span></button>
+          <button data-view="leads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-6 9 6-9 6-9-6Z"/><path d="M7 11.5V17c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-5.5"/></svg><span class="navLabelV1">Заявки</span></button>
+          <button data-view="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V10M11 19V5M18 19v-7"/></svg><span class="navLabelV1">Аналитика</span></button>
+          <button data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M12 12v9M4.5 7.5 12 12l7.5-4.5"/></svg><span class="navLabelV1">Оценка лотов</span></button>
+          <button data-view="content"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6V3Z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg><span class="navLabelV1">Контент сайта</span></button>
         </nav>
-        <button id="logoutBtn" class="logoutBtn">Выйти</button>
+        <button id="logoutBtn" class="logoutBtn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg><span class="navLabelV1">Выйти</span></button>
       </aside>
 
       <section class="workspace">
@@ -181,6 +184,7 @@
                   <option>Закрыт</option>
                 </select>
               </div>
+              <div id="leadsKpiV1" class="leadsKpiV1"></div>
               <div id="leadTgBindV1" class="leadTgBindV1"></div>
               <div id="leadsList" class="tableLike"></div>
             </div>
@@ -310,6 +314,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v178"></script>
+  <script src="/admin/admin.js?v=admin-v179"></script>
 </body>
 </html>

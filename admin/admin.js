@@ -122,7 +122,13 @@ function formatMoney(value){
 
 function badge(status){
   const text = status || "Новый";
-  const className = /купил|продан|рекомендуется/i.test(text) ? "good" : /закрыт|архив/i.test(text) ? "red" : "";
+  // Чуть точнее, чем просто «хорошо/плохо»: отдельный цвет под каждый частый статус заявки/клиента/авто.
+  const className = /купил|продан|рекомендуется/i.test(text) ? "good"
+    : /закрыт|архив/i.test(text) ? "red"
+    : /перезвонить/i.test(text) ? "gold"
+    : /в работе|горячий/i.test(text) ? "accent"
+    : /новый/i.test(text) ? "amber"
+    : "";
   return `<span class="badge ${className}">${escapeHtml(text)}</span>`;
 }
 
@@ -247,6 +253,29 @@ async function loadLeads(){
   renderRows("leadsList", state.leads, "lead");
 }
 
+// Мини-KPI над списком заявок — отдельный запрос БЕЗ фильтра статуса (иначе, например,
+// при выбранном фильтре «Закрыт» карточка «Новых сегодня» всегда показывала бы 0).
+async function loadLeadsKpi(){
+  const box = $("#leadsKpiV1");
+  if(!box) return;
+  try{
+    const data = await api("/api/leads?limit=200");
+    const items = data.items || [];
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const newToday = items.filter(x => String(x.created_at || "").slice(0, 10) === todayStr).length;
+    const inWork = items.filter(x => /в работе/i.test(x.status || "")).length;
+    const waiting = items.filter(x => /перезвонить/i.test(x.status || "")).length;
+    const bought = items.filter(x => /купил/i.test(x.status || "")).length;
+    const conversion = items.length ? Math.round((bought / items.length) * 100) : 0;
+    box.innerHTML = [
+      ["Новых сегодня", newToday],
+      ["В работе", inWork],
+      ["Ждут звонка", waiting],
+      ["Конверсия в покупку", `${conversion}%`]
+    ].map(([label, value]) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(String(value))}</b></article>`).join("");
+  }catch(e){ box.innerHTML = ""; }
+}
+
 // Уведомления о новых заявках в Telegram (Федор 07.10.2026) — переиспользует бот уведомлений
 // о лотах/поисках (ALERTS_BOT_TOKEN, server/alerts.js): action=alertadminbind выдаёт одноразовую
 // t.me-ссылку, после «Start» в Telegram alertadminstatus подтверждает привязку chat_id.
@@ -286,6 +315,7 @@ async function refresh(){
     await Promise.all([loadCustomers(), loadVehicles()]);
     await loadLeads();
     loadLeadTgBind();
+    loadLeadsKpi();
   }
   if(state.view === "content") await loadContent();
 }
@@ -337,7 +367,7 @@ function bindTabs(){
       state.view = button.dataset.view;
       $$(".view").forEach(view => view.classList.remove("active"));
       document.getElementById(`${state.view}View`).classList.add("active");
-      $("#viewTitle").textContent = button.textContent;
+      $("#viewTitle").textContent = (button.querySelector(".navLabelV1") || button).textContent.trim();
       clearTimeout(analyticsTimer);
       await refresh().catch(error => showNotice(error.message));
     });
