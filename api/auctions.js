@@ -3467,6 +3467,7 @@ async function computeCompsForQ(q){
       run:runG === "1" ? true : runG === "0" ? false : null, doc:q.get("doc")});
     const hasCond = !!(q.get("dmg") || q.get("cond"));
     const cqGood = String(q.get("cq") || "") === "good";
+    const totalDmg = priceGuide.isTotalDamage(q.get("dmg"), q.get("dmg2"));
     // fuel_x (пересчёт по VIN) приоритетнее сырого текста фида — тот путает гибрид/plug-in/mild-hybrid
     // (см. «Тип силовой установки по VIN»). Единая точка разбора — дальше используем везде.
     const fuelText = resolveFuelText(q);
@@ -3477,7 +3478,7 @@ async function computeCompsForQ(q){
     // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
     // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
     const acvNum = Number(q.get("acv")) || 0;
-    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair"), fuel:fuelTextToId(fuelText)}) : null;
+    const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair"), fuel:fuelTextToId(fuelText), isTotalDmg:totalDmg}) : null;
     let band = null, src = "guide";
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
@@ -3551,11 +3552,15 @@ async function computeCompsForQ(q){
           }
         }catch(_){ /* реальных продаж нет — остаётся таблица/ACV + пол ниже */ }
       }
-      // (2) Пол оценки для «на ходу»: середина не ниже ЧИСТОЙ стоимости (ACV − оценка ремонта). Нужны И ACV,
-      // И оценка ремонта (иначе «пол» = весь ACV, что завышает). Лифт ≤ ×1.8. Для битых/не на ходу — не применяем.
+      // (2) Пол оценки: середина не ниже ЧИСТОЙ стоимости (ACV − оценка ремонта). Нужны И ACV, И оценка
+      // ремонта (иначе «пол» = весь ACV, что завышает). Лифт ≤ ×1.8. Было только для «на ходу» (cqG).
+      // 05.10.2026 (Федор, BMW M240i IAAI 45588401, Fresh Water, 3 979 миль, ACV $57 456 / ремонт $39 750):
+      // пол расширен и на потоп/пожар (totalDmg) — именно там repairCost/ACV систематически высокий
+      // (страховая иначе не признала бы тотал), а остаточная ценность «ACV минус ремонт» — тот же
+      // принцип, по которому страховые/оценщики сами считают выкупную стоимость тотальных лотов.
       const repairQ = Number(q.get("repair")) || 0;
       const acvNet = (acvNum > 500 && repairQ > 0) ? acvNum - repairQ : 0;
-      if(cqG && acvNet > 0 && band.mid > 0 && band.mid < acvNet){
+      if((cqG || totalDmg) && acvNet > 0 && band.mid > 0 && band.mid < acvNet){
         const f = Math.min(acvNet / band.mid, 1.8);
         band = {lo:r100(band.lo * f), mid:r100(band.mid * f), hi:r100(band.hi * f)};
         src += "+netfloor";

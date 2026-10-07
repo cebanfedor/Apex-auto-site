@@ -223,8 +223,15 @@ function acvExtraAdj({airbags, fuel} = {}){
 // а не индикатор «убитости» машины (Tesla-кейс выше был про ЦЕЛУЮ группу электро/PHEV с дорогим ремонтом
 // одинаково). Для fuel_x 3 (гибрид) и 5 (plug-in) штраф отключён — repairCost по-прежнему на странице лота
 // отдельной строкой, решение по ремонту — на покупателе.
-function repairRatioAdj(repairCost, acv, fuelX){
+// 05.10.2026 (Федор, BMW M240i xDrive IAAI 45588401, 2026г · 3 979 миль · Fresh Water: ориентир $10-11.6к
+// при резерве $33.3к и живой ставке $22к — «топляк — ты слишком сильно занижаешь цену»): для потопа/пожара
+// (RE_TOTAL) этот штраф ДУБЛИРОВАЛ уже учтённую тяжесть — conditionCoef() ставит 0.6 (самый низкий коэффициент
+// шкалы) ИМЕННО из-за категории повреждения «flood/water/burn», а у такой категории repairCost/ACV почти
+// всегда высокий (страховая иначе бы не признала тотал) — штраф ×0.7-0.8 применялся ПОВЕРХ уже-низкого 0.6,
+// снижая вдвое то, что и так снижено. Для RE_TOTAL штраф отключён — severity уже в conditionCoef.
+function repairRatioAdj(repairCost, acv, fuelX, isTotalDmg){
   if(Number(fuelX) === 3 || Number(fuelX) === 5) return 1;
+  if(isTotalDmg) return 1;
   const r = Number(repairCost) || 0, a = Number(acv) || 0;
   if(!r || !a) return 1;
   const ratio = r / a;
@@ -235,15 +242,20 @@ function repairRatioAdj(repairCost, acv, fuelX){
   if(ratio <= 0.8) return 0.8;
   return 0.7;
 }
+// Повреждение «тотал» (потоп/пожар/биозаражение) — та же категория, что ставит conditionCoef=0.6 выше.
+// Общий хелпер, чтобы не дублировать RE_TOTAL в api/auctions.js (там нужен этот же флаг для repairRatioAdj
+// и для «пола» ACV−ремонт, см. вызов computeCompsForQ).
+function isTotalDamage(dmg, dmg2){ return RE_TOTAL.test(`${dmg || ""} / ${dmg2 || ""}`); }
 // Вилка по ACV: ±15% вокруг середины, потолок — не выше 90% ACV (дороже целой машины салважный лот не берут).
 function estimateFromAcv(acv, coef, odometerMi, extra){
   const a = Number(acv) || 0;
   if(a < 500) return null;
-  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {}) * repairRatioAdj(extra && extra.repairCost, a, extra && extra.fuel);
+  const ratio = acvRatioFor(coef) * acvMileageAdj(odometerMi) * acvExtraAdj(extra || {})
+    * repairRatioAdj(extra && extra.repairCost, a, extra && extra.fuel, extra && extra.isTotalDmg);
   const mid = a * Math.min(ratio, 0.9);
   if(!(mid > 0)) return null;
   return {lo:round100(mid * 0.85), mid:round100(mid), hi:round100(Math.min(mid * 1.15, a * 0.9))};
 }
 
 module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash,
-  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, repairRatioAdj, estimateFromAcv};
+  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, repairRatioAdj, estimateFromAcv, isTotalDamage};
