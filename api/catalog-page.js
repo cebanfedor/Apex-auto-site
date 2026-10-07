@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const {cleanQuery, isFiltered, describeCatalog} = require("../server/og-catalog");
 const {PAGES} = require("../server/og-pages");
+const {lotSlug} = require("../server/slug");
 
 // /auctions: страница каталога. С фильтрами (?make=…&model=…&fuel=5) — своё превью ссылки: «Ford Fusion — 7 328 лотов на аукционах…»
 // и картинка /og/catalog?… (фото первого лота + название + число лотов). Без фильтров — страница как есть.
@@ -63,11 +64,19 @@ module.exports = async function(req, res){
     .replace(/<meta name="twitter:image"[^>]*>/, `<meta name="twitter:image" content="${esc(img)}">`);
   // JSON-LD CollectionPage: фильтрованная страница каталога (make/model) — сущность-коллекция
   // для поисковиков/LLM (эти страницы в sitemap). Breadcrumb уже есть в шаблоне — не дублируем.
+  // mainEntity ItemList — реальные лоты текущей выдачи (до 12, те же, что пришли для превью/названия) —
+  // даёт Google/LLM структуру «что внутри» этой конкретной страницы, не только её заголовок.
   try{
+    const itemListElement = (d.items || []).slice(0, 12).map((it, i) => ({
+      "@type":"ListItem", position:i + 1,
+      url:`https://apexauto.md/auctions/${lotSlug(it)}`,
+      name:[it.year, it.make, it.model].filter(Boolean).join(" ") || it.title || undefined
+    }));
     const ld = JSON.stringify({
       "@context":"https://schema.org", "@type":"CollectionPage",
       name: title, description: desc, url,
-      isPartOf: {"@type":"WebSite", name:"Apex Auto", url:"https://apexauto.md"}
+      isPartOf: {"@type":"WebSite", name:"Apex Auto", url:"https://apexauto.md"},
+      ...(itemListElement.length ? {mainEntity:{"@type":"ItemList", itemListElement}} : {})
     }).replace(/</g, "\\u003c");
     html = html.replace("</head>", `<script type="application/ld+json">${ld}</script>\n</head>`);
   }catch(e){ /* schema не критично */ }
