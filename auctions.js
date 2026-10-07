@@ -1625,7 +1625,9 @@
     if(Number(lot.repairCost) > 0) cp.set("repair", String(toUsd(lot.repairCost)));
     // Самодиагностика (guide_miss): чтобы сервер видел, когда реальная ставка/резерв/прошлый раунд
     // выше вилки, и мог залогировать локацию/штат/пробег для будущей правки формулы.
-    if(lot.id != null) cp.set("lot_id", `${String(lot.auction || "").toLowerCase()}-${lot.id}`.slice(0, 80));
+    // 08.10.2026 (аудит): lot.id уже содержит префикс площадки ("iaai-45899168", см. normalizeLot) —
+    // код дописывал его ЕЩЁ РАЗ ("iaai-iaai-45899168"), строки guide_miss не совпадали с id лота на сайте.
+    if(lot.id != null) cp.set("lot_id", String(lot.id).slice(0, 80));
     if(lot.auction) cp.set("auction", String(lot.auction).slice(0, 10));
     if(Number(lot.currentBid) > 0) cp.set("bid", String(toUsd(lot.currentBid)));
     if(Number(lot.sellerReserve) > 0) cp.set("reserve", String(toUsd(lot.sellerReserve)));
