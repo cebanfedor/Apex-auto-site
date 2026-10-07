@@ -762,7 +762,12 @@
   function vehicleKind(lot, override){
     if(override) return override;
     const b = String(lot.body || lot.bodyStyle || "").toLowerCase();
-    const t = (String(lot.model || "") + " " + String(lot.make || "")).toLowerCase();
+    const t = (String(lot.model || "") + " " + String(lot.make || "") + " " + String(lot.title || "")).toLowerCase();
+    // Мото/ATV — сырой тип кузова фида уже даёт точный ответ (видно в блоке «Описание»),
+    // но до этого правила vehicleKind() его не проверял вовсе и такие лоты молча
+    // попадали в "sedan" (неверная доставка/растаможка). Проверяем раньше пикапа/буса.
+    if(/atv|quad|utv|side.?by.?side|snowmobil/.test(b + t)) return "atv";
+    if(/moto(rcycle)?\b|\bbike\b|scooter|moped/.test(b + t)) return "moto";
     if(/pickup|truck|silverado|sierra|ram|f-150|f150|tundra|tacoma/.test(b + t)) return "pickup";
     if(/van|cargo|sprinter|transit|minivan/.test(b + t)) return "vanLarge";
     // Правило по конкретным моделям (кроссовер vs внедорожник) — единый источник
