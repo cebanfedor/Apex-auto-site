@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/admin/admin.css?v=admin-v176">
+  <link rel="stylesheet" href="/admin/admin.css?v=admin-v177">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -171,21 +171,26 @@
         </section>
 
         <section id="leadsView" class="view">
-          <div class="split">
+          <div class="panelHead leadsHeadV1">
+            <h2>Заявки</h2>
+            <div class="viewToggleV1" id="leadsViewToggleV1">
+              <button type="button" data-leads-view="list" class="active">Список</button>
+              <button type="button" data-leads-view="kanban">Канбан</button>
+            </div>
+            <select id="leadStatusFilter">
+              <option value="">Все статусы</option>
+              <option>Новый</option>
+              <option>Перезвонить</option>
+              <option>В работе</option>
+              <option>Купил</option>
+              <option>Закрыт</option>
+            </select>
+          </div>
+          <div id="leadsKpiV1" class="leadsKpiV1"></div>
+          <div id="leadTgBindV1" class="leadTgBindV1"></div>
+
+          <div id="leadsSplitV1" class="split">
             <div class="panel">
-              <div class="panelHead">
-                <h2>Заявки</h2>
-                <select id="leadStatusFilter">
-                  <option value="">Все статусы</option>
-                  <option>Новый</option>
-                  <option>Перезвонить</option>
-                  <option>В работе</option>
-                  <option>Купил</option>
-                  <option>Закрыт</option>
-                </select>
-              </div>
-              <div id="leadsKpiV1" class="leadsKpiV1"></div>
-              <div id="leadTgBindV1" class="leadTgBindV1"></div>
               <div id="leadsList" class="tableLike"></div>
             </div>
             <form id="leadForm" class="panel formPanel">
@@ -216,6 +221,8 @@
               </div>
             </form>
           </div>
+
+          <div id="leadsKanbanV1" class="leadsKanbanV1" hidden></div>
         </section>
 
         <section id="analyticsView" class="view">
@@ -314,6 +321,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v179"></script>
+  <script src="/admin/admin.js?v=admin-v180"></script>
 </body>
 </html>

@@ -3,6 +3,8 @@ const state = {
   vehicles:[],
   customers:[],
   leads:[],
+  leadsAll:[],
+  leadsView:"list",
   content:null
 };
 
@@ -253,27 +255,124 @@ async function loadLeads(){
   renderRows("leadsList", state.leads, "lead");
 }
 
-// Мини-KPI над списком заявок — отдельный запрос БЕЗ фильтра статуса (иначе, например,
-// при выбранном фильтре «Закрыт» карточка «Новых сегодня» всегда показывала бы 0).
-async function loadLeadsKpi(){
-  const box = $("#leadsKpiV1");
-  if(!box) return;
+// Полный список заявок БЕЗ фильтра статуса — общий источник и для мини-KPI, и для канбана
+// (канбану нужны ВСЕ статусы разом, чтобы было между чем перетаскивать; фильтр выше относится
+// только к списку). Один запрос на двоих — Промис.
+async function loadLeadsAll(){
   try{
     const data = await api("/api/leads?limit=200");
-    const items = data.items || [];
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const newToday = items.filter(x => String(x.created_at || "").slice(0, 10) === todayStr).length;
-    const inWork = items.filter(x => /в работе/i.test(x.status || "")).length;
-    const waiting = items.filter(x => /перезвонить/i.test(x.status || "")).length;
-    const bought = items.filter(x => /купил/i.test(x.status || "")).length;
-    const conversion = items.length ? Math.round((bought / items.length) * 100) : 0;
-    box.innerHTML = [
-      ["Новых сегодня", newToday],
-      ["В работе", inWork],
-      ["Ждут звонка", waiting],
-      ["Конверсия в покупку", `${conversion}%`]
-    ].map(([label, value]) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(String(value))}</b></article>`).join("");
-  }catch(e){ box.innerHTML = ""; }
+    state.leadsAll = data.items || [];
+  }catch(e){ state.leadsAll = state.leadsAll || []; }
+  renderLeadsKpiFromState();
+  if(state.leadsView === "kanban") renderLeadsKanban();
+}
+function renderLeadsKpiFromState(){
+  const box = $("#leadsKpiV1");
+  if(!box) return;
+  const items = state.leadsAll || [];
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const newToday = items.filter(x => String(x.created_at || "").slice(0, 10) === todayStr).length;
+  const inWork = items.filter(x => /в работе/i.test(x.status || "")).length;
+  const waiting = items.filter(x => /перезвонить/i.test(x.status || "")).length;
+  const bought = items.filter(x => /купил/i.test(x.status || "")).length;
+  const conversion = items.length ? Math.round((bought / items.length) * 100) : 0;
+  box.innerHTML = [
+    ["Новых сегодня", newToday],
+    ["В работе", inWork],
+    ["Ждут звонка", waiting],
+    ["Конверсия в покупку", `${conversion}%`]
+  ].map(([label, value]) => `<article><span>${escapeHtml(label)}</span><b>${escapeHtml(String(value))}</b></article>`).join("");
+}
+
+// ── Канбан по статусам (Федор 08.10.2026) ──
+const KANBAN_STATUSES = ["Новый", "Перезвонить", "В работе", "Купил", "Закрыт"];
+function renderLeadsKanban(){
+  const box = $("#leadsKanbanV1");
+  if(!box) return;
+  const items = state.leadsAll || [];
+  box.innerHTML = KANBAN_STATUSES.map(status => {
+    const rows = items.filter(x => (x.status || "Новый") === status);
+    const cards = rows.length
+      ? rows.map(item => `
+          <article class="kanbanCardV1" draggable="true" data-lead-id="${item.id}">
+            <b>${escapeHtml(item.customers?.name || item.title || "Заявка")}</b>
+            <span>${escapeHtml(item.vehicles ? [item.vehicles.year, item.vehicles.make, item.vehicles.model].filter(Boolean).join(" ") : (item.customers?.phone || "Без авто"))}</span>
+            <span>${escapeHtml(item.source || "—")} · ${escapeHtml(fmtWhen(item.created_at) || "—")}</span>
+          </article>`).join("")
+      : `<div class="kanbanEmptyV1">Пусто</div>`;
+    return `
+      <div class="kanbanColV1" data-status="${escapeHtml(status)}">
+        <div class="kanbanColHeadV1"><h3>${escapeHtml(status)}</h3><span>${rows.length}</span></div>
+        <div class="kanbanColBodyV1">${cards}</div>
+      </div>`;
+  }).join("");
+}
+function bindLeadsKanban(){
+  const toggle = $("#leadsViewToggleV1");
+  if(toggle){
+    toggle.addEventListener("click", event => {
+      const btn = event.target.closest("[data-leads-view]");
+      if(!btn) return;
+      state.leadsView = btn.dataset.leadsView;
+      $$("#leadsViewToggleV1 button").forEach(b => b.classList.toggle("active", b === btn));
+      $("#leadsSplitV1").hidden = state.leadsView === "kanban";
+      $("#leadsKanbanV1").hidden = state.leadsView !== "kanban";
+      $("#leadStatusFilter").hidden = state.leadsView === "kanban";
+      if(state.leadsView === "kanban") renderLeadsKanban();
+    });
+  }
+
+  const board = $("#leadsKanbanV1");
+  if(!board) return;
+  let draggedId = null;
+  board.addEventListener("dragstart", event => {
+    const card = event.target.closest(".kanbanCardV1");
+    if(!card) return;
+    draggedId = card.dataset.leadId;
+    card.classList.add("draggingV1");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", draggedId);
+  });
+  board.addEventListener("dragend", event => {
+    event.target.closest(".kanbanCardV1")?.classList.remove("draggingV1");
+    $$(".kanbanColV1.dragoverV1").forEach(c => c.classList.remove("dragoverV1"));
+  });
+  board.addEventListener("dragover", event => {
+    const col = event.target.closest(".kanbanColV1");
+    if(!col) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    col.classList.add("dragoverV1");
+  });
+  board.addEventListener("dragleave", event => {
+    const col = event.target.closest(".kanbanColV1");
+    if(col && !col.contains(event.relatedTarget)) col.classList.remove("dragoverV1");
+  });
+  board.addEventListener("drop", async event => {
+    const col = event.target.closest(".kanbanColV1");
+    if(!col) return;
+    event.preventDefault();
+    col.classList.remove("dragoverV1");
+    const id = draggedId || event.dataTransfer.getData("text/plain");
+    const status = col.dataset.status;
+    draggedId = null;
+    if(!id) return;
+    const lead = (state.leadsAll || []).find(x => String(x.id) === String(id));
+    if(!lead || lead.status === status) return;
+    const prevStatus = lead.status;
+    lead.status = status;   // оптимистично — доска переотрисовывается сразу, не ждём ответ сервера
+    renderLeadsKanban();
+    try{
+      await api(`/api/leads?id=${encodeURIComponent(id)}`, {method:"PATCH", body:{status}});
+      renderLeadsKpiFromState();
+      loadLeads().catch(() => {});   // фоном освежаем список — пригодится, если переключатся обратно
+      showNotice("Статус обновлён", true);
+    }catch(error){
+      lead.status = prevStatus;
+      renderLeadsKanban();
+      showNotice(error.message || "Не удалось изменить статус", false);
+    }
+  });
 }
 
 // Уведомления о новых заявках в Telegram (Федор 07.10.2026) — переиспользует бот уведомлений
@@ -315,7 +414,7 @@ async function refresh(){
     await Promise.all([loadCustomers(), loadVehicles()]);
     await loadLeads();
     loadLeadTgBind();
-    loadLeadsKpi();
+    loadLeadsAll();
   }
   if(state.view === "content") await loadContent();
 }
@@ -782,6 +881,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindForms();
   bindLists();
   bindFilters();
+  bindLeadsKanban();
   $("#refreshBtn").addEventListener("click", () => refresh().catch(error => showNotice(error.message)));
   $("#logoutBtn").addEventListener("click", async () => {
     await api("/api/admin?action=logout", {method:"POST", body:{}});
