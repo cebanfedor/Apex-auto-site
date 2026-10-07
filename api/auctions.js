@@ -46,16 +46,41 @@ function checkLeadRate(ip){
   return true;
 }
 
+// 07.10.2026 (Федор: «уведомление мне в телеграм, что пришла новая заявка»): TELEGRAM_BOT_TOKEN/
+// TELEGRAM_CHAT_ID НИКОГДА не были заведены в Vercel (проверено — их нет в списке env) — этот код
+// существовал, но notifyTelegram() всегда падал на самой первой строке и молча возвращал false.
+// Вместо нового секрета переиспользуем уже настроенный ALERTS_BOT_TOKEN (бот уведомлений о лотах/
+// поисках, server/alerts.js) — админ один раз привязывает чат через action=alertadminbind
+// (кнопка в CRM, «Заявки»), токен и chat_id живут в тех же таблицах alert_links/alert_meta,
+// что и у обычных подписчиков. Кэш в памяти — это КРИТИЧЕСКИЙ путь handleLead (ответ клиенту
+// ждёт notifyTelegram), два похода в Supabase на каждую заявку недопустимы.
+let adminChatCache = {chatId:null, at:0};
+async function resolveAdminChatId(){
+  if(Date.now() - adminChatCache.at < 5 * 60e3) return adminChatCache.chatId;
+  try{
+    const meta = await syncSbFetch(`/alert_meta?k=eq.admin_lead_token&select=v`);
+    const token = meta && meta[0] && meta[0].v && meta[0].v.token;
+    if(!token){ adminChatCache = {chatId:null, at:Date.now()}; return null; }
+    const links = await syncSbFetch(`/alert_links?token=eq.${encodeURIComponent(token)}&select=chat_id&limit=1`);
+    const chatId = links && links[0] && links[0].chat_id || null;
+    adminChatCache = {chatId, at:Date.now()};
+    return chatId;
+  }catch(_){ return adminChatCache.chatId; }
+}
 async function notifyTelegram(data){
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const token = process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID || await resolveAdminChatId().catch(() => null);
   if(!token || !chatId) return false;
   // parse_mode=HTML + экранирование значений: поля лида (имя/коммент/лот/vin) —
   // пользовательский ввод. На Markdown клиент мог вставить [текст](ссылку) или сломать
   // разметку (`*`/`_`) → Telegram 400 и молчаливая потеря уведомления менеджеру.
   const esc = v => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Время в зоне Кишинёва — сообщение видно в ленте Telegram со своей меткой времени,
+  // но в самом тексте удобнее явно (Федор 07.10.2026: «время когда оставил заявку»).
+  const when = new Date().toLocaleString("ru-RU", {timeZone:"Europe/Chisinau", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"});
   const lines = [
     "🚗 <b>Новая заявка — Apex Auto</b>",
+    `🕒 ${esc(when)}${data.source ? ` · ${esc(data.source)}` : ""}`,
     `👤 <b>Имя:</b> ${esc(data.name) || "—"}`,
     `📞 <b>Телефон:</b> ${esc(data.phone) || "—"}`,
   ];
@@ -65,6 +90,8 @@ async function notifyTelegram(data){
   if(data.auction) lines.push(`🏷 <b>Аукцион:</b> ${esc(String(data.auction).toUpperCase())}`);
   // Прямая ссылка на лот — менеджер открывает машину одним кликом, без поиска.
   if(data.lotUrl) lines.push(`🔗 ${esc(data.lotUrl)}`);
+  // Страница, с которой ушла заявка (пусто для lotUrl-заявок — там своя ссылка уже есть выше).
+  if(data.page && data.page !== data.lotUrl) lines.push(`📍 ${esc(data.page)}`);
   // 29.09.2026 (аудит): без AbortController зависший fetch к Telegram мог держать весь запрос
   // до истечения общего таймаута платформы — таймаут 8с, как у аналогичной обёртки в server/alerts.js.
   const ctl = new AbortController();
@@ -1855,13 +1882,19 @@ async function handleLead(request, response){
     // Прямая ссылка на лот на сайте — в заявку и в Telegram, чтобы менеджер
     // открывал нужную машину одним кликом.
     const lotUrl = (auction && lot) ? `https://apexauto.md/auctions/${auction}-${lot.replace(/~.*/, "")}` : "";
+    // Страница, с которой пришла заявка (location.href клиента) — Федор 07.10.2026: «показывай,
+    // с какой страницы клиент пришёл на заявку». Отдельно от lotUrl: lotUrl есть только у заявок
+    // по лоту, page — у ЛЮБОЙ формы (главная «Подбор»/«Контакт», «Авто в пути», лот). Только
+    // наш домен — чужой referrer/URL в сообщение/Telegram не пускаем.
+    const pageRaw = String(body.page || "").slice(0, 300);
+    const page = /^https:\/\/apexauto\.md\//.test(pageRaw) ? pageRaw : "";
 
     // Уведомление менеджеру в Telegram — КРИТИЧЕСКИЙ канал заявки. Шлём ПЕРВЫМ и
     // независимо от БД: даже если CRM-таблицы недоступны/со старой схемой, заявка
     // всё равно дойдёт до менеджера. (Фон: после обслуживания базы у leads пропала
     // колонка message, у customers — UNIQUE на phone → запись в CRM падала и
     // блокировала всю заявку.)
-    const tgOk = await notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl}).catch(() => false);
+    const tgOk = await notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl, source, page}).catch(() => false);
 
     // Запись в CRM — best-effort, не должна валить заявку. Снисходительный insert:
     // если схема таблицы отстала и колонки нет («Could not find the 'X' column»),
@@ -1897,7 +1930,8 @@ async function handleLead(request, response){
           vin ? `VIN: ${vin}` : "",
           lot ? `LOT: ${lot}` : "",
           auction ? `Аукцион: ${auction.toUpperCase()}` : "",
-          lotUrl ? `Ссылка: ${lotUrl}` : ""
+          lotUrl ? `Ссылка: ${lotUrl}` : "",
+          page ? `Страница: ${page}` : ""
         ].filter(Boolean).join("\n"),
         status:"Новый",
         source

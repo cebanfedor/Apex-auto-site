@@ -310,6 +310,7 @@ function esc(s){
         method:"POST", headers:{"content-type":"application/json"},
         body:JSON.stringify({
           name:name, phone:phone, hp_website:form.hp_website.value, source:"Авто в пути", vin:it.vin || "",
+          page:location.origin + transitHref(it),
           comment:"Объявление #" + it.id + ": " + it.title + (it.price ? " — " + money(it.price) : "") + " · " + location.origin + transitHref(it)
         })
       }).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return r.ok && d.ok; }); })

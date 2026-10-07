@@ -461,6 +461,35 @@ function create(deps){
       return true;
     }
 
+    // ---------- уведомление АДМИНА о новых заявках (не про поиски/лоты выше, Федор 07.10.2026) ----------
+    // Тот же механизм token→alert_links→chat_id, что у обычной подписки посетителя (alertlink/pollUpdates
+    // их уже умеют привязывать) — просто запоминаем, какой именно токен «главный» (admin_lead_token в
+    // alert_meta), чтобы handleLead() в api/auctions.js знал, кому слать. Один и тот же бот (ALERTS_BOT_TOKEN),
+    // новый секрет в Vercel не нужен.
+    if(action === "alertadminbind"){
+      if(!isAdmin(request)){ sendJson(response, 401, {ok:false}); return true; }
+      const token = crypto.randomBytes(24).toString("base64url");
+      await sb(`/alert_links`, {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify({token, lang:"ru"})});
+      await metaSet("admin_lead_token", {token});
+      const name = await botUsername();
+      if(!name){ sendJson(response, 200, {ok:false, error:"bot_unavailable"}, NO); return true; }
+      sendJson(response, 200, {ok:true, url:`https://t.me/${name}?start=${token}`}, NO);
+      return true;
+    }
+    if(action === "alertadminstatus"){
+      if(!isAdmin(request)){ sendJson(response, 401, {ok:false}); return true; }
+      const meta = await metaGet("admin_lead_token");
+      const token = meta && meta.v && meta.v.token;
+      if(!token){ sendJson(response, 200, {ok:true, bound:false}, NO); return true; }
+      let links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id&limit=1`).catch(() => []);
+      if(!(links[0] && links[0].chat_id)){
+        await pollUpdates().catch(() => {});
+        links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id&limit=1`).catch(() => links);
+      }
+      sendJson(response, 200, {ok:true, bound:!!(links[0] && links[0].chat_id)}, NO);
+      return true;
+    }
+
     if(action === "alertlink"){
       if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
       const body = await readBody(request).catch(() => ({}));

@@ -1369,7 +1369,7 @@ async function postMainLead(payload){
     const r = await fetch("/api/auctions?action=lead", {
       method:"POST",
       headers:{"content-type":"application/json"},
-      body:JSON.stringify(payload)
+      body:JSON.stringify({...payload, page:location.href})   // с какой страницы пришла заявка
     });
     const data = await r.json().catch(() => ({}));
     return !!(r.ok && data.ok);

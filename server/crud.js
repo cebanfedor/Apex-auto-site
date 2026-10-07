@@ -72,7 +72,7 @@ function createCrudHandler({table, allowedFields, select = "*", order = "created
   };
 }
 
-function createItemHandler({table, allowedFields}){
+function createItemHandler({table, allowedFields, detach = []}){
   return async function handler(request, response){
     if(!requireAdmin(request, response)) return;
     const id = getQuery(request).get("id");
@@ -90,6 +90,19 @@ function createItemHandler({table, allowedFields}){
       }
 
       if(request.method === "DELETE"){
+        // Записи-ссылки (лиды на этого клиента/авто) не удаляем молча — отвязываем (FK → null),
+        // иначе Postgres блокирует DELETE constraint-ошибкой «ещё ссылаются из leads», а в
+        // старом коде (без этого блока) она тихо терялась в admin.js без try/catch — казалось,
+        // что кнопка «Удалить» просто ничего не делает (Федор 07.10.2026: «не могу удалять
+        // заявки старые» — тестовые клиенты/лоты, у которых уже есть тестовые лиды).
+        for(const d of detach){
+          try{
+            const rows = await supabase.list(d.table, {[d.field]:`eq.${id}`, select:"id", limit:"500"});
+            for(const row of (Array.isArray(rows) ? rows : [])){
+              await supabase.update(d.table, row.id, {[d.field]:null}).catch(() => {});
+            }
+          }catch(_){ /* отвязка — best-effort, не должна блокировать удаление */ }
+        }
         await supabase.remove(table, id);
         sendJson(response, 200, {ok:true});
         return;

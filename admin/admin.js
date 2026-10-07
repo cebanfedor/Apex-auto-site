@@ -130,6 +130,17 @@ function escapeHtml(value){
   return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 }
 
+// «Когда» заявка/клиент создан — Федор 07.10.2026: «время когда оставил заявку».
+function fmtWhen(iso){
+  const t = Date.parse(iso || "");
+  if(!Number.isFinite(t)) return "";
+  const d = new Date(t);
+  const diffMin = Math.round((Date.now() - t) / 60000);
+  if(diffMin < 60) return diffMin <= 0 ? "только что" : `${diffMin} мин назад`;
+  if(diffMin < 24 * 60) return `${Math.round(diffMin / 60)} ч назад`;
+  return d.toLocaleString("ru-RU", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"});
+}
+
 function renderRows(container, items, type){
   const el = document.getElementById(container);
   if(!items.length){
@@ -155,6 +166,7 @@ function renderRows(container, items, type){
         <div>
           <h3>${escapeHtml(item.name || "Клиент")}</h3>
           <p>${escapeHtml(item.phone || "—")} · ${escapeHtml(item.telegram || "—")} · ${badge(item.status)}</p>
+          <p>${escapeHtml(item.source || "—")} · ${escapeHtml(fmtWhen(item.created_at) || "—")}</p>
         </div>
         <div class="rowActions">
           <button data-edit-customer="${item.id}">Изм.</button>
@@ -166,6 +178,7 @@ function renderRows(container, items, type){
       <div>
         <h3>${escapeHtml(item.title || item.message || "Заявка")}</h3>
         <p>${escapeHtml(item.customers?.name || "Без клиента")} · ${escapeHtml(item.vehicles ? [item.vehicles.year,item.vehicles.make,item.vehicles.model].filter(Boolean).join(" ") : "Без авто")} · ${badge(item.status)}</p>
+        <p>${escapeHtml(item.source || "—")} · ${escapeHtml(fmtWhen(item.created_at) || "—")}</p>
       </div>
       <div class="rowActions">
         <button data-edit-lead="${item.id}">Изм.</button>
@@ -234,6 +247,26 @@ async function loadLeads(){
   renderRows("leadsList", state.leads, "lead");
 }
 
+// Уведомления о новых заявках в Telegram (Федор 07.10.2026) — переиспользует бот уведомлений
+// о лотах/поисках (ALERTS_BOT_TOKEN, server/alerts.js): action=alertadminbind выдаёт одноразовую
+// t.me-ссылку, после «Start» в Telegram alertadminstatus подтверждает привязку chat_id.
+function renderLeadTgBind(bound){
+  const box = $("#leadTgBindV1");
+  if(!box) return;
+  box.innerHTML = bound
+    ? `<span class="tgBindOkV1">✅ Telegram-уведомления о заявках подключены</span>`
+    : `<span class="tgBindOffV1">🔔 Уведомления о новых заявках не подключены</span><button type="button" id="leadTgBindBtnV1">Подключить Telegram</button>`;
+}
+async function loadLeadTgBind(){
+  const box = $("#leadTgBindV1");
+  if(!box) return;
+  box.innerHTML = `<span class="muted">Проверяем Telegram-уведомления…</span>`;
+  try{
+    const st = await api("/api/auctions?action=alertadminstatus");
+    renderLeadTgBind(!!st.bound);
+  }catch(e){ box.innerHTML = ""; }
+}
+
 async function loadContent(){
   const data = await api("/api/content");
   state.content = data.content || {};
@@ -252,6 +285,7 @@ async function refresh(){
   if(state.view === "leads"){
     await Promise.all([loadCustomers(), loadVehicles()]);
     await loadLeads();
+    loadLeadTgBind();
   }
   if(state.view === "content") await loadContent();
 }
@@ -609,6 +643,29 @@ function bindForms(){
 function bindLists(){
   document.addEventListener("click", async event => {
     const target = event.target;
+    if(target.id === "leadTgBindBtnV1"){
+      target.disabled = true;
+      target.textContent = "Открываем Telegram…";
+      try{
+        const r = await api("/api/auctions?action=alertadminbind");
+        if(!r.url){ throw new Error("Бот недоступен"); }
+        window.open(r.url, "_blank", "noopener");
+        target.textContent = "Ждём подтверждения в Telegram…";
+        // Нажали «Start» у бота — chat_id привязывается опросом (alertadminstatus сам
+        // досрочно дёргает pollUpdates, не ждём крон раз в 3 мин).
+        for(let i = 0; i < 8; i++){
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          const st = await api("/api/auctions?action=alertadminstatus").catch(() => null);
+          if(st && st.bound){ renderLeadTgBind(true); showNotice("Telegram-уведомления подключены", true); return; }
+        }
+        renderLeadTgBind(false);
+        showNotice("Не подтвердилось — откройте ссылку и нажмите Start в Telegram, затем попробуйте снова", false);
+      }catch(error){
+        renderLeadTgBind(false);
+        showNotice(error.message || "Не удалось подключить Telegram", false);
+      }
+      return;
+    }
     const vehicleId = target.dataset.editVehicle;
     const customerId = target.dataset.editCustomer;
     const leadId = target.dataset.editLead;
@@ -639,9 +696,16 @@ function bindLists(){
     for(const [key, path, reload] of deleteMap){
       if(target.dataset[key]){
         if(!confirm("Удалить запись?")) return;
-        await api(`${path}?id=${encodeURIComponent(target.dataset[key])}`, {method:"DELETE"});
-        await reload();
-        showNotice("Запись удалена", true);
+        // Раньше ошибка (например, FK-constraint) уходила в necaught rejection этого
+        // async-обработчика клика — молча, без showNotice: со стороны выглядело так,
+        // будто кнопка «Удалить» просто ничего не делает (Федор 07.10.2026).
+        try{
+          await api(`${path}?id=${encodeURIComponent(target.dataset[key])}`, {method:"DELETE"});
+          await reload();
+          showNotice("Запись удалена", true);
+        }catch(error){
+          showNotice(error.message || "Не удалось удалить запись", false);
+        }
       }
     }
   });

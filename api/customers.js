@@ -19,7 +19,9 @@ const options = {
 };
 
 const collectionHandler = createCrudHandler(options);
-const itemHandler = createItemHandler(options);
+// Удаление клиента: отвязать его лиды (customer_id → null), иначе FK-constraint блокирует
+// DELETE — лид остаётся в CRM, просто без привязанного клиента.
+const itemHandler = createItemHandler({...options, detach:[{table:"leads", field:"customer_id"}]});
 
 module.exports = function handler(request, response){
   const id = getQuery(request).get("id");

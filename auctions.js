@@ -4253,6 +4253,7 @@
     const form = event.currentTarget;
     const btn = form.querySelector('button[type="submit"]');
     const data = Object.fromEntries(new FormData(form).entries());
+    data.page = location.href;   // Федор 07.10.2026: видеть, с какой страницы пришла заявка
     const status = $("#leadFormStatus");
     status.className = "";
     status.textContent = L("Отправляем заявку...");
