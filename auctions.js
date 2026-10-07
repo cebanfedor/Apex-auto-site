@@ -3293,7 +3293,9 @@
     // с рынком в шаблоне «Выгодная сделка» (eco ниже), в саму строку поста больше не идёт как есть.
     const turnkey = (function(){ try{ return Math.round(Number(turnkeyFor(lot, turnkeyBasis)) || 0); }catch(_){ return 0; } })();
     const url = tgLotUrl(lot), tags = tgHashtags(lot);
-    const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money(lot.finalBid) : ""}</b>`
+    // 07.10.2026: «Продан за …» единственная строка здесь шла через money() вместо money1() — у канадских
+    // лотов finalBid сырой в CAD, пост в Telegram показывал «$36 250» вместо «36 250 CAD ≈ $26 573» (≈35% завышение).
+    const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money1(lot.finalBid) : ""}</b>`
       : (bn && !bid) ? `💰 <b>Buy Now: ${money1(bn)}</b>`
       : `💰 <b>Текущая ставка: ${money1(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money1(bn)}` : ""}`;
     // 03.10.2026 (Федор, живой пример Kia Sorento): резерв продавца — отдельной строкой сразу под

@@ -3987,7 +3987,17 @@ async function syncUpsertRows(rows, deadline, opts = {}){
       const map = new Map(ex.map(r => [r.id, r]));
       // Строку-продажу нельзя ухудшить: входящая без финала и без БУДУЩИХ торгов (sold без даты, not_sold-раунд
       // без новой даты) просто отбрасывается — продажа остаётся как есть.
-      const degrading = r => { const e = map.get(r.id); return isSaleRow(e) && !(Number(r.final_bid) > 0) && !(r.sale_date && Date.parse(r.sale_date) > Date.now()); };
+      // 07.10.2026: защита ловила только final_bid=0, а не «меньше, чем уже было» — точечная коррекция цены
+      // (поднятая до резерва/VIN-хаммера в attachVinHistory, см. «Финал проданного Timed») МОГЛА откатиться
+      // назад следующим обычным проходом syncclosed/synclots, который видит сырое (ниже) значение из фида для
+      // ТОГО ЖЕ раунда продажи (та же sale_date, ±1ч) — несколько наших фиксов цены тихо отменялись синком.
+      const degrading = r => {
+        const e = map.get(r.id); if(!isSaleRow(e)) return false;
+        if(r.sale_date && Date.parse(r.sale_date) > Date.now()) return false;   // будущие торги — релист, не деградация
+        if(!(Number(r.final_bid) > 0)) return true;
+        const sameEvent = Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) < 3600e3;
+        return sameEvent && Number(r.final_bid) < Number(e.final_bid);
+      };
       const before0 = rows.length; rows = rows.filter(r => !degrading(r)); syncUpsertRows.skippedDegrading = before0 - rows.length;
       const toPreserve = rows.filter(r => { const e = map.get(r.id); return isSaleRow(e) && (r.archived !== true || Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) > 3600e3); }).map(r => r.id);
       if(toPreserve.length) syncUpsertRows.preserved = await preserveSoldCopies(toPreserve);
