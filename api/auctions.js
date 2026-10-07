@@ -4452,7 +4452,18 @@ async function runBuyNowCheck(budgetMs = 44000){
           const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
           out.checked++;
           const ts = Date.parse(lot.auctionDate || "");
-          if(Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now()){ upsertClosedLot(lot); out.sold++; }
+          if(Number(lot.statusId) === 6 && Number.isFinite(ts) && ts < Date.now()){
+            // 07.10.2026 (Федор: «машина может быть продана пару дней назад, у тебя это висит
+            // актуальным»): раньше требовали finalBid>0 из фида — а при покупке по Buy Now фид
+            // часто флипает statusId в 6 БЕЗ цены (current_bid/VIN-история ещё не догнали, см.
+            // normalizeLot/bnSale), и строка так и оставалась «в продаже» в каталоге навсегда —
+            // upsertClosedLot ни разу не вызывался. upsertClosedLot САМ не требует finalBid>0
+            // (архивирует по statusId+дате), этот крон был единственным местом с лишним гейтом.
+            // Этот запрос — только buy_now>0 лоты, значит реальная цена продажи известна точно:
+            // Buy Now — фиксированная цена, покупатель платит ровно её.
+            if(!(Number(lot.finalBid) > 0) && Number(lot.buyNow) > 0) lot.finalBid = lot.buyNow;
+            upsertClosedLot(lot); out.sold++;
+          }
         }catch(e){ out.fail++; }
       }
     };
@@ -4533,7 +4544,13 @@ async function runBuyNowCheck(budgetMs = 44000){
         const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
         out.checked++;
         const ts = Date.parse(lot.auctionDate || "");
-        if(Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now()){ upsertClosedLot(lot); out.sold++; }
+        // 07.10.2026: тот же фикс, что и в cooldown-ветке выше (finalBid>0 не требуем, Buy Now
+        // цена фиксированная и известна точно) — этот фолбэк-обход (без колонки bn_checked_at)
+        // имел тот же лишний гейт.
+        if(Number(lot.statusId) === 6 && Number.isFinite(ts) && ts < Date.now()){
+          if(!(Number(lot.finalBid) > 0) && Number(lot.buyNow) > 0) lot.finalBid = lot.buyNow;
+          upsertClosedLot(lot); out.sold++;
+        }
       }catch(e){ out.fail++; }
     }
   };
