@@ -683,7 +683,16 @@ function normalizeLot(source, fallbackAuction = "copart"){
       const t = Date.parse(ph.date);
       if(!Number.isFinite(t) || t > Date.now() || new Date(t).getUTCSeconds() === 0) continue;
       if(!(ph.bid > 0) || Math.abs(ph.bid - buyNow) > buyNow * 0.01) continue;
-      if(Number.isFinite(upd) && upd > t + 10 * 60e3) continue;   // запись лота обновлялась после продажи — его перевыставили
+      // 07.10.2026: «updated_at обновился после продажи → перевыставили» было слишком грубо — фид трогает
+      // updated_at и по другим причинам (пересчёт цены, статус документа и т.п.), не только при релисте.
+      // Это ложно отбрасывало настоящую Buy Now покупку (лот оставался «в продаже» с устаревшей ценой —
+      // ровно жалоба «байнау остаётся на машине что продалась»). Настоящий признак перевыставления — у лота
+      // теперь ДРУГАЯ дата торгов, не та, что у этого проданного раунда; простое обновление поля без смены
+      // даты — не релист.
+      if(Number.isFinite(upd) && upd > t + 10 * 60e3){
+        const curSaleTs = Date.parse(lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || "");
+        if(Number.isFinite(curSaleTs) && Math.abs(curSaleTs - t) > 20 * 3600e3) continue;
+      }
       return {bid:ph.bid, date:new Date(t).toISOString()};
     }
     return null;
@@ -3132,9 +3141,19 @@ function isHeavyLot(l){
 // лоте одной модели и упиралась в 12с-abort → ok:false. Кэшируем пул на 30 мин.
 const soldPoolCache = new Map();
 const SOLD_POOL_TTL = 30 * 60e3;
-// Полная история проданных из НАШЕЙ базы api_lots (~15k проданных, топливо и
-// повреждения отдельными колонками) — правильный источник comps, как своя БД у
+// Полная история проданных из НАШЕЙ базы api_lots (архив растёт — на 30.09.2026 уже 250k+ проданных
+// лотов, топливо и повреждения отдельными колонками) — правильный источник comps, как своя БД у
 // DreamBid/BidCars. Отделяет гибрид от бензина (fuel_id), чего агрегат не умеет.
+// ⚠️ 07.10.2026: раньше брали ОДНУ страницу 0-1499 по sale_date.desc — по мере роста архива это значит
+// «только самые свежие ~1500 продаж модели», и у популярных моделей (Camry/Civic/RAV4) это окно ужималось
+// до нескольких недель: старые поколения вымывались из пула не потому что перестали продаваться, а потому
+// что их обогнали недавние продажи ДРУГИХ поколений той же модели. Теперь листаем страницами (та же сортировка,
+// нужна для стабильности между запросами — см. комментарий ниже), пока не наберём SOLD_POOL_MAX строк или не
+// кончится бюджет времени — пул кэшируется на 30 мин (soldPoolCache), поэтому разовая более тяжёлая выгрузка
+// амортизируется на всех лотов модели в этом окне.
+const SOLD_POOL_PAGE = 1500;
+const SOLD_POOL_MAX = 6000;
+const SOLD_POOL_BUDGET_MS = 20000;
 async function fetchSoldCompsFromDb(makeId, modelId){
   if(!(await lotsDbReady())) return null;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
@@ -3151,18 +3170,25 @@ async function fetchSoldCompsFromDb(makeId, modelId){
   // без ORDER BY не гарантирует стабильный список) — задний план: живая оценка это не портит (берёт ВЕСЬ
   // ответ), а вот ?action=compstest каждый раз тестировал разные 400 строк из пула, давая несравнимые прогоны.
   p.set("order", "sale_date.desc");
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
-  let response;
-  try{
-    response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
-      headers:{apikey:key, authorization:`Bearer ${key}`, range:"0-1499", "range-unit":"items"},
-      signal:controller.signal
-    });
-  }catch(e){ return null; }finally{ clearTimeout(timer); }
-  if(!response || !response.ok) return null;
-  let rows; try{ rows = await response.json(); }catch(e){ return null; }
-  if(!Array.isArray(rows) || !rows.length) return null;
+  const t0 = Date.now();
+  const rows = [];
+  for(let off = 0; off < SOLD_POOL_MAX && Date.now() - t0 < SOLD_POOL_BUDGET_MS; off += SOLD_POOL_PAGE){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try{
+      response = await fetch(`${url}/rest/v1/api_lots?${p}`, {
+        headers:{apikey:key, authorization:`Bearer ${key}`, range:`${off}-${off + SOLD_POOL_PAGE - 1}`, "range-unit":"items"},
+        signal:controller.signal
+      });
+    }catch(e){ break; }finally{ clearTimeout(timer); }
+    if(!response || !response.ok) break;
+    let page; try{ page = await response.json(); }catch(e){ break; }
+    if(!Array.isArray(page) || !page.length) break;
+    rows.push(...page);
+    if(page.length < SOLD_POOL_PAGE) break;   // дошли до конца — следующей страницы нет
+  }
+  if(!rows.length) return null;
   const soldBefore = Date.now() - 12 * 3600e3;
   const out = [];
   for(const r of rows){
@@ -3836,7 +3862,7 @@ function syncRowFromItem(item, {archived = false} = {}){
 // 66820296: продан 22.09 16:00, в /archived-lots?minutes=90 через 2 часа так и не пришёл, хотя /search-lot
 // и /search-vin уже отдают sold+$23 000). Поэтому любой проданный лот, который сервер увидел живым запросом
 // (страница лота, VIN, VIN-история), тут же дописываем в базу как архивный. Огонь-и-забыть, ошибки глотаем.
-function upsertClosedLot(lot){
+async function upsertClosedLot(lot){
   try{
     if(!lot || !lot.lot || !lot.auction) return;
     const ts = Date.parse(lot.auctionDate || "");
@@ -3850,6 +3876,21 @@ function upsertClosedLot(lot){
       // finalBid навсегда (сайт показывал «ПРОДАНО», хотя фид уже говорил «не продан»).
       if(Number.isFinite(ts)){
         const rid = lot.auction + "-" + lot.lot;
+        // 07.10.2026 (резерв/продажа Timed иногда «пропадали»): IAAI часто перестаёт отдавать seller_reserve
+        // ПОСЛЕ закрытия Timed-лота — следующий опрос того же лота теряет резерв → normalizeLot больше не
+        // находит timedSold → sold=false здесь → эта ветка слепо «оживляла» УЖЕ подтверждённую продажу (статус
+        // назад на «в продаже», final_bid обнулялся), хотя сама продажа никуда не делась, просто фид её на
+        // этот раз не подтвердил повторно. Перед оживлением проверяем: если в базе уже лежит confirmed-продажа
+        // ТОГО ЖЕ раунда (та же дата торгов, ±20ч) — не оживляем, оставляем как подтверждённую продажу. Настоящий
+        // релист (лот реально выставлен заново на новую дату) по-прежнему оживляется как раньше.
+        try{
+          const existing = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}&select=archived,status_id,final_bid,sale_date&limit=1`);
+          const prev = Array.isArray(existing) && existing[0];
+          if(prev && isSaleRow(prev)){
+            const prevTs = Date.parse(prev.sale_date || "");
+            if(Number.isFinite(prevTs) && Math.abs(prevTs - ts) < 20 * 3600e3) return;   // тот же раунд — продажа остаётся
+          }
+        }catch(_){}
         // make_id/model_id: без них строка, однажды «ожившая» с чужой маркой (лот IAAI 40081510 — номер
         // переиспользован под другую машину, см. titleMakeMismatch выше), оставалась в чужом фильтре каталога
         // НАВСЕГДА — эта PATCH-ветка их раньше не трогала вовсе (только payload/ставки/дату). 02.10.2026.
@@ -4523,7 +4564,13 @@ async function runBuyNowCheck(budgetMs = 44000){
     const remain = budgetMs - (Date.now() - t0);
     if(remain > 4000){
       const apFrom = encodeURIComponent(new Date(Date.now() - 14 * 86400e3).toISOString());
-      const apUrl = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&status_id=eq.4&buy_now=eq.0&sale_date=gte.${apFrom}&sale_date=lte.${encodeURIComponent(new Date().toISOString())}&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutoff})&order=sale_date.desc&limit=120`;
+      // 07.10.2026: тут была ссылка на несуществующую переменную `cutoff` (ReferenceError) — весь этот
+      // блок («на утверждении» без Buy Now) падал на КАЖДОМ запуске крона с момента добавления 02.10.2026,
+      // ни разу реально не выполнившись (ошибка глушилась общим catch в диспетчере action=buynowcheck,
+      // поэтому молча). Это и есть прямая причина жалобы «байнау остаётся на проданной машине» — фича,
+      // которую добавили именно под неё, не работала вовсе. `cutSoon` (2ч) — тот же кулдаун, что у
+      // пост-аукционных Buy Now в ветке выше (сюда тоже торопиться на 20-мин «urgent» незачем).
+      const apUrl = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&status_id=eq.4&buy_now=eq.0&sale_date=gte.${apFrom}&sale_date=lte.${encodeURIComponent(new Date().toISOString())}&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutSoon})&order=sale_date.desc&limit=120`;
       const apRows = await syncSbFetch(apUrl).catch(() => null);
       if(Array.isArray(apRows) && apRows.length){
         out.approvalDue = apRows.length;

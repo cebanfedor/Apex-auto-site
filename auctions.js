@@ -1693,7 +1693,10 @@
     cards.forEach(cd => {
       const lid = cd.querySelector(".dbPhoto")?.dataset.lid; const lot = byId.get(String(lid)); const lv = live[lid];
       if(!lot || !lv) return;
-      Object.assign(lot, {currentBid:lv.currentBid, buyNow:lv.buyNow, sellerReserve:lv.sellerReserve, saleStatus:lv.saleStatus || lot.saleStatus, timed:lv.timed});
+      // 07.10.2026: IAAI часто перестаёт отдавать seller_reserve ПОСЛЕ закрытия Timed-лота — наивный Object.assign
+      // стирал уже показанный резерв нулём на следующем опросе (карточка «теряла» резерв). Берём новое значение,
+      // только если оно реально пришло; иначе оставляем прежнее известное (никогда не регрессируем на 0).
+      Object.assign(lot, {currentBid:lv.currentBid, buyNow:lv.buyNow, sellerReserve:(Number(lv.sellerReserve) > 0 ? lv.sellerReserve : lot.sellerReserve), saleStatus:lv.saleStatus || lot.saleStatus, timed:lv.timed});
       // Данные самого лота расходятся со списком: лот уже продан, либо торги перенесены — перерисовываем карточку и лечим базу.
       const liveMs = Date.parse(lv.auctionDate || ""), listMs = Date.parse(lot.auctionDate || "");
       const dateMoved = Number.isFinite(liveMs) && Number.isFinite(listMs) && Math.abs(liveMs - listMs) > 2 * 3600e3;
