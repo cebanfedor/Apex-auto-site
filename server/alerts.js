@@ -5,7 +5,8 @@ const crypto = require("crypto");
 const {lotSlug} = require("./slug");
 
 const SITE = "https://apexauto.md";
-const MAX_SUBS_PER_TOKEN = 30;
+// 08.10.2026 (Федор: «я работаю с машинами, мне нужно много подписок» — упёрся в лимит 30) — поднят до 100.
+const MAX_SUBS_PER_TOKEN = 100;
 const SEARCH_MIN_GAP_MS = 30 * 60e3;   // не чаще одного сообщения по поиску раз в 30 мин (накапливаем)
 const SEARCH_CHECK_GAP_MS = 5 * 60e3;
 const LOT_REMIND_MS = 60 * 60e3;
