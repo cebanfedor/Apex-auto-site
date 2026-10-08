@@ -40,7 +40,7 @@
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v495">
-  <link rel="stylesheet" href="/auctions.css?v=v586">
+  <link rel="stylesheet" href="/auctions.css?v=v587">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -105,7 +105,10 @@
           <h1 class="auctionsH1V3"><span id="auctionH1TextV1">Текущие аукционы</span> <b id="auctionResultCount" class="h1CountV3">0</b></h1>
           <p class="auctionsSubV3"><span class="subTxtV3">Авто с аукционов Copart и IAAI из США и Канады — под ключ в Молдову · </span><span id="auctionResultNum" data-no-i18n="true"></span> <span id="auctionResultLabel">лотов найдено</span></p>
         </div>
-        <button id="shareCatalogBtn" class="shareChipV3" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/></svg><span>Поделиться</span></button>
+        <div class="headActionsV1">
+          <button id="savedQuickBtnV1" class="shareChipV3 savedQuickBtnV1" type="button" aria-expanded="false"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 7.5H4c0-1 2-2.5 2-7.5z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span>Сохранённые поиски</span><b id="savedQuickCountV1" class="svQuickBadgeV1"></b></button>
+          <button id="shareCatalogBtn" class="shareChipV3" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M11 6H6a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-5"/></svg><span>Поделиться</span></button>
+        </div>
       </div>
 
       <div class="auctionToolbarV2">
@@ -460,7 +463,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v542" defer></script>
-  <script src="/auctions.js?v=auctions-v408" defer></script>
+  <script src="/auctions.js?v=auctions-v409" defer></script>
   <script src="/site-content.js?v=admin-v168" defer></script>
 
 <!-- Exit-intent popup -->
