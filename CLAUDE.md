@@ -422,7 +422,7 @@ hot-car photos (`assets/hot/`), lightweight SVG-ish logo, full CSS rewrite (v300
 - Нужен env `ALERTS_BOT_TOKEN` (отдельный клиентский бот; фолбэк — `TELEGRAM_BOT_TOKEN`, бот для лидов; иначе `error:"not_configured"`). Клиент показывает тост об ошибке.
 - Cron `/api/cron/alerts` каждые 3 мин → `action=alerttick`: опрос Telegram + напоминания по лотам + до 8 поисков (не чаще раза в 30 мин на подписку,
   курсор `last_check` двигается только при удачном запросе к базе; новые лоты = `first_seen ≥ last_check` через `searchFromDb` c внутренним параметром
-  `firstSeenFrom`). Заблокировавший бота (`blocked/deactivated`) → подписки выключаются. Лимит 30 подписок на токен, 10 новых токенов/час с IP.
+  `firstSeenFrom`). Заблокировавший бота (`blocked/deactivated`) → подписки выключаются. Лимит 100 подписок на токен (08.10.2026, Федор: «работаю с машинами, мне нужно много» — был 30), 10 новых токенов/час с IP.
 - Команды бота: `/list`, `/stop` (выключает все подписки). Диагностика — `?action=alertdiag` (только админ).
 - Клиент: `auctions.js` (`alertSubscribe`, тост `#alertToastV1`, раздел «Уведомления в Telegram» в панели «Сохранённые поиски»).
 
