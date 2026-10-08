@@ -758,6 +758,14 @@ body.leadModalOpenV1 { overflow:hidden; }
   border-radius:10px; background:var(--aSurf) !important; color:var(--aInk2) !important; font-weight:600; font-size:13px; cursor:pointer;
   box-shadow:none !important; transition:border-color .15s; align-self:flex-start; }
 .shareChipV3:hover { border-color:var(--aMuted); }
+/* 08.10.2026: всегда видимый вход в «Сохранённые поиски»/подписки (единственный был последней вкладкой
+   в скроллящемся на мобильной ряду .auctionTabsV1 — на телефоне практически не находился). */
+.headActionsV1 { display:flex; align-items:flex-start; gap:8px; flex:none; }
+.savedQuickBtnV1 { position:relative; color:#1d4ed8 !important; border-color:#c9d8f5 !important; background:#f3f7ff !important; }
+.savedQuickBtnV1:hover { border-color:#1d4ed8 !important; }
+.savedQuickBtnV1.active { background:#1d4ed8 !important; color:#fff !important; border-color:#1d4ed8 !important; }
+.svQuickBadgeV1 { font-style:normal; }
+.svQuickBadgeV1:empty { display:none; }
 .auctionInfoV3 { display:flex; align-items:flex-start; gap:12px; margin-bottom:14px; padding:13px 16px;
   border:1px solid var(--aLine); border-radius:14px; background:var(--aSurf); box-shadow:var(--aShadow); }
 .auctionInfoV3[hidden] { display:none; }
@@ -831,6 +839,9 @@ body.leadModalOpenV1 { overflow:hidden; }
   .auctionsHeadLeftV2 { min-width:0; flex:1; }
   .shareChipV3 { flex:none; width:38px; height:38px; padding:0; justify-content:center; }
   .shareChipV3 span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  /* badge числа подписок — вне .span (не sr-only), виден и в иконочном режиме телефона */
+  .svQuickBadgeV1:not(:empty) { position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 3px;
+    border-radius:999px; background:var(--aRed); color:#fff; font-size:10px; font-weight:700; line-height:16px; text-align:center; }
   /* Инфо-баннер компактнее */
   .auctionInfoV3 { padding:10px 12px; }
   .auctionInfoV3 p { font-size:12px; line-height:1.45; }

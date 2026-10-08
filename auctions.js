@@ -360,6 +360,8 @@
     const n = savedLoad().length;
     const el = document.getElementById("savedCount");
     if(el) el.textContent = n ? ` (${n})` : "";
+    const q = document.getElementById("savedQuickCountV1");
+    if(q) q.textContent = n ? ` (${n})` : "";
   }
   function renderSavedPanel(){
     const box = document.getElementById("savedPanelV1");
@@ -5121,15 +5123,26 @@
         setTimeout(() => { sv.textContent = old; }, 1600);
       }
     });
-    document.getElementById("savedBtnV1")?.addEventListener("click", () => {
-      const panel = document.getElementById("savedPanelV1"), btn = document.getElementById("savedBtnV1");
+    // 08.10.2026 (Федор: «не вижу свои подписки, нет такой кнопки») — единственный вход был последней
+    // вкладкой в горизонтально скроллящемся на мобильной ряду вкладок (`.auctionTabsV1`, затухает справа,
+    // см. «Мобильная v2» в CLAUDE.md) — реально существовал, но практически не обнаруживался на телефоне.
+    // Добавлена вторая, всегда видимая кнопка-колокольчик рядом с «Поделиться» в шапке каталога;
+    // обе ведут на одну и ту же панель/логику — toggleSavedPanel общая для обеих.
+    function toggleSavedPanel(){
+      const panel = document.getElementById("savedPanelV1");
       if(!panel) return;
       const open = panel.hidden;
       if(open) renderSavedPanel();
       panel.hidden = !open;
-      btn.classList.toggle("active", open);
-      btn.setAttribute("aria-expanded", String(open));
-    });
+      [document.getElementById("savedBtnV1"), document.getElementById("savedQuickBtnV1")].forEach(btn => {
+        if(!btn) return;
+        btn.classList.toggle("active", open);
+        btn.setAttribute("aria-expanded", String(open));
+      });
+      if(open) setTimeout(() => panel.scrollIntoView({behavior:"smooth", block:"nearest"}), 60);
+    }
+    document.getElementById("savedBtnV1")?.addEventListener("click", toggleSavedPanel);
+    document.getElementById("savedQuickBtnV1")?.addEventListener("click", toggleSavedPanel);
     document.getElementById("savedPanelV1")?.addEventListener("change", e => {
       if(!e.target.closest("[data-pref]")) return;
       const prefs = {};
@@ -5440,6 +5453,7 @@
     initRanges();
     initCarData();
     updateFavCount();
+    updateSavedCount();
     const isDetail = await loadDetailFromUrl();
     if(!isDetail){
       // Вход по ссылке /auctions?vin=… — сразу VIN-отчёт (ищет и в архиве),
