@@ -356,10 +356,17 @@
       + `<button type="button" class="afSaveV1" id="afSaveV1">${escapeHtml(L("Сохранить поиск"))}</button>`
       + `<button type="button" class="afClearV1" id="afClearV1">${escapeHtml(L("Очистить всё"))}</button>`;
   }
-  function updateSavedCount(){
-    const n = savedLoad().length;
-    const el = document.getElementById("savedCount");
-    if(el) el.textContent = n ? ` (${n})` : "";
+  // 08.10.2026 (Федор: «запутал сохранённые поиски и сохранённые машины, количество неверное — написал
+  // одна, а по факту дофига») — бейдж считал ТОЛЬКО локальные закладки поиска (localStorage,
+  // apexSavedSearchesV1), а в этой же панели показываются ещё и серверные Telegram-подписки (на поиск и
+  // на конкретные лоты, те самые, у которых лимит 30→100) — их было в разы больше, а бейдж молчал.
+  // Теперь число на кнопке — реальный ИТОГ (локальные закладки + все Telegram-подписки).
+  async function updateSavedCount(){
+    let n = savedLoad().length;
+    const token = alertTokenGet();
+    if(token){
+      try{ const st = await api(`/api/auctions?action=alertstatus&token=${encodeURIComponent(token)}`); if(st.exists) n += (st.subs || []).length; }catch(e){}
+    }
     const q = document.getElementById("savedQuickCountV1");
     if(q) q.textContent = n ? ` (${n})` : "";
   }
@@ -369,7 +376,7 @@
     const list = savedLoad();
     const alertsBox = `<div class="svAlertsV1" id="svAlertsV1"></div>`;
     setTimeout(() => loadAlertSubsInto(document.getElementById("svAlertsV1")), 0);
-    box.innerHTML = (list.length
+    box.innerHTML = `<h4 class="svHeadV1">${escapeHtml(L("Сохранённые поиски"))}</h4>` + (list.length
       ? list.map((x, i) => `<div class="svRowV1"><button type="button" class="svOpenV1" data-sv-open="${i}">${escapeHtml(x.name)}</button><button type="button" class="svDelV1" data-sv-del="${i}" aria-label="${escapeHtml(L("Удалить"))}" title="${escapeHtml(L("Удалить"))}">×</button></div>`).join("")
       : `<p class="svEmptyV1">${escapeHtml(L("Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск»."))}</p>`) + alertsBox;
   }
@@ -449,6 +456,7 @@
       const link = await alertEnsureLink();
       const res = await api("/api/auctions?action=alertsub", {method:"POST", body:{token:link.token, kind, ...data}});
       if(onDone) onDone(res);
+      if(!res.dup) updateSavedCount();
       if(link.bound || res.bound){
         alertToast("ok", res.dup ? L("Такая подписка уже есть") : L("Готово — уведомления включены. Подтверждение придёт в Telegram."));
       }else{
@@ -5126,22 +5134,18 @@
     // 08.10.2026 (Федор: «не вижу свои подписки, нет такой кнопки») — единственный вход был последней
     // вкладкой в горизонтально скроллящемся на мобильной ряду вкладок (`.auctionTabsV1`, затухает справа,
     // см. «Мобильная v2» в CLAUDE.md) — реально существовал, но практически не обнаруживался на телефоне.
-    // Добавлена вторая, всегда видимая кнопка-колокольчик рядом с «Поделиться» в шапке каталога;
-    // обе ведут на одну и ту же панель/логику — toggleSavedPanel общая для обеих.
+    // Добавлена вторая, всегда видимая кнопка-колокольчик рядом с «Поделиться» в шапке каталога. 08.10.2026
+    // (Федор: «запутал сохранённые поиски и сохранённые машины, сделай одну кнопку») — старая вкладка
+    // в ряду статусов убрана совсем, остаётся только эта.
     function toggleSavedPanel(){
-      const panel = document.getElementById("savedPanelV1");
+      const panel = document.getElementById("savedPanelV1"), btn = document.getElementById("savedQuickBtnV1");
       if(!panel) return;
       const open = panel.hidden;
       if(open) renderSavedPanel();
       panel.hidden = !open;
-      [document.getElementById("savedBtnV1"), document.getElementById("savedQuickBtnV1")].forEach(btn => {
-        if(!btn) return;
-        btn.classList.toggle("active", open);
-        btn.setAttribute("aria-expanded", String(open));
-      });
+      if(btn){ btn.classList.toggle("active", open); btn.setAttribute("aria-expanded", String(open)); }
       if(open) setTimeout(() => panel.scrollIntoView({behavior:"smooth", block:"nearest"}), 60);
     }
-    document.getElementById("savedBtnV1")?.addEventListener("click", toggleSavedPanel);
     document.getElementById("savedQuickBtnV1")?.addEventListener("click", toggleSavedPanel);
     document.getElementById("savedPanelV1")?.addEventListener("change", e => {
       if(!e.target.closest("[data-pref]")) return;
@@ -5152,7 +5156,7 @@
     document.getElementById("savedPanelV1")?.addEventListener("click", e => {
       const alDel = e.target.closest("[data-al-del]");
       if(alDel){
-        api("/api/auctions?action=alertdel", {method:"POST", body:{token:alertTokenGet(), id:Number(alDel.dataset.alDel)}}).then(() => loadAlertSubsInto(document.getElementById("svAlertsV1"))).catch(() => {});
+        api("/api/auctions?action=alertdel", {method:"POST", body:{token:alertTokenGet(), id:Number(alDel.dataset.alDel)}}).then(() => { loadAlertSubsInto(document.getElementById("svAlertsV1")); updateSavedCount(); }).catch(() => {});
         return;
       }
       const del = e.target.closest("[data-sv-del]");
