@@ -300,6 +300,7 @@ function esc(s){
       });
     }
     var form = document.getElementById("transitLeadV1");
+    if(form) form.addEventListener("focusin", function(){ try{ if(window.apexTrack) window.apexTrack("lead_open"); }catch(e){} }, {once:true});
     if(form) form.addEventListener("submit", function(e){
       e.preventDefault();
       var msg = document.getElementById("transitLeadMsgV1");

@@ -93,7 +93,13 @@ module.exports = async function handler(request, response){
     const jobs = [
       sb("/site_online?on_conflict=vh", {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({vh, ts:new Date().toISOString(), path})})
     ];
-    if(!hb) jobs.push(sb("/site_hits", {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify({vh, path, ref:ev ? null : (refHost(body.r) || null), dev, ctry, ev})}));
+    // Хартбиты (45с, пока вкладка открыта) теперь тоже идут в site_hits — служебной меткой '_hb',
+    // НЕ из публичного EVENTS (её нельзя прислать с клиента как обычное событие). Нужны, чтобы
+    // site_stats() мог посчитать длительность визита (max(ts)-min(ts)) — раньше хартбит обновлял
+    // только «последний раз был онлайн» в site_online, сама история/длительность нигде не копилась.
+    // На «просмотры»/«посетителей» не влияет — те места фильтруют ev is null, как и раньше.
+    jobs.push(sb("/site_hits", {method:"POST", headers:{prefer:"return=minimal"},
+      body:JSON.stringify({vh, path, ref:(hb || ev) ? null : (refHost(body.r) || null), dev, ctry, ev:hb ? "_hb" : ev})}));
     await Promise.all(jobs);
     response.setHeader("x-track", "ok");
 

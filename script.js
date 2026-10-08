@@ -1393,6 +1393,9 @@ function renderFormResult(form, ok){
 document.addEventListener("DOMContentLoaded", () => {
   const selectionForm = document.getElementById("selectionForm");
   if(selectionForm){
+    // «Открыли форму заявки» — тут форма всегда на странице (не модалка, как на лоте), поэтому
+    // сигнал интереса — первый реальный фокус в поле, не факт наличия формы на экране.
+    selectionForm.addEventListener("focusin", () => { try{ if(window.apexTrack) window.apexTrack("lead_open"); }catch(e){} }, {once:true});
     selectionForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const name = document.getElementById("leadName")?.value.trim() || "";
@@ -1421,6 +1424,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const contactForm = document.getElementById("contactQuickForm");
   if(!contactForm) return;
 
+  contactForm.addEventListener("focusin", () => { try{ if(window.apexTrack) window.apexTrack("lead_open"); }catch(e){} }, {once:true});
   contactForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -1893,7 +1897,12 @@ document.addEventListener("DOMContentLoaded", () => {
 // (calcTouchedV1). Десктоп-only (курсор к верхней границе окна — на телефоне курсора нет), один
 // раз за сессию, не показываем тем, кто уже оставил заявку или сам нажал «Скопировать»/«Поделиться».
 let calcTouchedV1 = false, calcActedV1 = false, calcExitShownV1 = false;
-function markCalcTouchedV1(){ calcTouchedV1 = true; }
+function markCalcTouchedV1(){
+  // «Пользовались калькулятором» — первое реальное касание за визит (аналитика, Федор 09.10.2026:
+  // «что людям интересно»); calcTouchedV1 и так уже «первое касание», просто довесили трекинг.
+  if(!calcTouchedV1){ try{ if(window.apexTrack) window.apexTrack("calc_use"); }catch(e){} }
+  calcTouchedV1 = true;
+}
 function markCalcActedV1(){ calcActedV1 = true; }
 function showCalcExitPushV1(){
   if(calcExitShownV1 || !calcTouchedV1 || calcActedV1 || !lastCalc) return;

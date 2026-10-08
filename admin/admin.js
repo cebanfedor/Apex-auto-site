@@ -496,8 +496,14 @@ function anBars(series, days){
   return `<div class="anBarsV1">${list.map(x => `<div class="anBarV1" title="${x.key}: ${num(x.visitors)} посетителей, ${num(x.views)} просмотров"><div class="anBarColV1"><i style="height:${Math.round(x.views / max * 100)}%"><b style="height:${x.views ? Math.round(x.visitors / x.views * 100) : 0}%"></b></i></div><span>${x.key.slice(8)}.${x.key.slice(5, 7)}</span></div>`).join("")}</div>
   <p class="muted anLegendV1"><i class="l1"></i> просмотры <i class="l2"></i> посетители</p>`;
 }
+function fmtDuration(sec){
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const m = Math.floor(s / 60);
+  return m > 0 ? `${m}м ${s % 60}с` : `${s}с`;
+}
 function renderAnalytics(s){
   const A = s.alerts || {};
+  const E = s.engagement || {};
   const conv = A.links ? Math.round(A.bound / A.links * 100) : 0;
   const per = s.period || {visitors:0, views:0};
   const perV = per.visitors ? (per.views / per.visitors).toFixed(1) : "0";
@@ -509,6 +515,8 @@ function renderAnalytics(s){
     <article><span>Сегодня</span><b>${num(s.today && s.today.visitors)}</b><small>посетителей · ${num(s.today && s.today.views)} просмотров</small></article>
     <article><span>За период</span><b>${num(per.visitors)}</b><small>визитов (сумма по дням) · ${num(per.views)} просмотров</small></article>
     <article><span>Глубина</span><b>${perV}</b><small>страниц за визит</small></article>
+    <article><span>Среднее время на сайте</span><b>${escapeHtml(fmtDuration(E.avg_duration_sec))}</b><small>${num(E.sessions)} визитов за период</small></article>
+    <article><span>Отказы</span><b>${num(E.bounce_rate)}%</b><small>ушли после одной страницы</small></article>
   </div>
   <div class="panel"><div class="panelHead"><h2>Посещаемость по дням</h2></div>${anBars(s.series || [], analyticsDays)}</div>
   <div class="anTwoV1">

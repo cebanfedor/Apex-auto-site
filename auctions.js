@@ -204,6 +204,10 @@
     const o = {}; keep.forEach(k => { if(lot[k] !== undefined) o[k] = lot[k]; }); return o;
   }
   function track(ev){ try{ if(window.apexTrack) window.apexTrack(ev); }catch(e){} }
+  // «Пользовались калькулятором» — один раз за визит страницы, не на каждое нажатие клавиши
+  // (data-calc-input висит на ставке/объёме/годе и т.п., ввод суммы даёт events на каждую цифру).
+  let calcUseTracked = false;
+  function trackCalcUse(){ if(calcUseTracked) return; calcUseTracked = true; track("calc_use"); }
   function favToggle(lot){
     if(!lot || lot.id == null) return false;
     const map = favLoad();
@@ -4231,6 +4235,7 @@
   }
 
   function openLead(lot){
+    track("lead_open");
     state.selectedLot = lot;
     const modal = $("#leadModal");
     const form = $("#auctionLeadForm");
@@ -5423,12 +5428,12 @@
       if(event.target.closest("[data-close-lead]") || event.target.id === "leadModal") closeLead();
     });
     document.addEventListener("input", event => {
-      if(event.target.closest("[data-calc-input]")) updateLotCalculator();
+      if(event.target.closest("[data-calc-input]")){ updateLotCalculator(); trackCalcUse(); }
       const noteEl = event.target.closest("[data-note]");
       if(noteEl) noteSaveDebounced(noteEl.dataset.note, noteEl.value);
     });
     document.addEventListener("change", event => {
-      if(event.target.closest("[data-calc-input]")) updateLotCalculator();
+      if(event.target.closest("[data-calc-input]")){ updateLotCalculator(); trackCalcUse(); }
     });
     document.addEventListener("keydown", event => {
       const lbOpen = document.getElementById("lotLightbox") && !document.getElementById("lotLightbox").hidden;
