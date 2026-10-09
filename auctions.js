@@ -1192,6 +1192,20 @@
     // Канадские лоты: одометр уже в км (как на Copart CA) — показываем км, мили справочно
     return `${fmt(num)} ${L("км")} ≈ ${fmt(num / 1.609344)} ${L("миль")}`;
   }
+  // Пояснение статуса одометра (Федор 09.10.2026, BMW X3 PHEV IAAI 45480723): аукцион сам пишет
+  // «1 mi (Not Actual)» вместо реального показания — это заглушка их фида, не наш баг (видно на
+  // самой площадке: «76,377 mi (Not Actual)», а в НАШЕМ фиде на это же авто odometer.mi=1 —
+  // провайдер не передаёт точное число для таких лотов, настоящего пробега у нас нет).
+  // Раньше «Пробег не указан» выглядело как наша недоработка, хотя причина — у площадки
+  // одометр помечен ненадёжным; теперь явно говорим это, а не молчим.
+  function odoStatusNote(status){
+    const s = String(status || "").toLowerCase();
+    if(!s || /^actual$/.test(s) || /факт/.test(s)) return "";
+    if(/not_actual|tmu/.test(s)) return L("Одометр помечен как неточный у площадки");
+    if(/exceed/.test(s)) return L("Пробег превышает предел одометра");
+    if(/exempt/.test(s)) return L("Площадка не указывает пробег для этого авто");
+    return tc(status);
+  }
   // "Live скоро начнётся" only within 1 hour of the start; otherwise hide the line.
   function dbLive(lot){
     const s = String(lot.statusName || lot.lotStatus || "").toLowerCase();
@@ -3622,7 +3636,10 @@
               })()}
               ${dMain("История", histStr)}
               ${dPlain("Двигатель и привод", escapeHtml(driveLine), "drive")}
-              ${dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${lot.odometerStatus && !/actual|факт/i.test(lot.odometerStatus) ? ` <span class="odoWarnV1">${escapeHtml(tc(lot.odometerStatus))}</span>` : ""}`, "odo")}
+              ${(() => {
+                const odoNote = odoStatusNote(lot.odometerStatus);
+                return dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${odoNote ? ` <span class="odoWarnV1">${escapeHtml(odoNote)}</span>` : ""}`, "odo");
+              })()}
               ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
               ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
