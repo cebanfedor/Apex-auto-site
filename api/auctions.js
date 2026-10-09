@@ -1558,6 +1558,27 @@ async function loadVinHist(vin, maxAgeMs){
   }catch(_){ return null; }
 }
 
+// Ручная коррекция финальной цены (Федор 09.10.2026, Tesla Model Y IAAI 44985240: наш фид отдаёт $14,400,
+// DreamBid (другой источник) — $14,700, Федор подтверждает правильность их цифры). Наш фид этого числа не
+// содержит нигде (ни в одном раунде VIN-истории) — это не баг вычисления, а пробел источника, поэтому
+// правим точечно по конкретному lot_id, не трогая общую логику «финалку не выдумываем». Таблица
+// lot_price_override (миграция 20261009_lot_price_override.sql) — админ добавляет туда SQL-строкой,
+// когда у него есть подтверждённая реальная цена из другого источника. Кэш в памяти 5 мин (вся таблица
+// маленькая, читаем целиком, как adminChatCache выше).
+let lotOverrideCache = {map:null, at:0};
+async function lotPriceOverride(lotId){
+  if(!lotId) return null;
+  if(!lotOverrideCache.map || Date.now() - lotOverrideCache.at > 5 * 60e3){
+    try{
+      const rows = await syncSbFetch(`/lot_price_override?select=lot_id,final_bid`);
+      const map = new Map();
+      for(const r of (Array.isArray(rows) ? rows : [])) map.set(String(r.lot_id), Number(r.final_bid));
+      lotOverrideCache = {map, at:Date.now()};
+    }catch(_){ if(!lotOverrideCache.map) lotOverrideCache = {map:new Map(), at:Date.now()}; }
+  }
+  const v = lotOverrideCache.map.get(String(lotId));
+  return (v > 0) ? v : null;
+}
 async function attachVinHistory(lot){
   try{
     if(!lot || !isValidVin(String(lot.vin || ""))) return lot;
@@ -1689,6 +1710,17 @@ async function attachVinHistory(lot){
       }
     }
   }
+  // Ручная коррекция — после всей логики фида/Timed-пола, не зависит от try/catch выше.
+  try{
+    const ov = lot && lot.id ? await lotPriceOverride(lot.id) : null;
+    if(ov != null){
+      lot.finalBid = ov;
+      if(Array.isArray(lot.priceHistory) && lot.priceHistory[0] && lot.priceHistory[0].status === "sold" &&
+         String(lot.priceHistory[0].lot).replace(/~.*/, "") === String(lot.lot)){
+        lot.priceHistory = [{...lot.priceHistory[0], bid:ov}, ...lot.priceHistory.slice(1)];
+      }
+    }
+  }catch(_){}
   return lot;
 }
 function relistedFor(lot, latest){
