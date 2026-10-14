@@ -178,13 +178,13 @@
 
   // "Front End / Right Rear" → каждая часть переводится отдельно;
   // цельные ключи с "/" (Minor Dent/Scratches) ловятся до разбиения
-  function ruDamage(raw){
+  function ruDamage(raw, lang){
     if(raw == null || raw === "") return raw;
     const whole = String(raw).toLowerCase().replace(/\s+/g, " ").trim();
     // Каждую часть переводим отдельно: составная строка «Сбоку / Повреждение рамы» в словарях
     // RO/EN не находилась и оставалась русской.
-    if(RU_DAMAGE[whole]) return L(RU_DAMAGE[whole]);
-    return String(raw).split("/").map(p => L(ruEnum(RU_DAMAGE, p))).join(" / ");
+    if(RU_DAMAGE[whole]) return L(RU_DAMAGE[whole], lang);
+    return String(raw).split("/").map(p => L(ruEnum(RU_DAMAGE, p), lang)).join(" / ");
   }
 
   function dateText(value){
@@ -1180,17 +1180,17 @@
     const hours = Math.floor((now.getTime() - then.getTime()) / 3600000);
     return hours > 0 ? `${hours} ${L("ч.")} ${L("назад")}` : L("только что");
   }
-  function dbOdo(text){
+  function dbOdo(text, lang){
     // Пробег не пришёл из фида (пусто/0) — так и пишем, а не прячем строку (Федор 25.09.2026)
-    if(!text) return L("Пробег не указан");
+    if(!text) return L("Пробег не указан", lang);
     const num = Number(String(text).replace(/[^\d.]/g, ""));
-    if(!num) return L("Пробег не указан");
+    if(!num) return L("Пробег не указан", lang);
     // «1 mi» — заглушка аукциона, а 999 999 — «нет данных» у площадки, а не реальный пробег
-    if(num <= 5 || num >= 999999) return L("Пробег не указан");
+    if(num <= 5 || num >= 999999) return L("Пробег не указан", lang);
     const fmt = v => Math.round(v).toLocaleString("ru-RU");
-    if(/mi/i.test(text)) return `${fmt(num)} ${L("миль")} ≈ ${fmt(num * 1.609344)} ${L("км")}`;
+    if(/mi/i.test(text)) return `${fmt(num)} ${L("миль", lang)} ≈ ${fmt(num * 1.609344)} ${L("км", lang)}`;
     // Канадские лоты: одометр уже в км (как на Copart CA) — показываем км, мили справочно
-    return `${fmt(num)} ${L("км")} ≈ ${fmt(num / 1.609344)} ${L("миль")}`;
+    return `${fmt(num)} ${L("км", lang)} ≈ ${fmt(num / 1.609344)} ${L("миль", lang)}`;
   }
   // Пояснение статуса одометра (Федор 09.10.2026, BMW X3 PHEV IAAI 45480723): аукцион сам пишет
   // «1 mi (Not Actual)» вместо реального показания — это заглушка их фида, не наш баг (видно на
@@ -2588,7 +2588,8 @@
   // Динамический контент (калькулятор, детали лота) строится в JS после apply(),
   // поэтому переводим прямо при сборке — иначе строка мигает по-русски, пока её
   // не догонит асинхронный наблюдатель i18n.
-  function L(s){ try{ return window.i18nT ? window.i18nT(s) : s; }catch(e){ return s; } }
+  // lang необязателен (перевод в выбранный язык, не в текущий язык сайта) — нужен посту в Telegram (RO-кнопка).
+  function L(s, lang){ try{ return window.i18nT ? window.i18nT(s, lang) : s; }catch(e){ return s; } }
   // Плюрализация «продаж» с учётом языка.
   function salesWord(n){
     const lang = window.APEX_LANG || "ru";
@@ -3221,24 +3222,43 @@
     }catch(_){ /* не админ — кнопки остаются скрытыми */ }
   }
   const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
+  // 14.10.2026 (Федор: «нужна кнопка перевода на румынский, чтобы заливать и на русском, и на
+  // румынском») — фразы, которых НЕТ больше нигде на сайте (значит их нет и в общем словаре
+  // i18n-dict.js), собраны тут отдельно, как server/og-lot.js делает для превью-описаний. Слова,
+  // которые УЖЕ переводятся на сайте («Текущая ставка», «Резерв продавца», «Продан», топливо,
+  // «Пробег не указан» и т.п.) — не дублируем, берём через L(s, lang) из общего словаря ниже.
+  const TG_L = {
+    ru:{turnkeyHead:"Доставка - таможня - комиссия:", band:"Ориентир на аукционе:", linkLbl:"Смотреть и рассчитать на сайте:",
+      delivery:"Доставка:", customs:"Таможенное оформление:", insurance:"Страховка: 1% от цены лота", fee:"Комиссия:",
+      auctionDate:"Торги:", auctionTonight:"Торги сегодня ночью:", freshLot:"Свежий лот", hurry:"успеваем оформить заявку",
+      belowMarket:"Ниже рынка примерно на", soldFor:"Продан за", sold:"Продан", lotWord:"лот"},
+    ro:{turnkeyHead:"Livrare - vamă - comision:", band:"Reper la licitație:", linkLbl:"Vezi și calculează pe site:",
+      delivery:"Livrare:", customs:"Vămuire:", insurance:"Asigurare: 1% din prețul lotului", fee:"Comision:",
+      auctionDate:"Licitație:", auctionTonight:"Licitație în noaptea asta:", freshLot:"Lot proaspăt", hurry:"reușim să depunem cererea",
+      belowMarket:"Sub piață cu aproximativ", soldFor:"Vândut cu", sold:"Vândut", lotWord:"lot"}
+  };
+  function tgL(key, lang){ const d = TG_L[lang] || TG_L.ru; return d[key] || TG_L.ru[key] || key; }
   // 03.10.2026 (Федор прислал живой пример поста Kia Sorento — «давай вот так описание сделаем»):
   // пробег ОТДЕЛЬНОЙ строкой, состояние+повреждение вместе (связанные факты), мотор/топливо/привод/
   // КПП вместе отдельной строкой — полностью «по одной характеристике в строке» (прошлая правка
   // этого же дня) оказалось мельче, чем нужно. tgSpecs отдаёт МАССИВ ГОТОВЫХ СТРОК (не отдельных
   // значений) — buildTgCaption просто кладёт их через \n, ничего больше не склеивая.
-  function tgSpecs(lot){
+  // 14.10.2026 (Федор: «нужно чтоб был вин код») — отдельной строкой, во всех шаблонах сразу (specs
+  // кладётся в каждый из 4 шаблонов поста).
+  function tgSpecs(lot, lang){
     const lines = [];
-    try{ const od = dbOdo(lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer) + " mi" : "")); if(od) lines.push(od); }catch(_){}
+    try{ const od = dbOdo(lot.odometerText || (Number(lot.odometer) ? Math.round(lot.odometer) + " mi" : ""), lang); if(od) lines.push(od); }catch(_){}
     const condDmg = [];
-    try{ const ci = conditionInfo(lot.condition); if(ci && ci.label) condDmg.push(ci.label); }catch(_){ if(lot.condition) condDmg.push(lot.condition); }
+    try{ const ci = conditionInfo(lot.condition); if(ci && ci.label) condDmg.push(L(ci.label, lang)); }catch(_){ if(lot.condition) condDmg.push(lot.condition); }
     const dmg = lot.primaryDamage || lot.damage;
     if(dmg) condDmg.push(dmg);
     if(condDmg.length) lines.push(condDmg.join(" · "));
+    if(lot.vin) lines.push(`VIN: ${lot.vin}`);
     return lines;
   }
   // 03.10.2026 (Федор: «Тип коробки писать не будем») — убрал КПП (Автомат/Механика) из строки.
-  function tgDrive(lot){
-    const fk = TG_FUEL[lot.fuelKind] || lot.fuel || "";
+  function tgDrive(lot, lang){
+    const fk = L(TG_FUEL[lot.fuelKind] || lot.fuel || "", lang);
     const liters = String(lot.engine || "").match(/(\d[.,]\d)\s*l/i);
     const eng = liters ? liters[1].replace(",", ".") + "L" : "";
     return [eng, fk, lot.drive].filter(Boolean).join(" · ");
@@ -3251,16 +3271,16 @@
     const dyn = [slug(lot.make), slug((lot.model || "").split(" ")[0]), lot.auction ? slug(lot.auction) : "", TG_FUEL[lot.fuelKind] === "Plug-in гибрид" ? "plugin" : ""].filter(Boolean);
     return [...new Set([...fixed, ...dyn])].map(t => "#" + t).join(" ");
   }
-  function tgSaleDate(lot){ const d = lot.auctionDate ? new Date(lot.auctionDate) : null; return (d && !isNaN(d)) ? d.toLocaleDateString("ru-RU", {day:"numeric", month:"long"}) : ""; }
+  function tgSaleDate(lot, lang){ const d = lot.auctionDate ? new Date(lot.auctionDate) : null; return (d && !isNaN(d)) ? d.toLocaleDateString(lang === "ro" ? "ro-RO" : "ru-RU", {day:"numeric", month:"long"}) : ""; }
   // 03.10.2026 (Федор: «это Таймед аукцион, пиши торги сегодня ночью в ХХХ», затем живой пример Kia
   // Sorento — «Торги сегодня ночью: 4 октября»): Timed у IAAI закрывается В ТУ ЖЕ НОЧЬ (см. правило
   // в проекте), голая календарная дата («Торги: 4 октября») читается как «когда-то потом», хотя лот
   // играет сегодня вечером-ночью — дату саму НЕ убираем (часто уже следующее число из-за ночных часов,
   // и это та дата, что увидят, открыв пост утром), только добавляем «сегодня ночью» для обычных Timed.
-  function tgDateLabel(lot){
-    const d = tgSaleDate(lot);
+  function tgDateLabel(lot, lang){
+    const d = tgSaleDate(lot, lang);
     if(!d) return "";
-    return lot.timed ? `Торги сегодня ночью: ${d}` : `Торги: ${d}`;
+    return lot.timed ? `${tgL("auctionTonight", lang)} ${d}` : `${tgL("auctionDate", lang)} ${d}`;
   }
   // 03.10.2026 (Федор: «доставка - таможня - комиссия итд, укажи эти расходы») — короткая раскладка
   // суммы «под ключ», чтобы цифра не выглядела взятой с потолка. calcLotTotal (тот же расчёт, что
@@ -3276,7 +3296,7 @@
   // 3) «зачем пишешь общую цену, если она ниже расписана» — убрал сумму из заголовка строки вовсе,
   //    только название + раскладка (доставка/таможня — у них dollar-сумма стабильна и НЕ зависит
   //    от того, насколько точна наша прикидка цены лота, в отличие от страховки/комиссии на оплату).
-  function tgBreakdown(lot, basis){
+  function tgBreakdown(lot, basis, lang){
     try{
       const c = calcLotTotal(lot, {bid:basis, insurance:true});
       const logistics = c.canada
@@ -3284,22 +3304,23 @@
         : (c.land || 0) + (c.sea || 0);
       const customs = (c.customsUsd || 0) + (c.brokerUsd || 0);
       const lines = [];
-      if(logistics) lines.push(`Доставка: ${money(Math.round(logistics))}`);
-      if(customs) lines.push(`Таможенное оформление: ${money(customs)}`);
-      lines.push(`Страховка: 1% от цены лота`);
+      if(logistics) lines.push(`${tgL("delivery", lang)} ${money(Math.round(logistics))}`);
+      if(customs) lines.push(`${tgL("customs", lang)} ${money(customs)}`);
+      lines.push(tgL("insurance", lang));
       // 03.10.2026 (Федор: «нам это в телеграме не нужно») — пометку про 1% при оплате в MDL убрал.
-      lines.push(`Комиссия: ${money(c.service || 300)}`);
+      lines.push(`${tgL("fee", lang)} ${money(c.service || 300)}`);
       return lines;
     }catch(_){ return []; }
   }
-  // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы.
-  function buildTgCaption(lot, tpl){
+  // 4 шаблона поста. Возвращают HTML (parse_mode=HTML), данные экранированы. lang: "ru" (по умолчанию) | "ro".
+  function buildTgCaption(lot, tpl, lang){
+    lang = lang === "ro" ? "ro" : "ru";
     const e = escapeHtml;
     // 03.10.2026 (Федор: «ты также пропускаешь полное название авто») — год+марка+модель обрезали
     // комплектацию/трим («2025 Kia Sorento» вместо «2025 Kia Sorento Plug-In Hybrid SX Prestige»).
     // lotTitle() — тот же источник полного имени с версией из API, что на самой странице лота (H1).
     const title = lotTitle(lot) || [lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ");
-    const specs = tgSpecs(lot).map(e).join("\n"), drive = e(tgDrive(lot));
+    const specs = tgSpecs(lot, lang).map(e).join("\n"), drive = e(tgDrive(lot, lang));
     const isCaLot = !!findCanadaLocation(lot);
     const money1 = v => isCaLot ? moneyCad(v) : money(v);
     const bid = Number(lot.currentBid) || 0, bn = Number(lot.buyNow) || 0;
@@ -3323,35 +3344,41 @@
     const url = tgLotUrl(lot), tags = tgHashtags(lot);
     // 07.10.2026: «Продан за …» единственная строка здесь шла через money() вместо money1() — у канадских
     // лотов finalBid сырой в CAD, пост в Telegram показывал «$36 250» вместо «36 250 CAD ≈ $26 573» (≈35% завышение).
-    const priceLine = sold ? `✅ <b>Продан${lot.finalBid ? " за " + money1(lot.finalBid) : ""}</b>`
+    const priceLine = sold ? `✅ <b>${lot.finalBid ? tgL("soldFor", lang) + " " + money1(lot.finalBid) : tgL("sold", lang)}</b>`
       : (bn && !bid) ? `💰 <b>Buy Now: ${money1(bn)}</b>`
-      : `💰 <b>Текущая ставка: ${money1(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money1(bn)}` : ""}`;
+      : `💰 <b>${L("Текущая ставка", lang)}: ${money1(bid || bn)}</b>${bn && bid ? ` · Buy Now ${money1(bn)}` : ""}`;
     // 03.10.2026 (Федор, живой пример Kia Sorento): резерв продавца — отдельной строкой сразу под
     // ставкой, видно без захода на сайт, важно для решения «имеет ли смысл участвовать».
-    const reserveLine = (!sold && Number(lot.sellerReserve) > 0) ? `📊 Резерв продавца: <b>${money1(lot.sellerReserve)}</b>` : "";
+    const reserveLine = (!sold && Number(lot.sellerReserve) > 0) ? `📊 ${L("Резерв продавца", lang)}: <b>${money1(lot.sellerReserve)}</b>` : "";
     // 03.10.2026 (Федор: «рынок ориентир люди думаю что это в молдове рыночная») — слово «Рынок»
     // читается как розничная цена в Молдове. Это ориентир цены самого лота НА АУКЦИОНЕ в США (цена
     // под ключ в Кишинёве — отдельная строка ниже, её и так не спутать).
-    const bandLine = band ? `📊 Ориентир на аукционе: <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
+    const bandLine = band ? `📊 ${tgL("band", lang)} <b>${money(band.lo)}–${money(band.hi)}</b>` : "";
     // 03.10.2026 (Федор: «не пиши слово под ключ, пиши "Доставка - таможня - комиссия"», затем:
     // «зачем в доставку-таможню пишешь сборы и стоимость лота?!», затем: «зачем пишешь общую цену,
     // если она ниже расписана!») — только заголовок-подпись БЕЗ суммы (страховка/комиссия на оплату
     // внизу — формулой в процентах, не долларом: вместе их в одну цифру уже не сложить осмысленно).
-    const breakdownLines = tgBreakdown(lot, turnkeyBasis);
-    const turnkeyHead = breakdownLines.length ? `🚗 <b>Доставка - таможня - комиссия:</b>` : "";
+    const breakdownLines = tgBreakdown(lot, turnkeyBasis, lang);
+    const turnkeyHead = breakdownLines.length ? `🚗 <b>${tgL("turnkeyHead", lang)}</b>` : "";
     const turnkeyBreakdown = breakdownLines.map(x => `   – ${e(x)}`).join("\n");
     // «Коротко» — без раскладки (сама суть шаблона), везде ещё — полная расшифровка под итогом.
     const turnkeyLine = [turnkeyHead, turnkeyBreakdown].filter(Boolean).join("\n");
-    const dateLabel = tgDateLabel(lot);
+    const dateLabel = tgDateLabel(lot, lang);
     const dateLine = (!sold && dateLabel) ? `⏰ ${e(dateLabel)}` : "";
-    const link = `🔗 <a href="${e(url)}">Смотреть и рассчитать на сайте</a>`;
+    // 14.10.2026 (Федор: «ссылку когда пересылаешь, становится неактивной и получается просто текст»):
+    // Telegram-клиент, при копировании (не официальной пересылке) текста с HTML-ссылкой <a href>,
+    // копирует только видимую подпись «Смотреть и рассчитать на сайте» — реальный URL в href при
+    // копировании/форварде в другое приложение теряется безвозвратно. Вместо подписи-ссылки — САМ
+    // URL виден в тексте поста: Telegram сам подсвечивает голый URL кликабельным (без HTML-тега),
+    // а скопированный текст содержит настоящий адрес, а не мёртвую надпись.
+    const link = `🔗 ${tgL("linkLbl", lang)}\n${e(url)}`;
     const L1 = `🔥 <b>${e(title)}</b>`;
     if(tpl === "deal"){
-      const eco = (band && turnkey && band.lo > turnkey) ? `\n📉 Ниже рынка примерно на ${money(band.lo - turnkey)}` : "";
+      const eco = (band && turnkey && band.lo > turnkey) ? `\n📉 ${tgL("belowMarket", lang)} ${money(band.lo - turnkey)}` : "";
       return [L1, specs, drive, "", priceLine, reserveLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "urgent"){
-      const head = dateLabel ? `⏰ <b>${e(dateLabel)}</b> — успеваем оформить заявку` : "🔥 <b>Свежий лот</b>";
+      const head = dateLabel ? `⏰ <b>${e(dateLabel)}</b> — ${tgL("hurry", lang)}` : `🔥 <b>${tgL("freshLot", lang)}</b>`;
       return [head, "", L1, specs, "", priceLine, reserveLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "short"){
@@ -3360,7 +3387,7 @@
       return [L1, specs, priceLine, "", link, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
-    return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · лот " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · " + tgL("lotWord", lang) + " " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
   // Для Telegram берём МАКСИМАЛЬНОЕ разрешение фото (Telegram сам ужмёт по своим правилам):
   // Copart _thb/_ful → _hrs (1280×960), IAAI resizer → width=1280&height=960.
@@ -3395,6 +3422,11 @@
           <button type="button" class="tgChipV1" data-tpl="urgent">Срочно</button>
           <button type="button" class="tgChipV1" data-tpl="short">Коротко</button>
         </div>
+        <div class="tgRowLblV1">Язык</div>
+        <div class="tgTplV1" id="tgLangV1">
+          <button type="button" class="tgChipV1 is-on" data-lang="ru">RU</button>
+          <button type="button" class="tgChipV1" data-lang="ro">RO</button>
+        </div>
         <div class="tgRowLblV1">Фото</div>
         <div class="tgPhotoOptV1">
           <label><input type="radio" name="tgPhotos" value="card" checked> Брендовая карточка</label>
@@ -3410,21 +3442,40 @@
       </div>`;
       document.body.appendChild(modal);
       modal.addEventListener("click", ev => { if(ev.target === modal || ev.target.closest("[data-tg-close]")) modal.hidden = true; });
+      // 14.10.2026: язык поста — независим от шаблона, оба влияют на один и тот же regen. RO-словарь
+      // (250 КБ) на RU-версии сайта обычно ещё не грузился (ensureDict грузит его только при смене
+      // языка САЙТА) — ждём его явно перед первой генерацией RO-текста, не раньше.
+      const regenCap = () => {
+        const tpl = modal.querySelector("#tgTplV1 .is-on")?.dataset?.tpl || "auction";
+        modal.querySelector("#tgCapV1").value = buildTgCaption(modal._lot, tpl, modal._lang || "ru");
+      };
       modal.querySelector("#tgTplV1").addEventListener("click", ev => {
         const chip = ev.target.closest("[data-tpl]"); if(!chip) return;
-        modal.querySelectorAll(".tgChipV1").forEach(c => c.classList.toggle("is-on", c === chip));
-        modal.querySelector("#tgCapV1").value = buildTgCaption(modal._lot, chip.dataset.tpl);
+        modal.querySelectorAll("#tgTplV1 .tgChipV1").forEach(c => c.classList.toggle("is-on", c === chip));
+        regenCap();
+      });
+      modal.querySelector("#tgLangV1").addEventListener("click", ev => {
+        const chip = ev.target.closest("[data-lang]"); if(!chip) return;
+        modal.querySelectorAll("#tgLangV1 .tgChipV1").forEach(c => c.classList.toggle("is-on", c === chip));
+        modal._lang = chip.dataset.lang;
+        if(modal._lang === "ro" && typeof window.__apexEnsureDict === "function"){
+          chip.disabled = true;
+          window.__apexEnsureDict(() => { chip.disabled = false; if(modal._lang === "ro") regenCap(); });
+        }else regenCap();
       });
       modal.querySelector("#tgPubV1").addEventListener("click", () => tgPublish(modal));
+      modal._regenCap = regenCap;
     }
     modal._lot = lot;
-    modal.querySelectorAll(".tgChipV1").forEach((c, i) => c.classList.toggle("is-on", i === 0));
+    modal._lang = "ru";
+    modal.querySelectorAll("#tgTplV1 .tgChipV1").forEach((c, i) => c.classList.toggle("is-on", i === 0));
+    modal.querySelectorAll("#tgLangV1 .tgChipV1").forEach(c => c.classList.toggle("is-on", c.dataset.lang === "ru"));
     const warn = modal.querySelector("#tgWarnV1");
     if(tgDiag && !tgDiag.configured){ warn.hidden = false; warn.textContent = "Постинг не настроен: добавьте POST_BOT_TOKEN и POST_CHANNEL_ID в переменные окружения Vercel."; }
     else if(tgDiag && tgDiag.configured && tgDiag.canPost === false){ warn.hidden = false; warn.textContent = "Бот не может писать в канал: " + (tgDiag.channelError || tgDiag.botError || "проверьте, что бот — админ канала с правом публикации."); }
     else warn.hidden = true;
     modal.querySelector("#tgResV1").textContent = "";
-    modal.querySelector("#tgCapV1").value = buildTgCaption(lot, "auction");
+    modal.querySelector("#tgCapV1").value = buildTgCaption(lot, "auction", "ru");
     modal.hidden = false;
   }
   async function tgPublish(modal){
