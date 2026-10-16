@@ -3108,7 +3108,7 @@ async function searchFromDb(query){
     if(t > 0) total = tab === "buy_now" ? Math.max(t, total) : t;
   }
   // Копии продаж перевыставленных под тем же номером лотов — понижаем и убираем из выдачи (архив, поиск по VIN).
-  try{ rows = await demoteRelistedCopies(rows); }catch(_){}
+  try{ const before = rows.length; rows = await demoteRelistedCopies(rows); total = Math.max(0, total - (before - rows.length)); }catch(_){}
   return {
     _db:true,
     items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); l.title = powertrain.cleanTitle(l.title); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } if(r.vin_trim !== undefined && r.vin_trim !== null){ l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind}); } return l; }),
