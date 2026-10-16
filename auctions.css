@@ -300,9 +300,15 @@
 .dbSale { text-align:center; font-size:10.5px; font-weight:700; color:#e8780c; text-transform:uppercase; letter-spacing:.03em; }
 .dbSale::before { content:"• "; }
 .dbActions { display:flex; flex-direction:column; gap:7px; margin-top:2px; }
-.dbBtnGhost { display:inline-flex; align-items:center; justify-content:center; height:36px; border:1px solid var(--aLine); border-radius:10px; font-weight:600; font-size:12.5px; color:var(--aInk); transition:.18s; }
+/* 17.10.2026 (Федор: «надписи на кнопках кривые, выходят за рамки», /vin/<VIN>): обе эти кнопки
+   нигде не задавали padding/text-align/вертикальное центрирование сами по себе — выглядели нормально
+   ТОЛЬКО потому, что везде на сайте висели на родном <button> (UA-стиль браузера сам даёт text-align:
+   center и небольшой padding) — там, где их повесили на <a> (vhActiveV1, dbBtnGhost в «Открыть в полном
+   калькуляторе»), у <a> нет ни того, ни другого от природы — текст лип к краю без отступов. Чиним
+   корень, а не два места: явный padding/центрирование в самом классе — работает одинаково на <button> и <a>.*/
+.dbBtnGhost { display:inline-flex; align-items:center; justify-content:center; height:36px; padding:0 16px; border:1px solid var(--aLine); border-radius:10px; font-weight:600; font-size:12.5px; color:var(--aInk); text-align:center; white-space:nowrap; transition:.18s; }
 .dbBtnGhost:hover { border-color:var(--aMuted); background:var(--aSoft); }
-.dbBtnPrimary { height:38px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:700; font-size:13.5px; cursor:pointer; transition:.18s; }
+.dbBtnPrimary { display:inline-flex; align-items:center; justify-content:center; height:38px; padding:0 18px; border:none; border-radius:10px; background:var(--aRed); color:#fff; font-weight:700; font-size:13.5px; text-align:center; white-space:nowrap; cursor:pointer; transition:.18s; }
 .dbBtnPrimary:hover { background:var(--aRed600); transform:translateY(-1px); }
 
 /* 28.09.2026 (Федор): SEO-блок ссылок на марки/модели — раньше жил в тёмном футере, смотрелся

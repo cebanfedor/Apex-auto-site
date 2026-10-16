@@ -195,7 +195,7 @@ module.exports = async function(req, res){
     <div class="dRecoV2" style="margin-top:24px">
       <div>
         <p>${escHtml(t.cta)}</p>
-        <a class="dbBtnPrimary" href="/contacts" style="display:inline-block;margin-top:10px">${escHtml(t.ctaBtn)}</a>
+        <a class="dbBtnPrimary" href="/contacts" style="margin-top:10px">${escHtml(t.ctaBtn)}</a>
       </div>
     </div>
     <p style="margin-top:18px;font-size:12.5px;color:var(--aMuted,#6b7280)">${escHtml(t.source)}</p>
