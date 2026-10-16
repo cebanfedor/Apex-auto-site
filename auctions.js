@@ -3696,7 +3696,13 @@
               ${dPlain("Двигатель и привод", escapeHtml(driveLine), "drive")}
               ${(() => {
                 const odoNote = odoStatusNote(lot.odometerStatus);
-                return dPlain("Пробег", `${escapeHtml(dbOdo(lot.odometerText))}${odoNote ? ` <span class="odoWarnV1">${escapeHtml(odoNote)}</span>` : ""}`, "odo");
+                // Одометр ненадёжен по данным площадки (Федор 16.10.2026): пишем «Необходимо проверить»
+                // (причину — в подсказке при наведении), а не длинную красную плашку. Если число всё же есть —
+                // показываем его и короткую пометку.
+                const odoText = dbOdo(lot.odometerText);
+                const odoKnown = odoText !== L("Пробег не указан");
+                if(odoNote && !odoKnown) return dPlain("Пробег", `<span title="${escapeHtml(odoNote)}">${L("Необходимо проверить")}</span>`, "odo");
+                return dPlain("Пробег", `${escapeHtml(odoText)}${odoNote ? ` <span class="odoWarnV1" title="${escapeHtml(odoNote)}">${L("Необходимо проверить")}</span>` : ""}`, "odo");
               })()}
               ${primaryDmg ? dMain("Основное повреждение", ruDamage(primaryDmg), "damage") : ""}
               ${secondaryDmg ? dMain("Вторичное повреждение", ruDamage(secondaryDmg), "damage") : ""}
@@ -3707,7 +3713,7 @@
             ${exportBan(lot) || isResaleLot ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">
               <div class="dSecHead">${L("Аукцион")}</div>
-              ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", "") + (/^[A-HJ-NPR-Z0-9]{17}$/i.test(lot.vin || "") ? ` <a class="dLink" href="/vin/${escapeHtml(String(lot.vin).toUpperCase())}" style="margin-left:8px;font-size:12px;white-space:nowrap">${L("История по VIN")} →</a>` : ""))}
+              ${dPlain("VIN", `<span class="dVinRowV1">${copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", "")}${/^[A-HJ-NPR-Z0-9]{17}$/i.test(lot.vin || "") ? `<a class="dLink dVinHistV1" href="/vin/${escapeHtml(String(lot.vin).toUpperCase())}">${L("История по VIN")} →</a>` : ""}</span>`)}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("от")} ${escapeHtml(shortDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
               ${lot.timed && Number(lot.timedStartBid) > 0 ? dPlain("Стартовая цена", `<b>${findCanadaLocation(lot) ? moneyCad(lot.timedStartBid) : money(lot.timedStartBid)}</b>`) : ""}
