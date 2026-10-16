@@ -2630,7 +2630,7 @@ async function searchFromDb(query){
   const p = new URLSearchParams();
   const fxOk = await fuelXReady();
   const trimOk = fxOk && await trimColReady();
-  p.set("select", fxOk ? "payload,fuel_x,fuel_src" + (trimOk ? ",vin_trim" : "") : "payload");
+  p.set("select", "id,sale_date," + (fxOk ? "payload,fuel_x,fuel_src" + (trimOk ? ",vin_trim" : "") : "payload"));   // id/sale_date — для demoteRelistedCopies
   const ands = [];
   // Страховка от Encar/Кореи, попавшей в базу до доменного фильтра синка
   ands.push("or(country.neq.kr,country.is.null)");
@@ -3107,6 +3107,8 @@ async function searchFromDb(query){
     // buy_now: оценка «без даты» у планировщика иногда 0 (частичного индекса под Buy Now пока нет) — не занижаем.
     if(t > 0) total = tab === "buy_now" ? Math.max(t, total) : t;
   }
+  // Копии продаж перевыставленных под тем же номером лотов — понижаем и убираем из выдачи (архив, поиск по VIN).
+  try{ rows = await demoteRelistedCopies(rows); }catch(_){}
   return {
     _db:true,
     items:rows.filter(r => r.payload).map(r => { const l = sanitizeStoredLot(r.payload); l.title = powertrain.cleanTitle(l.title); if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; } if(r.vin_trim !== undefined && r.vin_trim !== null){ l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind}); } return l; }),
@@ -3927,7 +3929,7 @@ async function upsertClosedLot(lot){
         // переиспользован под другую машину, см. titleMakeMismatch выше), оставалась в чужом фильтре каталога
         // НАВСЕГДА — эта PATCH-ветка их раньше не трогала вовсе (только payload/ставки/дату). 02.10.2026.
         const idOrNull = v => { const x = Number(v); return Number.isFinite(x) ? Math.round(x) : null; };
-        preserveSoldCopies([rid]).then(() => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
+        preserveSoldCopies([rid], {[rid]:ts}).then(() => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
           body:JSON.stringify({archived:false, status_id:lot.statusId || 3, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0,
             make_id:idOrNull(lot.makeId), model_id:idOrNull(lot.modelId),
             sale_date:new Date(ts).toISOString(), payload:{...lot, finalBid:0}, synced_at:new Date().toISOString()})})).catch(() => {});
@@ -3995,11 +3997,65 @@ function sameKeyFields(a, b, keyFields = ROW_KEY_FIELDS){
 // перевыставили (Buy Now / новые торги) под тем же номером. Перед тем как перезаписать строку-продажу живой версией
 // (или другой продажей с другой датой), копируем её под id `<auction>-<lot>-s<YYYYMMDD>` (archived=true).
 const isSaleRow = r => r && r.archived === true && Number(r.final_bid) > 0 && Number(r.status_id) === 6;
-async function preserveSoldCopies(ids){
+// Правило Федора 24.09.2026 (Honda Insight) + 16.10.2026 (BMW X5 Copart 71697016, «Продано 37 000 CAD» в архиве при живом
+// релисте того же номера на 21.10): ТОТ ЖЕ НОМЕР лота выставлен снова ПОЗЖЕ → предыдущий «sold»-раунд этого номера — НЕ продажа
+// (резерв/покупатель сорвался). Копия такой «продажи» хранится, но как непроданный раунд (status 8, final 0, archived=true —
+// вне архива и вне живых вкладок, из поиска по VIN вырезается). Исключение — покупка по Buy Now (`soldByBuyNow`): лот ушёл.
+const RELIST_GRACE_MS = 3600e3;
+const SOLD_COPY_RE = /-s\d{8}$/;
+const demotedRowFields = (payload, stamp) => ({status_id:8, final_bid:0, archived:true,
+  payload:{...(payload || {}), statusId:8, statusName:"not_sold", lotStatus:"not_sold", finalBid:0, relistDemoted:true, relistDemotedAt:stamp}});
+const relistLiveCache = new Map();   // базовый id → {ts: дата торгов основной строки (NaN = нет/не релист), at}
+// Самолечение на чтении (архив, поиск по VIN): копия продажи, чей основной лот выставлен снова позже, — понижается в базе
+// и убирается из выдачи (живая строка того же лота и так в выдаче, история — «Выставлялась ранее» по VIN).
+async function demoteRelistedCopies(rows){
+  const cand = rows.filter(r => r && r.id && SOLD_COPY_RE.test(r.id) && r.payload);
+  if(!cand.length) return rows;
+  const drop = new Set(), need = [];
+  for(const r of cand){
+    const pl = r.payload;
+    if(pl.relistDemoted){ drop.add(r.id); continue; }
+    if(!(pl.statusId === 6 && Number(pl.finalBid) > 0) || pl.soldByBuyNow) continue;
+    need.push(r);
+  }
+  const bases = [...new Set(need.map(r => r.id.replace(SOLD_COPY_RE, "")))].filter(b => { const c = relistLiveCache.get(b); return !(c && Date.now() - c.at < 600e3); });
+  if(bases.length){
+    try{
+      const lr = await syncSbFetch(`/api_lots?id=in.(${bases.map(x => `"${String(x).replace(/[^a-z0-9_-]/gi, "")}"`).join(",")})&select=id,sale_date`);
+      const now = Date.now();
+      for(const b of bases) relistLiveCache.set(b, {ts:NaN, at:now});
+      for(const x of lr || []) relistLiveCache.set(x.id, {ts:x.sale_date ? Date.parse(x.sale_date) : NaN, at:now});
+      if(relistLiveCache.size > 5000) relistLiveCache.delete(relistLiveCache.keys().next().value);
+    }catch(_){ return drop.size ? rows.filter(r => !drop.has(r.id)) : rows; }
+  }
+  const stamp = new Date().toISOString();
+  for(const r of need){
+    const liveTs = relistLiveCache.get(r.id.replace(SOLD_COPY_RE, ""))?.ts;
+    const copyTs = Date.parse(r.sale_date || r.payload.auctionDate || "");
+    if(Number.isFinite(liveTs) && Number.isFinite(copyTs) && liveTs > copyTs + RELIST_GRACE_MS){
+      drop.add(r.id);
+      syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(r.id)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify(demotedRowFields(r.payload, stamp))}).catch(() => {});
+    }
+  }
+  return drop.size ? rows.filter(r => !drop.has(r.id)) : rows;
+}
+// laterTs: id → дата торгов ВХОДЯЩЕЙ строки (мс). Если она позже сохранённой продажи — это релист того же номера,
+// копия сразу пишется понижённой (см. demotedRowFields), а не как продажа.
+async function preserveSoldCopies(ids, laterTs = {}){
+  preserveSoldCopies.demoted = 0;
   if(!ids.length) return 0;
   try{
     const full = await syncSbFetch(`/api_lots?id=in.(${ids.map(x => `"${String(x).replace(/[^a-z0-9_-]/gi, "")}"`).join(",")})&select=*`);
-    const copies = (Array.isArray(full) ? full : []).filter(isSaleRow).map(r => ({...r, id:`${r.id}-s${String(r.sale_date || "").slice(0, 10).replace(/-/g, "")}`, archived:true}));
+    const stamp = new Date().toISOString();
+    const copies = (Array.isArray(full) ? full : []).filter(isSaleRow).map(r => {
+      const copy = {...r, id:`${r.id}-s${String(r.sale_date || "").slice(0, 10).replace(/-/g, "")}`, archived:true};
+      const lt = Number(laterTs[r.id]);
+      if(Number.isFinite(lt) && lt > Date.parse(r.sale_date || "") + RELIST_GRACE_MS && !(r.payload && r.payload.soldByBuyNow)){
+        preserveSoldCopies.demoted++;
+        return {...copy, ...demotedRowFields(r.payload, stamp)};
+      }
+      return copy;
+    });
     if(!copies.length) return 0;
     await syncSbFetch(`/api_lots?on_conflict=id`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(copies)});
     return copies.length;
@@ -4031,8 +4087,12 @@ async function syncUpsertRows(rows, deadline, opts = {}){
         return sameEvent && Number(r.final_bid) < Number(e.final_bid);
       };
       const before0 = rows.length; rows = rows.filter(r => !degrading(r)); syncUpsertRows.skippedDegrading = before0 - rows.length;
-      const toPreserve = rows.filter(r => { const e = map.get(r.id); return isSaleRow(e) && (r.archived !== true || Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) > 3600e3); }).map(r => r.id);
-      if(toPreserve.length) syncUpsertRows.preserved = await preserveSoldCopies(toPreserve);
+      const toPreserveRows = rows.filter(r => { const e = map.get(r.id); return isSaleRow(e) && (r.archived !== true || Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) > 3600e3); });
+      if(toPreserveRows.length){
+        const laterTs = {}; toPreserveRows.forEach(r => { laterTs[r.id] = Date.parse(r.sale_date || ""); });
+        syncUpsertRows.preserved = await preserveSoldCopies(toPreserveRows.map(r => r.id), laterTs);
+        syncUpsertRows.demoted = preserveSoldCopies.demoted;
+      }
       if(!rows.length){ syncUpsertRows.written = before0; return; }
       if(!opts.force){
         const before = rows.length;
@@ -6571,3 +6631,5 @@ module.exports.shiftYmd = shiftYmd;
 module.exports.buildSearchParams = buildSearchParams;
 module.exports.titleMakeMismatch = titleMakeMismatch;
 module.exports.normalizeLot = normalizeLot;
+module.exports.demoteRelistedCopies = demoteRelistedCopies;
+module.exports.preserveSoldCopies = preserveSoldCopies;
