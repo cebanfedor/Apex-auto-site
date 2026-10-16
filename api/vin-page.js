@@ -176,7 +176,10 @@ module.exports = async function(req, res){
     </div>`;
   })() : "";
 
-  const activeHtml = activeHref ? `<div class="vhActiveV1"><span>${escHtml(t.activeNote)}</span> <a class="dbBtnPrimary" href="${activeHref}" style="display:inline-block;margin-top:8px">${escHtml(t.goLot)}</a></div>` : "";
+  // 17.10.2026 (Федор: «тут коряво») — текст и кнопка были соседними inline-элементами в одном
+  // блоке без переноса: `margin-top` на inline-block ничего не делает в потоке строки, кнопка
+  // лепилась прямо посреди предложения. Теперь явная колонка (см. .vhActiveV1 в auctions.css).
+  const activeHtml = activeHref ? `<div class="vhActiveV1"><span>${escHtml(t.activeNote)}</span><a class="dbBtnPrimary" href="${activeHref}">${escHtml(t.goLot)}</a></div>` : "";
 
   const bodyHtml = `
     <nav class="auctionCrumbsV1" aria-label="breadcrumb"><span class="crumbRootV1"><a href="/">${escHtml(t.backHome)}</a> / </span><span class="crumbCurV1" data-no-i18n="true">VIN ${escHtml(vin)}</span></nav>
@@ -190,8 +193,10 @@ module.exports = async function(req, res){
       <tbody>${historyRowsHtml(history, lang, t)}</tbody>
     </table>` : `<p>${escHtml(t.noHistory)}</p>`}
     <div class="dRecoV2" style="margin-top:24px">
-      <p>${escHtml(t.cta)}</p>
-      <a class="dbBtnPrimary" href="/contacts" style="display:inline-block;margin-top:10px">${escHtml(t.ctaBtn)}</a>
+      <div>
+        <p>${escHtml(t.cta)}</p>
+        <a class="dbBtnPrimary" href="/contacts" style="display:inline-block;margin-top:10px">${escHtml(t.ctaBtn)}</a>
+      </div>
     </div>
     <p style="margin-top:18px;font-size:12.5px;color:var(--aMuted,#6b7280)">${escHtml(t.source)}</p>
   `;
