@@ -3718,7 +3718,8 @@
             ${exportBan(lot) || isResaleLot ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">
               <div class="dSecHead">${L("Аукцион")}</div>
-              ${dPlain("VIN", `<span class="dVinRowV1">${copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", "")}${/^[A-HJ-NPR-Z0-9]{17}$/i.test(lot.vin || "") ? `<a class="dLink dVinHistV1" href="/vin/${escapeHtml(String(lot.vin).toUpperCase())}">${L("История по VIN")} →</a>` : ""}</span>`)}
+              ${dPlain("VIN", copyChip(lot.vin, "Скопировать VIN", "dCopyValV1", ""))}
+              ${/^[A-HJ-NPR-Z0-9]{17}$/i.test(lot.vin || "") ? dPlain("История по VIN", `<a class="dLink" href="/vin/${escapeHtml(String(lot.vin).toUpperCase())}">${L("Подробнее")} →</a>`) : ""}
               ${dPlain("Номер лота", `${copyChip(lot.lot, "Скопировать номер лота", "dCopyValV1", "")} ${aucLinkBadge(lot)}`)}
               ${Number(lot.sellerReserve) > 0 ? dPlain("Резерв продавца", `<b>${money(lot.sellerReserve)}</b>${lot.sellerReserveAt ? ` <i class="dReserveAtV1">${L("от")} ${escapeHtml(shortDate(lot.sellerReserveAt))}</i>` : ""}`) : ""}
               ${lot.timed && Number(lot.timedStartBid) > 0 ? dPlain("Стартовая цена", `<b>${findCanadaLocation(lot) ? moneyCad(lot.timedStartBid) : money(lot.timedStartBid)}</b>`) : ""}

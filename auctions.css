@@ -246,17 +246,13 @@
 .odoOkV1, .odoWarnV1 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; padding:1px 7px; border-radius:999px; margin-left:6px; }
 .odoOkV1 { background:#e7f6ec; color:#1d9b53; }
 .odoWarnV1 { background:#fdeceb; color:#d33a2c; }
-/* VIN + «История по VIN →» (Федор 16.10.2026, дважды за день): сперва ссылка иногда падала на
-   вторую строку — зажали `nowrap` в одну строку; но колонка значения в этой таблице (АУКЦИОН)
-   узкая, VIN (17 симв.) + ссылка вместе почти никогда не помещаются — `nowrap` заставлял чип VIN
-   СЖИМАТЬСЯ (flex-shrink), а сам текст VIN внутри не ужимается и не обрезается (нет truncate) —
-   вылезал поверх ссылки, буквы налезали друг на друга. Теперь по-другому: VIN-чип НЕ сжимается
-   (flex:0 0 auto — всегда виден целиком), а ссылка «История по VIN →» ВСЕГДА отдельной строкой
-   под ним (flex-basis:100%) — так, а не «переносится, только если не влезло» (отсюда и разнобой
-   в прошлый раз): одинаково на любой ширине, перекрытия в принципе быть не может.*/
-.dVinRowV1 { display:flex; align-items:center; flex-wrap:wrap; gap:3px 10px; min-width:0; max-width:100%; }
-.dVinRowV1 .dCopyValV1 { flex:0 0 auto; min-width:0; }
-.dVinHistV1 { flex:1 0 100%; font-size:12px; white-space:nowrap; }
+/* 16.10.2026 (Федор, третий заход за день): втиснуть VIN и «История по VIN →» в одну строку/ячейку
+   не вышло ни зажатым nowrap (налезали друг на друга), ни честным переносом на вторую строку
+   («ужасно выглядит в 2 строки») — колонка значения в этой таблице (АУКЦИОН) просто слишком узкая
+   для обоих сразу. Решение: «История по VIN» — своя ОТДЕЛЬНАЯ строка таблицы (не часть строки VIN),
+   как «Экстра → Отчёт VIN» ниже. Строка VIN — снова просто copyChip, никакой спецвёрстки под неё
+   не нужно; классы ниже удалены как мёртвый код (взамен — обычный dPlain, см. auctions.js).
+.dVinRowV1 / .dVinHistV1 — удалены 16.10.2026 */
 .dbNew { background:#eaf1ff; color:#1f6bff; font-weight:700; font-size:10.5px; padding:2px 8px; border-radius:6px; }
 .dbIco { width:15px; height:15px; flex:none; }
 
