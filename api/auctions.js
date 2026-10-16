@@ -4910,6 +4910,55 @@ async function runTimedSync(budgetMs = 45000){
   return out;
 }
 
+// Фоновая починка ошибочных меток «перекуп» по ВСЕЙ базе (Федор 16.10.2026: «устрани это и на других
+// лотах»). Сценарий ошибки: vin_hist снят, когда раунд был последним у лота (фид метит его «sold» с
+// пред-ставкой), потом лот перевыставили под тем же номером → старая метка resale 1/2 висит в api_lots.
+// Идём курсором по живым лотам с resale in (1,2), берём их кэш vin_hist, понижаем «sold»-записи того же
+// лота, у которого ЖИВАЯ строка с датой торгов позже записи, пересчитываем уровень и ТОЛЬКО ПОНИЖАЕМ
+// (без продавца в stub резаль-правило могло бы и повысить — не рискуем). Без единого запроса к фиду:
+// только Supabase. Зовётся из крона resalecheck с малым бюджетом; по кругу (курсор в alert_meta).
+async function runResaleFix(budgetMs){
+  const t0 = Date.now();
+  const out = {ok:true, scanned:0, fixed:0, pages:0};
+  let cursor = "";
+  try{ const m = await syncSbFetch(`/alert_meta?k=eq.resale_fix_cursor&select=v`); cursor = String(m?.[0]?.v?.id || ""); }catch(_){}
+  const saveCursor = id => syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({k:"resale_fix_cursor", v:{id}, updated_at:new Date().toISOString()})}).catch(() => {});
+  while(Date.now() - t0 < budgetMs){
+    let rows;
+    try{
+      rows = await syncSbFetch(`/api_lots?archived=eq.false&status_id=neq.6&resale=in.(1,2)&vin=not.is.null${cursor ? `&id=gt.${encodeURIComponent(cursor)}` : ""}&select=id,vin,lot,resale&order=id.asc&limit=200`);
+    }catch(e){ out.error = String(e.message || e).slice(0, 120); break; }
+    if(!Array.isArray(rows) || !rows.length){ cursor = ""; await saveCursor(""); break; }   // круг завершён — следующий тик начнёт заново
+    out.pages++; out.scanned += rows.length;
+    const vins = [...new Set(rows.map(r => String(r.vin || "").toUpperCase()).filter(isValidVin))];
+    const hist = {};
+    try{ const hs = await syncSbFetch(`/vin_hist?vin=in.(${vins.join(",")})&select=vin,entries`); for(const h of hs || []) if(Array.isArray(h.entries)) hist[h.vin] = h.entries; }catch(_){}
+    const ids = new Set();
+    for(const v of Object.keys(hist)) for(const x of hist[v]) if(x.status === "sold" && x.lot && x.auction) ids.add(`${x.auction}-${x.lot}`);
+    const live = {};
+    if(ids.size){ try{ const lr = await syncSbFetch(`/api_lots?id=in.(${[...ids].join(",")})&archived=eq.false&status_id=neq.6&select=id,sale_date`); for(const r of lr || []) if(r.sale_date) live[r.id] = Date.parse(r.sale_date); }catch(_){} }
+    const byLevel = {0:[], 1:[]};
+    for(const r of rows){
+      const es = hist[String(r.vin || "").toUpperCase()]; if(!es) continue;
+      let hit = false;
+      const fixed = es.map(x => {
+        if(x.status === "sold"){ const t = live[`${x.auction}-${x.lot}`], d = Date.parse(x.date); if(Number.isFinite(t) && Number.isFinite(d) && t > d + 3600e3){ hit = true; return {...x, status:"not_sold"}; } }
+        return x;
+      });
+      if(!hit) continue;
+      const lvl = resaleLevel({priceHistory:fixed}, "", "");
+      if(lvl < Number(r.resale)) byLevel[lvl].push(r.id);
+    }
+    const stamp = new Date().toISOString();
+    for(const lvl of [0, 1]) if(byLevel[lvl].length){
+      try{ await syncSbFetch(`/api_lots?id=in.(${byLevel[lvl].join(",")})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale:lvl, resale_at:stamp})}); out.fixed += byLevel[lvl].length; }catch(_){}
+    }
+    cursor = rows[rows.length - 1].id; await saveCursor(cursor);
+    if(rows.length < 200){ cursor = ""; await saveCursor(""); break; }
+  }
+  out.ms = Date.now() - t0;
+  return out;
+}
 const RESALE_RULES_AT = "2026-09-30T18:00:00Z";   // метки, поставленные раньше, считались по старым правилам — пересчитываем
 async function runResaleCheck(budgetMs){
   const t0 = Date.now();
@@ -5294,7 +5343,10 @@ module.exports = async function handler(request, response){
     return;
   }
   if(action === "resalecheck"){
-    sendJson(response, 200, await runResaleCheck(42000).catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
+    const rc = await runResaleCheck(32000).catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)}));
+    // Фоновая починка ошибочных меток по всей базе — тот же тик, остаток бюджета (DB-only, без фида).
+    rc.fix = await runResaleFix(10000).catch(e => ({ok:false, error:String(e.message || e).slice(0, 120)}));
+    sendJson(response, 200, rc, {"cache-control":"no-store"});
     return;
   }
   if(action === "timedsync"){
@@ -5963,6 +6015,42 @@ module.exports = async function handler(request, response){
         }catch(e){ out[vin] = null; }
       };
       for(let i = 0; i < vins.length; i += 10) await Promise.all(vins.slice(i, i + 10).map(one));
+      // Пост-проверка ПРИ ЧТЕНИИ (Федор 16.10.2026, BMW X5 Copart 71697016, дилер/банк): кэш vin_hist /
+      // память vinhist5 мог быть снят ДО того, как лот перевыставили под ТЕМ ЖЕ номером (раунд 14 окт в
+      // фиде помечен «sold» с пред-ставкой → новые торги 21 окт). Правило «тот же номер лота выставлен
+      // позже → прошлый раунд не продажа» (Honda Insight, 24.09) раньше применялось только при записи —
+      // карточка 24 ч показывала «Продан ранее · Перекуп», а страница лота (свежий запрос) — «не продана».
+      // Теперь сверяем «sold»-записи с ЖИВЫМИ строками api_lots: тот же лот не продан и его дата торгов
+      // позже записи → запись понижаем до not_sold, пересчитываем sold/lastSale и чиним метку resale.
+      try{
+        const ids = new Set();
+        for(const v of Object.keys(out)){ const e = out[v]; if(!e) continue; for(const x of e.entries || []) if(x.status === "sold" && x.lot && x.auction) ids.add(`${x.auction}-${x.lot}`); }
+        if(ids.size){
+          const rows = await syncSbFetch(`/api_lots?id=in.(${[...ids].join(",")})&archived=eq.false&status_id=neq.6&select=id,sale_date`);
+          const live = {}; for(const r of rows || []) if(r.sale_date) live[r.id] = Date.parse(r.sale_date);
+          const changed = [];
+          for(const v of Object.keys(out)){
+            const e = out[v]; if(!e) continue; let hit = false;
+            for(const x of e.entries || []){
+              if(x.status !== "sold") continue;
+              const t = live[`${x.auction}-${x.lot}`], d = Date.parse(x.date);
+              if(Number.isFinite(t) && Number.isFinite(d) && t > d + 3600e3){ x.status = "not_sold"; hit = true; }
+            }
+            if(hit){
+              const sold = e.entries.filter(x => x.status === "sold");
+              e.sold = sold.length; e.lastSale = sold[0] ? {date:sold[0].date, bid:sold[0].bid} : null;
+              e.entries = [...sold, ...e.entries.filter(x => x.status !== "sold")];
+              changed.push(v);
+            }
+          }
+          // Самолечение Clean Select: кэшированная метка стала неверной — перезаписываем уровень у живых строк VIN (и 0 тоже).
+          for(const v of changed){
+            const lvl = resaleLevel({priceHistory:out[v].entries.map(x => ({...x}))}, "", "");
+            syncSbFetch(`/api_lots?vin=eq.${v}&archived=eq.false`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({resale:lvl, resale_at:new Date().toISOString()})}).catch(() => {});
+            setCached("vinhist5:" + v, {...out[v], fresh:undefined}, 2 * 3600e3);
+          }
+        }
+      }catch(_){}
       // Clean Select: карточки, которые смотрят люди, размечаем сразу (только живые лоты без метки; уровень 0 не пишем — его выставит фоновая проверка)
       try{
         const byLevel = {1:[], 2:[]};

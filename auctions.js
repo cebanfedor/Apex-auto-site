@@ -1821,10 +1821,15 @@
       // Прошлые заходы = записи ДРУГИХ лотов (текущий номер — это текущие/эти торги, не «ранее»).
       const curDay = String(lot.auctionDate || "").slice(0, 10);
       const entries = Array.isArray(h.entries) ? h.entries : [];
+      const {isSold} = lotSaleState(lot);
+      // Защита от устаревшего ответа vinhist из CDN-кэша (Федор 16.10.2026, BMW X5 71697016): «sold»
+      // ТОГО ЖЕ номера лота с датой раньше текущих торгов, пока лот не продан, — не продажа (лот
+      // перевыставили под тем же номером; фид метит прошлый раунд «sold» с пред-ставкой).
+      const curMs = Date.parse(lot.auctionDate || "");
+      entries.forEach(e => { if(e.status === "sold" && String(e.lot) === String(lot.lot) && !isSold && Number.isFinite(curMs) && Date.parse(e.date) < curMs - 3600e3) e.status = "not_sold"; });
       const past = entries.filter(e => !isCurrentRound(e, lot));
       const pastSold = past.filter(e => e.status === "sold");
       const fmt = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : d; };
-      const {isSold} = lotSaleState(lot);
       if(!past.length){
         li.className = "dbCheck good";
         li.innerHTML = `${dbIco("check")}<span><b>${L("История:")}</b> ${isSold ? L("Единственная продажа") : L("Ранее не продавалась")}</span>`;
@@ -1839,7 +1844,7 @@
         const laterSale = !!last && curDay && String(last.date).slice(0, 10) > curDay;
         if(pastSold.length && ph && !ph.querySelector(".simResoldV1")) ph.insertAdjacentHTML("beforeend", `<span class="simResoldV1 dbResoldV1">${dbIco(toneIcon("bad"))}${laterSale ? L("Перевыставлена") : L("Продан ранее")}</span>`);
         const txt = pastSold.length
-          ? `${laterSale ? L("Перепродана позже") : L("Продаж")}${laterSale ? "" : `: ${pastSold.length}`}${last.bid ? ` · ${money(last.bid)}` : ""}`
+          ? `${laterSale ? L("Перепродана позже") : L("Продаж")}${laterSale ? "" : `: ${pastSold.length}`}${last.bid ? ` · ${findCanadaLocation(lot) ? moneyCad(last.bid) : money(last.bid)}` : ""}`
           : `${L("Менялся лот")}: ${new Set(past.map(e => String(e.lot))).size}`;
         li.className = "dbCheck bad";
         li.innerHTML = `${dbIco(toneIcon("bad"))}<span><b>${L("История:")}</b> ${txt}${!laterSale && !sellerIsInsurance(lot) ? `<em class="dbResaleTagV1">${L("Перекуп")}</em>` : ""}</span>`;
