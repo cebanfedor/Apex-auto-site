@@ -3222,6 +3222,9 @@
     }catch(_){ /* не админ — кнопки остаются скрытыми */ }
   }
   const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};
+  // 16.10.2026 (Федор: «нужно добавить мой телеграм и мой телефон») — контакты для прямой связи,
+  // одной строкой в каждом шаблоне поста. Статичные (не из данных лота) — отдельные константы.
+  const TG_PHONE = "068-832-032", TG_HANDLE = "@fedukusa";
   // 14.10.2026 (Федор: «нужна кнопка перевода на румынский, чтобы заливать и на русском, и на
   // румынском») — фразы, которых НЕТ больше нигде на сайте (значит их нет и в общем словаре
   // i18n-dict.js), собраны тут отдельно, как server/og-lot.js делает для превью-описаний. Слова,
@@ -3231,11 +3234,11 @@
     ru:{turnkeyHead:"Доставка - таможня - комиссия:", band:"Ориентир на аукционе:", linkLbl:"Смотреть и рассчитать на сайте:",
       delivery:"Доставка:", customs:"Таможенное оформление:", insurance:"Страховка: 1% от цены лота", fee:"Комиссия:",
       auctionDate:"Торги:", auctionTonight:"Торги сегодня ночью:", freshLot:"Свежий лот", hurry:"успеваем оформить заявку",
-      belowMarket:"Ниже рынка примерно на", soldFor:"Продан за", sold:"Продан", lotWord:"лот"},
+      belowMarket:"Ниже рынка примерно на", soldFor:"Продан за", sold:"Продан", lotWord:"лот", contact:"Связь с Федором:"},
     ro:{turnkeyHead:"Livrare - vamă - comision:", band:"Reper la licitație:", linkLbl:"Vezi și calculează pe site:",
       delivery:"Livrare:", customs:"Vămuire:", insurance:"Asigurare: 1% din prețul lotului", fee:"Comision:",
       auctionDate:"Licitație:", auctionTonight:"Licitație în noaptea asta:", freshLot:"Lot proaspăt", hurry:"reușim să depunem cererea",
-      belowMarket:"Sub piață cu aproximativ", soldFor:"Vândut cu", sold:"Vândut", lotWord:"lot"}
+      belowMarket:"Sub piață cu aproximativ", soldFor:"Vândut cu", sold:"Vândut", lotWord:"lot", contact:"Contact Fedor:"}
   };
   function tgL(key, lang){ const d = TG_L[lang] || TG_L.ru; return d[key] || TG_L.ru[key] || key; }
   // 03.10.2026 (Федор прислал живой пример поста Kia Sorento — «давай вот так описание сделаем»):
@@ -3372,22 +3375,26 @@
     // URL виден в тексте поста: Telegram сам подсвечивает голый URL кликабельным (без HTML-тега),
     // а скопированный текст содержит настоящий адрес, а не мёртвую надпись.
     const link = `🔗 ${tgL("linkLbl", lang)}\n${e(url)}`;
+    // 16.10.2026 (Федор: «нужно добавить мой телеграм и мой телефон») — прямая связь, той же строкой
+    // во всех 4 шаблонах (как VIN в specs выше). @fedukusa Telegram сам подсвечивает кликабельным,
+    // как и голый URL ссылки — по той же причине HTML-тегом НЕ оборачиваем.
+    const contact = `📞 ${tgL("contact", lang)} ${e(TG_PHONE)} · ${e(TG_HANDLE)}`;
     const L1 = `🔥 <b>${e(title)}</b>`;
     if(tpl === "deal"){
       const eco = (band && turnkey && band.lo > turnkey) ? `\n📉 ${tgL("belowMarket", lang)} ${money(band.lo - turnkey)}` : "";
-      return [L1, specs, drive, "", priceLine, reserveLine, turnkeyLine, bandLine + eco, "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      return [L1, specs, drive, "", priceLine, reserveLine, turnkeyLine, bandLine + eco, "", link, contact, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "urgent"){
       const head = dateLabel ? `⏰ <b>${e(dateLabel)}</b> — ${tgL("hurry", lang)}` : `🔥 <b>${tgL("freshLot", lang)}</b>`;
-      return [head, "", L1, specs, "", priceLine, reserveLine, bandLine, turnkeyLine, "", link, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+      return [head, "", L1, specs, "", priceLine, reserveLine, bandLine, turnkeyLine, "", link, contact, "", tags].join("\n").replace(/\n{3,}/g, "\n\n").trim();
     }
     if(tpl === "short"){
       // Без цельной цифры «под ключ» (см. выше) короткому шаблону показывать нечего — сама
       // раскладка многострочная и для «Коротко» не подходит; оставляем только ставку и ссылку.
-      return [L1, specs, priceLine, "", link, tags].filter(Boolean).join("\n").trim();
+      return [L1, specs, priceLine, "", link, contact, tags].filter(Boolean).join("\n").trim();
     }
     // "auction" — классика
-    return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · " + tgL("lotWord", lang) + " " + e(lot.lot) : ""}` : "", "", link, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return [L1, specs, drive, "", priceLine, reserveLine, bandLine, turnkeyLine, dateLine, lot.location ? `📍 ${e(titleCaseLoc(lot.location))}` : "", lot.auction ? `🏷 ${e(String(lot.auction).toUpperCase())}${lot.lot ? " · " + tgL("lotWord", lang) + " " + e(lot.lot) : ""}` : "", "", link, contact, "", tags].filter(x => x !== undefined).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   }
   // Для Telegram берём МАКСИМАЛЬНОЕ разрешение фото (Telegram сам ужмёт по своим правилам):
   // Copart _thb/_ful → _hrs (1280×960), IAAI resizer → width=1280&height=960.
