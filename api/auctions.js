@@ -3573,10 +3573,9 @@ async function computeCompsForQ(q){
     // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
     const acvNum = Number(q.get("acv")) || 0;
     const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair"), fuel:fuelTextToId(fuelText), isTotalDmg:totalDmg}) : null;
-    // 24.10.2026 (Ford Fusion Hybrid Copart 68212666, второй заход — см. nearTotalLossAdj в price-guide.js):
-    // посчитано ОДИН раз здесь (не внутри guide-ветки), чтобы тем же флагом погасить «+run»-подгонку ниже —
-    // она сравнивает с реальными продажами ХОРОШИХ машин того же кузова (по тексту состояния, ремонт не
-    // видит) и без этой защиты тут же поднимала обратно то, что heavyRepair только что честно снизил.
+    // 24.10.2026 (Ford Fusion Hybrid Copart 68212666 — см. nearTotalLossAdj в price-guide.js): посчитано
+    // ОДИН раз здесь, применяется ПОСЛЕДНИМ шагом ниже (после «+run»/«пола» — см. там же, почему не раньше
+    // и не вместо них: первая версия фикса гасила «+run» целиком и улетела в недооценку).
     const heavyRepairFuelX = fuelTextToId(fuelText);
     const heavyRepairFactor = (heavyRepairFuelX === 3 || heavyRepairFuelX === 5) && !totalDmg
       ? priceGuide.nearTotalLossAdj(q.get("repair"), acvNum) : 1;
@@ -3601,18 +3600,7 @@ async function computeCompsForQ(q){
         // ACV-подмесом (ACV битых/с дорогим ремонтом систематически ниже). Для хороших лотов таблица —
         // пол: берём максимум таблицы и смеси по каждой границе (Федор 02.10.2026, BMW 530i).
         if(cqGood){ band = {lo:Math.max(band.lo, gb.lo), mid:Math.max(band.mid, gb.mid), hi:Math.max(band.hi, gb.hi)}; }
-      }else{
-        band = gb; src = "guide";
-        // 24.10.2026 (Федор, Ford Fusion Hybrid Copart 68212666 — см. nearTotalLossAdj в price-guide.js):
-        // эта ветка (гибрид/plug-in, таблица без подмеса ACV) раньше не видела ремонт вообще — машина с
-        // ремонтом «почти равным ACV» (по сути тотал) получала цену как у целой. Узкая мягкая поправка,
-        // не меняющая обычные (небольшой ремонт) случаи — только явный «почти тотал».
-        if(heavyRepair){
-          const r100 = v => Math.round(v / 100) * 100;
-          band = {lo:r100(band.lo * heavyRepairFactor), mid:r100(band.mid * heavyRepairFactor), hi:r100(band.hi * heavyRepairFactor)};
-          src += "+hvyrepair";
-        }
-      }
+      }else{ band = gb; src = "guide"; }
     }
     if(!band && hasCond && yearG){
       const pool = await fetchSoldComps(makeId, modelId);
@@ -3652,11 +3640,7 @@ async function computeCompsForQ(q){
       // надёжный пул похожих продаж (≥4) и его медиана заметно выше нашей вилки (>+15%) — поднимаем ориентир
       // К РЕАЛЬНЫМ СДЕЛКАМ (вес 0.6 на реальные продажи). Только повышаем недооценённые; где таблица точна
       // или завышает — медиана ≈/ниже вилки, лифт не срабатывает.
-      // 24.10.2026: heavyRepair — эта проверка сравнивает с продажами ХОРОШИХ машин того же кузова по
-      // ТЕКСТУ состояния/повреждения, ремонт конкретного VIN не видит. Без исключения она тут же
-      // поднимала обратно то, что nearTotalLossAdj выше честно снизил (живой кейс — Ford Fusion Hybrid
-      // Copart 68212666: вилка после скидки за ремонт вернулась к прежним $6 400–$10 600 через «+run»).
-      if(cqG && yearG && band.mid > 0 && !heavyRepair){
+      if(cqG && yearG && band.mid > 0){
         try{
           const pool = await fetchSoldComps(makeId, modelId);
           const g = await resolveGenRange(modelId, yearG, "");
@@ -3681,6 +3665,17 @@ async function computeCompsForQ(q){
         const f = Math.min(acvNet / band.mid, 1.8);
         band = {lo:r100(band.lo * f), mid:r100(band.mid * f), hi:r100(band.hi * f)};
         src += "+netfloor";
+      }
+      // (3) «Почти тотал» у гибрид/plug-in (Федор, Ford Fusion Hybrid Copart 68212666: ACV $13 323,
+      // ремонт $11 716 ≈88% — ЭТА ветка таблицы для гибридов вообще не видит ремонт). Первая версия
+      // фикса (24.10.2026, утро) гасила «+run» целиком при heavyRepair — оказалось СЛИШКОМ резко: для
+      // этой же модели таблица САМА ПО СЕБЕ занижена, «+run» для того и существует, а без него вилка
+      // улетела ниже реальной продажи ($2 900–$3 800 при факте $4 750 — недооценка, именно то, от чего
+      // предупреждал Федор). Поэтому скидка идёт ПОСЛЕДНИМ шагом, НА ТО, что уже даёт «+run»/«пол» —
+      // мягкая поправка поверх честной оценки, а не вместо нужной её части.
+      if(heavyRepair && band.mid > 0){
+        band = {lo:r100(band.lo * heavyRepairFactor), mid:r100(band.mid * heavyRepairFactor), hi:r100(band.hi * heavyRepairFactor)};
+        src += "+hvyrepair";
       }
       // Ставка/резерв продавца/прошлый раунд торгов из истории лота уже выше верха вилки —
       // рынок ориентир опроверг (см. logGuideMiss выше). На странице лота цифру не прячем,
