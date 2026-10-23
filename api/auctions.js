@@ -4079,12 +4079,23 @@ async function syncUpsertRows(rows, deadline, opts = {}){
       // (поднятая до резерва/VIN-хаммера в attachVinHistory, см. «Финал проданного Timed») МОГЛА откатиться
       // назад следующим обычным проходом syncclosed/synclots, который видит сырое (ниже) значение из фида для
       // ТОГО ЖЕ раунда продажи (та же sale_date, ±1ч) — несколько наших фиксов цены тихо отменялись синком.
+      // 23.10.2026 (Федор, Porsche Macan S IAAI 45871719: «на закрытии писал $10 000, к вечеру — $9 200,
+      // БРЕД»): окно ±1ч («тот же раунд») было СЛИШКОМ узким для Timed — аукцион «доторговывается»
+      // (soft-close: новая ставка у самого конца окна отодвигает sale_date на часы/дни вперёд, фид при
+      // этом несколько раз помечает лот status:sold с РАЗНЫМИ sale_date в одной записи prices[]). Разница
+      // дат у этого лота — больше суток (21.10 → 23.10), поэтому sameEvent был false → проверка «не
+      // занижать» вообще не срабатывала → заниженная повторная запись ТОЙ ЖЕ продажи тихо переписала
+      // уже подтверждённую сумму. Убрал временное окно из этого сравнения: подтверждённую продажу ЭТОГО
+      // ЖЕ id (лот+аукцион, первичный ключ строки) больше не занижаем НИКОГДА, независимо от разницы дат.
+      // Безопасно для настоящих релистов (другая машина/заход под тем же номером): там старая продажа
+      // ещё ДО этого момента «оживляется» в 0 отдельной веткой (upsertClosedLot, !sold) или демоутится
+      // через preserveSoldCopies ниже — к моменту, когда настоящий релист реально продаётся повторно,
+      // final_bid в базе уже 0 и isSaleRow(e) здесь и так false, эта проверка не мешает.
       const degrading = r => {
         const e = map.get(r.id); if(!isSaleRow(e)) return false;
         if(r.sale_date && Date.parse(r.sale_date) > Date.now()) return false;   // будущие торги — релист, не деградация
         if(!(Number(r.final_bid) > 0)) return true;
-        const sameEvent = Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) < 3600e3;
-        return sameEvent && Number(r.final_bid) < Number(e.final_bid);
+        return Number(r.final_bid) < Number(e.final_bid);
       };
       const before0 = rows.length; rows = rows.filter(r => !degrading(r)); syncUpsertRows.skippedDegrading = before0 - rows.length;
       const toPreserveRows = rows.filter(r => { const e = map.get(r.id); return isSaleRow(e) && (r.archived !== true || Math.abs((Date.parse(r.sale_date) || 0) - (Date.parse(e.sale_date) || 0)) > 3600e3); });
