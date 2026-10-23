@@ -77,6 +77,18 @@ test("estimateFromAcv: BMW X3 xDrive30e (Copart 65917076, 28.09.2026) — ори
   assert.ok(phev.mid >= 8000);                  // ближе к жизни, а не в 2 раза ниже реальной продажи
 });
 
+test("conditionCoef: «enhanced» (IAAI/Copart — лот нельзя проверить до торгов) считается неподтверждённым, не нейтральным (25.10.2026, ночной аудит)", () => {
+  // Один удар, косметика — без enhanced «не на ходу неизвестно» давало бы noStart=false → coef как у
+  // обычной машины (1.0); с enhanced — как явный noStart (0.95), раз «не подтверждено, что заведётся».
+  assert.equal(pg.conditionCoef({dmg:"Minor Dent/Scratches", cond:"enhanced"}), 0.95);
+  assert.equal(pg.conditionCoef({dmg:"Minor Dent/Scratches", cond:"run_and_drives"}), 1.1);   // контроль: подтверждённая «на ходу» — без изменений
+  // Две зоны повреждения (как в живом кейсе 2023 Hyundai Tucson Hybrid, copart-67871046,
+  // Front End + Side): было 0.85 (ни runs, ни noStart), с enhanced — 0.8 (та же ветка, что явный noStart).
+  assert.equal(pg.conditionCoef({dmg:"Front End", dmg2:"Side", cond:"enhanced"}), 0.8);
+  // Явный флаг run от клиента приоритетнее текста — enhanced не переопределяет run:true.
+  assert.equal(pg.conditionCoef({dmg:"Minor Dent/Scratches", cond:"enhanced", run:true}), 1.1);
+});
+
 test("estimateFromAcv: реальный лот (2022 Porsche Panamera Base, IAAI 66261236, 26.09.2026)", () => {
   // Minor Dent/Scratches, run_and_drives, Cert Of Title-Salvage → coef 1.1; ACV $66 124, пробег 45 806 миль.
   // Прежняя логика (усреднение всего пула поколения — 4 старых Panamera 2017–2018) давала медиану $16 231, занижая свежий кузов.

@@ -110,7 +110,13 @@ function conditionCoef(meta){
   const all = `${d1} / ${d2}`;
   const c = String(meta.cond || "").toLowerCase();
   // «not_run» тоже содержит «run» — сначала отрицание. Явный флаг run от клиента приоритетнее текста.
-  const noStart = meta.run === false || (meta.run !== true && /not|does|won|не завод|не на ходу|stationary/.test(c));
+  // 25.10.2026 (ночной аудит 94 реально проданных лотов, Федор спал): «enhanced» (IAAI/Copart — лот нельзя
+  // проверить перед торгами, покупаешь вслепую, без гарантии, что заведётся) раньше НЕ попадал ни в noStart,
+  // ни в runs — падал в одну ветку с «вообще нет данных о состоянии» (coef как у нормальной машины). При
+  // этом «enhanced»-лоты оказались ХУЖЕ всех по точности (медианная ошибка −31.2%, хуже даже одиночного
+  // not_run) — именно переоценка, не разброс в обе стороны. Добавлен в noStart — модельно это тот же «не
+  // подтверждено, что заведётся» сигнал, что и явный «не на ходу».
+  const noStart = meta.run === false || (meta.run !== true && /not|does|won|не завод|не на ходу|stationary|enhanced/.test(c));
   const runs = !noStart && (meta.run === true || /run|drive|на ходу|заводится и едет/.test(c));
   let coef;
   if(RE_TOTAL.test(all)) coef = 0.6;
