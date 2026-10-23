@@ -97,11 +97,34 @@ test("repairRatioAdj: дешёвый ремонт относительно ACV �
   assert.equal(pg.repairRatioAdj(19000, 20000), 0.7);     // 95% — ремонт почти как вся машина
 });
 
-test("repairRatioAdj: штраф отключён для гибрид/plug-in (29.09.2026, Федор: «не учитывай ремонт гибрида»)", () => {
-  assert.equal(pg.repairRatioAdj(19000, 20000, 3), 1);   // гибрид, 95% ACV — было бы 0.7
-  assert.equal(pg.repairRatioAdj(19000, 20000, 5), 1);   // plug-in, 95% ACV — было бы 0.7
-  assert.equal(pg.repairRatioAdj(19000, 20000, 4), 0.7); // бензин — штраф как раньше
-  assert.equal(pg.repairRatioAdj(19000, 20000, 1), 0.7); // дизель — штраф как раньше
+test("repairRatioAdj: общая шкала отключена для гибрид/plug-in, но не отношение «почти тотал» (29.09 + 24.10.2026)", () => {
+  // 29.09.2026: обычная шкала (0.7 на 95%) гибридам/plug-in не идёт — ACV для них и так заниженная база.
+  // 24.10.2026 (Ford Fusion Hybrid Copart 68212666): но «ремонт ≈ вся ACV» — отдельный, более узкий сигнал
+  // (см. nearTotalLossAdj) — он срабатывает мягче (0.85 на 95%, не 0.7).
+  assert.equal(pg.repairRatioAdj(19000, 20000, 3), 0.85);  // гибрид, 95% ACV — узкая поправка, не общая шкала
+  assert.equal(pg.repairRatioAdj(19000, 20000, 5), 0.85);  // plug-in, 95% ACV
+  assert.equal(pg.repairRatioAdj(9000, 20000, 3), 1);      // гибрид, 45% ACV — ниже порога 75%, не трогаем
+  assert.equal(pg.repairRatioAdj(19000, 20000, 4), 0.7);   // бензин — общая шкала как раньше
+  assert.equal(pg.repairRatioAdj(19000, 20000, 1), 0.7);   // дизель — общая шкала как раньше
+});
+
+test("nearTotalLossAdj: мягкая поправка только при очень высоком отношении ремонт/ACV (24.10.2026)", () => {
+  assert.equal(pg.nearTotalLossAdj(0, 20000), 1);       // нет данных — нейтрально
+  assert.equal(pg.nearTotalLossAdj(1000, 0), 1);        // нет ACV — нейтрально
+  assert.equal(pg.nearTotalLossAdj(14000, 20000), 1);   // 70% — ниже порога, не трогаем
+  assert.equal(pg.nearTotalLossAdj(15000, 20000), 0.92);// 75% — мягкий порог
+  assert.equal(pg.nearTotalLossAdj(17000, 20000), 0.92);// 85%
+  assert.equal(pg.nearTotalLossAdj(18000, 20000), 0.85);// 90% — верхний порог
+  assert.equal(pg.nearTotalLossAdj(19000, 20000), 0.85);// 95%
+});
+
+test("repairRatioAdj/nearTotalLossAdj: реальный лот (Ford Fusion Hybrid, Copart 68212666, 24.10.2026)", () => {
+  // ACV $13 323, ремонт $11 716 (≈88%) — по сути тотал, но раньше для гибрида (fuelX 3) штраф за ремонт
+  // не применялся вовсе, а вилка таблицы ($6 400–$10 600) не видела этот факт. Продан за $4 750.
+  assert.equal(pg.repairRatioAdj(11716, 13323, 3), 0.92);
+  const f = pg.nearTotalLossAdj(11716, 13323);
+  assert.equal(Math.round(6400 * f / 100) * 100, 5900);
+  assert.equal(Math.round(10600 * f / 100) * 100, 9800);
 });
 
 test("estimateFromAcv: реальный лот (2021 BMW 530e, IAAI 46145648, 29.09.2026)", () => {

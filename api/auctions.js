@@ -3593,7 +3593,21 @@ async function computeCompsForQ(q){
         // ACV-подмесом (ACV битых/с дорогим ремонтом систематически ниже). Для хороших лотов таблица —
         // пол: берём максимум таблицы и смеси по каждой границе (Федор 02.10.2026, BMW 530i).
         if(cqGood){ band = {lo:Math.max(band.lo, gb.lo), mid:Math.max(band.mid, gb.mid), hi:Math.max(band.hi, gb.hi)}; }
-      }else{ band = gb; src = "guide"; }
+      }else{
+        band = gb; src = "guide";
+        // 24.10.2026 (Федор, Ford Fusion Hybrid Copart 68212666 — см. nearTotalLossAdj в price-guide.js):
+        // эта ветка (гибрид/plug-in, таблица без подмеса ACV) раньше не видела ремонт вообще — машина с
+        // ремонтом «почти равным ACV» (по сути тотал) получала цену как у целой. Узкая мягкая поправка,
+        // не меняющая обычные (небольшой ремонт) случаи — только явный «почти тотал».
+        if(!totalDmg){
+          const f = priceGuide.nearTotalLossAdj(q.get("repair"), acvNum);
+          if(f !== 1){
+            const r100 = v => Math.round(v / 100) * 100;
+            band = {lo:r100(band.lo * f), mid:r100(band.mid * f), hi:r100(band.hi * f)};
+            src += "+hvyrepair";
+          }
+        }
+      }
     }
     if(!band && hasCond && yearG){
       const pool = await fetchSoldComps(makeId, modelId);

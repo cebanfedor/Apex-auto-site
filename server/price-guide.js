@@ -229,9 +229,26 @@ function acvExtraAdj({airbags, fuel} = {}){
 // шкалы) ИМЕННО из-за категории повреждения «flood/water/burn», а у такой категории repairCost/ACV почти
 // всегда высокий (страховая иначе бы не признала тотал) — штраф ×0.7-0.8 применялся ПОВЕРХ уже-низкого 0.6,
 // снижая вдвое то, что и так снижено. Для RE_TOTAL штраф отключён — severity уже в conditionCoef.
+// 24.10.2026 (Федор, Ford Fusion Hybrid Copart 68212666: ремонт $11,716 при ACV $13,323 — 88%, по сути
+// тотал, а вилка всё равно вышла $6,400–$10,600 — продан за $4,750): решение 29.09.2026 «для гибрид/
+// plug-in ACV занижает» было про АБСОЛЮТНУЮ величину ACV как базу цены — ОТНОШЕНИЕ ремонт/ACV (насколько
+// машина разбита относительно СВОЕЙ ЖЕ оценки) при этом осталось информативным сигналом, просто раньше
+// выключалось той же блокировкой за компанию. Узкая, НАМНОГО мягче общей шкалы поправка (там максимум
+// ×0.7) — только на очень высоком отношении (≥75%), чтобы не перегнуть в другую сторону: Федор просил не
+// занижать вилку настолько, чтобы клиенты думали, будто нормальные на вид машины стоят копейки.
+function nearTotalLossAdj(repairCost, acv){
+  const r = Number(repairCost) || 0, a = Number(acv) || 0;
+  if(!r || !a) return 1;
+  const ratio = r / a;
+  if(ratio >= 0.9) return 0.85;
+  if(ratio >= 0.75) return 0.92;
+  return 1;
+}
 function repairRatioAdj(repairCost, acv, fuelX, isTotalDmg){
-  if(Number(fuelX) === 3 || Number(fuelX) === 5) return 1;
+  // isTotalDmg — ПЕРЕД проверкой топлива: потоп/пожар/био уже даёт conditionCoef=0.6 (см. ниже), штраф
+  // по ремонту поверх него дублировал бы тяжесть — пропускаем для любого топлива, как и раньше.
   if(isTotalDmg) return 1;
+  if(Number(fuelX) === 3 || Number(fuelX) === 5) return nearTotalLossAdj(repairCost, acv);
   const r = Number(repairCost) || 0, a = Number(acv) || 0;
   if(!r || !a) return 1;
   const ratio = r / a;
@@ -258,4 +275,4 @@ function estimateFromAcv(acv, coef, odometerMi, extra){
 }
 
 module.exports = {mileageFactor, loadGuide, resetGuideCache, matchGuide, conditionCoef, guideBand, fuelClass, normMake, squash,
-  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, repairRatioAdj, estimateFromAcv, isTotalDamage};
+  acvRatioFor, acvMileageAdj, acvExtraAdj, acvFuelAdj, repairRatioAdj, nearTotalLossAdj, estimateFromAcv, isTotalDamage};
