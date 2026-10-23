@@ -3573,6 +3573,14 @@ async function computeCompsForQ(q){
     // и как поправка к таблице Федора (у неё нет комплектации), и как самостоятельная оценка вне таблицы.
     const acvNum = Number(q.get("acv")) || 0;
     const acvBand = acvNum > 500 ? priceGuide.estimateFromAcv(acvNum, coef, q.get("odometer"), {airbags:q.get("airbags"), keys:q.get("keys"), repairCost:q.get("repair"), fuel:fuelTextToId(fuelText), isTotalDmg:totalDmg}) : null;
+    // 24.10.2026 (Ford Fusion Hybrid Copart 68212666, второй заход — см. nearTotalLossAdj в price-guide.js):
+    // посчитано ОДИН раз здесь (не внутри guide-ветки), чтобы тем же флагом погасить «+run»-подгонку ниже —
+    // она сравнивает с реальными продажами ХОРОШИХ машин того же кузова (по тексту состояния, ремонт не
+    // видит) и без этой защиты тут же поднимала обратно то, что heavyRepair только что честно снизил.
+    const heavyRepairFuelX = fuelTextToId(fuelText);
+    const heavyRepairFactor = (heavyRepairFuelX === 3 || heavyRepairFuelX === 5) && !totalDmg
+      ? priceGuide.nearTotalLossAdj(q.get("repair"), acvNum) : 1;
+    const heavyRepair = heavyRepairFactor !== 1;
     let band = null, src = "guide";
     if(row){
       const gb = priceGuide.guideBand(row.base_price * miF, row.k, coef);
@@ -3599,13 +3607,10 @@ async function computeCompsForQ(q){
         // эта ветка (гибрид/plug-in, таблица без подмеса ACV) раньше не видела ремонт вообще — машина с
         // ремонтом «почти равным ACV» (по сути тотал) получала цену как у целой. Узкая мягкая поправка,
         // не меняющая обычные (небольшой ремонт) случаи — только явный «почти тотал».
-        if(!totalDmg){
-          const f = priceGuide.nearTotalLossAdj(q.get("repair"), acvNum);
-          if(f !== 1){
-            const r100 = v => Math.round(v / 100) * 100;
-            band = {lo:r100(band.lo * f), mid:r100(band.mid * f), hi:r100(band.hi * f)};
-            src += "+hvyrepair";
-          }
+        if(heavyRepair){
+          const r100 = v => Math.round(v / 100) * 100;
+          band = {lo:r100(band.lo * heavyRepairFactor), mid:r100(band.mid * heavyRepairFactor), hi:r100(band.hi * heavyRepairFactor)};
+          src += "+hvyrepair";
         }
       }
     }
@@ -3647,7 +3652,11 @@ async function computeCompsForQ(q){
       // надёжный пул похожих продаж (≥4) и его медиана заметно выше нашей вилки (>+15%) — поднимаем ориентир
       // К РЕАЛЬНЫМ СДЕЛКАМ (вес 0.6 на реальные продажи). Только повышаем недооценённые; где таблица точна
       // или завышает — медиана ≈/ниже вилки, лифт не срабатывает.
-      if(cqG && yearG && band.mid > 0){
+      // 24.10.2026: heavyRepair — эта проверка сравнивает с продажами ХОРОШИХ машин того же кузова по
+      // ТЕКСТУ состояния/повреждения, ремонт конкретного VIN не видит. Без исключения она тут же
+      // поднимала обратно то, что nearTotalLossAdj выше честно снизил (живой кейс — Ford Fusion Hybrid
+      // Copart 68212666: вилка после скидки за ремонт вернулась к прежним $6 400–$10 600 через «+run»).
+      if(cqG && yearG && band.mid > 0 && !heavyRepair){
         try{
           const pool = await fetchSoldComps(makeId, modelId);
           const g = await resolveGenRange(modelId, yearG, "");
