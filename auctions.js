@@ -3519,13 +3519,13 @@
   // через " · " фразу так не найти. Зовём обычный renderDetail сразу (быстрый первый показ), а следом —
   // ещё раз тем же лотом, когда словарь точно готов (для ru или уже загруженного словаря коллбек прилетает
   // немедленно, лишней перерисовки не будет заметно).
-  function renderDetailI18nSafe(lot){
-    renderDetail(lot);
+  function renderDetailI18nSafe(lot, opts){
+    renderDetail(lot, opts);
     if(window.APEX_LANG !== "ru" && typeof window.__apexEnsureDict === "function"){
-      window.__apexEnsureDict(() => { if(state.selectedLot === lot) renderDetail(lot); });
+      window.__apexEnsureDict(() => { if(state.selectedLot === lot) renderDetail(lot, opts); });
     }
   }
-  function renderDetail(lot){
+  function renderDetail(lot, opts){
     scheduleVinRetry(lot, 1);
     state.lotBand = null;   // вилка пересчитается в loadStats для этого лота (для поста в Telegram)
     state.lotBandContradicted = false;
@@ -3538,7 +3538,14 @@
         // тот же лот, отличается только «хвост» ссылки (название/VIN) — заменяем адрес, а не плодим записи в истории
         const sameLot = decodeURIComponent(location.pathname).startsWith(`/auctions/${lot.auction}-${lot.lot}`);
         if(location.pathname !== href){
-          if(sameLot) history.replaceState(history.state, "", withLang(href));
+          // 26.10.2026 (Федор: «кнопка назад иногда не работает»): холодный заход по ссылке
+          // /auctions?q=<лот> (Telegram, сохранённые ссылки) сразу открывает карточку лота и
+          // пушит канонический адрес НОВОЙ записью — за ней в истории остаётся «ловушка»
+          // /auctions?q=…, которая при возврате назад перезагружается и САМА тут же снова
+          // редиректит на тот же лот (см. initAuctions). Назад выглядело нерабочим — по факту
+          // сразу шёл вперёд обратно. Для такого холодного захода адрес ЗАМЕНЯЕМ (без лишней
+          // записи), а не пушим — ловушку ставить не из чего.
+          if(sameLot || (opts && opts.replaceUrl)) history.replaceState(history.state, "", withLang(href));
           else{ history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", withLang(href)); forceTop(); }
         }
       }
@@ -4234,7 +4241,7 @@
   }
 
   // VIN report — uses the dedicated /search-vin endpoint (car info + price history).
-  async function openVinReport(vin){
+  async function openVinReport(vin, opts){
     const clean = String(vin || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     $("#auctionCatalog").hidden = true;
     $("#auctionDetail").hidden = false;
@@ -4253,7 +4260,7 @@
     $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Получаем отчёт по VIN…</div>';
     try{
       const payload = await api(`/api/auctions?action=vin&vin=${encodeURIComponent(clean)}`);
-      renderDetailI18nSafe(payload.lot);
+      renderDetailI18nSafe(payload.lot, opts);
     }catch(error){
       $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Назад к каталогу</a>
         <div class="vinEmptyV1">
@@ -4296,7 +4303,7 @@
 
   // Номер лота ищем напрямую через detail (search_query API по лотам не ищет):
   // сначала Copart, затем IAAI.
-  async function openLotByNumber(lotNo){
+  async function openLotByNumber(lotNo, opts){
     $("#auctionCatalog").hidden = true;
     $("#auctionDetail").hidden = false;
     $("#auctionDetail").innerHTML = '<div class="auctionMessageV1">Ищем лот…</div>';
@@ -4306,7 +4313,7 @@
     const res = await Promise.allSettled(["copart", "iaai"].map(auc => api(`/api/auctions?action=detail&auction=${auc}&lot=${encodeURIComponent(lotNo)}`)));
     const found = res.map(r => r.status === "fulfilled" && r.value && r.value.lot && r.value.lot.lot ? r.value.lot : null).filter(Boolean);
     const distinct = found.filter((l, i) => !found.slice(0, i).some(o => (o.vin && l.vin && o.vin === l.vin) || String(o.auction) === String(l.auction)));
-    if(distinct.length === 1 || (distinct.length > 1 && distinct.every(l => l.vin && l.vin === distinct[0].vin))){ renderDetail(distinct[0]); return; }
+    if(distinct.length === 1 || (distinct.length > 1 && distinct.every(l => l.vin && l.vin === distinct[0].vin))){ renderDetail(distinct[0], opts); return; }
     if(distinct.length > 1){
       $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">${L("← Вернуться к каталогу")}</a>
         <div class="auctionMessageV1">${L("Номер лота")} ${escapeHtml(lotNo)} ${L("есть на обеих площадках — это разные машины. Выберите нужную:")}</div>
@@ -5556,7 +5563,8 @@
       // а не фильтр каталога, который пуст для проданных машин
       const vinParam = new URLSearchParams(location.search).get("vin");
       if(vinParam && parseSmartSearch(vinParam).vin){
-        openVinReport(vinParam);
+        // Та же логика, что у ?q=<лот> ниже — холодный заход заменяет адрес, не пушит новую запись.
+        openVinReport(vinParam, {replaceUrl:true});
         return;
       }
       // Вход по ссылке /auctions?q=<номер лота> — сразу страница лота
@@ -5564,7 +5572,9 @@
       if(qParam && parseSmartSearch(qParam).lot){
         const inp = $("#auctionSmartSearch");
         if(inp) inp.value = qParam;
-        openLotByNumber(parseSmartSearch(qParam).lot);
+        // Холодный заход по /auctions?q=<лот> — адрес сразу заменяем на канонический, не пушим
+        // новую запись (см. комментарий в renderDetail — иначе «Назад» зацикливается на себя).
+        openLotByNumber(parseSmartSearch(qParam).lot, {replaceUrl:true});
         return;
       }
       restoreFromUrl();
