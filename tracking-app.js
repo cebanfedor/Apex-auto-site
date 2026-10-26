@@ -237,9 +237,11 @@
           ${d.lotNumber ? `<span>Лот: <strong>${esc(d.lotNumber)}</strong></span>` : ""}
           ${d.auction   ? `<span>Аукцион: <strong>${esc(String(d.auction).toUpperCase())}</strong></span>` : ""}
           ${d.city      ? `<span>Локация: <strong>${esc(d.city)}</strong></span>` : ""}
-          ${d.container?.number ? `<span>Контейнер: <strong>${esc(d.container.number)}</strong></span>` : ""}
         </div>
-        ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${esc(d.vin)}</b></div>` : ""}
+        <div class="trackVehIdsV401">
+          ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${esc(d.vin)}</b></div>` : ""}
+          ${d.container?.number ? `<div class="trackVehVinV401 isContainerV401">Контейнер: <b>${esc(d.container.number)}</b></div>` : ""}
+        </div>
         ${(d.titleStatus || d.keys) ? `
         <div class="trackDocsV401">
           ${d.titleStatus === "yes" ? `

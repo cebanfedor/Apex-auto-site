@@ -135,6 +135,7 @@
     }
     .trackVehMetaV401 span { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; }
     .trackVehMetaV401 strong { color: rgba(255,255,255,0.9); font-weight: 700; }
+    .trackVehIdsV401 { display: flex; flex-wrap: wrap; gap: 8px; }
     .trackVehVinV401 {
       display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px;
       border-radius: 9px; background: rgba(255,255,255,0.07);
@@ -143,6 +144,11 @@
       font-variant-numeric: tabular-nums; letter-spacing: 0.04em; font-weight: 600;
     }
     .trackVehVinV401 b { color: #fff; }
+    .trackVehVinV401.isContainerV401 {
+      background: rgba(237,0,18,0.12); border-color: rgba(237,0,18,0.35);
+      color: rgba(255,255,255,0.85); font-size: 14px;
+    }
+    .trackVehVinV401.isContainerV401 b { font-size: 17px; color: #fff; letter-spacing: 0.06em; }
 
     /* ETA */
     .trackEtaV401 {
@@ -738,7 +744,7 @@
   </footer>
 
   <script src="i18n.js?v=multilang-v545"></script>
-  <script src="tracking-app.js?v=v2" defer></script>
+  <script src="tracking-app.js?v=v3" defer></script>
 
   <!-- Lightbox -->
   <div class="trackLightboxV401" id="trackLightboxV401">
