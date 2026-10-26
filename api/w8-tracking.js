@@ -178,7 +178,10 @@ function mapAvto(j, atts){
   const photoCategories = AVTO_PHOTO_ORDER.filter(t => byType[t] && byType[t].length)
     .map(t => ({type:"avto_" + t, label:AVTO_PHOTO_LABELS[t], photos:byType[t]}));
   // Порт прибытия у них — Клайпеда; оценка «Кишинёв» — та же логика, что для W8 (+14 дней).
-  const portArrival = avtoDay(j.estimatedArrivalDate);
+  // ⚠️ 26.10.2026 (Федор, VIN 3FA6P0LU6KR104389): поле было `estimatedArrivalDate` — у живых лотов
+  // оно ВСЕГДА null (проверено сырым ответом API). Их собственный сайт показывает дату из
+  // `containerPortEta` ("2026-12-12" у этого VIN) — настоящее поле ETA в порт Клайпеда.
+  const portArrival = avtoDay(j.containerPortEta) || avtoDay(j.estimatedArrivalDate);
   let etaChisinau = null;
   if(portArrival){
     const d = new Date(portArrival + "T00:00:00Z"); const dow = d.getUTCDay();
