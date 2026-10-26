@@ -237,6 +237,7 @@
           ${d.lotNumber ? `<span>Лот: <strong>${esc(d.lotNumber)}</strong></span>` : ""}
           ${d.auction   ? `<span>Аукцион: <strong>${esc(String(d.auction).toUpperCase())}</strong></span>` : ""}
           ${d.city      ? `<span>Локация: <strong>${esc(d.city)}</strong></span>` : ""}
+          ${d.container?.number ? `<span>Контейнер: <strong>${esc(d.container.number)}</strong></span>` : ""}
         </div>
         ${d.vin ? `<div class="trackVehVinV401">VIN: <b>${esc(d.vin)}</b></div>` : ""}
         ${(d.titleStatus || d.keys) ? `
@@ -315,10 +316,6 @@
           <div class="trackEtaValV401">${etaDisplay}${d.source === "dealer" ? (d.arrivedCity ? " · <span>" + esc(d.arrivedCity) + "</span>" : "") : " · <span>Кишинёв</span>"}</div>
           ${isEstimate ? '<div class="trackEtaHintV401">После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней</div>' : ""}
         </div>
-        ${d.container?.number ? `
-        <div class="trackEtaNoteV401">
-          Контейнер<br><strong>${esc(d.container.number)}</strong>
-        </div>` : ""}
       </div>` : ""}
 
       <div class="trackStagesCardV401">
