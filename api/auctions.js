@@ -471,7 +471,12 @@ function lotStatus(item, lot){
   if(lowered.includes("buy")) return "buy now";
   if(lowered.includes("upcoming") || lowered.includes("future")) return "upcoming";
   if(lowered.includes("live") || lowered.includes("active")) return "live";
-  return text || "live";
+  // 27.10.2026 (Федор: лоты без даты торгов показывались «Идут торги»): раньше пустой/непонятный
+  // статус фида (нет status/lot_status у item и lot) по умолчанию давал "live" — клиентский dbLive()
+  // без auctionDate падал на regex по lotStatus/statusName и матчил «live» буквально, показывая
+  // «Идут торги» лоту, у которого в фиде вообще нет даты аукциона. Неизвестный статус — нейтральный
+  // "sale", не "live".
+  return text || "sale";
 }
 
 // Для мото/ATV/спецтехники фид не отдаёт manufacturer/model (null) — марки нет
@@ -1207,8 +1212,13 @@ function normalizeEridanLot(item){
     condition:item.highlight?.title || "",
     priceHistory:[],
     photoCount:images.length,
-    lotStatus:item.is_sold ? "sold" : "live",
-    statusName:item.is_sold ? "Sold" : "Live",
+    // 27.10.2026 (Федор: лоты без даты торгов показывались «Идут торги»): было statusName:"Live" для
+    // ЛЮБОГО непроданного лота Eridan — а у части из них sale_date пустой (дата ещё не назначена).
+    // Клиентский dbLive() без даты падал на регекс по статусу и матчил «live» → показывал «Идут торги»
+    // машине без даты вообще. "sale"/"On sale" — нейтральный статус, как у остальных источников
+    // (см. normalizeLot, statusName:"On sale" для аналогичного «в продаже, дата не подтверждена»).
+    lotStatus:item.is_sold ? "sold" : "sale",
+    statusName:item.is_sold ? "Sold" : "On sale",
     statusId:item.is_sold ? 6 : null,
     saleStatus:"",
     saleStatusKey:"",
@@ -5752,7 +5762,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g35" : "";   // бамп при смене таблицы поколений и формы detail (g35: вернули канадскую поправку одометра км/мили)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g36" : "";   // бамп при смене таблицы поколений и формы detail (g36: lotStatus без даты больше не "live" по умолчанию)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
