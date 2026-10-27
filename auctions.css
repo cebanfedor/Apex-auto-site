@@ -1247,11 +1247,18 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* ---- Мобильная версия: правки после аудита 24.09.2026 ---- */
 .dMobSumV1 { display:none; }
+.dMobLocV1 { display:none; }
 @media (max-width:1100px){
   .dMobSumV1 { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 0; }
   .dMobSumV1 span { display:flex; flex-direction:column; gap:1px; padding:8px 12px; border-radius:12px; background:var(--aSoft); }
   .dMobSumV1 small { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
   .dMobSumV1 b { font-size:15px; color:var(--aInk); }
+  /* Локация — компактной строкой БЕЗ своей плашки (Федор 27.10.2026: отдельный блок занимал много
+     места) — иконка + текст, как .dSpecLine выше, без фона/паддинга. */
+  .dMobLocV1 { display:flex; align-items:center; gap:6px; margin:6px 0 0; font-size:12.5px; color:var(--aInk2); }
+  .dMobLocV1 .dbIco { width:13px; height:13px; flex:none; padding:2px; border-radius:6px; background:var(--aSoft); box-sizing:content-box; color:var(--aMuted); }
+  .dMobLocV1 .caFlagV1 { border-radius:2px; flex:none; }
+  .dMobLocV1 span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
   /* 01.10.2026 (Федор со скриншота): дата отдельной строкой под лейблом переносилась на 2 строки —
      лейбл и значение в один ряд, нижний регистр лейбла не трогаем (uppercase через CSS). */
   .dMobSumV1 span.dmsDateRowV1 { flex-direction:row; align-items:baseline; flex-wrap:wrap; gap:5px 7px; }
@@ -1562,10 +1569,6 @@ body.leadModalOpenV1 { overflow:hidden; }
   /* Без ставки (торги не начались) дата — единственный элемент: на половине грида лейблу
      и значению тесно в один ряд, значение переносилось. На всю ширину грида — помещается. */
   .dMobSumV1 span.dmsDateRowV1:only-child { grid-column:1 / -1; }
-  /* Локация — дубль строки из таблицы «Аукцион», чтобы была видна сразу под заголовком (27.10.2026). */
-  .dMobSumV1 .dmsLocV1 { grid-column:1 / -1; }
-  .dMobSumV1 .dmsLocV1 b { display:inline-flex; align-items:center; gap:5px; }
-  .dMobSumV1 .dmsLocV1 .caFlagV1 { border-radius:2px; flex:none; }
   .dHeadActionsV1 { display:grid !important; grid-auto-flow:column; grid-auto-columns:1fr; grid-template-columns:none; gap:6px; }
   .dHeadActionsV1 .dVinBtn { grid-column:auto; }
   .dHeadActionsV1 { align-items:stretch; }
@@ -1615,10 +1618,6 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dMobSumV1.isSoldV1 .dmsPriceV1 b { font-size:18px; color:var(--aRed); letter-spacing:-.01em; }
   .dMobSumV1.isSoldV1 .dmsDateV1 { background:#f6f8fb; border-top:1px solid #f3c2c7; }
   .dMobSumV1.isSoldV1 .dmsDateV1 b { font-size:13px; font-weight:700; }
-  /* Локация — третья строка той же карточки, тот же нейтральный фон, что у даты. */
-  .dMobSumV1.isSoldV1 .dmsLocV1 { background:#f6f8fb; border-top:1px solid #f3c2c7; }
-  .dMobSumV1.isSoldV1 .dmsLocV1 b { font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:5px; }
-  .dMobSumV1.isSoldV1 .dmsLocV1 .caFlagV1 { border-radius:2px; flex:none; }
   /* красивее и компактнее строки таблицы */
   .dSec { grid-template-columns:112px 1fr; column-gap:12px; padding:10px 14px; }
   .dRowLbl, .dRowVal { padding:7px 0; font-size:13px; line-height:1.3; }
