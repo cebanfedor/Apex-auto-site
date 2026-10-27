@@ -780,6 +780,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     color:safeName(item?.color || lot?.color),
     keys:keysLabel(lot, item),
     video:(lot?.images?.video) || (item?.images?.video) || "",
+    // 360°-обзор: фид отдаёт готовую ссылку на родной вьюер площадки (пока подтверждено только у IAAI,
+    // vis.iaai.com/Home/ThreeSixtyView?...&iframeview=true — сделана специально под встраивание в iframe).
+    // У Copart поле не проверено — просто показываем кнопку, когда ссылка реально есть, никаких допущений.
+    panoramaUrl:(lot?.images?.external_panorama_url) || (item?.images?.external_panorama_url) || "",
     estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || lot?.pre_accident_price || lot?.clean_wholesale_price || item?.estimated_retail_value || item?.acv),
     repairCost:safeNumber(lot?.estimate_repair_price || lot?.estimated_repair_cost),
     airbags:safeName(lot?.airbags),
@@ -5769,7 +5773,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g36" : "";   // бамп при смене таблицы поколений и формы detail (g36: lotStatus без даты больше не "live" по умолчанию)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g37" : "";   // бамп при смене таблицы поколений и формы detail (g37: добавлено поле panoramaUrl — 360° обзор)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

@@ -3021,6 +3021,9 @@
       // Перерисовка innerHTML заодно останавливает видео при листании
       if(item.type === "video"){
         stage.innerHTML = `<video class="lbImgV1" src="${escapeHtml(item.src)}" controls autoplay playsinline${item.poster ? ` poster="${escapeHtml(item.poster)}"` : ""}></video>`;
+      }else if(item.type === "pano"){
+        // 360°-обзор площадки (пока подтверждён только у IAAI) — готовый вьюер в iframe, своя навигация внутри.
+        stage.innerHTML = `<iframe class="lbPanoV1" src="${escapeHtml(item.src)}" allow="accelerometer; gyroscope" allowfullscreen loading="lazy"></iframe>`;
       }else{
         stage.innerHTML = `<img class="lbImgV1" src="${escapeHtml(item.src)}" alt="">`;
       }
@@ -3678,13 +3681,14 @@
               <button class="dGalNavV1 dGalNextV1" type="button" data-gal-step="1" aria-label="Следующее фото">›</button>` : ""}
               <div class="dGalBadgesV2">
                 ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} ${L("Видео")}</span>` : ""}
-                ${lot.has360 || lot.spin ? `<span class="dGalTagV2">360°</span>` : ""}
+                ${lot.panoramaUrl ? `<span class="dGalTagV2" data-open-pano role="button">360°</span>` : ""}
                 <span class="dGalTagV2">${dbIco("zoom")} ${L("HD")} · ${escapeHtml(images.length || 1)} ${L("фото")}</span>
               </div>
             </div>
             <div class="detailThumbsV1">
               ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}"${i > 0 ? ' loading="lazy"' : ""}>`).join("")}
               ${lot.video ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="Видео осмотра"><img src="${escapeHtml(images[0] || "")}" alt="Видео осмотра" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
+              ${lot.panoramaUrl ? `<span class="dThumbV2 dThumbPanoV1" role="button" data-open-pano title="360°"><img src="${escapeHtml(images[0] || "")}" alt="360°" loading="lazy"><i class="dThumbPanoIcoV1">360°</i></span>` : ""}
             </div>
             <div class="dNoteV1">
               <label for="dNoteTextV1">${dbIco("note")}<span>${L("Моя заметка")}</span><span class="dNoteSavedV1" data-note-saved>${L("Сохранено ✓")}</span></label>
@@ -3791,6 +3795,7 @@
     // Единый медиа-набор для лайтбокса: фото + видео осмотра последней плиткой
     state.detailMedia = images.map(src => ({type:"image", src}));
     if(lot.video) state.detailMedia.push({type:"video", src:lot.video, poster:images[0] || ""});
+    if(lot.panoramaUrl) state.detailMedia.push({type:"pano", src:lot.panoramaUrl});
     state.detailIndex = 0;
     setSeo(lot);
     updateLotCalculator();
@@ -5532,6 +5537,12 @@
         const media = state.detailMedia || [];
         const vi = media.findIndex(m => m.type === "video");
         if(vi >= 0) openLightbox(media, vi);
+        return;
+      }
+      if(event.target.closest("[data-open-pano]")){
+        const media = state.detailMedia || [];
+        const pi = media.findIndex(m => m.type === "pano");
+        if(pi >= 0) openLightbox(media, pi);
         return;
       }
       if(event.target.closest("[data-lb-open]")){
