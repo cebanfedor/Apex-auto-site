@@ -3104,10 +3104,23 @@
       tapLast = now;
     });
   }
+  let lbPanoFocusTimer = null;
+  function lbStartPanoFocusGuard(){
+    clearInterval(lbPanoFocusTimer);
+    lbPanoFocusTimer = setInterval(() => {
+      const el = document.getElementById("lotLightbox");
+      if(!el || el.hidden){ clearInterval(lbPanoFocusTimer); return; }
+      const ifr = document.querySelector("#lbStage .lbPanoV1");
+      if(!ifr){ clearInterval(lbPanoFocusTimer); return; }
+      if(document.activeElement === ifr) el.focus({preventScroll:true});
+    }, 700);
+  }
+  function lbStopPanoFocusGuard(){ clearInterval(lbPanoFocusTimer); lbPanoFocusTimer = null; }
   function renderLightbox(){
     const stage = document.getElementById("lbStage");
     const item = lb.images[lb.index];
     lb.zoom = 1; lb.panX = 0; lb.panY = 0;   // смена фото/видео/360° — зум предыдущего кадра не переносим
+    lbStopPanoFocusGuard();
     if(stage && item){
       // Перерисовка innerHTML заодно останавливает видео при листании
       if(item.type === "video"){
@@ -3116,10 +3129,14 @@
         // 360°-обзор площадки (пока подтверждён только у IAAI) — готовый вьюер в iframe, своя навигация внутри.
         stage.innerHTML = `<iframe class="lbPanoV1" src="${escapeHtml(item.src)}" allow="accelerometer; gyroscope" allowfullscreen loading="lazy"></iframe>`;
         // Клик/перетаскивание внутри вьюера уводит клавиатурный фокус в кросс-доменный iframe — Escape
-        // туда физически не долетает (чужой домен, никакой JS-трюк это не обходит). Как только курсор
-        // покидает вьюер, возвращаем фокус на лайтбокс — Escape снова работает, не дожидаясь клика по ✕.
+        // туда физически не долетает (чужой домен, никакой JS-трюк это не обходит). mouseleave чинит это
+        // для мыши, но для пальца на телефоне такого события нет вообще (касание целиком остаётся внутри
+        // чужого iframe, наружу ничего не долетает) — поэтому вдобавок раз в 700мс проверяем фокус и
+        // забираем его обратно, если он застрял в iframe. Это НЕ мешает вращать панораму (фокус контейнера
+        // никак не связан с тем, куда идут события перетаскивания внутри iframe).
         const ifr = stage.querySelector(".lbPanoV1");
         if(ifr) ifr.addEventListener("mouseleave", () => { document.getElementById("lotLightbox")?.focus({preventScroll:true}); });
+        lbStartPanoFocusGuard();
       }else{
         // .lbPhotoV1 — только фото зумится (двойной клик/тап, колесо, щипок); видео/360° — своё управление.
         stage.innerHTML = `<img class="lbImgV1 lbPhotoV1" src="${escapeHtml(item.src)}" alt="">`;
@@ -3151,6 +3168,11 @@
     if(stage) stage.innerHTML = "";
     document.body.classList.remove("lbOpenV1");
     lb.zoom = 1; lb.panX = 0; lb.panY = 0;
+    lbStopPanoFocusGuard();
+    // Видео могло уйти в НАТИВНЫЙ fullscreen (кнопка в его собственных controls) — такой режим рисуется
+    // браузером ПОВЕРХ нашего оверлея; закрывая лайтбокс, выходим и из него, иначе пользователь остаётся
+    // в полноэкранном видео, которое выглядит так, будто «ничего не закрылось».
+    if(document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   }
   function lbMove(step){
     if(!lb.images.length) return;
@@ -5670,6 +5692,15 @@
         if(event.key === "ArrowRight"){ lbMove(1); return; }
       }
       if(event.key === "Escape") closeLead();
+    });
+    // Видео в лайтбоксе могли открыть в НАТИВНЫЙ fullscreen (кнопка самих controls браузера) — Escape там
+    // сначала выходит из fullscreen (это делает сам браузер), а наш лайтбокс остаётся открытым «под» ним.
+    // Как только fullscreen снят — закрываем весь лайтбокс сразу, одним нажатием Escape, а не оставляем
+    // пользователя разбираться, почему экран «не закрылся» с первого раза.
+    document.addEventListener("fullscreenchange", () => {
+      if(document.fullscreenElement) return;
+      const el = document.getElementById("lotLightbox");
+      if(el && !el.hidden && document.querySelector("#lbStage video")) closeLightbox();
     });
     $("#auctionLeadForm").addEventListener("submit", submitLead);
   }
