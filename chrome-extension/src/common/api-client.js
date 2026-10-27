@@ -11,13 +11,28 @@
   const BASE = "https://auctionsapi.com/api";
 
   async function getJson(url, headers) {
-    const res = await fetch(url, { headers: Object.assign({ accept: "application/json" }, headers || {}) });
-    const payload = await res.json().catch(() => null);
-    if (!res.ok) {
-      const message = (payload && (payload.error || payload.message)) || `HTTP ${res.status}`;
-      throw new Error(String(message));
+    // 27.10.2026 (QA-аудит): без таймаута голый fetch мог висеть минутами на холодном старте
+    // Vercel-функции — панель "Собираю данные лота…" без возможности прервать. Тот же паттерн,
+    // что уже используется для /api/calc в panel.js.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const res = await fetch(url, {
+        headers: Object.assign({ accept: "application/json" }, headers || {}),
+        signal: controller.signal
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message = (payload && (payload.error || payload.message)) || `HTTP ${res.status}`;
+        throw new Error(String(message));
+      }
+      return payload;
+    } catch (e) {
+      if (e.name === "AbortError") throw new Error("Сайт не ответил за 8с");
+      throw e;
+    } finally {
+      clearTimeout(timer);
     }
-    return payload;
   }
 
   /** auctionsapi.com — полная карточка лота */

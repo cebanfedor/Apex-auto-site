@@ -71,7 +71,11 @@
   mountButton();
   // SPA-навигация: Copart и IAAI меняют URL без перезагрузки
   let lastHref = location.href;
-  setInterval(() => {
+  const pollId = setInterval(() => {
+    // 27.10.2026 (QA-аудит): при обновлении/перезагрузке расширения уже открытые вкладки
+    // донора не получают новый content script — старый «зомби»-таймер иначе крутится вечно
+    // (chrome.runtime.id пропадает, а setInterval этого не замечает).
+    if (!chrome.runtime?.id) { clearInterval(pollId); return; }
     if (location.href === lastHref) return;
     lastHref = location.href;
     if (panel) {

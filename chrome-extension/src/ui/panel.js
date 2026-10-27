@@ -517,6 +517,8 @@
       exportDocs: b.exportDocs,
       insurance: b.insurance,
       company: b.company,
+      paymentFee: b.paymentFee,
+      brokerUtilMdl: b.brokerUtilMdl,
       customsUsd: b.customsUsd,
       customsMdlValue: b.customsMdl,
       customs: {
