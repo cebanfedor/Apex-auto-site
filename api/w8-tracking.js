@@ -172,11 +172,15 @@ function mapAvto(j, atts){
   // саму дату на этапе 4 «Выгружен из контейнера» не показывали — был прочерк). Этап = containerPortEta,
   // статус остаётся todo/current как обычно (дата не выдаётся за подтверждённый факт) — тот же приём,
   // что уже используется для синтетического этапа «Кишинёв» (тоже прогноз, показывается заранее).
+  // Пока этап не наступил — заголовок «Ожидаемая дата выгрузки…» (не выдаём прогноз за факт);
+  // отдельный title (A_UNLOADED_EST), чтобы не переименовывать уже СОСТОЯВШийся этап задним числом —
+  // метка/иконка для него в tracking-app.js STAGE_LABELS.
+  // «Готов к выдаче» (A_READY) Федор попросил убрать из списка — отрезаем последним шагом.
   const stages = AVTO_STAGES.map((title, i) => ({
-    title,
+    title: i === 4 && i > max ? "A_UNLOADED_EST" : title,
     date: i <= max ? (hist[i] || fallback[i] || null) : (i === 4 ? portArrival : null),
     status: i < max ? "completed" : i === max ? (max === 6 ? "completed" : "current") : "todo"
-  }));
+  })).filter(s => s.title !== "A_READY");
   // Фото по типам (без title-документов), только https и не удалённые.
   const byType = {};
   atts.forEach(a => {
