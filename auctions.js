@@ -3855,6 +3855,11 @@
     if(!Number.isFinite(t) || lotSaleState(lot).isSold || lot.timed) return;
     const dt = t - Date.now();
     if(dt > 30 * 3600e3 || dt < -6 * 3600e3) return;
+    // 27.10.2026 (Федор: лот играет завтра, а блок пишет «Старт в 15:00» без даты — днём можно
+    // перепутать с «сегодня»): время без даты показываем, только если торги ещё не начались и
+    // приходятся на СЕГОДНЯ (по часам посетителя). Уже идущие/недавно прошедшие (dt≤0) — не
+    // ограничиваем календарным днём, это тот же -6ч допуск, что был.
+    if(dt > 0 && new Date(t).toDateString() !== new Date().toDateString()) return;
     const hm = ms => new Date(ms).toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
     let info = null;
     const draw = () => {
