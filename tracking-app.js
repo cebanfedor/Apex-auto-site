@@ -423,6 +423,16 @@
   let _zoom = 1, _panX = 0, _panY = 0;
 
   function applyZoom() {
+    // 27.10.2026 (QA-аудит): пан не был ограничен размером фото — при увеличении и нескольких
+    // свайпах/движениях мыши подряд картинку можно было утащить целиком за край экрана (виден
+    // только пустой фон, выход — только двойной тап/клик или закрыть лайтбокс).
+    if (_zoom <= 1) { _panX = 0; _panY = 0; }
+    else {
+      const maxX = (lbImg.offsetWidth * (_zoom - 1)) / 2;
+      const maxY = (lbImg.offsetHeight * (_zoom - 1)) / 2;
+      _panX = Math.max(-maxX, Math.min(maxX, _panX));
+      _panY = Math.max(-maxY, Math.min(maxY, _panY));
+    }
     lbImg.style.transform = `translate(${_panX}px,${_panY}px) scale(${_zoom})`;
     lbImg.style.cursor = _zoom > 1 ? 'grab' : '';
   }

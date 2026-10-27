@@ -1763,6 +1763,13 @@
     if(healed) idle(updateCardVinHistory);
   }
   const vinHistCache = {}, vinRetryN = {};
+  // 27.10.2026 (QA-аудит): vinHistCache растёт на каждый увиденный VIN за всю сессию без эвикции —
+  // на долгой сессии (каталог листают часами) копится без возврата памяти. Держим последние N.
+  const MAX_VIN_CACHE = 3000;
+  function trimVinHistCache(){
+    const keys = Object.keys(vinHistCache);
+    if(keys.length > MAX_VIN_CACHE) keys.slice(0, keys.length - MAX_VIN_CACHE).forEach(k => delete vinHistCache[k]);
+  }
   // «Назад в каталог»: место, откуда открыли лот (фильтры/страница — в URL, положение прокрутки — здесь и в sessionStorage).
   const BACK_KEY = "apexBackV1", BACK_FLAG = "apexBackFlag";
   let pendingScrollRestore = null;
@@ -1805,6 +1812,7 @@
         uniq.slice(i, i + 30).forEach(v => { if(vinHistCache[v] === undefined) vinHistCache[v] = null; });   // фид не вернул VIN — не оставляем заглушку навсегда
       }catch(e){ uniq.slice(i, i + 30).forEach(v => { vinHistCache[v] = null; }); }
     }
+    trimVinHistCache();
     // Не получилось узнать историю (фид не ответил) — пробуем ещё пару раз, а не оставляем карточку «неизвестной»
     const retry = uniq.filter(v => vinHistCache[v] === null && ((vinRetryN[v] = (vinRetryN[v] || 0) + 1) <= 2));
     if(retry.length) setTimeout(() => { retry.forEach(v => { delete vinHistCache[v]; }); updateCardVinHistory(); }, 6000);
@@ -1891,7 +1899,10 @@
     if(need.length){
       const r = await api("/api/auctions?action=compsbatch", {method:"POST", body:{items:need}});
       const got = (r && r.items) || {};
-      need.forEach(it => forecastCache.set(it.id, {c:got[it.id] || null, t:Date.now()}));
+      need.forEach(it => {
+        forecastCache.set(it.id, {c:got[it.id] || null, t:Date.now()});
+        if(forecastCache.size > 2000) forecastCache.delete(forecastCache.keys().next().value);   // 27.10.2026 (QA-аудит)
+      });
     }
     const out = {}; items.forEach(it => { const e = forecastCache.get(it.id); if(e && e.c) out[it.id] = e.c; });
     return out;
@@ -1905,7 +1916,7 @@
     for(let i = 0; i < vins.length; i += 30){
       const part = vins.slice(i, i + 30);
       jobs.push(api(`/api/auctions?action=vinhist&vins=${encodeURIComponent(part.join(","))}`)
-        .then(r => { Object.assign(vinHistCache, r.items || {}); part.forEach(v => { if(vinHistCache[v] === undefined) vinHistCache[v] = null; }); })
+        .then(r => { Object.assign(vinHistCache, r.items || {}); part.forEach(v => { if(vinHistCache[v] === undefined) vinHistCache[v] = null; }); trimVinHistCache(); })
         .catch(() => {}));
     }
     if(!jobs.length) return;
@@ -2413,6 +2424,7 @@
     clearTimeout(hoverTimer);
     hoverTimer = setTimeout(() => {
       prefetchedLots.add(auction + lotNo);
+      if(prefetchedLots.size > 2000) prefetchedLots.delete(prefetchedLots.values().next().value);   // 27.10.2026 (QA-аудит)
       fetch(`/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotNo)}`, {credentials:"same-origin", priority:"low"}).catch(() => {});
     }, 120);
   }

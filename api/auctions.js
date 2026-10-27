@@ -262,6 +262,11 @@ function getCached(key){
 
 function setCached(key, value, ttl){
   cache.set(key, {value, expires:Date.now() + (ttl || CACHE_TTL)});
+  // 27.10.2026 (QA-аудит): ключ — весь query-набор фильтров, почти уникален на каждый просмотр
+  // каталога — без верхнего предела растёт, пока инстанс тёплый (протухшие записи чистятся только
+  // при повторном чтении того же ключа, которого может не быть). Тот же guard, что уже есть у
+  // соседних кэшей в этом файле (vinStoreThrottle/filteredCountCache/undatedCountCache/...).
+  if(cache.size > 5000) cache.delete(cache.keys().next().value);
 }
 
 function safeName(value){
@@ -2147,6 +2152,7 @@ async function generationsFor(modelId){
       if(newest.to != null && newest.to >= 2021) newest.to = null;
     }
     genRangeCache.set(key, {items, at:now});
+    if(genRangeCache.size > 2000) genRangeCache.clear();
     return items;
   }catch(e){ return c ? c.items : []; }
 }
@@ -3272,6 +3278,9 @@ async function fetchSoldComps(makeId, modelId){
     try{ rowsOut = await fetchSoldCompsFromDb(makeId, modelId); }catch(e){ rowsOut = null; }
     if(!rowsOut) rowsOut = await fetchSoldCompsLive(makeId, modelId);
     soldPoolCache.set(ck, {rows:rowsOut, at:Date.now()});
+    // 27.10.2026 (QA-аудит): до 6000 строк (SOLD_POOL_MAX) с текстовыми полями на одну make+model —
+    // без предела на число моделей в карте это самый тяжёлый по памяти кэш в файле.
+    if(soldPoolCache.size > 500) soldPoolCache.delete(soldPoolCache.keys().next().value);
     return rowsOut;
   })();
   soldPoolCache.set(ck, {promise:p});
@@ -3748,6 +3757,7 @@ async function fetchStatsRows(makeId, modelId){
       rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
     }catch(e){ rows = []; }
     statsRowsCache.set(ck, {rows, at:Date.now()});
+    if(statsRowsCache.size > 500) statsRowsCache.delete(statsRowsCache.keys().next().value);
     return rows;
   })();
   statsRowsCache.set(ck, {promise:p});
@@ -5104,7 +5114,7 @@ async function runResaleCheck(budgetMs){
       const stub = {vin, lot:String(r.lot || ""), auctionDate:r.sale_date || "", estimatedRetailValue:Number(r.erv) || 0, buyNow:Number(r.buy_now) || 0, priceHistory:[], seller:r.seller || "", sellerType:r.sellertype || r.sellerType || ""};
       if(Array.isArray(storedMap[vin])){ stub.priceHistory = storedMap[vin]; stub._vinOk = true; out.fromStore = (out.fromStore || 0) + 1; }
       else await attachVinHistory(stub);
-      if(!stub._vinOk){ out.fail++; resaleFailedVins.set(vin, Date.now() + 10 * 60e3); if(out.fail >= 4) stop = true; continue; }
+      if(!stub._vinOk){ out.fail++; resaleFailedVins.set(vin, Date.now() + 10 * 60e3); if(resaleFailedVins.size > 5000) resaleFailedVins.clear(); if(out.fail >= 4) stop = true; continue; }
       buckets[resaleLevel(stub, r.lot, r.sale_date)].push(r.id);
     }
   };

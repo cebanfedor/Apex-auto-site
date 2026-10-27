@@ -328,9 +328,11 @@ function create(deps){
         if(prefs.date) await say(T.dateSet(fmtDate(saleIso, lang)));
         st.d = true; patch.sale_date = saleIso; patch.stage = 0; st.hour = null; st.day = null; out.dateSet++;
       }else if(Number.isFinite(saleMs) && Number.isFinite(storedMs) && saleMs > now && Math.abs(saleMs - storedMs) > 6 * 3600e3){
-        // Лот перенесли на другую дату (в будущем)
+        // Лот перенесли на другую дату (в будущем) — сбрасываем и notSold: иначе если прошлый
+        // раунд закрылся без продажи, уведомление о ВТОРОМ несостоявшемся раунде молчит навсегда
+        // (27.10.2026, QA-аудит; тот же жизненный цикл «релист под тем же номером», что в CLAUDE.md).
         if(prefs.play) await say(T.moved(fmtDate(saleIso, lang)));
-        patch.sale_date = saleIso; patch.stage = 0; st.hour = null; st.day = null; out.moved++;
+        patch.sale_date = saleIso; patch.stage = 0; st.hour = null; st.day = null; st.notSold = false; out.moved++;
       }else if(Number.isFinite(saleMs) && !Number.isFinite(storedMs)){
         patch.sale_date = saleIso;
       }
@@ -427,6 +429,9 @@ function create(deps){
       const openUrl = `${SITE}/auctions${back.toString() ? "?" + back.toString() : ""}`;
       const text = `${T.newHead(total, esc(s.name || ""))}\n\n${shown.map(l => lotLine(l, lang)).join("\n")}${total > shown.length ? `\n${T.more(total - shown.length)}` : ""}`;
       const r = await send(link.chat_id, text, [{text:T.openAll, url:openUrl}]);
+      // 27.10.2026 (QA-аудит): временный сбой Telegram (не блокировка) раньше всё равно двигал
+      // last_check вперёд — новые лоты, попавшие в это окно, больше никогда не попадали бы в выдачу.
+      if(!r.ok && !r.dead){ out.searchErr++; continue; }
       await patchSub(s.id, r.dead ? {active:false} : {last_check:startedAt, last_sent:startedAt, sent_count:(Number(s.sent_count) || 0) + 1});
       out.newMsgs++;
     }
