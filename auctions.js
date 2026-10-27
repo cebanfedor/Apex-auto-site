@@ -4325,9 +4325,14 @@
 
   async function triggerSearch(){
     const smart = parseSmartSearch($("#auctionSmartSearch")?.value);
+    // 27.10.2026 (Федор: «вернуться в каталог» иногда уводит на пустой каталог без фильтра/сортировки):
+    // поиск по VIN/номеру лота из строки поиска каталога уводит на страницу лота в обход delegated-клика
+    // по карточке (единственное место, где раньше запоминался снимок каталога) — снимок (URL с фильтрами
+    // + прокрутка) не сохранялся, «Вернуться к каталогу» падал на обычную ссылку href="/auctions" без фильтров.
+    const fromCatalog = !$("#auctionCatalog").hidden;
     // A complete VIN → open the VIN report instead of filtering the list.
-    if(smart.vin){ openVinReport(smart.vin); return; }
-    if(smart.lot){ openLotByNumber(smart.lot); return; }
+    if(smart.vin){ if(fromCatalog) saveBackSnap(); openVinReport(smart.vin); return; }
+    if(smart.lot){ if(fromCatalog) saveBackSnap(); openLotByNumber(smart.lot); return; }
     // Умный поиск: распознанные слова (марка, топливо, повреждение, штат, год…) становятся фильтрами, остальное — поиск по названию.
     try{ if(msApi.saveRecent) msApi.saveRecent($("#auctionSmartSearch")?.value); }catch(e){}
     try{ if(msApi.hideSuggest) msApi.hideSuggest(); if(msApi.applySmart && String($("#auctionSmartSearch")?.value || "").trim()){ const q = $("#auctionSmartSearch").value; if(msApi.clearAll && msApi.hasSmartItems && msApi.hasSmartItems(q)) msApi.clearAll(true); await msApi.applySmart(q); } }catch(e){}
