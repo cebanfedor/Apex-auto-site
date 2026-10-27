@@ -162,9 +162,19 @@ function mapAvto(j, atts){
   const reached = Object.keys(hist).map(Number);
   const max = reached.length ? Math.max(...reached) : 0;
   const fallback = {0:avtoDay(j.dateOfPurchase), 2:avtoDay(j.dateOfWarehouse), 3:avtoDay(j.containerDate) || avtoDay(j.loadingDate), 6:avtoDay(j.lvivArrivalDate)};
+  // Порт прибытия у них — Клайпеда; оценка «Кишинёв» — та же логика, что для W8 (+14 дней).
+  // ⚠️ 26.10.2026 (Федор, VIN 3FA6P0LU6KR104389): поле было `estimatedArrivalDate` — у живых лотов
+  // оно ВСЕГДА null (проверено сырым ответом API). Их собственный сайт показывает дату из
+  // `containerPortEta` ("2026-12-12" у этого VIN) — настоящее поле ETA в порт Клайпеда.
+  const portArrival = avtoDay(j.containerPortEta) || avtoDay(j.estimatedArrivalDate);
+  // ⚠️ 27.10.2026 (Федор, тот же VIN): на их сайте этап 5 «Expected arrival» уже показывает дату
+  // 12.12.2026 ДО того, как этап наступил (мы её и так используем для расчёта «Кишинёва» ниже, но
+  // саму дату на этапе 4 «Выгружен из контейнера» не показывали — был прочерк). Этап = containerPortEta,
+  // статус остаётся todo/current как обычно (дата не выдаётся за подтверждённый факт) — тот же приём,
+  // что уже используется для синтетического этапа «Кишинёв» (тоже прогноз, показывается заранее).
   const stages = AVTO_STAGES.map((title, i) => ({
     title,
-    date: i <= max ? (hist[i] || fallback[i] || null) : null,
+    date: i <= max ? (hist[i] || fallback[i] || null) : (i === 4 ? portArrival : null),
     status: i < max ? "completed" : i === max ? (max === 6 ? "completed" : "current") : "todo"
   }));
   // Фото по типам (без title-документов), только https и не удалённые.
@@ -177,11 +187,6 @@ function mapAvto(j, atts){
   });
   const photoCategories = AVTO_PHOTO_ORDER.filter(t => byType[t] && byType[t].length)
     .map(t => ({type:"avto_" + t, label:AVTO_PHOTO_LABELS[t], photos:byType[t]}));
-  // Порт прибытия у них — Клайпеда; оценка «Кишинёв» — та же логика, что для W8 (+14 дней).
-  // ⚠️ 26.10.2026 (Федор, VIN 3FA6P0LU6KR104389): поле было `estimatedArrivalDate` — у живых лотов
-  // оно ВСЕГДА null (проверено сырым ответом API). Их собственный сайт показывает дату из
-  // `containerPortEta` ("2026-12-12" у этого VIN) — настоящее поле ETA в порт Клайпеда.
-  const portArrival = avtoDay(j.containerPortEta) || avtoDay(j.estimatedArrivalDate);
   let etaChisinau = null;
   if(portArrival){
     const d = new Date(portArrival + "T00:00:00Z"); const dow = d.getUTCDay();
