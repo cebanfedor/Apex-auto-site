@@ -3641,7 +3641,7 @@
           <div class="dHeadActionsV1">
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
             ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Слежу за лотом" : "Следить за лотом"))}</span></button>` : ""}
-            ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">Отчёт истории VIN</a>` : ""}
+            ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">${dbIco("vin")}<span>Отчёт истории VIN</span></a>` : ""}
           </div>
         </div>
         ${(() => {

@@ -414,8 +414,9 @@
 .dSpecLine { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; font-size:14px; color:var(--aInk2); }
 .dSpecLine .dbIco { width:14px; height:14px; padding:2px; border-radius:6px; background:var(--aSoft); box-sizing:content-box; color:var(--aMuted); }
 .dSpecVin { display:inline-flex; align-items:center; gap:5px; color:var(--aMuted); font-size:13px; font-variant-numeric:tabular-nums; }
-.dVinBtn { flex:none; height:40px; display:inline-flex; align-items:center; padding:0 16px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); font-weight:600; font-size:13px; color:var(--aInk); white-space:nowrap; }
+.dVinBtn { flex:none; height:40px; display:inline-flex; align-items:center; gap:7px; padding:0 16px; border:1px solid var(--aLine); border-radius:11px; background:var(--aSoft); font-weight:600; font-size:13px; color:var(--aInk); white-space:nowrap; }
 .dVinBtn:hover { border-color:var(--aMuted); }
+.dVinBtn .dbIco { width:16px; height:16px; flex:none; }
 .dGalMainV2 { position:relative; }
 .dGalChipV2 { position:absolute; left:10px; bottom:10px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.82); color:#fff; font-size:10px; font-weight:700; letter-spacing:.05em; }
 .dGalCountV2 { position:absolute; right:10px; bottom:10px; padding:3px 9px; border-radius:7px; background:rgba(11,13,16,.7); color:#fff; font-size:12px; }
