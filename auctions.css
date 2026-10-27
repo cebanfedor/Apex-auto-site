@@ -647,7 +647,11 @@
 .lbV1[hidden] { display:none !important; }
 body.lbOpenV1 { overflow:hidden; }
 .lbImgV1 { width:92vw; height:82vh; object-fit:contain; border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
-.lbStageV1 { display:flex; align-items:center; justify-content:center; }
+.lbStageV1 { display:flex; align-items:center; justify-content:center; overflow:hidden; max-width:100%; max-height:100%; }
+/* Зум фото в лайтбоксе (27.10.2026): двойной клик/тап — 1×→2×→3×→1×, колесо/щипок — плавно, перетаскивание — когда увеличено */
+.lbPhotoV1 { cursor:zoom-in; transition:transform .15s ease-out; touch-action:none; user-select:none; }
+.lbPhotoV1.isZoomedV1 { cursor:grab; transition:none; }
+.lbPhotoV1.isZoomedV1:active { cursor:grabbing; }
 /* Видео-плитка в галерее: постер + кружок play, открывается в лайтбоксе как фото */
 .dThumbVideoV1 { position:relative; display:block; cursor:pointer; overflow:hidden; }
 .dThumbVideoV1 img { width:100%; height:100%; object-fit:cover; display:block; filter:brightness(.62); }

@@ -2991,7 +2991,8 @@
     return `<div class="dRowV2"><span class="dRowLbl">${escapeHtml(L(label))}</span><span class="dRowVal${tone ? ` dTone-${tone}` : ""}">${inner}</span></div>`;
   }
 
-  const lb = {images:[], index:0};
+  const lb = {images:[], index:0, zoom:1, panX:0, panY:0};
+  const LB_ZOOM_STEPS = [1, 2, 3];   // двойной клик: 1× → 2× → 3× → обратно 1×
   function ensureLightbox(){
     let el = document.getElementById("lotLightbox");
     if(el) return el;
@@ -3013,11 +3014,100 @@
       <div id="lbStage" class="lbStageV1"></div>
       <button class="lbNavV1 lbNextV1" type="button" data-lb-next aria-label="Следующее фото">›</button>`;
     document.body.appendChild(el);
+    lbWireZoom(el);
     return el;
+  }
+  // Зум фото в лайтбоксе — двойной клик (десктоп) / двойной тап (телефон) циклом 1×→2×→3×→1×,
+  // колесо мыши и щипок двумя пальцами — плавно в тех же границах, перетаскивание — когда увеличено.
+  // Только для фото (`.lbPhotoV1`): видео/360°-iframe зумить не нужно, у них своё управление.
+  function lbApplyZoom(){
+    const img = document.querySelector("#lbStage .lbPhotoV1");
+    if(!img) return;
+    img.style.transform = lb.zoom > 1 ? `translate(${lb.panX}px,${lb.panY}px) scale(${lb.zoom})` : "";
+    img.classList.toggle("isZoomedV1", lb.zoom > 1);
+  }
+  function lbResetZoom(){
+    lb.zoom = 1; lb.panX = 0; lb.panY = 0;
+    lbApplyZoom();
+  }
+  function lbCycleZoom(){
+    const next = LB_ZOOM_STEPS[(LB_ZOOM_STEPS.indexOf(lb.zoom) + 1) % LB_ZOOM_STEPS.length];
+    if(next === 1){ lbResetZoom(); return; }
+    lb.zoom = next; lb.panX = 0; lb.panY = 0;
+    lbApplyZoom();
+  }
+  function lbWireZoom(el){
+    let dblAt = 0, dragging = false, dragX0 = 0, dragY0 = 0, panX0 = 0, panY0 = 0;
+    const photoTarget = e => e.target.closest(".lbPhotoV1");
+    el.addEventListener("dblclick", e => {
+      if(e.target.closest("[data-lb-close],[data-lb-prev],[data-lb-next],[data-lb-copy],[data-lb-lot]")) return;
+      if(!photoTarget(e) && e.target.id !== "lbStage") return;
+      const now = Date.now();
+      if(now - dblAt < 150) return;   // гасим «двойной» двойной клик (эмуляция в тестах)
+      dblAt = now;
+      e.preventDefault();
+      lbCycleZoom();
+    });
+    el.addEventListener("wheel", e => {
+      if(el.hidden || !photoTarget(e)) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.15 : 0.87;
+      lb.zoom = Math.max(1, Math.min(3, lb.zoom * factor));
+      if(lb.zoom === 1){ lb.panX = 0; lb.panY = 0; }
+      lbApplyZoom();
+    }, {passive:false});
+    el.addEventListener("mousedown", e => {
+      if(lb.zoom <= 1 || !photoTarget(e)) return;
+      dragging = true; dragX0 = e.clientX; dragY0 = e.clientY; panX0 = lb.panX; panY0 = lb.panY;
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", e => {
+      if(!dragging) return;
+      lb.panX = panX0 + (e.clientX - dragX0); lb.panY = panY0 + (e.clientY - dragY0);
+      lbApplyZoom();
+    });
+    window.addEventListener("mouseup", () => { dragging = false; });
+    // Телефон: щипок — зум, двойной тап — цикл, перетаскивание одним пальцем — панорамирование
+    let pinchDist0 = 0, pinchZoom0 = 1, isPinching = false, pinchEndAt = 0, tapLast = 0;
+    el.addEventListener("touchstart", e => {
+      if(!photoTarget(e) && e.target.id !== "lbStage") return;
+      if(e.touches.length === 2){
+        isPinching = true;
+        pinchDist0 = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        pinchZoom0 = lb.zoom;
+        e.preventDefault();
+      }else if(e.touches.length === 1 && !isPinching && lb.zoom > 1){
+        dragging = true; dragX0 = e.touches[0].clientX; dragY0 = e.touches[0].clientY; panX0 = lb.panX; panY0 = lb.panY;
+      }
+    }, {passive:false});
+    el.addEventListener("touchmove", e => {
+      if(e.touches.length === 2 && isPinching){
+        e.preventDefault();
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        lb.zoom = Math.max(1, Math.min(3, pinchZoom0 * (d / pinchDist0)));
+        if(lb.zoom === 1){ lb.panX = 0; lb.panY = 0; }
+        lbApplyZoom();
+      }else if(e.touches.length === 1 && dragging){
+        e.preventDefault();
+        lb.panX = panX0 + (e.touches[0].clientX - dragX0); lb.panY = panY0 + (e.touches[0].clientY - dragY0);
+        lbApplyZoom();
+      }
+    }, {passive:false});
+    el.addEventListener("touchend", e => {
+      dragging = false;
+      if(isPinching){ if(e.touches.length < 2){ isPinching = false; pinchEndAt = Date.now(); } return; }
+      if(Date.now() - pinchEndAt < 250) return;
+      if(!photoTarget(e) && e.target.id !== "lbStage") return;
+      if(lb.zoom > 1) return;   // увеличено — тап не листает/не закрывает
+      const now = Date.now();
+      if(tapLast && now - tapLast < 300){ lbCycleZoom(); tapLast = 0; return; }
+      tapLast = now;
+    });
   }
   function renderLightbox(){
     const stage = document.getElementById("lbStage");
     const item = lb.images[lb.index];
+    lb.zoom = 1; lb.panX = 0; lb.panY = 0;   // смена фото/видео/360° — зум предыдущего кадра не переносим
     if(stage && item){
       // Перерисовка innerHTML заодно останавливает видео при листании
       if(item.type === "video"){
@@ -3031,7 +3121,8 @@
         const ifr = stage.querySelector(".lbPanoV1");
         if(ifr) ifr.addEventListener("mouseleave", () => { document.getElementById("lotLightbox")?.focus({preventScroll:true}); });
       }else{
-        stage.innerHTML = `<img class="lbImgV1" src="${escapeHtml(item.src)}" alt="">`;
+        // .lbPhotoV1 — только фото зумится (двойной клик/тап, колесо, щипок); видео/360° — своё управление.
+        stage.innerHTML = `<img class="lbImgV1 lbPhotoV1" src="${escapeHtml(item.src)}" alt="">`;
       }
     }
     const c = document.getElementById("lbCount");
@@ -3059,6 +3150,7 @@
     const stage = document.getElementById("lbStage");
     if(stage) stage.innerHTML = "";
     document.body.classList.remove("lbOpenV1");
+    lb.zoom = 1; lb.panX = 0; lb.panY = 0;
   }
   function lbMove(step){
     if(!lb.images.length) return;
@@ -5531,7 +5623,7 @@
       if(event.target.closest("[data-lb-prev]")){ lbMove(-1); return; }
       if(event.target.closest("[data-lb-next]")){ lbMove(1); return; }
       if(event.target.closest("[data-lb-close]")){ closeLightbox(); return; }
-      if(event.target.id === "lotLightbox"){ closeLightbox(); return; }
+      if(event.target.id === "lotLightbox" && lb.zoom <= 1){ closeLightbox(); return; }
       const galStep = event.target.closest("[data-gal-step]");
       if(galStep){
         // Листание главного фото стрелками — без открытия лайтбокса
