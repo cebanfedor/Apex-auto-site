@@ -296,16 +296,21 @@ function auctionsApiDomainId(auction){
   return auction === "iaai" ? "1" : "3";
 }
 
-function iaaiSuffix(lot){
+function iaaiSuffix(lot, isCanada){
   if(/^ICB_/i.test(lot)) return "~";   // Canadian CBE — no country code
-  if(/^\d+$/.test(lot))  return "~US"; // Pure numeric = US lot
+  // 27.10.2026 (QA-аудит, подтверждено на живом лоте BMW M2 IAAI 12700052, Oshawa, Ontario):
+  // «чисто цифровой номер = США» — только эвристика, бывает неверна для Канады. Когда страна
+  // лота уже известна (есть location.country из фида) — доверяем ЕЙ, а не формату номера.
+  if(isCanada === true) return "~CA";
+  if(isCanada === false) return "~US";
+  if(/^\d+$/.test(lot))  return "~US"; // страна неизвестна — прежняя эвристика как запасной вариант
   return "~CA";                         // Any other prefix (Imp_, C_, etc.) = Canadian
 }
 
-function auctionUrl(auction, lot){
+function auctionUrl(auction, lot, isCanada){
   if(!lot) return "";
   return auction === "iaai"
-    ? `https://www.iaai.com/VehicleDetail/${encodeURIComponent(lot)}${iaaiSuffix(lot)}`
+    ? `https://www.iaai.com/VehicleDetail/${encodeURIComponent(lot)}${iaaiSuffix(lot, isCanada)}`
     : `https://www.copart.com/lot/${encodeURIComponent(lot)}`;
 }
 
@@ -752,7 +757,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     engineId:(item?.engine && item.engine.id) || null,
     vin:item?.vin || lot?.vin || "",
     lot:lotNumber,
-    url:auctionUrl(auction, iaaiExternalId || lotNumber),
+    url:auctionUrl(auction, iaaiExternalId || lotNumber, isCanadaLot),
     location,
     stateCode:yard ? yard.code : String(lot?.location?.state?.code || lot?.location?.state_code || "").toLowerCase(),
     auctionDate:bnSale ? bnSale.date : (lot?.sale_date || lot?.auction_date || lot?.saleDate || lot?.date || ""),
@@ -5783,7 +5788,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g37" : "";   // бамп при смене таблицы поколений и формы detail (g37: добавлено поле panoramaUrl — 360° обзор)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g38" : "";   // бамп при смене таблицы поколений и формы detail (g38: ссылка на IAAI-лот — регион по стране, не по формату номера)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

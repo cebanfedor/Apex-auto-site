@@ -8,6 +8,21 @@
 
   const IMG_HOST = /(vis\.iaai\.com|iaai\.com\/.*(image|photo|resizer))/i;
 
+  // 27.10.2026 (QA-аудит): ссылка на лот раньше ВСЕГДА собиралась с суффиксом "~US" — для
+  // канадских лотов с чисто цифровым номером (подтверждено на живом лоте: BMW M2 IAAI 12700052,
+  // Oshawa, Ontario — см. CLAUDE.md) это даёт неверный регион в ссылке, которую расширение
+  // публикует в Telegram. Источник истины — АДРЕС ТЕКУЩЕЙ СТРАНИЦЫ (IAAI сам уже резолвил регион,
+  // не гадаем по формату номера); угадывание по номеру — только запасной вариант, если в URL
+  // суффикса нет вовсе (тот же паттерн, что на сайте — server/… iaaiSuffix, но там он ПЕРВИЧНЫЙ,
+  // здесь только fallback).
+  function regionSuffix(stock) {
+    const m = stock && new RegExp(stock + "(~[A-Za-z]*)").exec(location.href);
+    if (m && m[1]) return m[1];
+    if (/^ICB_/i.test(stock)) return "~";   // Canadian CBE — без кода страны
+    if (/^\d+$/.test(stock)) return "~US";  // эвристика: чисто цифровой номер чаще = США
+    return "~CA";
+  }
+
   function stockFromUrl(href) {
     const url = String(href || location.href);
     const m =
@@ -135,7 +150,7 @@
     lot.auction = "iaai";
     lot.auctionLabel = "IAAI";
     lot.lot = lot.lot || stock;
-    lot.url = stock ? `https://www.iaai.com/VehicleDetail/${stock}~US` : location.href;
+    lot.url = stock ? `https://www.iaai.com/VehicleDetail/${stock}${regionSuffix(stock)}` : location.href;
     return lot;
   }
 

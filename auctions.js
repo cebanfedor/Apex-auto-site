@@ -211,7 +211,15 @@
   function favToggle(lot){
     if(!lot || lot.id == null) return false;
     const map = favLoad();
-    if(map[lot.id]) delete map[lot.id]; else map[lot.id] = favCompact(lot);
+    if(map[lot.id]) delete map[lot.id];
+    else {
+      map[lot.id] = favCompact(lot);
+      // 27.10.2026 (QA-аудит): без предела — при переполнении localStorage (QuotaExceededError)
+      // favSave() молча проглатывает ошибку, и НОВОЕ избранное просто не сохранится без следа.
+      // Держим последние 500 (самые старые — первые ключи, JS сохраняет порядок вставки).
+      const keys = Object.keys(map);
+      if(keys.length > 500) keys.slice(0, keys.length - 500).forEach(k => delete map[k]);
+    }
     favSave(map);
     updateFavCount();
     if(map[lot.id]) track("fav_add");
@@ -234,7 +242,12 @@
     if(id == null) return;
     const map = noteLoad();
     const t = String(text || "").trim();
-    if(t) map[id] = {text:t, updatedAt:Date.now()};
+    if(t){
+      map[id] = {text:t, updatedAt:Date.now()};
+      // 27.10.2026 (QA-аудит): тот же предел, что у favToggle — защита от молчаливого переполнения localStorage.
+      const keys = Object.keys(map);
+      if(keys.length > 500) keys.slice(0, keys.length - 500).forEach(k => delete map[k]);
+    }
     else delete map[id];
     noteSave(map);
   }
@@ -605,8 +618,12 @@
   }
 
   function calcHref(lot){
+    // 27.10.2026 (QA-аудит): было безусловно "~US" — для канадских лотов с чисто цифровым номером
+    // (подтверждено на живом лоте BMW M2 IAAI 12700052, Oshawa, Ontario) давало неверный регион.
+    // lot.url обычно уже приходит правильным с сервера (normalizeLot/auctionUrl) — это fallback
+    // на случай урезанного объекта лота без url.
     const url = lot.url || (lot.auction === "iaai"
-      ? `https://www.iaai.com/VehicleDetail/${lot.lot}~US`
+      ? `https://www.iaai.com/VehicleDetail/${lot.lot}${findCanadaLocation(lot) ? "~CA" : "~US"}`
       : `https://www.copart.com/lot/${lot.lot}`);
     const params = new URLSearchParams({
       lot:url,

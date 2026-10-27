@@ -61,21 +61,31 @@ function readBody(request) {
   if (typeof request.body === "string") return Promise.resolve(parseJson(request.body));
   if (request.readableEnded || request.complete) return Promise.resolve({});
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let raw = "";
-    const done = (value) => resolve(value);
-    const guard = setTimeout(() => done({}), 3000);
+    let aborted = false;
+    const guard = setTimeout(() => resolve({}), 3000);
     request.on("data", (chunk) => {
+      if (aborted) return;
       raw += chunk;
-      if (raw.length > 20000) request.destroy();
+      if (raw.length > 20000) {
+        // 27.10.2026 (QA-аудит): раньше тут только request.destroy() — промис висел до 3с
+        // guard-таймаута вместо мгновенного ответа клиенту. Тот же паттерн, что в server/http.js.
+        aborted = true;
+        clearTimeout(guard);
+        reject(new Error("Request body too large"));
+        request.destroy();
+      }
     });
     request.on("end", () => {
+      if (aborted) return;
       clearTimeout(guard);
-      done(parseJson(raw));
+      resolve(parseJson(raw));
     });
     request.on("error", () => {
+      if (aborted) return;
       clearTimeout(guard);
-      done({});
+      resolve({});
     });
   });
 }

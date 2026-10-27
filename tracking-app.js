@@ -375,7 +375,17 @@
     const param = isLot ? "lot" : "vin";
 
     try {
-      const res = await fetch(`/api/w8-tracking?${param}=${encodeURIComponent(q)}`);
+      // 27.10.2026 (QA-аудит): без таймаута — холодный старт функции до её СОБСТВЕННЫХ внутренних
+      // таймаутов (W8 8с/NHTSA 6с) мог держать кнопку "Поиск..." дольше ожидаемого без возможности
+      // прервать. Тот же паттерн AbortController, что уже есть в script.js (fetchLookup).
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      let res;
+      try {
+        res = await fetch(`/api/w8-tracking?${param}=${encodeURIComponent(q)}`, {signal: ctrl.signal});
+      } finally {
+        clearTimeout(timer);
+      }
       const data = await res.json();
 
       if (!res.ok || data.error) {
