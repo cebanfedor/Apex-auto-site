@@ -5219,12 +5219,19 @@ module.exports = async function handler(request, response){
       const auction = normalizeAuction(query.get("auction")), lot = String(query.get("lot") || "").replace(/[^\w-]/g, "");
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${auctionsApiDomain(auction)}?prices_history=1`);
       const out = {};
+      // 27.10.2026 (Федор: «проверь, отдаёт ли фид 360-обзор лота, как у DreamBid») — по умолчанию
+      // поля image/photo/thumb/url/link/video вырезались (диагностика строилась под другую задачу —
+      // смотреть НЕмедийные поля). &media=1 показывает их тоже (полные значения, не обрезанные до 60
+      // символов — ссылки длиннее), чтобы увидеть, есть ли вообще в ответе что-то про 360/spin/tour/
+      // virtual, прежде чем что-то строить вслепую.
+      const showMedia = query.get("media") === "1";
       const walk = (o, path, depth) => {
         if(depth > 6 || o == null) return;
         if(Array.isArray(o)){ if(o.length) walk(o[0], path + "[0]", depth + 1); return; }
         if(typeof o === "object"){ for(const [k, v] of Object.entries(o)) walk(v, path ? path + "." + k : k, depth + 1); return; }
-        if(/image|photo|thumb|url|link|video/i.test(path)) return;
-        out[path] = String(o).slice(0, 60);
+        const isMedia = /image|photo|thumb|url|link|video|spin|tour|360|virtual/i.test(path);
+        if(isMedia && !showMedia) return;
+        out[path] = String(o).slice(0, isMedia ? 300 : 60);
       };
       walk(payload, "", 0);
       sendJson(response, 200, {ok:true, fields:out}, {"cache-control":"no-store"});
