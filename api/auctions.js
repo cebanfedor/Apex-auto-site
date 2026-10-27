@@ -552,26 +552,30 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const location = yard ? [safeName(lot?.location?.city), yard.name].filter(Boolean).join(", ") : (locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location));
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
-  // Одометр: раньше считалось, что канадские лоты Copart кладут км-значение в odometer.mi БЕЗ
-  // пересчёта (мнимый «дубль»), и мы сами делили его на 1.609. ⚠️ 28.09.2026, перепроверено на живых
-  // данных (BMW 230i xDrive IAAI 12676264 — реальный одометр 45 478 km по фото приборки, плюс выборка
-  // ещё 7 лотов IAAI/Copart × США/Канада через action=rawfields): фид ВСЕГДА отдаёт ОБА поля,
-  // odometer.mi И odometer.km, уже корректно связанные (km = mi × 1.609, без дублирования) — на обеих
-  // площадках. Старое «исправление» само портило цифру (то IAAI, то потом и Copart после точечного
-  // фикса) — делило и без того верное значение ещё раз. Теперь доверяем обоим полям фида напрямую,
-  // сами считаем только если одного из них не хватает (тогда — из другого, а если и того нет —
-  // берём как есть из плоских/легаси форм ответа).
-  const odoMi = safeNumber(lot?.odometer?.mi);
-  const odoKm = safeNumber(lot?.odometer?.km);
-  const odoLegacy = safeNumber(typeof lot?.odometer === "object" ? 0 : lot?.odometer) || safeNumber(item?.odometer) || safeNumber(item?.mileage);
-  const odometer = odoMi || (odoKm ? Math.round(odoKm / 1.609) : odoLegacy);
-  const odometerKmVal = odoKm || (odoMi ? Math.round(odoMi * 1.609) : (odoLegacy ? Math.round(odoLegacy * 1.609) : 0));
-  // Канада — только чтобы показывать км первыми (местным привычнее), сами цифры больше не трогаем.
   const isCanadaLot = (() => {
     const iso = String(lot?.location?.country?.iso || lot?.location?.country_code || lot?.location?.country || "").toLowerCase();
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
   })();
+  // Одометр: 28.09.2026 решили, что фид сам отдаёт корректные mi/km — отменили канадскую поправку.
+  // ⚠️ 27.10.2026 (Федор, фото приборки Audi S7 Copart 69341226): кластер реально показывает «85075 km»
+  // (+ трип «399.8 km»), а фид отдал odometer.mi=85075 без своего km → наш код домножил на 1.609 и
+  // показал «136 915 км ≈ 85 075 миль» — ровно вдвое длиннее реального пробега. Вывод 28.09 по 8 лотам
+  // не подтвердился универсально: у канадских лотов Copart/IAAI родной одометр — КМ (машина ездит по
+  // Канаде, кластер в км), а фид по-прежнему кладёт это же число в поле mi без конвертации. Вернули
+  // канадскую поправку: для канадских лотов сырое число = км, мили считаем из него делением.
+  const odoMi = safeNumber(lot?.odometer?.mi);
+  const odoKm = safeNumber(lot?.odometer?.km);
+  const odoLegacy = safeNumber(typeof lot?.odometer === "object" ? 0 : lot?.odometer) || safeNumber(item?.odometer) || safeNumber(item?.mileage);
+  let odometer, odometerKmVal;
+  if(isCanadaLot){
+    const rawKm = odoMi || odoKm || odoLegacy;
+    odometerKmVal = rawKm;
+    odometer = rawKm ? Math.round(rawKm / 1.609) : 0;
+  } else {
+    odometer = odoMi || (odoKm ? Math.round(odoKm / 1.609) : odoLegacy);
+    odometerKmVal = odoKm || (odoMi ? Math.round(odoMi * 1.609) : (odoLegacy ? Math.round(odoLegacy * 1.609) : 0));
+  }
   // У timed-аукционов ставка живёт в timed_start_bid, а bid пуст. 01.10.2026 (тот же разбор, что
   // у saleStatusInfo ниже): доверяем timed_start_bid как ставке, только если у лота есть дата
   // торгов — без даты это не реальный активный Timed, а залежавшееся значение прошлого захода.
@@ -5748,7 +5752,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g34" : "";   // бамп при смене таблицы поколений и формы detail (g34: Timed-финал — пол по резерву продавца для feed-sold)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g35" : "";   // бамп при смене таблицы поколений и формы detail (g35: вернули канадскую поправку одометра км/мили)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
