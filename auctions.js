@@ -3620,7 +3620,13 @@
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
               <button type="button" class="dShareBtnV1 tgPostBtnV1" data-tg-post="${escapeHtml(lot.id)}" hidden title="${escapeHtml(L("Опубликовать в Telegram-канал"))}">📣<span>В Telegram</span></button>
             </div>
-            <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}</p>
+            <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}${(() => {
+              // Локация — дубль строки «Аукцион → Локация» (та же через lotLocationText), компактной
+              // меткой справа от VIN, в той же строке (Федор 27.10.2026: «правее вин кода»).
+              const locTxt = lotLocationText(lot);
+              if(!locTxt) return "";
+              return `<span class="dMobLocV1">${dbIco("pin")}<span>${findCanadaLocation(lot) ? CA_FLAG_SVG + " " : ""}${escapeHtml(locTxt)}</span></span>`;
+            })()}</p>
             ${(() => {
               const st = lotSaleState(lot), b = st.isSold ? (st.finalBid || lot.finalBid || 0) : (lot.currentBid || 0);
               const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
@@ -3629,13 +3635,6 @@
                 return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${b ? money(b) : "—"}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
               }
               return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span class="dmsDateRowV1"><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
-            })()}
-            ${(() => {
-              // Локация — дубль строки «Аукцион → Локация» (та же через lotLocationText), компактной
-              // строкой без своей плашки (Федор 27.10.2026: «отдельным блоком — много места»).
-              const locTxt = lotLocationText(lot);
-              if(!locTxt) return "";
-              return `<p class="dMobLocV1">${dbIco("pin")}<span>${findCanadaLocation(lot) ? CA_FLAG_SVG + " " : ""}${escapeHtml(locTxt)}</span></p>`;
             })()}
           </div>
           <div class="dHeadActionsV1">

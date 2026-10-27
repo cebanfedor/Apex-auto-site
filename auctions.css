@@ -1278,12 +1278,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dMobSumV1 span { display:flex; flex-direction:column; gap:1px; padding:8px 12px; border-radius:12px; background:var(--aSoft); }
   .dMobSumV1 small { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--aMuted); }
   .dMobSumV1 b { font-size:15px; color:var(--aInk); }
-  /* Локация — компактной строкой БЕЗ своей плашки (Федор 27.10.2026: отдельный блок занимал много
-     места) — иконка + текст, как .dSpecLine выше, без фона/паддинга. */
-  .dMobLocV1 { display:flex; align-items:center; gap:6px; margin:6px 0 0; font-size:12.5px; color:var(--aInk2); }
+  /* Локация — компактной меткой ПРАВЕЕ VIN, в той же строке .dSpecLine (Федор 27.10.2026: сначала
+     «не отдельным блоком», потом «правее вин кода») — иконка + текст, без фона/паддинга. */
+  .dMobLocV1 { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--aInk2); }
   .dMobLocV1 .dbIco { width:13px; height:13px; flex:none; padding:2px; border-radius:6px; background:var(--aSoft); box-sizing:content-box; color:var(--aMuted); }
   .dMobLocV1 .caFlagV1 { border-radius:2px; flex:none; }
-  .dMobLocV1 span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+  .dMobLocV1 > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46vw; display:inline-flex; align-items:center; gap:5px; }
   /* 01.10.2026 (Федор со скриншота): дата отдельной строкой под лейблом переносилась на 2 строки —
      лейбл и значение в один ряд, нижний регистр лейбла не трогаем (uppercase через CSS). */
   .dMobSumV1 span.dmsDateRowV1 { flex-direction:row; align-items:baseline; flex-wrap:wrap; gap:5px 7px; }
