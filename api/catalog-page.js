@@ -54,6 +54,14 @@ module.exports = async function(req, res){
     // скриншота Search Console). Теперь canonical = сама фильтрованная страница, БЕЗ ?lang= (та же
     // логика, что у og:url ниже, но без суффикса языка — у каждого языка свой hreflang, не отдельный canonical).
     .replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${esc(`https://apexauto.md/auctions?${p.toString()}`)}">`)
+    // ⚠️ 27.10.2026: hreflang в шаблоне auctions.html указывает на НЕфильтрованный /auctions (верно для
+    // обычной страницы каталога, но для фильтрованной — противоречие с canonical выше, который теперь
+    // указывает на САМУ фильтрованную страницу). Переписываем все 3 hreflang на тот же query, с нужным ?lang=
+    // (как у og:url выше) — иначе Google видел бы «ro/en-версия» этой страницы = общий каталог без фильтров.
+    .replace(/<link rel="alternate" hreflang="ru" href="[^"]*">/, `<link rel="alternate" hreflang="ru" href="${esc(`https://apexauto.md/auctions?${p.toString()}`)}">`)
+    .replace(/<link rel="alternate" hreflang="ro" href="[^"]*">/, `<link rel="alternate" hreflang="ro" href="${esc(`https://apexauto.md/auctions?${p.toString()}&lang=ro`)}">`)
+    .replace(/<link rel="alternate" hreflang="en" href="[^"]*">/, `<link rel="alternate" hreflang="en" href="${esc(`https://apexauto.md/auctions?${p.toString()}&lang=en`)}">`)
+    .replace(/<link rel="alternate" hreflang="x-default" href="[^"]*">/, `<link rel="alternate" hreflang="x-default" href="${esc(`https://apexauto.md/auctions?${p.toString()}`)}">`)
     .replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${esc(title)}">`)
     .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${esc(desc)}">`)
     .replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${esc(url)}">`)
