@@ -709,6 +709,21 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbPriceWrap { min-width:220px; }
   .lotDetailGridV1 { grid-template-columns:1fr; }
   .detailGalleryV1, .lotCalcCardV1, .lotStickyV1, .lotCalcV2, .dRightColV2 > .lotCalcV2 { position:static; max-height:none; overflow:visible; }
+  /* 27.10.2026 (Федор: калькулятор на телефоне внизу под всем — поднять его выше «Описания»):
+     .lotDetailCenterV1 (Главное/Аукцион/Описание/История цены, раньше одной flex-колонкой между
+     фото и калькулятором) становится display:contents — сам он пропадает из раскладки, а его дети
+     поднимаются до уровня .lotDetailGridV1 и становятся обычными grid-элементами с своим order.
+     Десктоп не тронут (там .lotDetailCenterV1 остаётся обычным flex-блоком — правило только в этом
+     медиа-запросе). Порядок на телефоне: фото → Главное → (экспорт-бан/рекомендация) → Аукцион →
+     КАЛЬКУЛЯТОР → Описание → История цены. */
+  .lotDetailCenterV1 { display:contents; }
+  .detailGalleryV1 { order:1; }
+  .lotDetailCenterV1 > section.dSec:nth-of-type(1) { order:2; }   /* Главное */
+  .lotDetailCenterV1 > .dExportBanV1, .lotDetailCenterV1 > .dRecoV2 { order:3; }
+  .lotDetailCenterV1 > section.dSec:nth-of-type(2) { order:4; }   /* Аукцион */
+  .lotCalcV2 { order:5; }
+  .lotDetailCenterV1 > section.dSec:nth-of-type(3) { order:6; }   /* Описание */
+  .lotDetailCenterV1 > section.dSec:nth-of-type(4) { order:7; }   /* История цены */
   .dDescGridV2 { grid-template-columns:1fr; }
 }
 @media (max-width:640px) {
