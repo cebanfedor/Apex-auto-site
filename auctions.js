@@ -2999,6 +2999,7 @@
     el.id = "lotLightbox";
     el.className = "lbV1";
     el.hidden = true;
+    el.tabIndex = -1;   // фокусируем контейнер при открытии — Escape ловится document'ом, а не улетает внутрь кросс-доменного iframe (360°)
     el.innerHTML = `
       <div class="lbTopV1">
         <span id="lbCount" class="lbCountV1"></span>
@@ -3024,6 +3025,11 @@
       }else if(item.type === "pano"){
         // 360°-обзор площадки (пока подтверждён только у IAAI) — готовый вьюер в iframe, своя навигация внутри.
         stage.innerHTML = `<iframe class="lbPanoV1" src="${escapeHtml(item.src)}" allow="accelerometer; gyroscope" allowfullscreen loading="lazy"></iframe>`;
+        // Клик/перетаскивание внутри вьюера уводит клавиатурный фокус в кросс-доменный iframe — Escape
+        // туда физически не долетает (чужой домен, никакой JS-трюк это не обходит). Как только курсор
+        // покидает вьюер, возвращаем фокус на лайтбокс — Escape снова работает, не дожидаясь клика по ✕.
+        const ifr = stage.querySelector(".lbPanoV1");
+        if(ifr) ifr.addEventListener("mouseleave", () => { document.getElementById("lotLightbox")?.focus({preventScroll:true}); });
       }else{
         stage.innerHTML = `<img class="lbImgV1" src="${escapeHtml(item.src)}" alt="">`;
       }
@@ -3044,6 +3050,7 @@
     el.hidden = false;
     document.body.classList.add("lbOpenV1");
     renderLightbox();
+    el.focus({preventScroll:true});
   }
   function closeLightbox(){
     const el = document.getElementById("lotLightbox");
@@ -3675,12 +3682,12 @@
                 </div>`;
               })()}
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
+              ${lot.panoramaUrl ? `<span class="dGalTagV2 dGalPanoBtnV1" data-open-pano role="button">360°</span>` : ""}
               ${images.length > 1 ? `
               <button class="dGalNavV1 dGalPrevV1" type="button" data-gal-step="-1" aria-label="Предыдущее фото">‹</button>
               <button class="dGalNavV1 dGalNextV1" type="button" data-gal-step="1" aria-label="Следующее фото">›</button>` : ""}
               <div class="dGalBadgesV2">
                 ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} ${L("Видео")}</span>` : ""}
-                ${lot.panoramaUrl ? `<span class="dGalTagV2" data-open-pano role="button">360°</span>` : ""}
                 <span class="dGalTagV2">${dbIco("zoom")} ${L("HD")} · ${escapeHtml(images.length || 1)} ${L("фото")}</span>
               </div>
             </div>
