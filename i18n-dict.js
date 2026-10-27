@@ -1358,7 +1358,23 @@ window.__APEX_DICT = (function(){
       "до":"până la",
       "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"Nu ai căutări salvate. Alege filtrele și apasă „Salvează căutarea”.",
       "Моя заметка":"Notița mea",
-      "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Vizibilă doar pentru tine pe acest dispozitiv — de exemplu, până la ce sumă poți licita"
+      "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Vizibilă doar pentru tine pe acest dispozitiv — de exemplu, până la ce sumă poți licita",
+      "Меню":"Meniu",
+      "Закрыть":"Închide",
+      "Удалить":"Șterge",
+      "Убрать":"Elimină",
+      "Сохранённые поиски":"Căutări salvate",
+      "По данным проданных лотов Copart и IAAI.":"Pe baza loturilor vândute Copart și IAAI.",
+      "Опубликовать в Telegram-канал":"Publică în canalul Telegram",
+      "2.0 л":"2.0 l",
+      "41 отзыв в Google":"41 de recenzii pe Google",
+      "Все отзывы (41) в Google →":"Toate recenziile (41) pe Google →",
+      "Jeep · Отзыв в Google":"Jeep · Recenzie pe Google",
+      "3× Tesla · Отзыв в Google":"3× Tesla · Recenzie pe Google",
+      "4 авто · Отзыв в Google":"4 mașini · Recenzie pe Google",
+      "ссылку на":"linkul către",
+      "или Manheim;":"sau Manheim;",
+      "Apex Auto создан в 2026 году на базе команды, работающей в автомобильном бизнесе с 2016 года. За это время командой доставлено более 2000 автомобилей из США и Канады: от бюджетных Toyota и Honda до Tesla, BMW и Mercedes-Benz. Рейтинг 4,4 в Google (41 отзыв) и повторные заказы — наши клиенты привозят по 3–4 машины и рекомендуют нас друзьям. Начните с":"Apex Auto a fost creat în 2026 pe baza unei echipe care activează în afacerea auto din 2016. În acest timp, echipa a livrat peste 2000 de mașini din SUA și Canada: de la Toyota și Honda accesibile până la Tesla, BMW și Mercedes-Benz. Rating 4,4 pe Google (41 de recenzii) și comenzi repetate — clienții noștri aduc câte 3–4 mașini și ne recomandă prietenilor. Începeți cu"
     },
     en:{
       "г.":"yr",
@@ -2730,7 +2746,23 @@ window.__APEX_DICT = (function(){
       "до":"to",
       "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"No saved searches yet. Pick filters and press “Save search”.",
       "Моя заметка":"My note",
-      "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Visible only to you on this device — e.g. how high you're willing to bid"
+      "Видно только вам на этом устройстве — например, до какой ставки торговаться":"Visible only to you on this device — e.g. how high you're willing to bid",
+      "Меню":"Menu",
+      "Закрыть":"Close",
+      "Удалить":"Delete",
+      "Убрать":"Remove",
+      "Сохранённые поиски":"Saved searches",
+      "По данным проданных лотов Copart и IAAI.":"Based on sold Copart and IAAI lots.",
+      "Опубликовать в Telegram-канал":"Post to the Telegram channel",
+      "2.0 л":"2.0 L",
+      "41 отзыв в Google":"41 reviews on Google",
+      "Все отзывы (41) в Google →":"All reviews (41) on Google →",
+      "Jeep · Отзыв в Google":"Jeep · Google review",
+      "3× Tesla · Отзыв в Google":"3× Tesla · Google review",
+      "4 авто · Отзыв в Google":"4 cars · Google review",
+      "ссылку на":"a link to",
+      "или Manheim;":"or Manheim;",
+      "Apex Auto создан в 2026 году на базе команды, работающей в автомобильном бизнесе с 2016 года. За это время командой доставлено более 2000 автомобилей из США и Канады: от бюджетных Toyota и Honda до Tesla, BMW и Mercedes-Benz. Рейтинг 4,4 в Google (41 отзыв) и повторные заказы — наши клиенты привозят по 3–4 машины и рекомендуют нас друзьям. Начните с":"Apex Auto was founded in 2026, built on a team that has been in the car business since 2016. In that time the team has delivered over 2000 cars from the US and Canada: from budget-friendly Toyota and Honda to Tesla, BMW and Mercedes-Benz. A 4.4 Google rating (41 reviews) and repeat orders — our clients bring in 3–4 cars each and recommend us to friends. Start with"
     }
   };
 
@@ -2842,7 +2874,9 @@ window.__APEX_DICT = (function(){
       "до":"până la",
       "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"Nu ai căutări salvate. Alege filtrele și apasă „Salvează căutarea”.",
       "Убрать":"Elimină",
-      "Штат США или провинция Канады":"Stat SUA sau provincie Canada"
+      "Штат США или провинция Канады":"Stat SUA sau provincie Canada",
+      "4,4 из 5 — 41 отзыв в Google, Apex Auto Import":"4,4 din 5 — 41 de recenzii pe Google, Apex Auto Import",
+      "Название, VIN или номер лота":"Denumire, VIN sau numărul lotului"
     },
     en:{
       "Имя":"Name",
@@ -2951,7 +2985,9 @@ window.__APEX_DICT = (function(){
       "до":"to",
       "Сохранённых поисков пока нет. Выберите фильтры и нажмите «Сохранить поиск».":"No saved searches yet. Pick filters and press “Save search”.",
       "Убрать":"Remove",
-      "Штат США или провинция Канады":"US state or Canadian province"
+      "Штат США или провинция Канады":"US state or Canadian province",
+      "4,4 из 5 — 41 отзыв в Google, Apex Auto Import":"4.4 out of 5 — 41 reviews on Google, Apex Auto Import",
+      "Название, VIN или номер лота":"Title, VIN or lot number"
     }
   };
   return {dict:dict, attrDict:attrDict};

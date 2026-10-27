@@ -3819,7 +3819,7 @@
             </div>
             <div class="detailThumbsV1">
               ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}"${i > 0 ? ' loading="lazy"' : ""}>`).join("")}
-              ${lot.video ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="Видео осмотра"><img src="${escapeHtml(images[0] || "")}" alt="Видео осмотра" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
+              ${lot.video ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="${escapeHtml(L("Видео осмотра"))}"><img src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(L("Видео осмотра"))}" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
               ${lot.panoramaUrl ? `<span class="dThumbV2 dThumbPanoV1" role="button" data-open-pano title="360°"><img src="${escapeHtml(images[0] || "")}" alt="360°" loading="lazy"><i class="dThumbPanoIcoV1">360°</i></span>` : ""}
             </div>
             <div class="dNoteV1">
