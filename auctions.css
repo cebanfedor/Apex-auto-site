@@ -1559,10 +1559,15 @@ body.leadModalOpenV1 { overflow:hidden; }
   /* Без ставки (торги не начались) дата — единственный элемент: на половине грида лейблу
      и значению тесно в один ряд, значение переносилось. На всю ширину грида — помещается. */
   .dMobSumV1 span.dmsDateRowV1:only-child { grid-column:1 / -1; }
-  .dHeadActionsV1 { display:grid !important; grid-auto-flow:column; grid-auto-columns:1fr; grid-template-columns:none; gap:8px; }
+  .dHeadActionsV1 { display:grid !important; grid-auto-flow:column; grid-auto-columns:1fr; grid-template-columns:none; gap:6px; }
   .dHeadActionsV1 .dVinBtn { grid-column:auto; }
   .dHeadActionsV1 { align-items:stretch; }
-  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { align-self:stretch; min-height:56px; height:auto; padding:6px 6px; gap:5px; font-size:12px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
+  /* 27.10.2026 (Федор со скриншота): блок «В избранное / Следить за лотом / Отчёт истории VIN» был
+     непропорционально высоким (56px мин-высота + иконка НАД текстом в столбик — для трёх надписей
+     разной длины реальная высота набегала ещё больше). Текст короче, иконка мельче, без столбика —
+     компактная тач-зона 40px вместо занимающей треть экрана плашки. */
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { align-self:stretch; min-height:40px; height:auto; padding:4px 5px; gap:3px; font-size:10.5px; line-height:1.15; flex-direction:column; justify-content:center; text-align:center; }
+  .dHeadActionsV1 .dbIco { width:13px; height:13px; }
   .dNoteV1 { margin-top:8px; padding:10px 12px; }
   .dNoteV1 textarea { min-height:46px; font-size:13px; }
 }
