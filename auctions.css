@@ -724,6 +724,11 @@ body.leadModalOpenV1 { overflow:hidden; }
   .lotCalcV2 { order:5; }
   .lotDetailCenterV1 > section.dSec:nth-of-type(3) { order:6; }   /* Описание */
   .lotDetailCenterV1 > section.dSec:nth-of-type(4) { order:7; }   /* История цены */
+  /* .lotDetailCenterV1 раньше сам задавал gap:16px между секциями (flex-колонка); став display:contents,
+     эти секции попадают под gap:24px самого .lotDetailGridV1 (было задумано для «фото/центр/калькулятор»
+     тремя широкими колонками) — на телефоне, где теперь семь мелких блоков подряд, 24px смотрелись рыхло.
+     Возвращаем прежний более плотный шаг. */
+  .lotDetailGridV1 { gap:16px; }
   .dDescGridV2 { grid-template-columns:1fr; }
 }
 @media (max-width:640px) {
@@ -888,6 +893,14 @@ body.leadModalOpenV1 { overflow:hidden; }
   .calcPairRowV1 { gap:5px; }
   .calcPairRowV1 .calcOptV2 { font-size:9.5px; padding:6px 4px; gap:3px; border-radius:10px; }
   .calcPairRowV1 .calcOptV2 input { width:12px; height:12px; }
+  /* 27.10.2026 (Федор: кнопки на телефоне слишком крупные) — степпер ставки и главные CTA («Оставить
+     заявку» / «Купить сейчас») были 46px, как на десктоке, хотя тап-зона 44px уже достаточна на телефоне;
+     чуть плотнее, без потери «пальцем легко попасть». */
+  .calcStepperV2 { grid-template-columns:40px 1fr 40px; gap:7px; }
+  .calcStepperV2 button, .calcStepperV2 input { height:42px; }
+  .calcStepperV2 button { font-size:19px; }
+  .calcStepperV2 input { font-size:16px; }
+  .calcTopCtaV1, .calcBuyNowV1 { height:44px; }
 }
 
 /* Прогноз финальной ставки в карточке (вилка из архива продаж) */
