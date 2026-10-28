@@ -150,7 +150,7 @@
   /** Морская перевозка от порта США до Европы. */
   function seaShippingFor(type, fuel, port){
     if(type==="moto") return 1400;   // 05.10.2026, Федор: цена доставки мото → $1400 во всех калькуляторах
-    if(type==="atv") return 1200;
+    if(type==="atv") return 1800;    // 28.10.2026, Федор: цена доставки ATV/квадроцикла (контейнер) → $1800 во всех калькуляторах
     let price;
     if(type==="vanLarge" && SEA_BUS[port] != null){
       price = SEA_BUS[port];
@@ -260,6 +260,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v13"
+    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v17"
   };
 });

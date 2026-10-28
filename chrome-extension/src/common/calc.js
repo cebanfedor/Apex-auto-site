@@ -82,7 +82,7 @@
 
     let sea;
     if(type === "moto") sea = 1400;   // 05.10.2026, Федор: цена доставки мото → $1400 во всех калькуляторах (синхронно с calc-core.js)
-    else if(type === "atv") sea = 1200;
+    else if(type === "atv") sea = 1800; // 28.10.2026, Федор: цена доставки ATV/квадроцикла (контейнер) → $1800 (синхронно с calc-core.js)
     else {
       const port = (loc && loc.autoPort) || input.port || "nj";
       if(type === "vanLarge" && SEA_BUS[port] != null){
