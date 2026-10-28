@@ -572,18 +572,25 @@ function normalizeLot(source, fallbackAuction = "copart"){
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
   })();
-  // Одометр: 28.09.2026 решили, что фид сам отдаёт корректные mi/km — отменили канадскую поправку.
-  // ⚠️ 27.10.2026 (Федор, фото приборки Audi S7 Copart 69341226): кластер реально показывает «85075 km»
-  // (+ трип «399.8 km»), а фид отдал odometer.mi=85075 без своего km → наш код домножил на 1.609 и
-  // показал «136 915 км ≈ 85 075 миль» — ровно вдвое длиннее реального пробега. Вывод 28.09 по 8 лотам
-  // не подтвердился универсально: у канадских лотов Copart/IAAI родной одометр — КМ (машина ездит по
-  // Канаде, кластер в км), а фид по-прежнему кладёт это же число в поле mi без конвертации. Вернули
-  // канадскую поправку: для канадских лотов сырое число = км, мили считаем из него делением.
+  // Одометр Канады — 28.09.2026 отменили канадскую поправку («фид сам отдаёт корректные mi/km»).
+  // 27.10.2026 (Федор, фото приборки Audi S7 COPART 69341226): кластер реально «85075 km», фид дал
+  // только odometer.mi=85075 без своего km → домножили на 1.609 → «136 915 км» — вдвое больше
+  // реального. Вернули канадскую поправку: сырое число = км, мили считаем делением.
+  // ⚠️ 27.10.2026 (тот же день, вечер, Федор, фото приборки Toyota Prius IAAI 12640239): кластер
+  // «18403 km», а наша поправка показала «11 435 км» — почти вдвое МЕНЬШЕ реального. У этого лота
+  // (и у BMW M2 IAAI 12700052: фид честно давал mi=24980 И km=40201, согласованную пару 24980×1.609≈
+  // 40192 — но канадская поправка проигнорировала настоящий .km и трактовала .mi как км) поле .mi
+  // оказалось НАСТОЯЩИМИ милями, а канадская поправка их самовольно урезала вдвое.
+  // Вывод: баг «сырое число в км лежит в .mi без конвертации» — похоже, свойство фида именно для
+  // COPART Канада (единственный подтверждённый случай), а не Канады вообще. У IAAI Канада (два
+  // подтверждённых случая, оба раза с фото приборки) поле .mi — настоящие мили, доверяем ему как
+  // обычно. Если найдётся Copart-лот с честной парой mi/km или IAAI-лот с тем же багом — поправить
+  // условие точечно (по номеру лота, как GEN_OVERRIDES), а не менять правило снова вслепую.
   const odoMi = safeNumber(lot?.odometer?.mi);
   const odoKm = safeNumber(lot?.odometer?.km);
   const odoLegacy = safeNumber(typeof lot?.odometer === "object" ? 0 : lot?.odometer) || safeNumber(item?.odometer) || safeNumber(item?.mileage);
   let odometer, odometerKmVal;
-  if(isCanadaLot){
+  if(isCanadaLot && auction === "copart"){
     const rawKm = odoMi || odoKm || odoLegacy;
     odometerKmVal = rawKm;
     odometer = rawKm ? Math.round(rawKm / 1.609) : 0;
@@ -5788,7 +5795,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "35";
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g38" : "";   // бамп при смене таблицы поколений и формы detail (g38: ссылка на IAAI-лот — регион по стране, не по формату номера)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g39" : "";   // бамп при смене таблицы поколений и формы detail (g39: канадская поправка одометра — только Copart, IAAI Канада доверяем mi/km фида напрямую)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
