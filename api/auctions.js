@@ -3096,7 +3096,18 @@ async function searchFromDb(query){
   let rows = response.status === 416 ? [] : await response.json();
   let total = response.status === 416 ? total416 : (Number((response.headers.get("content-range") || "*/0").split("/").pop()) || rows.length);
   let totalIsFull = false;
-  if(broadCountP){ const n = await broadCountP.catch(() => 0); if(n > 0){ total = n; totalIsFull = true; } }
+  if(broadCountP){
+    const n = await broadCountP.catch(() => 0);
+    // 28.10.2026 (Федор, Канада+2018+Water/Flood: сайт показал «2 лота найдено», хотя сама же
+    // страница вернула 50 реальных строк) — countRows() на «широких» фильтрах иногда ошибается
+    // (планировщик Postgres недооценивает редкие комбинации колонок/ilike, тот же класс бага, что
+    // уже ловили на Timed/no_reserve, см. выше). total НЕ МОЖЕТ быть меньше числа строк, которые уже
+    // реально лежат у нас в руках на этой странице — клампим снизу (`offset + rows.length`),
+    // независимо от того, что вернул countRows (0, заниженная оценка или вовсе ничего).
+    const floor = offset + rows.length;
+    total = Math.max(n, floor);
+    totalIsFull = n >= floor;
+  }
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
   // в выдачу — когда датированные закончились (глубокие страницы). Сбой хвоста не критичен.
@@ -5808,7 +5819,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "35";
+  const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g40" : "";   // бамп при смене таблицы поколений и формы detail (g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
