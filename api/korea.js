@@ -88,18 +88,34 @@ async function fetchKoreaPage(page, perPage){
   try{
     res = await fetchT(`${BASE}/cars?${params}`, {headers:{"x-api-key":apiKey, accept:"application/json"}}, 8000);
   }catch(e){
-    const data = {items:[], total:0, mode:"fallback", reason:"Сервис аукционов не отвечает"};
+    // 30.10.2026 (Федор: «пустая страница, почему?») — раньше тут был общий текст без реальной причины
+    // (таймаут/DNS/обрыв соединения выглядели одинаково). Теперь кладём настоящее сообщение ошибки.
+    const data = {items:[], total:0, mode:"fallback", reason:`Сервис аукционов не отвечает: ${String(e && e.message || e).slice(0, 160)}`};
     CACHE.set(key, {data, exp:Date.now() + 30 * 1000}); // короткий TTL на сбой — не залипаем надолго
     return data;
   }
   if(!res.ok){
-    return {items:[], total:0, mode:"fallback", reason:`AuctionsAPI ${res.status}`};
+    // Тело ответа при ошибке часто объясняет причину (напр. у НОВОГО api.auctionsapi.com бывает
+    // "you don't have any data in your subscription" — см. CLAUDE.md «API»). Короткий фрагмент помогает
+    // диагностировать без доступа к логам Vercel.
+    let bodySnippet = "";
+    try{ bodySnippet = (await res.text()).slice(0, 200); }catch(e){}
+    const data = {items:[], total:0, mode:"fallback", reason:`AuctionsAPI ${res.status}${bodySnippet ? ": " + bodySnippet : ""}`};
+    CACHE.set(key, {data, exp:Date.now() + 30 * 1000});
+    return data;
   }
   let payload;
-  try{ payload = await res.json(); }catch(e){ return {items:[], total:0, mode:"fallback", reason:"Bad JSON"}; }
-  const items = findItems(payload).map(normalizeKoreaItem).filter(Boolean);
+  try{ payload = await res.json(); }catch(e){ return {items:[], total:0, mode:"fallback", reason:"Bad JSON from AuctionsAPI"}; }
+  const rawItems = findItems(payload);
+  const items = rawItems.map(normalizeKoreaItem).filter(Boolean);
   const total = Number(payload?.total ?? payload?.count ?? payload?.data?.total ?? payload?.data?.count ?? payload?.meta?.total) || items.length;
-  const data = {items, total, mode:"live"};
+  // Разделяем два разных «пусто»: фид не вернул ни одной записи для domain_id=12 (подписка/лимит/нет лотов
+  // прямо сейчас) — vs. записи пришли, но наш normalizeKoreaItem счёл их все пустыми (баг маппинга полей).
+  const data = {
+    items, total, mode:"live",
+    ...(rawItems.length === 0 ? {reason:"Фид вернул 0 записей для domain_id=12 (Корея)"} : {}),
+    ...(rawItems.length > 0 && items.length === 0 ? {reason:`Фид вернул ${rawItems.length} записей, но normalizeKoreaItem не смог их разобрать — нужна сверка полей`, sampleKeys:Object.keys(rawItems[0] || {}).slice(0, 40)} : {}),
+  };
   CACHE.set(key, {data, exp:Date.now() + TTL});
   return data;
 }
