@@ -1758,9 +1758,10 @@ details > summary::-webkit-details-marker { display: none; }
 .transitPriceV1[data-num] { font-size: 22px; }
 .transitHeroV1[hidden] { display: none; }
 @media (max-width: 700px) {
-  /* На телефоне объявления должны быть на первом экране — карточку «Как это работает» убираем */
-  .transitHeroV1 .hotTelegramV101 { display: none; }
-  .transitHeroV1 .hotHeroTextV101 p { margin-top: 10px; font-size: 15px; }
+  /* На телефоне объявления должны быть на первом экране — карточку «Как это работает» убираем.
+     Та же причина — на /korea (30.10.2026): карточки машин должны быть видны без лишнего скролла. */
+  .transitHeroV1 .hotTelegramV101, #koreaHeroV1 .hotTelegramV101 { display: none; }
+  .transitHeroV1 .hotHeroTextV101 p, #koreaHeroV1 .hotHeroTextV101 p { margin-top: 10px; font-size: 15px; }
   .transitDetailV1 { margin-top: 0; }
 }
 /* Шапка на средних экранах: с пунктом «Продажа авто в пути» навигация шире — ужимаем,
@@ -1890,3 +1891,63 @@ body.lbOpenV1 { overflow:hidden; }
   color: #fff; font-size: 16px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 @media (max-width: 640px) { #calcExitPushV1 { display: none; } }
+
+/* ===== Авто из Кореи (/korea) — 30.10.2026 ===== */
+/* Отдельная, минимальная вёрстка: без цены (см. CLAUDE.md) — карточка ведёт не на страницу
+   лота (её пока нет), а сразу открывает форму заявки. Хедер/карточка — свой набор классов,
+   не переиспользуем .transitXxx (это конкретно про «Авто в пути»). */
+.koreaListWrapV1 { max-width: 1240px; margin: 0 auto; padding: 36px 24px 64px; }
+.koreaHeadV1 { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.koreaHeadV1 h2 { margin: 0; }
+.koreaCountV1 { color: var(--muted); font-size: 14px; font-weight: 600; }
+.koreaGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.koreaCardV1 {
+  display: flex; flex-direction: column; background: var(--surface, #fff); border-radius: var(--radius-lg);
+  border: 1px solid rgba(17, 20, 26, .08); overflow: hidden; cursor: pointer; text-align: left;
+  transition: transform .15s, box-shadow .15s; padding: 0; font: inherit; color: inherit;
+}
+.koreaCardV1:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(17, 20, 26, .1); }
+.koreaCardImgV1 { position: relative; aspect-ratio: 4 / 3; background: #eceff2; }
+.koreaCardImgV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.koreaNoImgV1 { width: 100%; height: 100%; background: linear-gradient(135deg, #e7eaee, #f4f5f7); }
+.koreaBadgeV1 { position: absolute; top: 10px; left: 10px; background: rgba(13, 16, 22, .68); color: #fff; font-size: 11.5px; font-weight: 700; letter-spacing: .02em; padding: 4px 9px; border-radius: 7px; }
+.koreaPhotoCntV1 { position: absolute; bottom: 10px; right: 10px; background: rgba(13, 16, 22, .6); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
+.koreaCardBodyV1 { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.koreaCardBodyV1 h3 { margin: 0; font-size: 16px; line-height: 1.3; }
+.koreaChipsV1 { display: flex; flex-wrap: wrap; gap: 6px; }
+.koreaChipsV1 span { background: var(--chip-bg, #f1f2f4); color: var(--muted); font-size: 12.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.koreaCardFootV1 { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.koreaPriceNoteV1 { font-size: 13px; color: var(--muted); font-weight: 600; }
+.koreaMoreV1 { color: var(--red); font-weight: 700; font-size: 13.5px; white-space: nowrap; }
+.koreaSkelV1 { pointer-events: none; }
+.koreaSkelV1 .koreaCardImgV1 { background: #eceff2; animation: koreaPulseV1 1.4s ease-in-out infinite; }
+.koreaSkelV1 .koreaCardBodyV1 i { display: block; height: 12px; border-radius: 6px; background: #eceff2; margin-bottom: 8px; animation: koreaPulseV1 1.4s ease-in-out infinite; }
+@keyframes koreaPulseV1 { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.koreaEmptyV1 { grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: var(--surface, #fff); border-radius: var(--radius-lg); border: 1px solid rgba(17, 20, 26, .08); }
+.koreaEmptyV1 h3 { margin: 0 0 10px; }
+.koreaEmptyV1 p { color: var(--muted); max-width: 440px; margin: 0 auto 18px; }
+.koreaMoreBtnWrapV1 { text-align: center; margin-top: 24px; }
+.koreaMoreBtnV1 { height: 48px; padding: 0 28px; border-radius: 12px; border: 1px solid rgba(17, 20, 26, .14); background: #fff; font-weight: 700; cursor: pointer; }
+.koreaMoreBtnV1:hover { background: #f6f7f8; }
+.koreaMoreBtnV1:disabled { opacity: .55; cursor: default; }
+
+/* Модалка заявки по карточке — тот же визуальный язык, что у лид-формы лота/в пути */
+.koreaModalV1 { position: fixed; inset: 0; z-index: var(--z-overlay, 10001); display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(13, 16, 22, .55); }
+.koreaModalV1[hidden] { display: none; }
+.koreaModalCardV1 { background: #fff; border-radius: var(--radius-lg); max-width: 420px; width: 100%; padding: 22px; position: relative; }
+.koreaModalCloseV1 { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: none; border-radius: 50%; background: #f1f2f4; font-size: 16px; cursor: pointer; }
+.koreaModalCardV1 h3 { margin: 0 10px 4px 0; font-size: 17px; }
+.koreaModalCarV1 { color: var(--muted); font-size: 13.5px; margin-bottom: 14px; }
+.koreaModalCardV1 form { display: flex; flex-direction: column; gap: 10px; }
+.koreaModalCardV1 input[type="text"], .koreaModalCardV1 input[type="tel"] { height: 46px; border: 1px solid rgba(17, 20, 26, .16); border-radius: 10px; padding: 0 14px; font-size: 14px; }
+.koreaModalCardV1 button[type="submit"] { height: 48px; border: none; border-radius: 10px; background: var(--red); color: #fff; font-weight: 700; cursor: pointer; }
+.koreaModalHpV1 { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.koreaModalMsgV1 { font-size: 13px; color: var(--muted); min-height: 16px; }
+.koreaModalOkV1 { text-align: center; padding: 10px 0; }
+.koreaModalOkV1 b { display: block; margin-bottom: 6px; }
+@media (max-width: 640px) {
+  .koreaListWrapV1 { padding: 24px 16px 48px; }
+  .koreaGridV1 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .koreaCardBodyV1 { padding: 10px 12px 12px; gap: 7px; }
+  .koreaCardBodyV1 h3 { font-size: 14px; }
+}
