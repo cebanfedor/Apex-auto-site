@@ -32,13 +32,14 @@
     { "source": "/", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/", "permanent": true },
     { "source": "/:path*", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/:path*", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true },
-    { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
+    { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|korea|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
     { "source": "/hot", "destination": "/in-transit", "permanent": true },
     { "source": "/hot.html", "destination": "/in-transit", "permanent": true }
   ],
   "rewrites": [
     { "source": "/", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=index" },
     { "source": "/in-transit", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=hot" },
+    { "source": "/korea", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=korea" },
     { "source": "/about", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=about" },
     { "source": "/contacts", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=contacts" },
     { "source": "/guide", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=guide" },
@@ -104,6 +105,7 @@
     { "source": "/contacts", "destination": "/contacts.html" },
     { "source": "/in-transit", "destination": "/in-transit.html" },
     { "source": "/in-transit/:slug(\\d[^/]*)", "destination": "/api/transit-page?slug=:slug" },
+    { "source": "/korea", "destination": "/korea.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },
@@ -188,6 +190,12 @@
     },
     {
       "source": "/api/hot-lots",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, s-maxage=300, max-age=60, stale-while-revalidate=3600" }
+      ]
+    },
+    {
+      "source": "/api/korea",
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=300, max-age=60, stale-while-revalidate=3600" }
       ]

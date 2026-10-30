@@ -8,6 +8,7 @@ const apiRoutes = {
   "/api/admin":"./api/admin.js",
   "/api/auctions":"./api/auctions.js",
   "/api/hot-lots":"./api/hot-lots.js",
+  "/api/korea":"./api/korea.js",
   "/api/vehicles":"./api/vehicles.js",
   "/api/customers":"./api/customers.js",
   "/api/leads":"./api/leads.js",
@@ -212,6 +213,7 @@ http.createServer((req, res) => {
   if(pathname === "/auctions") pathname = "/auctions.html";
   if(pathname === "/tracking") pathname = "/tracking.html";
   if(pathname === "/in-transit") pathname = "/in-transit.html";
+  if(pathname === "/korea") pathname = "/korea.html";
   if(/^\/auctions\/[^/]+$/.test(pathname)) pathname = "/auctions.html";
   const safePath = path.normalize(pathname === "/" ? "/index.html" : pathname);
   const filePath = path.join(root, safePath.endsWith("/") ? `${safePath}index.html` : safePath);

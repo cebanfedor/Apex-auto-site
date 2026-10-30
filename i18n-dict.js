@@ -1374,7 +1374,18 @@ window.__APEX_DICT = (function(){
       "4 авто · Отзыв в Google":"4 mașini · Recenzie pe Google",
       "ссылку на":"linkul către",
       "или Manheim;":"sau Manheim;",
-      "Apex Auto создан в 2026 году на базе команды, работающей в автомобильном бизнесе с 2016 года. За это время командой доставлено более 2000 автомобилей из США и Канады: от бюджетных Toyota и Honda до Tesla, BMW и Mercedes-Benz. Рейтинг 4,4 в Google (41 отзыв) и повторные заказы — наши клиенты привозят по 3–4 машины и рекомендуют нас друзьям. Начните с":"Apex Auto a fost creat în 2026 pe baza unei echipe care activează în afacerea auto din 2016. În acest timp, echipa a livrat peste 2000 de mașini din SUA și Canada: de la Toyota și Honda accesibile până la Tesla, BMW și Mercedes-Benz. Rating 4,4 pe Google (41 de recenzii) și comenzi repetate — clienții noștri aduc câte 3–4 mașini și ne recomandă prietenilor. Începeți cu"
+      "Apex Auto создан в 2026 году на базе команды, работающей в автомобильном бизнесе с 2016 года. За это время командой доставлено более 2000 автомобилей из США и Канады: от бюджетных Toyota и Honda до Tesla, BMW и Mercedes-Benz. Рейтинг 4,4 в Google (41 отзыв) и повторные заказы — наши клиенты привозят по 3–4 машины и рекомендуют нас друзьям. Начните с":"Apex Auto a fost creat în 2026 pe baza unei echipe care activează în afacerea auto din 2016. În acest timp, echipa a livrat peste 2000 de mașini din SUA și Canada: de la Toyota și Honda accesibile până la Tesla, BMW și Mercedes-Benz. Rating 4,4 pe Google (41 de recenzii) și comenzi repetate — clienții noștri aduc câte 3–4 mașini și ne recomandă prietenilor. Începeți cu",
+      "Авто из Кореи":"Mașini din Coreea",
+      "АВТО ИЗ КОРЕИ":"MAȘINI DIN COREEA",
+      "Автомобили из Кореи — Hyundai, Kia, Genesis и другие":"Mașini din Coreea — Hyundai, Kia, Genesis și altele",
+      "Показываем актуальные предложения с корейского рынка (Encar): фото, год, пробег и комплектация. Стоимость под ключ в Молдову считаем индивидуально по каждой машине — оставьте заявку, и мы пришлём расчёт.":"Afișăm ofertele actuale de pe piața coreeană (Encar): foto, an, rulaj și dotări. Calculăm prețul la cheie până în Moldova individual pentru fiecare mașină — lăsați o cerere și vă trimitem calculul.",
+      "Выбираете понравившуюся машину, оставляете заявку — мы уточняем актуальность, считаем доставку и таможню и присылаем точную стоимость под ключ.":"Alegeți mașina care vă place, lăsați o cerere — verificăm disponibilitatea, calculăm livrarea și vămuirea și vă trimitem prețul exact la cheie.",
+      "Актуальные авто из Кореи":"Mașini din Coreea disponibile acum",
+      "Показать ещё авто":"Arată mai multe mașini",
+      "Корея":"Coreea",
+      "Узнать цену →":"Află prețul →",
+      "Сейчас список обновляется":"Lista se actualizează",
+      "Не смогли загрузить актуальные предложения из Кореи. Напишите нам — пришлём подборку вручную, пока список восстанавливается.":"Nu am putut încărca ofertele actuale din Coreea. Scrieți-ne — vă trimitem o selecție manual, până se restabilește lista."
     },
     en:{
       "г.":"yr",
@@ -2762,7 +2773,18 @@ window.__APEX_DICT = (function(){
       "4 авто · Отзыв в Google":"4 cars · Google review",
       "ссылку на":"a link to",
       "или Manheim;":"or Manheim;",
-      "Apex Auto создан в 2026 году на базе команды, работающей в автомобильном бизнесе с 2016 года. За это время командой доставлено более 2000 автомобилей из США и Канады: от бюджетных Toyota и Honda до Tesla, BMW и Mercedes-Benz. Рейтинг 4,4 в Google (41 отзыв) и повторные заказы — наши клиенты привозят по 3–4 машины и рекомендуют нас друзьям. Начните с":"Apex Auto was founded in 2026, built on a team that has been in the car business since 2016. In that time the team has delivered over 2000 cars from the US and Canada: from budget-friendly Toyota and Honda to Tesla, BMW and Mercedes-Benz. A 4.4 Google rating (41 reviews) and repeat orders — our clients bring in 3–4 cars each and recommend us to friends. Start with"
+      "Apex Auto создан в 2026 году на базе команды, работающей в автомобильном бизнесе с 2016 года. За это время командой доставлено более 2000 автомобилей из США и Канады: от бюджетных Toyota и Honda до Tesla, BMW и Mercedes-Benz. Рейтинг 4,4 в Google (41 отзыв) и повторные заказы — наши клиенты привозят по 3–4 машины и рекомендуют нас друзьям. Начните с":"Apex Auto was founded in 2026, built on a team that has been in the car business since 2016. In that time the team has delivered over 2000 cars from the US and Canada: from budget-friendly Toyota and Honda to Tesla, BMW and Mercedes-Benz. A 4.4 Google rating (41 reviews) and repeat orders — our clients bring in 3–4 cars each and recommend us to friends. Start with",
+      "Авто из Кореи":"Cars from Korea",
+      "АВТО ИЗ КОРЕИ":"CARS FROM KOREA",
+      "Автомобили из Кореи — Hyundai, Kia, Genesis и другие":"Cars from Korea — Hyundai, Kia, Genesis and more",
+      "Показываем актуальные предложения с корейского рынка (Encar): фото, год, пробег и комплектация. Стоимость под ключ в Молдову считаем индивидуально по каждой машине — оставьте заявку, и мы пришлём расчёт.":"We show current listings from the Korean market (Encar): photos, year, mileage and trim. We calculate the turnkey price to Moldova individually for each car — leave a request and we'll send you a quote.",
+      "Выбираете понравившуюся машину, оставляете заявку — мы уточняем актуальность, считаем доставку и таможню и присылаем точную стоимость под ключ.":"Pick a car you like, leave a request — we'll confirm it's still available, calculate shipping and customs, and send you the exact turnkey price.",
+      "Актуальные авто из Кореи":"Cars from Korea available now",
+      "Показать ещё авто":"Show more cars",
+      "Корея":"Korea",
+      "Узнать цену →":"Get the price →",
+      "Сейчас список обновляется":"The list is updating",
+      "Не смогли загрузить актуальные предложения из Кореи. Напишите нам — пришлём подборку вручную, пока список восстанавливается.":"We couldn't load the current listings from Korea. Message us and we'll send you a selection by hand while the list is being restored."
     }
   };
 
