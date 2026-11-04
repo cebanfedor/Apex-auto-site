@@ -6133,7 +6133,13 @@ module.exports = async function handler(request, response){
             saleStatus:lot.saleStatus || "", timed:!!lot.timed, statusId:lot.statusId, auctionDate:lot.auctionDate || ""};
           // Лот по данным самого лота (не списка) уже продан — карточка в каталоге показывала «сегодня на торгах» (IAAI 44995177):
           // отдаём клиенту флаг и заодно лечим строку в базе (архив), чтобы ошибка не жила дальше.
-          if(Number(lot.statusId) === 6 && Date.parse(lot.auctionDate || "") < Date.now()){ r.sold = true; r.finalBid = Number(lot.finalBid) || Number(lot.currentBid) || 0; upsertClosedLot(lot); }
+          if(Number(lot.statusId) === 6 && Date.parse(lot.auctionDate || "") < Date.now()){ r.sold = true; r.finalBid = Number(lot.finalBid) || Number(lot.currentBid) || 0; }
+          // 04.11.2026 (Федор: «есть машины без даты аукциона, а они по факту уже имеют дату») — лот без
+          // даты в базе может получить её у аукциона в любой момент; upcoming-синк (next_hours_auction) его
+          // физически не видит, пока даты нет, а общий sweep раз в сутки. Карточку в каталоге как раз здесь
+          // уже сверяем с живым фидом (fetchDetail выше) — пишем дату (и остальное) в базу сразу, не только
+          // при «продан», как раньше. Та же функция, что самолечит detail&fresh=1 — сама решает, что писать.
+          upsertClosedLot(lot).catch(() => {});
           setCached(ck, r, 2 * 60e3); out[id] = r;
         }catch(e){ out[id] = null; }
       };
