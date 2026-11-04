@@ -538,7 +538,7 @@ function create(deps){
       return true;
     }
 
-    if(action === "alertsub" || action === "alertdel"){
+    if(action === "alertsub" || action === "alertdel" || action === "alertdellot"){
       if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
       const body = await readBody(request).catch(() => ({}));
       if(!okToken(body.token)){ sendJson(response, 400, {ok:false, error:"bad_token"}, NO); return true; }
@@ -548,6 +548,19 @@ function create(deps){
         const id = Number(body.id);
         if(!Number.isFinite(id)){ sendJson(response, 400, {ok:false}, NO); return true; }
         await sb(`/alert_subs?id=eq.${id}&token=eq.${q(body.token)}`, {method:"DELETE", headers:{prefer:"return=minimal"}});
+        sendJson(response, 200, {ok:true}, NO);
+        return true;
+      }
+      // 04.11.2026 (Федор: «подписываемся через ТГ на лоты, а отписаться больше не можем») — колокольчик на
+      // карточке/странице лота знает только lot_id (локально, из localStorage), а не id строки alert_subs
+      // (его показывает только панель «Сохранённые поиски» после отдельного запроса alertstatus) — поэтому
+      // отписка по id (как в той панели) с колокольчика невозможна без лишнего round-trip. Отдельный экшен
+      // удаляет подписку прямо по lot_id — токен+lot_id это тоже однозначный ключ (UNIQUE нет, но строк на
+      // пару — не проблема, DELETE уберёт все совпавшие, включая случайные дубли от гонки двух кликов).
+      if(action === "alertdellot"){
+        const lotId = String(body.lot_id || "");
+        if(!/^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/.test(lotId)){ sendJson(response, 400, {ok:false}, NO); return true; }
+        await sb(`/alert_subs?token=eq.${q(body.token)}&kind=eq.lot&lot_id=eq.${q(lotId)}`, {method:"DELETE", headers:{prefer:"return=minimal"}});
         sendJson(response, 200, {ok:true}, NO);
         return true;
       }
