@@ -7,6 +7,7 @@
 // неизвестно, в каком виде/валюте её отдаёт фид для Кореи, разберёмся отдельно).
 const {sendJson, methodNotAllowed} = require("../server/http");
 const {fetchT} = require("../server/fetchx");
+const {isAuthenticated} = require("../server/auth");
 
 const BASE = "https://auctionsapi.com/api";
 const DOMAIN_ID = "12"; // Encar/Корея — см. isEncar() в api/auctions.js (id===12)
@@ -75,14 +76,11 @@ function normalizeKoreaItem(raw){
   };
 }
 
-async function fetchKoreaPage(page, perPage){
-  const key = `${page}:${perPage}`;
-  const hit = CACHE.get(key);
-  if(hit && hit.exp > Date.now()) return hit.data;
-
+// Общий поход к фиду (без нормализации) — делят и обычная выдача, и admin-диагностика ниже
+// (?raw=1), которой нужны СЫРЫЕ поля (цена и т.п.), не прошедшие через normalizeKoreaItem.
+async function fetchKoreaRaw(page, perPage){
   const apiKey = process.env.AUCTIONS_API_KEY;
-  if(!apiKey) return {items:[], total:0, mode:"fallback", reason:"AUCTIONS_API_KEY не настроен"};
-
+  if(!apiKey) return {error:"AUCTIONS_API_KEY не настроен"};
   const params = new URLSearchParams({domain_id:DOMAIN_ID, page:String(page), per_page:String(perPage)});
   let res;
   try{
@@ -90,9 +88,7 @@ async function fetchKoreaPage(page, perPage){
   }catch(e){
     // 30.10.2026 (Федор: «пустая страница, почему?») — раньше тут был общий текст без реальной причины
     // (таймаут/DNS/обрыв соединения выглядели одинаково). Теперь кладём настоящее сообщение ошибки.
-    const data = {items:[], total:0, mode:"fallback", reason:`Сервис аукционов не отвечает: ${String(e && e.message || e).slice(0, 160)}`};
-    CACHE.set(key, {data, exp:Date.now() + 30 * 1000}); // короткий TTL на сбой — не залипаем надолго
-    return data;
+    return {error:`Сервис аукционов не отвечает: ${String(e && e.message || e).slice(0, 160)}`};
   }
   if(!res.ok){
     // Тело ответа при ошибке часто объясняет причину (напр. у НОВОГО api.auctionsapi.com бывает
@@ -100,13 +96,24 @@ async function fetchKoreaPage(page, perPage){
     // диагностировать без доступа к логам Vercel.
     let bodySnippet = "";
     try{ bodySnippet = (await res.text()).slice(0, 200); }catch(e){}
-    const data = {items:[], total:0, mode:"fallback", reason:`AuctionsAPI ${res.status}${bodySnippet ? ": " + bodySnippet : ""}`};
-    CACHE.set(key, {data, exp:Date.now() + 30 * 1000});
-    return data;
+    return {error:`AuctionsAPI ${res.status}${bodySnippet ? ": " + bodySnippet : ""}`};
   }
   let payload;
-  try{ payload = await res.json(); }catch(e){ return {items:[], total:0, mode:"fallback", reason:"Bad JSON from AuctionsAPI"}; }
-  const rawItems = findItems(payload);
+  try{ payload = await res.json(); }catch(e){ return {error:"Bad JSON from AuctionsAPI"}; }
+  return {payload, rawItems:findItems(payload)};
+}
+
+async function fetchKoreaPage(page, perPage){
+  const key = `${page}:${perPage}`;
+  const hit = CACHE.get(key);
+  if(hit && hit.exp > Date.now()) return hit.data;
+
+  const {error, rawItems = [], payload} = await fetchKoreaRaw(page, perPage);
+  if(error){
+    const data = {items:[], total:0, mode:"fallback", reason:error};
+    CACHE.set(key, {data, exp:Date.now() + 30 * 1000}); // короткий TTL на сбой — не залипаем надолго
+    return data;
+  }
   const items = rawItems.map(normalizeKoreaItem).filter(Boolean);
   const total = Number(payload?.total ?? payload?.count ?? payload?.data?.total ?? payload?.data?.count ?? payload?.meta?.total) || items.length;
   // Разделяем два разных «пусто»: фид не вернул ни одной записи для domain_id=12 (подписка/лимит/нет лотов
@@ -125,6 +132,16 @@ module.exports = async function handler(req, res){
   const q = new URL(req.url, "http://x").searchParams;
   const page = Math.max(1, Number(q.get("page")) || 1);
   const perPage = Math.min(48, Math.max(1, Number(q.get("per_page")) || 24));
+  // 04.11.2026 (Федор: «теперь в подписке есть Encar») — admin-диагностика, ДО нормализатора: чтобы
+  // построить полноценный каталог (цена, трансмиссия/топливо на корейском и т.п.) нужно увидеть РЕАЛЬНЫЕ
+  // поля фида для domain_id=12, не угаданные normalizeKoreaItem (он сознательно не читает цену — её ещё
+  // не разбирали). Тот же принцип диагностики, что rawfields/sampleKeys у Copart/IAAI — не выдумывать поля.
+  if(q.get("raw") === "1"){
+    if(!isAuthenticated(req)) return sendJson(res, 401, {ok:false, error:"Unauthorized"});
+    const {error, rawItems = [], payload} = await fetchKoreaRaw(page, Math.min(5, perPage));
+    if(error) return sendJson(res, 200, {ok:false, error});
+    return sendJson(res, 200, {ok:true, topLevelKeys:Object.keys(payload || {}), count:rawItems.length, items:rawItems.slice(0, 5)}, {"cache-control":"no-store"});
+  }
   let data;
   try{ data = await fetchKoreaPage(page, perPage); }
   catch(e){ data = {items:[], total:0, mode:"fallback", reason:String(e && e.message || e).slice(0, 160)}; }
