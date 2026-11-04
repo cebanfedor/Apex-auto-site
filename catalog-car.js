@@ -827,6 +827,23 @@
 
   // ---------- ИСТОРИЯ ----------
   var histTabState = {reportIdx:0, order:"asc"};
+  // 05.11.2026 (Федор: «повтори полностью структуру сайта как я тебе дал», 4 скриншота демо-каталога провайдера,
+  // вкладка History): реальные поля сверены по OpenAPI-схеме VehicleHistory (summary.vehicle_damage_claim_cost/
+  // third_party_damage_claim_cost/registration_change_count — были в схеме, не показывались; event.description —
+  // есть в схеме, но пусто у всех 23 событий тестовой машины, поэтому для «предложения» под заголовком события
+  // используем синтез из details[] (label: значение, через запятую) — то же самое, что явно делает сам демо-сайт
+  // для событий без description). Монохромный ЗАГЛАВНЫЙ тег у события (`INITIAL_REGISTRATION`) — это их
+  // буквальный `type_key` в верхнем регистре (подтверждено посимвольным совпадением со скриншота) — не перевод.
+  var TONE_RISK = {insurance_claim:1, insurance_coverage_gap:1, total_loss:1};
+  var TONE_OK = {maintenance:1, statutory_inspection:1};
+  function eventTone(e){ return TONE_RISK[e.type_key] ? "isWarnV1" : TONE_OK[e.type_key] ? "isOkV1" : (e.type_key === "recall" && e.status_key === "recall_open") ? "isWarnV1" : "isNeutralV1"; }
+  function computeReadings(events){
+    var readings = events.filter(function(e){ return e.mileage_km != null && isFinite(e.mileage_km) && e.occurred_at; })
+      .map(function(e){ return {date:e.occurred_at, km:Math.round(e.mileage_km)}; })
+      .sort(function(a, b){ return new Date(a.date) - new Date(b.date); });
+    return readings.filter(function(rd, i){ return i === 0 || !(rd.date === readings[i - 1].date && rd.km === readings[i - 1].km); });
+  }
+
   function renderHistoryTab(){
     var panel = document.getElementById("catPanelHistoryV1");
     var reports = matchingReports(state.car.vehicle_history_reports);
@@ -836,109 +853,137 @@
     var checks = Array.isArray(r.checks) ? r.checks : [];
     var events = Array.isArray(r.events) ? r.events.slice() : [];
     var cov = (r.coverage && !Array.isArray(r.coverage)) ? r.coverage : {};
+    var cur = (s.currency || "").toUpperCase();
 
     var html = "";
     if(reports.length > 1) html += '<div class="catReportSwitchV1">' + reports.map(function(_, i){ return '<button type="button" data-hist-report="' + i + '" class="' + (i === histTabState.reportIdx ? "isOnV1" : "") + '">' + esc(T("Отчёт")) + " " + (i + 1) + '</button>'; }).join("") + '</div>';
 
-    // 1. Summary
-    var riskyChecks = checks.filter(function(c){ return c.result_key === "present"; });
-    html += '<div class="catDetailsCardV1"><h4>' + esc(T("Сводка")) + '</h4>';
-    html += '<div class="catStatRowV1">'
-      + '<div class="catStatPillV1' + (riskyChecks.length ? " isWarnV1" : " isOkV1") + '"><b data-no-i18n="true">' + riskyChecks.length + '</b><small>' + esc(T("найдено рисков")) + '</small></div>'
-      + '<div class="catStatPillV1"><b data-no-i18n="true">' + (s.owner_change_count != null ? s.owner_change_count : "—") + '</b><small>' + esc(T("смен владельца")) + '</small></div>'
-      + '<div class="catStatPillV1' + (s.insurance_claim_count > 0 ? " isWarnV1" : "") + '"><b data-no-i18n="true">' + (s.insurance_claim_count != null ? s.insurance_claim_count : "—") + '</b><small>' + esc(T("страховых случаев")) + '</small></div>'
-      + '<div class="catStatPillV1"><b data-no-i18n="true">' + events.length + '</b><small>' + esc(T("событий")) + '</small></div>'
-      + '</div>';
+    // 1. Сводка — 4 блока (риски / владельцы / страховые случаи / пробег), как у демо провайдера
+    var found = checks.filter(function(c){ return c.result_key === "present"; }).length;
+    var notFound = checks.filter(function(c){ return c.result_key === "not_present"; }).length;
+    var unknownN = Math.max(0, checks.length - found - notFound);
+    var pNot = checks.length ? Math.round((notFound / checks.length) * 100) : 0;
+    var pFound = checks.length ? Math.max(found ? 2 : 0, Math.round((found / checks.length) * 100)) : 0;
+    var pUnk = Math.max(0, 100 - pNot - pFound);
+    var readings = computeReadings(events);
+    var rollback = readings.some(function(rd, i){ return i > 0 && rd.km < readings[i - 1].km; });
+    var lastReading = readings.length ? readings[readings.length - 1] : null;
+
+    html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Сводка")) + '</h4><span class="catEvCountV1" data-no-i18n="true">' + esc(T("Событий")) + ": " + events.length + '</span></div>';
+    html += '<div class="catHistSumGridV1">'
+      + '<div class="catInspSumBoxV1"><small>' + esc(T("Риски — проверки")) + '</small>'
+        + '<b class="' + (found ? "isWarnTxtV1" : "isOkTxtV1") + '" data-no-i18n="true">' + found + " " + esc(T("найдено")) + '</b>'
+        + '<span class="catInspSumSubV1" data-no-i18n="true">' + esc(T("из")) + " " + checks.length + " " + esc(T("проверок")) + '</span>'
+        + '<div class="catInspBarV1 catRiskBarV1"><span class="okSegV1" style="width:' + pNot + '%"></span><span class="issSegV1" style="width:' + pFound + '%"></span><span class="unkSegV1" style="width:' + pUnk + '%"></span></div>'
+      + '</div>'
+      + '<div class="catInspSumBoxV1"><small>' + esc(T("Смены владельца")) + '</small>'
+        + '<b data-no-i18n="true">' + (s.owner_change_count != null ? s.owner_change_count : "—") + '</b>'
+        + (s.registration_change_count != null ? '<span class="catInspSumSubV1" data-no-i18n="true">' + esc(T("Смен номеров")) + ": " + s.registration_change_count + '</span>' : "")
+      + '</div>'
+      + '<div class="catInspSumBoxV1"><small>' + esc(T("Страховые случаи")) + '</small>'
+        + '<b class="' + (s.insurance_claim_count > 0 ? "isWarnTxtV1" : "isOkTxtV1") + '" data-no-i18n="true">' + (s.insurance_claim_count != null ? s.insurance_claim_count : "—") + '</b>'
+        + (s.vehicle_damage_claim_cost != null ? '<span class="catInspSumSubV1" data-no-i18n="true">' + esc(T("Ущерб по своей страховке")) + ": " + fmtNum(s.vehicle_damage_claim_cost) + " " + cur + '</span>' : "")
+        + (s.third_party_damage_claim_cost != null ? '<span class="catInspSumSubV1" data-no-i18n="true">' + esc(T("Ущерб по чужой страховке")) + ": " + fmtNum(s.third_party_damage_claim_cost) + " " + cur + '</span>' : "")
+      + '</div>'
+      + (lastReading ? '<div class="catInspSumBoxV1"><small>' + esc(T("Последний зафиксированный пробег")) + '</small>'
+        + '<b data-no-i18n="true">' + fmtNum(lastReading.km) + " " + esc(T("км")) + '</b>'
+        + mileageChartSvg(readings)
+        + '<span class="catInspSumSubV1" data-no-i18n="true">' + esc(T("Показаний")) + ": " + readings.length + " · " + (rollback ? esc(T("возможна скрутка")) : esc(T("скрутка не обнаружена"))) + '</span>'
+      + '</div>' : "")
+    + '</div>';
     var metaChips = [];
-    if(s.first_registered_at) metaChips.push(T("Первая регистрация") + ": " + fmtDate(s.first_registered_at));
-    if(s.total_loss_count > 0) metaChips.push(T("Полная гибель") + ": " + s.total_loss_count);
-    if(s.flood_total_loss_count > 0) metaChips.push(T("Затопление (полное)") + ": " + s.flood_total_loss_count);
-    if(s.flood_partial_loss_count > 0) metaChips.push(T("Затопление (частичное)") + ": " + s.flood_partial_loss_count);
-    if(s.theft_count > 0) metaChips.push(T("Угон") + ": " + s.theft_count);
-    if(cov.period_start || cov.period_end) metaChips.push(T("Период данных") + ": " + fmtDate(cov.period_start) + " – " + (cov.period_end ? fmtDate(cov.period_end) : T("сейчас")));
-    if(metaChips.length) html += '<div class="catMetaChipsV1">' + metaChips.map(function(m){ return '<span data-no-i18n="true">' + esc(m) + '</span>'; }).join("") + '</div>';
+    if(s.first_registered_at) metaChips.push({t:T("Первая регистрация") + ": " + fmtDate(s.first_registered_at)});
+    if(cov.period_start || cov.period_end) metaChips.push({t:T("Период данных") + ": " + fmtDate(cov.period_start) + " – " + (cov.period_end ? fmtDate(cov.period_end) : T("сейчас"))});
+    if(s.total_loss_count != null) metaChips.push({t:T("Полная гибель") + ": " + s.total_loss_count, warn:s.total_loss_count > 0});
+    if(s.flood_total_loss_count != null) metaChips.push({t:T("Затопление (полное)") + ": " + s.flood_total_loss_count, warn:s.flood_total_loss_count > 0});
+    if(s.theft_count != null) metaChips.push({t:T("Угон") + ": " + s.theft_count, warn:s.theft_count > 0});
+    var openRecalls = events.filter(function(e){ return e.type_key === "recall" && e.status_key === "recall_open"; }).length;
+    if(events.some(function(e){ return e.type_key === "recall"; })) metaChips.push({t:T("Открытые отзывные кампании") + ": " + openRecalls, warn:openRecalls > 0});
+    if(metaChips.length) html += '<div class="catMetaChipsV1">' + metaChips.map(function(m){ return '<span class="' + (m.warn ? "isWarnChipV1" : "isOkChipV1") + '" data-no-i18n="true">' + esc(m.t) + '</span>'; }).join("") + '</div>';
     html += '</div>';
 
-    // 2. Проверки
+    // 2. Проверки по базам — ВСЕ, сеткой в 2 колонки, с легендой Found/Not found/Unknown
     if(checks.length){
-      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Проверки по базам")) + '</h4><div class="catChecksListV1">' + checks.slice().sort(function(a, b){
-        var rank = {present:0, unknown:1, not_applicable:1, not_present:2};
-        return (rank[a.result_key] != null ? rank[a.result_key] : 1) - (rank[b.result_key] != null ? rank[b.result_key] : 1);
-      }).map(function(c){
-        return '<div class="catCheckRowV1b">' + resultBadgeHtml(r, c.result_key) + '<span data-no-i18n="true">' + esc(termOr(r, "check_type", c.type_key, humanizeKey(c.type_key))) + (c.count != null ? ' <small>(' + c.count + ')</small>' : "") + '</span></div>';
-      }).join("") + '</div></div>';
+      html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Проверки по базам")) + '</h4>'
+        + '<div class="catLegendRowV1"><span><i class="catLegDotV1 isWarnV1"></i>' + esc(T("Найдено")) + '</span><span><i class="catLegDotV1 isOkV1"></i>' + esc(T("Не найдено")) + '</span><span><i class="catLegDotV1 isNeutralV1"></i>' + esc(T("Неизвестно")) + '</span></div></div>'
+        + '<div class="catHistCheckGridV1">' + checks.slice().sort(function(a, b){
+          var rank = {present:0, unknown:1, not_applicable:1, not_present:2};
+          return (rank[a.result_key] != null ? rank[a.result_key] : 1) - (rank[b.result_key] != null ? rank[b.result_key] : 1);
+        }).map(function(c){
+          var isFoundC = c.result_key === "present";
+          var tone = isFoundC ? "isWarnV1" : c.result_key === "not_present" ? "isOkV1" : "isNeutralV1";
+          var statusTxt = isFoundC ? T("Найдено") : c.result_key === "not_present" ? T("Не найдено") : T("Неизвестно");
+          return '<div class="catHistCheckRowV1' + (isFoundC ? " isFoundV1" : "") + '"><span class="catLegDotV1 ' + tone + '"></span><span class="catHistCheckLblV1" data-no-i18n="true">' + esc(termOr(r, "check_type", c.type_key, humanizeKey(c.type_key))) + '</span><span class="catHistCheckStV1 ' + tone + '">' + esc(statusTxt) + '</span></div>';
+        }).join("") + '</div></div>';
     }
 
-    // 3. Пробег
-    var readings = events.filter(function(e){ return e.mileage_km != null && isFinite(e.mileage_km) && e.occurred_at; })
-      .map(function(e){ return {date:e.occurred_at, km:Math.round(e.mileage_km)}; })
-      .sort(function(a, b){ return new Date(a.date) - new Date(b.date); });
-    // убрать точные дубликаты (дата+км)
-    readings = readings.filter(function(rd, i){ return i === 0 || !(rd.date === readings[i - 1].date && rd.km === readings[i - 1].km); });
-    html += '<div class="catDetailsCardV1"><h4>' + esc(T("Пробег")) + '</h4>';
-    if(readings.length < 2){
-      html += '<p style="color:var(--muted);font-size:13px">' + esc(T("Недостаточно данных для графика пробега.")) + '</p>';
-    }else{
-      var rollback = readings.some(function(rd, i){ return i > 0 && rd.km < readings[i - 1].km; });
-      html += mileageChartSvg(readings)
-        + '<div class="catMileageBadgeRowV1"><span class="catResBadgeV1 ' + (rollback ? "isWarnV1" : "isOkV1") + '">' + (rollback ? esc(T("Признак скрутки пробега")) : esc(T("Скрутка не обнаружена"))) + '</span><small>' + esc(T("Показаний")) + ": " + readings.length + '</small></div>'
-        + '<div class="catMileageChipsV1">' + readings.map(function(rd){ return '<span data-no-i18n="true">' + esc(fmtDate(rd.date)) + " · " + fmtNum(rd.km) + ' ' + esc(T("км")) + '</span>'; }).join("") + '</div>';
+    // 3. Пробег — полный график (оси) + плитки всех показаний
+    if(readings.length >= 2){
+      html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Пробег")) + '</h4><span class="catResBadgeV1 ' + (rollback ? "isWarnV1" : "isOkV1") + '">' + (rollback ? esc(T("Признак скрутки пробега")) : esc(T("Скрутка не обнаружена"))) + '</span></div>'
+        + mileageChartFull(readings)
+        + '<div class="catMileageTilesRowV1">' + readings.map(function(rd, i){
+            return '<div class="catMileageTileV1' + (i === readings.length - 1 ? " isActiveV1" : "") + '"><small data-no-i18n="true">' + esc(fmtDate(rd.date)) + '</small><b data-no-i18n="true">' + fmtNum(rd.km) + " " + esc(T("км")) + '</b></div>';
+          }).join("") + '</div>'
+      + '</div>';
     }
-    html += '</div>';
 
-    // 4. Хронология
+    // 4. Хронология событий — заголовок/синтезированное описание из details/заглавный тег type_key/раскрываемые Source details
     var dated = events.filter(function(e){ return e.occurred_at; }).sort(function(a, b){ return new Date(a.occurred_at) - new Date(b.occurred_at); });
     var undated = events.filter(function(e){ return !e.occurred_at; });
     if(histTabState.order === "desc") dated = dated.slice().reverse();
-    var TONE_RISK = {insurance_claim:1, insurance_coverage_gap:1, total_loss:1};
-    var TONE_OK = {maintenance:1, statutory_inspection:1};
-    html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Хронология")) + '</h4>'
+    html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Хронология событий")) + '</h4>'
       + '<button type="button" id="catHistOrderBtnV1" class="catOrderBtnV1">' + esc(histTabState.order === "asc" ? T("Сначала новые") : T("Сначала старые")) + '</button></div>'
-      + '<div class="catTimelineV1">' + dated.concat(undated).map(function(e){
-        var tone = TONE_RISK[e.type_key] ? "isWarnV1" : TONE_OK[e.type_key] ? "isOkV1" : (e.type_key === "recall" && e.status_key === "recall_open") ? "isWarnV1" : "isNeutralV1";
-        var title = termOr(r, "event_type", e.type_key, humanizeKey(e.type_key));
-        var subtitle = e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, humanizeKey(e.subtype_key)) : "";
-        var dateTxt = e.occurred_at ? fmtDatePrecise(e.occurred_at, e.date_precision_key) + (e.ended_at ? " – " + fmtDatePrecise(e.ended_at, e.date_precision_key) : "") : T("Дата неизвестна");
-        var details = (e.details || []).slice(0, 6).map(function(d){
-          var label = termOr(r, "detail", d.key, d.source_label || humanizeKey(d.key));
-          var val = d.value_text || (d.value_number != null ? fmtNum(d.value_number) + (d.unit_key ? " " + String(d.unit_key).toUpperCase() : "") : (d.value_date ? fmtDate(d.value_date) : ""));
-          return val ? '<div class="catEvDetailV1"><small>' + esc(label) + '</small><span data-no-i18n="true">' + esc(val) + '</span></div>' : "";
-        }).join("");
-        return '<div class="catTimelineItemV1"><span class="catTlDotV1 ' + tone + '"></span><div class="catTlBodyV1">'
-          + '<div class="catTlHeadV1"><b data-no-i18n="true">' + esc(title) + '</b><small>' + esc(dateTxt) + '</small></div>'
-          + (subtitle ? '<span class="catResBadgeV1 isNeutralV1" data-no-i18n="true">' + esc(subtitle) + '</span>' : "")
-          + (e.source_label ? '<p class="catEvSrcV1" data-no-i18n="true">' + esc(e.source_label) + '</p>' : "")
-          + (details ? '<div class="catEvDetailsGridV1">' + details + '</div>' : "")
-        + '</div></div>';
-      }).join("") + '</div></div>';
+      + '<div class="catTimelineV1">' + dated.concat(undated).map(function(e){ return eventCardHtml(r, e); }).join("") + '</div></div>';
 
-    // 5. Claim amounts
+    // 5. Суммы страховых случаев — составной бар (выплата/запчасти/работа/покраска)
     var claims = events.filter(function(e){ return e.type_key === "insurance_claim" && e.amount_total != null; });
     if(claims.length){
-      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Суммы страховых случаев")) + '</h4>' + claims.slice(0, 6).map(function(e){
-        var comps = [];
-        if(e.amount_insurance_benefit != null) comps.push(T("Выплата") + ": " + fmtNum(e.amount_insurance_benefit) + " " + (e.currency || "").toUpperCase());
-        if(e.amount_parts != null) comps.push(T("Запчасти") + ": " + fmtNum(e.amount_parts));
-        if(e.amount_labor != null) comps.push(T("Работа") + ": " + fmtNum(e.amount_labor));
-        if(e.amount_painting != null) comps.push(T("Покраска") + ": " + fmtNum(e.amount_painting));
-        return '<div class="catClaimRowV1"><div><b data-no-i18n="true">' + esc(e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, e.source_label) : (e.source_label || T("Страховой случай"))) + '</b><small>' + esc(fmtDatePrecise(e.occurred_at, e.date_precision_key)) + '</small></div><div class="catClaimAmtV1"><b data-no-i18n="true">' + fmtNum(e.amount_total) + " " + esc((e.currency || "").toUpperCase()) + '</b>' + (comps.length ? '<small data-no-i18n="true">' + esc(comps.join(" · ")) + '</small>' : "") + '</div></div>';
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Суммы страховых случаев")) + '</h4><p class="catSecSubV1">' + esc(T("Разбивка по типам, если источник их указывает")) + '</p>' + claims.slice(0, 6).map(function(e){
+        var comps = [
+          e.amount_insurance_benefit != null ? [T("Выплата"), e.amount_insurance_benefit, "#20b26b"] : null,
+          e.amount_parts != null ? [T("Запчасти"), e.amount_parts, "#2d86c9"] : null,
+          e.amount_labor != null ? [T("Работа"), e.amount_labor, "#d7891d"] : null,
+          e.amount_painting != null ? [T("Покраска"), e.amount_painting, "#7c5cd8"] : null
+        ].filter(Boolean);
+        var totalParts = comps.reduce(function(s2, c){ return s2 + c[1]; }, 0) || e.amount_total || 1;
+        var bar = comps.map(function(c){ var pct = totalParts ? (c[1] / totalParts * 100) : 0; return pct > 0 ? '<span style="width:' + pct.toFixed(2) + '%;background:' + c[2] + '"></span>' : ""; }).join("");
+        var title = e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, e.source_label) : (e.source_label || T("Страховой случай"));
+        return '<div class="catClaimCardV1"><div class="catClaimHeadV1"><div><b data-no-i18n="true">' + esc(title) + '</b><small data-no-i18n="true">' + esc(fmtDatePrecise(e.occurred_at, e.date_precision_key)) + '</small></div>'
+          + '<div class="catClaimHeadRightV1">' + (e.subtype_key ? '<span class="catClaimTagV1" data-no-i18n="true">' + esc(String(title).toUpperCase()) + '</span>' : "") + '<b data-no-i18n="true">' + fmtNum(e.amount_total) + " " + esc((e.currency || "").toUpperCase()) + '</b></div></div>'
+          + (bar ? '<div class="catClaimBarV1">' + bar + '</div><div class="catClaimLegendV1">' + comps.map(function(c){ return '<span><i class="catLegDotV1" style="background:' + c[2] + '"></i>' + esc(c[0]) + " " + fmtNum(c[1]) + " " + esc((e.currency || "").toUpperCase()) + '</span>'; }).join("") + '</div>' : "")
+        + '</div>';
       }).join("") + '</div>';
     }
 
-    // 6. Смены владельца
+    // 6. Смены владельца — таблица (дата/изменение/транзакция/пробег)
     var owners = events.filter(function(e){ return e.type_key === "owner_change"; });
     if(owners.length){
-      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Смены владельца")) + '</h4><div class="catOwnerTableV1">' + owners.map(function(e){
-        return '<div class="catOwnerRowV1"><span data-no-i18n="true">' + esc(fmtDatePrecise(e.occurred_at, e.date_precision_key)) + '</span><span data-no-i18n="true">' + esc(e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, e.source_label) : (e.source_label || "—")) + '</span></div>';
-      }).join("") + '</div></div>';
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Смены владельца")) + '</h4><div class="catOwnerTableV2">'
+        + '<div class="catOwnerHeadRowV1"><span>' + esc(T("Дата")) + '</span><span>' + esc(T("Изменение")) + '</span><span>' + esc(T("Транзакция")) + '</span><span>' + esc(T("Пробег")) + '</span></div>'
+        + owners.map(function(e){
+          var txnDetail = (e.details || []).find(function(d){ return d.key === "transaction_type"; });
+          return '<div class="catOwnerRowV2"><span data-no-i18n="true">' + esc(fmtDatePrecise(e.occurred_at, e.date_precision_key)) + '</span>'
+            + '<span data-no-i18n="true">' + esc(termOr(r, "event_type", "owner_change", T("Смена владельца"))) + '</span>'
+            + '<span data-no-i18n="true">' + esc(txnDetail ? txnDetail.value_text : "—") + '</span>'
+            + '<span data-no-i18n="true">' + (e.mileage_km != null ? fmtNum(Math.round(e.mileage_km)) + " " + esc(T("км")) : "—") + '</span></div>';
+        }).join("")
+      + '</div></div>';
     }
 
-    // 7. Покрытие отчёта
-    if(cov.section_keys && cov.section_keys.length){
-      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Покрытие отчёта")) + '</h4>'
-        + (cov.completeness_key ? '<p>' + resultBadgeHtml(r, "ok") + ' <span data-no-i18n="true">' + esc(termOr(r, "completeness", cov.completeness_key, cov.completeness_key)) + '</span></p>' : "")
-        + '<div class="catCoverageChipsV1">' + cov.section_keys.map(function(k){ return '<span data-no-i18n="true">' + esc(termOr(r, "coverage_section", k, humanizeKey(k))) + '</span>'; }).join("") + '</div></div>';
-    }
+    // 7. Покрытие отчёта + Event mix — рядом, как у демо провайдера
+    var mixMap = {};
+    events.forEach(function(e){ var k = e.type_key || "other"; mixMap[k] = (mixMap[k] || 0) + 1; });
+    var mixRows = Object.keys(mixMap).sort(function(a, b){ return mixMap[b] - mixMap[a]; });
+    var mixMax = mixRows.length ? mixMap[mixRows[0]] : 1;
+    var covHtml = (cov.section_keys && cov.section_keys.length) ? ('<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Покрытие отчёта")) + '</h4>' + (cov.completeness_key ? '<span class="catResBadgeV1 isOkV1" data-no-i18n="true">' + esc(termOr(r, "completeness", cov.completeness_key, cov.completeness_key).toUpperCase()) + '</span>' : "") + '</div>'
+      + rowsHtml([cov.period_start ? [T("Начало периода"), fmtDate(cov.period_start)] : null, cov.period_end ? [T("Конец периода"), fmtDate(cov.period_end)] : null].filter(Boolean), true)
+      + '<div class="catCoverageChipsV1">' + cov.section_keys.map(function(k){ return '<span data-no-i18n="true">' + esc(termOr(r, "coverage_section", k, humanizeKey(k))) + '</span>'; }).join("") + '</div></div>') : "";
+    var mixHtml = mixRows.length ? ('<div class="catDetailsCardV1"><h4>' + esc(T("Состав событий")) + '</h4><div class="catEventMixV1">' + mixRows.map(function(k){
+        var tone = TONE_RISK[k] ? "#ed0012" : TONE_OK[k] ? "#20b26b" : "var(--muted)";
+        var pct = Math.round((mixMap[k] / mixMax) * 100);
+        return '<div class="catEventMixRowV1"><div class="catEventMixHeadV1"><span data-no-i18n="true">' + esc(termOr(r, "event_type", k, humanizeKey(k))) + '</span><b data-no-i18n="true">' + mixMap[k] + '</b></div><div class="catEventMixBarTrackV1"><span style="width:' + pct + '%;background:' + tone + '"></span></div></div>';
+      }).join("") + '</div></div>') : "";
+    if(covHtml || mixHtml) html += '<div class="catCoverageMixRowV1">' + covHtml + mixHtml + '</div>';
 
     // 8. Подробнее об отчёте
     html += '<div class="catDetailsCardV1"><h4>' + esc(T("Подробнее об отчёте")) + '</h4>' + rowsHtml([
@@ -951,8 +996,39 @@
 
     panel.innerHTML = html;
   }
+  function eventCardHtml(r, e){
+    var tone = eventTone(e);
+    var title = termOr(r, "event_type", e.type_key, humanizeKey(e.type_key));
+    var subtitle = e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, humanizeKey(e.subtype_key)) : "";
+    var dateTxt = e.occurred_at ? fmtDatePrecise(e.occurred_at, e.date_precision_key) + (e.ended_at ? " – " + fmtDatePrecise(e.ended_at, e.date_precision_key) : "") : T("Дата неизвестна");
+    var details = e.details || [];
+    // Предложение-синтез из details (как у источника для событий без своего description) — те же данные, что в сетке ниже.
+    var sentence = e.description || details.map(function(d){
+      var label = d.source_label || termOr(r, "detail", d.key, humanizeKey(d.key));
+      var val = d.value_text || (d.value_number != null ? fmtNum(d.value_number) + (d.unit_key ? " " + String(d.unit_key).toUpperCase() : "") : (d.value_date ? fmtDate(d.value_date) : ""));
+      return val ? (label + ": " + val) : null;
+    }).filter(Boolean).join(", ");
+    var fields = details.map(function(d){
+      var label = termOr(r, "detail", d.key, d.source_label || humanizeKey(d.key));
+      var val = d.value_text || (d.value_number != null ? fmtNum(d.value_number) + (d.unit_key ? " " + String(d.unit_key).toUpperCase() : "") : (d.value_date ? fmtDate(d.value_date) : ""));
+      return val ? '<div class="catEvFieldV1"><small data-no-i18n="true">' + esc(label) + '</small><b data-no-i18n="true">' + esc(val) + '</b></div>' : "";
+    }).join("");
+    var srcRows = [
+      e.id ? [T("ID события"), {html:'<span data-no-i18n="true">' + esc(e.id) + '</span>'}] : null,
+      e.evidence_type_key ? [T("Тип источника"), termOr(r, "evidence_type", e.evidence_type_key, e.evidence_type_key)] : null,
+      e.verification_key ? [T("Подтверждение"), termOr(r, "verification", e.verification_key, e.verification_key)] : null,
+      e.organization_name ? [T("Организация"), {html:'<span data-no-i18n="true">' + esc(e.organization_name) + '</span>'}] : null
+    ].filter(Boolean);
+    return '<div class="catTimelineItemV1"><span class="catTlDotV1 ' + tone + '"></span><div class="catTlBodyV1">'
+      + '<div class="catTlHeadV1"><b data-no-i18n="true">' + esc(title) + '</b><span class="catEvTypeTagV1" data-no-i18n="true">' + esc(String(e.type_key || "").toUpperCase()) + '</span><small>' + esc(dateTxt) + '</small></div>'
+      + (sentence ? '<p class="catEvDescV1" data-no-i18n="true">' + esc(sentence) + '</p>' : "")
+      + (subtitle ? '<span class="catResBadgeV1 isNeutralV1" data-no-i18n="true">' + esc(subtitle) + '</span>' : "")
+      + (fields ? '<div class="catEvFieldGridV1">' + fields + '</div>' : "")
+      + (srcRows.length ? '<details class="catEvSourceDetailsV1"><summary>' + esc(T("Источник события")) + '</summary>' + rowsHtml(srcRows, true) + '</details>' : "")
+    + '</div></div>';
+  }
   function mileageChartSvg(readings){
-    var w = 600, h = 130, pad = 14;
+    var w = 600, h = 56, pad = 6;
     var kms = readings.map(function(r){ return r.km; });
     var min = Math.min.apply(null, kms), max = Math.max.apply(null, kms);
     if(max === min) max = min + 1;
@@ -964,8 +1040,39 @@
     });
     var path = pts.map(function(p, i){ return (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ");
     var area = path + " L" + pts[pts.length - 1][0].toFixed(1) + "," + (h - pad) + " L" + pts[0][0].toFixed(1) + "," + (h - pad) + " Z";
-    var dots = pts.map(function(p, i){ return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.4" fill="#ed0012"><title data-no-i18n="true">' + esc(fmtDate(readings[i].date)) + ": " + fmtNum(readings[i].km) + ' км</title></circle>'; }).join("");
-    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="catMileageChartV1"><path d="' + area + '" fill="rgba(237,0,18,.08)" stroke="none"/><path d="' + path + '" fill="none" stroke="#ed0012" stroke-width="2"/>' + dots + '</svg>';
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="catMileageChartV1"><path d="' + area + '" fill="rgba(32,178,107,.1)" stroke="none"/><path d="' + path + '" fill="none" stroke="#20b26b" stroke-width="2"/></svg>';
+  }
+  function niceStep(raw){
+    if(!raw || !isFinite(raw) || raw <= 0) return 1;
+    var mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var norm = raw / mag;
+    var step = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+    return step * mag;
+  }
+  function mileageChartFull(readings){
+    var w = 640, h = 190, padL = 58, padR = 10, padT = 10, padB = 10;
+    var kms = readings.map(function(r){ return r.km; });
+    var maxV = Math.max.apply(null, kms);
+    var step = niceStep(maxV / 4);
+    var top = Math.max(step, Math.ceil(maxV / step) * step);
+    var n = readings.length, plotW = w - padL - padR, plotH = h - padT - padB;
+    var pts = readings.map(function(r, i){
+      var x = padL + (n > 1 ? (i / (n - 1)) : 0) * plotW;
+      var y = padT + plotH - (r.km / top) * plotH;
+      return [x, y];
+    });
+    var path = pts.map(function(p, i){ return (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ");
+    var area = path + " L" + pts[pts.length - 1][0].toFixed(1) + "," + (padT + plotH) + " L" + pts[0][0].toFixed(1) + "," + (padT + plotH) + " Z";
+    var grid = "";
+    for(var i = 0; i <= 4; i++){
+      var val = top - (top / 4) * i;
+      var y = padT + plotH * (i / 4);
+      grid += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (w - padR) + '" y2="' + y.toFixed(1) + '" stroke="var(--line-2)" stroke-width="1"/>'
+        + '<text x="' + (padL - 8) + '" y="' + (y + 3).toFixed(1) + '" font-size="10" text-anchor="end" fill="var(--muted)" data-no-i18n="true">' + fmtNum(Math.round(val)) + '</text>';
+    }
+    var dots = pts.map(function(p, i){ return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.6" fill="#20b26b"><title data-no-i18n="true">' + esc(fmtDate(readings[i].date)) + ": " + fmtNum(readings[i].km) + ' км</title></circle>'; }).join("");
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="catMileageFullChartV1">' + grid
+      + '<path d="' + area + '" fill="rgba(32,178,107,.08)" stroke="none"/><path d="' + path + '" fill="none" stroke="#20b26b" stroke-width="2"/>' + dots + '</svg>';
   }
   document.addEventListener("click", function(e){
     var rb = e.target.closest("[data-hist-report]");
