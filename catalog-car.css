@@ -14,7 +14,7 @@
 .catSoldNoticeV1 b { display: block; margin-bottom: 3px; }
 
 .catCarGridV1 { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 26px; align-items: start; }
-@media (max-width: 1023px) { .catCarGridV1 { grid-template-columns: 1fr; } }
+@media (max-width: 1023px) { .catCarGridV1 { grid-template-columns: minmax(0, 1fr); } }
 
 .catCarGalleryV1 { position: sticky; top: 16px; }
 @media (max-width: 1023px) { .catCarGalleryV1 { position: static; } }
@@ -24,16 +24,17 @@
 @media (min-width: 640px) { .catGalArrV1 { display: flex; } }
 .catGalPrevV1 { left: 10px; } .catGalNextV1 { right: 10px; }
 .catGalCountV1 { position: absolute; right: 10px; bottom: 10px; background: rgba(20,24,31,.7); color: #fff; font-size: 11.5px; border-radius: 999px; padding: 3px 9px; }
-.catGalThumbsV1 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px; }
+.catGalThumbsV1 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .catGalThumbsV1 button { border: 2px solid transparent; border-radius: 8px; padding: 0; overflow: hidden; aspect-ratio: 4/3; background: var(--field); cursor: pointer; }
 .catGalThumbsV1 button.isOnV1 { border-color: var(--red); }
 .catGalThumbsV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .catViewSrcBtnV1 { display: block; text-align: center; margin-top: 10px; background: var(--field); border-radius: 10px; padding: 10px; font-size: 13.5px; font-weight: 600; text-decoration: none; color: var(--ink); }
 
-.catTabsV1 { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
-.catTabsV1 button { border: none; background: none; padding: 10px 14px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; }
-.catTabsV1 button.isOnV1 { color: var(--ink); border-color: var(--red); }
-.catTabCountV1 { color: var(--muted); font-weight: 500; }
+.catTabsV1 { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 2px; border-bottom: 1px solid var(--line); }
+.catTabsV1 button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; background: none; padding: 7px 13px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; border-radius: 999px; }
+.catTabsV1 button:hover { background: var(--field); }
+.catTabsV1 button.isOnV1 { color: var(--red-600); background: var(--red-soft); border-color: var(--red-line); }
+.catTabCountV1 { color: inherit; opacity: .7; font-weight: 600; }
 
 .catPriceCardV1 { background: var(--dark); background: linear-gradient(135deg, var(--dark), var(--dark-2)); color: #fff; border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 16px; }
 .catPriceCardV1 .catPriceLblV1 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; opacity: .7; }
@@ -43,8 +44,8 @@
 .catPriceCardV1 .catPriceSrcV1 a { color: #fff; }
 .catPriceCardV1 .catNegTagV1 { display: inline-block; background: rgba(255,255,255,.14); border-radius: 999px; padding: 2px 9px; font-size: 11px; margin-left: 8px; }
 
-.catFactsStripV1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
-@media (max-width: 640px) { .catFactsStripV1 { grid-template-columns: repeat(2, 1fr); } }
+.catFactsStripV1 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+@media (max-width: 640px) { .catFactsStripV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .catFactV1 { background: var(--field); border-radius: 10px; padding: 10px 12px; }
 .catFactV1 small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
 .catFactV1 b { font-size: 14px; }
@@ -72,3 +73,38 @@
 .catListingRowV1 a.catListingOpenV1 { white-space: nowrap; font-size: 12.5px; font-weight: 700; color: var(--red-600); text-decoration: none; }
 
 .catSoonV1 { padding: 30px; text-align: center; color: var(--muted); }
+
+.catListedChipV1 { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,.12); border-radius: 999px; padding: 4px 10px; font-size: 12px; margin-top: 8px; }
+
+.catReportsCardV1 { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.catReportTileV1 { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; text-decoration: none; color: inherit; cursor: pointer; }
+.catReportTileV1:hover { border-color: var(--field-line); }
+.catReportIcoV1 { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--ink-2); }
+.catReportBodyV1 { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.catReportBodyV1 b { font-size: 14px; }
+.catReportBodyV1 small { color: var(--muted); font-size: 12px; }
+.catReportPillV1 { display: inline-block; width: fit-content; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 2px 9px; }
+.catReportPillV1.isOkV1 { background: var(--red-soft); background: #e7f7ee; color: #1a7f4b; }
+.catReportPillV1.isWarnV1 { background: #fdeee9; color: #b9440c; }
+.catReportPillV1.isNeutralV1 { background: var(--field); color: var(--muted); }
+.catReportArrV1 { flex: 0 0 auto; color: var(--muted); font-size: 16px; }
+
+.catColorDotV1 { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--line); margin-right: 6px; vertical-align: middle; }
+
+.catCopyBtnV1 { border: none; background: none; cursor: pointer; font: inherit; font-size: inherit; color: inherit; display: inline-flex; align-items: center; gap: 5px; padding: 0; }
+.catCopyBtnV1 svg { color: var(--muted); }
+.catCopyBtnV1.isCopiedV1 svg { color: #1a7f4b; }
+
+.catCardHeadRowV1 { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.catMapLinkV1 { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--red-600); text-decoration: none; }
+
+.catEqHeadRowV1 { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.catEqHeadRowV1 b { display: block; font-size: 16px; font-family: var(--font-display); }
+.catEqHeadRowV1 small { color: var(--muted); font-size: 12.5px; }
+.catEqSearchV1 { border: 1px solid var(--field-line); background: var(--field); border-radius: 9px; padding: 8px 12px; font: inherit; font-size: 13px; min-width: 220px; }
+.catEqSectionV1 { margin-bottom: 18px; }
+.catEqSecHeadV1 { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); margin-bottom: 8px; }
+.catEqSecHeadV1 span { color: var(--muted); font-weight: 600; }
+.catEqGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 14px; }
+.catEqItemV1 { font-size: 13px; padding: 4px 0; display: flex; gap: 8px; align-items: center; }
+.catEqIconV1 { flex: 0 0 auto; width: 16px; text-align: center; }
