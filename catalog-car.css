@@ -34,7 +34,9 @@
 .catTabsV1 button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; background: none; padding: 7px 13px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; border-radius: 999px; }
 .catTabsV1 button:hover { background: var(--field); }
 .catTabsV1 button.isOnV1 { color: var(--red-600); background: var(--red-soft); border-color: var(--red-line); }
-.catTabCountV1 { color: inherit; opacity: .7; font-weight: 600; }
+.catTabCountV1:empty { display: none; }
+.catTabCountV1 { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--line-2); color: var(--ink-2); font-size: 11px; font-weight: 700; }
+.catTabsV1 button.isOnV1 .catTabCountV1 { background: var(--red); color: #fff; }
 
 .catPriceCardV1 { background: var(--dark); background: linear-gradient(135deg, var(--dark), var(--dark-2)); color: #fff; border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 16px; }
 .catPriceCardV1 .catPriceLblV1 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; opacity: .7; }
@@ -201,3 +203,26 @@
 
 .catCoverageChipsV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .catCoverageChipsV1 span { font-size: 11.5px; background: var(--field); border-radius: 7px; padding: 4px 9px; color: var(--ink-2); }
+
+/* ===== Сводка осмотра «Checks» + «Issues by section» (05.11.2026, 1:1 с демо провайдера) ===== */
+.catInspSummaryGridV1 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+@media (max-width: 640px) { .catInspSummaryGridV1 { grid-template-columns: minmax(0, 1fr); } }
+.catInspSumBoxV1 { background: var(--field); border-radius: 12px; padding: 13px 14px; display: flex; flex-direction: column; gap: 6px; }
+.catInspSumBoxV1 > small { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; }
+.catInspSumBoxV1 > b { font-size: 15px; }
+.catInspSumBoxV1 .isWarnTxtV1 { color: var(--red-600); }
+.catInspSumBoxV1 .isOkTxtV1 { color: #1a7f4b; }
+.catInspSumSubV1 { color: var(--muted); font-size: 12px; }
+.catInspBarV1 { display: flex; height: 7px; border-radius: 999px; overflow: hidden; background: var(--line-2); margin-top: 4px; }
+.catInspBarV1 .okSegV1 { background: #20b26b; }
+.catInspBarV1 .issSegV1 { background: var(--red); }
+.catInspSecBarsV1 { display: flex; flex-direction: column; gap: 7px; margin-top: 2px; }
+.catInspSecBarRowV1 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 90px) 18px; gap: 8px; align-items: center; font-size: 12.5px; }
+.catInspSecLblV1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.catInspSecTrackV1 { height: 6px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.catInspSecTrackV1 span { display: block; height: 100%; background: var(--red); border-radius: 999px; }
+.catInspSecBarRowV1 > b { text-align: right; color: var(--red-600); font-size: 12.5px; }
+.catInspNoIssueV1 { color: #1a7f4b; font-size: 13px; margin: 4px 0 0; }
+
+/* ===== Силуэт кузова — декоративная подложка под зонами диаграммы ===== */
+.catBodyDiagramV1 rect[data-zone], .catBodyDiagramV1 circle { transition: fill .15s, stroke .15s; }

@@ -278,16 +278,25 @@
   }
   function specsOf(car, listing){
     var out = [];
-    if(listing && listing.odometer != null) out.push(fmtNum(listing.odometer) + " " + T("км"));
-    if(car.fuel && car.fuel.name) out.push(T(fuelLabel(car.fuel.id)));
-    if(car.transmission && car.transmission.name) out.push(T(transLabel(car.transmission.id)));
+    if(listing && listing.odometer != null) out.push({t:"odo", v:fmtNum(listing.odometer) + " " + T("км")});
+    if(car.fuel && car.fuel.name) out.push({t:"fuel", v:T(fuelLabel(car.fuel.id))});
+    if(car.transmission && car.transmission.name) out.push({t:"trans", v:T(transLabel(car.transmission.id))});
     // Электро: engine_volume в фиде — НЕ объём двигателя (120/111/202/1... бессмысленно как см³/1000, проверено 04.11.2026) — не показываем.
-    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) out.push((car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л"));
-    if(car.power_hp) out.push(car.power_hp + " " + T("л.с."));
-    if(car.drive_wheels && car.drive_wheels.name) out.push(T(driveLabel(car.drive_wheels.id)));
-    if(car.body_type && car.body_type.name) out.push(T(bodyLabel(car.body_type.id)));
+    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) out.push({t:"engine", v:(car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л")});
+    if(car.power_hp) out.push({t:"power", v:car.power_hp + " " + T("л.с.")});
+    if(car.drive_wheels && car.drive_wheels.name) out.push({t:"drive", v:T(driveLabel(car.drive_wheels.id))});
+    if(car.body_type && car.body_type.name) out.push({t:"body", v:T(bodyLabel(car.body_type.id))});
     return out.slice(0, 4);
   }
+  var SPEC_ICONS = {
+    odo: '<svg viewBox="0 0 20 20" fill="none"><path d="M3.5 13.5a6.5 6.5 0 1 1 13 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 13.5l3-4.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/></svg>',
+    fuel: '<svg viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="7.5" height="12" rx="1.1" stroke="currentColor" stroke-width="1.5"/><path d="M11.5 8.3h1.6c.66 0 1.2.53 1.2 1.2V13.6a1 1 0 0 0 2 0v-3.9l-1.9-1.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.8 7h3.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    trans: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.8" stroke="currentColor" stroke-width="1.5"/><path d="M10 3.3v2M10 14.7v2M3.3 10h2M14.7 10h2M5.4 5.4l1.4 1.4M13.2 13.2l1.4 1.4M5.4 14.6l1.4-1.4M13.2 6.8l1.4-1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    engine: '<svg viewBox="0 0 20 20" fill="none"><rect x="3.3" y="8" width="8.4" height="5.8" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M11.7 10h2.1c.66 0 1.2.53 1.2 1.2v2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5.8 8V5.6h2.8V8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    power: '<svg viewBox="0 0 20 20" fill="none"><path d="M11 3L5 12h3.7l-.9 5L14 8h-3.7l.7-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+    drive: '<svg viewBox="0 0 20 20" fill="none"><circle cx="5.2" cy="5.2" r="1.5" fill="currentColor"/><circle cx="14.8" cy="5.2" r="1.5" fill="currentColor"/><circle cx="5.2" cy="14.8" r="1.5" fill="currentColor"/><circle cx="14.8" cy="14.8" r="1.5" fill="currentColor"/><path d="M5.2 5.2v9.6M14.8 5.2v9.6M5.2 10h9.6" stroke="currentColor" stroke-width="1.2"/></svg>',
+    body: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 13.3V11l1.5-3a2 2 0 0 1 1.8-1.2h7.4a2 2 0 0 1 1.8 1.2l1.5 3v2.3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="6.3" cy="13.3" r="1.25" stroke="currentColor" stroke-width="1.3"/><circle cx="13.7" cy="13.3" r="1.25" stroke="currentColor" stroke-width="1.3"/></svg>'
+  };
   function fuelLabel(id){ var r = FUELS.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
   function transLabel(id){ var r = TRANSMISSIONS.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
   function driveLabel(id){ var r = DRIVE_WHEELS.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
@@ -331,7 +340,7 @@
     var badges = "";
     if(car.has_inspections) badges += '<span class="catBadgeV1 isInspV1">' + ICON_INSPECTION + esc(T("Осмотр")) + '</span>';
     if(car.has_history_reports) badges += '<span class="catBadgeV1 isHistV1">' + ICON_HISTORY + esc(T("История")) + '</span>';
-    var specs = specsOf(car, listing).map(function(s){ return "<span>" + esc(s) + "</span>"; }).join("");
+    var specs = specsOf(car, listing).map(function(s){ return '<span><i class="catSpecIcoV1">' + (SPEC_ICONS[s.t] || "") + '</i>' + esc(s.v) + '</span>'; }).join("");
     var place = placeOf(listing);
     var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
     var price = priceOf(car, listing);
@@ -808,6 +817,24 @@
   });
   var sortSel = document.getElementById("catSortSelV1");
   if(sortSel) sortSel.addEventListener("change", function(){ state.sort = sortSel.value; scheduleSearch(true); });
+
+  // ---- Переключатель вида (сетка/список) — чисто визуальный, те же карточки (CSS), без новых запросов ----
+  var viewToggle = document.getElementById("catViewToggleV1");
+  function applyView(v){
+    grid.classList.toggle("isListV1", v === "list");
+    if(viewToggle) viewToggle.querySelectorAll("[data-view]").forEach(function(b){
+      var on = b.getAttribute("data-view") === v;
+      b.classList.toggle("isOnV1", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    try{ localStorage.setItem("apexCatalogViewV1", v); }catch(e){}
+  }
+  if(viewToggle) viewToggle.addEventListener("click", function(e){
+    var b = e.target.closest("[data-view]");
+    if(!b) return;
+    applyView(b.getAttribute("data-view"));
+  });
+  try{ var savedView = localStorage.getItem("apexCatalogViewV1"); if(savedView === "list") applyView("list"); }catch(e){}
   var makeSearch = document.getElementById("catMakeSearchV1");
   if(makeSearch) makeSearch.addEventListener("input", debounce(function(){ makeSearchQuery = makeSearch.value; renderMakeList(); }, 150));
   var vehSeg = document.getElementById("catVehTypeSegV1");

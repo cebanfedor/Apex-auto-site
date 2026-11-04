@@ -26,7 +26,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v496">
-  <link rel="stylesheet" href="/catalog.css?v=v2">
+  <link rel="stylesheet" href="/catalog.css?v=v3">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -77,6 +77,8 @@
   <main>
   <div class="catalogShellV1">
     <div class="catalogTopV1">
+      <div class="catHeroDecoV1" aria-hidden="true"></div>
+      <span class="catEyebrowV1"><i class="catLiveDotV1"></i>Данные в реальном времени</span>
       <h1>Каталог авто из Кореи</h1>
       <p>Поиск по актуальным предложениям Encar — марка, модель, цена, год и другие фильтры. Цена показана в исходной валюте источника (обычно KRW); стоимость под ключ в Молдову считаем по заявке на странице авто.</p>
     </div>
@@ -180,8 +182,12 @@
 
       <section class="catalogResultsV1">
         <div class="catToolbarV1">
-          <h1 id="catHeadingV1" aria-live="polite">Загрузка…</h1>
+          <div id="catHeadingV1" class="catHeadingTxtV1" aria-live="polite">Загрузка…</div>
           <div class="catToolRightV1">
+            <div class="catViewToggleV1" id="catViewToggleV1" role="group" aria-label="Вид списка">
+              <button type="button" data-view="grid" class="isOnV1" aria-label="Сетка" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" width="15" height="15"><rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="2.5" width="6.5" height="6.5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11" width="6.5" height="6.5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="6.5" height="6.5" rx="1.3" stroke="currentColor" stroke-width="1.5"/></svg></button>
+              <button type="button" data-view="list" aria-label="Список" aria-pressed="false"><svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+            </div>
             <select class="catSortSelV1" id="catSortSelV1">
               <option value="newest">Сначала новые объявления</option>
               <option value="oldest">Сначала старые объявления</option>
@@ -245,7 +251,7 @@
   </footer>
   <script src="site-content.js?v=admin-v168" defer></script>
   <script src="i18n.js?v=multilang-v549" defer></script>
-  <script src="catalog.js?v=v2" defer></script>
+  <script src="catalog.js?v=v3" defer></script>
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
 </body>

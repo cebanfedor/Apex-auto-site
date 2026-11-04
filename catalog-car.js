@@ -237,11 +237,11 @@
     var listings = car.listings || [];
     document.getElementById("catTabListingsV1").hidden = listings.length <= 1;
     var optCount = (state.listing && listings.length > 1 ? (state.listing.option_ids || []) : Array.from(new Set((car.option_ids || []).concat((state.listing && state.listing.option_ids) || [])))).length;
-    document.getElementById("catTabEqCountV1").textContent = optCount ? ("· " + optCount) : "";
+    document.getElementById("catTabEqCountV1").textContent = optCount ? String(optCount) : "";
     var insp = matchingReports(car.inspections);
-    document.getElementById("catTabInspCountV1").textContent = insp.length ? ("· " + insp.length) : "";
+    document.getElementById("catTabInspCountV1").textContent = insp.length ? String(insp.length) : "";
     var hist = matchingReports(car.vehicle_history_reports);
-    document.getElementById("catTabHistCountV1").textContent = hist.length ? ("· " + hist.length) : "";
+    document.getElementById("catTabHistCountV1").textContent = hist.length ? String(hist.length) : "";
 
     document.querySelectorAll("#catTabsV1 [role=tab]").forEach(function(btn){
       btn.addEventListener("click", function(){ selectTab(btn.getAttribute("data-tab")); });
@@ -632,6 +632,16 @@
     if(matches.some(function(m){ return m.result_key === "ok"; })) return {state:"ok", items:matches};
     return {state:"unknown", items:matches};
   }
+  // Силуэт кузова сверху — чисто декоративная подложка (не из данных API, см. CLAUDE.md «реальные зоны
+  // осмотра» — настоящие данные только в зонах-прямоугольниках выше неё). Нужна, чтобы зоны читались как
+  // машина, а не как абстрактная сетка (запрошено 1:1 с демо-каталогом провайдера, у них — рисованный топ-вид).
+  var CAR_BODY_BG_EXT = '<rect x="20" y="2" width="160" height="376" rx="40" ry="50" fill="var(--field)" stroke="var(--line-2)" stroke-width="1.2"/>'
+    + '<circle cx="13" cy="76" r="11" fill="var(--line-2)"/><circle cx="187" cy="76" r="11" fill="var(--line-2)"/>'
+    + '<circle cx="13" cy="278" r="11" fill="var(--line-2)"/><circle cx="187" cy="278" r="11" fill="var(--line-2)"/>'
+    + '<rect x="58" y="88" width="84" height="136" rx="14" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1"/>';
+  var CAR_BODY_BG_FRAME = '<rect x="2" y="2" width="96" height="72" rx="10" fill="var(--field)" stroke="var(--line-2)" stroke-width="1.2"/>'
+    + '<line x1="50" y1="2" x2="50" y2="74" stroke="var(--line-2)" stroke-width="1" stroke-dasharray="2,3"/>'
+    + '<line x1="2" y1="38" x2="98" y2="38" stroke="var(--line-2)" stroke-width="1" stroke-dasharray="2,3"/>';
   function bodyDiagramSvg(report, items, zones, zoneMap, idPrefix){
     var cells = zones.map(function(z){
       var zid = z[0], x = z[1], y = z[2], w = z[3], h = z[4];
@@ -641,8 +651,10 @@
       var dash = zs.state === "nodata" ? ' stroke-dasharray="3,3"' : "";
       return '<rect data-zone="' + idPrefix + ":" + zid + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="3" fill="' + fill + '" stroke="' + stroke + '" stroke-width="1.4"' + dash + ' style="cursor:' + (zs.items.length ? "pointer" : "default") + '"><title>' + esc(T(ZONE_LABEL[zid] || zid)) + (zs.items.length ? (": " + esc(zs.items.map(function(m){ return termOr(report, "part", m.part_key, m.part_label); }).join(", "))) : "") + '</title></rect>';
     }).join("");
-    var vb = zones === EXT_ZONES ? "0 0 200 380" : "0 0 100 76";
-    return '<svg viewBox="' + vb + '" class="catBodyDiagramV1" data-diag="' + idPrefix + '">' + cells + '</svg>';
+    var isExt = zones === EXT_ZONES;
+    var vb = isExt ? "0 0 200 380" : "0 0 100 76";
+    var bg = isExt ? CAR_BODY_BG_EXT : CAR_BODY_BG_FRAME;
+    return '<svg viewBox="' + vb + '" class="catBodyDiagramV1" data-diag="' + idPrefix + '">' + bg + cells + '</svg>';
   }
 
   function computeBlockStats(items){
@@ -686,12 +698,28 @@
     if(r.inspected_at) concRows.push([T("Дата осмотра"), fmtDate(r.inspected_at)]);
     if(r.valid_until) concRows.push([T("Действителен до"), fmtDate(r.valid_until)]);
     html += rowsHtml(concRows, true);
-    html += '<div class="catStatRowV1">'
-      + '<div class="catStatPillV1"><b data-no-i18n="true">' + items.length + '</b><small>' + esc(T("проверено")) + '</small></div>'
-      + '<div class="catStatPillV1' + (totalIssues ? " isWarnV1" : "") + '"><b data-no-i18n="true">' + totalIssues + '</b><small>' + esc(T("замечаний")) + '</small></div>'
-      + '<div class="catStatPillV1 isOkV1"><b data-no-i18n="true">' + totalOk + '</b><small>' + esc(T("в норме")) + '</small></div>'
-      + (isFinite(score) && score > 10 && score <= 100 ? '<div class="catStatPillV1"><b data-no-i18n="true">' + score + '/100</b><small>' + esc(T("оценка")) + '</small></div>' : "")
-      + '</div>';
+    // Сводка «Checks» + «Issues by section» — как в демо-каталоге провайдера (api.auctionsapi.com/catalog),
+    // тот же состав чисел, что раньше шёл пилюлями (items.length/totalIssues/totalOk), просто как 2-сегментный
+    // прогресс-бар + список секций с замечаниями собственной полосой (bars). Данные те же, не новые.
+    var okPct = items.length ? Math.round((totalOk / items.length) * 100) : 0;
+    var issuePct = items.length ? Math.max(totalIssues ? 2 : 0, 100 - okPct) : 0;
+    var blockOrder = Object.keys(byBlock).sort(function(a, b){ return (byBlock[a].key || a).localeCompare(byBlock[b].key || b); });
+    var issueBlocks = blockOrder.filter(function(bid){ return byBlock[bid].issue > 0; });
+    html += '<div class="catInspSummaryGridV1">'
+      + '<div class="catInspSumBoxV1"><small>' + esc(T("Проверено")) + '</small>'
+        + '<b class="' + (totalIssues ? "isWarnTxtV1" : "isOkTxtV1") + '" data-no-i18n="true">' + (totalIssues ? (esc(T("Замечаний")) + ": " + totalIssues) : esc(T("Без замечаний"))) + '</b>'
+        + '<span class="catInspSumSubV1" data-no-i18n="true">' + esc(T("из")) + " " + items.length + " " + esc(T("проверено")) + " · " + totalOk + " OK" + (isFinite(score) && score > 10 && score <= 100 ? " · " + score + "/100" : "") + '</span>'
+        + '<div class="catInspBarV1"><span class="okSegV1" style="width:' + okPct + '%"></span><span class="issSegV1" style="width:' + issuePct + '%"></span></div>'
+      + '</div>'
+      + '<div class="catInspSumBoxV1"><small>' + esc(T("Замечания по секциям")) + '</small>'
+        + (issueBlocks.length ? '<div class="catInspSecBarsV1">' + issueBlocks.map(function(bid){
+            var s = byBlock[bid];
+            var label = termOr(r, "section", s.key, s.key ? humanizeKey(s.key) : T("Другое"));
+            var pct = s.total ? Math.round((s.issue / s.total) * 100) : 0;
+            return '<div class="catInspSecBarRowV1"><span class="catInspSecLblV1" data-no-i18n="true">' + esc(label) + '</span><div class="catInspSecTrackV1"><span style="width:' + pct + '%"></span></div><b data-no-i18n="true">' + s.issue + '</b></div>';
+          }).join("") + '</div>' : '<p class="catInspNoIssueV1">' + esc(T("Замечаний не найдено")) + '</p>')
+      + '</div>'
+    + '</div>';
     if(Array.isArray(r.source_claims) && r.source_claims.length){
       html += '<div class="catClaimsRowV1">' + r.source_claims.map(function(sc){
         return '<span class="catClaimChipV1">' + esc(termOr(r, "claim_type", sc.type_key, sc.source_label)) + ": " + resultBadgeHtml(r, sc.result_key) + '</span>';
@@ -716,7 +744,6 @@
     }
 
     // 3. Секции
-    var blockOrder = Object.keys(byBlock).sort(function(a, b){ return (byBlock[a].key || a).localeCompare(byBlock[b].key || b); });
     if(blockOrder.length){
       html += '<div class="catSectionsGridV1">' + blockOrder.map(function(bid){
         var s = byBlock[bid];
