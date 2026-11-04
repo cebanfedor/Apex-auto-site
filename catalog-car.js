@@ -221,6 +221,125 @@
     document.getElementById("catGalNextV1").onclick = function(){ if(imgs.length) show((state.galIdx + 1) % imgs.length); };
     if(state.listing && state.listing.external){ viewSrc.href = state.listing.external.url; viewSrc.hidden = false; }
     else{ viewSrc.hidden = true; }
+    mainImg.onclick = function(){ if(imgs.length) openLightbox(imgs, state.galIdx); };
+    var zoomHint = document.getElementById("catGalZoomHintV1");
+    if(zoomHint) zoomHint.onclick = function(e){ e.stopPropagation(); if(imgs.length) openLightbox(imgs, state.galIdx); };
+  }
+
+  // ============ Лайтбокс фото (05.11.2026, Федор: «не могу открыть фотки, увеличить итд») — полноэкранный
+  // просмотр с зумом, тот же приём, что уже на /auctions и /in-transit (двойной клик/тап 1×→2×→3×, колесо,
+  // перетаскивание, пинч на телефоне), но свой изолированный набор классов catLb* — страница /catalog/<id>
+  // не подключает auctions.js/auctions.css (см. шапку файла), поэтому код здесь самостоятельный.
+  var lb = {images:[], idx:0, zoom:1, panX:0, panY:0, dragging:false, startX:0, startY:0, pinchDist:0, pinchZoom:1};
+  var lbEl = null;
+  function ensureLightbox(){
+    if(lbEl) return lbEl;
+    var el = document.createElement("div");
+    el.className = "catLbV1";
+    el.hidden = true;
+    el.tabIndex = -1;
+    el.innerHTML = '<button type="button" class="catLbCloseV1" aria-label="' + esc(T("Закрыть")) + '">✕</button>'
+      + '<button type="button" class="catLbArrV1 catLbPrevV1" aria-label="' + esc(T("Предыдущее фото")) + '">‹</button>'
+      + '<button type="button" class="catLbArrV1 catLbNextV1" aria-label="' + esc(T("Следующее фото")) + '">›</button>'
+      + '<div class="catLbStageV1"><img class="catLbImgV1" alt=""></div>'
+      + '<span class="catLbCountV1"></span>';
+    document.body.appendChild(el);
+    lbEl = el;
+    wireLightbox(el);
+    return el;
+  }
+  function lbApplyTransform(){
+    if(!lbEl) return;
+    var img = lbEl.querySelector(".catLbImgV1");
+    img.style.transform = "translate(" + lb.panX + "px," + lb.panY + "px) scale(" + lb.zoom + ")";
+    lbEl.classList.toggle("isZoomedV1", lb.zoom > 1.01);
+  }
+  function lbResetZoom(){ lb.zoom = 1; lb.panX = 0; lb.panY = 0; lbApplyTransform(); }
+  function lbRender(){
+    var img = lbEl.querySelector(".catLbImgV1");
+    img.src = lb.images[lb.idx] || "";
+    lbResetZoom();
+    lbEl.querySelector(".catLbCountV1").textContent = lb.images.length ? ((lb.idx + 1) + " / " + lb.images.length) : "";
+  }
+  function lbNav(delta){ if(!lb.images.length) return; lb.idx = (lb.idx + delta + lb.images.length) % lb.images.length; lbRender(); }
+  function lbCycleZoom(){
+    var steps = [1, 2, 3];
+    var cur = steps.indexOf(Math.round(lb.zoom));
+    lb.zoom = steps[(cur + 1 >= 0 ? cur + 1 : 1) % steps.length];
+    if(lb.zoom <= 1){ lb.panX = 0; lb.panY = 0; }
+    lbApplyTransform();
+  }
+  function openLightbox(images, idx){
+    if(!images || !images.length) return;
+    ensureLightbox();
+    lb.images = images;
+    lb.idx = Math.max(0, Math.min(images.length - 1, idx || 0));
+    lbRender();
+    lbEl.hidden = false;
+    document.body.classList.add("catLbOpenV1");
+    lbEl.focus();
+  }
+  function closeLightbox(){
+    if(!lbEl || lbEl.hidden) return;
+    lbEl.hidden = true;
+    document.body.classList.remove("catLbOpenV1");
+  }
+  function lbTouchDist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy); }
+  function wireLightbox(el){
+    var stage = el.querySelector(".catLbStageV1");
+    el.querySelector(".catLbCloseV1").addEventListener("click", closeLightbox);
+    el.querySelector(".catLbPrevV1").addEventListener("click", function(){ lbNav(-1); });
+    el.querySelector(".catLbNextV1").addEventListener("click", function(){ lbNav(1); });
+    el.addEventListener("click", function(e){ if(e.target === el && lb.zoom <= 1) closeLightbox(); });
+    stage.addEventListener("dblclick", function(e){ e.preventDefault(); lbCycleZoom(); });
+    stage.addEventListener("wheel", function(e){
+      e.preventDefault();
+      lb.zoom = Math.min(3, Math.max(1, lb.zoom + (e.deltaY < 0 ? 0.25 : -0.25)));
+      if(lb.zoom <= 1){ lb.panX = 0; lb.panY = 0; }
+      lbApplyTransform();
+    }, {passive:false});
+    stage.addEventListener("mousedown", function(e){
+      if(lb.zoom <= 1) return;
+      lb.dragging = true; lb.startX = e.clientX - lb.panX; lb.startY = e.clientY - lb.panY;
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", function(e){
+      if(!lb.dragging) return;
+      lb.panX = e.clientX - lb.startX; lb.panY = e.clientY - lb.startY;
+      lbApplyTransform();
+    });
+    window.addEventListener("mouseup", function(){ lb.dragging = false; });
+    var lastTapAt = 0;
+    stage.addEventListener("touchstart", function(e){
+      if(e.touches.length === 2){
+        lb.pinchDist = lbTouchDist(e.touches); lb.pinchZoom = lb.zoom;
+      }else if(e.touches.length === 1){
+        if(lb.zoom > 1){ lb.dragging = true; lb.startX = e.touches[0].clientX - lb.panX; lb.startY = e.touches[0].clientY - lb.panY; }
+        var now = Date.now();
+        if(now - lastTapAt < 350){ lbCycleZoom(); }
+        lastTapAt = now;
+      }
+    }, {passive:true});
+    stage.addEventListener("touchmove", function(e){
+      if(e.touches.length === 2 && lb.pinchDist){
+        var d = lbTouchDist(e.touches);
+        lb.zoom = Math.min(3, Math.max(1, lb.pinchZoom * (d / lb.pinchDist)));
+        if(lb.zoom <= 1){ lb.panX = 0; lb.panY = 0; }
+        lbApplyTransform();
+        e.preventDefault();
+      }else if(e.touches.length === 1 && lb.dragging){
+        lb.panX = e.touches[0].clientX - lb.startX; lb.panY = e.touches[0].clientY - lb.startY;
+        lbApplyTransform();
+        e.preventDefault();
+      }
+    }, {passive:false});
+    stage.addEventListener("touchend", function(e){ if(e.touches.length < 2) lb.pinchDist = 0; if(e.touches.length === 0) lb.dragging = false; });
+    document.addEventListener("keydown", function(e){
+      if(!lbEl || lbEl.hidden) return;
+      if(e.key === "Escape") closeLightbox();
+      else if(e.key === "ArrowLeft") lbNav(-1);
+      else if(e.key === "ArrowRight") lbNav(1);
+    });
   }
 
   // ============ Tabs ============
@@ -284,20 +403,30 @@
     return {label:T("Цена"), amt:T("Цена по запросу"), cur:""};
   }
 
+  // 05.11.2026 (Федор: «страница машины выглядит кардинально по-разному», сравнение со скриншотом демо-каталога
+  // провайдера, Overview) — демо держит цену и характеристики в ОДНОЙ светлой карточке (у нас было: тёмная
+  // градиентная карточка цены отдельно + серая полоса фактов отдельно) и показывает тренд цены/тех. поля
+  // источника, которых мы вообще не читали, хотя они приходят в ответе API. Объединил в одну карточку,
+  // добавил оба реальных поля (ничего не досочинял, см. комментарии ниже).
+  function priceTrend(listing){
+    // listing.price.history — реальное поле (PriceHistoryEntry[]), просто раньше читался только как счётчик
+    // «Изменений цены» в таблице ниже. Сравниваем САМУЮ РАННЮЮ запись с текущей ценой — честная интерпретация
+    // подписи «since listed» (сколько раз меняли — отдельная строка в «Объявление», тут именно направление/%).
+    if(!listing || !listing.price || !Array.isArray(listing.price.history) || listing.price.history.length < 1) return null;
+    var hist = listing.price.history.filter(function(h){ return h && h.price > 0 && h.created_at; }).slice().sort(function(a, b){ return new Date(a.created_at) - new Date(b.created_at); });
+    if(!hist.length) return null;
+    var oldest = hist[0].price, cur = listing.price.price;
+    if(!oldest || !cur || oldest === cur) return null;
+    var pct = ((cur - oldest) / oldest) * 100;
+    if(Math.abs(pct) < 0.5) return null;
+    return {pct:pct, up:pct > 0};
+  }
   function renderOverview(){
     var car = state.car, listing = state.listing;
     var html = "";
 
     var price = priceBlock(car, listing);
-    html += '<div class="catPriceCardV1"><span class="catPriceLblV1">' + esc(price.label) + '</span>'
-      + '<div class="catPriceBigV1" data-no-i18n="true">' + esc(price.amt) + (price.cur ? ' <span class="catPriceCurV1">' + esc(price.cur) + '</span>' : "") + (listing && listing.price && listing.price.negotiable ? '<span class="catNegTagV1">' + esc(T("Торг")) + '</span>' : "") + '</div>'
-      + (listing && listing.external ? '<div class="catPriceSrcV1">' + esc(T("на")) + ' <a href="' + esc(listing.external.url) + '" target="_blank" rel="noopener noreferrer" data-no-i18n="true">' + esc(listing.external.domain.name) + '</a></div>' : "")
-      + (listing && listing.created_at ? '<span class="catListedChipV1">📅 ' + esc(relTime(listing.created_at)) + '</span>' : "")
-      + '</div>';
-
-    html += reportsCardHtml(car, listing);
-
-    // Key facts (год уже в заголовке — пропускаем)
+    var trend = priceTrend(listing);
     var facts = [];
     if(listing && listing.odometer != null) facts.push([T("Пробег"), fmtNum(listing.odometer) + " " + T("км")]);
     if(car.fuel) facts.push([T("Топливо"), T(FUELS[car.fuel.id] || car.fuel.name)]);
@@ -308,7 +437,32 @@
     if(car.power_hp) facts.push([T("Мощность"), car.power_hp + " " + T("л.с.")]);
     if(car.drive_wheels) facts.push([T("Привод"), T(DRIVE_WHEELS[car.drive_wheels.id] || car.drive_wheels.name)]);
     if(car.body_type) facts.push([T("Кузов"), T(BODY_TYPES[car.body_type.id] || car.body_type.name)]);
-    html += '<div class="catFactsStripV1">' + facts.map(function(f){ return '<div class="catFactV1"><small>' + esc(f[0]) + '</small><b data-no-i18n="true">' + esc(f[1]) + '</b></div>'; }).join("") + '</div>';
+
+    html += '<div class="catOverviewTopCardV1"><div class="catOvPriceColV1">'
+      + '<span class="catPriceLblV1">' + esc(price.label) + '</span>'
+      + '<div class="catPriceBigV1" data-no-i18n="true">' + esc(price.amt) + (price.cur ? ' <span class="catPriceCurV1">' + esc(price.cur) + '</span>' : "") + (listing && listing.price && listing.price.negotiable ? '<span class="catNegTagV1">' + esc(T("Торг")) + '</span>' : "") + '</div>'
+      + (listing && listing.external ? '<div class="catPriceSrcV1">' + esc(T("на")) + ' <a href="' + esc(listing.external.url) + '" target="_blank" rel="noopener noreferrer" data-no-i18n="true">' + esc(listing.external.domain.name) + '</a></div>' : "")
+      + '<div class="catOvMetaRowV1">'
+        + (listing && listing.created_at ? '<span class="catListedChipV1">📅 ' + esc(relTime(listing.created_at)) + '</span>' : "")
+        + (trend ? '<span class="catTrendBadgeV1 ' + (trend.up ? "isUpV1" : "isDownV1") + '" data-no-i18n="true">' + (trend.up ? "↗" : "↘") + " " + (trend.up ? "+" : "") + trend.pct.toFixed(0) + "% " + esc(T("с момента размещения")) + '</span>' : "")
+      + '</div>'
+    + '</div>'
+    + (facts.length ? '<div class="catOvFactsColV1">' + facts.map(function(f){ return '<div class="catFactV1"><small>' + esc(f[0]) + '</small><b data-no-i18n="true">' + esc(f[1]) + '</b></div>'; }).join("") + '</div>' : "")
+    + '</div>';
+
+    html += reportsCardHtml(car, listing);
+
+    // «Пользовательские поля источника» — listing.source_data, реальный пропуск-объект от самого источника
+    // (марка/модель/поколение/топливо на языке оригинала) — поле уже приходило, просто нигде не читалось.
+    var sd = listing && listing.source_data;
+    if(sd && typeof sd === "object" && !Array.isArray(sd) && Object.keys(sd).length){
+      var sdRows = Object.keys(sd).map(function(k){
+        var v = sd[k];
+        if(v == null || typeof v === "object") return null;
+        return [humanizeKey(k), {html:'<span data-no-i18n="true">' + esc(String(v)) + '</span>'}];
+      }).filter(Boolean);
+      if(sdRows.length) html += '<div class="catDetailsCardV1"><h4>' + esc(T("Поля источника")) + '</h4>' + rowsHtml(sdRows, true) + '</div>';
+    }
 
     html += '<div class="catLeadCardV1"><button type="button" id="catLeadBtnV1">' + esc(T("Узнать цену под ключ")) + '</button><p>' + esc(T("Оставьте заявку — пришлём расчёт доставки и растаможки в Молдову")) + '</p></div>';
 
