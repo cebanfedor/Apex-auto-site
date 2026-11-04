@@ -122,13 +122,6 @@
 .catResBadgeV1.isWarnV1 { background: #fdeee9; color: #b9440c; }
 .catResBadgeV1.isNeutralV1 { background: var(--field); color: var(--muted); }
 
-.catStatRowV1 { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.catStatPillV1 { flex: 1 1 90px; min-width: 78px; text-align: center; background: var(--field); border-radius: 10px; padding: 8px 6px; }
-.catStatPillV1 b { display: block; font-size: 17px; }
-.catStatPillV1 small { color: var(--muted); font-size: 11px; }
-.catStatPillV1.isWarnV1 { background: #fdeee9; } .catStatPillV1.isWarnV1 b { color: #b9440c; }
-.catStatPillV1.isOkV1 { background: #e7f7ee; } .catStatPillV1.isOkV1 b { color: #1a7f4b; }
-
 .catClaimsRowV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 .catClaimChipV1 { font-size: 12px; background: var(--field); border-radius: 8px; padding: 5px 9px; display: inline-flex; gap: 6px; align-items: center; }
 .catNotesV1 { font-size: 13px; color: var(--ink-2); margin-top: 10px; white-space: pre-line; }
@@ -165,15 +158,7 @@
 .catCheckedMainV1 b { font-size: 13px; }
 .catCheckedMainV1 small { color: var(--muted); font-size: 12px; }
 
-.catChecksListV1 { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-.catCheckRowV1b { display: flex; align-items: center; gap: 9px; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed var(--line-2); }
-.catCheckRowV1b small { color: var(--muted); }
-
-.catMileageChartV1 { width: 100%; height: 110px; display: block; margin-top: 8px; }
-.catMileageBadgeRowV1 { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.catMileageBadgeRowV1 small { color: var(--muted); font-size: 12px; }
-.catMileageChipsV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-.catMileageChipsV1 span { font-size: 11.5px; background: var(--field); border-radius: 7px; padding: 4px 8px; color: var(--ink-2); }
+.catMileageChartV1 { width: 100%; height: 46px; display: block; margin-top: 2px; }
 
 .catOrderBtnV1 { margin-left: auto; border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--ink-2); white-space: nowrap; }
 
@@ -184,22 +169,35 @@
 .catTlBodyV1 { display: flex; flex-direction: column; gap: 4px; }
 .catTlHeadV1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .catTlHeadV1 b { font-size: 13.5px; }
-.catTlHeadV1 small { color: var(--muted); font-size: 12px; }
-.catEvSrcV1 { font-size: 12px; color: var(--ink-2); margin: 0; }
-.catEvDetailsGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(0, 150px)); gap: 4px 12px; margin-top: 4px; }
-.catEvDetailV1 { font-size: 12px; display: flex; flex-direction: column; }
-.catEvDetailV1 small { color: var(--muted); font-size: 10.5px; }
+.catTlHeadV1 small { color: var(--muted); font-size: 12px; margin-left: auto; }
+.catEvTypeTagV1 { font-family: ui-monospace, monospace; font-size: 10px; background: var(--line-2); color: var(--ink-2); border-radius: 5px; padding: 2px 6px; letter-spacing: .01em; }
+.catEvDescV1 { font-size: 13px; color: var(--ink-2); margin: 2px 0 0; line-height: 1.45; }
+.catEvFieldGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(0, 190px)); gap: 6px 16px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-2); }
+.catEvFieldV1 { display: flex; flex-direction: column; gap: 2px; }
+.catEvFieldV1 small { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .02em; }
+.catEvFieldV1 b { font-size: 12.5px; font-weight: 600; }
+.catEvSourceDetailsV1 { margin-top: 8px; font-size: 12px; }
+.catEvSourceDetailsV1 summary { cursor: pointer; color: var(--muted); font-weight: 600; list-style: none; }
+.catEvSourceDetailsV1 summary::before { content: "▸ "; }
+.catEvSourceDetailsV1[open] summary::before { content: "▾ "; }
+.catEvSourceDetailsV1 .catDetailRowV1 { font-size: 12px; padding: 5px 0; }
 
-.catClaimRowV1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line-2); }
-.catClaimRowV1 b { font-size: 13px; display: block; }
-.catClaimRowV1 small { color: var(--muted); font-size: 12px; }
-.catClaimAmtV1 { text-align: right; flex: 0 0 auto; }
-.catClaimAmtV1 b { font-size: 13.5px; }
-.catClaimAmtV1 small { display: block; color: var(--muted); font-size: 11px; max-width: 220px; }
+.catClaimCardV1 { border: 1px solid var(--line-2); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+.catClaimHeadV1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.catClaimHeadV1 b { font-size: 13.5px; display: block; }
+.catClaimHeadV1 small { color: var(--muted); font-size: 12px; }
+.catClaimHeadRightV1 { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.catClaimHeadRightV1 b { font-size: 14px; }
+.catClaimTagV1 { font-size: 10px; font-weight: 700; letter-spacing: .02em; color: var(--muted); background: var(--field); border-radius: 5px; padding: 2px 6px; }
+.catClaimBarV1 { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line-2); margin-top: 10px; }
+.catClaimLegendV1 { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 11.5px; color: var(--ink-2); }
+.catClaimLegendV1 span { display: inline-flex; align-items: center; gap: 5px; }
 
-.catOwnerTableV1 { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-.catOwnerRowV1 { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed var(--line-2); }
-.catOwnerRowV1 span:first-child { color: var(--muted); white-space: nowrap; }
+.catOwnerTableV2 { margin-top: 8px; border: 1px solid var(--line-2); border-radius: 10px; overflow: hidden; }
+.catOwnerHeadRowV1, .catOwnerRowV2 { display: grid; grid-template-columns: minmax(0, 110px) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 110px); gap: 10px; padding: 8px 12px; font-size: 12.5px; }
+.catOwnerHeadRowV1 { background: var(--field); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .02em; }
+.catOwnerRowV2 { border-top: 1px solid var(--line-2); }
+@media (max-width: 640px) { .catOwnerHeadRowV1 { display: none; } .catOwnerRowV2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 2px; } }
 
 .catCoverageChipsV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .catCoverageChipsV1 span { font-size: 11.5px; background: var(--field); border-radius: 7px; padding: 4px 9px; color: var(--ink-2); }
@@ -226,3 +224,45 @@
 
 /* ===== Силуэт кузова — декоративная подложка под зонами диаграммы ===== */
 .catBodyDiagramV1 rect[data-zone], .catBodyDiagramV1 circle { transition: fill .15s, stroke .15s; }
+
+/* ===== История — полная структура 1:1 с демо провайдера (05.11.2026) ===== */
+.catEvCountV1 { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+.catSecSubV1 { color: var(--muted); font-size: 12px; margin: -4px 0 10px; }
+
+.catHistSumGridV1 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+@media (max-width: 900px) { .catHistSumGridV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .catHistSumGridV1 { grid-template-columns: minmax(0, 1fr); } }
+.catRiskBarV1 .unkSegV1 { background: var(--line-2); }
+
+.catMetaChipsV1 span.isOkChipV1 { background: #e7f7ee; color: #1a7f4b; }
+.catMetaChipsV1 span.isWarnChipV1 { background: #fdeee9; color: #b9440c; }
+
+.catLegendRowV1 { margin-left: auto; display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+.catLegendRowV1 span { display: inline-flex; align-items: center; gap: 5px; }
+.catLegDotV1 { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--muted); }
+.catLegDotV1.isOkV1 { background: #20b26b; } .catLegDotV1.isWarnV1 { background: var(--red); } .catLegDotV1.isNeutralV1 { background: var(--line-2); border: 1px solid var(--muted); }
+
+.catHistCheckGridV1 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 14px; margin-top: 8px; }
+@media (max-width: 640px) { .catHistCheckGridV1 { grid-template-columns: minmax(0, 1fr); } }
+.catHistCheckRowV1 { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+.catHistCheckRowV1.isFoundV1 { background: #fdeee9; }
+.catHistCheckLblV1 { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catHistCheckStV1 { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.catHistCheckStV1.isWarnV1 { color: var(--red-600); } .catHistCheckStV1.isOkV1 { color: #1a7f4b; } .catHistCheckStV1.isNeutralV1 { color: var(--muted); }
+
+.catMileageFullChartV1 { width: 100%; height: 190px; display: block; margin-top: 10px; }
+.catMileageTilesRowV1 { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 10px; }
+.catMileageTileV1 { background: var(--field); border: 1px solid transparent; border-radius: 10px; padding: 8px 10px; }
+.catMileageTileV1 small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+.catMileageTileV1 b { font-size: 13px; }
+.catMileageTileV1.isActiveV1 { border-color: #20b26b; background: #e7f7ee; }
+
+.catCoverageMixRowV1 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 900px) { .catCoverageMixRowV1 { grid-template-columns: minmax(0, 1fr); } }
+.catCoverageMixRowV1 .catDetailsCardV1 { margin-bottom: 0; }
+
+.catEventMixV1 { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.catEventMixHeadV1 { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px; }
+.catEventMixHeadV1 b { font-size: 12.5px; }
+.catEventMixBarTrackV1 { height: 7px; border-radius: 999px; background: var(--line-2); overflow: hidden; }
+.catEventMixBarTrackV1 span { display: block; height: 100%; border-radius: 999px; }
