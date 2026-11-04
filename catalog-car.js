@@ -397,9 +397,10 @@
     var tiles = "";
     var insp = matchingReports(car.inspections)[0];
     if(insp){
-      var blocks = Array.isArray(insp.inspection_blocks) ? insp.inspection_blocks : [];
-      var issueCount = blocks.reduce(function(s, b){ return s + (Number(b.issue_count) || 0); }, 0);
-      var checkedCount = blocks.reduce(function(s, b){ return s + (Number(b.checked_count) || 0); }, 0);
+      // inspection_blocks[].issue_count/checked_count у Encar не приходят (04.11.2026) — считаем из checked_items.
+      var cItems = Array.isArray(insp.checked_items) ? insp.checked_items : [];
+      var issueCount = cItems.filter(function(i){ return i.result_key === "issue"; }).length;
+      var checkedCount = cItems.length;
       var verdict = issueCount > 0 ? {cls:"isWarnV1", text:T("Найдены проблемы") + ": " + issueCount}
         : checkedCount > 0 ? {cls:"isOkV1", text:T("Проблем не найдено")}
         : {cls:"isNeutralV1", text:T("Результат не ясен")};
@@ -536,49 +537,415 @@
       .catch(function(){ panel.innerHTML = '<div class="catSoonV1">' + esc(T("Не удалось загрузить комплектацию.")) + '</div>'; });
   }
 
-  // ============ Inspection / History — базовая сводка ============
+  // ============ Inspection / History — ПОЛНАЯ версия (04.11.2026→след. проход) ============
+  // 04.11.2026 (Федор: «добавь полный inspection с диаграммами и историю с таймлайном»): разобрал РЕАЛЬНЫЕ
+  // отчёты ~300 машин напрямую через server/catalog-api.js (не выдумывал поля). Находки, важные для чтения
+  // остального кода ниже:
+  // 1) `report.translations.terms[категория][ключ]` — ГОТОВЫЙ русский перевод от самого провайдера (part/
+  //    result/section/claim_type/issue_type/severity — осмотр; check_type/event_type/event_subtype/detail/
+  //    date_precision/coverage_section/evidence_type/verification — история). lang=ru в запросе НЕ переводит
+  //    source_label/part_label (они остаются EN) — переводим сами через term() ниже. `description`/
+  //    `clarification` — свободный текст источника, остаётся как есть (как описание продавца).
+  // 2) У Encar реально бывает ТОЛЬКО 6 блоков осмотра: powertrain/mechanical/brakes/electrical (чисто
+  //    механические проверки, без привязки к зоне кузова) + exterior/body_structure (листовой металл/рама —
+  //    вот тут part_key — реальные названия панелей: front_right_fender, hood, quarter_panel, front_door_left,
+  //    front_right_frame_rail и т.п.). НЕТ отдельных блоков Interior/Tires/Wheels, как в общем брифе провайдера
+  //    (это описание контракта API в целом, не гарантия, что КАЖДЫЙ источник их заполняет) — у Encar их просто
+  //    нет ни у одной из ~300 проверенных машин. Диаграмма построена на РЕАЛЬНОМ наборе зон exterior+
+  //    body_structure (ZONE_MAP ниже, из реального словаря part_key), а не на выдуманных 5 зонах из брифа.
+  // 3) `inspection_blocks[].checked_count/issue_count` и т.п. — у Encar НЕ ПРИХОДЯТ (только result_key/id/
+  //    source_label) → считаем сами из checked_items по block_id.
+  // 4) `result_key` на практике — только "ok"/"issue" (не все 6 состояний спеки) — код всё равно поддерживает
+  //    все 6, на случай другого источника на этом же ключе в будущем.
+  // 5) У History реально есть mileage_km в части событий (manitenance/statutory_inspection) — строим график.
+
+  function term(report, category, key){
+    if(!key) return null;
+    var terms = report && report.translations && report.translations.terms;
+    var cat = terms && typeof terms === "object" && terms[category];
+    return (cat && typeof cat === "object" && cat[key]) || null;
+  }
+  function termOr(report, category, key, fallback){
+    return term(report, category, key) || fallback || humanizeKey(key);
+  }
+  function humanizeKey(k){ return String(k || "").replace(/_/g, " "); }
+
+  var RESULT_STATE = {
+    ok: {cls:"isOkV1", ico:"✓"}, not_present: {cls:"isOkV1", ico:"✓"},
+    issue: {cls:"isWarnV1", ico:"!"}, present: {cls:"isWarnV1", ico:"!"},
+    not_checked: {cls:"isNeutralV1", ico:"?"}, unknown: {cls:"isNeutralV1", ico:"?"},
+    not_applicable: {cls:"isNeutralV1", ico:"–"}, not_equipped: {cls:"isNeutralV1", ico:"–"}
+  };
+  function resultBadgeHtml(report, key, category){
+    var st = RESULT_STATE[key] || {cls:"isNeutralV1", ico:"?"};
+    return '<span class="catResBadgeV1 ' + st.cls + '">' + st.ico + ' ' + esc(termOr(report, category || "result", key, key ? humanizeKey(key) : T("Неизвестно"))) + '</span>';
+  }
+  function fmtDatePrecise(iso, precision){
+    if(!iso) return "";
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return "";
+    if(precision === "year") return String(d.getUTCFullYear());
+    if(precision === "month") return d.toLocaleDateString("ru-RU", {year:"numeric", month:"long", timeZone:"UTC"});
+    return d.toLocaleDateString("ru-RU", {year:"numeric", month:"long", day:"numeric", timeZone:"UTC"});
+  }
+
+  // ---------- ОСМОТР ----------
+  // Зоны реальной диаграммы кузова — из словаря part_key, собранного со ~300 реальных отчётов Encar (см. выше).
+  var ZONE_MAP = {
+    hood:"hood", roof_panel:"roof", trunk_floor_panel:"trunk",
+    front_apron_panel:"frontBumper", radiator_support:"frontBumper", rear_apron_panel:"rearBumper",
+    front_left_fender_apron:"fenderFL", left_front_fender_apron:"fenderFL",
+    front_right_fender:"fenderFR", right_front_fender_apron:"fenderFR",
+    front_door_left:"doorFL", left_front_door_frame_seal:"doorFL",
+    front_door_right:"doorFR",
+    rear_door_left:"doorRL", left_rear_door_outer_panel:"doorRL", left_lower_side_sill:"doorRL",
+    right_rear_door_frame_seal:"doorRR",
+    quarter_panel:"quarterRL", left_rear_fender_inner_panel:"quarterRL",
+    right_rear_quarter_panel:"quarterRR", right_rear_fender_inner_panel:"quarterRR", right_rear_wheel_house_inner:"quarterRR"
+  };
+  var FRAME_ZONE_MAP = {
+    front_left_frame_rail:"railFL", front_right_frame_rail:"railFR",
+    left_rear_frame_rail:"railRL", right_rear_frame_rail:"railRR",
+    floor_panel:"floor", rear_floor_side_member:"floor"
+  };
+  var EXT_ZONES = [
+    ["frontBumper", 50, 4, 100, 16], ["hood", 55, 22, 90, 56],
+    ["fenderFL", 42, 26, 12, 92], ["fenderFR", 146, 26, 12, 92],
+    ["roof", 58, 84, 84, 134], ["doorFL", 42, 120, 12, 66], ["doorFR", 146, 120, 12, 66],
+    ["doorRL", 42, 188, 12, 56], ["doorRR", 146, 188, 12, 56],
+    ["quarterRL", 42, 246, 12, 56], ["quarterRR", 146, 246, 12, 56],
+    ["trunk", 55, 304, 90, 54], ["rearBumper", 50, 360, 100, 16]
+  ];
+  var FRAME_ZONES = [["railFL", 4, 4, 42, 30], ["railFR", 54, 4, 42, 30], ["railRL", 4, 42, 42, 30], ["floor", 54, 42, 42, 30]];
+  var ZONE_LABEL = {
+    frontBumper:"Передний бампер", hood:"Капот", fenderFL:"Левое переднее крыло", fenderFR:"Правое переднее крыло",
+    roof:"Крыша/салон", doorFL:"Левая передняя дверь", doorFR:"Правая передняя дверь",
+    doorRL:"Левая задняя дверь", doorRR:"Правая задняя дверь", quarterRL:"Левая задняя четверть", quarterRR:"Правая задняя четверть",
+    trunk:"Крышка багажника", rearBumper:"Задний бампер",
+    railFL:"Передний лонжерон (л)", railFR:"Передний лонжерон (п)", railRL:"Задний лонжерон (л)", railRR:"Задний лонжерон (п)", floor:"Пол/днище"
+  };
+
+  function zoneStateOf(items, zoneMap, zoneId){
+    var matches = items.filter(function(it){ return zoneMap[it.part_key] === zoneId; });
+    if(!matches.length) return {state:"nodata", items:[]};
+    if(matches.some(function(m){ return m.result_key === "issue"; })) return {state:"issue", items:matches};
+    if(matches.some(function(m){ return m.result_key === "ok"; })) return {state:"ok", items:matches};
+    return {state:"unknown", items:matches};
+  }
+  function bodyDiagramSvg(report, items, zones, zoneMap, idPrefix){
+    var cells = zones.map(function(z){
+      var zid = z[0], x = z[1], y = z[2], w = z[3], h = z[4];
+      var zs = zoneStateOf(items, zoneMap, zid);
+      var fill = zs.state === "issue" ? "rgba(237,0,18,.22)" : zs.state === "ok" ? "rgba(32,178,107,.16)" : "transparent";
+      var stroke = zs.state === "issue" ? "#ed0012" : zs.state === "ok" ? "#20b26b" : "#c7cbd2";
+      var dash = zs.state === "nodata" ? ' stroke-dasharray="3,3"' : "";
+      return '<rect data-zone="' + idPrefix + ":" + zid + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="3" fill="' + fill + '" stroke="' + stroke + '" stroke-width="1.4"' + dash + ' style="cursor:' + (zs.items.length ? "pointer" : "default") + '"><title>' + esc(T(ZONE_LABEL[zid] || zid)) + (zs.items.length ? (": " + esc(zs.items.map(function(m){ return termOr(report, "part", m.part_key, m.part_label); }).join(", "))) : "") + '</title></rect>';
+    }).join("");
+    var vb = zones === EXT_ZONES ? "0 0 200 380" : "0 0 100 76";
+    return '<svg viewBox="' + vb + '" class="catBodyDiagramV1" data-diag="' + idPrefix + '">' + cells + '</svg>';
+  }
+
+  function computeBlockStats(items){
+    var byBlock = {};
+    items.forEach(function(it){
+      var b = it.block_id || it.block_key || "other";
+      var s = byBlock[b] = byBlock[b] || {total:0, issue:0, ok:0, key:it.block_key};
+      s.total++;
+      if(it.result_key === "issue") s.issue++;
+      else if(it.result_key === "ok") s.ok++;
+    });
+    return byBlock;
+  }
+
+  var inspTabState = {reportIdx:0, filter:"all"};
   function renderInspectionTab(){
     var panel = document.getElementById("catPanelInspectionV1");
     var reports = matchingReports(state.car.inspections);
     if(!reports.length){ panel.innerHTML = '<div class="catSoonV1">' + esc(T("Нет отчётов осмотра для этого объявления.")) + '</div>'; return; }
-    panel.innerHTML = reports.map(function(r){
-      var c = (r.conclusions && !Array.isArray(r.conclusions)) ? r.conclusions : {};
-      var score = Number(c.evaluation_score);
-      return '<div class="catDetailsCardV1">'
-        + '<h4>' + esc(T("Отчёт осмотра")) + (r.inspected_at ? " · " + esc(fmtDate(r.inspected_at)) : "") + '</h4>'
-        + rowsHtml([
-            c.overall_result_key ? [T("Итог"), T(humanizeKey(c.overall_result_key))] : null,
-            c.accident_status_key ? [T("ДТП"), T(humanizeKey(c.accident_status_key))] : null,
-            c.water_damage_status_key ? [T("Затопление"), T(humanizeKey(c.water_damage_status_key))] : null,
-            r.valid_until ? [T("Действителен до"), fmtDate(r.valid_until)] : null,
-            isFinite(score) ? [T("Оценка"), score + " / 100"] : null,
-            r.source && r.source.source_key ? [T("Источник"), r.source.source_key] : null
-          ].filter(Boolean), true)
-        + (c.notes ? '<p style="font-size:13px;color:var(--ink-2);margin-top:10px" data-no-i18n="true">' + esc(c.notes) + '</p>' : "")
+    var r = reports[Math.min(inspTabState.reportIdx, reports.length - 1)];
+    var c = (r.conclusions && !Array.isArray(r.conclusions)) ? r.conclusions : {};
+    var items = Array.isArray(r.checked_items) ? r.checked_items : [];
+    var byBlock = computeBlockStats(items);
+    var totalIssues = items.filter(function(i){ return i.result_key === "issue"; }).length;
+    var totalOk = items.filter(function(i){ return i.result_key === "ok"; }).length;
+    var score = Number(c.evaluation_score);
+
+    var html = "";
+    if(reports.length > 1) html += '<div class="catReportSwitchV1">' + reports.map(function(_, i){ return '<button type="button" data-insp-report="' + i + '" class="' + (i === inspTabState.reportIdx ? "isOnV1" : "") + '">' + esc(T("Отчёт")) + " " + (i + 1) + '</button>'; }).join("") + '</div>';
+
+    // 1. Summary
+    html += '<div class="catDetailsCardV1">';
+    html += '<h4>' + esc(T("Заключение")) + '</h4>';
+    var concRows = [];
+    if(c.overall_result_key) concRows.push([T("Итог"), {html:resultBadgeHtml(r, c.overall_result_key)}]);
+    if(c.accident_status_key) concRows.push([T("ДТП"), {html:resultBadgeHtml(r, c.accident_status_key)}]);
+    if(c.water_damage_status_key) concRows.push([T("Затопление"), {html:resultBadgeHtml(r, c.water_damage_status_key)}]);
+    if(c.fire_damage_status_key) concRows.push([T("Пожар"), {html:resultBadgeHtml(r, c.fire_damage_status_key)}]);
+    if(c.chemical_damage_status_key) concRows.push([T("Хим. повреждение"), {html:resultBadgeHtml(r, c.chemical_damage_status_key)}]);
+    if(c.biohazard_status_key) concRows.push([T("Биоопасность"), {html:resultBadgeHtml(r, c.biohazard_status_key)}]);
+    if(r.inspected_at) concRows.push([T("Дата осмотра"), fmtDate(r.inspected_at)]);
+    if(r.valid_until) concRows.push([T("Действителен до"), fmtDate(r.valid_until)]);
+    html += rowsHtml(concRows, true);
+    html += '<div class="catStatRowV1">'
+      + '<div class="catStatPillV1"><b data-no-i18n="true">' + items.length + '</b><small>' + esc(T("проверено")) + '</small></div>'
+      + '<div class="catStatPillV1' + (totalIssues ? " isWarnV1" : "") + '"><b data-no-i18n="true">' + totalIssues + '</b><small>' + esc(T("замечаний")) + '</small></div>'
+      + '<div class="catStatPillV1 isOkV1"><b data-no-i18n="true">' + totalOk + '</b><small>' + esc(T("в норме")) + '</small></div>'
+      + (isFinite(score) && score > 10 && score <= 100 ? '<div class="catStatPillV1"><b data-no-i18n="true">' + score + '/100</b><small>' + esc(T("оценка")) + '</small></div>' : "")
       + '</div>';
-    }).join("") + '<p style="color:var(--muted);font-size:12.5px">' + esc(T("Подробный разбор по зонам кузова и медиа — в следующем обновлении раздела.")) + '</p>';
+    if(Array.isArray(r.source_claims) && r.source_claims.length){
+      html += '<div class="catClaimsRowV1">' + r.source_claims.map(function(sc){
+        return '<span class="catClaimChipV1">' + esc(termOr(r, "claim_type", sc.type_key, sc.source_label)) + ": " + resultBadgeHtml(r, sc.result_key) + '</span>';
+      }).join("") + '</div>';
+    }
+    if(c.notes) html += '<p class="catNotesV1" data-no-i18n="true">' + esc(c.notes) + '</p>';
+    html += '</div>';
+
+    // 2. Диаграммы (только если в отчёте реально есть зоны кузова/рамы)
+    var extItems = items.filter(function(i){ return ZONE_MAP[i.part_key]; });
+    var frameItems = items.filter(function(i){ return FRAME_ZONE_MAP[i.part_key]; });
+    if(extItems.length || frameItems.length){
+      html += '<div class="catDetailsCardV1">'
+        + '<h4>' + esc(T("Схема кузова")) + '</h4>'
+        + '<div class="catDiagramsRowV1">'
+        + (extItems.length ? '<div class="catDiagramColV1"><small>' + esc(T("Кузов (листовой металл)")) + '</small>' + bodyDiagramSvg(r, extItems, EXT_ZONES, ZONE_MAP, "ext") + '</div>' : "")
+        + (frameItems.length ? '<div class="catDiagramColV1"><small>' + esc(T("Рама/днище")) + '</small>' + bodyDiagramSvg(r, frameItems, FRAME_ZONES, FRAME_ZONE_MAP, "frame") + '</div>' : "")
+        + '</div>'
+        + '<div class="catDiagLegendV1"><span><i class="catLegSwV1" style="background:rgba(237,0,18,.22);border-color:#ed0012"></i>' + esc(T("Есть замечание")) + '</span><span><i class="catLegSwV1" style="background:rgba(32,178,107,.16);border-color:#20b26b"></i>' + esc(T("В норме")) + '</span><span><i class="catLegSwV1" style="border-color:#c7cbd2;border-style:dashed"></i>' + esc(T("Нет данных")) + '</span></div>'
+        + '<p class="catDiagCaptionV1" id="catDiagCaptionV1">' + esc(T("Нажмите на зону, чтобы увидеть подробности")) + '</p>'
+      + '</div>';
+    }
+
+    // 3. Секции
+    var blockOrder = Object.keys(byBlock).sort(function(a, b){ return (byBlock[a].key || a).localeCompare(byBlock[b].key || b); });
+    if(blockOrder.length){
+      html += '<div class="catSectionsGridV1">' + blockOrder.map(function(bid){
+        var s = byBlock[bid];
+        var label = termOr(r, "section", s.key, s.key ? humanizeKey(s.key) : T("Другое"));
+        return '<div class="catSectionCardV1"><b data-no-i18n="true">' + esc(label) + '</b>'
+          + '<span class="catResBadgeV1 ' + (s.issue ? "isWarnV1" : "isOkV1") + '">' + (s.issue ? (T("Замечаний") + ": " + s.issue) : esc(T("Без замечаний"))) + '</span>'
+          + '<small>' + esc(T("Проверено")) + ": " + s.total + '</small></div>';
+      }).join("") + '</div>';
+    }
+
+    // 4. Issues found (chips)
+    var issueItems = items.filter(function(i){ return i.result_key === "issue"; });
+    if(issueItems.length){
+      html += '<div class="catIssueChipsRowV1">' + issueItems.slice(0, 8).map(function(it){
+        return '<span class="catIssueChipV1" data-no-i18n="true">' + esc(termOr(r, "part", it.part_key, it.part_label || it.source_label)) + '</span>';
+      }).join("") + (issueItems.length > 8 ? '<span class="catIssueChipV1 catIssueMoreV1">+' + (issueItems.length - 8) + '</span>' : "") + '</div>';
+    }
+
+    // 5. Checked items (фильтр + список по секциям)
+    html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Проверенные пункты")) + ' (' + items.length + ')</h4>'
+      + '<div class="catItemFilterV1"><button type="button" data-insp-filter="all" class="' + (inspTabState.filter === "all" ? "isOnV1" : "") + '">' + esc(T("Все")) + '</button><button type="button" data-insp-filter="issue" class="' + (inspTabState.filter === "issue" ? "isOnV1" : "") + '">' + esc(T("Только замечания")) + " (" + totalIssues + ')</button></div></div>'
+      + '<div id="catCheckedItemsV1">' + checkedItemsHtml(r, items, inspTabState.filter) + '</div></div>';
+
+    // 6. Диагностика
+    if(Array.isArray(r.diagnostic_errors) && r.diagnostic_errors.length){
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Диагностика")) + '</h4>' + r.diagnostic_errors.map(function(d){
+        return rowsHtml([[d.system_label || d.system_key || T("Система"), [d.code, d.description].filter(Boolean).join(" — ") || T("нет данных")]], true);
+      }).join("") + '</div>';
+    }
+
+    // 7. Источник
+    html += '<div class="catDetailsCardV1"><h4>' + esc(T("Источник отчёта")) + '</h4>' + rowsHtml([
+      [T("ID отчёта"), copyRow(r.report_id || "")],
+      r.source && r.source.source_key ? [T("Провайдер"), r.source.source_key] : null,
+      r.source && r.source.imported_at ? [T("Импортирован"), fmtDate(r.source.imported_at)] : null
+    ].filter(Boolean), true) + '</div>';
+
+    panel.innerHTML = html;
   }
+  function checkedItemsHtml(report, items, filter){
+    var shown = filter === "issue" ? items.filter(function(i){ return i.result_key === "issue"; }) : items;
+    if(!shown.length) return '<p style="color:var(--muted);font-size:13px;padding:8px 0">' + esc(T("Нет пунктов по этому фильтру")) + '</p>';
+    var byBlock = {};
+    shown.forEach(function(it){ (byBlock[it.block_key || "other"] = byBlock[it.block_key || "other"] || []).push(it); });
+    return Object.keys(byBlock).sort().map(function(bk){
+      var label = termOr(report, "section", bk, humanizeKey(bk));
+      return '<div class="catCheckedGroupV1"><b data-no-i18n="true">' + esc(label) + '</b>' + byBlock[bk].map(function(it){
+        var sentence = it.result_key === "issue" ? T("Есть замечание") : it.result_key === "ok" ? T("В норме") : termOr(report, "result", it.result_key, "");
+        var extra = [];
+        if(it.description) extra.push('<span data-no-i18n="true">' + esc(it.description) + '</span>');
+        if(it.severity_key) extra.push('<span>' + esc(termOr(report, "severity", it.severity_key, it.severity_key)) + '</span>');
+        if(it.damage_rank_key) extra.push('<span>' + esc(termOr(report, "damage_rank", it.damage_rank_key, it.damage_rank_key)) + '</span>');
+        return '<div class="catCheckedRowV1" data-zone-item="' + esc(ZONE_MAP[it.part_key] ? "ext:" + ZONE_MAP[it.part_key] : (FRAME_ZONE_MAP[it.part_key] ? "frame:" + FRAME_ZONE_MAP[it.part_key] : "")) + '">'
+          + resultBadgeHtml(report, it.result_key)
+          + '<span class="catCheckedMainV1"><b data-no-i18n="true">' + esc(termOr(report, "part", it.part_key, it.part_label || it.source_label)) + '</b><small data-no-i18n="true">' + esc(sentence) + (extra.length ? " · " + extra.join(" · ") : "") + '</small></span>'
+        + '</div>';
+      }).join("") + '</div>';
+    }).join("");
+  }
+  document.addEventListener("click", function(e){
+    var rb = e.target.closest("[data-insp-report]");
+    if(rb){ inspTabState.reportIdx = parseInt(rb.getAttribute("data-insp-report"), 10) || 0; renderInspectionTab(); return; }
+    var fb = e.target.closest("[data-insp-filter]");
+    if(fb){ inspTabState.filter = fb.getAttribute("data-insp-filter"); renderInspectionTab(); return; }
+    var zone = e.target.closest("[data-zone]");
+    if(zone){
+      var zid = zone.getAttribute("data-zone");
+      var cap = document.getElementById("catDiagCaptionV1");
+      var row = document.querySelector('[data-zone-item="' + zid + '"]');
+      if(row){
+        row.scrollIntoView({behavior:"smooth", block:"center"});
+        row.classList.add("isFlashV1");
+        setTimeout(function(){ row.classList.remove("isFlashV1"); }, 1500);
+        if(cap){
+          var main = row.querySelector(".catCheckedMainV1");
+          cap.textContent = (main.querySelector("b").textContent + " — " + main.querySelector("small").textContent);
+        }
+      }else if(cap){ cap.textContent = T("Нет данных по этой зоне в отчёте"); }
+    }
+  });
+
+  // ---------- ИСТОРИЯ ----------
+  var histTabState = {reportIdx:0, order:"asc"};
   function renderHistoryTab(){
     var panel = document.getElementById("catPanelHistoryV1");
     var reports = matchingReports(state.car.vehicle_history_reports);
     if(!reports.length){ panel.innerHTML = '<div class="catSoonV1">' + esc(T("Нет отчётов истории для этого объявления. Отсутствие отчёта не означает чистую историю.")) + '</div>'; return; }
-    panel.innerHTML = reports.map(function(r){
-      var s = (r.summary && !Array.isArray(r.summary)) ? r.summary : {};
-      return '<div class="catDetailsCardV1">'
-        + '<h4>' + esc(T("Отчёт истории")) + '</h4>'
-        + rowsHtml([
-            s.owner_change_count != null ? [T("Смен владельца"), String(s.owner_change_count)] : null,
-            s.insurance_claim_count != null ? [T("Страховых случаев"), String(s.insurance_claim_count)] : null,
-            s.total_loss_count != null ? [T("Полная гибель"), String(s.total_loss_count)] : null,
-            s.flood_total_loss_count != null ? [T("Затопление (полное)"), String(s.flood_total_loss_count)] : null,
-            s.theft_count != null ? [T("Угон"), String(s.theft_count)] : null,
-            s.first_registered_at ? [T("Первая регистрация"), fmtDate(s.first_registered_at)] : null,
-            Array.isArray(r.events) ? [T("Событий в хронологии"), String(r.events.length)] : null
-          ].filter(Boolean), true)
+    var r = reports[Math.min(histTabState.reportIdx, reports.length - 1)];
+    var s = (r.summary && !Array.isArray(r.summary)) ? r.summary : {};
+    var checks = Array.isArray(r.checks) ? r.checks : [];
+    var events = Array.isArray(r.events) ? r.events.slice() : [];
+    var cov = (r.coverage && !Array.isArray(r.coverage)) ? r.coverage : {};
+
+    var html = "";
+    if(reports.length > 1) html += '<div class="catReportSwitchV1">' + reports.map(function(_, i){ return '<button type="button" data-hist-report="' + i + '" class="' + (i === histTabState.reportIdx ? "isOnV1" : "") + '">' + esc(T("Отчёт")) + " " + (i + 1) + '</button>'; }).join("") + '</div>';
+
+    // 1. Summary
+    var riskyChecks = checks.filter(function(c){ return c.result_key === "present"; });
+    html += '<div class="catDetailsCardV1"><h4>' + esc(T("Сводка")) + '</h4>';
+    html += '<div class="catStatRowV1">'
+      + '<div class="catStatPillV1' + (riskyChecks.length ? " isWarnV1" : " isOkV1") + '"><b data-no-i18n="true">' + riskyChecks.length + '</b><small>' + esc(T("найдено рисков")) + '</small></div>'
+      + '<div class="catStatPillV1"><b data-no-i18n="true">' + (s.owner_change_count != null ? s.owner_change_count : "—") + '</b><small>' + esc(T("смен владельца")) + '</small></div>'
+      + '<div class="catStatPillV1' + (s.insurance_claim_count > 0 ? " isWarnV1" : "") + '"><b data-no-i18n="true">' + (s.insurance_claim_count != null ? s.insurance_claim_count : "—") + '</b><small>' + esc(T("страховых случаев")) + '</small></div>'
+      + '<div class="catStatPillV1"><b data-no-i18n="true">' + events.length + '</b><small>' + esc(T("событий")) + '</small></div>'
       + '</div>';
-    }).join("") + '<p style="color:var(--muted);font-size:12.5px">' + esc(T("Полная хронология событий, пробег и разбивка по суммам претензий — в следующем обновлении раздела.")) + '</p>';
+    var metaChips = [];
+    if(s.first_registered_at) metaChips.push(T("Первая регистрация") + ": " + fmtDate(s.first_registered_at));
+    if(s.total_loss_count > 0) metaChips.push(T("Полная гибель") + ": " + s.total_loss_count);
+    if(s.flood_total_loss_count > 0) metaChips.push(T("Затопление (полное)") + ": " + s.flood_total_loss_count);
+    if(s.flood_partial_loss_count > 0) metaChips.push(T("Затопление (частичное)") + ": " + s.flood_partial_loss_count);
+    if(s.theft_count > 0) metaChips.push(T("Угон") + ": " + s.theft_count);
+    if(cov.period_start || cov.period_end) metaChips.push(T("Период данных") + ": " + fmtDate(cov.period_start) + " – " + (cov.period_end ? fmtDate(cov.period_end) : T("сейчас")));
+    if(metaChips.length) html += '<div class="catMetaChipsV1">' + metaChips.map(function(m){ return '<span data-no-i18n="true">' + esc(m) + '</span>'; }).join("") + '</div>';
+    html += '</div>';
+
+    // 2. Проверки
+    if(checks.length){
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Проверки по базам")) + '</h4><div class="catChecksListV1">' + checks.slice().sort(function(a, b){
+        var rank = {present:0, unknown:1, not_applicable:1, not_present:2};
+        return (rank[a.result_key] != null ? rank[a.result_key] : 1) - (rank[b.result_key] != null ? rank[b.result_key] : 1);
+      }).map(function(c){
+        return '<div class="catCheckRowV1b">' + resultBadgeHtml(r, c.result_key) + '<span data-no-i18n="true">' + esc(termOr(r, "check_type", c.type_key, humanizeKey(c.type_key))) + (c.count != null ? ' <small>(' + c.count + ')</small>' : "") + '</span></div>';
+      }).join("") + '</div></div>';
+    }
+
+    // 3. Пробег
+    var readings = events.filter(function(e){ return e.mileage_km != null && isFinite(e.mileage_km) && e.occurred_at; })
+      .map(function(e){ return {date:e.occurred_at, km:Math.round(e.mileage_km)}; })
+      .sort(function(a, b){ return new Date(a.date) - new Date(b.date); });
+    // убрать точные дубликаты (дата+км)
+    readings = readings.filter(function(rd, i){ return i === 0 || !(rd.date === readings[i - 1].date && rd.km === readings[i - 1].km); });
+    html += '<div class="catDetailsCardV1"><h4>' + esc(T("Пробег")) + '</h4>';
+    if(readings.length < 2){
+      html += '<p style="color:var(--muted);font-size:13px">' + esc(T("Недостаточно данных для графика пробега.")) + '</p>';
+    }else{
+      var rollback = readings.some(function(rd, i){ return i > 0 && rd.km < readings[i - 1].km; });
+      html += mileageChartSvg(readings)
+        + '<div class="catMileageBadgeRowV1"><span class="catResBadgeV1 ' + (rollback ? "isWarnV1" : "isOkV1") + '">' + (rollback ? esc(T("Признак скрутки пробега")) : esc(T("Скрутка не обнаружена"))) + '</span><small>' + esc(T("Показаний")) + ": " + readings.length + '</small></div>'
+        + '<div class="catMileageChipsV1">' + readings.map(function(rd){ return '<span data-no-i18n="true">' + esc(fmtDate(rd.date)) + " · " + fmtNum(rd.km) + ' ' + esc(T("км")) + '</span>'; }).join("") + '</div>';
+    }
+    html += '</div>';
+
+    // 4. Хронология
+    var dated = events.filter(function(e){ return e.occurred_at; }).sort(function(a, b){ return new Date(a.occurred_at) - new Date(b.occurred_at); });
+    var undated = events.filter(function(e){ return !e.occurred_at; });
+    if(histTabState.order === "desc") dated = dated.slice().reverse();
+    var TONE_RISK = {insurance_claim:1, insurance_coverage_gap:1, total_loss:1};
+    var TONE_OK = {maintenance:1, statutory_inspection:1};
+    html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Хронология")) + '</h4>'
+      + '<button type="button" id="catHistOrderBtnV1" class="catOrderBtnV1">' + esc(histTabState.order === "asc" ? T("Сначала новые") : T("Сначала старые")) + '</button></div>'
+      + '<div class="catTimelineV1">' + dated.concat(undated).map(function(e){
+        var tone = TONE_RISK[e.type_key] ? "isWarnV1" : TONE_OK[e.type_key] ? "isOkV1" : (e.type_key === "recall" && e.status_key === "recall_open") ? "isWarnV1" : "isNeutralV1";
+        var title = termOr(r, "event_type", e.type_key, humanizeKey(e.type_key));
+        var subtitle = e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, humanizeKey(e.subtype_key)) : "";
+        var dateTxt = e.occurred_at ? fmtDatePrecise(e.occurred_at, e.date_precision_key) + (e.ended_at ? " – " + fmtDatePrecise(e.ended_at, e.date_precision_key) : "") : T("Дата неизвестна");
+        var details = (e.details || []).slice(0, 6).map(function(d){
+          var label = termOr(r, "detail", d.key, d.source_label || humanizeKey(d.key));
+          var val = d.value_text || (d.value_number != null ? fmtNum(d.value_number) + (d.unit_key ? " " + String(d.unit_key).toUpperCase() : "") : (d.value_date ? fmtDate(d.value_date) : ""));
+          return val ? '<div class="catEvDetailV1"><small>' + esc(label) + '</small><span data-no-i18n="true">' + esc(val) + '</span></div>' : "";
+        }).join("");
+        return '<div class="catTimelineItemV1"><span class="catTlDotV1 ' + tone + '"></span><div class="catTlBodyV1">'
+          + '<div class="catTlHeadV1"><b data-no-i18n="true">' + esc(title) + '</b><small>' + esc(dateTxt) + '</small></div>'
+          + (subtitle ? '<span class="catResBadgeV1 isNeutralV1" data-no-i18n="true">' + esc(subtitle) + '</span>' : "")
+          + (e.source_label ? '<p class="catEvSrcV1" data-no-i18n="true">' + esc(e.source_label) + '</p>' : "")
+          + (details ? '<div class="catEvDetailsGridV1">' + details + '</div>' : "")
+        + '</div></div>';
+      }).join("") + '</div></div>';
+
+    // 5. Claim amounts
+    var claims = events.filter(function(e){ return e.type_key === "insurance_claim" && e.amount_total != null; });
+    if(claims.length){
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Суммы страховых случаев")) + '</h4>' + claims.slice(0, 6).map(function(e){
+        var comps = [];
+        if(e.amount_insurance_benefit != null) comps.push(T("Выплата") + ": " + fmtNum(e.amount_insurance_benefit) + " " + (e.currency || "").toUpperCase());
+        if(e.amount_parts != null) comps.push(T("Запчасти") + ": " + fmtNum(e.amount_parts));
+        if(e.amount_labor != null) comps.push(T("Работа") + ": " + fmtNum(e.amount_labor));
+        if(e.amount_painting != null) comps.push(T("Покраска") + ": " + fmtNum(e.amount_painting));
+        return '<div class="catClaimRowV1"><div><b data-no-i18n="true">' + esc(e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, e.source_label) : (e.source_label || T("Страховой случай"))) + '</b><small>' + esc(fmtDatePrecise(e.occurred_at, e.date_precision_key)) + '</small></div><div class="catClaimAmtV1"><b data-no-i18n="true">' + fmtNum(e.amount_total) + " " + esc((e.currency || "").toUpperCase()) + '</b>' + (comps.length ? '<small data-no-i18n="true">' + esc(comps.join(" · ")) + '</small>' : "") + '</div></div>';
+      }).join("") + '</div>';
+    }
+
+    // 6. Смены владельца
+    var owners = events.filter(function(e){ return e.type_key === "owner_change"; });
+    if(owners.length){
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Смены владельца")) + '</h4><div class="catOwnerTableV1">' + owners.map(function(e){
+        return '<div class="catOwnerRowV1"><span data-no-i18n="true">' + esc(fmtDatePrecise(e.occurred_at, e.date_precision_key)) + '</span><span data-no-i18n="true">' + esc(e.subtype_key ? termOr(r, "event_subtype", e.subtype_key, e.source_label) : (e.source_label || "—")) + '</span></div>';
+      }).join("") + '</div></div>';
+    }
+
+    // 7. Покрытие отчёта
+    if(cov.section_keys && cov.section_keys.length){
+      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Покрытие отчёта")) + '</h4>'
+        + (cov.completeness_key ? '<p>' + resultBadgeHtml(r, "ok") + ' <span data-no-i18n="true">' + esc(termOr(r, "completeness", cov.completeness_key, cov.completeness_key)) + '</span></p>' : "")
+        + '<div class="catCoverageChipsV1">' + cov.section_keys.map(function(k){ return '<span data-no-i18n="true">' + esc(termOr(r, "coverage_section", k, humanizeKey(k))) + '</span>'; }).join("") + '</div></div>';
+    }
+
+    // 8. Подробнее об отчёте
+    html += '<div class="catDetailsCardV1"><h4>' + esc(T("Подробнее об отчёте")) + '</h4>' + rowsHtml([
+      [T("ID отчёта"), copyRow(r.report_id || "")],
+      r.source && r.source.source_key ? [T("Провайдер"), r.source.source_key] : null,
+      r.vehicle_ref && r.vehicle_ref.vin ? [T("VIN"), copyRow(String(r.vehicle_ref.vin).toUpperCase())] : null
+    ].filter(Boolean), true)
+      + (Array.isArray(r.limitations) && r.limitations.length ? '<p class="catNotesV1">' + esc(T("Оговорки источника")) + ": " + r.limitations.map(function(l){ return esc(l.description || l.source_label || ""); }).join("; ") + '</p>' : "")
+      + '</div>';
+
+    panel.innerHTML = html;
   }
-  function humanizeKey(k){ return String(k || "").replace(/_/g, " "); }
+  function mileageChartSvg(readings){
+    var w = 600, h = 130, pad = 14;
+    var kms = readings.map(function(r){ return r.km; });
+    var min = Math.min.apply(null, kms), max = Math.max.apply(null, kms);
+    if(max === min) max = min + 1;
+    var n = readings.length;
+    var pts = readings.map(function(r, i){
+      var x = pad + (n > 1 ? (i / (n - 1)) : 0) * (w - 2 * pad);
+      var y = h - pad - ((r.km - min) / (max - min)) * (h - 2 * pad);
+      return [x, y];
+    });
+    var path = pts.map(function(p, i){ return (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ");
+    var area = path + " L" + pts[pts.length - 1][0].toFixed(1) + "," + (h - pad) + " L" + pts[0][0].toFixed(1) + "," + (h - pad) + " Z";
+    var dots = pts.map(function(p, i){ return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.4" fill="#ed0012"><title data-no-i18n="true">' + esc(fmtDate(readings[i].date)) + ": " + fmtNum(readings[i].km) + ' км</title></circle>'; }).join("");
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" class="catMileageChartV1"><path d="' + area + '" fill="rgba(237,0,18,.08)" stroke="none"/><path d="' + path + '" fill="none" stroke="#ed0012" stroke-width="2"/>' + dots + '</svg>';
+  }
+  document.addEventListener("click", function(e){
+    var rb = e.target.closest("[data-hist-report]");
+    if(rb){ histTabState.reportIdx = parseInt(rb.getAttribute("data-hist-report"), 10) || 0; renderHistoryTab(); return; }
+    var ob = e.target.closest("#catHistOrderBtnV1");
+    if(ob){ histTabState.order = histTabState.order === "asc" ? "desc" : "asc"; renderHistoryTab(); }
+  });
 
   // ============ Lead modal (переиспользуем простую форму, как у /korea) ============
   var modal = null;

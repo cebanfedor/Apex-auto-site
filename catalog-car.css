@@ -54,8 +54,9 @@
 .catDetailsCardV1 h4 { font-family: var(--font-display); font-size: 14.5px; margin: 16px 0 8px; }
 .catDetailsCardV1 h4:first-child { margin-top: 0; }
 .catDetailRowV1 { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px dashed var(--line-2); font-size: 13.5px; }
-.catDetailRowV1 span:first-child { color: var(--muted); }
-.catDetailRowV1 span:last-child { text-align: right; }
+.catDetailRowV1 span:first-child { color: var(--muted); flex: 0 0 auto; }
+.catDetailRowV1 span:last-child { text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.catCopyBtnV1 { overflow-wrap: anywhere; text-align: left; max-width: 100%; }
 
 .catDescCardV1 { margin-bottom: 18px; white-space: pre-line; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
 .catDescClampV1 { max-height: 9em; overflow: hidden; position: relative; }
@@ -108,3 +109,95 @@
 .catEqGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 14px; }
 .catEqItemV1 { font-size: 13px; padding: 4px 0; display: flex; gap: 8px; align-items: center; }
 .catEqIconV1 { flex: 0 0 auto; width: 16px; text-align: center; }
+
+/* ===== Inspection / History — полная версия (04.11.2026) ===== */
+.catReportSwitchV1 { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.catReportSwitchV1 button { border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 6px 13px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--ink-2); }
+.catReportSwitchV1 button.isOnV1 { background: var(--red); color: #fff; border-color: var(--red); }
+
+.catResBadgeV1 { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.catResBadgeV1.isOkV1 { background: #e7f7ee; color: #1a7f4b; }
+.catResBadgeV1.isWarnV1 { background: #fdeee9; color: #b9440c; }
+.catResBadgeV1.isNeutralV1 { background: var(--field); color: var(--muted); }
+
+.catStatRowV1 { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.catStatPillV1 { flex: 1 1 90px; min-width: 78px; text-align: center; background: var(--field); border-radius: 10px; padding: 8px 6px; }
+.catStatPillV1 b { display: block; font-size: 17px; }
+.catStatPillV1 small { color: var(--muted); font-size: 11px; }
+.catStatPillV1.isWarnV1 { background: #fdeee9; } .catStatPillV1.isWarnV1 b { color: #b9440c; }
+.catStatPillV1.isOkV1 { background: #e7f7ee; } .catStatPillV1.isOkV1 b { color: #1a7f4b; }
+
+.catClaimsRowV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.catClaimChipV1 { font-size: 12px; background: var(--field); border-radius: 8px; padding: 5px 9px; display: inline-flex; gap: 6px; align-items: center; }
+.catNotesV1 { font-size: 13px; color: var(--ink-2); margin-top: 10px; white-space: pre-line; }
+.catMetaChipsV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.catMetaChipsV1 span { font-size: 12px; background: var(--field); border-radius: 8px; padding: 5px 9px; }
+
+.catDiagramsRowV1 { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 10px; }
+.catDiagramColV1 { flex: 1 1 180px; min-width: 150px; max-width: 240px; }
+.catDiagramColV1 small { display: block; color: var(--muted); font-size: 11.5px; margin-bottom: 6px; }
+.catBodyDiagramV1 { width: 100%; height: auto; display: block; }
+.catDiagLegendV1 { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+.catDiagLegendV1 span { display: inline-flex; align-items: center; gap: 5px; }
+.catLegSwV1 { width: 13px; height: 13px; border-radius: 3px; border: 1.4px solid; display: inline-block; }
+.catDiagCaptionV1 { margin-top: 10px; font-size: 12.5px; color: var(--ink-2); min-height: 1.4em; }
+
+.catSectionsGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(0, 160px)); gap: 8px; margin: 10px 0 18px; }
+.catSectionCardV1 { background: var(--field); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+.catSectionCardV1 b { font-size: 12.5px; }
+.catSectionCardV1 small { color: var(--muted); font-size: 11px; }
+
+.catIssueChipsRowV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.catIssueChipV1 { font-size: 12px; background: #fdeee9; color: #b9440c; border-radius: 999px; padding: 5px 11px; font-weight: 600; }
+.catIssueChipV1.catIssueMoreV1 { background: var(--field); color: var(--muted); }
+
+.catItemFilterV1 { margin-left: auto; display: flex; gap: 6px; }
+.catItemFilterV1 button { border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--ink-2); white-space: nowrap; }
+.catItemFilterV1 button.isOnV1 { background: var(--red); color: #fff; border-color: var(--red); }
+
+.catCheckedGroupV1 { margin-bottom: 14px; }
+.catCheckedGroupV1 > b { display: block; font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 6px; }
+.catCheckedRowV1 { display: flex; align-items: flex-start; gap: 9px; padding: 7px 6px; border-radius: 8px; transition: background .4s; }
+.catCheckedRowV1.isFlashV1 { background: var(--red-soft); }
+.catCheckedMainV1 { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.catCheckedMainV1 b { font-size: 13px; }
+.catCheckedMainV1 small { color: var(--muted); font-size: 12px; }
+
+.catChecksListV1 { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.catCheckRowV1b { display: flex; align-items: center; gap: 9px; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed var(--line-2); }
+.catCheckRowV1b small { color: var(--muted); }
+
+.catMileageChartV1 { width: 100%; height: 110px; display: block; margin-top: 8px; }
+.catMileageBadgeRowV1 { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.catMileageBadgeRowV1 small { color: var(--muted); font-size: 12px; }
+.catMileageChipsV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.catMileageChipsV1 span { font-size: 11.5px; background: var(--field); border-radius: 7px; padding: 4px 8px; color: var(--ink-2); }
+
+.catOrderBtnV1 { margin-left: auto; border: 1px solid var(--line-2); background: var(--surface); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--ink-2); white-space: nowrap; }
+
+.catTimelineV1 { position: relative; margin-top: 10px; padding-left: 20px; border-left: 2px solid var(--line-2); display: flex; flex-direction: column; gap: 16px; }
+.catTimelineItemV1 { position: relative; }
+.catTlDotV1 { position: absolute; left: -26px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--muted); border: 2px solid var(--surface); }
+.catTlDotV1.isOkV1 { background: #20b26b; } .catTlDotV1.isWarnV1 { background: #ed0012; } .catTlDotV1.isNeutralV1 { background: #9aa1ac; }
+.catTlBodyV1 { display: flex; flex-direction: column; gap: 4px; }
+.catTlHeadV1 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.catTlHeadV1 b { font-size: 13.5px; }
+.catTlHeadV1 small { color: var(--muted); font-size: 12px; }
+.catEvSrcV1 { font-size: 12px; color: var(--ink-2); margin: 0; }
+.catEvDetailsGridV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(0, 150px)); gap: 4px 12px; margin-top: 4px; }
+.catEvDetailV1 { font-size: 12px; display: flex; flex-direction: column; }
+.catEvDetailV1 small { color: var(--muted); font-size: 10.5px; }
+
+.catClaimRowV1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line-2); }
+.catClaimRowV1 b { font-size: 13px; display: block; }
+.catClaimRowV1 small { color: var(--muted); font-size: 12px; }
+.catClaimAmtV1 { text-align: right; flex: 0 0 auto; }
+.catClaimAmtV1 b { font-size: 13.5px; }
+.catClaimAmtV1 small { display: block; color: var(--muted); font-size: 11px; max-width: 220px; }
+
+.catOwnerTableV1 { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.catOwnerRowV1 { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed var(--line-2); }
+.catOwnerRowV1 span:first-child { color: var(--muted); white-space: nowrap; }
+
+.catCoverageChipsV1 { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.catCoverageChipsV1 span { font-size: 11.5px; background: var(--field); border-radius: 7px; padding: 4px 9px; color: var(--ink-2); }
