@@ -95,7 +95,9 @@
     return active[0] || listings[0] || null;
   }
 
-  function firstImageUrl(img){ return img.downloaded || img.original || img.preview || ""; }
+  // 05.11.2026 (Федор: «всегда грузить оригиналы»): `original` — ссылка источника на исходное фото (не наша
+  // пересжатая копия), см. ту же правку и комментарий в catalog.js. `downloaded`/`preview` — запасные варианты.
+  function firstImageUrl(img){ return img.original || img.downloaded || img.preview || ""; }
 
   function titleOf(car, listing){
     var brand = car.brand && car.brand.name;

@@ -262,7 +262,9 @@
     return (active[0] || listings[0] || null);
   }
   function firstImageUrl(img){
-    return img.downloaded || img.original || img.preview || "";
+    // 05.11.2026 (Федор: «всегда грузить оригиналы»): `original` — ссылка источника на исходное фото (не наша
+    // пересжатая копия), `downloaded`/`preview` — запасные варианты по спеке ListingImage, если оригинала нет.
+    return img.original || img.downloaded || img.preview || "";
   }
   function titleOf(car){
     var brand = car.brand && car.brand.name;

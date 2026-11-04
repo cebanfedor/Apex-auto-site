@@ -1906,3 +1906,20 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   (красная заливка, белая галочка), без горизонтальной прокрутки, без JS-ошибок. 122/122 тестов (правка только
   `catalog.css`/`catalog.html`, `catalog.js` не менялся).
 - Бамп `catalog.css?v=v4` (общий для `catalog.html`+`catalog-car.html`).
+
+## Фото каталога Encar — всегда оригинал источника, не наша пересжатая копия (05.11.2026, Федор прислал сырое поле `images[0]` со скриншота)
+- Было: `firstImageUrl` = `img.downloaded || img.original || img.preview` — при наличии нашей копии
+  (`img2.auctionsapi.com/.../0.webp`, поле `downloaded` по спеке `ListingImage`) показывалась именно она, а не
+  `original` (у Федора на скриншоте — ровно такой случай: `downloaded` есть, `original` его перебивает в его
+  ожидании). По спеке `ListingImage.original` — «Passed through unchanged; it points to the source image rather
+  than our downloaded copy» — ровно то, что просил показывать всегда.
+- Исправлено в обоих местах, где читаются фото (карточки каталога + страница авто/лайтбокс используют одну и ту
+  же функцию `firstImageUrl`, определена отдельно в каждом файле — не общий модуль, см. шапку `catalog.js`):
+  приоритет `original || downloaded || preview` (fallback остаётся — поля опциональны по спеке, у части лотов
+  `original` может отсутствовать).
+- Проверено: на реальной выдаче (24 карточки со страницы 2 поиска, все с заполненными ОБОИМИ полями) все фото
+  загрузились с `ci.encar.com` (`original`), 0 ошибок загрузки, 0 «битых» (`naturalWidth===0`); главное фото и
+  лайтбокс на странице авто — тоже `ci.encar.com`. `ci.encar.com` и так был в домене `referrerpolicy="no-referrer"`
+  у всех `<img>` ещё с Phase 1 — хотлинк не блокируется (подтверждено десятками скриншотов этой сессии, где
+  `downloaded` у тестовой машины вовсе отсутствовал и фото и так шли через `original`/`preview`).
+- Бамп `catalog.js?v=v4`, `catalog-car.js?v=v7`. Тесты — 122/122.
