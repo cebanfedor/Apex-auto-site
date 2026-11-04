@@ -26,11 +26,20 @@
     [14,"Кремовый","#fff7d8"],[15,"Чёрный","#050505"],[16,"Жёлтый","#f7ea13"],[17,"Бежевый","#f1e7ce"],[18,"Розовый","#ee94bf"]
   ];
 
+  // ---- Логотипы марок (05.11.2026, Федор: «значки на все марки», свои копии, см. CLAUDE.md) ----
+  // 202 реальных логотипа марок, скачанные один раз в /assets/brand-logos/<slug>.webp (не хотлинк — своя копия,
+  // решение Федора). Остальные ~390 марок нашего справочника (редкие/нишевые) логотипа не имеют — честный
+  // буквенный аватар остаётся для них, не подменяем картинкой то, чего нет.
+  var BRAND_LOGO_SLUGS = {abarth:1,ac:1,acura:1,aixam:1,alfaromeo:1,alpina:1,alpine:1,alvis:1,arcfox:1,ariel:1,aro:1,astonmartin:1,audi:1,austin:1,autobianchi:1,baic:1,bentley:1,bertone:1,bestune:1,bitter:1,bmw:1,borgward:1,bowler:1,brabus:1,brilliance:1,bufori:1,bugatti:1,buick:1,byd:1,cadillac:1,caterham:1,changan:1,changfeng:1,chery:1,chevrolet:1,chrysler:1,citroen:1,cizeta:1,dacia:1,daewoo:1,daf:1,daihatsu:1,daimler:1,datsun:1,dayun:1,delage:1,desoto:1,dodge:1,dongfeng:1,donkervoort:1,ds:1,duesenberg:1,eagle:1,exeed:1,faw:1,ferrari:1,fiat:1,fisker:1,ford:1,foton:1,fso:1,gac:1,gaz:1,geely:1,genesis:1,geo:1,ginetta:1,gmc:1,gonow:1,greatwall:1,grinnall:1,hafei:1,haima:1,haval:1,hawtai:1,hennessey:1,holden:1,honda:1,hongqi:1,horch:1,hudson:1,hummer:1,hyundai:1,infiniti:1,irankhodro:1,isuzu:1,iveco:1,jaguar:1,jbamotors:1,jeep:1,jetta:1,kia:1,koenigsegg:1,ktm:1,lagonda:1,lamborghini:1,lancia:1,landrover:1,landwind:1,lexus:1,lifan:1,ligier:1,lincoln:1,lister:1,lixiang:1,lotus:1,lucid:1,luxgen:1,lynkco:1,mahindra:1,man:1,marlin:1,maserati:1,mastretta:1,maxus:1,maybach:1,mazda:1,mclaren:1,mercedesbenz:1,mercury:1,merkur:1,mg:1,microcar:1,mini:1,mitsubishi:1,mitsuoka:1,morgan:1,nio:1,nissan:1,noble:1,oldsmobile:1,opel:1,packard:1,pagani:1,panoz:1,pegaso:1,perodua:1,peugeot:1,plymouth:1,polestar:1,pontiac:1,porsche:1,premier:1,proton:1,qoros:1,ram:1,rambler:1,renault:1,rezvani:1,rimac:1,rinspeed:1,rivian:1,roewe:1,rollsroyce:1,ronart:1,rover:1,saab:1,saipa:1,saturn:1,scania:1,scion:1,seat:1,simca:1,singulato:1,skoda:1,smart:1,soueast:1,spyker:1,ssangyong:1,studebaker:1,stutz:1,subaru:1,suzuki:1,talbot:1,tata:1,tatra:1,tesla:1,toyota:1,tramontana:1,triumph:1,tucker:1,tvr:1,uaz:1,ultima:1,vauxhall:1,venucia:1,vinfast:1,volkswagen:1,volvo:1,wanderer:1,wartburg:1,weltmeister:1,westfield:1,wey:1,wiesmann:1,wmotors:1,workhorse:1,xpeng:1,yulon:1,zaz:1,zenvo:1,zotye:1};
+  function brandLogoHtml(name){
+    var slug = String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    return BRAND_LOGO_SLUGS[slug] ? '<img src="/assets/brand-logos/' + slug + '.webp" alt="" loading="lazy">' : "";
+  }
+
   var POPULAR_BRAND_NAMES = ["Hyundai","Kia","Genesis","Toyota","BMW","Mercedes-Benz","Audi","Volkswagen","Lexus","Chevrolet","Ford","Honda","Nissan","Porsche","Land Rover","Jeep"];
 
   // ---- Состояние ----
   var state = {
-    vehicleType:"automobile",
     brands:[],            // [{id,name,models:[{id,name,generations:[{id,name}]}]}]
     priceFrom:"", priceTo:"", currency:"krw",
     yearFrom:"", yearTo:"",
@@ -49,7 +58,6 @@
   // ---- URL <-> state ----
   function stateToParams(){
     var p = new URLSearchParams();
-    if(state.vehicleType === "motorcycle") p.set("vehicle_type", "motorcycle");
     if(state.brands.length){
       p.set("brand_id", state.brands.map(function(b){ return b.id; }).join(","));
       var pairs = [];
@@ -87,7 +95,6 @@
   function csvInts(v){ return String(v || "").split(",").map(function(s){ return parseInt(s, 10); }).filter(isFinite); }
 
   function stateFromParams(p){
-    state.vehicleType = p.get("vehicle_type") === "motorcycle" ? "motorcycle" : "automobile";
     var vs = p.get("vehicle_selection");
     if(vs){
       try{
@@ -142,7 +149,6 @@
   // ---- Активных фильтров: подсчёт групп (§5.5) ----
   function activeGroupsCount(){
     var n = 0;
-    if(state.vehicleType === "motorcycle") n++;
     if(state.brands.length) n++; // марки
     if(state.brands.some(function(b){ return (b.models||[]).length; })) n++; // модели
     if(state.brands.some(function(b){ return (b.models||[]).some(function(m){ return (m.generations||[]).length; }); })) n++;
@@ -440,7 +446,6 @@
     if(!row) return;
     var chips = [];
     function chip(label, onRemove){ chips.push({label:label, onRemove:onRemove}); }
-    if(state.vehicleType === "motorcycle") chip(T("Мотоциклы"), function(){ state.vehicleType = "automobile"; });
     state.brands.forEach(function(b, bi){
       var bName = (dict.brands || []).find(function(x){ return x.id === b.id; });
       chip((bName ? bName.name : "ID " + b.id), function(){ state.brands.splice(bi, 1); });
@@ -483,7 +488,7 @@
   }
 
   function resetAll(){
-    state.vehicleType = "automobile"; state.brands = [];
+    state.brands = [];
     state.priceFrom = ""; state.priceTo = ""; state.currency = "krw";
     state.yearFrom = ""; state.yearTo = ""; state.odoFrom = ""; state.odoTo = "";
     state.transmission = ""; state.bodyTypeIds = []; state.fuelIds = []; state.driveIds = []; state.condIds = []; state.colorIds = [];
@@ -496,7 +501,7 @@
   // ========== Сайдбар: словари и рендер ==========
   function ensureBrands(){
     if(dict.brands) return Promise.resolve(dict.brands);
-    return fetch("/api/catalog?action=brands&lang=" + encodeURIComponent(window.APEX_LANG || "ru") + "&vehicle_type=" + state.vehicleType)
+    return fetch("/api/catalog?action=brands&lang=" + encodeURIComponent(window.APEX_LANG || "ru"))
       .then(function(r){ return r.json(); })
       .then(function(d){ dict.brands = (d && d.items) || []; return dict.brands; })
       .catch(function(){ dict.brands = []; return dict.brands; });
@@ -530,7 +535,7 @@
       var on = selectedIds.indexOf(b.id) >= 0;
       return '<label class="catRowV1" data-brand-id="' + b.id + '">'
         + '<input type="checkbox" ' + (on ? "checked" : "") + '>'
-        + '<span class="catAvatarV1">' + esc((b.name || "?").slice(0, 1)) + '</span>'
+        + '<span class="catAvatarV1">' + (brandLogoHtml(b.name) || esc((b.name || "?").slice(0, 1))) + '</span>'
         + '<span class="catRowNameV1" data-no-i18n="true">' + esc(b.name || ("ID " + b.id)) + '</span>'
       + '</label>';
     }
@@ -568,7 +573,7 @@
         return '<span class="catMiniChipV1" data-no-i18n="true">' + esc(mInfo ? mInfo.name : ("ID " + m.id)) + '<button type="button" data-rm-model="' + bi + ':' + mi + '">✕</button></span>';
       }).join("") || '<span class="catMiniChipV1">' + esc(T("Все модели")) + '</span>';
       return '<div class="catBlockV1" data-block-brand="' + bi + '">'
-        + '<div class="catBlockHeadV1"><span class="catAvatarV1">' + esc((bInfo ? bInfo.name : "?").slice(0, 1)) + '</span><b data-no-i18n="true">' + esc(bInfo ? bInfo.name : ("ID " + b.id)) + '</b></div>'
+        + '<div class="catBlockHeadV1"><span class="catAvatarV1">' + (brandLogoHtml(bInfo && bInfo.name) || esc((bInfo ? bInfo.name : "?").slice(0, 1))) + '</span><b data-no-i18n="true">' + esc(bInfo ? bInfo.name : ("ID " + b.id)) + '</b></div>'
         + '<div class="catChipRowV1">' + chips + '<button type="button" class="catAddBtnV1" data-add-model="' + bi + '">+ ' + esc(T("Добавить")) + '</button></div>'
         + '<div class="catModelPickerV1" data-picker="' + bi + '" hidden></div>'
       + '</div>';
@@ -750,13 +755,11 @@
     setChecked("catFlagInspV1", state.flagInsp);
     setChecked("catFlagHistV1", state.flagHist);
     setVal("catSortSelV1", state.sort);
-    var seg = document.getElementById("catVehTypeSegV1");
-    if(seg) seg.querySelectorAll("button").forEach(function(b){ b.classList.toggle("isOnV1", b.getAttribute("data-val") === state.vehicleType); });
     // «точка» активности у разделов
     document.querySelectorAll(".catSecV1").forEach(function(sec){
       var key = sec.getAttribute("data-sec");
       var active = false;
-      if(key === "vehicle") active = !!state.brands.length || state.vehicleType === "motorcycle";
+      if(key === "vehicle") active = !!state.brands.length;
       if(key === "model") active = state.brands.some(function(b){ return (b.models||[]).length; });
       if(key === "generation") active = state.brands.some(function(b){ return (b.models||[]).some(function(m){ return (m.generations||[]).length; }); });
       if(key === "price") active = !!(state.priceFrom || state.priceTo);
@@ -839,18 +842,6 @@
   try{ var savedView = localStorage.getItem("apexCatalogViewV1"); if(savedView === "list") applyView("list"); }catch(e){}
   var makeSearch = document.getElementById("catMakeSearchV1");
   if(makeSearch) makeSearch.addEventListener("input", debounce(function(){ makeSearchQuery = makeSearch.value; renderMakeList(); }, 150));
-  var vehSeg = document.getElementById("catVehTypeSegV1");
-  if(vehSeg) vehSeg.addEventListener("click", function(e){
-    var b = e.target.closest("[data-val]");
-    if(!b) return;
-    var val = b.getAttribute("data-val");
-    if(val === state.vehicleType) return;
-    state.vehicleType = val;
-    state.brands = [];
-    dict.brands = null;
-    ensureBrands().then(function(){ renderSidebarAll(); });
-    scheduleSearch(true);
-  });
   var resetBtn = document.getElementById("catResetAllBtnV1");
   if(resetBtn) resetBtn.addEventListener("click", resetAll);
   var applyBtn = document.getElementById("catApplyBtnV1");
