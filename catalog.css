@@ -39,17 +39,33 @@
 .catSecV1.isOpenV1 .catSecBodyV1 { display: block; }
 
 .catSegV1 { display: flex; background: var(--field); border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 10px; }
-.catSegV1 button { flex: 1; border: none; background: none; padding: 7px 6px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.catSegV1 button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; background: none; padding: 7px 6px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.catSegV1 button svg { flex: 0 0 auto; color: var(--muted); }
 .catSegV1 button.isOnV1 { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.catSegV1 button.isOnV1 svg { color: var(--red); }
 
 .catSearchInV1 { position: relative; margin-bottom: 8px; }
 .catSearchInV1 input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--field-line); border-radius: 9px; font: inherit; font-size: 13.5px; background: var(--field); }
 
 .catListV1 { max-height: 286px; overflow: auto; display: flex; flex-direction: column; gap: 1px; }
-.catRowV1 { display: flex; align-items: center; gap: 9px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: 13.5px; white-space: nowrap; overflow: hidden; }
+.catRowV1 { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: 13.5px; white-space: nowrap; overflow: hidden; }
 .catRowV1:hover { background: var(--field); }
-.catRowV1 input { flex: 0 0 auto; accent-color: var(--red); }
-.catRowV1 .catAvatarV1 { width: 20px; height: 20px; border-radius: 50%; background: var(--field); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--muted); overflow: hidden; }
+.catRowV1 .catAvatarV1 { width: 24px; height: 24px; border-radius: 50%; background: var(--field); border: 1px solid var(--line-2); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: var(--muted); overflow: hidden; }
+/* 05.11.2026 (Федор: «фильтр в таком же стиле», демо провайдера): свой чекбокс вместо нативного —
+   квадрат со скруглением, заливка + белая галочка при выборе (иконки брендов провайдер на нашем хосте
+   api.auctionsapi.com не отдаёт — `icon_url` в схеме Brand помечено «Omitted on api.auctionsapi.com»,
+   сверено по OpenAPI-спеке — буква в кружке остаётся честным фолбэком, не меняю). */
+.catRowV1 input[type="checkbox"], .catCheckRowV1 input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: 0 0 auto;
+  width: 19px; height: 19px; border: 1.6px solid var(--field-line); border-radius: 5px;
+  background: var(--surface); cursor: pointer; position: relative; transition: background .12s, border-color .12s;
+}
+.catRowV1 input[type="checkbox"]:hover, .catCheckRowV1 input[type="checkbox"]:hover { border-color: var(--red); }
+.catRowV1 input[type="checkbox"]:checked, .catCheckRowV1 input[type="checkbox"]:checked { background: var(--red); border-color: var(--red); }
+.catRowV1 input[type="checkbox"]:checked::after, .catCheckRowV1 input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1px; width: 6px; height: 10px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(40deg);
+}
 .catRowV1 .catAvatarV1 img { width: 100%; height: 100%; object-fit: contain; }
 .catRowV1 .catRowNameV1 { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .catRowV1 .catRowNameV1 small { color: var(--muted); font-weight: 400; }
