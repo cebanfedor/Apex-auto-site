@@ -320,20 +320,31 @@
     return "/catalog/" + encodeURIComponent(car.id) + (p.toString() ? "?" + p.toString() : "");
   }
 
+  var ICON_INSPECTION = '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 10.2l2.3 2.3 4.7-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_HISTORY = '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10.5" r="7.2" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.8v4l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.3 5.3l1-2.4 2.3 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_OPEN = '<svg viewBox="0 0 20 20" fill="none"><path d="M8 6h6v6M14 6L6 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
   function cardHtml(car){
     var listing = pickListing(car);
-    var img = listing && Array.isArray(listing.images) ? listing.images.map(firstImageUrl).filter(Boolean) : [];
+    var imgs = listing && Array.isArray(listing.images) ? listing.images.map(firstImageUrl).filter(Boolean) : [];
     var sold = listing && listing.archived;
     var badges = "";
-    if(car.has_inspections) badges += '<span class="catBadgeV1 isInspV1">' + esc(T("Осмотр")) + '</span>';
-    if(car.has_history_reports) badges += '<span class="catBadgeV1 isHistV1">' + esc(T("История")) + '</span>';
+    if(car.has_inspections) badges += '<span class="catBadgeV1 isInspV1">' + ICON_INSPECTION + esc(T("Осмотр")) + '</span>';
+    if(car.has_history_reports) badges += '<span class="catBadgeV1 isHistV1">' + ICON_HISTORY + esc(T("История")) + '</span>';
     var specs = specsOf(car, listing).map(function(s){ return "<span>" + esc(s) + "</span>"; }).join("");
     var place = placeOf(listing);
     var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
     var price = priceOf(car, listing);
-    return '<a class="catCardV1" href="' + esc(carHref(car, listing)) + '" role="listitem">'
-      + '<div class="catCardPhotoV1">'
-        + (img[0] ? '<img src="' + esc(img[0]) + '" alt="" loading="lazy" referrerpolicy="no-referrer" width="320" height="240">' : '<div class="catCardNoPhotoV1">' + esc(T("Нет фото")) + '</div>')
+    var href = carHref(car, listing);
+    var nav = imgs.length > 1
+      ? '<button type="button" class="catPhotoNavV1 catPhotoPrevV1" data-nav="-1" aria-label="' + esc(T("Предыдущее фото")) + '">‹</button>'
+        + '<button type="button" class="catPhotoNavV1 catPhotoNextV1" data-nav="1" aria-label="' + esc(T("Следующее фото")) + '">›</button>'
+        + '<div class="catPhotoDotsV1">' + imgs.slice(0, 6).map(function(_, i){ return '<span class="' + (i === 0 ? "isOnV1" : "") + '"></span>'; }).join("") + '</div>'
+      : "";
+    return '<a class="catCardV1" href="' + esc(href) + '" role="listitem">'
+      + '<div class="catCardPhotoV1" data-images="' + esc(JSON.stringify(imgs.slice(0, 6))) + '" data-idx="0">'
+        + (imgs[0] ? '<img src="' + esc(imgs[0]) + '" alt="" loading="lazy" referrerpolicy="no-referrer" width="320" height="240">' : '<div class="catCardNoPhotoV1">' + esc(T("Нет фото")) + '</div>')
+        + nav
         + (badges ? '<div class="catBadgeRowV1">' + badges + '</div>' : "")
         + (sold ? '<div class="catSoldStampV1">' + esc(T("ПРОДАНО")) + '</div>' : "")
       + '</div>'
@@ -341,10 +352,29 @@
         + '<h3 class="catCardTitleV1" data-no-i18n="true">' + esc(titleOf(car)) + '</h3>'
         + '<div class="catSpecsV1">' + specs + '</div>'
         + (place || src ? '<div class="catPlaceRowV1"><span data-no-i18n="true">' + esc(place) + '</span>' + (src ? '<span class="catSrcV1" data-no-i18n="true">' + esc(src) + '</span>' : "") + '</div>' : "")
-        + '<div class="catPriceRowV1"><span><span class="catPriceLblV1">' + esc(price.label) + '</span><span class="catPriceAmtV1" data-no-i18n="true">' + esc(price.text) + '</span></span>' + (price.cur ? '<span class="catPriceCurV1" data-no-i18n="true">' + esc(price.cur) + '</span>' : "") + '</div>'
+        + '<div class="catPriceRowV1"><span><span class="catPriceLblV1">' + esc(price.label) + '</span><span class="catPriceAmtV1" data-no-i18n="true">' + esc(price.text) + '</span></span>' + (price.cur ? '<span class="catPriceCurV1" data-no-i18n="true">' + esc(price.cur) + '</span>' : "") + '<span class="catQuickOpenV1" aria-hidden="true">' + ICON_OPEN + '</span></div>'
       + '</div>'
     + '</a>';
   }
+
+  // Стрелки фото карточки листают снимок БЕЗ перехода на страницу (бриф §5.7, как у демо-каталога провайдера).
+  grid.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-nav]");
+    if(!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var box = btn.closest(".catCardPhotoV1");
+    if(!box) return;
+    var imgs;
+    try{ imgs = JSON.parse(box.getAttribute("data-images") || "[]"); }catch(err){ imgs = []; }
+    if(!imgs.length) return;
+    var idx = parseInt(box.getAttribute("data-idx"), 10) || 0;
+    idx = (idx + parseInt(btn.getAttribute("data-nav"), 10) + imgs.length) % imgs.length;
+    box.setAttribute("data-idx", String(idx));
+    var im = box.querySelector("img");
+    if(im) im.src = imgs[idx];
+    box.querySelectorAll(".catPhotoDotsV1 span").forEach(function(d, i){ d.classList.toggle("isOnV1", i === idx); });
+  }, true);
 
   function renderResults(data){
     grid.setAttribute("aria-busy", "false");

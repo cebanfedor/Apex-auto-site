@@ -24,7 +24,52 @@
   var AIRBAG = {1:"Целы",2:"Сработали",3:"Отсутствуют"};
   var STEERING = {1:"Левый руль",2:"Правый руль"};
   var COLORS_MAP = {1:"Серебристый",2:"Фиолетовый",3:"Оранжевый",4:"Зелёный",5:"Красный",6:"Золотой",8:"Коричневый",9:"Серый",10:"Бирюзовый",11:"Синий",12:"Бронзовый",13:"Белый",14:"Кремовый",15:"Чёрный",16:"Жёлтый",17:"Бежевый",18:"Розовый",100:"Двухцветный"};
+  var COLOR_SWATCH = {1:"#c9cbcc",2:"#7c3aed",3:"#f59e0b",4:"#20b26b",5:"#c24135",6:"#d7a61d",8:"#8b552d",9:"#62676b",10:"#31c7c7",11:"#2d86c9",12:"#b77d37",13:"#ffffff",14:"#fff7d8",15:"#050505",16:"#f7ea13",17:"#f1e7ce",18:"#ee94bf"};
   var MARKET_ORIGIN = {1:"Европа",2:"США",3:"Китай",4:"Индия",5:"Япония",6:"Корея",8:"Великобритания",9:"Канада",10:"Турция",11:"Россия",12:"Южная Корея",13:"Таиланд",14:"Австралия",15:"Индонезия",16:"Ближний Восток",17:"Африка",18:"Тайвань",19:"Мексика",20:"Северная Корея",21:"Океания",22:"Азия",23:"Бразилия",24:"Южная Америка",25:"Северная Америка"};
+  var MARKET_FLAG = {1:"🇪🇺",2:"🇺🇸",3:"🇨🇳",4:"🇮🇳",5:"🇯🇵",6:"🇰🇷",8:"🇬🇧",9:"🇨🇦",10:"🇹🇷",11:"🇷🇺",12:"🇰🇷",13:"🇹🇭",14:"🇦🇺",15:"🇮🇩",17:"🌍",18:"🇹🇼",19:"🇲🇽",20:"🇰🇵",23:"🇧🇷"};
+
+  // Иконка по ключевому слову названия опции — как у демо-каталога провайдера (бриф §6.8).
+  function iconForOption(name){
+    var s = String(name || "").toLowerCase();
+    if(/navigation|map|gps/.test(s)) return "🗺️";
+    if(/monitor|screen|display|hud/.test(s)) return "🖥️";
+    if(/bluetooth/.test(s)) return "🔵";
+    if(/airbag|brake|abs|tcs|stability|esc|esp/.test(s)) return "🛡️";
+    if(/seat/.test(s)) return "💺";
+    if(/light|lamp|headl/.test(s)) return "💡";
+    if(/\bkey\b|smart key/.test(s)) return "🔑";
+    if(/lock/.test(s)) return "🔒";
+    if(/camera/.test(s)) return "📷";
+    if(/sensor|radar|parking/.test(s)) return "📡";
+    if(/cruise/.test(s)) return "⚙️";
+    if(/sunroof|roof/.test(s)) return "☀️";
+    if(/wheel/.test(s)) return "⚙️";
+    return "✓";
+  }
+
+  function relTime(iso){
+    if(!iso) return "";
+    var d = new Date(iso), now = new Date();
+    if(isNaN(d.getTime())) return "";
+    var days = Math.floor((now - d) / 86400000);
+    if(days <= 0) return T("Размещено сегодня");
+    if(days === 1) return T("Размещено вчера");
+    if(days < 30) return T("Размещено") + " " + days + " " + T("дн. назад");
+    return T("Размещено") + " " + fmtDate(iso);
+  }
+
+  function copyRowValue(value){
+    return '<button type="button" class="catCopyBtnV1" data-copy="' + esc(value) + '" aria-label="' + esc(T("Скопировать")) + '" data-no-i18n="true">' + esc(value) + ' <svg viewBox="0 0 20 20" fill="none" width="12" height="12"><rect x="7" y="7" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 13V5a1 1 0 0 1 1-1h8" stroke="currentColor" stroke-width="1.4"/></svg></button>';
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest(".catCopyBtnV1");
+    if(!b) return;
+    var v = b.getAttribute("data-copy");
+    navigator.clipboard && navigator.clipboard.writeText(v).then(function(){
+      b.classList.add("isCopiedV1");
+      setTimeout(function(){ b.classList.remove("isCopiedV1"); }, 1200);
+    });
+  });
 
   var m = location.pathname.match(/^\/catalog\/([^/?#]+)/);
   var carId = m ? decodeURIComponent(m[1]) : "";
@@ -247,7 +292,10 @@
     html += '<div class="catPriceCardV1"><span class="catPriceLblV1">' + esc(price.label) + '</span>'
       + '<div class="catPriceBigV1" data-no-i18n="true">' + esc(price.amt) + (price.cur ? ' <span class="catPriceCurV1">' + esc(price.cur) + '</span>' : "") + (listing && listing.price && listing.price.negotiable ? '<span class="catNegTagV1">' + esc(T("Торг")) + '</span>' : "") + '</div>'
       + (listing && listing.external ? '<div class="catPriceSrcV1">' + esc(T("на")) + ' <a href="' + esc(listing.external.url) + '" target="_blank" rel="noopener noreferrer" data-no-i18n="true">' + esc(listing.external.domain.name) + '</a></div>' : "")
+      + (listing && listing.created_at ? '<span class="catListedChipV1">📅 ' + esc(relTime(listing.created_at)) + '</span>' : "")
       + '</div>';
+
+    html += reportsCardHtml(car, listing);
 
     // Key facts (год уже в заголовке — пропускаем)
     var facts = [];
@@ -286,11 +334,11 @@
     if(car.brand) rows.push([T("Марка"), car.brand.name]);
     if(car.model) rows.push([T("Модель"), car.model.name]);
     if(car.badge) rows.push([T("Комплектация"), car.badge]);
-    if(car.color) rows.push([T("Цвет"), T(COLORS_MAP[car.color.id] || car.color.name)]);
-    if(car.interior_color) rows.push([T("Цвет салона"), T(COLORS_MAP[car.interior_color.id] || car.interior_color.name)]);
+    if(car.color) rows.push([T("Цвет"), swatchRow(car.color.id, T(COLORS_MAP[car.color.id] || car.color.name))]);
+    if(car.interior_color) rows.push([T("Цвет салона"), swatchRow(car.interior_color.id, T(COLORS_MAP[car.interior_color.id] || car.interior_color.name))]);
     if(car.seats) rows.push([T("Мест"), String(car.seats)]);
     if(car.cylinders) rows.push([T("Цилиндров"), String(car.cylinders)]);
-    if(car.market_origin) rows.push([T("Рынок"), T(MARKET_ORIGIN[car.market_origin.id] || car.market_origin.name)]);
+    if(car.market_origin) rows.push([T("Рынок"), (MARKET_FLAG[car.market_origin.id] || "") + " " + T(MARKET_ORIGIN[car.market_origin.id] || car.market_origin.name)]);
     if(car.steering_wheel_position) rows.push([T("Руль"), T(STEERING[car.steering_wheel_position.id] || car.steering_wheel_position.name)]);
     html += rowsHtml(rows, true);
 
@@ -302,17 +350,22 @@
     if(rows.length){ html += '<h4>' + esc(T("Состояние")) + '</h4>' + rowsHtml(rows, true); }
 
     rows = [];
-    if(car.vin) rows.push([T("VIN"), String(car.vin).toUpperCase()]);
-    if(listing && listing.external) rows.push([T("ID объявления"), listing.external.id]);
+    if(car.vin) rows.push([T("VIN"), copyRow(String(car.vin).toUpperCase())]);
+    if(listing && listing.external) rows.push([T("ID объявления"), copyRow(String(listing.external.id))]);
     if(listing && listing.external) rows.push([T("Источник"), listing.external.domain.name]);
+    if(listing && listing.external && listing.external.domain) rows.push([T("ID источника"), copyRow(String(listing.external.domain.id))]);
     if(listing && listing.document_id) rows.push([T("Документ"), listing.document_id.name]);
     html += '<h4>' + esc(T("Идентификаторы")) + '</h4>' + rowsHtml(rows, true);
     html += '</div>';
 
     // Location
     var ld = listing && listing.location_details;
+    var pos = listing && listing.location && !Array.isArray(listing.location) ? listing.location.position : null;
     if(ld && (ld.country || ld.region || ld.district)){
-      html += '<div class="catDetailsCardV1"><h4>' + esc(T("Локация")) + '</h4>' + rowsHtml([
+      var mapLink = pos && pos.lat != null && pos.lon != null
+        ? '<a href="https://www.google.com/maps?q=' + pos.lat + ',' + pos.lon + '" target="_blank" rel="noopener noreferrer" class="catMapLinkV1">' + esc(T("Открыть карту")) + ' ↗</a>'
+        : "";
+      html += '<div class="catDetailsCardV1"><div class="catCardHeadRowV1"><h4 style="margin:0">' + esc(T("Локация")) + '</h4>' + mapLink + '</div>' + rowsHtml([
         ld.country && ld.country.name ? [T("Страна"), ld.country.name] : null,
         ld.region && ld.region.name ? [T("Регион"), ld.region.name] : null,
         ld.district && ld.district.name ? [T("Район"), ld.district.name] : null
@@ -338,9 +391,62 @@
       moreBtn.remove();
     });
   }
+  // «Reports» — сводная карточка в Overview (бриф §6.6.4, как в демо-каталоге провайдера): плитка-ссылка
+  // на вкладку Осмотр/История с коротким вердиктом, только если соответствующий отчёт реально есть у ВЫБРАННОГО листинга.
+  function reportsCardHtml(car, listing){
+    var tiles = "";
+    var insp = matchingReports(car.inspections)[0];
+    if(insp){
+      var blocks = Array.isArray(insp.inspection_blocks) ? insp.inspection_blocks : [];
+      var issueCount = blocks.reduce(function(s, b){ return s + (Number(b.issue_count) || 0); }, 0);
+      var checkedCount = blocks.reduce(function(s, b){ return s + (Number(b.checked_count) || 0); }, 0);
+      var verdict = issueCount > 0 ? {cls:"isWarnV1", text:T("Найдены проблемы") + ": " + issueCount}
+        : checkedCount > 0 ? {cls:"isOkV1", text:T("Проблем не найдено")}
+        : {cls:"isNeutralV1", text:T("Результат не ясен")};
+      tiles += '<a class="catReportTileV1" data-report-tab="inspection">'
+        + '<span class="catReportIcoV1">' + ICON_INSP_BIG + '</span>'
+        + '<span class="catReportBodyV1"><b>' + esc(T("Осмотр")) + '</b><span class="catReportPillV1 ' + verdict.cls + '">' + esc(verdict.text) + '</span>'
+        + '<small>' + esc(T("Проверено")) + ": " + checkedCount + '</small></span>'
+        + '<span class="catReportArrV1">→</span>'
+      + '</a>';
+    }
+    var hist = matchingReports(car.vehicle_history_reports)[0];
+    if(hist){
+      var s = (hist.summary && !Array.isArray(hist.summary)) ? hist.summary : {};
+      var risky = (s.insurance_claim_count > 0) || (s.total_loss_count > 0) || (s.flood_total_loss_count > 0) || (s.flood_partial_loss_count > 0) || (s.theft_count > 0);
+      var vh = risky ? {cls:"isWarnV1", text:T("Найдены риски")} : {cls:"isOkV1", text:T("Рисков не найдено")};
+      tiles += '<a class="catReportTileV1" data-report-tab="history">'
+        + '<span class="catReportIcoV1">' + ICON_HIST_BIG + '</span>'
+        + '<span class="catReportBodyV1"><b>' + esc(T("История")) + '</b><span class="catReportPillV1 ' + vh.cls + '">' + esc(vh.text) + '</span>'
+        + '<small>' + esc(T("Смен владельца")) + ": " + (s.owner_change_count != null ? s.owner_change_count : "—") + ' · ' + esc(T("Страховых случаев")) + ": " + (s.insurance_claim_count != null ? s.insurance_claim_count : "—") + '</small></span>'
+        + '<span class="catReportArrV1">→</span>'
+      + '</a>';
+    }
+    return tiles ? '<div class="catReportsCardV1">' + tiles + '</div>' : "";
+  }
+  var ICON_INSP_BIG = '<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.7"/><path d="M7.5 12.3l2.8 2.8 5.7-6.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_HIST_BIG = '<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12.5" r="8.6" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v4.5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  document.addEventListener("click", function(e){
+    var t = e.target.closest("[data-report-tab]");
+    if(!t) return;
+    e.preventDefault();
+    selectTab(t.getAttribute("data-report-tab"));
+  });
+
   function rowsHtml(rows, skipWrapCheck){
     if(!rows.length) return skipWrapCheck ? "" : "";
-    return rows.map(function(r){ return '<div class="catDetailRowV1"><span>' + esc(r[0]) + '</span><span data-no-i18n="true">' + esc(r[1]) + '</span></div>'; }).join("");
+    return rows.map(function(r){
+      var val = r[1] && typeof r[1] === "object" && "html" in r[1] ? r[1].html : esc(r[1]);
+      return '<div class="catDetailRowV1"><span>' + esc(r[0]) + '</span><span data-no-i18n="true">' + val + '</span></div>';
+    }).join("");
+  }
+  function swatchRow(colorId, label){
+    var hex = COLOR_SWATCH[colorId];
+    var dot = hex ? '<span class="catColorDotV1" style="background:' + hex + '"></span>' : "";
+    return {html: dot + esc(label)};
+  }
+  function copyRow(value){
+    return {html: copyRowValue(value)};
   }
   function cleanDescription(text){
     return String(text || "")
@@ -405,15 +511,27 @@
           (bySection[secName] = bySection[secName] || []).push(opt);
         });
         var sections = Object.keys(bySection).sort();
-        var html = '<p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">' + fmtNum(items.length) + " " + esc(T("опций")) + '</p>';
-        html += sections.map(function(sec){
-          var opts = bySection[sec].sort(function(a, b){ return nameOf(a).localeCompare(nameOf(b)); });
-          return '<div style="margin-bottom:16px"><b style="display:block;margin-bottom:6px;font-size:13px">' + esc(sec === T("Другое") ? sec : sec) + '</b>'
-            + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 14px">'
-            + opts.map(function(o){ return '<div style="font-size:13px;padding:3px 0;display:flex;gap:7px"><span style="color:var(--red-600)">✓</span><span data-no-i18n="true">' + esc(nameOf(o)) + '</span></div>'; }).join("")
-            + '</div></div>';
-        }).join("");
+        function renderSections(filterQ){
+          var q = (filterQ || "").trim().toLowerCase();
+          return sections.map(function(sec){
+            var opts = bySection[sec].filter(function(o){ return !q || nameOf(o).toLowerCase().indexOf(q) >= 0; }).sort(function(a, b){ return nameOf(a).localeCompare(nameOf(b)); });
+            if(!opts.length) return "";
+            return '<div class="catEqSectionV1"><div class="catEqSecHeadV1">' + esc(sec.toUpperCase()) + '<span>' + bySection[sec].length + '</span></div>'
+              + '<div class="catEqGridV1">'
+              + opts.map(function(o){ return '<div class="catEqItemV1"><span class="catEqIconV1">' + iconForOption(nameOf(o)) + '</span><span data-no-i18n="true">' + esc(nameOf(o)) + '</span></div>'; }).join("")
+              + '</div></div>';
+          }).join("");
+        }
+        var html = '<div class="catEqHeadRowV1"><div><b>' + esc(T("Комплектация и опции")) + '</b><small>' + fmtNum(items.length) + " " + esc(T("опций")) + '</small></div>'
+          + '<input type="text" id="catEqSearchV1" class="catEqSearchV1" placeholder="' + esc(T("Фильтр по комплектации")) + '"></div>'
+          + '<div id="catEqListV1">' + renderSections("") + '</div>';
         panel.innerHTML = html;
+        var searchInp = document.getElementById("catEqSearchV1");
+        if(searchInp) searchInp.addEventListener("input", function(){
+          var list = document.getElementById("catEqListV1");
+          var out = renderSections(searchInp.value);
+          list.innerHTML = out || '<p style="color:var(--muted);font-size:13px;padding:10px 0">' + esc(T("Ничего не найдено")) + '</p>';
+        });
       })
       .catch(function(){ panel.innerHTML = '<div class="catSoonV1">' + esc(T("Не удалось загрузить комплектацию.")) + '</div>'; });
   }
