@@ -20,11 +20,20 @@
   }
   function T(s){ return typeof window.i18nT === "function" ? window.i18nT(s) : s; }
 
+  // 04.11.2026 (Федор: «теперь в подписке есть Encar») — реальный живой ответ фида (проверено на проде)
+  // отдаёт fuel/transmission английскими словами в нижнем регистре ("gasoline", "automatic", "diesel") —
+  // T() переводит ТОЛЬКО известные русские ключи словаря RU→RO/EN, сырое английское слово он не трогает
+  // и на русской версии сайта (по умолчанию) показывалось бы as-is английским, не «Бензин»/«Автомат».
+  var FUEL_RU = {gasoline:"Бензин", diesel:"Дизель", lpg:"Газ", hybrid:"Гибрид", electric:"Электро"};
+  var TRANS_RU = {automatic:"Автомат", manual:"Механика", cvt:"Вариатор"};
+  function fuelLabel(raw){ var ru = FUEL_RU[String(raw || "").toLowerCase()]; return T(ru || raw); }
+  function transLabel(raw){ var ru = TRANS_RU[String(raw || "").toLowerCase()]; return T(ru || raw); }
+
   function chips(it){
     var out = [];
     if(it.mileageText) out.push(it.mileageText);
-    if(it.fuel) out.push(T(it.fuel));
-    if(it.transmission) out.push(T(it.transmission));
+    if(it.fuel) out.push(fuelLabel(it.fuel));
+    if(it.transmission) out.push(transLabel(it.transmission));
     return out.map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
   }
 
