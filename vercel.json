@@ -106,6 +106,8 @@
     { "source": "/in-transit", "destination": "/in-transit.html" },
     { "source": "/in-transit/:slug(\\d[^/]*)", "destination": "/api/transit-page?slug=:slug" },
     { "source": "/korea", "destination": "/korea.html" },
+    { "source": "/catalog", "destination": "/catalog.html" },
+    { "source": "/catalog/:id", "destination": "/catalog-car.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },
