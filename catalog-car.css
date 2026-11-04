@@ -19,7 +19,11 @@
 .catCarGalleryV1 { position: sticky; top: 16px; }
 @media (max-width: 1023px) { .catCarGalleryV1 { position: static; } }
 .catGalMainV1 { position: relative; aspect-ratio: 4/3; background: var(--field); border-radius: var(--radius); overflow: hidden; }
-.catGalMainV1 img { width: 100%; height: 100%; object-fit: contain; background: #111; cursor: zoom-in; }
+/* 05.11.2026 (Федор: «убрать чёрные полоски на фото») — у фото с источника аспект часто не 4/3, `object-fit:
+   contain` оставляет поля сверху/снизу; было: чёрный фон самого <img> — выглядело как чёрные полосы поверх
+   светлой карточки. Фон контейнера (`var(--field)`, тот же светло-серый, что в остальном UI) теперь просвечивает
+   в полях — не обрезаем фото (contain остаётся), просто поля в цвет карточки, а не чёрные. */
+.catGalMainV1 img { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
 .catGalArrV1 { position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(255,255,255,.9); cursor: pointer; font-size: 17px; display: none; align-items: center; justify-content: center; }
 @media (min-width: 640px) { .catGalArrV1 { display: flex; } }
 .catGalPrevV1 { left: 10px; } .catGalNextV1 { right: 10px; }
