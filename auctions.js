@@ -415,6 +415,7 @@
   function alertTokenSet(t){ try{ localStorage.setItem(ALERT_TOKEN_KEY, t); }catch(e){} }
   function alertLots(){ try{ return new Set(JSON.parse(localStorage.getItem(ALERT_LOTS_KEY) || "[]")); }catch(e){ return new Set(); } }
   function alertLotMark(ids){ try{ const set = alertLots(); ids.forEach(i => set.add(i)); localStorage.setItem(ALERT_LOTS_KEY, JSON.stringify([...set].slice(-300))); }catch(e){} refreshBellMarks(); }
+  function alertLotUnmark(id){ try{ const set = alertLots(); set.delete(String(id)); localStorage.setItem(ALERT_LOTS_KEY, JSON.stringify([...set])); }catch(e){} refreshBellMarks(); }
   function alertLang(){ const l = String(document.documentElement.getAttribute("lang") || "ru").slice(0, 2).toLowerCase(); return ["ru", "ro", "en"].includes(l) ? l : "ru"; }
   function alertable(lot){
     if(!lot || Number(lot.finalBid) > 0 || Number(lot.statusId) === 6) return false;
@@ -484,6 +485,14 @@
     }catch(e){
       alertToast("err", alertErrText(e.message));
     }
+  }
+  async function alertUnsubscribeLot(id){
+    const token = alertTokenGet();
+    if(!token) { alertLotUnmark(id); return; }       // нет токена — нет и подписки на сервере, просто чистим локальную метку
+    alertLotUnmark(id);                               // снимаем «Слежу» сразу, не дожидаясь ответа — тот же приём, что у избранного
+    try{ await api("/api/auctions?action=alertdellot", {method:"POST", body:{token, lot_id:String(id)}}); }
+    catch(e){ alertLotMark([String(id)]); alertToast("err", alertErrText(e.message)); return; } // откат при сбое сети/сервера
+    alertToast("ok", L("Уведомления по этому лоту отключены"));
   }
   function searchAlertName(){ return activeChips.map(c => c.label).join(" · ").slice(0, 110) || L("Поиск"); }
   async function loadAlertSubsInto(box){
@@ -5571,6 +5580,7 @@
         event.preventDefault();
         event.stopPropagation();
         const id = bellBtn.dataset.alertLot;
+        if(alertLots().has(String(id))){ alertUnsubscribeLot(id); return; }    // 04.11.2026: повторный клик по колокольчику = отписка, не повторная подписка
         const lot = state.items.find(l => String(l.id) === String(id)) || (state.selectedLot && String(state.selectedLot.id) === String(id) ? state.selectedLot : null);
         if(lot) alertSubscribe("lot", {lots:[{id:String(lot.id), title:lotTitle(lot), saleDate:lot.auctionDate, vin:lot.vin || ""}]}, () => alertLotMark([String(lot.id)]));
         return;
