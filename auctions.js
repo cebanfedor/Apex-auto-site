@@ -427,7 +427,11 @@
     document.querySelectorAll("[data-alert-lot]").forEach(b => {
       const on = set.has(b.dataset.alertLot);
       b.classList.toggle("is-on", on);
-      const lab = b.querySelector("span"); if(lab) lab.textContent = L(on ? "Слежу за лотом" : "Следить за лотом");
+      // 04.11.2026 (Федор: «чтоб человек понимал что нажимает») — подписанный колокольчик должен называть
+      // ДЕЙСТВИЕ клика (отписаться), а не статус («Слежу за лотом» читалось как нейтральная метка, не кнопка).
+      const txt = L(on ? "Перестать следить за лотом" : "Следить за лотом");
+      const lab = b.querySelector("span"); if(lab) lab.textContent = txt;
+      if(b.hasAttribute("title")) b.title = txt;     // мелкий колокольчик на карточке — текста нет, только title
     });
   }
   let alertPollTimer = null;
@@ -1531,7 +1535,7 @@
         ${photos > 1 ? `<span class="dbPhotoBarV1" aria-hidden="true"><i style="width:${(100 / photos).toFixed(3)}%"></i></span>` : ""}
         ${Number(priceVal) > 0 ? `<span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>` : ""}
         <span class="dbFav${favHas(lot.id) ? " is-fav" : ""}" role="button" data-fav="${escapeHtml(lot.id)}" title="В избранное">${dbIco("star")}</span>
-        ${alertable(lot) ? `<span class="dbBell${alertLots().has(String(lot.id)) ? " is-on" : ""}" role="button" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L("Следить за лотом"))}">${dbIco("bell")}</span>` : ""}
+        ${alertable(lot) ? `<span class="dbBell${alertLots().has(String(lot.id)) ? " is-on" : ""}" role="button" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}">${dbIco("bell")}</span>` : ""}
         ${photos > 1 ? `<button class="dbSlideBtn dbSlidePrev" type="button" aria-label="Предыдущее фото" data-dir="-1">‹</button><button class="dbSlideBtn dbSlideNext" type="button" aria-label="Следующее фото" data-dir="1">›</button>` : ""}
       </div>
       <div class="dbBody">
@@ -3806,7 +3810,7 @@
           </div>
           <div class="dHeadActionsV1">
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
-            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Слежу за лотом" : "Следить за лотом"))}</span></button>` : ""}
+            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}</span></button>` : ""}
             ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">${dbIco("vin")}<span>Отчёт истории VIN</span></a>` : ""}
           </div>
         </div>
