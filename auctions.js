@@ -1748,9 +1748,14 @@
       // Данные самого лота расходятся со списком: лот уже продан, либо торги перенесены — перерисовываем карточку и лечим базу.
       const liveMs = Date.parse(lv.auctionDate || ""), listMs = Date.parse(lot.auctionDate || "");
       const dateMoved = Number.isFinite(liveMs) && Number.isFinite(listMs) && Math.abs(liveMs - listMs) > 2 * 3600e3;
+      // 04.11.2026 (Федор: «есть машины без даты аукциона, а они по факту уже имеют дату»): лот без даты в
+      // списке только что получил её у аукциона (`listMs` невалиден, `liveMs` — валиден). Раньше это не ловилось
+      // вовсе: `dateMoved` требует ОБЕ даты, поэтому Object.assign ниже никогда не трогал auctionDate для
+      // такого лота — карточка молча оставалась «без даты», хотя фид её уже отдаёт.
+      const dateAssigned = !Number.isFinite(listMs) && Number.isFinite(liveMs);
       const newDay = String(lv.auctionDate || "").slice(0, 10);
-      const dateOutOfFilter = dateMoved && (dateFromF || dateToF) && ((dateFromF && newDay < dateFromF) || (dateToF && newDay > dateToF));
-      if(lv.sold || dateMoved){
+      const dateOutOfFilter = (dateMoved || dateAssigned) && (dateFromF || dateToF) && ((dateFromF && newDay < dateFromF) || (dateToF && newDay > dateToF));
+      if(lv.sold || dateMoved || dateAssigned){
         Object.assign(lot, {auctionDate:lv.auctionDate || lot.auctionDate}, lv.sold ? {statusId:6, statusName:"sold", lotStatus:"sold", finalBid:lv.finalBid || lv.currentBid} : {});
         // Текущие вкладки показывают только актуальные торги: сыгравший лот (или перенесённый мимо явного
         // фильтра по дате) убираем (в «Архиве»/«Избранном» и при поиске по VIN/номеру — оставляем как есть).
