@@ -25,6 +25,24 @@
     [10,"Бирюзовый","#31c7c7"],[11,"Синий","#2d86c9"],[12,"Бронзовый","#b77d37"],[13,"Белый","#ffffff"],
     [14,"Кремовый","#fff7d8"],[15,"Чёрный","#050505"],[16,"Жёлтый","#f7ea13"],[17,"Бежевый","#f1e7ce"],[18,"Розовый","#ee94bf"]
   ];
+  // ---- Фильтры, добавленные 05.11.2026 (Федор: «сделай 1в1 как у autopartner.by/korea», структурный
+  // эталон в CLAUDE.md) — литералы сверены с реальной OpenAPI-спекой api.auctionsapi.com (не выдуманы),
+  // backend (api/catalog.js) уже принимал эти query-параметры, просто в сайдбаре их не было.
+  var AVAILABILITIES = [[1,"В наличии"],[2,"В пути"],[3,"Под заказ"]];
+  var STEERING = [[1,"Левый руль"],[2,"Правый руль"]];
+  var AIRBAGS = [[1,"Целые"],[2,"Сработавшие"],[3,"Отсутствуют"]];
+  var SELLER_TYPES = [[1,"Частное лицо"],[2,"Дилер"]];
+  var EMISSIONS = [[1,"Евро-1"],[2,"Евро-2"],[3,"Евро-3"],[4,"Евро-4"],[5,"Евро-5"],[6,"Евро-6"],[7,"ZEV (нулевые выбросы)"]];
+  var SEATS_TABLE = [[2,"2"],[4,"4"],[5,"5"],[6,"6"],[7,"7"],[8,"8"],[10,"10"]];
+  var DAMAGES = [
+    [1,"Боковое повреждение"],[2,"Угон"],[3,"Пожар"],[4,"Электрические повреждения"],[5,"Вандализм"],
+    [6,"Повреждение водой"],[7,"Повреждение крыши"],[8,"Повреждение трансмиссии"],[9,"Повреждение подвески"],
+    [10,"Биологическая опасность"],[11,"Утилизация"],[12,"Изъятие"],[13,"Переворот"],[14,"Повреждения по всему кузову"],
+    [15,"Повреждение двигателя"],[16,"Повреждение рамы"],[17,"Переднее повреждение"],[18,"Заднее повреждение"],
+    [19,"Переднее и заднее повреждение"],[20,"Град"],[21,"Механические повреждения"],[22,"Мелкие вмятины и царапины"],
+    [23,"Повреждение VIN"],[24,"Нормальный износ"],[25,"Отклонённый или частичный ремонт"],[26,"Повреждение штормом"],
+    [27,"Разобран"],[28,"Повреждение днища"]
+  ];
 
   // ---- Логотипы марок (05.11.2026, Федор: «значки на все марки», свои копии, см. CLAUDE.md) ----
   // 202 реальных логотипа марок, скачанные один раз в /assets/brand-logos/<slug>.webp (не хотлинк — своя копия,
@@ -44,8 +62,12 @@
     priceFrom:"", priceTo:"", currency:"krw",
     yearFrom:"", yearTo:"",
     odoFrom:"", odoTo:"",
-    transmission:"", bodyTypeIds:[], fuelIds:[], driveIds:[], condIds:[], colorIds:[],
-    flagKeys:false, flagInsp:false, flagHist:false,
+    driveIds:[], transmission:"", bodyTypeIds:[], fuelIds:[], condIds:[],
+    availIds:[], damageIds:[],
+    keysAvail:"", steering:"", emissionIds:[], airbags:"", sellerType:"", mfgCert:"",
+    hasInsp:"", isAuction:"", hasHist:"",
+    colorIds:[],
+    engineVolFrom:"", engineVolTo:"", powerFrom:"", powerTo:"", seats:"", isLeasing:"",
     sort:"newest", page:1
   };
   var PER_PAGE = 24;
@@ -68,20 +90,38 @@
     }
     if(state.priceFrom) p.set("price_from", state.priceFrom);
     if(state.priceTo) p.set("price_to", state.priceTo);
+    // ⚠️ currency ВСЕГДА шлётся (даже дефолтный "krw"), а не только при отличии от "usd": эта же функция
+    // строит и видимый URL, и реальный запрос к /api/catalog→upstream, у которого СВОЙ дефолт "usd" — без
+    // явного krw сортировка по цене на upstream незаметно перескочила бы на доллары (05.11.2026, найдено
+    // при проверке; activeGroupsCount ниже отдельно не даёт этому попасть в счётчик активных фильтров).
     if(state.currency !== "usd") p.set("currency", state.currency);
     if(state.yearFrom) p.set("year_from", state.yearFrom);
     if(state.yearTo) p.set("year_to", state.yearTo);
     if(state.odoFrom) p.set("odometer_from", state.odoFrom);
     if(state.odoTo) p.set("odometer_to", state.odoTo);
+    if(state.driveIds.length) p.set("drive_wheel_id", state.driveIds.join(","));
     if(state.transmission) p.set("transmission", state.transmission);
     if(state.bodyTypeIds.length) p.set("body_type_id", state.bodyTypeIds.join(","));
     if(state.fuelIds.length) p.set("fuel_id", state.fuelIds.join(","));
-    if(state.driveIds.length) p.set("drive_wheel_id", state.driveIds.join(","));
     if(state.condIds.length) p.set("condition_id", state.condIds.join(","));
+    if(state.availIds.length) p.set("availability_id", state.availIds.join(","));
+    if(state.damageIds.length) p.set("damage_id", state.damageIds.join(","));
+    if(state.keysAvail) p.set("keys_available", state.keysAvail);
+    if(state.steering) p.set("steering_wheel_position", state.steering);
+    if(state.emissionIds.length) p.set("emission_id", state.emissionIds.join(","));
+    if(state.airbags) p.set("airbags", state.airbags);
+    if(state.sellerType) p.set("seller_type", state.sellerType);
+    if(state.mfgCert) p.set("manufacturer_certified", state.mfgCert);
+    if(state.hasInsp) p.set("has_inspections", state.hasInsp);
+    if(state.isAuction) p.set("is_auction", state.isAuction);
+    if(state.hasHist) p.set("has_history_reports", state.hasHist);
     if(state.colorIds.length) p.set("color_id", state.colorIds.join(","));
-    if(state.flagKeys) p.set("keys_available", "1");
-    if(state.flagInsp) p.set("has_inspections", "1");
-    if(state.flagHist) p.set("has_history_reports", "1");
+    if(state.engineVolFrom) p.set("engine_volume_from", state.engineVolFrom);
+    if(state.engineVolTo) p.set("engine_volume_to", state.engineVolTo);
+    if(state.powerFrom) p.set("power_hp_from", state.powerFrom);
+    if(state.powerTo) p.set("power_hp_to", state.powerTo);
+    if(state.seats) p.set("seats", state.seats);
+    if(state.isLeasing) p.set("is_leasing", state.isLeasing);
     if(state.sort !== "newest") p.set("sort", state.sort);
     if(state.page > 1) p.set("page", String(state.page));
     return p;
@@ -93,6 +133,7 @@
     return String(Math.min(hi, Math.max(lo, n)));
   }
   function csvInts(v){ return String(v || "").split(",").map(function(s){ return parseInt(s, 10); }).filter(isFinite); }
+  function triOf(v){ return (v === "1" || v === "0") ? v : ""; } // «Все/Да/Нет» булевых фильтров (05.11.2026)
 
   function stateFromParams(p){
     var vs = p.get("vehicle_selection");
@@ -118,16 +159,30 @@
     state.yearTo = clampInt(p.get("year_to"), 1800, 3000);
     state.odoFrom = clampInt(p.get("odometer_from"), 0, 999999999);
     state.odoTo = clampInt(p.get("odometer_to"), 0, 999999999);
+    state.driveIds = csvInts(p.get("drive_wheel_id"));
     state.transmission = [1,2].includes(parseInt(p.get("transmission"), 10)) ? p.get("transmission") : "";
     state.bodyTypeIds = csvInts(p.get("body_type_id"));
     state.fuelIds = csvInts(p.get("fuel_id"));
-    state.driveIds = csvInts(p.get("drive_wheel_id"));
     state.condIds = csvInts(p.get("condition_id"));
+    state.availIds = csvInts(p.get("availability_id"));
+    state.damageIds = csvInts(p.get("damage_id"));
+    state.keysAvail = triOf(p.get("keys_available"));
+    state.steering = [1,2].includes(parseInt(p.get("steering_wheel_position"), 10)) ? p.get("steering_wheel_position") : "";
+    state.emissionIds = csvInts(p.get("emission_id"));
+    state.airbags = [1,2,3].includes(parseInt(p.get("airbags"), 10)) ? p.get("airbags") : "";
+    state.sellerType = [1,2].includes(parseInt(p.get("seller_type"), 10)) ? p.get("seller_type") : "";
+    state.mfgCert = triOf(p.get("manufacturer_certified"));
+    state.hasInsp = triOf(p.get("has_inspections"));
+    state.isAuction = triOf(p.get("is_auction"));
+    state.hasHist = triOf(p.get("has_history_reports"));
     state.colorIds = csvInts(p.get("color_id"));
-    state.flagKeys = p.get("keys_available") === "1";
-    state.flagInsp = p.get("has_inspections") === "1";
-    state.flagHist = p.get("has_history_reports") === "1";
-    var sortOk = ["newest","oldest","cheaper","expensive","odometer_asc","odometer_desc","year_asc","year_desc"];
+    state.engineVolFrom = clampInt(p.get("engine_volume_from"), 0, 999999999);
+    state.engineVolTo = clampInt(p.get("engine_volume_to"), 0, 999999999);
+    state.powerFrom = clampInt(p.get("power_hp_from"), 0, 100000);
+    state.powerTo = clampInt(p.get("power_hp_to"), 0, 100000);
+    state.seats = SEATS_TABLE.some(function(s){ return String(s[0]) === p.get("seats"); }) ? p.get("seats") : "";
+    state.isLeasing = triOf(p.get("is_leasing"));
+    var sortOk = ["newest","oldest","cheaper","expensive","odometer_asc","odometer_desc","year_asc","year_desc","auction_nearest"];
     state.sort = sortOk.indexOf(p.get("sort")) >= 0 ? p.get("sort") : "newest";
     state.page = Math.max(1, parseInt(p.get("page"), 10) || 1);
   }
@@ -153,18 +208,30 @@
     if(state.brands.some(function(b){ return (b.models||[]).length; })) n++; // модели
     if(state.brands.some(function(b){ return (b.models||[]).some(function(m){ return (m.generations||[]).length; }); })) n++;
     if(state.priceFrom || state.priceTo) n++;
-    if(state.currency !== "usd") n++;
+    if(state.currency !== "krw") n++; // 05.11.2026: "krw" — наш дефолт (не "usd"), раньше валюта всегда лишне считалась активным фильтром
     if(state.yearFrom || state.yearTo) n++;
     if(state.odoFrom || state.odoTo) n++;
+    if(state.driveIds.length) n++;
     if(state.transmission) n++;
     if(state.bodyTypeIds.length) n++;
     if(state.fuelIds.length) n++;
-    if(state.driveIds.length) n++;
     if(state.condIds.length) n++;
+    if(state.availIds.length) n++;
+    if(state.damageIds.length) n++;
+    if(state.keysAvail) n++;
+    if(state.steering) n++;
+    if(state.emissionIds.length) n++;
+    if(state.airbags) n++;
+    if(state.sellerType) n++;
+    if(state.mfgCert) n++;
+    if(state.hasInsp) n++;
+    if(state.isAuction) n++;
+    if(state.hasHist) n++;
     if(state.colorIds.length) n++;
-    if(state.flagKeys) n++;
-    if(state.flagInsp) n++;
-    if(state.flagHist) n++;
+    if(state.engineVolFrom || state.engineVolTo) n++;
+    if(state.powerFrom || state.powerTo) n++;
+    if(state.seats) n++;
+    if(state.isLeasing) n++;
     return n;
   }
 
@@ -284,13 +351,15 @@
     }
     return T("Автомобиль");
   }
+  // 05.11.2026 (эталон autopartner.by/korea, CLAUDE.md): карточка листинга у них — РОВНО 4 факта
+  // (пробег/объём/КПП/топливо), не 7 — порядок полей ниже подобран так, что .slice(0,4) даёт именно их.
   function specsOf(car, listing){
     var out = [];
     if(listing && listing.odometer != null) out.push({t:"odo", v:fmtNum(listing.odometer) + " " + T("км")});
-    if(car.fuel && car.fuel.name) out.push({t:"fuel", v:T(fuelLabel(car.fuel.id))});
-    if(car.transmission && car.transmission.name) out.push({t:"trans", v:T(transLabel(car.transmission.id))});
     // Электро: engine_volume в фиде — НЕ объём двигателя (120/111/202/1... бессмысленно как см³/1000, проверено 04.11.2026) — не показываем.
     if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) out.push({t:"engine", v:(car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л")});
+    if(car.transmission && car.transmission.name) out.push({t:"trans", v:T(transLabel(car.transmission.id))});
+    if(car.fuel && car.fuel.name) out.push({t:"fuel", v:T(fuelLabel(car.fuel.id))});
     if(car.power_hp) out.push({t:"power", v:car.power_hp + " " + T("л.с.")});
     if(car.drive_wheels && car.drive_wheels.name) out.push({t:"drive", v:T(driveLabel(car.drive_wheels.id))});
     if(car.body_type && car.body_type.name) out.push({t:"body", v:T(bodyLabel(car.body_type.id))});
@@ -367,6 +436,7 @@
       + '</div>'
       + '<div class="catCardBodyV1">'
         + '<h3 class="catCardTitleV1" data-no-i18n="true">' + esc(titleOf(car)) + '</h3>'
+        + (car.vin ? '<div class="catCardVinV1" data-no-i18n="true">VIN ' + esc(String(car.vin).toUpperCase()) + '</div>' : "")
         + '<div class="catSpecsV1">' + specs + '</div>'
         + (place || src ? '<div class="catPlaceRowV1"><span data-no-i18n="true">' + esc(place) + '</span>' + (src ? '<span class="catSrcV1" data-no-i18n="true">' + esc(src) + '</span>' : "") + '</div>' : "")
         + '<div class="catPriceRowV1"><span><span class="catPriceLblV1">' + esc(price.label) + '</span><span class="catPriceAmtV1" data-no-i18n="true">' + esc(price.text) + '</span></span>' + (price.cur ? '<span class="catPriceCurV1" data-no-i18n="true">' + esc(price.cur) + '</span>' : "") + '<span class="catQuickOpenV1" aria-hidden="true">' + ICON_OPEN + '</span></div>'
@@ -460,15 +530,29 @@
     if(state.yearTo) chip(T("Год до") + " " + state.yearTo, function(){ state.yearTo = ""; });
     if(state.odoFrom) chip(T("Пробег от") + " " + fmtNum(state.odoFrom) + " " + T("км"), function(){ state.odoFrom = ""; });
     if(state.odoTo) chip(T("Пробег до") + " " + fmtNum(state.odoTo) + " " + T("км"), function(){ state.odoTo = ""; });
+    state.driveIds.forEach(function(id){ chip(T(driveLabel(id)), function(){ state.driveIds = state.driveIds.filter(function(x){ return x !== id; }); }); });
     if(state.transmission) chip(T(transLabel(parseInt(state.transmission, 10))), function(){ state.transmission = ""; });
     state.bodyTypeIds.forEach(function(id){ chip(T(bodyLabel(id)), function(){ state.bodyTypeIds = state.bodyTypeIds.filter(function(x){ return x !== id; }); }); });
     state.fuelIds.forEach(function(id){ chip(T(fuelLabel(id)), function(){ state.fuelIds = state.fuelIds.filter(function(x){ return x !== id; }); }); });
-    state.driveIds.forEach(function(id){ chip(T(driveLabel(id)), function(){ state.driveIds = state.driveIds.filter(function(x){ return x !== id; }); }); });
     state.condIds.forEach(function(id){ var r = CONDITIONS.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.condIds = state.condIds.filter(function(x){ return x !== id; }); }); });
+    state.availIds.forEach(function(id){ var r = AVAILABILITIES.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.availIds = state.availIds.filter(function(x){ return x !== id; }); }); });
+    state.damageIds.forEach(function(id){ var r = DAMAGES.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.damageIds = state.damageIds.filter(function(x){ return x !== id; }); }); });
+    if(state.keysAvail) chip(T("Ключи") + ": " + T(state.keysAvail === "1" ? "Есть" : "Нет"), function(){ state.keysAvail = ""; });
+    if(state.steering) chip(T(STEERING.find(function(x){ return String(x[0]) === state.steering; })[1]), function(){ state.steering = ""; });
+    state.emissionIds.forEach(function(id){ var r = EMISSIONS.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.emissionIds = state.emissionIds.filter(function(x){ return x !== id; }); }); });
+    if(state.airbags) chip(T(AIRBAGS.find(function(x){ return String(x[0]) === state.airbags; })[1]), function(){ state.airbags = ""; });
+    if(state.sellerType) chip(T(SELLER_TYPES.find(function(x){ return String(x[0]) === state.sellerType; })[1]), function(){ state.sellerType = ""; });
+    if(state.mfgCert) chip(T("Сертифицированный продавец") + ": " + T(state.mfgCert === "1" ? "Да" : "Нет"), function(){ state.mfgCert = ""; });
+    if(state.hasInsp) chip(T("Есть отчёт об инспекции") + ": " + T(state.hasInsp === "1" ? "Да" : "Нет"), function(){ state.hasInsp = ""; });
+    if(state.isAuction) chip(T("Аукцион") + ": " + T(state.isAuction === "1" ? "Да" : "Нет"), function(){ state.isAuction = ""; });
+    if(state.hasHist) chip(T("История автомобиля") + ": " + T(state.hasHist === "1" ? "Да" : "Нет"), function(){ state.hasHist = ""; });
     state.colorIds.forEach(function(id){ var r = COLORS.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.colorIds = state.colorIds.filter(function(x){ return x !== id; }); }); });
-    if(state.flagKeys) chip(T("Ключи в наличии"), function(){ state.flagKeys = false; });
-    if(state.flagInsp) chip(T("Есть отчёт осмотра"), function(){ state.flagInsp = false; });
-    if(state.flagHist) chip(T("Есть отчёт истории"), function(){ state.flagHist = false; });
+    if(state.engineVolFrom) chip(T("Объём от") + " " + fmtNum(state.engineVolFrom) + " " + T("см³"), function(){ state.engineVolFrom = ""; });
+    if(state.engineVolTo) chip(T("Объём до") + " " + fmtNum(state.engineVolTo) + " " + T("см³"), function(){ state.engineVolTo = ""; });
+    if(state.powerFrom) chip(T("Мощность от") + " " + fmtNum(state.powerFrom) + " " + T("л.с."), function(){ state.powerFrom = ""; });
+    if(state.powerTo) chip(T("Мощность до") + " " + fmtNum(state.powerTo) + " " + T("л.с."), function(){ state.powerTo = ""; });
+    if(state.seats) chip(T("Мест") + ": " + state.seats, function(){ state.seats = ""; });
+    if(state.isLeasing) chip(T("Только лизинг"), function(){ state.isLeasing = ""; });
 
     if(!chips.length){ row.hidden = true; row.innerHTML = ""; return; }
     row.hidden = false;
@@ -491,8 +575,12 @@
     state.brands = [];
     state.priceFrom = ""; state.priceTo = ""; state.currency = "krw";
     state.yearFrom = ""; state.yearTo = ""; state.odoFrom = ""; state.odoTo = "";
-    state.transmission = ""; state.bodyTypeIds = []; state.fuelIds = []; state.driveIds = []; state.condIds = []; state.colorIds = [];
-    state.flagKeys = false; state.flagInsp = false; state.flagHist = false;
+    state.driveIds = []; state.transmission = ""; state.bodyTypeIds = []; state.fuelIds = []; state.condIds = [];
+    state.availIds = []; state.damageIds = [];
+    state.keysAvail = ""; state.steering = ""; state.emissionIds = []; state.airbags = ""; state.sellerType = ""; state.mfgCert = "";
+    state.hasInsp = ""; state.isAuction = ""; state.hasHist = "";
+    state.colorIds = [];
+    state.engineVolFrom = ""; state.engineVolTo = ""; state.powerFrom = ""; state.powerTo = ""; state.seats = ""; state.isLeasing = "";
     state.sort = "newest"; state.page = 1;
     renderSidebarAll();
     scheduleSearch(true);
@@ -730,18 +818,60 @@
     if(moreBtn) moreBtn.hidden = expanded;
   }
 
+  // «Все/Да/Нет» — для булевых фильтров (05.11.2026, эталон autopartner.by/korea): клик по уже активной
+  // пилюле снимает выбор, как и у остальных single-select пилюль этого каталога (transmission и т.п.) —
+  // отдельная кнопка «Все» не нужна, тот же интерактивный паттерн, что уже в коде.
+  function renderBoolPills(containerId, stateKey, yesLabel, noLabel){
+    var el = document.getElementById(containerId);
+    if(!el) return;
+    var table = [["1", yesLabel || "Да"], ["0", noLabel || "Нет"]];
+    el.innerHTML = table.map(function(row){
+      var on = state[stateKey] === row[0];
+      return '<button type="button" class="catPillV1' + (on ? " isOnV1" : "") + '" data-val="' + row[0] + '" data-no-i18n="true">' + esc(T(row[1])) + '</button>';
+    }).join("");
+    el.querySelectorAll("[data-val]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var v = btn.getAttribute("data-val");
+        state[stateKey] = state[stateKey] === v ? "" : v;
+        renderSidebarAll();
+        scheduleSearch(true);
+      });
+    });
+  }
+
   function renderSidebarAll(){
     renderMakeList();
     renderModelSection();
     renderGenSection();
+    renderPills("catDrivePillsV1", DRIVE_WHEELS, state.driveIds, function(v){ toggleIn(state.driveIds, v); });
     renderPills("catTransPillsV1", TRANSMISSIONS, state.transmission ? [parseInt(state.transmission, 10)] : [], function(v){
       state.transmission = state.transmission === String(v) ? "" : String(v);
     });
     renderPills("catBodyPillsV1", BODY_TYPES, state.bodyTypeIds, function(v){ toggleIn(state.bodyTypeIds, v); });
     renderPills("catFuelPillsV1", FUELS, state.fuelIds, function(v){ toggleIn(state.fuelIds, v); });
-    renderPills("catDrivePillsV1", DRIVE_WHEELS, state.driveIds, function(v){ toggleIn(state.driveIds, v); });
     renderPills("catCondPillsV1", CONDITIONS, state.condIds, function(v){ toggleIn(state.condIds, v); });
+    renderPills("catAvailPillsV1", AVAILABILITIES, state.availIds, function(v){ toggleIn(state.availIds, v); });
+    renderPills("catDamagePillsV1", DAMAGES, state.damageIds, function(v){ toggleIn(state.damageIds, v); });
+    renderBoolPills("catKeysPillsV1", "keysAvail", "Есть", "Нет");
+    renderPills("catSteeringPillsV1", STEERING, state.steering ? [parseInt(state.steering, 10)] : [], function(v){
+      state.steering = state.steering === String(v) ? "" : String(v);
+    });
+    renderPills("catEmissionPillsV1", EMISSIONS, state.emissionIds, function(v){ toggleIn(state.emissionIds, v); });
+    renderPills("catAirbagsPillsV1", AIRBAGS, state.airbags ? [parseInt(state.airbags, 10)] : [], function(v){
+      state.airbags = state.airbags === String(v) ? "" : String(v);
+    });
+    renderPills("catSellerPillsV1", SELLER_TYPES, state.sellerType ? [parseInt(state.sellerType, 10)] : [], function(v){
+      state.sellerType = state.sellerType === String(v) ? "" : String(v);
+    });
+    renderBoolPills("catMfgCertPillsV1", "mfgCert", "Да", "Нет");
+    renderBoolPills("catHasInspPillsV1", "hasInsp", "Да", "Нет");
+    renderBoolPills("catIsAuctionPillsV1", "isAuction", "Да", "Нет");
+    renderBoolPills("catHasHistPillsV1", "hasHist", "Да", "Нет");
     renderColorSwatches();
+    renderPills("catSeatsPillsV1", SEATS_TABLE, state.seats ? [parseInt(state.seats, 10)] : [], function(v){
+      state.seats = state.seats === String(v) ? "" : String(v);
+    });
+    renderBoolPills("catLeasingPillsV1", "isLeasing", "Только лизинг", "Без лизинга");
     renderSidebarState();
   }
 
@@ -751,9 +881,8 @@
     setVal("catCurrencyV1", state.currency);
     setVal("catYearFromV1", state.yearFrom); setVal("catYearToV1", state.yearTo);
     setVal("catOdoFromV1", state.odoFrom); setVal("catOdoToV1", state.odoTo);
-    setChecked("catFlagKeysV1", state.flagKeys);
-    setChecked("catFlagInspV1", state.flagInsp);
-    setChecked("catFlagHistV1", state.flagHist);
+    setVal("catEngineVolFromV1", state.engineVolFrom); setVal("catEngineVolToV1", state.engineVolTo);
+    setVal("catPowerFromV1", state.powerFrom); setVal("catPowerToV1", state.powerTo);
     setVal("catSortSelV1", state.sort);
     // «точка» активности у разделов
     document.querySelectorAll(".catSecV1").forEach(function(sec){
@@ -765,18 +894,31 @@
       if(key === "price") active = !!(state.priceFrom || state.priceTo);
       if(key === "year") active = !!(state.yearFrom || state.yearTo);
       if(key === "mileage") active = !!(state.odoFrom || state.odoTo);
+      if(key === "drive") active = !!state.driveIds.length;
       if(key === "transmission") active = !!state.transmission;
       if(key === "body") active = !!state.bodyTypeIds.length;
       if(key === "fuel") active = !!state.fuelIds.length;
-      if(key === "drive") active = !!state.driveIds.length;
       if(key === "condition") active = !!state.condIds.length;
+      if(key === "availability") active = !!state.availIds.length;
+      if(key === "damage") active = !!state.damageIds.length;
+      if(key === "keys") active = !!state.keysAvail;
+      if(key === "steering") active = !!state.steering;
+      if(key === "emission") active = !!state.emissionIds.length;
+      if(key === "airbags") active = !!state.airbags;
+      if(key === "sellertype") active = !!state.sellerType;
+      if(key === "mfgcert") active = !!state.mfgCert;
+      if(key === "hasinsp") active = !!state.hasInsp;
+      if(key === "isauction") active = !!state.isAuction;
+      if(key === "hashist") active = !!state.hasHist;
       if(key === "color") active = !!state.colorIds.length;
-      if(key === "flags") active = state.flagKeys || state.flagInsp || state.flagHist;
+      if(key === "enginevol") active = !!(state.engineVolFrom || state.engineVolTo);
+      if(key === "power") active = !!(state.powerFrom || state.powerTo);
+      if(key === "seats") active = !!state.seats;
+      if(key === "leasing") active = !!state.isLeasing;
       sec.classList.toggle("isActiveV1", active);
     });
   }
   function setVal(id, v){ var el = document.getElementById(id); if(el) el.value = v || (id === "catCurrencyV1" ? "krw" : ""); }
-  function setChecked(id, v){ var el = document.getElementById(id); if(el) el.checked = !!v; }
 
   // ---- Открытые/закрытые секции (localStorage, §5.2) ----
   function sectionStorageKey(key){ return "catalog-filter-open:" + key; }
@@ -808,18 +950,12 @@
   onText("catYearToV1", function(v){ state.yearTo = v; });
   onText("catOdoFromV1", function(v){ state.odoFrom = v; });
   onText("catOdoToV1", function(v){ state.odoTo = v; });
+  onText("catEngineVolFromV1", function(v){ state.engineVolFrom = v; });
+  onText("catEngineVolToV1", function(v){ state.engineVolTo = v; });
+  onText("catPowerFromV1", function(v){ state.powerFrom = v; });
+  onText("catPowerToV1", function(v){ state.powerTo = v; });
   var curSel = document.getElementById("catCurrencyV1");
   if(curSel) curSel.addEventListener("change", function(){ state.currency = curSel.value; scheduleSearch(true); });
-  ["catFlagKeysV1", "catFlagInspV1", "catFlagHistV1"].forEach(function(id, i){
-    var el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener("change", function(){
-      if(i === 0) state.flagKeys = el.checked;
-      if(i === 1) state.flagInsp = el.checked;
-      if(i === 2) state.flagHist = el.checked;
-      scheduleSearch(true);
-    });
-  });
   var sortSel = document.getElementById("catSortSelV1");
   if(sortSel) sortSel.addEventListener("change", function(){ state.sort = sortSel.value; scheduleSearch(true); });
 

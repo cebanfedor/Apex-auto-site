@@ -77,7 +77,7 @@
   var refDomainId = qp.get("domain_id");
   var refListingId = qp.get("listing_id");
 
-  var state = {car:null, listing:null, tab:"overview", galIdx:0};
+  var state = {car:null, listing:null, galIdx:0};
 
   function apiUrl(){
     var l = lang();
@@ -144,9 +144,17 @@
     renderMeta();
     renderSold();
     renderGallery();
-    renderTabsVisibility();
     renderOverview();
+    // 05.11.2026 (эталон autopartner.by/korea): секции ниже — вертикальный скролл, не переключаемые
+    // табы, поэтому все рендерятся сразу (не лениво по клику) — renderStickyNav прячет и nav-пункт,
+    // и саму секцию, если для неё реально нет данных у выбранного объявления.
     renderListingsTab();
+    renderEquipmentTab();
+    renderInspectionTab();
+    renderHistoryTab();
+    renderStickyNav();
+    wireStickyNavScroll();
+    renderSimilarAndModels();
   }
 
   function renderMeta(){
@@ -171,7 +179,7 @@
       });
     });
     var ol = document.getElementById("catOpenListingsBtnV1");
-    if(ol) ol.addEventListener("click", function(){ selectTab("listings"); });
+    if(ol) ol.addEventListener("click", function(){ scrollToAnchor("listings"); });
   }
 
   function placeOf(listing){
@@ -353,36 +361,62 @@
       return ref && String(ref.domain_id) === String(listing.external.domain.id) && String(ref.listing_id) === String(listing.external.id);
     });
   }
-  function renderTabsVisibility(){
+  function historyHasRisk(car){
+    var hist = matchingReports(car.vehicle_history_reports)[0];
+    if(!hist) return false;
+    var s = (hist.summary && !Array.isArray(hist.summary)) ? hist.summary : {};
+    return (s.insurance_claim_count > 0) || (s.total_loss_count > 0) || (s.flood_total_loss_count > 0) || (s.flood_partial_loss_count > 0) || (s.theft_count > 0);
+  }
+  // 05.11.2026 (эталон autopartner.by/korea, CLAUDE.md): липкая якорная навигация по секциям НИЖЕ Overview —
+  // пункт показывается, ТОЛЬКО если для него реально есть данные у ВЫБРАННОГО объявления; сама секция
+  // (не только nav-пункт) тоже прячется целиком — пустых плашек "нет данных" в этих разделах не показываем.
+  function renderStickyNav(){
     var car = state.car;
     var listings = car.listings || [];
-    document.getElementById("catTabListingsV1").hidden = listings.length <= 1;
     var optCount = (state.listing && listings.length > 1 ? (state.listing.option_ids || []) : Array.from(new Set((car.option_ids || []).concat((state.listing && state.listing.option_ids) || [])))).length;
-    document.getElementById("catTabEqCountV1").textContent = optCount ? String(optCount) : "";
     var insp = matchingReports(car.inspections);
-    document.getElementById("catTabInspCountV1").textContent = insp.length ? String(insp.length) : "";
     var hist = matchingReports(car.vehicle_history_reports);
-    document.getElementById("catTabHistCountV1").textContent = hist.length ? String(hist.length) : "";
+    var hasListings = listings.length > 1;
 
-    document.querySelectorAll("#catTabsV1 [role=tab]").forEach(function(btn){
-      btn.addEventListener("click", function(){ selectTab(btn.getAttribute("data-tab")); });
-    });
+    toggleSection("inspection", "catNavInspV1", insp.length > 0);
+    toggleSection("options", "catNavEqV1", optCount > 0);
+    toggleSection("history", "catNavHistV1", hist.length > 0);
+    toggleSection("listings", "catNavListingsV1", hasListings);
+
+    document.getElementById("catTabEqCountV1").textContent = optCount ? String(optCount) : "";
+    document.getElementById("catTabListingsCountV1").textContent = hasListings ? String(listings.length) : "";
+    var alertDot = document.getElementById("catNavHistAlertV1");
+    if(alertDot) alertDot.hidden = !historyHasRisk(car);
+
+    var nav = document.getElementById("catStickyNavV1");
+    if(nav) nav.hidden = !(insp.length || optCount || hist.length || hasListings);
   }
-  var tabLoaded = {};
-  function selectTab(tab){
-    if(tab === "listings" && (state.car.listings || []).length <= 1) tab = "overview";
-    state.tab = tab;
-    document.querySelectorAll("#catTabsV1 [role=tab]").forEach(function(b){ b.classList.toggle("isOnV1", b.getAttribute("data-tab") === tab); b.setAttribute("aria-selected", b.getAttribute("data-tab") === tab ? "true" : "false"); });
-    ["overview","listings","equipment","inspection","history"].forEach(function(key){
-      var panel = document.getElementById("catPanel" + key[0].toUpperCase() + key.slice(1) + "V1");
-      if(panel) panel.hidden = key !== tab;
+  function toggleSection(id, navId, show){
+    var sec = document.getElementById(id);
+    var nav = document.getElementById(navId);
+    if(sec) sec.hidden = !show;
+    if(nav) nav.hidden = !show;
+  }
+  function scrollToAnchor(id){
+    var el = document.getElementById(id);
+    if(el) el.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+  }
+  function wireStickyNavScroll(){
+    document.querySelectorAll("#catStickyNavV1 [data-anchor]").forEach(function(btn){
+      btn.addEventListener("click", function(){ scrollToAnchor(btn.getAttribute("data-anchor")); });
     });
-    if(!tabLoaded[tab]){
-      tabLoaded[tab] = true;
-      if(tab === "equipment") renderEquipmentTab();
-      if(tab === "inspection") renderInspectionTab();
-      if(tab === "history") renderHistoryTab();
-    }
+    if(!("IntersectionObserver" in window)) return;
+    var sections = Array.from(document.querySelectorAll(".catAnchorSecV1")).filter(function(s){ return !s.hidden; });
+    if(!sections.length) return;
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(!e.isIntersecting) return;
+        document.querySelectorAll("#catStickyNavV1 [data-anchor]").forEach(function(btn){
+          btn.classList.toggle("isOnV1", btn.getAttribute("data-anchor") === e.target.id);
+        });
+      });
+    }, {rootMargin:"-120px 0px -55% 0px"});
+    sections.forEach(function(s){ obs.observe(s); });
   }
 
   // ============ Overview ============
@@ -587,7 +621,7 @@
     var t = e.target.closest("[data-report-tab]");
     if(!t) return;
     e.preventDefault();
-    selectTab(t.getAttribute("data-report-tab"));
+    scrollToAnchor(t.getAttribute("data-report-tab") === "equipment" ? "options" : t.getAttribute("data-report-tab"));
   });
 
   function rowsHtml(rows, skipWrapCheck){
@@ -1302,6 +1336,70 @@
           if(msg) msg.textContent = T("Не удалось отправить. Напишите нам в WhatsApp или Telegram.");
         }
       });
+  }
+
+  // ============ «Похожие автомобили» / «Другие модели <Марка>» (05.11.2026, эталон autopartner.by/korea) ============
+  // Своя подборка через наш же /api/catalog action=search|models — не выдумываем отдельный провайдерский
+  // эндпоинт "похожих" (его нет в OpenAPI-спеке api.auctionsapi.com), а честно собираем из уже реальных,
+  // доступных нам данных: тот же brand+model±2 года для похожих, полный список моделей марки для "других".
+  function carLinkHref(car){
+    var l = pickListing(car);
+    var p = new URLSearchParams();
+    if(l && l.external){ p.set("domain_id", l.external.domain.id); p.set("listing_id", l.external.id); }
+    var q = p.toString();
+    return "/catalog/" + encodeURIComponent(car.id) + (q ? "?" + q : "");
+  }
+  function simCardHtml(car){
+    var l = pickListing(car);
+    var img = l && Array.isArray(l.images) && l.images.length ? firstImageUrl(l.images[0]) : "";
+    var price = priceBlock(car, l);
+    return '<a class="catSimCardV1" href="' + esc(carLinkHref(car)) + '">'
+      + (img ? '<img src="' + esc(img) + '" loading="lazy" referrerpolicy="no-referrer" alt="">' : '<div class="catSimNoPhotoV1"></div>')
+      + '<div class="catSimBodyV1"><b data-no-i18n="true">' + esc(titleOf(car, l)) + '</b>'
+      + '<span data-no-i18n="true">' + esc(price.amt) + (price.cur ? (" " + esc(price.cur)) : "") + '</span></div>'
+    + '</a>';
+  }
+  function renderSimilarAndModels(){
+    var car = state.car;
+    var secSim = document.getElementById("catSimilarSecV1");
+    var rowSim = document.getElementById("catSimilarRowV1");
+    if(secSim && rowSim){
+      if(!car.brand || !car.model){ secSim.hidden = true; }
+      else{
+        var p = new URLSearchParams();
+        p.set("action", "search"); p.set("lang", lang());
+        p.set("brand_id", car.brand.id);
+        p.set("model_id", car.brand.id + ":" + car.model.id);
+        if(car.year){ p.set("year_from", String(car.year - 2)); p.set("year_to", String(car.year + 2)); }
+        p.set("per_page", "12"); p.set("sort", "newest");
+        fetch("/api/catalog?" + p.toString()).then(function(r){ return r.json(); }).then(function(d){
+          var items = ((d && d.items) || []).filter(function(c){ return c.id !== car.id; }).slice(0, 10);
+          if(!items.length){ secSim.hidden = true; return; }
+          secSim.hidden = false;
+          rowSim.innerHTML = items.map(simCardHtml).join("");
+        }).catch(function(){ secSim.hidden = true; });
+      }
+    }
+
+    var secModels = document.getElementById("catOtherModelsSecV1");
+    var rowModels = document.getElementById("catOtherModelsRowV1");
+    var titleModels = document.getElementById("catOtherModelsTitleV1");
+    if(secModels && rowModels){
+      if(!car.brand){ secModels.hidden = true; }
+      else{
+        if(titleModels) titleModels.textContent = T("Другие модели") + " " + car.brand.name;
+        fetch("/api/catalog?action=models&brand_id=" + encodeURIComponent(car.brand.id) + "&lang=" + encodeURIComponent(lang()))
+          .then(function(r){ return r.json(); }).then(function(d){
+            var items = ((d && d.items) || []).filter(function(m){ return !car.model || m.id !== car.model.id; }).slice(0, 24);
+            if(!items.length){ secModels.hidden = true; return; }
+            secModels.hidden = false;
+            rowModels.innerHTML = items.map(function(m){
+              var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + m.id);
+              return '<a class="catModelTileV1" href="/catalog?' + mp.toString() + '" data-no-i18n="true">' + esc(m.name || ("ID " + m.id)) + '</a>';
+            }).join("");
+          }).catch(function(){ secModels.hidden = true; });
+      }
+    }
   }
 
   load();
