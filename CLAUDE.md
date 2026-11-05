@@ -2168,3 +2168,8 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   `usdKrw` (с запасом, им считает клиент), `marketKrw` (как на Naver), `margin`, `src`. Кэш: память 1 ч, CDN `s-maxage=3600`, клиент 3 ч
   (`apexKrwRateV2` — ключ сменён, чтобы старые курсы без запаса не жили в браузерах). Поменять запас — одна константа.
   ⚠️ Из песочницы node до Naver не достучаться без `undici.ProxyAgent` (egress-политика), curl — ходит; на Vercel ограничений нет.
+- **Фильтр «Марка» — популярные сверху (05.11.2026, Федор)**: `POPULAR_BRANDS` в `catalog.js` — 25 марок по реальному числу авто на Encar
+  (замер через `action=search&brand_id=…` 05.11: Hyundai 35k, Kia 34k, BMW 12.8k, Mercedes 12.5k, Genesis 8.2k, SsangYong 6k, Chevrolet 5.5k,
+  Renault Samsung 4.6k, Audi, Porsche, Land Rover, MINI, VW, Tesla, Volvo, Jeep, Ford, Lexus, Toyota, Honda, Maserati, Cadillac, Lincoln, Jaguar,
+  Peugeot ≥364), затем разделитель «Другие марки» (`.cf-brand-sep`) и остальные по алфавиту. Поиск по названию сохраняет этот порядок.
+  Агрегаций/счётчиков по маркам API не даёт — список статичный, пересчитывать раз в полгода тем же замером.
