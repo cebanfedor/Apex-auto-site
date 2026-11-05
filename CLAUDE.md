@@ -2161,3 +2161,10 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
     «Encar ↗» у каждого объявления в «Где продаётся этот автомобиль». У эталона такой кнопки нет — добавлено по просьбе Федора.
   - Телефон: пагинация 1–6+…+N не влезала в 390px (сайт уезжал вбок на 11px) → `pagerPagesMob` как у эталона («1 2 3 … N» / «1 … 4 5 6 … N»).
   - `catalog-ref.css?v=v4`, `catalog.js?v=v9`, `catalog-car.js?v=v12`, `i18n.js?v=multilang-v556` (17 новых ключей ro/en).
+- **Курс $ для Encar — с Naver + запас 2% (05.11.2026, Федор: «курс берём с Naver, оставить чуть в запасе для нас»)**. `getRates()` в `api/catalog.js`:
+  основной источник — калькулятор валют Naver (`m.search.naver.com/p/csearch/content/qapirender.nhn?key=calculator&pkid=141&u1=keb&u3=USD&u4=KRW`,
+  JSON, без ключа; это базовый курс KEB Hana 매매기준율 — та же цифра, что в поиске naver.com «usd»), запасные — frankfurter, open.er-api.
+  `RATE_MARGIN = 0.02`: вона делится на курс −2% (1 356.5 → 1 329.4 ₩/$) → цена в $ на сайте на ~2% выше рыночной. Ответ `action=rates` —
+  `usdKrw` (с запасом, им считает клиент), `marketKrw` (как на Naver), `margin`, `src`. Кэш: память 1 ч, CDN `s-maxage=3600`, клиент 3 ч
+  (`apexKrwRateV2` — ключ сменён, чтобы старые курсы без запаса не жили в браузерах). Поменять запас — одна константа.
+  ⚠️ Из песочницы node до Naver не достучаться без `undici.ProxyAgent` (egress-политика), curl — ходит; на Vercel ограничений нет.

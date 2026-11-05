@@ -169,24 +169,32 @@ async function doSearch(q){
   };
 }
 
-// Курс USD→KRW/EUR для показа цен Encar в $ (05.11.2026). Раньше браузер ходил на frankfurter напрямую —
-// тот режет CORS, запасной fxratesapi отвечает 429 → цены оставались в KRW. Теперь курс берёт сервер
-// (CORS не участвует), несколько источников по очереди, кэш в памяти 6 ч + CDN.
+// Курс USD→KRW/EUR для показа цен Encar в $ (05.11.2026). Считает сервер (у браузера frankfurter режет CORS).
+// Основной источник — Naver (решение Федора 05.11.2026): курс калькулятора валют Naver = базовый курс KEB Hana
+// (매매기준율), тот же, что в поиске naver.com «usd». Запас RATE_MARGIN в нашу пользу: делим вон на чуть МЕНЬШИЙ
+// курс → цена в $ на сайте чуть выше рыночной (покрывает движение курса до оплаты). Запасные — рыночные API.
+const RATE_MARGIN = 0.02; // 2%: 1 356.5 ₩/$ на Naver → считаем по 1 329.4
+const naverUrl = to => "https://m.search.naver.com/p/csearch/content/qapirender.nhn?key=calculator&pkid=141&q=%ED%99%98%EC%9C%A8&where=m&u1=keb&u6=standardUnit&u7=0&u3=USD&u4=" + to + "&u8=down&u2=1";
+async function naverRate(to){
+  const r = await fetchT(naverUrl(to), {headers:{accept:"application/json", "user-agent":"Mozilla/5.0"}}, 5000);
+  if(!r.ok) return 0;
+  const d = await r.json();
+  const row = d && Array.isArray(d.country) ? d.country[1] : null;
+  return row ? Number(String(row.value || "").replace(/,/g, "")) || 0 : 0;
+}
 let ratesCache = null;
 async function getRates(){
-  if(ratesCache && Date.now() - ratesCache.t < 6 * 3600e3) return ratesCache.v;
+  if(ratesCache && Date.now() - ratesCache.t < 3600e3) return ratesCache.v;
   const sources = [
-    ["https://api.frankfurter.app/latest?from=USD&to=KRW,EUR", d => d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}],
-    ["https://open.er-api.com/v6/latest/USD", d => d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}],
-    ["https://api.fxratesapi.com/latest?base=USD&currencies=KRW,EUR", d => d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}],
+    ["m.search.naver.com", async () => { const [krw, eur] = await Promise.all([naverRate("KRW"), naverRate("EUR").catch(() => 0)]); return {krw, eur}; }],
+    ["api.frankfurter.app", async () => { const r = await fetchT("https://api.frankfurter.app/latest?from=USD&to=KRW,EUR", {headers:{accept:"application/json"}}, 5000); const d = r.ok ? await r.json() : null; return d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}; }],
+    ["open.er-api.com", async () => { const r = await fetchT("https://open.er-api.com/v6/latest/USD", {headers:{accept:"application/json"}}, 5000); const d = r.ok ? await r.json() : null; return d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}; }],
   ];
-  for(const [url, pick] of sources){
+  for(const [src, get] of sources){
     try{
-      const r = await fetchT(url, {headers:{accept:"application/json"}}, 5000);
-      if(!r.ok) continue;
-      const v = pick(await r.json());
+      const v = await get();
       if(v && v.krw > 100 && v.krw < 10000){
-        const out = {usdKrw:v.krw, usdEur:v.eur || 0, src:new URL(url).host, at:new Date().toISOString()};
+        const out = {usdKrw:Math.round(v.krw * (1 - RATE_MARGIN) * 100) / 100, marketKrw:v.krw, margin:RATE_MARGIN, usdEur:v.eur || 0, src, at:new Date().toISOString()};
         ratesCache = {t:Date.now(), v:out};
         return out;
       }
@@ -258,7 +266,7 @@ module.exports = async function handler(req, res){
     if(action === "rates"){
       const r = await getRates();
       if(!r) return sendJson(res, 503, {ok:false, error:"rates_unavailable"}, {"cache-control":"no-store"});
-      return sendJson(res, 200, {ok:true, ...r}, {"cache-control":"public, max-age=1800, s-maxage=21600, stale-while-revalidate=86400"});
+      return sendJson(res, 200, {ok:true, ...r}, {"cache-control":"public, max-age=900, s-maxage=3600, stale-while-revalidate=21600"});
     }
 
     if(action === "generations"){
