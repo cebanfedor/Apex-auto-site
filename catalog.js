@@ -483,7 +483,7 @@
   // ========== Сайдбар фильтров (разметка .filter-section эталона) ==========
   var SECTIONS = [
     {key:"brand", label:"Марка", open:true, type:"brands"},
-    {key:"model", label:"Модель", open:true, type:"models"},
+    {key:"model", label:"Модель", open:false, type:"models"},
     {key:"generation", label:"Поколение", open:true, type:"generations"},
     {key:"price", label:"Цена", open:true, type:"range", min:0, max:100000, step:500, from:"priceFrom", to:"priceTo", format:true, prefix:"$"},
     {key:"year", label:"Год производства", open:true, type:"range", min:1960, max:(new Date()).getFullYear(), step:1, from:"yearFrom", to:"yearTo", format:false},
