@@ -3,7 +3,21 @@
    Использует токены из styles.css (--red, --ink, --muted, --line, --radius, --shadow, --font*),
    но классы и разметка СВОИ — не переиспользует .dbCard/.auctionTabsV1 и т.п. (другой продукт). */
 
-.catalogShellV1 { max-width: var(--maxw); margin: 0 auto; padding: 20px 20px 64px; }
+/* 05.11.2026: отдельный, более широкий контейнер для /catalog — Федор сравнил с эталоном
+   (autopartner.by/korea) и показал, что на широком экране их страница использует почти всю ширину
+   окна (контент ~1860px при 1920px viewport), а наша упиралась в общий сайтовый `--maxw:1292px` —
+   карточки получались вдвое уже (219px против их 303px), по бокам пустовали ~600px серого фона.
+   `.catalogShellV1`/`.catalogCarShellV1` берут СВОЙ, более широкий предел (не трогаем var(--maxw) —
+   он общий на весь сайт, другие страницы разрабатывались под читаемую колонку 1292px намеренно). */
+.catalogShellV1 { max-width: 1680px; margin: 0 auto; padding: 20px 28px 64px; }
+
+/* ---- Крошки листинга (05.11.2026, эталон: «🏠 › Авто из Кореи» над заголовком) ---- */
+.catListCrumbsV1 { position: relative; z-index: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.catListCrumbsV1 a { color: var(--muted); }
+.catListCrumbsV1 a:hover { color: var(--red-600); }
+.catListCrumbsV1 span { color: var(--ink-2); font-weight: 600; }
+.catListCrumbSepV1 { font-style: normal; opacity: .6; }
+@media (max-width: 640px) { .catListCrumbsV1 a:not(:first-child) { display: none; } .catListCrumbsV1 .catListCrumbSepV1:not(:first-of-type) { display: none; } }
 
 /* ---- Hero (05.11.2026, 1:1 с демо провайдера api.auctionsapi.com/catalog, зелёный акцент → красный) ---- */
 .catalogTopV1 { position: relative; overflow: hidden; margin-bottom: 18px; padding: 26px 28px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); }
@@ -12,7 +26,7 @@
 .catEyebrowV1 { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 7px; background: var(--red-soft); color: var(--red-600); font-size: 11.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; border-radius: 999px; padding: 5px 11px; margin-bottom: 10px; }
 .catLiveDotV1 { width: 6px; height: 6px; border-radius: 50%; background: var(--red); display: inline-block; animation: catLivePulse 1.6s ease-in-out infinite; }
 @keyframes catLivePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--red-soft); } 50% { opacity: .55; box-shadow: 0 0 0 4px transparent; } }
-.catalogTopV1 h1 { position: relative; z-index: 1; font-family: var(--font-display); font-size: 25px; margin: 0 0 4px; }
+.catalogTopV1 h1 { position: relative; z-index: 1; font-family: var(--font-display); font-size: 32px; margin: 0 0 6px; }
 .catalogTopV1 p { position: relative; z-index: 1; color: var(--muted); margin: 0; font-size: 14.5px; max-width: 640px; }
 @media (max-width: 640px) { .catalogTopV1 { padding: 20px 18px; } .catalogTopV1 h1 { font-size: 21px; } }
 
@@ -135,7 +149,7 @@
 .catChipV1 button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 2px; }
 .catClearAllV1 { border: none; background: none; color: var(--red-600); font-size: 12.5px; font-weight: 700; cursor: pointer; }
 
-.catGridV1 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.catGridV1 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 @media (max-width: 1279px) { .catGridV1 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 1023px) { .catGridV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
 
@@ -145,7 +159,7 @@
 .catCardPhotoV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .catCardNoPhotoV1 { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12.5px; }
 .catBadgeRowV1 { position: absolute; top: 8px; left: 8px; display: flex; gap: 5px; flex-wrap: wrap; max-width: calc(100% - 16px); }
-.catBadgeV1 { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,.95); color: #1b2029; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 9px 3px 7px; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.catBadgeV1 { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,.95); color: #1b2029; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 3px 10px 3px 8px; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
 .catBadgeV1 svg { width: 11px; height: 11px; flex: 0 0 auto; }
 .catBadgeV1.isInspV1 { color: #1a7f4b; }
 .catBadgeV1.isInspV1 svg { color: #20b26b; }
@@ -162,20 +176,20 @@
 .catQuickOpenV1 { margin-left: auto; width: 26px; height: 26px; border-radius: 50%; background: var(--field); display: flex; align-items: center; justify-content: center; color: var(--ink); flex: 0 0 auto; }
 .catQuickOpenV1 svg { width: 13px; height: 13px; }
 
-.catCardBodyV1 { padding: 11px 12px 12px; }
-.catCardTitleV1 { font-size: 14.5px; font-weight: 700; margin: 0 0 6px; line-height: 1.28; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.catCardVinV1 { font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--muted); letter-spacing: .01em; margin: -2px 0 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.catSpecsV1 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 8px; margin-bottom: 8px; }
-.catSpecsV1 span { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.catSpecIcoV1 { flex: 0 0 auto; width: 13px; height: 13px; color: var(--muted); display: inline-flex; }
+.catCardBodyV1 { padding: 14px 16px 16px; }
+.catCardTitleV1 { font-size: 16px; font-weight: 700; margin: 0 0 7px; line-height: 1.28; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.catCardVinV1 { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--muted); letter-spacing: .01em; margin: -1px 0 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catSpecsV1 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 10px; margin-bottom: 10px; }
+.catSpecsV1 span { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catSpecIcoV1 { flex: 0 0 auto; width: 15px; height: 15px; color: var(--muted); display: inline-flex; }
 .catSpecIcoV1 svg { width: 100%; height: 100%; }
-.catPlaceRowV1 { display: flex; align-items: flex-start; gap: 5px; font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
+.catPlaceRowV1 { display: flex; align-items: flex-start; gap: 5px; font-size: 12.5px; color: var(--muted); margin-bottom: 9px; }
 .catPlaceRowV1 > span:first-child { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
 .catPlaceRowV1 .catSrcV1 { margin-left: auto; flex: 0 0 auto; font-family: ui-monospace, monospace; white-space: nowrap; }
-.catPriceRowV1 { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line-2); padding-top: 9px; }
-.catPriceRowV1 .catPriceLblV1 { display: block; font-size: 10.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
-.catPriceRowV1 .catPriceAmtV1 { font-size: 16px; font-weight: 800; }
-.catPriceRowV1 .catPriceCurV1 { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+.catPriceRowV1 { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--line-2); padding-top: 10px; }
+.catPriceRowV1 .catPriceLblV1 { display: block; font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+.catPriceRowV1 .catPriceAmtV1 { font-size: 18px; font-weight: 800; }
+.catPriceRowV1 .catPriceCurV1 { font-size: 12.5px; color: var(--muted); font-weight: 700; }
 
 .catSkelV1 .catCardPhotoV1, .catSkelV1 .catCardTitleV1, .catSkelV1 .catSpecsV1 span { background: linear-gradient(90deg, var(--field) 25%, var(--line-2) 37%, var(--field) 63%); background-size: 400% 100%; animation: catShine 1.3s ease infinite; border-radius: 6px; color: transparent; }
 @keyframes catShine { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }

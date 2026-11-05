@@ -279,6 +279,8 @@
     if(resetPage){ state.page = 1; }
     renderChips();
     renderSidebarState();
+    updateCrumbs();
+    updateHeroHeading();
     pushUrl();
     searchDebounced();
   }
@@ -291,6 +293,56 @@
     var word = total === 1 ? T("автомобиль") : T("автомобилей");
     h.textContent = fmtNum(total) + (approx ? "+" : "") + " " + word;
   }
+
+  // ---- Крошки + заголовок H1 листинга (05.11.2026, эталон autopartner.by/korea: «BMW - Авто из
+  // Кореи» + крошки над заголовком; на нашей странице без фильтра — обычный статичный заголовок). ----
+  function brandNameOf(b){
+    var found = (dict.brands || []).find(function(x){ return x.id === b.id; });
+    return found ? found.name : null;
+  }
+  function modelNameOf(b, m){
+    var found = (dict.modelsByBrand[b.id] || []).find(function(x){ return x.id === m.id; });
+    return found ? found.name : null;
+  }
+  function updateCrumbs(){
+    var el = document.getElementById("catListCrumbsV1");
+    if(!el) return;
+    var b = state.brands[0];
+    var bName = b ? brandNameOf(b) : null;
+    var parts = ['<a href="/">' + esc(T("Главная")) + '</a>'];
+    if(b && bName){
+      parts.push('<a href="/catalog">' + esc(T("Каталог Encar")) + '</a>');
+      var m = (b.models || [])[0];
+      var mName = m ? modelNameOf(b, m) : null;
+      if(m && mName){
+        var bp = new URLSearchParams(); bp.set("brand_id", b.id);
+        parts.push('<a href="/catalog?' + bp.toString() + '" data-no-i18n="true">' + esc(bName) + '</a>');
+        parts.push('<span data-no-i18n="true">' + esc(mName) + '</span>');
+      } else {
+        parts.push('<span data-no-i18n="true">' + esc(bName) + '</span>');
+      }
+    } else {
+      parts.push('<span>' + esc(T("Каталог Encar")) + '</span>');
+    }
+    el.innerHTML = parts.join('<i class="catListCrumbSepV1" aria-hidden="true">›</i>');
+  }
+
+  function updateHeroHeading(){
+    var h1 = document.querySelector(".catalogTopV1 h1");
+    if(!h1) return;
+    var b = state.brands[0];
+    var bName = b ? brandNameOf(b) : null;
+    if(b && bName){
+      var m = (b.models || [])[0];
+      var mName = m ? modelNameOf(b, m) : null;
+      h1.setAttribute("data-no-i18n", "true");
+      h1.textContent = bName + (mName ? " " + mName : "") + " — " + T("Авто из Кореи");
+    } else {
+      h1.removeAttribute("data-no-i18n");
+      h1.textContent = T("Каталог авто из Кореи");
+    }
+  }
+  window._catalogRerenderHeading = function(){ updateCrumbs(); updateHeroHeading(); };
 
   // ---- Скелетоны / состояния ----
   function renderSkeleton(){
@@ -1011,6 +1063,8 @@
     stateFromParams(new URLSearchParams(location.search));
     renderSidebarAll();
     renderChips();
+    updateCrumbs();
+    updateHeroHeading();
     search();
   });
 
@@ -1022,9 +1076,11 @@
       Promise.all(modelPromises).then(function(){
         var genPromises = [];
         state.brands.forEach(function(b){ (b.models || []).forEach(function(m){ if((m.generations || []).length) genPromises.push(ensureGenerations(m.id)); }); });
-        Promise.all(genPromises).then(function(){ renderSidebarAll(); renderChips(); });
+        Promise.all(genPromises).then(function(){ renderSidebarAll(); renderChips(); updateCrumbs(); updateHeroHeading(); });
       });
     });
+    updateCrumbs();
+    updateHeroHeading();
     search();
   }
   boot();
