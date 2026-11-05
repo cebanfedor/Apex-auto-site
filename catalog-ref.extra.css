@@ -81,7 +81,10 @@
 .lot-placeholder__title { font-family: Onest, Inter, sans-serif; font-size: 20px; font-weight: 600; color: rgb(var(--c-ink)); }
 .lot-extra { margin-top: 20px; padding: 22px 24px 24px; }
 .lot-extra .lot-section__head { margin-bottom: 16px; }
-.lot-info__text { white-space: pre-line; font-size: 14px; line-height: 1.55; color: rgb(var(--c-ink-2)); }
+.lot-info__text { white-space: pre-line; overflow-wrap: anywhere; word-break: break-word; font-size: 14px; line-height: 1.55; color: rgb(var(--c-ink-2)); }
+/* описание продавца с длинными «=====» без пробелов распирало .lot-info на всю ширину .lot-hero (Kia Carnival) */
+.lot-info, .lot-info__groups, .lot-info__group, .lot-info__row dd { min-width: 0; max-width: 100%; }
+.lot-info__row dd { overflow-wrap: anywhere; }
 .lot-price__sub--sold { color: #b91c1c; font-weight: 600; }
 .lot-rep__clean { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #047857; }
 .lot-rep__row.is-linked { background: rgb(237 0 18 / .06); border-radius: 12px; }
