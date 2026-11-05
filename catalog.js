@@ -232,13 +232,13 @@
   }
   function loadRates(){
     try{
-      var c = JSON.parse(localStorage.getItem("apexKrwRateV1") || "null");
-      if(c && c.t && Date.now() - c.t < 12 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; applyRates(); }
+      var c = JSON.parse(localStorage.getItem("apexKrwRateV2") || "null");
+      if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; applyRates(); }
     }catch(e){}
     fetchRates().then(function(d){
       if(d && d.rates && d.rates.KRW){
         rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0;
-        try{ localStorage.setItem("apexKrwRateV1", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur})); }catch(e){}
+        try{ localStorage.setItem("apexKrwRateV2", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur})); }catch(e){}
         applyRates();
       }
     }).catch(function(){});
