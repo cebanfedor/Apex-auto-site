@@ -48,7 +48,11 @@
 .catSearchInV1 input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--field-line); border-radius: 9px; font: inherit; font-size: 13.5px; background: var(--field); }
 
 .catListV1 { max-height: 286px; overflow: auto; display: flex; flex-direction: column; gap: 1px; }
-.catRowV1 { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: 13.5px; white-space: nowrap; overflow: hidden; }
+/* 05.11.2026: `overflow:hidden` на строке обнуляет её авто-минимальную высоту (флекс-спека) — при
+   десятках марок (контент выше max-height списка) flex-shrink сминал КАЖДУЮ строку до паддинга (14px),
+   а 24px-логотипы/чекбоксы вылезали и наезжали друг на друга между строками («значки все на кучу»).
+   flex-shrink:0 — строка не сжимается ниже контента, список и так скроллится (`overflow:auto` выше). */
+.catRowV1 { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 8px; cursor: pointer; font-size: 13.5px; white-space: nowrap; overflow: hidden; flex-shrink: 0; }
 .catRowV1:hover { background: var(--field); }
 .catRowV1 .catAvatarV1 { width: 24px; height: 24px; border-radius: 50%; background: var(--field); border: 1px solid var(--line-2); flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: var(--muted); overflow: hidden; }
 /* 05.11.2026 (Федор: «фильтр в таком же стиле», демо провайдера): свой чекбокс вместо нативного —
