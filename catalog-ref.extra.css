@@ -5,28 +5,30 @@
    (4) то, что у эталона делал Alpine/их JS-бандл и чего нет в CSS: лайтбокс, модалка заявки, тост, подсказка схемы кузова,
    «пилюля»-счётчик фильтров, группы моделей; (5) мелкие подгонки под наш хедер. */
 
-/* --- 1. preflight (scoped) --- */
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast), :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) *, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) :before, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) :after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: rgb(var(--c-line)); }
-.apx-korea, .lot-full, .lot-modal, .lot-lb, .lot-tip, .lot-toast { font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; -webkit-font-smoothing: antialiased; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h1, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h2, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h3, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h4, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h5, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h6 { font-size: inherit; font-weight: inherit; margin: 0; letter-spacing: normal; line-height: inherit; color: inherit; font-family: inherit; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) p, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) figure, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) dl, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) dd, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ol, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ul, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) blockquote, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) pre, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) hr { margin: 0; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ol, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ul { list-style: none; padding: 0; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) img, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) svg, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) video, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) canvas, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) iframe { display: block; vertical-align: middle; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) img, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) video { max-width: 100%; height: auto; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) button, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) select, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) textarea { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; letter-spacing: inherit; color: inherit; margin: 0; padding: 0; background: transparent; border-radius: 0; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) button, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) [role="button"] { cursor: pointer; background-color: transparent; background-image: none; text-transform: none; -webkit-appearance: button; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) button:disabled { cursor: default; opacity: .6; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) a { color: inherit; text-decoration: inherit; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) [hidden] { display: none !important; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) small { font-size: 80%; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) b, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) strong { font-weight: bolder; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input::placeholder, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) textarea::placeholder { color: rgb(var(--c-ink-4)); opacity: 1; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="search"]::-webkit-search-decoration, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="number"]::-webkit-inner-spin-button, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) select { background-image: none; padding-right: 0; appearance: auto; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) section { position: static; }
-:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+/* --- 1. preflight (scoped) ---
+   ⚠️ Только :where() — нулевой вес. С :is() вес был класс+тег (0,1,1) и сброс перебивал ВСЕ утилиты эталона
+   (text-[40px] у h1, .btn, рамки полей…) — 05.11.2026 из-за этого заголовок был 16px, кнопки и поля без стилей. */
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root), :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) *, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) :before, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) :after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: rgb(var(--c-line)); }
+.apx-korea, .lot-full, .lot-modal, .lot-lb, .lot-tip, .lot-toast, .lot-ph-root { font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; -webkit-font-smoothing: antialiased; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) h1, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) h2, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) h3, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) h4, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) h5, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) h6 { font-size: inherit; font-weight: inherit; margin: 0; letter-spacing: normal; line-height: inherit; color: inherit; font-family: inherit; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) p, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) figure, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) dl, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) dd, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) ol, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) ul, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) blockquote, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) pre, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) hr { margin: 0; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) ol, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) ul { list-style: none; padding: 0; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) img, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) svg, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) video, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) canvas, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) iframe { display: block; vertical-align: middle; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) img, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) video { max-width: 100%; height: auto; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) button, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) select, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) textarea { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; letter-spacing: inherit; color: inherit; margin: 0; padding: 0; background: transparent; border-radius: 0; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) button, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) [role="button"] { cursor: pointer; background-color: transparent; background-image: none; text-transform: none; -webkit-appearance: button; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) button:disabled { cursor: default; opacity: .6; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) a { color: inherit; text-decoration: inherit; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) [hidden] { display: none !important; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) small { font-size: 80%; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) b, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) strong { font-weight: bolder; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input::placeholder, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) textarea::placeholder { color: rgb(var(--c-ink-4)); opacity: 1; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input[type="search"]::-webkit-search-decoration, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input[type="number"]::-webkit-inner-spin-button, :where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) select { background-image: none; padding-right: 0; appearance: auto; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) section { position: static; }
+:where(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast,.lot-ph-root) .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
 
 /* --- 2. дефолты переменных Tailwind --- */
 .apx-korea, .apx-korea *, .apx-korea :before, .apx-korea :after, .lot-lb, .lot-modal, .lot-full, .lot-tip, .lot-toast {
@@ -131,3 +133,21 @@
 .apx-korea .lot-buy-col { top: 16px; }
 .apx-korea .lot-toc { top: 16px; }
 @media (max-width: 1023px){ .apx-korea .lot-sheet { margin-inline: 0; } }
+
+
+/* --- окно «История цены» (у эталона график рисует их JS-библиотека — здесь свой SVG-ступенька) --- */
+.lot-ph-root[hidden] { display: none !important; }
+.lot-ph-root .ph-modal { animation: lotPhIn .28s cubic-bezier(.22,1,.36,1) both; }
+@keyframes lotPhIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+.lot-ph-svg { display: block; width: 100%; height: 168px; overflow: visible; }
+.lot-ph-area { fill: rgb(237 0 18 / .08); stroke: none; }
+.lot-ph-line { fill: none; stroke: rgb(237 0 18); stroke-width: 2.2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.lot-ph-svg circle { fill: #fff; stroke: rgb(237 0 18); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.lot-ph-root .ph-list__toggle svg { transition: transform .3s; }
+.lot-ph-root .ph-list__toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.lot-ph-root .text-danger { color: rgb(var(--c-danger)); }
+.lot-ph-root .text-emerald-600 { color: #059669; }
+
+/* --- кнопка «Открыть на Encar» (просьба Федора; у эталона её нет) --- */
+.apx-korea .lot-encar-btn { width: 100%; gap: 8px; }
+.apx-korea .lot-encar-btn svg { width: 16px; height: 16px; flex: none; }

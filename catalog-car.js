@@ -65,6 +65,7 @@
     list: ico('<path d="M4 6h10M4 12h12M4 18h8M18 6h2M18 12h2M18 18h2"/>'),
     owners: ico('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>'),
     chat: ico('<path d="M21 12a8 8 0 0 1-11.9 7L3 21l2-6A8 8 0 1 1 21 12z"/>'),
+    ext: ico('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', "h-4 w-4"),
     search: ico('<path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/>', "h-4 w-4 h-4 w-4 text-ink-4"),
     searchBig: ico('<path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/>', "h-4 w-4 h-5 w-5"),
     tick: ico('<path d="M20 6 9 17l-5-5"/>', "h-4 w-4 lot-options__tick h-3.5 w-3.5"),
@@ -88,9 +89,10 @@
 
   // ---- Курс для цен в $ (как у эталона: главная цена в $, под ней — в KRW) ----
   var rates = {usdKrw:0, usdEur:0};
+  // Курс отдаёт наш сервер (/api/catalog?action=rates): прямые запросы браузера к сервисам курсов режут CORS/лимиты.
   function fetchRates(){
-    return fetch("https://api.frankfurter.app/latest?from=USD&to=KRW,EUR").then(function(r){ return r.json(); })
-      .catch(function(){ return fetch("https://api.fxratesapi.com/latest?base=USD&currencies=KRW,EUR").then(function(r){ return r.json(); }); });
+    return fetch("/api/catalog?action=rates").then(function(r){ return r.json(); })
+      .then(function(d){ return d && d.ok && d.usdKrw ? {rates:{KRW:d.usdKrw, EUR:d.usdEur}} : null; });
   }
   function loadRates(){
     try{ var c = JSON.parse(localStorage.getItem("apexKrwRateV1") || "null"); if(c && c.t && Date.now() - c.t < 12 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; } }catch(e){}
@@ -143,7 +145,10 @@
     var active = listings.filter(function(l){ return !l.archived; });
     return active[0] || listings[0] || null;
   }
-  function imageUrl(img){ return img.original || img.downloaded || img.preview || ""; }
+  // Как у эталона: на странице — preview источника (800×600, ci.encar.com), полный оригинал 2000px — только в лайтбоксе.
+  // Раньше везде грузился original (~400 КБ × 32 фото) → миниатюры и галерея долго стояли пустыми.
+  function imageUrl(img){ return img.preview || img.original || img.downloaded || ""; }
+  function imageFull(img){ return img.original || img.preview || img.downloaded || ""; }
   function titleOf(car, listing){
     var brand = car.brand && car.brand.name, model = car.model && car.model.name;
     if(brand || model) return [car.year, brand, model].filter(Boolean).join(" ");
@@ -156,6 +161,8 @@
     if(l && l.external){ p.set("domain_id", l.external.domain.id); p.set("listing_id", l.external.id); }
     return "/catalog/" + encodeURIComponent(car.id) + (p.toString() ? "?" + p.toString() : "");
   }
+  // Как у эталона: площадку показываем брендом («Encar»), домен — в подсказке
+  function siteName(n){ n = String(n || ""); return /encar/i.test(n) ? "Encar" : (n || "Encar"); }
   function pageUrl(){ return location.origin + location.pathname + location.search; }
   function matchingReports(list){
     var listing = state.listing;
@@ -194,7 +201,15 @@
     if(days < 30) return T("Обновлено") + " " + days + " " + plural(days, T("день"), T("дня"), T("дней")) + " " + T("назад");
     return T("Обновлено") + " " + fmtDate(iso);
   }
-  function placeOf(listing){ var ld = listing && listing.location_details; if(!ld) return ""; return [ld.district && ld.district.name, ld.region && ld.region.name, ld.country && ld.country.name].filter(Boolean).join(", "); }
+  function placeOf(listing){
+    var ld = listing && listing.location_details; if(!ld) return "";
+    var district = ld.district && ld.district.name;
+    if(!district && state.car && Array.isArray(state.car.listings)){ // у части объявлений района нет — эталон берёт его у соседнего объявления той же машины
+      var o = state.car.listings.find(function(l){ var d = l.location_details; return d && d.district && d.region && ld.region && d.region.id === ld.region.id; });
+      if(o) district = o.location_details.district.name;
+    }
+    return [district, ld.region && ld.region.name, ld.country && ld.country.name].filter(Boolean).join(", ");
+  }
 
   // ---- Избранное (localStorage) ----
   function favLoad(){ try{ return JSON.parse(localStorage.getItem("apexCatFavV1") || "{}") || {}; }catch(e){ return {}; } }
@@ -238,7 +253,9 @@
       if(!res.ok || !res.data || !res.data.car){ showNotFound(); return; }
       state.car = res.data.car;
       state.listing = pickListing(state.car);
-      state.photos = (state.listing && Array.isArray(state.listing.images) ? state.listing.images.map(imageUrl) : []).filter(Boolean);
+      var imgs = (state.listing && Array.isArray(state.listing.images) ? state.listing.images : []).filter(function(im){ return im && imageUrl(im); });
+      state.photos = imgs.map(imageUrl);
+      state.photosFull = imgs.map(imageFull);
       render();
     }).catch(function(){ showNotFound(); });
   }
@@ -299,7 +316,7 @@
       + '</div></div>';
 
     var chips = '<span class="lot-head__flag" title="' + esc(T("Корея")) + '">' + (ART.flag || "🇰🇷") + '</span>';
-    var domainName = listing && listing.external && listing.external.domain && listing.external.domain.name || "Encar";
+    var domainName = siteName(listing && listing.external && listing.external.domain && listing.external.domain.name);
     var domainHost = listing && listing.external && listing.external.url ? String(listing.external.url).replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "encar.com";
     if(listings.length > 1){
       var sites = new Set(listings.map(function(l){ return l.external && l.external.domain.id; })).size;
@@ -316,7 +333,7 @@
               var when = l.archived ? (T("Снято") + " · " + fmtDayMon(l.last_seen_at || l.updated_at)) : (T("Активно") + " · " + T("с") + " " + fmtDayMon(l.created_at || l.updated_at));
               return '<li><a href="' + esc(listingHref(car, l)) + '" class="lot-switch__row' + (isCur ? " is-shown" : "") + (l.archived ? " is-archived" : "") + '"' + (isCur ? ' aria-current="page" data-switch-close' : "") + '>'
                 + '<span class="lot-switch__thumb">' + (img ? '<img src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : "") + '</span>'
-                + '<span class="min-w-0 flex-1"><span class="lot-switch__site"><span class="lot-switch__status"></span><span class="truncate" data-no-i18n="true">' + esc(l.external && l.external.domain.name || "") + '</span></span><span class="lot-switch__meta" data-no-i18n="true">' + esc(when) + '</span></span>'
+                + '<span class="min-w-0 flex-1"><span class="lot-switch__site"><span class="lot-switch__status"></span><span class="truncate" data-no-i18n="true">' + esc(siteName(l.external && l.external.domain.name)) + '</span></span><span class="lot-switch__meta" data-no-i18n="true">' + esc(when) + '</span></span>'
                 + (mp ? '<span class="lot-switch__price" title="' + esc(mp.sub) + '" data-no-i18n="true"><span class="num">' + esc(mp.main) + '</span>' + (mp.sub ? '<small class="num">' + esc(mp.sub) + '</small>' : "") + '</span>' : "")
                 + '<span class="lot-switch__tick">' + (isCur ? I.check : "") + '</span></a></li>';
             }).join("") + '</ul></div>'
@@ -327,6 +344,7 @@
     }else{
       chips += '<span class="lot-chip" title="' + esc(domainHost) + '">' + I.globe + '<span data-no-i18n="true">' + esc(domainName) + '</span></span>';
     }
+    chips += condChipHtml();
     var myd = fmtMonthYear(car);
     if(myd) chips += '<span class="lot-chip" title="' + esc(T("Дата выпуска")) + '" data-no-i18n="true">' + I.cal + esc(myd) + '</span>';
     if(listing && listing.odometer != null) chips += '<span class="lot-chip" title="' + esc(T("Пробег")) + '" data-no-i18n="true">' + I.odo + esc(fmtNum(listing.odometer)) + ' ' + esc(T("км")) + '</span>';
@@ -341,6 +359,29 @@
       + '</div>'
       + '<div class="lot-head__actions">' + favBtnHtml("lot-icon-btn") + shareHtml + '</div>'
       + '<div class="lot-chips">' + chips + '</div>';
+  }
+  // Чип «Состояние · …» с выпадающей сводкой по техосмотру и страховой истории — как у эталона (.lot-cond)
+  function condChipHtml(){
+    var insp = inspSummary(), hist = histSummary(), st = condState(insp, hist); if(!st) return "";
+    var rows = "";
+    if(insp){
+      rows += '<div><dt>' + esc(T("ДТП")) + '</dt><dd class="' + insp.accidentTone + '">' + esc(insp.accidentText) + '</dd></div>';
+      rows += '<div><dt>' + esc(T("Техосмотр")) + '</dt><dd class="' + (insp.issues.length ? "is-warn" : "is-ok") + '">' + esc(insp.countText) + '</dd></div>';
+    }
+    if(hist){
+      rows += '<div><dt>' + esc(T("Страховые случаи")) + '</dt><dd class="' + (hist.claimCount > 0 ? "is-warn" : "is-ok") + '">' + esc(hist.claimCount > 0 ? (hist.claimCount + " " + plural(hist.claimCount, T("случай"), T("случая"), T("случаев"))) : T("Нет")) + '</dd></div>';
+      rows += '<div><dt>' + esc(T("Изменения владельца")) + '</dt><dd>' + esc(hist.owners > 0 ? (hist.owners + " " + plural(hist.owners, T("смена"), T("смены"), T("смен"))) : T("Нет")) + '</dd></div>';
+      rows += '<div><dt>' + esc(T("Тотал, затопление, угон")) + '</dt><dd class="' + (hist.total ? "is-bad" : "is-ok") + '">' + esc(hist.total ? T("Да") : T("Нет")) + '</dd></div>';
+    }
+    var go = insp ? "inspection" : "history";
+    return '<div class="lot-switch lot-cond" id="lotCondV1">'
+      + '<button type="button" class="lot-chip lot-cond__toggle ' + st.tone + '" data-cond-toggle aria-haspopup="dialog" aria-expanded="false">' + I.shield + '<span class="lot-cond__key">' + esc(T("Состояние")) + ' ·</span>' + esc(st.text) + I.chev + '</button>'
+      + '<div class="fixed inset-0 z-[65] bg-panel/55 sm:hidden" data-cond-veil style="display:none" aria-hidden="true"></div>'
+      + '<div role="dialog" aria-label="' + esc(T("Состояние")) + '" class="lot-switch__panel lot-cond__panel" data-cond-panel style="display:none">'
+        + '<div class="lot-switch__head"><span class="sheet-grip sm:hidden" aria-hidden="true"></span><p class="lot-switch__title">' + esc(T("По техосмотру и страховой истории")) + '</p><button type="button" data-cond-close class="sheet-close sm:hidden" aria-label="' + esc(T("Закрыть")) + '">' + I.x + '</button></div>'
+        + '<div class="lot-cond__body"><dl class="lot-cond__rows">' + rows + '</dl></div>'
+        + '<div class="lot-switch__foot"><a href="#' + go + '" class="lot-switch__all" data-go="' + go + '" data-cond-close>' + esc(insp ? T("Смотреть техосмотр") : T("Смотреть историю")) + I.arrR + '</a></div>'
+      + '</div></div>';
   }
   // Поделиться / переключатель объявлений — открытие/закрытие
   document.addEventListener("click", function(e){
@@ -358,9 +399,57 @@
       if(e.target.closest("[data-switch-toggle]") && sw.contains(e.target)){ setSw(sp.style.display === "none"); return; }
       if(e.target.closest("[data-switch-close]") || e.target === sv || !sw.contains(e.target)) setSw(false);
     }
+    var cond = document.getElementById("lotCondV1");
+    if(cond){
+      var cp = cond.querySelector("[data-cond-panel]"), cv = cond.querySelector("[data-cond-veil]"), ct = cond.querySelector("[data-cond-toggle]");
+      var setCond = function(open){ cp.style.display = open ? "" : "none"; cv.style.display = open ? "" : "none"; ct.classList.toggle("is-open", open); ct.setAttribute("aria-expanded", open ? "true" : "false"); document.documentElement.classList.toggle("max-sm:overflow-hidden", open); };
+      if(e.target.closest("[data-cond-toggle]")){ setCond(cp.style.display === "none"); return; }
+      if(e.target.closest("[data-cond-close]") || e.target === cv || !cond.contains(e.target)) setCond(false);
+    }
+    if(e.target.closest("[data-price-history]")){ openPriceHistory(); return; }
     var go = e.target.closest("[data-go]");
     if(go){ e.preventDefault(); scrollToSection(go.getAttribute("data-go")); }
   });
+
+  // ---- Окно «История цены» (как priceHistoryModal эталона: цена, изменение, график-ступенька, список) ----
+  var phEl = null;
+  function openPriceHistory(){
+    var listing = state.listing, pts = pricePoints(listing); if(pts.length < 2) return;
+    if(!phEl){
+      phEl = document.createElement("div");
+      phEl.className = "lot-ph-root fixed inset-0 z-[70] flex items-end justify-center p-0 sm:items-center sm:p-4";
+      phEl.setAttribute("role", "dialog"); phEl.setAttribute("aria-modal", "true"); phEl.setAttribute("aria-label", T("История цены"));
+      document.body.appendChild(phEl);
+      phEl.addEventListener("click", function(e){ if(e.target.closest("[data-ph-close]")) closePriceHistory(); var t = e.target.closest("[data-ph-toggle]"); if(t){ var l = phEl.querySelector("[data-ph-list]"); var open = l.hidden; l.hidden = !open; t.setAttribute("aria-expanded", open ? "true" : "false"); } });
+      document.addEventListener("keydown", function(e){ if(e.key === "Escape" && phEl && !phEl.hidden) closePriceHistory(); });
+    }
+    var usd = rates.usdKrw > 0, money = function(v){ return fmtNum(Math.round(v)) + (usd ? " $" : " " + String(listing.price.currency && listing.price.currency.name || "").toUpperCase()); };
+    var first = pts[0], last = pts[pts.length - 1], change = last[1] - first[1], pctv = first[1] ? change / first[1] * 100 : 0;
+    var day = function(t){ return new Date(t).toLocaleDateString(lang() === "en" ? "en-GB" : lang() === "ro" ? "ro-RO" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}); };
+    // график-ступенька
+    var W = 400, H = 160, pad = 12, t0 = first[0], t1 = Math.max(last[0], t0 + 1), vals = pts.map(function(p){ return p[1]; });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals); if(hi === lo){ hi += 1; lo -= 1; } var span = hi - lo; lo -= span * .25; hi += span * .25;
+    var X = function(t){ return pad + (t - t0) / (t1 - t0) * (W - pad * 2); }, Y = function(v){ return H - pad - (v - lo) / (hi - lo) * (H - pad * 2); };
+    var d = "M" + X(pts[0][0]).toFixed(1) + " " + Y(pts[0][1]).toFixed(1);
+    for(var i = 1; i < pts.length; i++){ d += "H" + X(pts[i][0]).toFixed(1) + "V" + Y(pts[i][1]).toFixed(1); }
+    var area = d + "V" + (H - pad) + "H" + X(pts[0][0]).toFixed(1) + "Z";
+    var dots = pts.map(function(p){ return '<circle cx="' + X(p[0]).toFixed(1) + '" cy="' + Y(p[1]).toFixed(1) + '" r="3.5"></circle>'; }).join("");
+    var rows = pts.slice().reverse().map(function(p, k){ var idx = pts.length - 1 - k, prev = idx > 0 ? pts[idx - 1][1] : null, dl = prev != null ? p[1] - prev : 0;
+      return '<li class="flex items-center justify-between gap-4 py-2 text-[13px]"><span class="num text-ink-3">' + esc(k === 0 ? T("Сейчас") : day(p[0])) + '</span><span class="flex items-center gap-3">' + (dl ? '<span class="num text-[12px] font-medium ' + (dl < 0 ? "text-emerald-600" : "text-danger") + '">' + (dl > 0 ? "+" : "−") + esc(money(Math.abs(dl))) + '</span>' : "") + '<span class="num font-semibold text-ink">' + esc(money(p[1])) + '</span></span></li>'; }).join("");
+    var img = state.photos[0] || "";
+    phEl.innerHTML = '<div class="absolute inset-0 bg-panel/55" data-ph-close></div>'
+      + '<div class="ph-modal">'
+        + '<button type="button" data-ph-close class="absolute end-3.5 top-3.5 grid h-8 w-8 place-items-center rounded-full text-ink-4 transition hover:bg-ink/5 hover:text-ink sm:end-4 sm:top-4" aria-label="' + esc(T("Закрыть")) + '">' + I.x + '</button>'
+        + '<div class="flex items-center gap-3 pe-9"><span class="ph-thumb" aria-hidden="true">' + (img ? '<img src="' + esc(img) + '" alt="" referrerpolicy="no-referrer" class="is-loaded">' : "") + '</span><div class="min-w-0 flex-1"><p class="text-[11.5px] font-medium text-ink-4">' + esc(T("История цены")) + '</p><p class="truncate font-display text-[15px] font-semibold tracking-tight text-ink" data-no-i18n="true">' + esc(titleOf(state.car, listing)) + '</p></div></div>'
+        + '<div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2"><p class="num font-display text-[26px] font-bold leading-none tracking-tight text-ink" data-no-i18n="true">' + esc(money(last[1])) + '</p>'
+          + (change ? '<span class="ph-change ' + (change < 0 ? "is-down" : "is-up") + '" title="' + esc(T("с первой цены")) + '">' + ico('<path d="M12 5v14M6 13l6 6 6-6"/>', "h-3 w-3" + (change > 0 ? " rotate-180" : "")) + '<span class="num">' + esc(money(Math.abs(change))) + ' · ' + Math.abs(pctv).toFixed(1) + '%</span></span>' : "") + '</div>'
+        + (change ? '<p class="num mt-1.5 text-[12.5px] text-ink-4">' + esc(T("Было")) + ' ' + esc(money(first[1])) + ' · ' + esc(day(first[0])) + '</p>' : "")
+        + '<div class="ph-chart-wrap"><svg class="ph-chart lot-ph-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><path class="lot-ph-area" d="' + area + '"></path><path class="lot-ph-line" d="' + d + '"></path>' + dots + '</svg></div>'
+        + '<div class="ph-list"><button type="button" class="ph-list__toggle" data-ph-toggle aria-expanded="false"><span>' + esc(T("Все изменения цены")) + ' <span class="num text-ink-4">' + pts.length + '</span></span>' + I.chev + '</button><div data-ph-list hidden><ol class="divide-y divide-line">' + rows + '</ol></div></div>'
+      + '</div>';
+    phEl.hidden = false; document.documentElement.classList.add("overflow-hidden");
+  }
+  function closePriceHistory(){ if(phEl){ phEl.hidden = true; document.documentElement.classList.remove("overflow-hidden"); } }
 
   // ============ Галерея ============
   var gal = {idx:0, cap:18, capPhone:12};
@@ -409,8 +498,8 @@
   }
   document.addEventListener("click", function(e){
     var st = e.target.closest("[data-gal-step]"); if(st){ galGo(gal.idx + parseInt(st.getAttribute("data-gal-step"), 10)); return; }
-    var th = e.target.closest("[data-gal-thumb]"); if(th){ var k = parseInt(th.getAttribute("data-gal-thumb"), 10); if(galSwiping()) galGo(k); else openLightbox(state.photos, k); return; }
-    var op = e.target.closest("[data-gal-open]"); if(op){ openLightbox(state.photos, parseInt(op.getAttribute("data-gal-open"), 10)); return; }
+    var th = e.target.closest("[data-gal-thumb]"); if(th){ var k = parseInt(th.getAttribute("data-gal-thumb"), 10); if(galSwiping()) galGo(k); else openLightbox(state.photosFull, k); return; }
+    var op = e.target.closest("[data-gal-open]"); if(op){ openLightbox(state.photosFull, parseInt(op.getAttribute("data-gal-open"), 10)); return; }
   });
   document.addEventListener("mouseover", function(e){ var th = e.target.closest && e.target.closest("[data-gal-thumb]"); if(th && fineHover()) galGo(parseInt(th.getAttribute("data-gal-thumb"), 10)); });
   document.addEventListener("scroll", function(e){
@@ -471,14 +560,29 @@
     var bodyIssues = issues.filter(function(i){ return bodyKeys[i.block_key]; });
     var mechIssues = issues.filter(function(i){ return !bodyKeys[i.block_key]; });
     var accident = c.accident_status_key && !(c.accident_status_key === "not_present" || c.accident_status_key === "ok" || c.accident_status_key === "none");
-    return {r:r, items:items, c:c, issues:issues, bodyIssues:bodyIssues, mechIssues:mechIssues, accident:accident,
-      tone: accident ? "is-bad" : issues.length ? "is-warn" : "is-ok"};
+    // Следы ремонта: ДТП не заявлено, но у пункта осмотра есть accident_trace (замена/ремонт панели) — как у эталона
+    var traces = issues.filter(function(i){ return (i.issue_type_keys || []).indexOf("accident_trace") >= 0 || i.accident_relevance_key === "structural"; });
+    var total = items.length, score = total ? Math.round(100 * (total - issues.length) / total) : null;
+    var accidentText = accident ? T("Было ДТП") : traces.length ? T("Не заявлено, есть следы ремонта") : T("Нет");
+    var countText = issues.length ? (issues.length + " " + plural(issues.length, T("замечание"), T("замечания"), T("замечаний")) + (total ? " " + T("из") + " " + total : "")) : T("Без замечаний");
+    return {r:r, items:items, c:c, issues:issues, bodyIssues:bodyIssues, mechIssues:mechIssues, accident:accident, traces:traces, total:total, score:score,
+      accidentText:accidentText, accidentTone: accident ? "is-bad" : traces.length ? "is-warn" : "is-ok", countText:countText,
+      tone: (accident || traces.length) ? "is-bad" : issues.length ? "is-warn" : "is-ok"};
+  }
+  // Общее состояние для чипа в шапке («Состояние · Следы ремонта»)
+  function condState(insp, hist){
+    if(!insp && !hist) return null;
+    if(insp && insp.accident) return {text:T("Было ДТП"), tone:"is-bad"};
+    if(hist && hist.total) return {text:T("Тотал / затопление / угон"), tone:"is-bad"};
+    if(insp && insp.traces.length) return {text:T("Следы ремонта"), tone:"is-warn"};
+    if((insp && insp.issues.length) || (hist && hist.claimCount > 0)) return {text:T("Есть замечания"), tone:"is-warn"};
+    return {text:T("Без замечаний"), tone:"is-ok"};
   }
   function inspVerdictText(s){
     var parts = [];
     parts.push(s.mechIssues.length ? (T("Механика") + ": " + s.mechIssues.length + " " + plural(s.mechIssues.length, T("замечание"), T("замечания"), T("замечаний"))) : T("Механика в порядке"));
     parts.push(s.bodyIssues.length ? (T("по кузову") + " " + s.bodyIssues.length + " " + plural(s.bodyIssues.length, T("замечание"), T("замечания"), T("замечаний"))) : T("кузов без отметок"));
-    parts.push(s.accident ? T("есть следы ДТП") : T("без следов ДТП"));
+    parts.push(s.accident || s.traces.length ? T("есть следы ДТП") : T("без следов ДТП"));
     return parts.join(", ");
   }
   function histSummary(){
@@ -532,8 +636,8 @@
     var main = "";
     var insp = inspSummary(), hist = histSummary();
     if(insp){
-      if(insp.c.accident_status_key) main += infoRow(T("ДТП"), insp.accident ? T("Есть следы") : T("Нет"), insp.accident ? "is-warn" : "is-ok", {fact:true, icon:insp.accident ? I.warn : I.check, go:"inspection"});
-      main += infoRow(T("Техосмотр"), insp.issues.length ? (insp.issues.length + " " + plural(insp.issues.length, T("замечание"), T("замечания"), T("замечаний"))) : T("Без замечаний"), insp.issues.length ? "is-warn" : "is-ok", {fact:true, icon:insp.issues.length ? I.warn : I.check, go:"inspection"});
+      main += infoRow(T("ДТП"), insp.accidentText, insp.accidentTone, {fact:true, icon:insp.accidentTone === "is-ok" ? I.check : I.warn, go:"inspection"});
+      main += infoRow(T("Техосмотр"), insp.countText, insp.issues.length ? "is-warn" : "is-ok", {fact:true, icon:insp.issues.length ? I.warn : I.check, go:"inspection"});
     }
     if(hist){
       main += infoRow(T("Страховые случаи"), hist.claimCount > 0 ? (hist.claimCount + " " + plural(hist.claimCount, T("случай"), T("случая"), T("случаев"))) : T("Нет"), hist.claimCount > 0 ? "is-warn" : "is-ok", {fact:true, icon:hist.claimCount > 0 ? I.warn : I.check, go:"history"});
@@ -565,7 +669,7 @@
     if(listing && listing.odometer != null) d += infoRow(T("Пробег"), fmtNum(listing.odometer) + " " + T("км"));
     if(car.fuel) d += infoRow(T("Топливо"), T(FUELS[car.fuel.id] || car.fuel.name));
     if(car.transmission) d += infoRow(T("Трансмиссия"), T(TRANSMISSIONS[car.transmission.id] || car.transmission.name));
-    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) d += infoRow(T("Двигатель"), (car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л"));
+    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) d += infoRow(T("Двигатель"), (car.engine_volume / 1000).toFixed(1) + " " + T("л"));
     if(car.battery_capacity_kwh) d += infoRow(T("Батарея"), car.battery_capacity_kwh + " " + T("кВт·ч"));
     if(car.power_hp) d += infoRow(T("Мощность"), car.power_hp + " " + T("л.с."));
     if(car.drive_wheels) d += infoRow(T("Привод"), T(DRIVE_WHEELS[car.drive_wheels.id] || car.drive_wheels.name));
@@ -579,12 +683,40 @@
     if(listing && listing.condition) d += infoRow(T("Состояние"), T(CONDITIONS[listing.condition.id] || listing.condition.name), listing.condition.id === 3 ? "is-warn" : "");
     if(listing && listing.damage) d += infoRow(T("Повреждение"), listing.damage.name, "is-warn");
     if(listing && listing.airbag_state) d += infoRow(T("Подушки безопасности"), T(AIRBAG[listing.airbag_state.id] || listing.airbag_state.name), listing.airbag_state.id === 1 ? "is-ok" : "is-warn");
-    var desc = listing && listing.description ? String(listing.description).replace(/[►◄]/g, "").replace(/-{3,}/g, "\n").split("\n").map(function(l){ return l.replace(/^>\s?/, "").trim(); }).filter(Boolean).join("\n") : "";
-    var descHtml = desc ? '<section class="lot-info__group"><h2 class="lot-info__title">' + esc(T("От продавца")) + '</h2><p class="lot-info__text" data-no-i18n="true">' + esc(desc) + '</p></section>' : "";
-    document.getElementById("lotInfoV1").innerHTML = '<div class="lot-info__groups">' + infoGroup(T("Главное"), main) + infoGroup(T("Объявление"), ad) + infoGroup(T("Описание"), d) + descHtml + '</div>';
+    // Текст продавца эталон не показывает (рекламные простыни дилеров на корейском/английском) — убран 05.11.2026.
+    document.getElementById("lotInfoV1").innerHTML = '<div class="lot-info__groups">' + infoGroup(T("Главное"), main) + infoGroup(T("Объявление"), ad) + infoGroup(T("Описание"), d) + '</div>';
   }
 
   // ============ lot-buy ============
+  // Кольцо оценки техосмотра (доля пунктов без замечаний), как у эталона: «97» при 1 замечании из 34
+  function scoreRing(score){
+    var len = 94.25, off = (len * (1 - score / 100)).toFixed(2);
+    return '<svg class="lot-report__ring" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15"></circle><circle cx="20" cy="20" r="15" class="is-value" stroke-dasharray="' + len + '" style="--offset: ' + off + '"></circle><text x="20" y="21.5" text-anchor="middle" dominant-baseline="middle">' + score + '</text></svg>';
+  }
+  // Ссылка на это же объявление на Encar (просьба Федора 05.11.2026; у эталона кнопки нет — источник скрыт)
+  function encarBtnHtml(listing){
+    var u = listing && listing.external && listing.external.url;
+    if(!u || !/^https:\/\//.test(u)) return "";
+    var host = String(u).replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+    return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-secondary btn-lg lot-encar-btn" title="' + esc(host) + '">' + I.ext + '<span>' + esc(T("Открыть на Encar")) + '</span></a>';
+  }
+  // Точки истории цены в $: [время, цена]; последняя — текущая цена
+  function pricePoints(listing){
+    if(!listing || !listing.price || !(listing.price.price > 0)) return [];
+    var cur = listing.price.currency && listing.price.currency.name || "krw";
+    var hist = Array.isArray(listing.price.history) ? listing.price.history.slice() : [];
+    var pts = hist.filter(function(h){ return h && h.price > 0 && h.created_at; }).map(function(h){ return [Date.parse(h.created_at), h.price]; });
+    pts.sort(function(a, b){ return a[0] - b[0]; });
+    pts.push([Date.parse(listing.updated_at || listing.last_seen_at || "") || Date.now(), listing.price.price]);
+    return pts.map(function(p){ var u = toUsd(p[1], cur); return [p[0], u != null ? Math.round(u) : p[1], p[1]]; });
+  }
+  function trendChipHtml(listing){
+    var pts = pricePoints(listing); if(pts.length < 2) return "";
+    var first = pts[0][2], last = pts[pts.length - 1][2]; if(!first || first === last) return "";
+    var pct = Math.round((last - first) / first * 100);
+    var up = last > first;
+    return '<div class="lot-price__chips"><button type="button" class="lot-trend ' + (up ? "is-up" : "is-down") + '" data-price-history>' + ico(up ? '<path d="M3 17l6-6 4 4 8-8M14 7h7v7"/>' : '<path d="M3 7l6 6 4-4 8 8M14 17h7v-7"/>', "h-3.5 w-3.5") + esc(T("История цены")) + ' <span class="num">' + (pct > 0 ? "+" : pct < 0 ? "−" : "±") + Math.abs(pct) + '%</span></button></div>';
+  }
   function renderBuy(){
     var car = state.car, listing = state.listing;
     var pr = listingPrice(listing), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
@@ -597,15 +729,17 @@
       + (mp && mp.sub ? '<p class="lot-price__sub num" data-no-i18n="true">' + esc(mp.sub) + '</p>' : "")
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
+      + trendChipHtml(listing)
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
-        + '<div class="lot-messengers"><p class="lot-messengers__or">' + esc(T("или напишите в мессенджер")) + '</p><div class="lot-messengers__row">'
+        + encarBtnHtml(listing)
+        + '<div class="lot-messengers"><p class="lot-messengers__or">' + esc(T("или напишите в мессенджер")) + '</p><div class="lot-messengers__row" style="grid-template-columns: repeat(2, minmax(0, 1fr))">'
           + '<a href="https://t.me/fedukusa?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener noreferrer nofollow" class="lot-messenger" style="--brand: #229ed9" aria-label="' + esc(T("Написать в Telegram")) + '" data-copy-silent="' + esc(msg) + '"><span class="lot-messenger__icon">' + tgIc + '</span><span class="lot-messenger__name">Telegram</span></a>'
           + '<a href="https://api.whatsapp.com/send?phone=37368832032&text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener noreferrer nofollow" class="lot-messenger" style="--brand: #25d366" aria-label="' + esc(T("Написать в WhatsApp")) + '"><span class="lot-messenger__icon">' + waIc + '</span><span class="lot-messenger__name">WhatsApp</span></a>'
         + '</div></div>'
       + '</div></section>';
     var insp = inspSummary(), hist = histSummary(), reports = "";
-    if(insp) reports += '<a href="#inspection" data-go="inspection" class="lot-report ' + insp.tone + '"><span class="lot-report__icon">' + I.shieldBig + '</span><span class="min-w-0 flex-1"><span class="lot-report__kind">' + esc(T("Техосмотр")) + '</span><span class="lot-report__verdict" data-no-i18n="true">' + esc(inspVerdictText(insp)) + '</span></span>' + ico('<path d="M5 12h14M13 6l6 6-6 6"/>', "h-4 w-4 lot-report__go h-4 w-4") + '</a>';
+    if(insp) reports += '<a href="#inspection" data-go="inspection" class="lot-report ' + insp.tone + '">' + (insp.score != null ? scoreRing(insp.score) : '<span class="lot-report__icon">' + I.shieldBig + '</span>') + '<span class="min-w-0 flex-1"><span class="lot-report__kind">' + esc(T("Техосмотр")) + '</span><span class="lot-report__verdict" data-no-i18n="true">' + esc(insp.countText) + '</span></span>' + ico('<path d="M5 12h14M13 6l6 6-6 6"/>', "h-4 w-4 lot-report__go h-4 w-4") + '</a>';
     if(hist) reports += '<a href="#history" data-go="history" class="lot-report ' + hist.tone + '"><span class="lot-report__icon">' + I.historyBig + '</span><span class="min-w-0 flex-1"><span class="lot-report__kind">' + esc(T("История автомобиля")) + '</span><span class="lot-report__verdict" data-no-i18n="true">' + esc(histShortVerdict(hist)) + '</span></span>' + ico('<path d="M5 12h14M13 6l6 6-6 6"/>', "h-4 w-4 lot-report__go h-4 w-4") + '</a>';
     if(reports) html += '<div class="lot-reports">' + reports + '</div>';
     document.getElementById("lotBuyV1").innerHTML = html;
@@ -1010,7 +1144,7 @@
     Object.keys(byDomain).forEach(function(k){
       var ls = byDomain[k].sort(function(a, b){ return (a.archived ? 1 : 0) - (b.archived ? 1 : 0); }), d0 = ls[0].external;
       var host = d0 && d0.url ? String(d0.url).replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "";
-      html += '<section class="lot-site"><span class="lot-tree__dot" aria-hidden="true"></span><header class="lot-site__head"><span class="lot-site__mark" aria-hidden="true">' + I.globe + '</span><div class="min-w-0"><p class="lot-site__name" data-no-i18n="true">' + esc(d0 ? d0.domain.name : "") + (host ? '<span class="lot-site__domain">' + esc(host) + '</span>' : "") + '</p><p class="lot-site__meta" data-no-i18n="true">' + ls.length + ' ' + plural(ls.length, T("объявление"), T("объявления"), T("объявлений")) + '</p></div></header><ol class="lot-site__rows">'
+      html += '<section class="lot-site"><span class="lot-tree__dot" aria-hidden="true"></span><header class="lot-site__head"><span class="lot-site__mark" aria-hidden="true">' + I.globe + '</span><div class="min-w-0"><p class="lot-site__name" data-no-i18n="true">' + esc(d0 ? siteName(d0.domain.name) : "") + (host ? '<span class="lot-site__domain">' + esc(host) + '</span>' : "") + '</p><p class="lot-site__meta" data-no-i18n="true">' + ls.length + ' ' + plural(ls.length, T("объявление"), T("объявления"), T("объявлений")) + '</p></div></header><ol class="lot-site__rows">'
         + ls.map(function(l, idx){
           var isCur = l === cur, pr = listingPrice(l), mp = pr ? moneyParts(pr.amount, pr.cur) : null, img = Array.isArray(l.images) && l.images.length ? imageUrl(l.images[0]) : "";
           var tm = l.title && typeof l.title === "object" ? (l.title[lang()] || l.title.en || Object.values(l.title)[0]) : (l.title || titleOf(car, l));
@@ -1019,43 +1153,79 @@
             + '<div class="min-w-0"><p class="lot-site__listing"><span class="lot-site__title" data-no-i18n="true">' + esc(tm) + '</span>' + (isCur ? '<span class="lot-site__now">' + I.eye + esc(T("Вы смотрите это")) + '</span>' : (idx > 0 ? '<span class="lot-site__note">' + esc(T("повторное объявление")) + '</span>' : "")) + '</p>'
             + '<p class="lot-site__state"><span><span class="lot-site__status"></span>' + esc(l.archived ? T("Продано") : T("В продаже")) + '</span>' + (upd ? '<span class="lot-site__date"><span class="lot-site__date-long" data-no-i18n="true">' + esc(T("обновлено")) + ' ' + esc(fmtDate(upd)) + '</span><span class="lot-site__date-short" data-no-i18n="true">' + esc(fmtDayMon(upd)) + '</span></span>' : "") + (l.external ? '<span class="lot-site__id num" title="' + esc(l.external.id) + '" data-no-i18n="true">#' + esc(l.external.id) + '</span>' : "") + '</p></div>'
             + '<div class="lot-site__side"><div class="lot-site__price"><small>' + esc(T("Цена объявления")) + '</small>' + (mp ? '<span class="num" data-no-i18n="true">' + esc(mp.main) + '</span>' + (mp.sub ? '<small class="num" data-no-i18n="true">' + esc(mp.sub) + '</small>' : "") : '<span class="num">—</span>') + '</div>'
-            + (isCur ? '<div class="lot-site__actions"></div>' : '<span class="lot-site__go" aria-hidden="true">' + I.chevR + '</span><div class="lot-site__actions"><a href="' + esc(listingHref(car, l)) + '" class="lot-btn">' + esc(T("Открыть")) + '</a></div>') + '</div></li>';
+            + (isCur ? '<div class="lot-site__actions">' + srcLink(l) + '</div>' : '<span class="lot-site__go" aria-hidden="true">' + I.chevR + '</span><div class="lot-site__actions">' + srcLink(l) + '<a href="' + esc(listingHref(car, l)) + '" class="lot-btn">' + esc(T("Открыть")) + '</a></div>') + '</div></li>';
         }).join("") + '</ol></section>';
     });
     return html + '</div></div></div></section>';
   }
 
+  // Ссылка на само объявление на площадке (Encar) — в дереве объявлений, рядом с «Открыть»
+  function srcLink(l){ var u = l && l.external && l.external.url; return u && /^https:\/\//.test(u) ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer nofollow" class="lot-btn" title="' + esc(T("Открыть на Encar")) + '">Encar ' + I.ext + '</a>' : ""; }
+
   // ============ Похожие / другие модели ============
+  // Карточка «похожего» — та же разметка vcard, что в каталоге эталона (фото, название, VIN, 4 факта, цена)
+  var ENGINE_ICO = ico('<path d="M4 10h2l2-3h6l2 3h3a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-3l-2 2H8l-2-2H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1zM8 4h6"/>', "h-[15px] w-[15px] shrink-0 text-ink-4");
+  function simSpec(icon, text){ return '<li class="flex min-w-0 items-center gap-2">' + icon.replace('class="', 'class="h-[15px] w-[15px] shrink-0 text-ink-4 ') + '<span class="truncate" data-no-i18n="true">' + esc(text) + '</span></li>'; }
   function simCard(c){
     var l = (c.listings || []).filter(function(x){ return !x.archived; })[0] || (c.listings || [])[0];
     var img = l && Array.isArray(l.images) && l.images.length ? imageUrl(l.images[0]) : "";
-    var pr = listingPrice(l), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
-    var specs = [];
-    if(l && l.odometer != null) specs.push(fmtNum(l.odometer) + " " + T("км"));
-    if(c.fuel) specs.push(T(FUELS[c.fuel.id] || c.fuel.name));
-    if(c.transmission) specs.push(T(TRANSMISSIONS[c.transmission.id] || c.transmission.name));
-    return '<article class="vcard vcard--api group"><a href="' + esc(listingHref(c, l)) + '" class="vcard__media' + (img ? " is-loaded" : " no-photo is-loaded") + '" data-no-photo="' + esc(T("Фото скоро появятся")) + '">' + (img ? '<img class="vcard__single" src="' + esc(img) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">' : "") + '</a>'
-      + '<div class="vcard__body flex flex-1 flex-col gap-3 px-4 pb-4 pt-3.5"><div class="vcard__main"><h3 class="min-w-0 flex-1"><a href="' + esc(listingHref(c, l)) + '" class="vcard__hit vcard__title font-display text-[16px] font-semibold leading-snug tracking-tight text-ink line-clamp-2" data-no-i18n="true">' + esc(titleOf(c, l)) + '</a>' + (c.badge ? '<span class="vcard__badge mt-0.5 block truncate text-[13px] font-normal text-ink-3" data-no-i18n="true">' + esc(c.badge) + '</span>' : "") + '</h3><p class="text-[13px] text-ink-2 truncate" data-no-i18n="true">' + esc(specs.join(" · ")) + '</p></div>'
+    var pr = listingPrice(l), mp = pr ? moneyParts(pr.amount, pr.cur) : null, href = listingHref(c, l);
+    var specs = "";
+    if(l && l.odometer != null) specs += simSpec(I.odo, fmtNum(l.odometer) + " " + T("км"));
+    if(c.engine_volume && !(c.fuel && c.fuel.id === 2)) specs += '<li class="flex min-w-0 items-center gap-2">' + ENGINE_ICO + '<span class="truncate" data-no-i18n="true">' + esc((c.engine_volume / 1000).toFixed(1) + " " + T("л")) + '</span></li>';
+    else if(c.body_type) specs += simSpec(I.globe, T(BODY_TYPES[c.body_type.id] || c.body_type.name));
+    if(c.transmission) specs += simSpec(I.trans, T(TRANSMISSIONS[c.transmission.id] || c.transmission.name));
+    if(c.fuel) specs += simSpec(I.fuel, T(FUELS[c.fuel.id] || c.fuel.name));
+    return '<article class="vcard vcard--api group"><div class="vcard__media' + (img ? " is-loaded" : " no-photo is-loaded") + '" data-no-photo="' + esc(T("Фото скоро появятся")) + '"><a href="' + esc(href) + '" class="vcard__slide" tabindex="-1">' + (img ? '<img src="' + esc(img) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false">' : "") + '</a><span class="vcard__scrim" aria-hidden="true"></span></div>'
+      + '<div class="vcard__body flex flex-1 flex-col gap-3 px-4 pb-4 pt-3.5"><div class="vcard__main"><div class="flex items-start gap-2.5"><h3 class="min-w-0 flex-1"><a href="' + esc(href) + '" class="vcard__hit vcard__title font-display text-[16px] font-semibold leading-snug tracking-tight text-ink line-clamp-2" data-no-i18n="true">' + esc(titleOf(c, l)) + '</a>' + (c.badge ? '<span class="vcard__badge mt-0.5 block truncate text-[13px] font-normal text-ink-3 max-sm:hidden" data-no-i18n="true">' + esc(c.badge) + '</span>' : "") + '</h3></div>'
+        + (c.vin ? '<div class="vcard__ids flex min-w-0 items-center gap-2 max-sm:hidden"><span class="vcard__copy min-w-0 truncate" data-no-i18n="true"><span class="text-ink-4">VIN</span> ' + esc(String(c.vin).toUpperCase()) + '</span></div>' : "")
+        + '<ul class="vcard__specs grid grid-cols-2 gap-x-3 gap-y-2 text-[13px] text-ink-2">' + specs + '</ul></div>'
       + '<div class="vcard__foot mt-auto flex items-end justify-between gap-3 border-t border-line pt-3"><div class="min-w-0"><p class="truncate text-[11.5px] text-ink-4">' + esc(T("Цена")) + '</p><p class="vcard__price num whitespace-nowrap font-display text-[18px] font-semibold leading-tight tracking-tight text-ink" data-no-i18n="true">' + esc(mp ? mp.main : T("По запросу")) + '</p></div></div></div></article>';
   }
+  function simArrows(track){
+    var sec = track.closest(".similar"); if(!sec) return;
+    var prev = sec.querySelector("[data-sim-step='-1']"), next = sec.querySelector("[data-sim-step='1']");
+    var atStart = track.scrollLeft <= 2, atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+    if(prev) prev.disabled = atStart; if(next) next.disabled = atEnd;
+    track.classList.toggle("is-start", atStart); track.classList.toggle("is-end", atEnd);
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest("[data-sim-step]"); if(!b) return;
+    var track = b.closest(".similar").querySelector(".similar__track"); if(!track) return;
+    var slide = track.querySelector(".similar__slide"), w = slide ? slide.getBoundingClientRect().width + 16 : track.clientWidth * .8;
+    track.scrollBy({left:parseInt(b.getAttribute("data-sim-step"), 10) * Math.max(w, Math.floor(track.clientWidth / w) * w), behavior:"smooth"});
+  });
+  document.addEventListener("scroll", function(e){ var t = e.target; if(t && t.classList && t.classList.contains("similar__track")) simArrows(t); }, true);
   function renderExtras(){
     var car = state.car, simSlot = document.getElementById("similarSlotV1"), modSlot = document.getElementById("modelsSlotV1");
     if(car.brand && car.model){
       var p = new URLSearchParams(); p.set("action", "search"); p.set("lang", lang()); p.set("brand_id", car.brand.id); p.set("model_id", car.brand.id + ":" + car.model.id);
       if(car.year){ p.set("year_from", String(car.year - 2)); p.set("year_to", String(car.year + 2)); }
-      p.set("per_page", "12"); p.set("sort", "newest");
+      p.set("per_page", "16"); p.set("sort", "newest");
       fetch("/api/catalog?" + p.toString()).then(function(r){ return r.json(); }).then(function(d){
-        var items = ((d && d.items) || []).filter(function(c){ return c.id !== car.id; }).slice(0, 8);
+        var items = ((d && d.items) || []).filter(function(c){ return c.id !== car.id; }).slice(0, 12);
         if(!items.length) return;
         var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + car.model.id);
-        simSlot.innerHTML = '<section class="lot-sheet lot-extra"><header class="lot-section__head"><div class="min-w-0"><h2 class="lot-section__title">' + esc(T("Похожие автомобили")) + '</h2><p class="lot-section__sub" data-no-i18n="true">' + esc(car.brand.name + " " + car.model.name) + (car.year ? ", " + (car.year - 2) + "–" + (car.year + 2) : "") + '</p></div><div class="lot-section__actions"><a class="btn btn-secondary btn-sm" href="/catalog?' + mp.toString() + '">' + esc(T("Все предложения")) + I.arrR + '</a></div></header><div class="vcard-grid vcard-grid--wide">' + items.map(simCard).join("") + '</div></section>';
+        var allLabel = T("Все") + " " + car.brand.name + " " + car.model.name;
+        // Как у эталона (.similar): заголовок, «Все …», стрелки, горизонтальная лента карточек. Вкладки «Корея/Китай» не нужны — у нас только Корея.
+        simSlot.innerHTML = '<section class="similar max-sm:px-1"><h2 class="lot-block-title">' + esc(T("Похожие автомобили")) + '</h2>'
+          + '<div class="market-bar"><p class="text-[13px] text-ink-4" data-no-i18n="true">' + esc(car.brand.name + " " + car.model.name) + (car.year ? " · " + (car.year - 2) + "–" + (car.year + 2) : "") + '</p><div class="market-bar__side">'
+            + '<a href="/catalog?' + mp.toString() + '" class="market-bar__all" aria-label="' + esc(allLabel) + '"><span class="max-sm:hidden" data-no-i18n="true">' + esc(allLabel) + '</span><span class="sm:hidden">' + esc(T("Все")) + '</span>' + I.arrR + '</a>'
+            + '<div class="similar__arrows"><button type="button" class="home-slider__arrow" data-sim-step="-1" aria-label="' + esc(T("Назад")) + '" disabled>' + I.prev + '</button><button type="button" class="home-slider__arrow" data-sim-step="1" aria-label="' + esc(T("Вперёд")) + '">' + I.next + '</button></div>'
+          + '</div></div>'
+          + '<div class="similar__stage"><div class="similar__panel"><div class="similar__track is-start">' + items.map(function(c){ return '<div class="similar__slide">' + simCard(c) + '</div>'; }).join("") + '</div></div></div></section>';
+        var tr = simSlot.querySelector(".similar__track"); if(tr) simArrows(tr);
       }).catch(function(){});
     }
     if(car.brand){
       fetch("/api/catalog?action=models&brand_id=" + encodeURIComponent(car.brand.id) + "&lang=" + encodeURIComponent(lang())).then(function(r){ return r.json(); }).then(function(d){
-        var items = ((d && d.items) || []).filter(function(mm){ return !car.model || mm.id !== car.model.id; }).slice(0, 30);
+        var items = ((d && d.items) || []).slice(0, 60);
         if(!items.length) return;
-        modSlot.innerHTML = '<section class="lot-sheet lot-extra"><header class="lot-section__head"><div class="min-w-0"><h2 class="lot-section__title" data-no-i18n="true">' + esc(T("Другие модели")) + ' ' + esc(car.brand.name) + '</h2></div></header><div class="flex flex-wrap gap-2">' + items.map(function(mm){ var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + mm.id); return '<a class="cf-pill" href="/catalog?' + mp.toString() + '" data-no-i18n="true">' + esc(mm.name || ("ID " + mm.id)) + '</a>'; }).join("") + '</div></section>';
+        var bp = new URLSearchParams(); bp.set("brand_id", car.brand.id);
+        var allTxt = T("Все") + " " + items.length + " " + plural(items.length, T("модель"), T("модели"), T("моделей"));
+        // Как у эталона (.model-tiles): плитки моделей марки, текущая подсвечена. Счётчиков авто по моделям наш API не отдаёт.
+        modSlot.innerHTML = '<section class="model-tiles max-sm:px-1"><header class="market-bar is-plain"><h2 class="lot-block-title market-bar__title" data-no-i18n="true">' + esc(T("Другие модели")) + ' ' + esc(car.brand.name) + '</h2><div class="market-bar__side"><a href="/catalog?' + bp.toString() + '" class="market-bar__all" aria-label="' + esc(allTxt) + '"><span class="max-sm:hidden" data-no-i18n="true">' + esc(allTxt) + '</span><span class="sm:hidden">' + esc(T("Все")) + ' <span class="num">' + items.length + '</span></span>' + I.arrR + '</a></div></header>'
+          + '<ul class="model-tiles__grid">' + items.map(function(mm){ var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + mm.id); var cur = car.model && mm.id === car.model.id; return '<li data-tile><a href="/catalog?' + mp.toString() + '" class="model-tile' + (cur ? " is-current" : "") + '"' + (cur ? ' aria-current="page"' : "") + '><span class="model-tile__name" data-no-i18n="true">' + esc(mm.name || ("ID " + mm.id)) + '</span></a></li>'; }).join("") + '</ul></section>';
       }).catch(function(){});
     }
   }
