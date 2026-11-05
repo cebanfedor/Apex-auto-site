@@ -44,7 +44,8 @@
 /* glow в hero (у эталона — произвольный класс bg-[radial-gradient(...)] с их оранжевым; здесь то же с нашим красным) */
 .catalog-hero__glow { background: radial-gradient(55% 75% at 8% 60%, rgb(237 0 18 / .12), transparent 70%), radial-gradient(40% 60% at 92% 20%, rgb(37 99 235 / .10), transparent 70%); }
 .catalog-hero__glow--lot { background: radial-gradient(45% 70% at 10% 100%, rgb(237 0 18 / .10), transparent 70%); }
-.apx-korea { min-height: 60vh; overflow-x: clip; }
+/* overflow-x: clip тут НЕ ставить: предок с clip переводит sticky-блоки (галерея, цена, шапка лота) на главный поток → при прокрутке трекпадом верх страницы отрисовывается с отставанием («мерцание», 05.11.2026) */
+.apx-korea { min-height: 60vh; }
 /* подвал сайта сразу после каталога — небольшой отступ */
 .apx-korea > .wrap-wide:last-child { padding-bottom: 48px; }
 
