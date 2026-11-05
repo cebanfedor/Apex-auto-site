@@ -155,3 +155,10 @@
 .cf-brand-sep { margin: 10px 0 2px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #8a8f98; }
 /* Тормозная магистраль на схеме днища — наш красный вместо янтарного эталона (сайт красный/белый/чёрный, 05.11.2026) */
 .lot-art .a-brake-line { stroke: #ed0012; }
+/* Общий styles.css: `.hidden { display:none !important }` перебивал адаптивные пары эталона «hidden sm:flex» —
+   на компьютере пропадала вся пагинация («Показано с … из …», номера страниц, «Следующая»). Возвращаем им место (05.11.2026). */
+@media (min-width: 40rem) {
+  .apx-korea .hidden.sm\:flex { display: flex !important; }
+  .apx-korea .hidden.sm\:block { display: block !important; }
+  .apx-korea .hidden.sm\:inline { display: inline !important; }
+}
