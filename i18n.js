@@ -181,6 +181,8 @@
     if(typeof window.calculate === "function"){ try { window.calculate(); apply(lang); } catch(e){} }
     // re-render tracking results so dates and dynamic labels update
     if(typeof window._trackRerender === "function"){ try { window._trackRerender(); apply(lang); } catch(e){} }
+    // re-render /catalog breadcrumbs + dynamic H1 (brand/model name composed in JS, not a DOM-text match)
+    if(typeof window._catalogRerenderHeading === "function"){ try { window._catalogRerenderHeading(); apply(lang); } catch(e){} }
   }
 
   let currentLang = getLang();
