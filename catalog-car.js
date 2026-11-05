@@ -141,6 +141,7 @@
     var titleTag = document.getElementById("catCarTitleTagV1");
     if(titleTag) titleTag.textContent = title + " | Apex Auto";
 
+    renderCrumbs();
     renderMeta();
     renderSold();
     renderGallery();
@@ -155,6 +156,24 @@
     renderStickyNav();
     wireStickyNavScroll();
     renderSimilarAndModels();
+  }
+
+  // Хлебные крошки (05.11.2026, эталон autopartner.by/korea): Каталог → Марка → Модель → полное название.
+  function renderCrumbs(){
+    var el = document.getElementById("catCrumbsV1");
+    if(!el) return;
+    var car = state.car;
+    var parts = ['<a href="/catalog">' + esc(T("Каталог Encar")) + '</a>'];
+    if(car.brand){
+      var bp = new URLSearchParams(); bp.set("brand_id", car.brand.id);
+      parts.push('<a href="/catalog?' + bp.toString() + '" data-no-i18n="true">' + esc(car.brand.name) + '</a>');
+    }
+    if(car.brand && car.model){
+      var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + car.model.id);
+      parts.push('<a href="/catalog?' + mp.toString() + '" data-no-i18n="true">' + esc(car.model.name) + '</a>');
+    }
+    parts.push('<span data-no-i18n="true">' + esc(titleOf(car, state.listing)) + '</span>');
+    el.innerHTML = parts.join('<i class="catCrumbSepV1" aria-hidden="true">›</i>');
   }
 
   function renderMeta(){
@@ -390,6 +409,35 @@
 
     var nav = document.getElementById("catStickyNavV1");
     if(nav) nav.hidden = !(insp.length || optCount || hist.length || hasListings);
+
+    renderTocCard(car, insp, optCount, hist, hasListings, listings.length);
+  }
+  var ICON_TOC_INSP = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M16 16l-3.2-3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  var ICON_TOC_EQ = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M4 6h12M4 10h8M4 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15 12.5l1.3 1.3 2.2-2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_TOC_HIST = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><circle cx="10" cy="10.5" r="7.2" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.8v4l2.6 1.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_TOC_LISTINGS = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M10 3l7 3.5-7 3.5-7-3.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 10l7 3.5 7-3.5M3 13.5l7 3.5 7-3.5" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  // Карточка-навигатор под фото (05.11.2026, эталон `.lot-toc`): 4 плитки с иконкой+подписью+значением,
+  // та же логика видимости, что и у #catStickyNavV1 (toggleSection уже решил, что показывать).
+  function renderTocCard(car, insp, optCount, hist, hasListings, listingsCount){
+    var box = document.getElementById("catTocCardV1");
+    var grid = document.getElementById("catTocGridV1");
+    if(!box || !grid) return;
+    var tiles = "";
+    if(insp.length){
+      var cItems = Array.isArray(insp[0].checked_items) ? insp[0].checked_items : [];
+      var issueN = cItems.filter(function(i){ return i.result_key === "issue"; }).length;
+      tiles += '<a href="#inspection" data-anchor-link="inspection" class="catTocTileV1 ' + (issueN ? "isWarnV1" : "isOkV1") + '">' + ICON_TOC_INSP + '<span>' + esc(T("Техосмотр")) + '</span><b data-no-i18n="true">' + (issueN ? (T("Замечаний") + ": " + issueN) : T("Без замечаний")) + '</b></a>';
+    }
+    if(optCount) tiles += '<a href="#options" data-anchor-link="options" class="catTocTileV1">' + ICON_TOC_EQ + '<span>' + esc(T("Комплектация")) + '</span><b data-no-i18n="true">' + optCount + '</b></a>';
+    if(hist.length){
+      var s = (hist[0].summary && !Array.isArray(hist[0].summary)) ? hist[0].summary : {};
+      var risky = historyHasRisk(car);
+      var hv = s.insurance_claim_count > 0 ? (String(s.insurance_claim_count) + " " + T("случаев")) : T("Без рисков");
+      tiles += '<a href="#history" data-anchor-link="history" class="catTocTileV1 ' + (risky ? "isWarnV1" : "isOkV1") + '">' + ICON_TOC_HIST + '<span>' + esc(T("История")) + '</span><b data-no-i18n="true">' + esc(hv) + '</b></a>';
+    }
+    if(hasListings) tiles += '<a href="#listings" data-anchor-link="listings" class="catTocTileV1 isOkV1">' + ICON_TOC_LISTINGS + '<span>' + esc(T("Объявления")) + '</span><b data-no-i18n="true">' + listingsCount + '</b></a>';
+    grid.innerHTML = tiles;
+    box.hidden = !tiles;
   }
   function toggleSection(id, navId, show){
     var sec = document.getElementById(id);
@@ -405,6 +453,8 @@
     document.querySelectorAll("#catStickyNavV1 [data-anchor]").forEach(function(btn){
       btn.addEventListener("click", function(){ scrollToAnchor(btn.getAttribute("data-anchor")); });
     });
+    var tocCta = document.getElementById("catTocCtaV1");
+    if(tocCta) tocCta.addEventListener("click", openLeadModal);
     if(!("IntersectionObserver" in window)) return;
     var sections = Array.from(document.querySelectorAll(".catAnchorSecV1")).filter(function(s){ return !s.hidden; });
     if(!sections.length) return;
@@ -474,6 +524,16 @@
     if(car.drive_wheels) facts.push([T("Привод"), T(DRIVE_WHEELS[car.drive_wheels.id] || car.drive_wheels.name)]);
     if(car.body_type) facts.push([T("Кузов"), T(BODY_TYPES[car.body_type.id] || car.body_type.name)]);
 
+    // 05.11.2026 (эталон autopartner.by/korea, Федор со скриншотов: «ты видишь разницу?») — кнопка-CTA +
+    // мессенджеры прямо под ценой (у них «Написать менеджеру» + Telegram/WhatsApp/Viber; Viber у нас нигде
+    // на сайте не подключён — не выдумываю несуществующий контакт, оставляю только Telegram+WhatsApp,
+    // те же номер/бот, что уже использует auctions.js для лотов — `t.me/fedukusa`, `api.whatsapp.com/send`
+    // вместо wa.me, см. transit.js — site-content.js иначе перепишет голый wa.me-линк).
+    var msgTitle = titleOf(car, listing) + (car.badge ? " " + car.badge : "");
+    var msgText = T("Здравствуйте! Интересует автомобиль.") + "\n" + T("Авто") + ": " + msgTitle + (car.vin ? ("\nVIN: " + String(car.vin).toUpperCase()) : "") + "\n" + location.href;
+    var tgHref = "https://t.me/fedukusa?text=" + encodeURIComponent(msgText);
+    var waHref = "https://api.whatsapp.com/send?phone=37368832032&text=" + encodeURIComponent(msgText);
+
     html += '<div class="catOverviewTopCardV1"><div class="catOvPriceColV1">'
       + '<span class="catPriceLblV1">' + esc(price.label) + '</span>'
       + '<div class="catPriceBigV1" data-no-i18n="true">' + esc(price.amt) + (price.cur ? ' <span class="catPriceCurV1">' + esc(price.cur) + '</span>' : "") + (listing && listing.price && listing.price.negotiable ? '<span class="catNegTagV1">' + esc(T("Торг")) + '</span>' : "") + '</div>'
@@ -482,25 +542,20 @@
         + (listing && listing.created_at ? '<span class="catListedChipV1">📅 ' + esc(relTime(listing.created_at)) + '</span>' : "")
         + (trend ? '<span class="catTrendBadgeV1 ' + (trend.up ? "isUpV1" : "isDownV1") + '" data-no-i18n="true">' + (trend.up ? "↗" : "↘") + " " + (trend.up ? "+" : "") + trend.pct.toFixed(0) + "% " + esc(T("с момента размещения")) + '</span>' : "")
       + '</div>'
+      + '<div class="catPriceActionsV1">'
+        + '<button type="button" class="catPriceCtaV1" id="catLeadBtnV1">' + esc(T("Узнать цену под ключ")) + ' <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+        + '<p class="catMsgOrV1">' + esc(T("или напишите в мессенджер")) + '</p>'
+        + '<div class="catMsgRowV1">'
+          + '<a href="' + esc(tgHref) + '" target="_blank" rel="noopener noreferrer nofollow" class="catMsgBtnV1" style="--msgBrand:#229ed9" aria-label="Telegram">' + ICON_TG + '<span>Telegram</span></a>'
+          + '<a href="' + esc(waHref) + '" target="_blank" rel="noopener noreferrer nofollow" class="catMsgBtnV1" style="--msgBrand:#25d366" aria-label="WhatsApp">' + ICON_WA + '<span>WhatsApp</span></a>'
+        + '</div>'
+      + '</div>'
     + '</div>'
     + (facts.length ? '<div class="catOvFactsColV1">' + facts.map(function(f){ return '<div class="catFactV1"><small>' + esc(f[0]) + '</small><b data-no-i18n="true">' + esc(f[1]) + '</b></div>'; }).join("") + '</div>' : "")
     + '</div>';
 
+    html += mainInfoHtml(car, listing);
     html += reportsCardHtml(car, listing);
-
-    // «Пользовательские поля источника» — listing.source_data, реальный пропуск-объект от самого источника
-    // (марка/модель/поколение/топливо на языке оригинала) — поле уже приходило, просто нигде не читалось.
-    var sd = listing && listing.source_data;
-    if(sd && typeof sd === "object" && !Array.isArray(sd) && Object.keys(sd).length){
-      var sdRows = Object.keys(sd).map(function(k){
-        var v = sd[k];
-        if(v == null || typeof v === "object") return null;
-        return [humanizeKey(k), {html:'<span data-no-i18n="true">' + esc(String(v)) + '</span>'}];
-      }).filter(Boolean);
-      if(sdRows.length) html += '<div class="catDetailsCardV1"><h4>' + esc(T("Поля источника")) + '</h4>' + rowsHtml(sdRows, true) + '</div>';
-    }
-
-    html += '<div class="catLeadCardV1"><button type="button" id="catLeadBtnV1">' + esc(T("Узнать цену под ключ")) + '</button><p>' + esc(T("Оставьте заявку — пришлём расчёт доставки и растаможки в Молдову")) + '</p></div>';
 
     // Details card
     html += '<div class="catDetailsCardV1">';
@@ -581,6 +636,44 @@
       moreBtn.remove();
     });
   }
+  // «Главное» — кликабельные строки-итоги (эталон autopartner.by/korea, Федор со скриншотов «ты видишь
+  // разницу?»): ДТП / Техосмотр(ссылка на #inspection) / Страховые случаи(ссылка на #history) / Изменения
+  // владельца / Тотал-затопление-угон — те же данные, что уже считает `reportsCardHtml` ниже, просто в их
+  // формате компактных строк, а не крупных плиток. Строка показывается, только если за ней реально стоят
+  // данные нужного отчёта (ничего не выдумываем на пустом месте).
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_WARN_DOT = '<svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 6.5v7M12 17.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_OWNERS = '<svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function mainInfoRow(label, cls, icon, value, anchor){
+    var inner = '<span class="catMainInfoFactV1">' + icon + '<span data-no-i18n="true">' + esc(value) + '</span></span>';
+    var body = anchor ? '<a href="#' + anchor + '" data-anchor-link="' + anchor + '">' + inner + '</a>' : inner;
+    return '<div class="catMainInfoRowV1' + (anchor ? " isLinkV1" : "") + '"><dt>' + esc(label) + '</dt><dd class="' + cls + '">' + body + '</dd></div>';
+  }
+  function mainInfoHtml(car, listing){
+    var insp = matchingReports(car.inspections)[0];
+    var hist = matchingReports(car.vehicle_history_reports)[0];
+    if(!insp && !hist) return "";
+    var rows = "";
+    if(insp){
+      var c = (insp.conclusions && !Array.isArray(insp.conclusions)) ? insp.conclusions : {};
+      if(c.accident_status_key){
+        var accOk = c.accident_status_key === "not_present" || c.accident_status_key === "ok";
+        rows += mainInfoRow(T("ДТП"), accOk ? "isOkV1" : "isWarnV1", accOk ? ICON_CHECK : ICON_WARN_DOT, termOr(insp, "result", c.accident_status_key, accOk ? T("Не было") : T("Было")));
+      }
+      var cItems = Array.isArray(insp.checked_items) ? insp.checked_items : [];
+      var issueN = cItems.filter(function(i){ return i.result_key === "issue"; }).length;
+      rows += mainInfoRow(T("Техосмотр"), issueN ? "isWarnV1" : "isOkV1", issueN ? ICON_WARN_DOT : ICON_CHECK, issueN ? (T("Замечаний") + ": " + issueN) : T("Без замечаний"), "inspection");
+    }
+    if(hist){
+      var s = (hist.summary && !Array.isArray(hist.summary)) ? hist.summary : {};
+      if(s.insurance_claim_count != null) rows += mainInfoRow(T("Страховые случаи"), s.insurance_claim_count > 0 ? "isWarnV1" : "isOkV1", s.insurance_claim_count > 0 ? ICON_WARN_DOT : ICON_CHECK, s.insurance_claim_count > 0 ? String(s.insurance_claim_count) : T("Нет"), "history");
+      if(s.owner_change_count != null) rows += mainInfoRow(T("Изменения владельца"), "", ICON_OWNERS, s.owner_change_count > 0 ? (T("Смен") + ": " + s.owner_change_count) : T("Нет"));
+      var totalRisk = (s.total_loss_count > 0) || (s.flood_total_loss_count > 0) || (s.flood_partial_loss_count > 0) || (s.theft_count > 0);
+      if(s.total_loss_count != null || s.flood_total_loss_count != null || s.theft_count != null) rows += mainInfoRow(T("Тотал, затопление, угон"), totalRisk ? "isWarnV1" : "isOkV1", totalRisk ? ICON_WARN_DOT : ICON_CHECK, totalRisk ? T("Да") : T("Нет"));
+    }
+    if(!rows) return "";
+    return '<div class="catMainInfoV1"><h4>' + esc(T("Главное")) + '</h4><dl>' + rows + '</dl></div>';
+  }
   // «Reports» — сводная карточка в Overview (бриф §6.6.4, как в демо-каталоге провайдера): плитка-ссылка
   // на вкладку Осмотр/История с коротким вердиктом, только если соответствующий отчёт реально есть у ВЫБРАННОГО листинга.
   function reportsCardHtml(car, listing){
@@ -617,11 +710,13 @@
   }
   var ICON_INSP_BIG = '<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.7"/><path d="M7.5 12.3l2.8 2.8 5.7-6.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var ICON_HIST_BIG = '<svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12.5" r="8.6" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v4.5l3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_TG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21.5 4.5 2.8 11.8c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.2-2.1 4.6 3.4c.8.5 1.4.2 1.6-.8l3-14.1c.3-1.3-.5-1.8-1.9-1.6zM8.2 14.3l9.3-5.9c.4-.3.8-.1.5.2l-7.9 7.1-.3 3.3-1.6-4.7z"/></svg>';
+  var ICON_WA = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2zm5.7 14.3c-.2.6-1.3 1.2-1.9 1.3-.5.1-1.1.1-1.8-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5-4.5-.2-.2-1.2-1.6-1.2-3s.8-2.2 1.1-2.4c.3-.3.6-.3.8-.3h.6c.2 0 .5 0 .7.5.3.6.9 2.1 1 2.2.1.2.1.4 0 .6-.1.2-.2.3-.4.5-.2.2-.4.4-.5.6-.2.2-.4.4-.2.8.2.4 1 1.6 2.1 2.6 1.4 1.3 2.6 1.7 3 1.9.4.2.6.1.8-.1.2-.2.9-1 1.1-1.4.2-.4.4-.3.7-.2.3.1 2 1 2.3 1.1.3.2.5.2.6.4.1.1.1.8-.1 1.4z"/></svg>';
   document.addEventListener("click", function(e){
     var t = e.target.closest("[data-report-tab]");
-    if(!t) return;
-    e.preventDefault();
-    scrollToAnchor(t.getAttribute("data-report-tab") === "equipment" ? "options" : t.getAttribute("data-report-tab"));
+    if(t){ e.preventDefault(); scrollToAnchor(t.getAttribute("data-report-tab") === "equipment" ? "options" : t.getAttribute("data-report-tab")); return; }
+    var a = e.target.closest("[data-anchor-link]");
+    if(a){ e.preventDefault(); scrollToAnchor(a.getAttribute("data-anchor-link")); }
   });
 
   function rowsHtml(rows, skipWrapCheck){

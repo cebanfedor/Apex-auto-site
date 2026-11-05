@@ -15,7 +15,7 @@
   <meta name="robots" content="noindex">
   <link rel="stylesheet" href="/styles.css?v=v496">
   <link rel="stylesheet" href="/catalog.css?v=v5">
-  <link rel="stylesheet" href="/catalog-car.css?v=v8">
+  <link rel="stylesheet" href="/catalog-car.css?v=v9">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -65,7 +65,7 @@
 
   <main>
   <div class="catalogShellV1" id="catCarRootV1" aria-busy="true">
-    <a href="/catalog" class="catBackLinkV1" id="catBackLinkV1">← Каталог авто</a>
+    <nav class="catCrumbsV1" id="catCrumbsV1" aria-label="Breadcrumb"><a href="/catalog">Каталог Encar</a></nav>
     <div id="catCarLoadingV1" class="catStateV1"><h3>Загрузка…</h3></div>
     <div id="catCarContentV1" hidden>
 
@@ -86,6 +86,14 @@
           </div>
           <div class="catGalThumbsV1" id="catGalThumbsV1"></div>
           <a class="catViewSrcBtnV1" id="catViewSrcBtnV1" href="#" target="_blank" rel="noopener noreferrer">Открыть на источнике →</a>
+
+          <!-- Карточка-навигатор по разделам (05.11.2026, эталон autopartner.by/korea: `.lot-toc`) — те же
+               4 пункта и счётчики, что в липкой горизонтальной навигации (#catStickyNavV1) ниже, просто как
+               отдельная карточка под фото + кнопка-CTA. Пункт/вся карточка скрыты, если нет данных вовсе. -->
+          <div class="catTocCardV1" id="catTocCardV1" hidden>
+            <nav class="catTocGridV1" id="catTocGridV1"></nav>
+            <button type="button" class="catTocCtaV1" id="catTocCtaV1">Написать менеджеру</button>
+          </div>
         </div>
 
         <div class="catCarMainV1">
@@ -161,8 +169,8 @@
     </div>
   </footer>
   <script src="/site-content.js?v=admin-v168" defer></script>
-  <script src="/i18n.js?v=multilang-v551" defer></script>
-  <script src="/catalog-car.js?v=v8" defer></script>
+  <script src="/i18n.js?v=multilang-v552" defer></script>
+  <script src="/catalog-car.js?v=v9" defer></script>
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
 </body>
