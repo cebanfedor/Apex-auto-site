@@ -621,6 +621,11 @@
     return '<div class="relative mb-2.5">' + I.search + '<input type="search" autocomplete="off" class="cf-search" id="catMakeSearchV1" placeholder="' + esc(T("Поиск марки")) + '" aria-label="' + esc(T("Поиск марки")) + '" value="' + esc(makeSearchQuery) + '"></div>'
       + '<div class="cf-scroll-frame"><div class="cf-scroll max-h-[286px] space-y-1.5" id="catMakeListV1">' + rows + '</div></div>';
   }
+  // Популярные модели — первыми, по алфавиту (Федор 05.11.2026, как у марок). Замер 05.11.2026 по реальному числу авто на Encar
+  // (action=search&model_id=<марка:модель>): модель с ≥2% машин своей марки и ≥20 шт. Пример: BMW 5er 2473, X5 1051, 3er 1020…;
+  // Hyundai Grandeur 7191, Santa Fe 4037… Остальные модели марки — ниже, тоже по алфавиту. Пересчитывать тем же замером раз в полгода.
+  var POPULAR_MODELS = {"9":[60,1577,1715,61,58,1092,1461,2951,1788,2988,57],"16":[94,1665,93,96,1896,1895,2177,2978,2070,95,1042,1894],"21":[118,2404,2517,115,3020],"26":[1123,3219,141,152,1787,1600,1103,1000089,1427,138,1686],"48":[303,324,1387,1151,325,1436,310],"56":[350,356,371,1967,354],"58":[1268,398,400,1486,2995,1034,394,2812,3259,1000087,2723,1510,2933,3232],"67":[1502,427,2240,2491,1994,2738],"68":[432,429,2231,1321,431,3078],"70":[435,448,1840,2764,2765,449,2807,2818,1511,3056,1000084,2570,2823],"74":[474,472,475,2246,1792,1908,2700],"76":[476,2220,481,479,2972,478,480,1171,1740,3154],"77":[483,1464,3000,3046,1363,1180,484,2185],"83":[2585,520,527,1000039],"88":[573,576,2426,2396,570,1052,2239,574,1926,569,3062,2507],"94":[1000040,1535,1534,1000063,1937],"107":[1629,2164,1687,1709,1838,1523],"110":[762,1634,757,2139,3054,1000098,760],"123":[2827,1000080,1000082,800,801,1000088,1348,1000093,1000100,1002090],"131":[825,2399,1242,1000091,1005866,2235,2690],"140":[872,906,902,910,1391],"147":[1485,970,1201,2703,976,983,3184,1932,975,978],"148":[1599,999,1002,2774,996,1760,1001,1000,998],"187":[3119,2741,2497,1772],"232":[2669,3138,2668,3217,2910]};
+  function byName(a, b){ return String(a.name || "").localeCompare(String(b.name || ""), "en", {numeric:true, sensitivity:"base"}); }
   function modelsBodyHtml(){
     return state.brands.map(function(b){
       var info = (dict.brands || []).find(function(x){ return x.id === b.id; });
@@ -628,9 +633,13 @@
       var selected = (b.models || []).map(function(m){ return m.id; });
       var list = !models ? '<p class="text-[13px] text-ink-3 py-1">' + esc(T("Загрузка…")) + '</p>'
         : !models.length ? '<p class="text-[13px] text-ink-3 py-1">' + esc(T("Нет моделей")) + '</p>'
-        : models.map(function(m){
-            return '<label class="cf-row"><input type="checkbox" value="' + m.id + '"' + (selected.indexOf(m.id) >= 0 ? " checked" : "") + ' class="peer sr-only" data-model-id="' + m.id + '" data-brand-ref="' + b.id + '">' + I.check + '<span class="cf-label" data-no-i18n="true">' + esc(m.name || ("ID " + m.id)) + '</span></label>';
-          }).join("");
+        : (function(){
+            var pop = POPULAR_MODELS[b.id] || [];
+            var row = function(m){ return '<label class="cf-row"><input type="checkbox" value="' + m.id + '"' + (selected.indexOf(m.id) >= 0 ? " checked" : "") + ' class="peer sr-only" data-model-id="' + m.id + '" data-brand-ref="' + b.id + '">' + I.check + '<span class="cf-label" data-no-i18n="true">' + esc(m.name || ("ID " + m.id)) + '</span></label>'; };
+            var top = models.filter(function(m){ return pop.indexOf(m.id) >= 0; }).sort(byName);
+            var rest = models.filter(function(m){ return pop.indexOf(m.id) < 0; }).sort(byName);
+            return top.map(row).join("") + (top.length && rest.length ? '<p class="cf-brand-sep">' + esc(T("Другие модели")) + '</p>' : "") + rest.map(row).join("");
+          })();
       return '<div class="cf-group"><p class="cf-group__title" data-no-i18n="true">' + logoHtml(info && info.name) + '<span>' + esc(info ? info.name : ("ID " + b.id)) + '</span></p><div class="cf-scroll-frame"><div class="cf-scroll max-h-[286px] space-y-1.5">' + list + '</div></div></div>';
     }).join("");
   }
