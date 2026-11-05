@@ -5,6 +5,7 @@
 // Федора и server/catalog-api.js). Ключ никогда не уходит в браузер: только через этот эндпоинт.
 const {sendJson, methodNotAllowed, getQuery} = require("../server/http");
 const cat = require("../server/catalog-api");
+const {fetchT} = require("../server/fetchx");
 
 const LANGS = new Set(["en", "ru", "uk", "pl", "bg", "sq"]);
 const SORTS = new Set(["newest", "oldest", "cheaper", "expensive", "odometer_asc", "odometer_desc", "year_asc", "year_desc", "auction_nearest"]);
@@ -168,6 +169,32 @@ async function doSearch(q){
   };
 }
 
+// Курс USD→KRW/EUR для показа цен Encar в $ (05.11.2026). Раньше браузер ходил на frankfurter напрямую —
+// тот режет CORS, запасной fxratesapi отвечает 429 → цены оставались в KRW. Теперь курс берёт сервер
+// (CORS не участвует), несколько источников по очереди, кэш в памяти 6 ч + CDN.
+let ratesCache = null;
+async function getRates(){
+  if(ratesCache && Date.now() - ratesCache.t < 6 * 3600e3) return ratesCache.v;
+  const sources = [
+    ["https://api.frankfurter.app/latest?from=USD&to=KRW,EUR", d => d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}],
+    ["https://open.er-api.com/v6/latest/USD", d => d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}],
+    ["https://api.fxratesapi.com/latest?base=USD&currencies=KRW,EUR", d => d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}],
+  ];
+  for(const [url, pick] of sources){
+    try{
+      const r = await fetchT(url, {headers:{accept:"application/json"}}, 5000);
+      if(!r.ok) continue;
+      const v = pick(await r.json());
+      if(v && v.krw > 100 && v.krw < 10000){
+        const out = {usdKrw:v.krw, usdEur:v.eur || 0, src:new URL(url).host, at:new Date().toISOString()};
+        ratesCache = {t:Date.now(), v:out};
+        return out;
+      }
+    }catch(e){ /* следующий источник */ }
+  }
+  return ratesCache ? ratesCache.v : null;
+}
+
 module.exports = async function handler(req, res){
   if(req.method !== "GET") return methodNotAllowed(res);
   const q = getQuery(req);
@@ -226,6 +253,12 @@ module.exports = async function handler(req, res){
       const data = await cat.catalogFetch("/car-options", `ids=${encodeURIComponent(ids.join(","))}&per_page=${ids.length}&lang=${encodeURIComponent(lang)}`);
       const rows = Array.isArray(data?.data) ? data.data : [];
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
+    }
+
+    if(action === "rates"){
+      const r = await getRates();
+      if(!r) return sendJson(res, 503, {ok:false, error:"rates_unavailable"}, {"cache-control":"no-store"});
+      return sendJson(res, 200, {ok:true, ...r}, {"cache-control":"public, max-age=1800, s-maxage=21600, stale-while-revalidate=86400"});
     }
 
     if(action === "generations"){

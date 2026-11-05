@@ -28,6 +28,10 @@ for(const m of html.matchAll(/classList\.(?:add|toggle|remove)\(\s*"([^"]+)"/g))
 for(const m of html.matchAll(/"((?:[a-z0-9]+(?:[_-][a-z0-9]+)*)(?:__|--)?[a-z0-9_-]*)"/g)) { if(/^[a-z][a-z0-9_-]*$/.test(m[1]) && m[1].length > 1) used.add(m[1]); }
 for(const m of html.matchAll(/'((?:[a-z0-9]+(?:[_-][a-z0-9]+)*)(?:__|--)?[a-z0-9_-]*)'/g)) { if(/^[a-z][a-z0-9_-]*$/.test(m[1]) && m[1].length > 1) used.add(m[1]); }
 for(const m of html.matchAll(/setAttribute\("class",\s*"([^"]+)"/g)) m[1].split(/\s+/).forEach(c => c && used.add(c));
+// 05.11.2026: шаблоны выше пропускали куски склейки вида (x ? " has-map" : "") → выпадали правила раскладки
+// (.lot-rep__split.has-map в @container). Берём КАЖДОЕ слово из любых строковых литералов: лишний класс
+// только оставит лишнее правило, а пропущенный ломает вёрстку.
+for(const m of html.matchAll(/"([^"\\\n]*)"|'([^'\\\n]*)'/g)) (m[1] || m[2] || "").split(/\s+/).forEach(c => { if(c.length > 1 && /^[a-z!-][A-Za-z0-9_:\-\[\]\/.%()!#,]*$/.test(c)) used.add(c); });
 // состояния/варианты, которые JS/CSS ставят динамически
 ["is-open","is-on","is-off","is-leaving","is-active","is-loaded","has-error","no-photo","is-list","is-stuck","is-ready","is-animated","is-checked","is-selected","is-shown","is-archived","is-sold","is-copied","is-hit","is-issue","is-ok","is-bad","is-warn","is-clean","is-info","is-main","is-muted","is-mono","is-make","is-link","is-left","is-none","is-claim","is-owner","is-plain","is-risk","is-paid","is-trace","is-damage","is-quiet","is-skeleton","is-burst","is-unburst","is-exterior","is-zoomed","is-linked","catalog-loading","rotate-180","overflow-hidden","max-sm:overflow-hidden","peer","sr-only","group","lot-share-enter","lot-share-from","lot-share-leave","lot-share-to","lot-zone-badge","lot-zone-badge__ring","lot-zone-badge__pop","lot-zone-shape","is-seen"].forEach(c => used.add(c));
 

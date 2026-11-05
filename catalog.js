@@ -225,9 +225,10 @@
 
   // ---- Курс USD→KRW для показа цен в $ (эталон показывает цену в долларах; Encar отдаёт KRW) ----
   var rates = {usdKrw:0, usdEur:0};
+  // Курс отдаёт наш сервер (/api/catalog?action=rates): прямые запросы браузера к сервисам курсов режут CORS/лимиты.
   function fetchRates(){
-    return fetch("https://api.frankfurter.app/latest?from=USD&to=KRW,EUR").then(function(r){ return r.json(); })
-      .catch(function(){ return fetch("https://api.fxratesapi.com/latest?base=USD&currencies=KRW,EUR").then(function(r){ return r.json(); }); });
+    return fetch("/api/catalog?action=rates").then(function(r){ return r.json(); })
+      .then(function(d){ return d && d.ok && d.usdKrw ? {rates:{KRW:d.usdKrw, EUR:d.usdEur}} : null; });
   }
   function loadRates(){
     try{
@@ -817,7 +818,8 @@
     var active = listings.filter(function(l){ return !l.archived; });
     return active[0] || listings[0] || null;
   }
-  function imageUrl(img){ return img.original || img.downloaded || img.preview || ""; }
+  // Как у эталона: в карточке — preview источника (800×600 с ci.encar.com), не оригинал 2000px (~400 КБ на кадр).
+  function imageUrl(img){ return img.preview || img.original || img.downloaded || ""; }
   function titleOf(car){
     var brand = car.brand && car.brand.name, model = car.model && car.model.name;
     if(brand || model) return [car.year, brand, model].filter(Boolean).join(" ");
@@ -855,11 +857,13 @@
       + '</div></div>' : "";
     var specs = "";
     if(listing && listing.odometer != null) specs += specLi(I.odo, fmtNum(listing.odometer) + " " + T("км"));
-    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) specs += specLi(I.engine, (car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л"));
-    else if(car.battery_capacity_kwh) specs += specLi(I.engine, car.battery_capacity_kwh + " " + T("кВт·ч"));
+    // Как у эталона: 2-я ячейка — объём «2.0 л»; у электро (объёма нет/он бессмысленный) — тип кузова.
+    var hasEngine = car.engine_volume && !(car.fuel && car.fuel.id === 2);
+    if(hasEngine) specs += specLi(I.engine, (car.engine_volume / 1000).toFixed(1) + " " + T("л"));
+    else if(car.body_type) specs += specLi(I.body, lbl(BODY_TYPES, car.body_type.id) || car.body_type.name);
     if(car.transmission) specs += specLi(I.trans, lbl(TRANSMISSIONS, car.transmission.id) || car.transmission.name);
     if(car.fuel) specs += specLi(I.fuel, lbl(FUELS, car.fuel.id) || car.fuel.name);
-    if(car.body_type) specs += specLi(I.body, lbl(BODY_TYPES, car.body_type.id) || car.body_type.name, true);
+    if(car.body_type && hasEngine) specs += specLi(I.body, lbl(BODY_TYPES, car.body_type.id) || car.body_type.name, true);
     if(car.color){ var c = COLORS.find(function(x){ return x[0] === car.color.id; }); specs += specLi('<span class="mx-0.5 h-3 w-3 shrink-0 rounded-full border border-line-2" style="background: ' + (c ? c[2] : "#9ca3af") + '" aria-hidden="true"></span>', c ? T(c[1]) : car.color.name, true); }
     if(car.drive_wheels) specs += specLi(I.drive, (lbl(DRIVE_WHEELS, car.drive_wheels.id) || car.drive_wheels.name) + " " + T("привод"), true);
     if(car.seats) specs += specLi(I.seats, car.seats + " " + T("мест"), true);
@@ -980,7 +984,7 @@
     if(total <= perPage){ pager.innerHTML = ""; return; }
     var cur = state.page, from = (cur - 1) * perPage + 1, to = Math.min(total, cur * perPage);
     var pages = pagerPages(cur, last);
-    var mob = pages.map(function(p){
+    var mob = pagerPagesMob(cur, last).map(function(p){
       if(p === "...") return '<span class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium min-w-6 px-0 text-ink-4" aria-hidden="true">…</span>';
       if(p === cur) return '<span class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium bg-brand-500/10 font-semibold text-brand-700" aria-current="page">' + p + '</span>';
       return '<a href="' + esc(pageHref(p)) + '" data-page="' + p + '" class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Страница")) + ' ' + p + '">' + p + '</a>';
@@ -1002,6 +1006,14 @@
       + '<div class="order-1 flex items-center gap-1 sm:hidden">' + prevMob + mob + nextMob + '</div>'
       + '<div class="order-1 hidden items-center gap-2 sm:order-2 sm:flex">' + prevDesk + '<div class="flex items-center gap-1.5 rounded-full bg-ink/[.05] p-1">' + desk + '</div>' + nextDesk + '</div>'
     + '</nav></div>';
+  }
+  // Телефон — как у эталона: «1 2 3 … N» / «1 … 4 5 6 … N» (полный ряд 1–6 не влезал в 390px)
+  function pagerPagesMob(cur, last){
+    var set = [1, last, cur - 1, cur, cur + 1];
+    if(cur <= 2) set.push(2, 3);
+    if(cur >= last - 1) set.push(last - 1, last - 2);
+    var nums = set.filter(function(n){ return n >= 1 && n <= last; }).sort(function(a, b){ return a - b; }).filter(function(n, i, a){ return a.indexOf(n) === i; });
+    var out = []; nums.forEach(function(n, i){ if(i && n - nums[i - 1] > 1) out.push("..."); out.push(n); }); return out;
   }
   function pagerPages(cur, last){
     if(last <= 7){ var all = []; for(var i = 1; i <= last; i++) all.push(i); return all; }
