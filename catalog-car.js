@@ -129,6 +129,9 @@
   var carId = m ? decodeURIComponent(m[1]) : "";
   var qp = new URLSearchParams(location.search);
   var refDomainId = qp.get("domain_id"), refListingId = qp.get("listing_id");
+  // Чистая ссылка как у эталона: /catalog/<id>; другое объявление той же машины — ?listing=<номер на площадке>.
+  // Старые ссылки ?domain_id=&listing_id= работают и после загрузки переписываются на короткие (replaceState).
+  var refShort = qp.get("listing");
   var state = {car:null, listing:null, photos:[], galIdx:0, options:null};
 
   function apiUrl(){
@@ -142,6 +145,14 @@
       var byRef = listings.find(function(l){ return l.external && String(l.external.domain.id) === String(refDomainId) && String(l.external.id) === String(refListingId); });
       if(byRef) return byRef;
     }
+    if(refShort){
+      var byShort = listings.find(function(l){ return l.external && String(l.external.id) === String(refShort); });
+      if(byShort) return byShort;
+    }
+    return defaultListing(car);
+  }
+  function defaultListing(car){
+    var listings = Array.isArray(car.listings) ? car.listings : [];
     var active = listings.filter(function(l){ return !l.archived; });
     return active[0] || listings[0] || null;
   }
@@ -157,9 +168,11 @@
     return T("Автомобиль");
   }
   function listingHref(car, l){
-    var p = new URLSearchParams();
-    if(l && l.external){ p.set("domain_id", l.external.domain.id); p.set("listing_id", l.external.id); }
-    return "/catalog/" + encodeURIComponent(car.id) + (p.toString() ? "?" + p.toString() : "");
+    var base = "/catalog/" + encodeURIComponent(car.id), def = defaultListing(car);
+    if(!l || !l.external || l === def) return base;
+    var p = new URLSearchParams(); p.set("listing", l.external.id);
+    var lg = qp.get("lang"); if(lg) p.set("lang", lg);
+    return base + "?" + p.toString();
   }
   // Как у эталона: площадку показываем брендом («Encar»), домен — в подсказке
   function siteName(n){ n = String(n || ""); return /encar/i.test(n) ? "Encar" : (n || "Encar"); }
@@ -253,6 +266,11 @@
       if(!res.ok || !res.data || !res.data.car){ showNotFound(); return; }
       state.car = res.data.car;
       state.listing = pickListing(state.car);
+      try{
+        var clean = listingHref(state.car, state.listing), lg = qp.get("lang");
+        if(lg && clean.indexOf("lang=") < 0) clean += (clean.indexOf("?") < 0 ? "?" : "&") + "lang=" + encodeURIComponent(lg);
+        if(clean !== location.pathname + location.search) history.replaceState(null, "", clean + location.hash);
+      }catch(e){}
       var imgs = (state.listing && Array.isArray(state.listing.images) ? state.listing.images : []).filter(function(im){ return im && imageUrl(im); });
       state.photos = imgs.map(imageUrl);
       state.photosFull = imgs.map(imageFull);
@@ -579,6 +597,8 @@
     return {text:T("Без замечаний"), tone:"is-ok"};
   }
   function inspVerdictText(s){
+    // как у эталона: без замечаний — «Все 32 проверки пройдены без замечаний»
+    if(!s.issues.length && !s.accident && !s.traces.length && s.total) return T("Все") + " " + s.total + " " + plural(s.total, T("проверка"), T("проверки"), T("проверок")) + " " + T("пройдены без замечаний");
     var parts = [];
     parts.push(s.mechIssues.length ? (T("Механика") + ": " + s.mechIssues.length + " " + plural(s.mechIssues.length, T("замечание"), T("замечания"), T("замечаний"))) : T("Механика в порядке"));
     parts.push(s.bodyIssues.length ? (T("по кузову") + " " + s.bodyIssues.length + " " + plural(s.bodyIssues.length, T("замечание"), T("замечания"), T("замечаний"))) : T("кузов без отметок"));
@@ -773,7 +793,7 @@
       var cls = "", val = "", unit = "", words = false;
       if(s.id === "options"){ val = String(opts); }
       if(s.id === "inspection"){ cls = insp.tone === "is-ok" ? "is-ok" : "is-warn"; if(insp.issues.length){ val = String(insp.issues.length); unit = plural(insp.issues.length, T("замечание"), T("замечания"), T("замечаний")); } else { val = T("Без замечаний"); words = true; } }
-      if(s.id === "history"){ cls = hist.tone === "is-ok" ? "is-ok" : "is-warn"; if(hist.claimCount){ val = String(hist.claimCount); unit = plural(hist.claimCount, T("случай"), T("случая"), T("случаев")); } else { val = T("Чистая"); words = true; } }
+      if(s.id === "history"){ cls = hist.tone === "is-ok" ? "is-ok" : "is-warn"; if(hist.claimCount){ val = String(hist.claimCount); unit = plural(hist.claimCount, T("случай"), T("случая"), T("случаев")); } else { val = T("Чисто"); words = true; } }
       if(s.id === "listings"){ var prices = new Set(listings.map(function(l){ var p = listingPrice(l); return p ? p.amount : null; }).filter(function(x){ return x != null; })); cls = prices.size <= 1 ? "is-ok" : ""; val = prices.size <= 1 ? T("Одна цена") : (listings.length + " " + plural(listings.length, T("объявление"), T("объявления"), T("объявлений"))); words = true; }
       return '<a href="#' + s.id + '" class="lot-tcard__tile ' + cls + '" data-toc="' + s.id + '" data-go="' + s.id + '"><span class="lot-tcard__name">' + s.icon + esc(T(s.label)) + '</span>' + (words ? '<b class="is-words" data-no-i18n="true">' + esc(val) + '</b>' : '<b class="num">' + esc(val) + '</b><span class="lot-tcard__unit">' + esc(unit) + '</span>') + '</a>';
     }).join("");
@@ -847,7 +867,8 @@
     quarter_panel:"quarter_left", left_quarter_panel:"quarter_left", left_rear_fender_inner_panel:"quarter_left", left_rear_quarter_panel:"quarter_left", left_rear_wheel_house_inner:"quarter_left",
     right_rear_quarter_panel:"quarter_right", right_quarter_panel:"quarter_right", right_rear_fender_inner_panel:"quarter_right", right_rear_wheel_house_inner:"quarter_right"
   };
-  var ZONE_LABEL = {front_bumper:"Передний бампер", hood:"Капот", front_left:"Крыло переднее левое", front_right:"Крыло переднее правое", mirror_left:"Зеркало левое", mirror_right:"Зеркало правое", front_door_left:"Дверь передняя левая", front_door_right:"Дверь передняя правая", roof:"Крыша", rear_door_left:"Дверь задняя левая", rear_door_right:"Дверь задняя правая", quarter_left:"Крыло заднее левое", quarter_right:"Крыло заднее правое", trunk:"Крышка багажника", rear_bumper:"Задний бампер", left_front_wheel:"Диск передний левый", left_front_tire:"Шина передняя левая", left_rear_wheel:"Диск задний левый", left_rear_tire:"Шина задняя левая", right_front_wheel:"Диск передний правый", right_front_tire:"Шина передняя правая", right_rear_wheel:"Диск задний правый", right_rear_tire:"Шина задняя правая"};
+  var ZONE_LABEL = {front_bumper:"Передний бампер", hood:"Капот", front_left:"Крыло переднее левое", front_right:"Крыло переднее правое", mirror_left:"Зеркало левое", mirror_right:"Зеркало правое", front_door_left:"Дверь передняя левая", front_door_right:"Дверь передняя правая", roof:"Крыша", rear_door_left:"Дверь задняя левая", rear_door_right:"Дверь задняя правая", quarter_left:"Крыло заднее левое", quarter_right:"Крыло заднее правое", trunk:"Крышка багажника", rear_bumper:"Задний бампер", left_front_wheel:"Диск передний левый", left_front_tire:"Шина передняя левая", left_rear_wheel:"Диск задний левый", left_rear_tire:"Шина задняя левая", right_front_wheel:"Диск передний правый", right_front_tire:"Шина передняя правая", right_rear_wheel:"Диск задний правый", right_rear_tire:"Шина задняя правая",
+    front_suspension:"Передняя подвеска", engine:"Двигатель", front_structure:"Передние лонжероны", transmission:"Трансмиссия", center_underbody:"Днище", exhaust:"Выхлопная система", brake_lines:"Тормозные магистрали", rear_suspension:"Задняя подвеска", trunk_floor:"Пол багажника"};
   function zoneFor(item){
     var k = String(item.part_key || "");
     if(ZONE_OF[k]) return ZONE_OF[k];
@@ -857,6 +878,26 @@
     return null;
   }
   var BODY_BLOCKS = {exterior:1, body_structure:1};
+  // Схема днища (как у эталона): механика по part_key → зона агрегата. Электрика и сцепление на схеме не показываются.
+  function underZone(it){
+    var k = String(it.part_key || ""), b = it.block_key;
+    if(b === "electrical" || /clutch/.test(k)) return null;
+    if(/transmission|cv_joint|differential|propeller|drive_shaft|axle/.test(k)) return "transmission";
+    if(/steer|tie_rod|ball_joint|front_suspension/.test(k)) return "front_suspension";
+    if(/brake/.test(k)) return "brake_lines";
+    if(/exhaust|muffler/.test(k)) return "exhaust";
+    if(/rear_suspension|shock|strut|spring/.test(k)) return "rear_suspension";
+    if(b === "powertrain") return "engine";
+    return null;
+  }
+  // Группы и короткие названия — как у эталона
+  var BLOCK_NAME = {powertrain:"Силовая установка", mechanical:"Механика", brakes:"Тормоза", electrical:"Электрика"};
+  var PART_RU = {engine_idle_operation:"Работа двигателя на холостых", cylinder_block_oil_pan:"Блок цилиндров, масляный поддон", automatic_transmission_oil_leak:"Утечка масла АКПП",
+    transmission:"Коробка передач", clutch_assembly:"Сцепление", cv_joint:"Шрус", power_steering_fluid_leak:"Утечка жидкости ГУР", power_steering_pump:"Насос ГУР",
+    steering_universal_joint:"Карданчик рулевого вала", tie_rod_end_and_ball_joint:"Рулевые наконечники и шаровые опоры", power_steering_high_pressure_hose:"Шланг высокого давления ГУР"};
+  function partName(r, it){ if(uiLang() === "ru" && PART_RU[it.part_key]) return PART_RU[it.part_key]; return termOr(r, "part", it.part_key, it.part_label || it.source_label); }
+  function blockName(r, k){ return BLOCK_NAME[k] ? T(BLOCK_NAME[k]) : termOr(r, "section", k, humanizeKey(k)); }
+  var REP_ROWS = 24;
   function isTraceTag(txt){ return /дтп|замен|repl|accident|weld|свар/i.test(txt); }
   function itemDescTags(r, it){
     var tags = [];
@@ -869,19 +910,25 @@
   function inspectionSectionHtml(s){
     var r = s.r, items = s.items, c = s.c;
     var bodyItems = items.filter(function(i){ return BODY_BLOCKS[i.block_key] || zoneFor(i); });
-    var hasMap = bodyItems.length > 0 && ART.exterior;
+    var mapKind = bodyItems.length > 0 && ART.exterior ? "exterior" : (ART.underbody && items.some(underZone) ? "underbody" : null);
+    var hasMap = !!mapKind; s.mapKind = mapKind;
     var damage = s.issues.filter(function(i){ return BODY_BLOCKS[i.block_key] || zoneFor(i); });
     var mechBlocks = {};
     items.filter(function(i){ return !(BODY_BLOCKS[i.block_key] || zoneFor(i)); }).forEach(function(i){ var k = i.block_key || "other"; (mechBlocks[k] = mechBlocks[k] || []).push(i); });
     var blockKeys = Object.keys(mechBlocks);
     var mechIssueBlocks = blockKeys.filter(function(k){ return mechBlocks[k].some(function(i){ return i.result_key === "issue"; }); });
-    var shownBlocks = mechIssueBlocks.concat(blockKeys.filter(function(k){ return mechIssueBlocks.indexOf(k) < 0; })).slice(0, 2);
-    var restOk = blockKeys.filter(function(k){ return shownBlocks.indexOf(k) < 0; }).reduce(function(a, k){ return a + mechBlocks[k].length; }, 0);
+    var orderedBlocks = mechIssueBlocks.concat(blockKeys.filter(function(k){ return mechIssueBlocks.indexOf(k) < 0; }));
+    // как у эталона: первые 24 пункта механики по группам, остальное — в «Полном отчёте»
+    var budget = REP_ROWS, shownRows = {};
+    orderedBlocks.forEach(function(k){ if(budget <= 0) return; shownRows[k] = mechBlocks[k].slice(0, budget); budget -= shownRows[k].length; });
+    var shownBlocks = Object.keys(shownRows);
+    var restOk = items.length - damage.length - shownBlocks.reduce(function(a, k){ return a + shownRows[k].length; }, 0);
     var html = '<section id="inspection" class="lot-section"><header class="lot-section__head"><div class="min-w-0"><h2 class="lot-section__title">' + esc(T("Техосмотр")) + '</h2><p class="lot-section__verdict"><span class="lot-section__dot ' + s.tone + '"></span><span data-no-i18n="true">' + esc(inspVerdictText(s)) + (r.inspected_at ? '<span class="lot-section__meta">' + esc(T("Осмотр от")) + ' ' + esc(fmtDate(r.inspected_at)) + '</span>' : "") + '</span></p></div></header><div class="lot-section__body"><div class="lot-rep" id="lotRepV1">';
     html += '<div class="lot-rep__split' + (hasMap ? " has-map" : "") + '">';
     if(hasMap){
-      html += '<figure class="lot-rep__map"><div class="lot-rep__plate"><p class="lot-rep__end">' + esc(T("Перед")) + '</p><div class="lot-cmap__frame is-exterior" style="--map-ratio: ' + (ART.mapRatio || "0.78") + '" id="lotMapV1">' + ART.exterior + '</div><p class="lot-rep__end">' + esc(T("Зад")) + '</p></div>'
-        + '<figcaption class="lot-rep__legend"><span><i class="is-bad"></i>' + esc(T("Замечание, след ДТП, замена")) + '</span><span><i class="is-clean"></i>' + esc(T("Без отметок")) + '</span></figcaption></figure>';
+      var under = mapKind === "underbody", mapIssues = under ? s.issues.some(underZone) : true;
+      html += '<figure class="lot-rep__map"><div class="lot-rep__plate"><p class="lot-rep__end">' + esc(T("Перед")) + '</p><div class="lot-cmap__frame is-' + mapKind + '" style="--map-ratio: ' + (under ? (ART.underRatio || "0.5806") : (ART.mapRatio || "0.78")) + '" id="lotMapV1">' + (under ? ART.underbody : ART.exterior) + '</div><p class="lot-rep__end">' + esc(T("Зад")) + '</p></div>'
+        + '<figcaption class="lot-rep__legend">' + (mapIssues ? '<span><i class="is-bad"></i>' + esc(T(under ? "Замечание" : "Замечание, след ДТП, замена")) + '</span>' : "") + '<span><i class="is-clean"></i>' + esc(T("Без отметок")) + '</span></figcaption></figure>';
     }
     html += '<div class="lot-rep__list">';
     if(damage.length){
@@ -890,15 +937,15 @@
         return '<div class="lot-rep__row is-damage" data-zone="' + (zone ? "exterior:" + zone : "") + '" data-dmg-row="' + i + '" role="button" tabindex="0"><div class="lot-rep__part"><span class="lot-rep__num is-bad">' + (i + 1) + '</span><div class="min-w-0"><p class="lot-rep__name" data-no-i18n="true">' + esc(termOr(r, "part", it.part_key, it.part_label || it.source_label)) + '</p><p class="lot-rep__meta" data-no-i18n="true">' + esc(termOr(r, "section", it.block_key, T("Кузов"))) + '</p></div></div>'
           + '<div class="lot-dmg__tags">' + (tags.length ? tags.map(function(t){ return '<span class="lot-dmg__tag' + (isTraceTag(t) ? " is-trace is-bad" : "") + '" data-no-i18n="true">' + esc(t) + '</span>'; }).join("") : '<span class="lot-dmg__tag is-bad">' + esc(T("Замечание")) + '</span>') + '</div></div>';
       }).join("") + '</div>';
-    }else if(hasMap){
+    }else if(mapKind === "exterior"){
       html += '<p class="lot-rep__clean">' + I.check + esc(T("По кузову отметок нет")) + '</p>';
     }
     var claims = Array.isArray(r.source_claims) ? r.source_claims.map(function(sc){ var ok = sc.result_key === "not_present" || sc.result_key === "ok"; return termOr(r, "claim_type", sc.type_key, sc.source_label) + ": " + (ok ? T("нет") : termOr(r, "result", sc.result_key, T("да"))); }) : [];
     if(claims.length || c.notes) html += '<p class="lot-rep__note" data-no-i18n="true">' + (claims.length ? esc(T("По заявлению продавца")) + ": " + esc(claims.join(", ")) + ". " : "") + esc(c.notes || "") + '</p>';
     shownBlocks.forEach(function(k){
-      html += '<div class="lot-rep__set"><p class="lot-rep__group" data-no-i18n="true">' + esc(termOr(r, "section", k, humanizeKey(k))) + '</p>' + mechBlocks[k].map(function(it){
-        var bad = it.result_key === "issue";
-        return '<div class="lot-rep__row is-quiet' + (bad ? " is-issue" : "") + '"><p class="lot-rep__name" data-no-i18n="true">' + esc(termOr(r, "part", it.part_key, it.part_label || it.source_label)) + '</p><p class="lot-rep__value ' + (bad ? "is-bad" : "is-ok") + '" data-no-i18n="true">' + esc(bad ? (itemDescTags(r, it)[0] || T("Замечание")) : T("Норма")) + '</p></div>';
+      html += '<div class="lot-rep__set"><p class="lot-rep__group" data-no-i18n="true">' + esc(blockName(r, k)) + '</p>' + shownRows[k].map(function(it){
+        var bad = it.result_key === "issue", uz = mapKind === "underbody" ? underZone(it) : null;
+        return '<div class="lot-rep__row is-quiet' + (bad ? " is-issue" : "") + '"' + (uz ? ' data-zone="underbody:' + uz + '" role="button" tabindex="0"' : "") + '><p class="lot-rep__name" data-no-i18n="true">' + esc(partName(r, it)) + '</p><p class="lot-rep__value ' + (bad ? "is-bad" : "is-ok") + '" data-no-i18n="true">' + esc(bad ? (itemDescTags(r, it)[0] || T("Замечание")) : T("Норма")) + '</p></div>';
       }).join("") + '</div>';
     });
     html += '<button type="button" class="lot-rep__full" data-full-open="inspection" aria-haspopup="dialog"><span class="lot-rep__full-icon">' + I.doc + '</span><span class="min-w-0 flex-1"><span class="lot-rep__full-title">' + esc(T("Полный отчёт проверки")) + '</span><span class="lot-rep__full-sub" data-no-i18n="true">' + esc(restOk ? (T("Ещё") + " " + restOk + " " + plural(restOk, T("проверка"), T("проверки"), T("проверок")) + " " + T("в норме")) : (T("Проверено") + " " + items.length + " " + plural(items.length, T("пункт"), T("пункта"), T("пунктов")))) + '</span></span><span class="lot-rep__full-go">' + esc(T("Открыть")) + I.arrR + '</span></button>';
@@ -915,8 +962,9 @@
     var map = document.getElementById("lotMapV1"); if(!map) return;
     var r = s.r;
     var byZone = {};
-    s.items.forEach(function(it){ var z = zoneFor(it); if(!z) return; (byZone[z] = byZone[z] || []).push(it); });
-    var damage = s.issues.filter(function(i){ return BODY_BLOCKS[i.block_key] || zoneFor(i); });
+    var under = s.mapKind === "underbody", zf = under ? underZone : zoneFor;
+    s.items.forEach(function(it){ var z = zf(it); if(!z) return; (byZone[z] = byZone[z] || []).push(it); });
+    var damage = under ? s.issues.filter(underZone) : s.issues.filter(function(i){ return BODY_BLOCKS[i.block_key] || zoneFor(i); });
     var svg = map.querySelector("svg"), rep = document.getElementById("lotRepV1"); if(rep){ rep.classList.add("is-seen"); }
     svg.querySelectorAll(".lot-zone-g").forEach(function(g){
       var zone = (g.getAttribute("data-zone") || "").split(":")[1];
@@ -924,8 +972,9 @@
       var issue = items.filter(function(i){ return i.result_key === "issue"; });
       g.setAttribute("data-state", issue.length ? "issue" : items.length ? "ok" : "muted");
       // у эталона класс формы зоны ставит их JS: .lot-zone-shape (+ .is-issue — красная заливка, .is-ok — наша зелёная подсветка нормы)
-      g.querySelectorAll("path").forEach(function(p){ p.classList.add("lot-zone-shape"); p.classList.toggle("is-issue", issue.length > 0); p.classList.toggle("is-ok", !issue.length && items.length > 0); });
+      g.querySelectorAll("path").forEach(function(p){ p.classList.add("lot-zone-shape"); p.classList.toggle("is-issue", issue.length > 0); p.classList.toggle("is-ok", !under && !issue.length && items.length > 0); p.classList.toggle("is-muted", !items.length); });
       var label = T(ZONE_LABEL[zone] || humanizeKey(zone));
+      if(under && items.length && !issue.length) label += ": " + T("проверено, проблем нет.");
       if(issue.length) label += ": " + T("найдена проблема") + ": " + issue.map(function(it){ return itemDescTags(r, it).join(", ") || T("замечание"); }).join("; ");
       g.setAttribute("data-tip", label);
       if(issue.length){
@@ -933,7 +982,7 @@
         try{
           var bb = g.getBBox(), bx = bb.x + bb.width / 2, by = bb.y + bb.height / 2;
           var badge = document.createElementNS("http://www.w3.org/2000/svg", "g");
-          badge.setAttribute("class", "lot-zone-badge is-bad"); badge.setAttribute("data-zone", "exterior:" + zone); badge.setAttribute("transform", "translate(" + bx.toFixed(1) + " " + by.toFixed(1) + ")"); badge.style.setProperty("--i", String(n - 1));
+          badge.setAttribute("class", "lot-zone-badge is-bad"); badge.setAttribute("data-zone", (under ? "underbody:" : "exterior:") + zone); badge.setAttribute("transform", "translate(" + bx.toFixed(1) + " " + by.toFixed(1) + ")"); badge.style.setProperty("--i", String(n - 1));
           badge.innerHTML = '<g class="lot-zone-badge__pop"><circle r="9.5" class="lot-zone-badge__ring"/><circle r="9.5"/><text y="4" text-anchor="middle">' + n + '</text></g>';
           svg.appendChild(badge);
         }catch(e){}
@@ -954,8 +1003,8 @@
     var keys = Object.keys(groups).sort(function(a, b){ var ia = groups[a].some(function(i){ return i.result_key === "issue"; }), ib = groups[b].some(function(i){ return i.result_key === "issue"; }); return (ib ? 1 : 0) - (ia ? 1 : 0); });
     var body = keys.map(function(k, idx){
       var its = groups[k], issues = its.filter(function(i){ return i.result_key === "issue"; }).length;
-      return '<section class="lot-full__group' + (idx === 0 || issues ? " is-open" : "") + '"><button type="button" class="lot-full__toggle" data-full-toggle aria-expanded="' + (idx === 0 || issues ? "true" : "false") + '"><span class="lot-full__name" data-no-i18n="true">' + esc(termOr(r, "section", k, humanizeKey(k))) + '</span><span class="lot-full__pills">' + (issues ? '<span class="lot-full__pill is-issue">' + issues + ' ' + plural(issues, T("замечание"), T("замечания"), T("замечаний")) + '</span>' : '<span class="lot-full__pill is-ok">' + esc(T("Норма")) + '</span>') + '</span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 lot-full__chev h-4 w-4") + '</button>'
-        + '<div class="lot-full__items"><ul>' + its.map(function(it){ var bad = it.result_key === "issue"; return '<li class="lot-full__row"><span class="lot-full__part" data-no-i18n="true">' + esc(termOr(r, "part", it.part_key, it.part_label || it.source_label)) + '</span><span class="lot-full__value ' + (bad ? "is-bad" : "is-ok") + '" data-no-i18n="true">' + esc(bad ? (itemDescTags(r, it).join(", ") || T("Замечание")) : T("Норма")) + '</span></li>'; }).join("") + '</ul></div></section>';
+      return '<section class="lot-full__group' + (idx === 0 || issues ? " is-open" : "") + '"><button type="button" class="lot-full__toggle" data-full-toggle aria-expanded="' + (idx === 0 || issues ? "true" : "false") + '"><span class="lot-full__name" data-no-i18n="true">' + esc(blockName(r, k)) + '</span><span class="lot-full__pills">' + (issues ? '<span class="lot-full__pill is-issue">' + issues + ' ' + plural(issues, T("замечание"), T("замечания"), T("замечаний")) + '</span>' : '<span class="lot-full__pill is-ok">' + esc(T("Норма")) + '</span>') + '</span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 lot-full__chev h-4 w-4") + '</button>'
+        + '<div class="lot-full__items"><ul>' + its.map(function(it){ var bad = it.result_key === "issue"; return '<li class="lot-full__row"><span class="lot-full__part" data-no-i18n="true">' + esc(partName(r, it)) + '</span><span class="lot-full__value ' + (bad ? "is-bad" : "is-ok") + '" data-no-i18n="true">' + esc(bad ? (itemDescTags(r, it).join(", ") || T("Замечание")) : T("Норма")) + '</span></li>'; }).join("") + '</ul></div></section>';
     }).join("");
     openFull(T("Полный отчёт проверки"), T("Проверено") + " " + s.items.length + " " + plural(s.items.length, T("пункт"), T("пункта"), T("пунктов")) + (s.issues.length ? ' · <span class="is-issue">' + s.issues.length + " " + plural(s.issues.length, T("замечание"), T("замечания"), T("замечаний")) + "</span>" : ""), body, "lot-full-title");
   }
