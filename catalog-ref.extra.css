@@ -1,0 +1,129 @@
+/* ===== catalog-ref.extra.css — наши дополнения к перенесённому CSS эталона (dev.autopartner.by/korea) =====
+   Подключается ТОЛЬКО через сборку: scripts/build-catalog-css.js склеивает purged-CSS эталона + этот файл → catalog-ref.css.
+   Здесь: (1) preflight Tailwind, ограниченный контейнером .apx-korea (глобальный сломал бы шапку/подвал сайта);
+   (2) дефолты --tw-* переменных для утилит; (3) шрифты (у эталона Onest/Inter с Google Fonts — у нас свои woff2 в styles.css);
+   (4) то, что у эталона делал Alpine/их JS-бандл и чего нет в CSS: лайтбокс, модалка заявки, тост, подсказка схемы кузова,
+   «пилюля»-счётчик фильтров, группы моделей; (5) мелкие подгонки под наш хедер. */
+
+/* --- 1. preflight (scoped) --- */
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast), :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) *, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) :before, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) :after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: rgb(var(--c-line)); }
+.apx-korea, .lot-full, .lot-modal, .lot-lb, .lot-tip, .lot-toast { font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; font-size: 16px; line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; -webkit-font-smoothing: antialiased; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h1, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h2, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h3, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h4, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h5, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) h6 { font-size: inherit; font-weight: inherit; margin: 0; letter-spacing: normal; line-height: inherit; color: inherit; font-family: inherit; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) p, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) figure, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) dl, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) dd, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ol, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ul, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) blockquote, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) pre, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) hr { margin: 0; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ol, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) ul { list-style: none; padding: 0; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) img, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) svg, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) video, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) canvas, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) iframe { display: block; vertical-align: middle; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) img, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) video { max-width: 100%; height: auto; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) button, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) select, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) textarea { font-family: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; letter-spacing: inherit; color: inherit; margin: 0; padding: 0; background: transparent; border-radius: 0; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) button, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) [role="button"] { cursor: pointer; background-color: transparent; background-image: none; text-transform: none; -webkit-appearance: button; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) button:disabled { cursor: default; opacity: .6; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) a { color: inherit; text-decoration: inherit; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) [hidden] { display: none !important; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) small { font-size: 80%; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) b, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) strong { font-weight: bolder; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input::placeholder, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) textarea::placeholder { color: rgb(var(--c-ink-4)); opacity: 1; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="search"]::-webkit-search-decoration, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="number"]::-webkit-inner-spin-button, :is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) select { background-image: none; padding-right: 0; appearance: auto; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) section { position: static; }
+:is(.apx-korea,.lot-full,.lot-modal,.lot-lb,.lot-tip,.lot-toast) .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+
+/* --- 2. дефолты переменных Tailwind --- */
+.apx-korea, .apx-korea *, .apx-korea :before, .apx-korea :after, .lot-lb, .lot-modal, .lot-full, .lot-tip, .lot-toast {
+  --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1;
+  --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / .5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ;
+  --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ;
+}
+
+/* --- 3. шрифты/токены: у эталона Onest+Inter (Google Fonts), у нас те же семейства из styles.css (свои woff2) --- */
+:root { --hero-offset: 0px; --header-h: 0px; }
+.apx-korea .font-display, .apx-korea .lot-head__title, .apx-korea .lot-price__value { font-family: Onest, Inter, ui-sans-serif, system-ui, sans-serif; }
+.apx-korea .num { font-variant-numeric: tabular-nums; }
+.apx-korea .wrap-wide { width: 100%; max-width: 1680px; margin-left: auto; margin-right: auto; }
+/* glow в hero (у эталона — произвольный класс bg-[radial-gradient(...)] с их оранжевым; здесь то же с нашим красным) */
+.catalog-hero__glow { background: radial-gradient(55% 75% at 8% 60%, rgb(237 0 18 / .12), transparent 70%), radial-gradient(40% 60% at 92% 20%, rgb(37 99 235 / .10), transparent 70%); }
+.catalog-hero__glow--lot { background: radial-gradient(45% 70% at 10% 100%, rgb(237 0 18 / .10), transparent 70%); }
+.apx-korea { min-height: 60vh; overflow-x: clip; }
+/* подвал сайта сразу после каталога — небольшой отступ */
+.apx-korea > .wrap-wide:last-child { padding-bottom: 48px; }
+
+/* --- 4a. счётчик/сброс в шапке фильтров (у эталона рендерится их JS) --- */
+.cf-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: rgb(237 0 18 / .1); color: #b0000d; font-size: 12px; font-weight: 600; }
+.cf-reset { height: 32px; padding: 0 12px; border-radius: 999px; background: rgb(var(--c-ink) / .06); color: rgb(var(--c-ink-2)); font-size: 13px; font-weight: 500; transition: background-color .2s; }
+.cf-reset:hover { background: rgb(var(--c-ink) / .1); color: rgb(var(--c-ink)); }
+.cf-group + .cf-group { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgb(var(--c-line)); }
+.cf-group__title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 600; color: rgb(var(--c-ink)); }
+.cf-group__title .cf-logo { width: 24px; height: 18px; object-fit: contain; }
+.cf-logo--letter { display: inline-grid; place-items: center; width: 24px; height: 18px; border-radius: 5px; background: rgb(var(--c-ink) / .06); color: rgb(var(--c-ink-3)); font-size: 11px; font-weight: 700; line-height: 1; }
+.cf-row .cf-logo { width: 24px; height: 18px; object-fit: contain; flex: none; }
+.cf-input { width: 100%; height: 40px; padding: 0 12px; margin-bottom: 10px; border: 1px solid rgb(var(--c-line-2)); border-radius: 12px; background: rgb(var(--c-surface)); font-size: 14px; color: rgb(var(--c-ink)); }
+.cf-input:focus { outline: none; border-color: rgb(237 0 18 / .6); box-shadow: 0 0 0 3px rgb(237 0 18 / .12); }
+
+/* --- 4b. состояния результатов (пусто/ошибка/скелетон) --- */
+.catalog-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 20px; text-align: center; border: 1px dashed rgb(var(--c-line-2)); border-radius: 18px; background: rgb(var(--c-surface-2)); }
+.catalog-empty__title { font-family: Onest, Inter, sans-serif; font-size: 18px; font-weight: 600; color: rgb(var(--c-ink)); }
+.catalog-empty__text { font-size: 14px; color: rgb(var(--c-ink-3)); max-width: 420px; }
+.vcard.is-skeleton .vcard__media { background: rgb(var(--c-surface-2)); aspect-ratio: 4 / 3; }
+.skel-line { height: 12px; margin: 10px 0; border-radius: 6px; background: linear-gradient(90deg, rgb(var(--c-surface-2)), rgb(var(--c-surface-3)), rgb(var(--c-surface-2))); background-size: 200% 100%; animation: catSkel 1.2s linear infinite; }
+@keyframes catSkel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.catalog-loading .vcard-grid { opacity: .6; transition: opacity .2s; }
+.vcard__sold { position: absolute; left: 10px; bottom: 10px; z-index: 3; padding: 3px 9px; border-radius: 8px; background: rgb(var(--c-ink) / .78); color: #fff; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; }
+.vcard.is-sold .vcard__media img { filter: grayscale(.55); }
+.vcard__single { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vcard__copy.is-copied { color: #047857; }
+.vcard__report { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: rgb(255 255 255 / .9); color: rgb(var(--c-ink-2)); }
+.vcard__report svg { width: 13px; height: 13px; }
+.vcard__report.is-inspection { color: #047857; } .vcard__report.is-history { color: #1d4ed8; }
+
+/* --- 4c. страница авто: лайтбокс / модалка / тост / подсказка / заглушки --- */
+.lot-placeholder { padding: 48px 24px; text-align: center; color: rgb(var(--c-ink-3)); font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.lot-placeholder__title { font-family: Onest, Inter, sans-serif; font-size: 20px; font-weight: 600; color: rgb(var(--c-ink)); }
+.lot-extra { margin-top: 20px; padding: 22px 24px 24px; }
+.lot-extra .lot-section__head { margin-bottom: 16px; }
+.lot-info__text { white-space: pre-line; font-size: 14px; line-height: 1.55; color: rgb(var(--c-ink-2)); }
+.lot-price__sub--sold { color: #b91c1c; font-weight: 600; }
+.lot-rep__clean { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #047857; }
+.lot-rep__row.is-linked { background: rgb(237 0 18 / .06); border-radius: 12px; }
+.lot-rep__row.is-selected { outline: 2px solid rgb(237 0 18 / .55); outline-offset: 2px; border-radius: 12px; }
+.lot-zone-shape.is-ok { fill: #16a34a; fill-opacity: .14; stroke: #16a34a; stroke-opacity: .45; }
+.lot-rep__row.is-issue .lot-rep__name { color: #b91c1c; }
+.lot-options__loading { padding: 12px 0; font-size: 14px; color: rgb(var(--c-ink-3)); }
+.lot-hist__answers li.is-muted .lot-hist__mark { color: rgb(var(--c-ink-4)); }
+.lot-full__pill.is-ok { background: rgb(22 163 74 / .12); color: #047857; }
+.lot-full { position: fixed; inset: 0; z-index: var(--z-overlay, 10001); }
+.lot-full__veil { position: absolute; inset: 0; background: rgb(7 11 20 / .55); }
+.lot-tip { position: fixed; z-index: var(--z-overlay, 10001); max-width: 260px; padding: 7px 10px; border-radius: 10px; background: rgb(var(--c-ink)); color: #fff; font-size: 12.5px; line-height: 1.35; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; }
+.lot-tip.is-shown { opacity: 1; transform: none; }
+.lot-toast { position: fixed; left: 50%; bottom: 28px; z-index: var(--z-toast, 9000); transform: translate(-50%, 12px); padding: 10px 16px; border-radius: 999px; background: rgb(var(--c-ink)); color: #fff; font-size: 13.5px; font-weight: 500; box-shadow: var(--shadow-lift); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+.lot-toast.is-shown { opacity: 1; transform: translate(-50%, 0); }
+.lot-lb { position: fixed; inset: 0; z-index: var(--z-lightbox, 10002); background: rgb(7 11 20 / .96); display: flex; align-items: center; justify-content: center; }
+.lot-lb[hidden] { display: none; }
+.lot-lb__stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+.lot-lb__img { max-width: 94vw; max-height: 90vh; object-fit: contain; cursor: zoom-in; transition: transform .12s ease-out; user-select: none; -webkit-user-drag: none; }
+.lot-lb.is-zoomed .lot-lb__img { cursor: grab; transition: none; }
+.lot-lb__close, .lot-lb__arr { position: absolute; z-index: 2; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; background: rgb(255 255 255 / .12); color: #fff; backdrop-filter: blur(6px); transition: background-color .2s; }
+.lot-lb__close:hover, .lot-lb__arr:hover { background: rgb(255 255 255 / .22); }
+.lot-lb__close { top: 16px; right: 16px; }
+.lot-lb__arr { top: 50%; transform: translateY(-50%); }
+.lot-lb__prev { left: 16px; } .lot-lb__next { right: 16px; }
+.lot-lb__count { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: rgb(255 255 255 / .85); font-size: 13px; }
+.lot-modal { position: fixed; inset: 0; z-index: var(--z-overlay, 10001); display: flex; align-items: center; justify-content: center; padding: 16px; background: rgb(7 11 20 / .55); }
+.lot-modal[hidden] { display: none; }
+.lot-modal__card { position: relative; width: 100%; max-width: 420px; padding: 26px 24px 22px; border-radius: 22px; background: rgb(var(--c-surface)); box-shadow: var(--shadow-pop); font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: rgb(var(--c-ink)); }
+.lot-modal__close { position: absolute; top: 12px; right: 12px; }
+.lot-modal__title { margin: 0 0 4px; font-family: Onest, Inter, sans-serif; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.lot-modal__car { margin: 0 0 16px; font-size: 13.5px; color: rgb(var(--c-ink-3)); }
+.lot-modal__form { display: flex; flex-direction: column; gap: 10px; }
+.lot-modal__form .cf-input { margin: 0; height: 46px; border-radius: 14px; }
+.lot-modal__form .btn { width: 100%; margin-top: 4px; }
+.lot-modal__msg { display: block; min-height: 1em; font-size: 12.5px; color: rgb(var(--c-ink-3)); }
+.lot-modal__ok { display: flex; flex-direction: column; gap: 6px; padding: 18px 0 4px; text-align: center; }
+.lot-modal__ok b { font-size: 18px; } .lot-modal__ok span { font-size: 14px; color: rgb(var(--c-ink-3)); }
+.lot-modal .sheet-close { display: inline-grid; }
+
+/* --- 5. подгонки под наш хедер (не фиксированный → липкие элементы прижаты к верху окна) --- */
+.apx-korea .lot-nav { top: 8px; }
+.apx-korea .lot-buy-col { top: 16px; }
+.apx-korea .lot-toc { top: 16px; }
+@media (max-width: 1023px){ .apx-korea .lot-sheet { margin-inline: 0; } }

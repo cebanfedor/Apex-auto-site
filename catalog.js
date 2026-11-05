@@ -1,9 +1,10 @@
-/* /catalog — новый каталог Encar (api.auctionsapi.com). 04.11.2026.
-   Phase 1 (по решению Федора — делаем этапами): сайдбар фильтров (Марка/Модель/Поколение/Цена/
-   Год/Пробег/КПП/Кузов/Топливо/Привод/Состояние/Цвет/флаги), URL-состояние, грид карточек,
-   пагинация, тулбар. ОТДЕЛЬНО от auctions.js/korea.js — свой продукт, свои классы, см. бриф + CLAUDE.md.
-   Страница авто (/catalog/<id>) — catalog-car.html/js, вкладки Equipment/Inspection/History —
-   следующим проходом (структура+бейджи уже есть, контент вкладок — нет). */
+/* /catalog — каталог авто из Кореи (Encar, api.auctionsapi.com).
+   05.11.2026: разметка и классы 1:1 с эталоном dev.autopartner.by/korea (Федор: «просто скопировать
+   другой сайт»). Эталон собран на Alpine.js + Tailwind; у нас CSP без unsafe-eval, поэтому всё
+   поведение (аккордеон фильтров, двойные слайдеры, пилюли, скраб фото карточек, сортировка-меню,
+   мобильная шторка, пагинация) — vanilla JS ниже, а CSS собран из их бандла (catalog-ref.css,
+   scripts/build-catalog-css.js) и перекрашен в наш красный. Слой данных/URL/API — наш прежний
+   (api/catalog.js). Страница авто — catalog-car.html/js. */
 (function(){
   "use strict";
 
@@ -12,27 +13,26 @@
 
   function T(s){ return typeof window.i18nT === "function" ? window.i18nT(s) : s; }
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function fmtNum(n){ return Number(n || 0).toLocaleString("ru-RU").replace(/ /g, " "); }
+  function uiLang(){ return window.APEX_LANG || "ru"; }
 
-  // ---- Литеральные таблицы значений (бриф §5.2.9/5.2.10/§11 — подтверждены реальной OpenAPI-спекой 04.11.2026) ----
+  // ---- Литеральные таблицы значений (сверены с OpenAPI-спекой api.auctionsapi.com) ----
   var BODY_TYPES = [[1,"Седан"],[2,"Универсал"],[3,"Купе"],[4,"Пикап"],[5,"Внедорожник"],[6,"Кабриолет"],[7,"Фургон"],[11,"Хэтчбек"],[12,"Родстер"],[13,"Лимузин"],[20,"Лифтбек"],[22,"Катафалк"],[27,"Спорткар"]];
-  var FUELS = [[1,"Дизель"],[2,"Электро"],[3,"Гибрид"],[4,"Бензин"],[5,"Газ"],[6,"Флекс-топливо"],[7,"Водород"],[8,"Этанол"]];
-  var TRANSMISSIONS = [[1,"Автомат"],[2,"Механика"]];
+  var FUELS = [[1,"Дизель"],[2,"Электро"],[3,"Гибрид"],[4,"Бензин"],[5,"Газ"],[6,"Гибкое топливо"],[7,"Водород"],[8,"Этанол"]];
+  var TRANSMISSIONS = [[1,"АКПП"],[2,"МКПП"]];
   var DRIVE_WHEELS = [[1,"Задний"],[2,"Передний"],[3,"Полный"]];
-  var CONDITIONS = [[1,"Б/у"],[2,"Новый"],[3,"Повреждён"]];
+  var CONDITIONS = [[1,"С пробегом","cf-pill--slate"],[2,"Новый","cf-pill--green"],[3,"Повреждён","cf-pill--rose"]];
   var COLORS = [
-    [1,"Серебристый","#c9cbcc"],[2,"Фиолетовый","#7c3aed"],[3,"Оранжевый","#f59e0b"],[4,"Зелёный","#20b26b"],
-    [5,"Красный","#c24135"],[6,"Золотой","#d7a61d"],[8,"Коричневый","#8b552d"],[9,"Серый","#62676b"],
+    [1,"Серебристый","#c0c4c9"],[2,"Пурпурный","#7c3aed"],[3,"Оранжевый","#f59e0b"],[4,"Зелёный","#20b26b"],
+    [5,"Красный","#c24135"],[6,"Золотой","#d7a61d"],[8,"Коричневый","#8b552d"],[9,"Серый","#9ca3af"],
     [10,"Бирюзовый","#31c7c7"],[11,"Синий","#2d86c9"],[12,"Бронзовый","#b77d37"],[13,"Белый","#ffffff"],
-    [14,"Кремовый","#fff7d8"],[15,"Чёрный","#050505"],[16,"Жёлтый","#f7ea13"],[17,"Бежевый","#f1e7ce"],[18,"Розовый","#ee94bf"]
+    [14,"Кремовый","#fff7d8"],[15,"Черный","#111111"],[16,"Жёлтый","#f7ea13"],[17,"Бежевый","#f1e7ce"],[18,"Розовый","#ee94bf"]
   ];
-  // ---- Фильтры, добавленные 05.11.2026 (Федор: «сделай 1в1 как у autopartner.by/korea», структурный
-  // эталон в CLAUDE.md) — литералы сверены с реальной OpenAPI-спекой api.auctionsapi.com (не выдуманы),
-  // backend (api/catalog.js) уже принимал эти query-параметры, просто в сайдбаре их не было.
   var AVAILABILITIES = [[1,"В наличии"],[2,"В пути"],[3,"Под заказ"]];
   var STEERING = [[1,"Левый руль"],[2,"Правый руль"]];
   var AIRBAGS = [[1,"Целые"],[2,"Сработавшие"],[3,"Отсутствуют"]];
   var SELLER_TYPES = [[1,"Частное лицо"],[2,"Дилер"]];
-  var EMISSIONS = [[1,"Евро-1"],[2,"Евро-2"],[3,"Евро-3"],[4,"Евро-4"],[5,"Евро-5"],[6,"Евро-6"],[7,"ZEV (нулевые выбросы)"]];
+  var EMISSIONS = [[1,"Евро-1"],[2,"Евро-2"],[3,"Евро-3"],[4,"Евро-4"],[5,"Евро-5"],[6,"Евро-6"],[7,"ZEV"]];
   var SEATS_TABLE = [[2,"2"],[4,"4"],[5,"5"],[6,"6"],[7,"7"],[8,"8"],[10,"10"]];
   var DAMAGES = [
     [1,"Боковое повреждение"],[2,"Угон"],[3,"Пожар"],[4,"Электрические повреждения"],[5,"Вандализм"],
@@ -43,23 +43,57 @@
     [23,"Повреждение VIN"],[24,"Нормальный износ"],[25,"Отклонённый или частичный ремонт"],[26,"Повреждение штормом"],
     [27,"Разобран"],[28,"Повреждение днища"]
   ];
+  var SORTS = [["newest","Сначала новые"],["oldest","Сначала старые"],["cheaper","Сначала дешевые"],["expensive","Сначала дорогие"],["odometer_asc","Пробег: по возрастанию"],["odometer_desc","Пробег: по убыванию"],["year_asc","Год: по возрастанию"],["year_desc","Год: по убыванию"],["auction_nearest","Ближайшие аукционы"]];
 
-  // ---- Логотипы марок (05.11.2026, Федор: «значки на все марки», свои копии, см. CLAUDE.md) ----
-  // 202 реальных логотипа марок, скачанные один раз в /assets/brand-logos/<slug>.webp (не хотлинк — своя копия,
-  // решение Федора). Остальные ~390 марок нашего справочника (редкие/нишевые) логотипа не имеют — честный
-  // буквенный аватар остаётся для них, не подменяем картинкой то, чего нет.
+  // Логотипы марок (202 реальных, свои копии в /assets/brand-logos/<slug>.webp, см. CLAUDE.md).
   var BRAND_LOGO_SLUGS = {abarth:1,ac:1,acura:1,aixam:1,alfaromeo:1,alpina:1,alpine:1,alvis:1,arcfox:1,ariel:1,aro:1,astonmartin:1,audi:1,austin:1,autobianchi:1,baic:1,bentley:1,bertone:1,bestune:1,bitter:1,bmw:1,borgward:1,bowler:1,brabus:1,brilliance:1,bufori:1,bugatti:1,buick:1,byd:1,cadillac:1,caterham:1,changan:1,changfeng:1,chery:1,chevrolet:1,chrysler:1,citroen:1,cizeta:1,dacia:1,daewoo:1,daf:1,daihatsu:1,daimler:1,datsun:1,dayun:1,delage:1,desoto:1,dodge:1,dongfeng:1,donkervoort:1,ds:1,duesenberg:1,eagle:1,exeed:1,faw:1,ferrari:1,fiat:1,fisker:1,ford:1,foton:1,fso:1,gac:1,gaz:1,geely:1,genesis:1,geo:1,ginetta:1,gmc:1,gonow:1,greatwall:1,grinnall:1,hafei:1,haima:1,haval:1,hawtai:1,hennessey:1,holden:1,honda:1,hongqi:1,horch:1,hudson:1,hummer:1,hyundai:1,infiniti:1,irankhodro:1,isuzu:1,iveco:1,jaguar:1,jbamotors:1,jeep:1,jetta:1,kia:1,koenigsegg:1,ktm:1,lagonda:1,lamborghini:1,lancia:1,landrover:1,landwind:1,lexus:1,lifan:1,ligier:1,lincoln:1,lister:1,lixiang:1,lotus:1,lucid:1,luxgen:1,lynkco:1,mahindra:1,man:1,marlin:1,maserati:1,mastretta:1,maxus:1,maybach:1,mazda:1,mclaren:1,mercedesbenz:1,mercury:1,merkur:1,mg:1,microcar:1,mini:1,mitsubishi:1,mitsuoka:1,morgan:1,nio:1,nissan:1,noble:1,oldsmobile:1,opel:1,packard:1,pagani:1,panoz:1,pegaso:1,perodua:1,peugeot:1,plymouth:1,polestar:1,pontiac:1,porsche:1,premier:1,proton:1,qoros:1,ram:1,rambler:1,renault:1,rezvani:1,rimac:1,rinspeed:1,rivian:1,roewe:1,rollsroyce:1,ronart:1,rover:1,saab:1,saipa:1,saturn:1,scania:1,scion:1,seat:1,simca:1,singulato:1,skoda:1,smart:1,soueast:1,spyker:1,ssangyong:1,studebaker:1,stutz:1,subaru:1,suzuki:1,talbot:1,tata:1,tatra:1,tesla:1,toyota:1,tramontana:1,triumph:1,tucker:1,tvr:1,uaz:1,ultima:1,vauxhall:1,venucia:1,vinfast:1,volkswagen:1,volvo:1,wanderer:1,wartburg:1,weltmeister:1,westfield:1,wey:1,wiesmann:1,wmotors:1,workhorse:1,xpeng:1,yulon:1,zaz:1,zenvo:1,zotye:1};
-  function brandLogoHtml(name){
+  function logoHtml(name, cls){
     var slug = String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    return BRAND_LOGO_SLUGS[slug] ? '<img src="/assets/brand-logos/' + slug + '.webp" alt="" loading="lazy">' : "";
+    if(BRAND_LOGO_SLUGS[slug]) return '<img src="/assets/brand-logos/' + slug + '.webp" alt="" width="24" height="18" loading="lazy" decoding="async" class="' + (cls || "cf-logo") + '">';
+    return '<span class="' + (cls || "cf-logo") + ' cf-logo--letter" aria-hidden="true">' + esc(String(name || "?").slice(0, 1).toUpperCase()) + '</span>';
   }
 
-  var POPULAR_BRAND_NAMES = ["Hyundai","Kia","Genesis","Toyota","BMW","Mercedes-Benz","Audi","Volkswagen","Lexus","Chevrolet","Ford","Honda","Nissan","Porsche","Land Rover","Jeep"];
+  // ---- SVG-иконки (из разметки эталона) ----
+  var I = {
+    chev: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    x: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    search: '<svg class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    check: '<span class="cf-check" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2.6 6.3 4.9 8.6 9.4 3.6" pathLength="1"/></svg></span>',
+    tick: '<svg class="h-4 w-4 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+    odo: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 13a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM12 11l3-3M3.3 17a10 10 0 1 1 17.4 0"/></svg>',
+    engine: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v6M12 5v3M10 5h4M5 13H3M6 10h2l2-2h3.4a1 1 0 0 1 .9.6l1.4 2.8a1 1 0 0 0 .9.6H18V10h2a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2v-2h-3v2a1 1 0 0 1-1 1h-3.5a1 1 0 0 1-.8-.4L8 16H6z"/></svg>',
+    trans: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v16M18 4v6M6 12h12M18 14v6"/></svg>',
+    fuel: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17M3 22h12M7 9h4M15 9h2.5a1.5 1.5 0 0 1 1.5 1.5V17a2 2 0 0 0 4 0V8l-3-3"/></svg>',
+    body: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M4 13.5 5.6 8.6A2 2 0 0 1 7.5 7.2h9a2 2 0 0 1 1.9 1.4l1.6 4.9V17H4z"/></svg>',
+    drive: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M5 17h14M7 7v10M17 7v10"/></svg>',
+    seats: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18v-6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6M5 18h14M9 10V5h6v5"/></svg>',
+    key: '<svg class="h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 7a4 4 0 1 1-3.9 4.9L3 20v-3h3v-3h3l2.1-2.1A4 4 0 0 1 15 7z"/></svg>',
+    shield: '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+    clock: '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 1 .5 4M3 4v5h5"/></svg>',
+    copy: '<svg class="vcard__copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>',
+    globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>',
+    photos: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="14" height="14" rx="2"/><path d="M3 17V5a2 2 0 0 1 2-2h12M10 17l3-3 3 3 2-2 3 3"/></svg>',
+    prev: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 17-5-5 5-5"/></svg>',
+    next: '<svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 17 5-5-5-5"/></svg>',
+    arrL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>',
+    arrR: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+    chevL: '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
+    chevR: '<svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>',
+    home: '<svg class="h-[15px] w-[15px]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5.5h-6V20H5a1 1 0 0 1-1-1z"/></svg>',
+    crumbSep: '<svg class="crumb-sep" aria-hidden="true" fill="none" viewBox="0 0 6 10"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m1 9 4-4-4-4"/></svg>',
+    driveRear: '<svg class="cf-pill__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM3.5 14.5v4M20.5 14.5v4M3.5 16.5h17"/></svg>',
+    driveFront: '<svg class="cf-pill__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM3.5 5.5v4M20.5 5.5v4M3.5 7.5h17"/></svg>',
+    driveAll: '<svg class="cf-pill__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM3.5 5.5v4M20.5 5.5v4M3.5 7.5h17M3.5 14.5v4M20.5 14.5v4M3.5 16.5h17"/></svg>',
+    transA: '<svg class="cf-pill__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM9 16l3-8 3 8M10.2 13.5h3.6"/></svg>',
+    transM: '<svg class="cf-pill__glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8 16V8l4 5 4-5v8"/></svg>'
+  };
+  var DRIVE_ICONS = {1:I.driveRear, 2:I.driveFront, 3:I.driveAll};
+  var TRANS_ICONS = {1:I.transA, 2:I.transM};
 
   // ---- Состояние ----
   var state = {
-    brands:[],            // [{id,name,models:[{id,name,generations:[{id,name}]}]}]
-    priceFrom:"", priceTo:"", currency:"krw",
+    brands:[],
+    priceFrom:"", priceTo:"", currency:"usd",
     yearFrom:"", yearTo:"",
     odoFrom:"", odoTo:"",
     driveIds:[], transmission:"", bodyTypeIds:[], fuelIds:[], condIds:[],
@@ -71,11 +105,8 @@
     sort:"newest", page:1
   };
   var PER_PAGE = 24;
-
   var dict = {brands:null, modelsByBrand:{}, gensByModel:{}};
-  var reqToken = 0;
-  var abortCtrl = null;
-  var lastUrlPushAt = 0;
+  var reqToken = 0, abortCtrl = null, lastUrlPushAt = 0, lastTotal = null;
 
   // ---- URL <-> state ----
   function stateToParams(){
@@ -90,10 +121,6 @@
     }
     if(state.priceFrom) p.set("price_from", state.priceFrom);
     if(state.priceTo) p.set("price_to", state.priceTo);
-    // ⚠️ currency ВСЕГДА шлётся (даже дефолтный "krw"), а не только при отличии от "usd": эта же функция
-    // строит и видимый URL, и реальный запрос к /api/catalog→upstream, у которого СВОЙ дефолт "usd" — без
-    // явного krw сортировка по цене на upstream незаметно перескочила бы на доллары (05.11.2026, найдено
-    // при проверке; activeGroupsCount ниже отдельно не даёт этому попасть в счётчик активных фильтров).
     if(state.currency !== "usd") p.set("currency", state.currency);
     if(state.yearFrom) p.set("year_from", state.yearFrom);
     if(state.yearTo) p.set("year_to", state.yearTo);
@@ -126,35 +153,24 @@
     if(state.page > 1) p.set("page", String(state.page));
     return p;
   }
-
-  function clampInt(v, lo, hi){
-    var n = parseInt(v, 10);
-    if(!isFinite(n)) return "";
-    return String(Math.min(hi, Math.max(lo, n)));
-  }
+  function clampInt(v, lo, hi){ var n = parseInt(v, 10); if(!isFinite(n)) return ""; return String(Math.min(hi, Math.max(lo, n))); }
   function csvInts(v){ return String(v || "").split(",").map(function(s){ return parseInt(s, 10); }).filter(isFinite); }
-  function triOf(v){ return (v === "1" || v === "0") ? v : ""; } // «Все/Да/Нет» булевых фильтров (05.11.2026)
-
+  function triOf(v){ return (v === "1" || v === "0") ? v : ""; }
   function stateFromParams(p){
     var vs = p.get("vehicle_selection");
     if(vs){
-      try{
-        var parsed = JSON.parse(vs);
-        if(Array.isArray(parsed.brands)) state.brands = parsed.brands;
-      }catch(e){ state.brands = []; }
+      try{ var parsed = JSON.parse(vs); if(Array.isArray(parsed.brands)) state.brands = parsed.brands; }catch(e){ state.brands = []; }
     }else{
-      var brandIds = csvInts(p.get("brand_id"));
-      var modelPairs = {};
+      var brandIds = csvInts(p.get("brand_id")), modelPairs = {};
       String(p.get("model_id") || "").split(",").forEach(function(pair){
-        var parts = pair.split(":");
-        var b = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+        var parts = pair.split(":"), b = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
         if(isFinite(b) && isFinite(m)){ (modelPairs[b] = modelPairs[b] || []).push(m); }
       });
       state.brands = brandIds.map(function(id){ return {id:id, models:(modelPairs[id] || []).map(function(mid){ return {id:mid}; })}; });
     }
     state.priceFrom = clampInt(p.get("price_from"), 0, 1e15);
     state.priceTo = clampInt(p.get("price_to"), 1, 1e15);
-    state.currency = /^[a-z]{3}$/.test(p.get("currency") || "") ? p.get("currency").toLowerCase() : "krw";
+    state.currency = /^[a-z]{3}$/.test(p.get("currency") || "") ? p.get("currency").toLowerCase() : "usd";
     state.yearFrom = clampInt(p.get("year_from"), 1800, 3000);
     state.yearTo = clampInt(p.get("year_to"), 1800, 3000);
     state.odoFrom = clampInt(p.get("odometer_from"), 0, 999999999);
@@ -180,908 +196,849 @@
     state.engineVolTo = clampInt(p.get("engine_volume_to"), 0, 999999999);
     state.powerFrom = clampInt(p.get("power_hp_from"), 0, 100000);
     state.powerTo = clampInt(p.get("power_hp_to"), 0, 100000);
-    state.seats = SEATS_TABLE.some(function(s){ return String(s[0]) === p.get("seats"); }) ? p.get("seats") : "";
+    state.seats = /^\d{1,2}$/.test(p.get("seats") || "") ? p.get("seats") : "";
     state.isLeasing = triOf(p.get("is_leasing"));
-    var sortOk = ["newest","oldest","cheaper","expensive","odometer_asc","odometer_desc","year_asc","year_desc","auction_nearest"];
-    state.sort = sortOk.indexOf(p.get("sort")) >= 0 ? p.get("sort") : "newest";
+    state.sort = SORTS.some(function(s){ return s[0] === p.get("sort"); }) ? p.get("sort") : "newest";
     state.page = Math.max(1, parseInt(p.get("page"), 10) || 1);
   }
-
   function pushUrl(){
-    var p = stateToParams();
-    var url = location.pathname + (p.toString() ? "?" + p.toString() : "");
-    var now = Date.now();
-    if(now - lastUrlPushAt < 1500) history.replaceState(null, "", url);
-    else history.pushState(null, "", url);
+    var p = stateToParams(), url = location.pathname + (p.toString() ? "?" + p.toString() : ""), now = Date.now();
+    if(now - lastUrlPushAt < 1500) history.replaceState(null, "", url); else history.pushState(null, "", url);
     lastUrlPushAt = now;
   }
-  function pushUrlForce(){ // смена страницы — всегда push (§5.4)
-    var p = stateToParams();
-    history.pushState(null, "", location.pathname + (p.toString() ? "?" + p.toString() : ""));
-    lastUrlPushAt = 0;
-  }
+  function pushUrlForce(){ var p = stateToParams(); history.pushState(null, "", location.pathname + (p.toString() ? "?" + p.toString() : "")); lastUrlPushAt = 0; }
 
-  // ---- Активных фильтров: подсчёт групп (§5.5) ----
   function activeGroupsCount(){
     var n = 0;
-    if(state.brands.length) n++; // марки
-    if(state.brands.some(function(b){ return (b.models||[]).length; })) n++; // модели
+    if(state.brands.length) n++;
+    if(state.brands.some(function(b){ return (b.models||[]).length; })) n++;
     if(state.brands.some(function(b){ return (b.models||[]).some(function(m){ return (m.generations||[]).length; }); })) n++;
     if(state.priceFrom || state.priceTo) n++;
-    if(state.currency !== "krw") n++; // 05.11.2026: "krw" — наш дефолт (не "usd"), раньше валюта всегда лишне считалась активным фильтром
     if(state.yearFrom || state.yearTo) n++;
     if(state.odoFrom || state.odoTo) n++;
-    if(state.driveIds.length) n++;
-    if(state.transmission) n++;
-    if(state.bodyTypeIds.length) n++;
-    if(state.fuelIds.length) n++;
-    if(state.condIds.length) n++;
-    if(state.availIds.length) n++;
-    if(state.damageIds.length) n++;
-    if(state.keysAvail) n++;
-    if(state.steering) n++;
-    if(state.emissionIds.length) n++;
-    if(state.airbags) n++;
-    if(state.sellerType) n++;
-    if(state.mfgCert) n++;
-    if(state.hasInsp) n++;
-    if(state.isAuction) n++;
-    if(state.hasHist) n++;
-    if(state.colorIds.length) n++;
+    [state.driveIds, state.bodyTypeIds, state.fuelIds, state.condIds, state.availIds, state.damageIds, state.emissionIds, state.colorIds].forEach(function(a){ if(a.length) n++; });
+    [state.transmission, state.keysAvail, state.steering, state.airbags, state.sellerType, state.mfgCert, state.hasInsp, state.isAuction, state.hasHist, state.seats, state.isLeasing].forEach(function(v){ if(v) n++; });
     if(state.engineVolFrom || state.engineVolTo) n++;
     if(state.powerFrom || state.powerTo) n++;
-    if(state.seats) n++;
-    if(state.isLeasing) n++;
     return n;
   }
 
-  // ---- Запрос к бэкенду ----
-  function buildQuery(forFilters){
-    var p = stateToParams();
-    p.set("action", "search");
-    p.set("lang", (window.APEX_LANG || "ru"));
-    p.set("per_page", String(PER_PAGE));
-    if(!forFilters) p.set("page", String(state.page));
-    return p.toString();
+  // ---- Курс USD→KRW для показа цен в $ (эталон показывает цену в долларах; Encar отдаёт KRW) ----
+  var rates = {usdKrw:0, usdEur:0};
+  function fetchRates(){
+    return fetch("https://api.frankfurter.app/latest?from=USD&to=KRW,EUR").then(function(r){ return r.json(); })
+      .catch(function(){ return fetch("https://api.fxratesapi.com/latest?base=USD&currencies=KRW,EUR").then(function(r){ return r.json(); }); });
+  }
+  function loadRates(){
+    try{
+      var c = JSON.parse(localStorage.getItem("apexKrwRateV1") || "null");
+      if(c && c.t && Date.now() - c.t < 12 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; applyRates(); }
+    }catch(e){}
+    fetchRates().then(function(d){
+      if(d && d.rates && d.rates.KRW){
+        rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0;
+        try{ localStorage.setItem("apexKrwRateV1", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur})); }catch(e){}
+        applyRates();
+      }
+    }).catch(function(){});
+  }
+  function toUsd(amount, cur){
+    cur = String(cur || "").toLowerCase();
+    if(cur === "usd") return amount;
+    if(cur === "krw" && rates.usdKrw) return amount / rates.usdKrw;
+    if(cur === "eur" && rates.usdEur) return amount / rates.usdEur;
+    return null;
+  }
+  function priceText(amount, cur){
+    var usd = toUsd(amount, cur);
+    if(usd != null) return fmtNum(Math.round(usd)) + " $";
+    return fmtNum(amount) + " " + String(cur || "").toUpperCase();
+  }
+  function applyRates(){
+    document.querySelectorAll("[data-price-amt]").forEach(function(el){
+      el.textContent = priceText(Number(el.getAttribute("data-price-amt")), el.getAttribute("data-price-cur"));
+    });
   }
 
+  // ---- Запрос ----
+  function buildQuery(){
+    var p = stateToParams();
+    p.set("action", "search"); p.set("lang", uiLang()); p.set("per_page", String(PER_PAGE)); p.set("page", String(state.page));
+    return p.toString();
+  }
+  var frame = document.querySelector(".catalog-frame");
   function search(){
     var myToken = ++reqToken;
     if(abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
-    renderSkeleton();
+    grid.setAttribute("aria-busy", "true");
+    if(frame) frame.classList.add("catalog-loading");
+    if(!grid.children.length) renderSkeleton();
     fetch("/api/catalog?" + buildQuery(), {signal:abortCtrl.signal})
       .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, status:r.status, data:d}; }); })
       .then(function(res){
-        if(myToken !== reqToken) return; // устаревший ответ — игнор
-        if(!res.ok){
-          renderError(res.data, res.status);
-          return;
-        }
+        if(myToken !== reqToken) return;
+        if(frame) frame.classList.remove("catalog-loading");
+        if(!res.ok){ renderError(res.status); return; }
         renderResults(res.data);
       })
       .catch(function(e){
         if(e && e.name === "AbortError") return;
         if(myToken !== reqToken) return;
-        renderError({error:"network"}, 0);
+        if(frame) frame.classList.remove("catalog-loading");
+        renderError(0);
       });
   }
+  function debounce(fn, ms){ var t; return function(){ clearTimeout(t); t = setTimeout(fn, ms); }; }
   var searchDebounced = debounce(search, 350);
-  function debounce(fn, ms){
-    var t;
-    return function(){
-      clearTimeout(t);
-      t = setTimeout(fn, ms);
-    };
-  }
-
   function scheduleSearch(resetPage){
-    if(resetPage){ state.page = 1; }
-    renderChips();
-    renderSidebarState();
-    updateCrumbs();
-    updateHeroHeading();
+    if(resetPage) state.page = 1;
+    renderHeadControls();
+    updateCrumbs(); updateHeroHeading();
     pushUrl();
     searchDebounced();
   }
 
-  // ---- Рендер: тулбар/заголовок ----
-  function fmtNum(n){ return Number(n || 0).toLocaleString("ru-RU"); }
-  function setHeading(total, approx){
+  // ---- Тулбар / заголовок / крошки ----
+  function setHeading(total){
     var h = document.getElementById("catHeadingV1");
     if(!h) return;
-    var word = total === 1 ? T("автомобиль") : T("автомобилей");
-    h.textContent = fmtNum(total) + (approx ? "+" : "") + " " + word;
+    lastTotal = total;
+    h.setAttribute("data-cars-total", String(total));
+    var n = total % 100, n1 = total % 10;
+    var word = (n > 10 && n < 20) ? T("автомобилей") : n1 === 1 ? T("автомобиль") : (n1 >= 2 && n1 <= 4) ? T("автомобиля") : T("автомобилей");
+    h.textContent = fmtNum(total) + " " + word;
+    var lbl = document.getElementById("catApplyLabelV1");
+    if(lbl) lbl.textContent = T("Показать") + " " + fmtNum(total) + " " + T("авто");
   }
-
-  // ---- Крошки + заголовок H1 листинга (05.11.2026, эталон autopartner.by/korea: «BMW - Авто из
-  // Кореи» + крошки над заголовком; на нашей странице без фильтра — обычный статичный заголовок). ----
-  function brandNameOf(b){
-    var found = (dict.brands || []).find(function(x){ return x.id === b.id; });
-    return found ? found.name : null;
-  }
-  function modelNameOf(b, m){
-    var found = (dict.modelsByBrand[b.id] || []).find(function(x){ return x.id === m.id; });
-    return found ? found.name : null;
-  }
+  function brandNameOf(b){ var f = (dict.brands || []).find(function(x){ return x.id === b.id; }); return f ? f.name : null; }
+  function modelNameOf(b, m){ var f = (dict.modelsByBrand[b.id] || []).find(function(x){ return x.id === m.id; }); return f ? f.name : null; }
   function updateCrumbs(){
     var el = document.getElementById("catListCrumbsV1");
     if(!el) return;
-    var b = state.brands[0];
-    var bName = b ? brandNameOf(b) : null;
-    var parts = ['<a href="/">' + esc(T("Главная")) + '</a>'];
+    var b = state.brands[0], bName = b ? brandNameOf(b) : null;
+    var parts = ['<a href="/" class="crumb crumb--home" aria-label="' + esc(T("Главная")) + '">' + I.home + '</a>'];
     if(b && bName){
-      parts.push('<a href="/catalog">' + esc(T("Каталог Encar")) + '</a>');
-      var m = (b.models || [])[0];
-      var mName = m ? modelNameOf(b, m) : null;
+      parts.push('<a href="/catalog" class="crumb">' + esc(T("Авто из Кореи")) + '</a>');
+      var m = (b.models || [])[0], mName = m ? modelNameOf(b, m) : null;
       if(m && mName){
         var bp = new URLSearchParams(); bp.set("brand_id", b.id);
-        parts.push('<a href="/catalog?' + bp.toString() + '" data-no-i18n="true">' + esc(bName) + '</a>');
-        parts.push('<span data-no-i18n="true">' + esc(mName) + '</span>');
-      } else {
-        parts.push('<span data-no-i18n="true">' + esc(bName) + '</span>');
-      }
-    } else {
-      parts.push('<span>' + esc(T("Каталог Encar")) + '</span>');
-    }
-    el.innerHTML = parts.join('<i class="catListCrumbSepV1" aria-hidden="true">›</i>');
+        parts.push('<a href="/catalog?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(bName) + '</a>');
+        parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(mName) + '</span>');
+      }else parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(bName) + '</span>');
+    }else parts.push('<span class="crumb-current">' + esc(T("Авто из Кореи")) + '</span>');
+    el.innerHTML = parts.join(I.crumbSep);
   }
-
   function updateHeroHeading(){
-    var h1 = document.querySelector(".catalogTopV1 h1");
+    var h1 = document.querySelector(".catalog-hero h1");
     if(!h1) return;
-    var b = state.brands[0];
-    var bName = b ? brandNameOf(b) : null;
+    var b = state.brands[0], bName = b ? brandNameOf(b) : null;
     if(b && bName){
-      var m = (b.models || [])[0];
-      var mName = m ? modelNameOf(b, m) : null;
+      var m = (b.models || [])[0], mName = m ? modelNameOf(b, m) : null;
       h1.setAttribute("data-no-i18n", "true");
-      h1.textContent = bName + (mName ? " " + mName : "") + " — " + T("Авто из Кореи");
-    } else {
-      h1.removeAttribute("data-no-i18n");
-      h1.textContent = T("Каталог авто из Кореи");
-    }
+      h1.textContent = bName + (mName ? " " + mName : "") + " - " + T("Авто из Кореи");
+    }else{ h1.removeAttribute("data-no-i18n"); h1.textContent = T("Авто из Кореи"); }
   }
-  window._catalogRerenderHeading = function(){ updateCrumbs(); updateHeroHeading(); };
+  window._catalogRerenderHeading = function(){ updateCrumbs(); updateHeroHeading(); renderSortMenu(); renderHeadControls(); };
 
-  // ---- Скелетоны / состояния ----
-  function renderSkeleton(){
-    grid.setAttribute("aria-busy", "true");
-    if(grid.children.length) return; // держим текущие карточки, не мигаем (кроме первой загрузки)
-    var out = "";
-    for(var i = 0; i < 8; i++){
-      out += '<div class="catCardV1 catSkelV1"><div class="catCardPhotoV1"></div><div class="catCardBodyV1"><div class="catCardTitleV1">—</div><div class="catSpecsV1"><span>—</span><span>—</span><span>—</span><span>—</span></div></div></div>';
-    }
-    grid.innerHTML = out;
-  }
-
-  function renderError(data, status){
-    grid.setAttribute("aria-busy", "false");
-    var msg = T("Не удалось загрузить каталог. Попробуйте ещё раз.");
-    if(status === 503) msg = T("Каталог временно недоступен. Попробуйте чуть позже.");
-    grid.innerHTML = '<div class="catStateV1" role="alert" style="grid-column:1/-1">'
-      + '<h3>' + esc(T("Ошибка загрузки")) + '</h3><p>' + esc(msg) + '</p>'
-      + '<button type="button" id="catRetryBtnV1" type="button">' + esc(T("Повторить")) + '</button>'
-      + '</div>';
-    var btn = document.getElementById("catRetryBtnV1");
-    if(btn) btn.addEventListener("click", search);
-    var pager = document.getElementById("catPagerV1");
-    if(pager) pager.hidden = true;
-    setHeading(0, false);
-  }
-
-  function renderEmpty(){
-    grid.setAttribute("aria-busy", "false");
-    grid.innerHTML = '<div class="catStateV1" style="grid-column:1/-1">'
-      + '<h3>' + esc(T("Ничего не найдено")) + '</h3><p>' + esc(T("Попробуйте изменить или сбросить часть фильтров.")) + '</p>'
-      + '<button type="button" id="catEmptyResetV1">' + esc(T("Сбросить всё")) + '</button>'
-      + '</div>';
-    var btn = document.getElementById("catEmptyResetV1");
-    if(btn) btn.addEventListener("click", resetAll);
-  }
-
-  // ---- Карточка ----
-  function pickListing(car){
-    var listings = Array.isArray(car.listings) ? car.listings : [];
-    var active = listings.filter(function(l){ return !l.archived; });
-    return (active[0] || listings[0] || null);
-  }
-  function firstImageUrl(img){
-    // 05.11.2026 (Федор: «всегда грузить оригиналы»): `original` — ссылка источника на исходное фото (не наша
-    // пересжатая копия), `downloaded`/`preview` — запасные варианты по спеке ListingImage, если оригинала нет.
-    return img.original || img.downloaded || img.preview || "";
-  }
-  function titleOf(car){
-    var brand = car.brand && car.brand.name;
-    var model = car.model && car.model.name;
-    if(brand || model) return [brand, model, car.year].filter(Boolean).join(" ");
-    var l = pickListing(car);
-    var tm = l && l.title;
-    if(tm && typeof tm === "object"){
-      var lang = window.APEX_LANG === "en" ? "en" : (window.APEX_LANG === "ro" ? "en" : "ru");
-      return tm[lang] || tm.en || Object.values(tm)[0] || T("Автомобиль");
-    }
-    return T("Автомобиль");
-  }
-  // 05.11.2026 (эталон autopartner.by/korea, CLAUDE.md): карточка листинга у них — РОВНО 4 факта
-  // (пробег/объём/КПП/топливо), не 7 — порядок полей ниже подобран так, что .slice(0,4) даёт именно их.
-  function specsOf(car, listing){
-    var out = [];
-    if(listing && listing.odometer != null) out.push({t:"odo", v:fmtNum(listing.odometer) + " " + T("км")});
-    // Электро: engine_volume в фиде — НЕ объём двигателя (120/111/202/1... бессмысленно как см³/1000, проверено 04.11.2026) — не показываем.
-    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) out.push({t:"engine", v:(car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л")});
-    if(car.transmission && car.transmission.name) out.push({t:"trans", v:T(transLabel(car.transmission.id))});
-    if(car.fuel && car.fuel.name) out.push({t:"fuel", v:T(fuelLabel(car.fuel.id))});
-    if(car.power_hp) out.push({t:"power", v:car.power_hp + " " + T("л.с.")});
-    if(car.drive_wheels && car.drive_wheels.name) out.push({t:"drive", v:T(driveLabel(car.drive_wheels.id))});
-    if(car.body_type && car.body_type.name) out.push({t:"body", v:T(bodyLabel(car.body_type.id))});
-    return out.slice(0, 4);
-  }
-  var SPEC_ICONS = {
-    odo: '<svg viewBox="0 0 20 20" fill="none"><path d="M3.5 13.5a6.5 6.5 0 1 1 13 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 13.5l3-4.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13.5" r="1" fill="currentColor"/></svg>',
-    fuel: '<svg viewBox="0 0 20 20" fill="none"><rect x="4" y="4" width="7.5" height="12" rx="1.1" stroke="currentColor" stroke-width="1.5"/><path d="M11.5 8.3h1.6c.66 0 1.2.53 1.2 1.2V13.6a1 1 0 0 0 2 0v-3.9l-1.9-1.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.8 7h3.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-    trans: '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.8" stroke="currentColor" stroke-width="1.5"/><path d="M10 3.3v2M10 14.7v2M3.3 10h2M14.7 10h2M5.4 5.4l1.4 1.4M13.2 13.2l1.4 1.4M5.4 14.6l1.4-1.4M13.2 6.8l1.4-1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-    engine: '<svg viewBox="0 0 20 20" fill="none"><rect x="3.3" y="8" width="8.4" height="5.8" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M11.7 10h2.1c.66 0 1.2.53 1.2 1.2v2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5.8 8V5.6h2.8V8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
-    power: '<svg viewBox="0 0 20 20" fill="none"><path d="M11 3L5 12h3.7l-.9 5L14 8h-3.7l.7-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
-    drive: '<svg viewBox="0 0 20 20" fill="none"><circle cx="5.2" cy="5.2" r="1.5" fill="currentColor"/><circle cx="14.8" cy="5.2" r="1.5" fill="currentColor"/><circle cx="5.2" cy="14.8" r="1.5" fill="currentColor"/><circle cx="14.8" cy="14.8" r="1.5" fill="currentColor"/><path d="M5.2 5.2v9.6M14.8 5.2v9.6M5.2 10h9.6" stroke="currentColor" stroke-width="1.2"/></svg>',
-    body: '<svg viewBox="0 0 20 20" fill="none"><path d="M3 13.3V11l1.5-3a2 2 0 0 1 1.8-1.2h7.4a2 2 0 0 1 1.8 1.2l1.5 3v2.3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="6.3" cy="13.3" r="1.25" stroke="currentColor" stroke-width="1.3"/><circle cx="13.7" cy="13.3" r="1.25" stroke="currentColor" stroke-width="1.3"/></svg>'
-  };
-  function fuelLabel(id){ var r = FUELS.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
-  function transLabel(id){ var r = TRANSMISSIONS.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
-  function driveLabel(id){ var r = DRIVE_WHEELS.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
-  function bodyLabel(id){ var r = BODY_TYPES.find(function(x){ return x[0] === id; }); return r ? r[1] : ""; }
-  function placeOf(listing){
-    var ld = listing && listing.location_details;
-    if(!ld) return "";
-    var parts = [ld.region && ld.region.name, ld.country && ld.country.name].filter(Boolean);
-    return parts.join(", ");
-  }
-  function priceOf(car, listing){
-    if(!listing) return {label:T("Цена"), text:T("Цена по запросу")};
-    if(listing.is_auction){
-      if(listing.current_bid != null) return {label:T("Текущая ставка"), text:fmtNum(listing.current_bid), cur:curName(listing)};
-      if(listing.price && listing.price.price > 0) return {label:T("Цена аукциона"), text:fmtNum(listing.price.price), cur:curName(listing)};
-      return {label:T("Цена"), text:T("Цена по запросу")};
-    }
-    if(listing.price && listing.price.price > 0) return {label:T("Цена"), text:fmtNum(listing.price.price), cur:curName(listing)};
-    if(listing.current_bid != null) return {label:T("Текущая ставка"), text:fmtNum(listing.current_bid), cur:curName(listing)};
-    return {label:T("Цена"), text:T("Цена по запросу")};
-  }
-  function curName(listing){
-    var c = listing && listing.price && listing.price.currency;
-    return c && c.name ? String(c.name).toUpperCase() : "";
-  }
-
-  function carHref(car, listing){
-    var p = new URLSearchParams();
-    if(listing && listing.external){ p.set("domain_id", listing.external.domain.id); p.set("listing_id", listing.external.id); }
-    return "/catalog/" + encodeURIComponent(car.id) + (p.toString() ? "?" + p.toString() : "");
-  }
-
-  var ICON_INSPECTION = '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 10.2l2.3 2.3 4.7-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  var ICON_HISTORY = '<svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10.5" r="7.2" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.8v4l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.3 5.3l1-2.4 2.3 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  var ICON_OPEN = '<svg viewBox="0 0 20 20" fill="none"><path d="M8 6h6v6M14 6L6 14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-  function cardHtml(car){
-    var listing = pickListing(car);
-    var imgs = listing && Array.isArray(listing.images) ? listing.images.map(firstImageUrl).filter(Boolean) : [];
-    var sold = listing && listing.archived;
-    var badges = "";
-    if(car.has_inspections) badges += '<span class="catBadgeV1 isInspV1">' + ICON_INSPECTION + esc(T("Осмотр")) + '</span>';
-    if(car.has_history_reports) badges += '<span class="catBadgeV1 isHistV1">' + ICON_HISTORY + esc(T("История")) + '</span>';
-    var specs = specsOf(car, listing).map(function(s){ return '<span><i class="catSpecIcoV1">' + (SPEC_ICONS[s.t] || "") + '</i>' + esc(s.v) + '</span>'; }).join("");
-    var place = placeOf(listing);
-    var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
-    var price = priceOf(car, listing);
-    var href = carHref(car, listing);
-    var nav = imgs.length > 1
-      ? '<button type="button" class="catPhotoNavV1 catPhotoPrevV1" data-nav="-1" aria-label="' + esc(T("Предыдущее фото")) + '">‹</button>'
-        + '<button type="button" class="catPhotoNavV1 catPhotoNextV1" data-nav="1" aria-label="' + esc(T("Следующее фото")) + '">›</button>'
-        + '<div class="catPhotoDotsV1">' + imgs.slice(0, 6).map(function(_, i){ return '<span class="' + (i === 0 ? "isOnV1" : "") + '"></span>'; }).join("") + '</div>'
-      : "";
-    return '<a class="catCardV1" href="' + esc(href) + '" role="listitem">'
-      + '<div class="catCardPhotoV1" data-images="' + esc(JSON.stringify(imgs.slice(0, 6))) + '" data-idx="0">'
-        + (imgs[0] ? '<img src="' + esc(imgs[0]) + '" alt="" loading="lazy" referrerpolicy="no-referrer" width="320" height="240">' : '<div class="catCardNoPhotoV1">' + esc(T("Нет фото")) + '</div>')
-        + nav
-        + (badges ? '<div class="catBadgeRowV1">' + badges + '</div>' : "")
-        + (sold ? '<div class="catSoldStampV1">' + esc(T("ПРОДАНО")) + '</div>' : "")
-      + '</div>'
-      + '<div class="catCardBodyV1">'
-        + '<h3 class="catCardTitleV1" data-no-i18n="true">' + esc(titleOf(car)) + '</h3>'
-        + (car.vin ? '<div class="catCardVinV1" data-no-i18n="true">VIN ' + esc(String(car.vin).toUpperCase()) + '</div>' : "")
-        + '<div class="catSpecsV1">' + specs + '</div>'
-        + (place || src ? '<div class="catPlaceRowV1"><span data-no-i18n="true">' + esc(place) + '</span>' + (src ? '<span class="catSrcV1" data-no-i18n="true">' + esc(src) + '</span>' : "") + '</div>' : "")
-        + '<div class="catPriceRowV1"><span><span class="catPriceLblV1">' + esc(price.label) + '</span><span class="catPriceAmtV1" data-no-i18n="true">' + esc(price.text) + '</span></span>' + (price.cur ? '<span class="catPriceCurV1" data-no-i18n="true">' + esc(price.cur) + '</span>' : "") + '<span class="catQuickOpenV1" aria-hidden="true">' + ICON_OPEN + '</span></div>'
-      + '</div>'
-    + '</a>';
-  }
-
-  // Стрелки фото карточки листают снимок БЕЗ перехода на страницу (бриф §5.7, как у демо-каталога провайдера).
-  grid.addEventListener("click", function(e){
-    var btn = e.target.closest("[data-nav]");
-    if(!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var box = btn.closest(".catCardPhotoV1");
-    if(!box) return;
-    var imgs;
-    try{ imgs = JSON.parse(box.getAttribute("data-images") || "[]"); }catch(err){ imgs = []; }
-    if(!imgs.length) return;
-    var idx = parseInt(box.getAttribute("data-idx"), 10) || 0;
-    idx = (idx + parseInt(btn.getAttribute("data-nav"), 10) + imgs.length) % imgs.length;
-    box.setAttribute("data-idx", String(idx));
-    var im = box.querySelector("img");
-    if(im) im.src = imgs[idx];
-    box.querySelectorAll(".catPhotoDotsV1 span").forEach(function(d, i){ d.classList.toggle("isOnV1", i === idx); });
-  }, true);
-
-  function renderResults(data){
-    grid.setAttribute("aria-busy", "false");
-    var items = Array.isArray(data.items) ? data.items : [];
-    setHeading(data.total || 0, !!data.countApprox);
-    if(!items.length){ renderEmpty(); renderPager(data); return; }
-    grid.innerHTML = items.map(cardHtml).join("");
-    renderPager(data);
-  }
-
-  function renderPager(data){
-    var pager = document.getElementById("catPagerV1");
-    if(!pager) return;
-    var perPage = data.perPage || PER_PAGE;
-    var total = data.total || 0;
-    var lastReachable = Math.min(data.lastReachablePage || 416, Math.max(1, Math.ceil(total / perPage)));
-    if(total <= perPage){ pager.hidden = true; return; }
-    pager.hidden = false;
-    var cur = state.page;
-    var from = (cur - 1) * perPage + 1;
-    var to = Math.min(total, cur * perPage);
-    var pages = pagerPages(cur, lastReachable);
-    var btns = pages.map(function(p){
-      if(p === "...") return '<button type="button" disabled>…</button>';
-      return '<button type="button" ' + (p === cur ? 'aria-current="page"' : '') + ' data-page="' + p + '">' + p + '</button>';
-    }).join("");
-    pager.innerHTML = '<span class="catPagerInfoV1">' + esc(T("Показано")) + " " + fmtNum(from) + "–" + fmtNum(to) + " " + esc(T("из")) + " " + fmtNum(total) + '</span>'
-      + '<div class="catPagerBtnsV1">'
-      + '<button type="button" data-page="' + (cur - 1) + '" ' + (cur <= 1 ? "disabled" : "") + '>‹</button>'
-      + btns
-      + '<button type="button" data-page="' + (cur + 1) + '" ' + (cur >= lastReachable ? "disabled" : "") + '>›</button>'
-      + '</div>';
-  }
-  function pagerPages(cur, last){
-    if(last <= 7){ var all = []; for(var i = 1; i <= last; i++) all.push(i); return all; }
-    var set = [1, last, cur];
-    if(cur <= 4){ for(var i = 2; i <= 5; i++) set.push(i); }
-    else if(cur >= last - 3){ for(var i = last - 4; i <= last - 1; i++) set.push(i); }
-    else{ set.push(cur - 1, cur + 1); }
-    var uniq = Array.from(new Set(set)).filter(function(n){ return n >= 1 && n <= last; }).sort(function(a, b){ return a - b; });
-    var out = [];
-    for(var i = 0; i < uniq.length; i++){
-      if(i > 0 && uniq[i] - uniq[i - 1] > 1) out.push("...");
-      out.push(uniq[i]);
-    }
-    return out;
-  }
-
-  // ---- Чипы активных фильтров ----
-  function renderChips(){
-    var row = document.getElementById("catChipsRowV1");
-    if(!row) return;
-    var chips = [];
-    function chip(label, onRemove){ chips.push({label:label, onRemove:onRemove}); }
-    state.brands.forEach(function(b, bi){
-      var bName = (dict.brands || []).find(function(x){ return x.id === b.id; });
-      chip((bName ? bName.name : "ID " + b.id), function(){ state.brands.splice(bi, 1); });
-      (b.models || []).forEach(function(m, mi){
-        var mName = (dict.modelsByBrand[b.id] || []).find(function(x){ return x.id === m.id; });
-        chip((mName ? mName.name : "ID " + m.id), function(){ b.models.splice(mi, 1); });
-      });
-    });
-    if(state.priceFrom) chip(T("Цена от") + " " + fmtNum(state.priceFrom) + " " + state.currency.toUpperCase(), function(){ state.priceFrom = ""; });
-    if(state.priceTo) chip(T("Цена до") + " " + fmtNum(state.priceTo) + " " + state.currency.toUpperCase(), function(){ state.priceTo = ""; });
-    if(state.yearFrom) chip(T("Год от") + " " + state.yearFrom, function(){ state.yearFrom = ""; });
-    if(state.yearTo) chip(T("Год до") + " " + state.yearTo, function(){ state.yearTo = ""; });
-    if(state.odoFrom) chip(T("Пробег от") + " " + fmtNum(state.odoFrom) + " " + T("км"), function(){ state.odoFrom = ""; });
-    if(state.odoTo) chip(T("Пробег до") + " " + fmtNum(state.odoTo) + " " + T("км"), function(){ state.odoTo = ""; });
-    state.driveIds.forEach(function(id){ chip(T(driveLabel(id)), function(){ state.driveIds = state.driveIds.filter(function(x){ return x !== id; }); }); });
-    if(state.transmission) chip(T(transLabel(parseInt(state.transmission, 10))), function(){ state.transmission = ""; });
-    state.bodyTypeIds.forEach(function(id){ chip(T(bodyLabel(id)), function(){ state.bodyTypeIds = state.bodyTypeIds.filter(function(x){ return x !== id; }); }); });
-    state.fuelIds.forEach(function(id){ chip(T(fuelLabel(id)), function(){ state.fuelIds = state.fuelIds.filter(function(x){ return x !== id; }); }); });
-    state.condIds.forEach(function(id){ var r = CONDITIONS.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.condIds = state.condIds.filter(function(x){ return x !== id; }); }); });
-    state.availIds.forEach(function(id){ var r = AVAILABILITIES.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.availIds = state.availIds.filter(function(x){ return x !== id; }); }); });
-    state.damageIds.forEach(function(id){ var r = DAMAGES.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.damageIds = state.damageIds.filter(function(x){ return x !== id; }); }); });
-    if(state.keysAvail) chip(T("Ключи") + ": " + T(state.keysAvail === "1" ? "Есть" : "Нет"), function(){ state.keysAvail = ""; });
-    if(state.steering) chip(T(STEERING.find(function(x){ return String(x[0]) === state.steering; })[1]), function(){ state.steering = ""; });
-    state.emissionIds.forEach(function(id){ var r = EMISSIONS.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.emissionIds = state.emissionIds.filter(function(x){ return x !== id; }); }); });
-    if(state.airbags) chip(T(AIRBAGS.find(function(x){ return String(x[0]) === state.airbags; })[1]), function(){ state.airbags = ""; });
-    if(state.sellerType) chip(T(SELLER_TYPES.find(function(x){ return String(x[0]) === state.sellerType; })[1]), function(){ state.sellerType = ""; });
-    if(state.mfgCert) chip(T("Сертифицированный продавец") + ": " + T(state.mfgCert === "1" ? "Да" : "Нет"), function(){ state.mfgCert = ""; });
-    if(state.hasInsp) chip(T("Есть отчёт об инспекции") + ": " + T(state.hasInsp === "1" ? "Да" : "Нет"), function(){ state.hasInsp = ""; });
-    if(state.isAuction) chip(T("Аукцион") + ": " + T(state.isAuction === "1" ? "Да" : "Нет"), function(){ state.isAuction = ""; });
-    if(state.hasHist) chip(T("История автомобиля") + ": " + T(state.hasHist === "1" ? "Да" : "Нет"), function(){ state.hasHist = ""; });
-    state.colorIds.forEach(function(id){ var r = COLORS.find(function(x){ return x[0] === id; }); chip(T(r ? r[1] : ""), function(){ state.colorIds = state.colorIds.filter(function(x){ return x !== id; }); }); });
-    if(state.engineVolFrom) chip(T("Объём от") + " " + fmtNum(state.engineVolFrom) + " " + T("см³"), function(){ state.engineVolFrom = ""; });
-    if(state.engineVolTo) chip(T("Объём до") + " " + fmtNum(state.engineVolTo) + " " + T("см³"), function(){ state.engineVolTo = ""; });
-    if(state.powerFrom) chip(T("Мощность от") + " " + fmtNum(state.powerFrom) + " " + T("л.с."), function(){ state.powerFrom = ""; });
-    if(state.powerTo) chip(T("Мощность до") + " " + fmtNum(state.powerTo) + " " + T("л.с."), function(){ state.powerTo = ""; });
-    if(state.seats) chip(T("Мест") + ": " + state.seats, function(){ state.seats = ""; });
-    if(state.isLeasing) chip(T("Только лизинг"), function(){ state.isLeasing = ""; });
-
-    if(!chips.length){ row.hidden = true; row.innerHTML = ""; return; }
-    row.hidden = false;
-    row.innerHTML = chips.map(function(c, i){ return '<span class="catChipV1" data-chip-i="' + i + '" data-no-i18n="true">' + esc(c.label) + '<button type="button" aria-label="' + esc(T("Убрать фильтр")) + '">✕</button></span>'; }).join("")
-      + '<button type="button" class="catClearAllV1" id="catClearAllBtnV1">' + esc(T("Очистить всё")) + '</button>';
-    row.querySelectorAll("[data-chip-i]").forEach(function(el, i){
-      el.querySelector("button").addEventListener("click", function(){ chips[i].onRemove(); scheduleSearch(true); });
-    });
-    var clearBtn = document.getElementById("catClearAllBtnV1");
-    if(clearBtn) clearBtn.addEventListener("click", resetAll);
-
-    var badge = document.getElementById("catFilterBadgeV1");
+  function renderHeadControls(){
     var n = activeGroupsCount();
-    if(badge){ badge.hidden = !n; badge.textContent = String(n); }
-    var mobBtn = document.getElementById("catFiltersMobBtnV1");
-    if(mobBtn) mobBtn.textContent = n ? (T("Фильтры") + " · " + n) : T("Фильтры");
+    var cnt = document.getElementById("catFilterCountV1"), rst = document.getElementById("catFilterResetV1");
+    if(cnt) cnt.innerHTML = n ? '<span class="cf-count num">' + n + '</span>' : "";
+    if(rst) rst.innerHTML = n ? '<button type="button" class="cf-reset" id="catResetAllBtnV1">' + esc(T("Сбросить")) + '</button>' : "";
+    var r = document.getElementById("catResetAllBtnV1"); if(r) r.addEventListener("click", resetAll);
+    var fb = document.getElementById("btn-filters");
+    if(fb){ var lab = fb.lastChild; if(lab && lab.nodeType === 3) lab.textContent = " " + T("Фильтры") + (n ? " · " + n : ""); }
+    document.querySelectorAll(".filter-section[data-sec]").forEach(function(sec){
+      var active = sectionActive(sec.getAttribute("data-sec"));
+      var dot = sec.querySelector("[data-active-dot]"), clr = sec.querySelector(".filter-section__clear");
+      if(dot) dot.style.display = active ? "" : "none";
+      if(clr) clr.style.display = active ? "" : "none";
+    });
   }
-
+  function sectionActive(key){
+    switch(key){
+      case "brand": return !!state.brands.length;
+      case "model": return state.brands.some(function(b){ return (b.models||[]).length; });
+      case "generation": return state.brands.some(function(b){ return (b.models||[]).some(function(m){ return (m.generations||[]).length; }); });
+      case "price": return !!(state.priceFrom || state.priceTo);
+      case "year": return !!(state.yearFrom || state.yearTo);
+      case "odometer": return !!(state.odoFrom || state.odoTo);
+      case "drive": return !!state.driveIds.length;
+      case "transmission": return !!state.transmission;
+      case "body": return !!state.bodyTypeIds.length;
+      case "fuel": return !!state.fuelIds.length;
+      case "condition": return !!state.condIds.length;
+      case "availability": return !!state.availIds.length;
+      case "damage": return !!state.damageIds.length;
+      case "keys": return !!state.keysAvail;
+      case "steering": return !!state.steering;
+      case "emission": return !!state.emissionIds.length;
+      case "airbags": return !!state.airbags;
+      case "seller": return !!state.sellerType;
+      case "mfgcert": return !!state.mfgCert;
+      case "hasinsp": return !!state.hasInsp;
+      case "isauction": return !!state.isAuction;
+      case "hashist": return !!state.hasHist;
+      case "color": return !!state.colorIds.length;
+      case "enginevol": return !!(state.engineVolFrom || state.engineVolTo);
+      case "power": return !!(state.powerFrom || state.powerTo);
+      case "seats": return !!state.seats;
+      case "leasing": return !!state.isLeasing;
+    }
+    return false;
+  }
+  function clearSection(key){
+    switch(key){
+      case "brand": state.brands = []; break;
+      case "model": state.brands.forEach(function(b){ b.models = []; }); break;
+      case "generation": state.brands.forEach(function(b){ (b.models||[]).forEach(function(m){ m.generations = []; }); }); break;
+      case "price": state.priceFrom = state.priceTo = ""; break;
+      case "year": state.yearFrom = state.yearTo = ""; break;
+      case "odometer": state.odoFrom = state.odoTo = ""; break;
+      case "drive": state.driveIds = []; break;
+      case "transmission": state.transmission = ""; break;
+      case "body": state.bodyTypeIds = []; break;
+      case "fuel": state.fuelIds = []; break;
+      case "condition": state.condIds = []; break;
+      case "availability": state.availIds = []; break;
+      case "damage": state.damageIds = []; break;
+      case "keys": state.keysAvail = ""; break;
+      case "steering": state.steering = ""; break;
+      case "emission": state.emissionIds = []; break;
+      case "airbags": state.airbags = ""; break;
+      case "seller": state.sellerType = ""; break;
+      case "mfgcert": state.mfgCert = ""; break;
+      case "hasinsp": state.hasInsp = ""; break;
+      case "isauction": state.isAuction = ""; break;
+      case "hashist": state.hasHist = ""; break;
+      case "color": state.colorIds = []; break;
+      case "enginevol": state.engineVolFrom = state.engineVolTo = ""; break;
+      case "power": state.powerFrom = state.powerTo = ""; break;
+      case "seats": state.seats = ""; break;
+      case "leasing": state.isLeasing = ""; break;
+    }
+  }
   function resetAll(){
-    state.brands = [];
-    state.priceFrom = ""; state.priceTo = ""; state.currency = "krw";
-    state.yearFrom = ""; state.yearTo = ""; state.odoFrom = ""; state.odoTo = "";
-    state.driveIds = []; state.transmission = ""; state.bodyTypeIds = []; state.fuelIds = []; state.condIds = [];
-    state.availIds = []; state.damageIds = [];
-    state.keysAvail = ""; state.steering = ""; state.emissionIds = []; state.airbags = ""; state.sellerType = ""; state.mfgCert = "";
-    state.hasInsp = ""; state.isAuction = ""; state.hasHist = "";
-    state.colorIds = [];
-    state.engineVolFrom = ""; state.engineVolTo = ""; state.powerFrom = ""; state.powerTo = ""; state.seats = ""; state.isLeasing = "";
-    state.sort = "newest"; state.page = 1;
-    renderSidebarAll();
+    var keep = {sort:state.sort};
+    Object.keys(state).forEach(function(k){ if(Array.isArray(state[k])) state[k] = []; else if(typeof state[k] === "string") state[k] = ""; });
+    state.currency = "usd"; state.sort = keep.sort; state.page = 1;
+    renderSections();
     scheduleSearch(true);
   }
 
-  // ========== Сайдбар: словари и рендер ==========
-  function ensureBrands(){
-    if(dict.brands) return Promise.resolve(dict.brands);
-    return fetch("/api/catalog?action=brands&lang=" + encodeURIComponent(window.APEX_LANG || "ru"))
-      .then(function(r){ return r.json(); })
-      .then(function(d){ dict.brands = (d && d.items) || []; return dict.brands; })
-      .catch(function(){ dict.brands = []; return dict.brands; });
+  // ---- Сортировка (меню) ----
+  var sortOpen = false;
+  function renderSortMenu(){
+    var box = document.getElementById("catSortItemsV1"), lbl = document.getElementById("catSortLabelV1");
+    if(!box) return;
+    box.innerHTML = SORTS.map(function(s){
+      var on = s[0] === state.sort;
+      return '<button type="button" role="menuitem" data-sort="' + s[0] + '" class="menu-item w-full justify-between text-start max-sm:min-h-12 max-sm:text-[15px]' + (on ? " is-selected" : "") + '">' + esc(T(s[1])) + (on ? I.tick : "") + '</button>';
+    }).join("");
+    var cur = SORTS.find(function(s){ return s[0] === state.sort; });
+    if(lbl) lbl.textContent = T(cur ? cur[1] : "Сначала новые");
   }
-  function ensureModels(brandId){
-    if(dict.modelsByBrand[brandId]) return Promise.resolve(dict.modelsByBrand[brandId]);
-    return fetch("/api/catalog?action=models&brand_id=" + encodeURIComponent(brandId) + "&lang=" + encodeURIComponent(window.APEX_LANG || "ru"))
-      .then(function(r){ return r.json(); })
-      .then(function(d){ dict.modelsByBrand[brandId] = (d && d.items) || []; return dict.modelsByBrand[brandId]; })
-      .catch(function(){ dict.modelsByBrand[brandId] = []; return []; });
+  function setSortOpen(v){
+    sortOpen = v;
+    var menu = document.getElementById("sort-dropdown-menu"), veil = document.getElementById("catSortVeilV1"), btn = document.getElementById("sort-dropdown-button"), chev = document.getElementById("catSortChevV1");
+    if(menu) menu.style.display = v ? "" : "none";
+    if(veil) veil.style.display = v ? "" : "none";
+    if(btn) btn.setAttribute("aria-expanded", v ? "true" : "false");
+    if(chev) chev.classList.toggle("rotate-180", v);
+    document.documentElement.classList.toggle("max-sm:overflow-hidden", v);
   }
-  function ensureGenerations(modelId){
-    if(dict.gensByModel[modelId]) return Promise.resolve(dict.gensByModel[modelId]);
-    return fetch("/api/catalog?action=generations&model_id=" + encodeURIComponent(modelId) + "&lang=" + encodeURIComponent(window.APEX_LANG || "ru"))
-      .then(function(r){ return r.json(); })
-      .then(function(d){ dict.gensByModel[modelId] = (d && d.items) || []; return dict.gensByModel[modelId]; })
-      .catch(function(){ dict.gensByModel[modelId] = []; return []; });
-  }
+  document.addEventListener("click", function(e){
+    var wrap = document.getElementById("catSortWrapV1");
+    if(e.target.closest("#sort-dropdown-button")){ setSortOpen(!sortOpen); return; }
+    var it = e.target.closest("[data-sort]");
+    if(it){ state.sort = it.getAttribute("data-sort"); state.page = 1; renderSortMenu(); setSortOpen(false); pushUrlForce(); search(); return; }
+    if(e.target.closest("[data-sort-close]") || e.target.id === "catSortVeilV1" || (sortOpen && wrap && !wrap.contains(e.target))) setSortOpen(false);
+  });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape"){ setSortOpen(false); closeMobileFilters(); } });
 
+  // ---- Вид: плитка / список ----
+  var viewToggle = document.getElementById("catViewToggleV1");
+  function applyView(v){
+    grid.classList.toggle("is-list", v === "list");
+    if(viewToggle){
+      viewToggle.setAttribute("data-view", v);
+      viewToggle.querySelectorAll("[data-view-toggle]").forEach(function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-view-toggle") === v ? "true" : "false"); });
+    }
+    try{ localStorage.setItem("apexCatalogViewV1", v); }catch(e){}
+  }
+  if(viewToggle) viewToggle.addEventListener("click", function(e){ var b = e.target.closest("[data-view-toggle]"); if(b) applyView(b.getAttribute("data-view-toggle")); });
+  try{ if(localStorage.getItem("apexCatalogViewV1") === "list") applyView("list"); }catch(e){}
+
+  // ---- Мобильная шторка фильтров ----
+  var sidebar = document.getElementById("catSidebarV1"), veil = document.getElementById("catSidebarVeilV1");
+  function openMobileFilters(){ if(sidebar) sidebar.classList.add("is-open"); if(veil) veil.style.display = ""; document.documentElement.classList.add("overflow-hidden"); }
+  function closeMobileFilters(){ if(sidebar) sidebar.classList.remove("is-open"); if(veil) veil.style.display = "none"; document.documentElement.classList.remove("overflow-hidden"); }
+  var fbtn = document.getElementById("btn-filters"); if(fbtn) fbtn.addEventListener("click", openMobileFilters);
+  var cbtn = document.getElementById("catFiltersCloseBtnV1"); if(cbtn) cbtn.addEventListener("click", closeMobileFilters);
+  if(veil) veil.addEventListener("click", closeMobileFilters);
+  var abtn = document.getElementById("catApplyBtnV1"); if(abtn) abtn.addEventListener("click", function(){ closeMobileFilters(); search(); });
+
+  // ========== Сайдбар фильтров (разметка .filter-section эталона) ==========
+  var SECTIONS = [
+    {key:"brand", label:"Марка", open:true, type:"brands"},
+    {key:"model", label:"Модель", open:true, type:"models"},
+    {key:"generation", label:"Поколение", open:true, type:"generations"},
+    {key:"price", label:"Цена", open:true, type:"range", min:0, max:100000, step:500, from:"priceFrom", to:"priceTo", format:true, prefix:"$"},
+    {key:"year", label:"Год производства", open:true, type:"range", min:1960, max:(new Date()).getFullYear(), step:1, from:"yearFrom", to:"yearTo", format:false},
+    {key:"odometer", label:"Одометр", open:true, type:"range", min:0, max:400000, step:1000, from:"odoFrom", to:"odoTo", format:true, suffix:"km"},
+    {key:"drive", label:"Привод", type:"radio", table:DRIVE_WHEELS, get:function(){ return state.driveIds[0] || ""; }, set:function(v){ state.driveIds = v ? [parseInt(v, 10)] : []; }, icons:DRIVE_ICONS},
+    {key:"transmission", label:"Трансмиссия", open:true, type:"radio", table:TRANSMISSIONS, get:function(){ return state.transmission; }, set:function(v){ state.transmission = v; }, icons:TRANS_ICONS},
+    {key:"body", label:"Тип кузова", type:"check", table:BODY_TYPES, arr:"bodyTypeIds"},
+    {key:"fuel", label:"Топливо", type:"check", table:FUELS, arr:"fuelIds"},
+    {key:"condition", label:"Состояние", type:"radio", table:CONDITIONS, get:function(){ return state.condIds[0] || ""; }, set:function(v){ state.condIds = v ? [parseInt(v, 10)] : []; }},
+    {key:"availability", label:"Наличие", type:"radio", table:AVAILABILITIES, get:function(){ return state.availIds[0] || ""; }, set:function(v){ state.availIds = v ? [parseInt(v, 10)] : []; }},
+    {key:"damage", label:"Повреждения", type:"rows", table:DAMAGES, arr:"damageIds"},
+    {key:"keys", label:"Ключи", type:"tri", yes:"Есть", no:"Нет", prop:"keysAvail"},
+    {key:"steering", label:"Руль", type:"radio", table:STEERING, get:function(){ return state.steering; }, set:function(v){ state.steering = v; }},
+    {key:"emission", label:"Экологический класс", type:"radio", table:EMISSIONS, get:function(){ return state.emissionIds[0] || ""; }, set:function(v){ state.emissionIds = v ? [parseInt(v, 10)] : []; }},
+    {key:"airbags", label:"Подушки безопасности", type:"radio", table:AIRBAGS, get:function(){ return state.airbags; }, set:function(v){ state.airbags = v; }},
+    {key:"seller", label:"Тип продавца", type:"radio", table:SELLER_TYPES, get:function(){ return state.sellerType; }, set:function(v){ state.sellerType = v; }},
+    {key:"mfgcert", label:"Сертифицированный продавец", type:"tri", yes:"Да", no:"Нет", prop:"mfgCert"},
+    {key:"hasinsp", label:"Есть отчёт об инспекции", type:"tri", yes:"Да", no:"Нет", prop:"hasInsp"},
+    {key:"isauction", label:"Аукцион", type:"tri", yes:"Да", no:"Нет", prop:"isAuction"},
+    {key:"hashist", label:"История автомобиля", type:"tri", yes:"Да", no:"Нет", prop:"hasHist"},
+    {key:"color", label:"Цвет", type:"colors"},
+    {key:"enginevol", label:"Объём двигателя, см³", type:"range", min:0, max:7000, step:100, from:"engineVolFrom", to:"engineVolTo", format:true},
+    {key:"power", label:"Мощность, л.с.", type:"range", min:0, max:800, step:10, from:"powerFrom", to:"powerTo", format:true},
+    {key:"seats", label:"Количество мест", type:"seats"},
+    {key:"leasing", label:"В лизинге", type:"tri", yes:"Только лизинг", no:null, prop:"isLeasing"}
+  ];
+  var openState = {};
+  function isOpen(sec){
+    if(openState[sec.key] != null) return openState[sec.key];
+    try{ var s = localStorage.getItem("catalog-filter-open:" + sec.key); if(s === "1") return true; if(s === "0") return false; }catch(e){}
+    return !!sec.open || sectionActive(sec.key);
+  }
+  function sectionHtml(sec, bodyHtml){
+    var open = isOpen(sec), active = sectionActive(sec.key);
+    return '<section class="filter-section" data-sec="' + sec.key + '">'
+      + '<div class="flex min-h-14 items-center gap-1">'
+        + '<button type="button" class="filter-section__head" data-sec-toggle aria-expanded="' + (open ? "true" : "false") + '">'
+          + '<span class="min-w-0">' + esc(T(sec.label)) + '</span>'
+          + '<span class="h-2 w-2 shrink-0 rounded-full bg-brand-500" aria-hidden="true" data-active-dot' + (active ? "" : ' style="display:none"') + '></span>'
+          + '<span class="filter-section__chevron ms-auto' + (open ? " is-open" : "") + '" aria-hidden="true">' + I.chev + '</span>'
+        + '</button>'
+        + (sec.type === "brands" ? "" : '<button type="button" class="filter-section__clear" data-sec-clear title="' + esc(T("Очистить")) + ': ' + esc(T(sec.label)) + '" aria-label="' + esc(T("Очистить")) + ': ' + esc(T(sec.label)) + '"' + (active ? "" : ' style="display:none"') + '>' + I.x + '</button>')
+      + '</div>'
+      + '<div class="collapse-room" data-sec-body' + (open ? "" : ' style="display:none"') + '><div class="filter-section__body space-y-3 pb-4">' + bodyHtml + '</div></div>'
+    + '</section>';
+  }
+  function rangeBodyHtml(sec){
+    var from = state[sec.from], to = state[sec.to];
+    var show = function(v){ return v === "" ? "" : (sec.format ? fmtNum(v) : String(v)); };
+    var ph = function(v){ return sec.format ? fmtNum(v) : String(v); };
+    var affixPre = sec.prefix ? '<span class="cf-range-field__affix">' + esc(sec.prefix) + '</span>' : "";
+    var affixPost = sec.suffix ? '<span class="cf-range-field__affix">' + esc(sec.suffix) + '</span>' : "";
+    return '<div data-range data-min="' + sec.min + '" data-max="' + sec.max + '" data-step="' + sec.step + '" data-format="' + (sec.format ? 1 : 0) + '" data-from-key="' + sec.from + '" data-to-key="' + sec.to + '">'
+      + '<div class="relative mb-3 h-6">'
+        + '<div class="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-line-2"></div>'
+        + '<div class="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-brand-500" data-fill></div>'
+        + '<input type="range" class="range-input" min="' + sec.min + '" max="' + sec.max + '" step="' + sec.step + '" data-lo aria-label="' + esc(T("от")) + '">'
+        + '<input type="range" class="range-input" min="' + sec.min + '" max="' + sec.max + '" step="' + sec.step + '" data-hi aria-label="' + esc(T("до")) + '">'
+      + '</div>'
+      + '<div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">'
+        + '<label class="cf-range-field">' + affixPre + '<input type="text" inputmode="numeric" data-from value="' + esc(show(from)) + '" autocomplete="off" placeholder="' + esc(ph(sec.min)) + '" aria-label="' + esc(T("от")) + '">' + affixPost + '</label>'
+        + '<span class="text-ink-4" aria-hidden="true">–</span>'
+        + '<label class="cf-range-field">' + affixPre + '<input type="text" inputmode="numeric" data-to value="' + esc(show(to)) + '" autocomplete="off" placeholder="' + esc(ph(sec.max)) + '" aria-label="' + esc(T("до")) + '">' + affixPost + '</label>'
+      + '</div>'
+    + '</div>';
+  }
+  function pillLabel(type, name, value, checked, inner, extraCls){
+    return '<label class="block cursor-pointer"><input type="' + type + '" name="' + esc(name) + '" value="' + esc(value) + '"' + (checked ? " checked" : "") + ' class="peer sr-only"><span class="cf-pill' + (extraCls ? " " + extraCls : "") + '">' + inner + '</span></label>';
+  }
+  function radioBodyHtml(sec){
+    var cur = String(sec.get() || "");
+    var out = '<div data-radio="' + sec.key + '" role="radiogroup"><div class="flex flex-wrap gap-2">';
+    out += pillLabel("radio", "f_" + sec.key, "", cur === "", T("Все"));
+    sec.table.forEach(function(row){
+      var ico = sec.icons && sec.icons[row[0]] ? sec.icons[row[0]] : "";
+      out += pillLabel("radio", "f_" + sec.key, String(row[0]), cur === String(row[0]), ico + esc(T(row[1])), (ico ? "cf-pill--icon" : "") + (row[2] ? " " + row[2] : ""));
+    });
+    return out + '</div></div>';
+  }
+  function checkBodyHtml(sec){
+    var arr = state[sec.arr] || [];
+    return '<div data-checks="' + sec.key + '" role="group"><div class="flex flex-wrap gap-2">' + sec.table.map(function(row){
+      return pillLabel("checkbox", "f_" + sec.key, String(row[0]), arr.indexOf(row[0]) >= 0, esc(T(row[1])));
+    }).join("") + '</div></div>';
+  }
+  function triBodyHtml(sec){
+    var cur = state[sec.prop] || "";
+    var out = '<div data-tri="' + sec.key + '" role="radiogroup"><div class="flex flex-wrap gap-2">';
+    out += pillLabel("radio", "f_" + sec.key, "", cur === "", T("Все"));
+    out += pillLabel("radio", "f_" + sec.key, "1", cur === "1", esc(T(sec.yes)));
+    if(sec.no) out += pillLabel("radio", "f_" + sec.key, "0", cur === "0", esc(T(sec.no)));
+    return out + '</div></div>';
+  }
+  function rowsBodyHtml(sec){
+    var arr = state[sec.arr] || [];
+    var rows = '<label class="cf-row"><input type="checkbox" value="" ' + (arr.length ? "" : "checked") + ' class="peer sr-only" data-rows-all><span class="cf-check" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2.6 6.3 4.9 8.6 9.4 3.6" pathLength="1"/></svg></span><span class="cf-label">' + esc(T("Все")) + '</span></label>';
+    rows += sec.table.map(function(row){
+      return '<label class="cf-row"><input type="checkbox" value="' + row[0] + '"' + (arr.indexOf(row[0]) >= 0 ? " checked" : "") + ' class="peer sr-only">' + I.check + '<span class="cf-label">' + esc(T(row[1])) + '</span></label>';
+    }).join("");
+    return '<div data-rows="' + sec.key + '" role="group"><div class="cf-scroll-frame"><div class="cf-scroll max-h-[286px] space-y-1.5">' + rows + '</div></div></div>';
+  }
+  function colorsBodyHtml(){
+    return '<div data-colors role="group"><div class="flex flex-wrap gap-2">' + COLORS.map(function(c){
+      var inner = '<span class="h-3.5 w-3.5 shrink-0 rounded-full border border-line-2" style="background: ' + c[2] + '" aria-hidden="true"></span>' + esc(T(c[1]));
+      return pillLabel("checkbox", "colors[]", String(c[0]), state.colorIds.indexOf(c[0]) >= 0, inner);
+    }).join("") + '</div></div>';
+  }
+  function seatsBodyHtml(){
+    return '<div data-seats>'
+      + '<input type="number" min="1" class="cf-input" placeholder="' + esc(T("Любой")) + '" value="' + esc(state.seats) + '" data-seats-input>'
+      + '<div class="flex flex-wrap gap-1.5" role="group">' + SEATS_TABLE.map(function(s){
+          return '<button type="button" class="cf-pill min-w-8 justify-center px-2.5' + (state.seats === String(s[0]) ? " is-checked" : "") + '" data-seat="' + s[0] + '">' + s[1] + '</button>';
+        }).join("") + '</div></div>';
+  }
   var makeSearchQuery = "";
-  function renderMakeList(){
-    var listEl = document.getElementById("catMakeListV1");
-    if(!listEl) return;
+  function brandsBodyHtml(){
     var all = dict.brands || [];
     var q = makeSearchQuery.trim().toLowerCase();
     var filtered = q ? all.filter(function(b){ return (b.name || "").toLowerCase().indexOf(q) >= 0; }) : all;
     var selectedIds = state.brands.map(function(b){ return b.id; });
-    var popular = filtered.filter(function(b){ return POPULAR_BRAND_NAMES.indexOf(b.name) >= 0; });
-    var other = filtered.filter(function(b){ return POPULAR_BRAND_NAMES.indexOf(b.name) < 0; });
-    function rowHtml(b){
-      var on = selectedIds.indexOf(b.id) >= 0;
-      return '<label class="catRowV1" data-brand-id="' + b.id + '">'
-        + '<input type="checkbox" ' + (on ? "checked" : "") + '>'
-        + '<span class="catAvatarV1">' + (brandLogoHtml(b.name) || esc((b.name || "?").slice(0, 1))) + '</span>'
-        + '<span class="catRowNameV1" data-no-i18n="true">' + esc(b.name || ("ID " + b.id)) + '</span>'
-      + '</label>';
-    }
-    var html = "";
-    if(popular.length) html += popular.map(rowHtml).join("");
-    if(other.length) html += (popular.length ? '<div style="padding:6px 6px 2px;font-size:11px;color:var(--muted)">' + esc(T("Другие марки")) + '</div>' : "") + other.map(rowHtml).join("");
-    listEl.innerHTML = html || ('<div style="padding:8px 4px;color:var(--muted);font-size:13px">' + esc(T("Ничего не найдено")) + '</div>');
-    listEl.querySelectorAll("[data-brand-id]").forEach(function(el){
-      el.addEventListener("change", function(){
-        var id = parseInt(el.getAttribute("data-brand-id"), 10);
-        var idx = state.brands.findIndex(function(b){ return b.id === id; });
-        if(el.querySelector("input").checked){
-          if(idx < 0) state.brands.push({id:id, models:[]});
-        }else if(idx >= 0){
-          state.brands.splice(idx, 1);
-        }
-        renderModelSection();
-        renderGenSection();
-        scheduleSearch(true);
-      });
-    });
-  }
-
-  function renderModelSection(){
-    var sec = document.getElementById("catSecModelV1");
-    var wrap = document.getElementById("catModelBlocksV1");
-    if(!sec || !wrap) return;
-    if(!state.brands.length){ sec.hidden = true; wrap.innerHTML = ""; return; }
-    sec.hidden = false;
-    var htmlParts = state.brands.map(function(b, bi){
-      var bInfo = (dict.brands || []).find(function(x){ return x.id === b.id; });
-      var models = dict.modelsByBrand[b.id] || [];
-      var chips = (b.models || []).map(function(m, mi){
-        var mInfo = models.find(function(x){ return x.id === m.id; });
-        return '<span class="catMiniChipV1" data-no-i18n="true">' + esc(mInfo ? mInfo.name : ("ID " + m.id)) + '<button type="button" data-rm-model="' + bi + ':' + mi + '">✕</button></span>';
-      }).join("") || '<span class="catMiniChipV1">' + esc(T("Все модели")) + '</span>';
-      return '<div class="catBlockV1" data-block-brand="' + bi + '">'
-        + '<div class="catBlockHeadV1"><span class="catAvatarV1">' + (brandLogoHtml(bInfo && bInfo.name) || esc((bInfo ? bInfo.name : "?").slice(0, 1))) + '</span><b data-no-i18n="true">' + esc(bInfo ? bInfo.name : ("ID " + b.id)) + '</b></div>'
-        + '<div class="catChipRowV1">' + chips + '<button type="button" class="catAddBtnV1" data-add-model="' + bi + '">+ ' + esc(T("Добавить")) + '</button></div>'
-        + '<div class="catModelPickerV1" data-picker="' + bi + '" hidden></div>'
-      + '</div>';
-    });
-    wrap.innerHTML = htmlParts.join("");
-
-    wrap.querySelectorAll("[data-rm-model]").forEach(function(el){
-      el.addEventListener("click", function(){
-        var parts = el.getAttribute("data-rm-model").split(":");
-        var bi = parseInt(parts[0], 10), mi = parseInt(parts[1], 10);
-        state.brands[bi].models.splice(mi, 1);
-        renderModelSection(); renderGenSection(); scheduleSearch(true);
-      });
-    });
-    wrap.querySelectorAll("[data-add-model]").forEach(function(el){
-      el.addEventListener("click", function(){
-        var bi = parseInt(el.getAttribute("data-add-model"), 10);
-        var picker = wrap.querySelector('[data-picker="' + bi + '"]');
-        if(!picker) return;
-        var willOpen = picker.hidden;
-        wrap.querySelectorAll(".catModelPickerV1").forEach(function(p){ p.hidden = true; });
-        if(!willOpen) return;
-        picker.hidden = false;
-        var brandId = state.brands[bi].id;
-        picker.innerHTML = '<div style="padding:8px 0 4px;color:var(--muted);font-size:12.5px">' + esc(T("Загрузка…")) + '</div>';
-        ensureModels(brandId).then(function(models){
-          var selected = (state.brands[bi].models || []).map(function(m){ return m.id; });
-          picker.innerHTML = '<div class="catListV1" style="max-height:220px">' + models.map(function(m){
-            var on = selected.indexOf(m.id) >= 0;
-            return '<label class="catRowV1"><input type="checkbox" data-model-id="' + m.id + '" ' + (on ? "checked" : "") + '><span class="catRowNameV1" data-no-i18n="true">' + esc(m.name || ("ID " + m.id)) + '</span></label>';
-          }).join("") + '</div>';
-          picker.querySelectorAll("[data-model-id]").forEach(function(cb){
-            cb.addEventListener("change", function(){
-              var mid = parseInt(cb.getAttribute("data-model-id"), 10);
-              var arr = state.brands[bi].models = state.brands[bi].models || [];
-              var idx = arr.findIndex(function(m){ return m.id === mid; });
-              if(cb.checked){ if(idx < 0) arr.push({id:mid}); }
-              else if(idx >= 0) arr.splice(idx, 1);
-              renderModelSection(); renderGenSection(); scheduleSearch(true);
-            });
-          });
-        });
-      });
-    });
-  }
-
-  function renderGenSection(){
-    var sec = document.getElementById("catSecGenV1");
-    var wrap = document.getElementById("catGenBlocksV1");
-    if(!sec || !wrap) return;
-    var modelsSelected = [];
-    state.brands.forEach(function(b, bi){ (b.models || []).forEach(function(m, mi){ modelsSelected.push({bi:bi, mi:mi, brandId:b.id, modelId:m.id}); }); });
-    if(!modelsSelected.length){ sec.hidden = true; wrap.innerHTML = ""; return; }
-    sec.hidden = false;
-    wrap.innerHTML = modelsSelected.map(function(ref){
-      var mInfo = (dict.modelsByBrand[ref.brandId] || []).find(function(x){ return x.id === ref.modelId; });
-      var m = state.brands[ref.bi].models[ref.mi];
-      var chips = (m.generations || []).map(function(g, gi){
-        var gens = dict.gensByModel[ref.modelId] || [];
-        var gInfo = gens.find(function(x){ return x.id === g.id; });
-        var label = gInfo ? genLabel(gInfo) : ("ID " + g.id);
-        return '<span class="catMiniChipV1" data-no-i18n="true">' + esc(label) + '<button type="button" data-rm-gen="' + ref.bi + ':' + ref.mi + ':' + gi + '">✕</button></span>';
-      }).join("") || '<span class="catMiniChipV1">' + esc(T("Все поколения")) + '</span>';
-      return '<div class="catBlockV1">'
-        + '<div class="catBlockHeadV1"><b data-no-i18n="true">' + esc(mInfo ? mInfo.name : ("ID " + ref.modelId)) + '</b></div>'
-        + '<div class="catChipRowV1">' + chips + '<button type="button" class="catAddBtnV1" data-add-gen="' + ref.bi + ':' + ref.mi + '">+ ' + esc(T("Добавить")) + '</button></div>'
-        + '<div class="catGenPickerV1" data-gpicker="' + ref.bi + ':' + ref.mi + '" hidden></div>'
-      + '</div>';
+    var rows = filtered.map(function(b){
+      return '<label class="cf-row"><input type="checkbox" value="' + b.id + '"' + (selectedIds.indexOf(b.id) >= 0 ? " checked" : "") + ' class="peer sr-only" data-brand-id="' + b.id + '">' + I.check + logoHtml(b.name) + '<span class="cf-label" data-no-i18n="true">' + esc(b.name || ("ID " + b.id)) + '</span></label>';
     }).join("");
-
-    wrap.querySelectorAll("[data-rm-gen]").forEach(function(el){
-      el.addEventListener("click", function(){
-        var parts = el.getAttribute("data-rm-gen").split(":").map(Number);
-        state.brands[parts[0]].models[parts[1]].generations.splice(parts[2], 1);
-        renderGenSection(); scheduleSearch(true);
-      });
-    });
-    wrap.querySelectorAll("[data-add-gen]").forEach(function(el){
-      el.addEventListener("click", function(){
-        var parts = el.getAttribute("data-add-gen").split(":").map(Number);
-        var bi = parts[0], mi = parts[1];
-        var picker = wrap.querySelector('[data-gpicker="' + bi + ':' + mi + '"]');
-        if(!picker) return;
-        var willOpen = picker.hidden;
-        wrap.querySelectorAll(".catGenPickerV1").forEach(function(p){ p.hidden = true; });
-        if(!willOpen) return;
-        picker.hidden = false;
-        var modelId = state.brands[bi].models[mi].id;
-        picker.innerHTML = '<div style="padding:8px 0 4px;color:var(--muted);font-size:12.5px">' + esc(T("Загрузка…")) + '</div>';
-        ensureGenerations(modelId).then(function(gens){
-          var m = state.brands[bi].models[mi];
-          var selected = (m.generations || []).map(function(g){ return g.id; });
-          picker.innerHTML = gens.length ? ('<div class="catListV1" style="max-height:200px">' + gens.map(function(g){
-            var on = selected.indexOf(g.id) >= 0;
-            return '<label class="catRowV1"><input type="checkbox" data-gen-id="' + g.id + '" ' + (on ? "checked" : "") + '><span class="catRowNameV1" data-no-i18n="true">' + esc(genLabel(g)) + '</span></label>';
-          }).join("") + '</div>') : ('<p style="color:var(--muted);font-size:12.5px;padding:6px 0">' + esc(T("Не удалось загрузить список")) + '</p>');
-          picker.querySelectorAll("[data-gen-id]").forEach(function(cb){
-            cb.addEventListener("change", function(){
-              var gid = parseInt(cb.getAttribute("data-gen-id"), 10);
-              m.generations = m.generations || [];
-              var idx = m.generations.findIndex(function(g){ return g.id === gid; });
-              if(cb.checked){ if(idx < 0) m.generations.push({id:gid}); }
-              else if(idx >= 0) m.generations.splice(idx, 1);
-              renderGenSection(); scheduleSearch(true);
-            });
-          });
-        });
-      });
-    });
+    if(!all.length) rows = '<p class="text-[13px] text-ink-3 py-2">' + esc(T("Загрузка…")) + '</p>';
+    else if(!rows) rows = '<p class="text-[13px] text-ink-3 py-2">' + esc(T("Ничего не найдено")) + '</p>';
+    return '<div class="relative mb-2.5">' + I.search + '<input type="search" autocomplete="off" class="cf-search" id="catMakeSearchV1" placeholder="' + esc(T("Поиск марки")) + '" aria-label="' + esc(T("Поиск марки")) + '" value="' + esc(makeSearchQuery) + '"></div>'
+      + '<div class="cf-scroll-frame"><div class="cf-scroll max-h-[286px] space-y-1.5" id="catMakeListV1">' + rows + '</div></div>';
+  }
+  function modelsBodyHtml(){
+    return state.brands.map(function(b){
+      var info = (dict.brands || []).find(function(x){ return x.id === b.id; });
+      var models = dict.modelsByBrand[b.id];
+      var selected = (b.models || []).map(function(m){ return m.id; });
+      var list = !models ? '<p class="text-[13px] text-ink-3 py-1">' + esc(T("Загрузка…")) + '</p>'
+        : !models.length ? '<p class="text-[13px] text-ink-3 py-1">' + esc(T("Нет моделей")) + '</p>'
+        : models.map(function(m){
+            return '<label class="cf-row"><input type="checkbox" value="' + m.id + '"' + (selected.indexOf(m.id) >= 0 ? " checked" : "") + ' class="peer sr-only" data-model-id="' + m.id + '" data-brand-ref="' + b.id + '">' + I.check + '<span class="cf-label" data-no-i18n="true">' + esc(m.name || ("ID " + m.id)) + '</span></label>';
+          }).join("");
+      return '<div class="cf-group"><p class="cf-group__title" data-no-i18n="true">' + logoHtml(info && info.name) + '<span>' + esc(info ? info.name : ("ID " + b.id)) + '</span></p><div class="cf-scroll-frame"><div class="cf-scroll max-h-[286px] space-y-1.5">' + list + '</div></div></div>';
+    }).join("");
   }
   function genLabel(g){
     var years = (g.from_year || g.from) ? ((g.from_year || g.from) + "–" + (g.to_year || g.to || "")) : "";
     var name = [g.ordinal, g.code].filter(Boolean).join(" ") || g.name || ("ID " + g.id);
     return years ? (name + " · " + years) : name;
   }
-
-  function renderPills(containerId, table, selectedArr, onToggle){
-    var el = document.getElementById(containerId);
-    if(!el) return;
-    el.innerHTML = table.map(function(row){
-      var on = selectedArr.indexOf(row[0]) >= 0;
-      return '<button type="button" class="catPillV1' + (on ? " isOnV1" : "") + '" data-val="' + row[0] + '" data-no-i18n="true">' + esc(T(row[1])) + '</button>';
-    }).join("");
-    el.querySelectorAll("[data-val]").forEach(function(btn){
-      btn.addEventListener("click", function(){
-        onToggle(parseInt(btn.getAttribute("data-val"), 10));
-        renderSidebarAll();
-        scheduleSearch(true);
+  function gensBodyHtml(){
+    var out = "";
+    state.brands.forEach(function(b){
+      (b.models || []).forEach(function(m){
+        var mInfo = (dict.modelsByBrand[b.id] || []).find(function(x){ return x.id === m.id; });
+        var gens = dict.gensByModel[m.id];
+        var selected = (m.generations || []).map(function(g){ return g.id; });
+        var list = !gens ? '<p class="text-[13px] text-ink-3 py-1">' + esc(T("Загрузка…")) + '</p>'
+          : !gens.length ? '<p class="text-[13px] text-ink-3 py-1">' + esc(T("Нет данных о поколениях")) + '</p>'
+          : gens.map(function(g){
+              return '<label class="cf-row"><input type="checkbox" value="' + g.id + '"' + (selected.indexOf(g.id) >= 0 ? " checked" : "") + ' class="peer sr-only" data-gen-id="' + g.id + '" data-brand-ref="' + b.id + '" data-model-ref="' + m.id + '">' + I.check + '<span class="cf-label" data-no-i18n="true">' + esc(genLabel(g)) + '</span></label>';
+            }).join("");
+        out += '<div class="cf-group"><p class="cf-group__title" data-no-i18n="true"><span>' + esc(mInfo ? mInfo.name : ("ID " + m.id)) + '</span></p><div class="space-y-1.5">' + list + '</div></div>';
       });
     });
+    return out;
   }
-  function toggleIn(arr, v){
-    var i = arr.indexOf(v);
-    if(i >= 0) arr.splice(i, 1); else arr.push(v);
+  function bodyFor(sec){
+    switch(sec.type){
+      case "brands": return brandsBodyHtml();
+      case "models": return modelsBodyHtml();
+      case "generations": return gensBodyHtml();
+      case "range": return rangeBodyHtml(sec);
+      case "radio": return radioBodyHtml(sec);
+      case "check": return checkBodyHtml(sec);
+      case "tri": return triBodyHtml(sec);
+      case "rows": return rowsBodyHtml(sec);
+      case "colors": return colorsBodyHtml();
+      case "seats": return seatsBodyHtml();
+    }
+    return "";
   }
-
-  function renderColorSwatches(){
-    var el = document.getElementById("catColorSwatchesV1");
-    var moreBtn = document.getElementById("catColorMoreV1");
-    if(!el) return;
-    var expanded = el.getAttribute("data-expanded") === "1";
-    var shown = expanded ? COLORS : COLORS.slice(0, 5).concat(COLORS.filter(function(c){ return state.colorIds.indexOf(c[0]) >= 0; }).filter(function(c){ return COLORS.slice(0,5).indexOf(c) < 0; }));
-    el.innerHTML = shown.map(function(c){
-      var on = state.colorIds.indexOf(c[0]) >= 0;
-      return '<span class="catSwatchV1' + (on ? " isOnV1" : "") + '" style="background:' + c[2] + '" data-color="' + c[0] + '" title="' + esc(T(c[1])) + '"></span>';
-    }).join("");
-    el.querySelectorAll("[data-color]").forEach(function(sw){
-      sw.addEventListener("click", function(){
-        toggleIn(state.colorIds, parseInt(sw.getAttribute("data-color"), 10));
-        renderColorSwatches();
-        scheduleSearch(true);
-      });
-    });
-    if(moreBtn) moreBtn.hidden = expanded;
+  function sectionVisible(sec){
+    if(sec.type === "models") return state.brands.length > 0;
+    if(sec.type === "generations") return state.brands.some(function(b){ return (b.models || []).length; });
+    return true;
   }
-
-  // «Все/Да/Нет» — для булевых фильтров (05.11.2026, эталон autopartner.by/korea): клик по уже активной
-  // пилюле снимает выбор, как и у остальных single-select пилюль этого каталога (transmission и т.п.) —
-  // отдельная кнопка «Все» не нужна, тот же интерактивный паттерн, что уже в коде.
-  function renderBoolPills(containerId, stateKey, yesLabel, noLabel){
-    var el = document.getElementById(containerId);
-    if(!el) return;
-    var table = [["1", yesLabel || "Да"], ["0", noLabel || "Нет"]];
-    el.innerHTML = table.map(function(row){
-      var on = state[stateKey] === row[0];
-      return '<button type="button" class="catPillV1' + (on ? " isOnV1" : "") + '" data-val="' + row[0] + '" data-no-i18n="true">' + esc(T(row[1])) + '</button>';
-    }).join("");
-    el.querySelectorAll("[data-val]").forEach(function(btn){
-      btn.addEventListener("click", function(){
-        var v = btn.getAttribute("data-val");
-        state[stateKey] = state[stateKey] === v ? "" : v;
-        renderSidebarAll();
-        scheduleSearch(true);
-      });
-    });
+  var sectionsBox = document.getElementById("catSectionsV1");
+  function renderSections(){
+    if(!sectionsBox) return;
+    var focusId = document.activeElement && document.activeElement.id === "catMakeSearchV1" ? "catMakeSearchV1" : null;
+    sectionsBox.innerHTML = '<div>' + SECTIONS.filter(sectionVisible).map(function(sec){ return sectionHtml(sec, bodyFor(sec)); }).join("") + '</div>';
+    sectionsBox.querySelectorAll("[data-range]").forEach(initRange);
+    if(focusId){ var el = document.getElementById(focusId); if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }
+    // Загрузка словарей для видимых разделов
+    state.brands.forEach(function(b){ if(!dict.modelsByBrand[b.id]) ensureModels(b.id).then(renderSection.bind(null, "model")).then(function(){ renderSection("generation"); }); });
+    state.brands.forEach(function(b){ (b.models || []).forEach(function(m){ if(!dict.gensByModel[m.id]) ensureGenerations(m.id).then(renderSection.bind(null, "generation")); }); });
   }
-
-  function renderSidebarAll(){
-    renderMakeList();
-    renderModelSection();
-    renderGenSection();
-    renderPills("catDrivePillsV1", DRIVE_WHEELS, state.driveIds, function(v){ toggleIn(state.driveIds, v); });
-    renderPills("catTransPillsV1", TRANSMISSIONS, state.transmission ? [parseInt(state.transmission, 10)] : [], function(v){
-      state.transmission = state.transmission === String(v) ? "" : String(v);
-    });
-    renderPills("catBodyPillsV1", BODY_TYPES, state.bodyTypeIds, function(v){ toggleIn(state.bodyTypeIds, v); });
-    renderPills("catFuelPillsV1", FUELS, state.fuelIds, function(v){ toggleIn(state.fuelIds, v); });
-    renderPills("catCondPillsV1", CONDITIONS, state.condIds, function(v){ toggleIn(state.condIds, v); });
-    renderPills("catAvailPillsV1", AVAILABILITIES, state.availIds, function(v){ toggleIn(state.availIds, v); });
-    renderPills("catDamagePillsV1", DAMAGES, state.damageIds, function(v){ toggleIn(state.damageIds, v); });
-    renderBoolPills("catKeysPillsV1", "keysAvail", "Есть", "Нет");
-    renderPills("catSteeringPillsV1", STEERING, state.steering ? [parseInt(state.steering, 10)] : [], function(v){
-      state.steering = state.steering === String(v) ? "" : String(v);
-    });
-    renderPills("catEmissionPillsV1", EMISSIONS, state.emissionIds, function(v){ toggleIn(state.emissionIds, v); });
-    renderPills("catAirbagsPillsV1", AIRBAGS, state.airbags ? [parseInt(state.airbags, 10)] : [], function(v){
-      state.airbags = state.airbags === String(v) ? "" : String(v);
-    });
-    renderPills("catSellerPillsV1", SELLER_TYPES, state.sellerType ? [parseInt(state.sellerType, 10)] : [], function(v){
-      state.sellerType = state.sellerType === String(v) ? "" : String(v);
-    });
-    renderBoolPills("catMfgCertPillsV1", "mfgCert", "Да", "Нет");
-    renderBoolPills("catHasInspPillsV1", "hasInsp", "Да", "Нет");
-    renderBoolPills("catIsAuctionPillsV1", "isAuction", "Да", "Нет");
-    renderBoolPills("catHasHistPillsV1", "hasHist", "Да", "Нет");
-    renderColorSwatches();
-    renderPills("catSeatsPillsV1", SEATS_TABLE, state.seats ? [parseInt(state.seats, 10)] : [], function(v){
-      state.seats = state.seats === String(v) ? "" : String(v);
-    });
-    renderBoolPills("catLeasingPillsV1", "isLeasing", "Только лизинг", "Без лизинга");
-    renderSidebarState();
-  }
-
-  function renderSidebarState(){
-    // Подставляем значения текстовых полей и переключателей из state (после Back/Forward/reset).
-    setVal("catPriceFromV1", state.priceFrom); setVal("catPriceToV1", state.priceTo);
-    setVal("catCurrencyV1", state.currency);
-    setVal("catYearFromV1", state.yearFrom); setVal("catYearToV1", state.yearTo);
-    setVal("catOdoFromV1", state.odoFrom); setVal("catOdoToV1", state.odoTo);
-    setVal("catEngineVolFromV1", state.engineVolFrom); setVal("catEngineVolToV1", state.engineVolTo);
-    setVal("catPowerFromV1", state.powerFrom); setVal("catPowerToV1", state.powerTo);
-    setVal("catSortSelV1", state.sort);
-    // «точка» активности у разделов
-    document.querySelectorAll(".catSecV1").forEach(function(sec){
-      var key = sec.getAttribute("data-sec");
-      var active = false;
-      if(key === "vehicle") active = !!state.brands.length;
-      if(key === "model") active = state.brands.some(function(b){ return (b.models||[]).length; });
-      if(key === "generation") active = state.brands.some(function(b){ return (b.models||[]).some(function(m){ return (m.generations||[]).length; }); });
-      if(key === "price") active = !!(state.priceFrom || state.priceTo);
-      if(key === "year") active = !!(state.yearFrom || state.yearTo);
-      if(key === "mileage") active = !!(state.odoFrom || state.odoTo);
-      if(key === "drive") active = !!state.driveIds.length;
-      if(key === "transmission") active = !!state.transmission;
-      if(key === "body") active = !!state.bodyTypeIds.length;
-      if(key === "fuel") active = !!state.fuelIds.length;
-      if(key === "condition") active = !!state.condIds.length;
-      if(key === "availability") active = !!state.availIds.length;
-      if(key === "damage") active = !!state.damageIds.length;
-      if(key === "keys") active = !!state.keysAvail;
-      if(key === "steering") active = !!state.steering;
-      if(key === "emission") active = !!state.emissionIds.length;
-      if(key === "airbags") active = !!state.airbags;
-      if(key === "sellertype") active = !!state.sellerType;
-      if(key === "mfgcert") active = !!state.mfgCert;
-      if(key === "hasinsp") active = !!state.hasInsp;
-      if(key === "isauction") active = !!state.isAuction;
-      if(key === "hashist") active = !!state.hasHist;
-      if(key === "color") active = !!state.colorIds.length;
-      if(key === "enginevol") active = !!(state.engineVolFrom || state.engineVolTo);
-      if(key === "power") active = !!(state.powerFrom || state.powerTo);
-      if(key === "seats") active = !!state.seats;
-      if(key === "leasing") active = !!state.isLeasing;
-      sec.classList.toggle("isActiveV1", active);
-    });
-  }
-  function setVal(id, v){ var el = document.getElementById(id); if(el) el.value = v || (id === "catCurrencyV1" ? "krw" : ""); }
-
-  // ---- Открытые/закрытые секции (localStorage, §5.2) ----
-  function sectionStorageKey(key){ return "catalog-filter-open:" + key; }
-  document.addEventListener("click", function(e){
-    var btn = e.target.closest("[data-toggle]");
-    if(!btn) return;
-    var sec = btn.closest(".catSecV1");
+  function renderSection(key){
+    var sec = SECTIONS.find(function(s){ return s.key === key; });
+    var el = sectionsBox && sectionsBox.querySelector('.filter-section[data-sec="' + key + '"]');
     if(!sec) return;
-    var open = sec.classList.toggle("isOpenV1");
-    try{ localStorage.setItem(sectionStorageKey(sec.getAttribute("data-sec")), open ? "1" : "0"); }catch(err){}
-  });
-  document.querySelectorAll(".catSecV1").forEach(function(sec){
-    try{
-      var saved = localStorage.getItem(sectionStorageKey(sec.getAttribute("data-sec")));
-      if(saved === "1") sec.classList.add("isOpenV1");
-      if(saved === "0") sec.classList.remove("isOpenV1");
-    }catch(err){}
-  });
-
-  // ---- Обработчики простых полей ----
-  function onText(id, setter){
-    var el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener("change", function(){ setter(el.value.replace(/[^\d]/g, "")); scheduleSearch(true); });
+    if(!el){ renderSections(); return; }
+    if(!sectionVisible(sec)){ renderSections(); return; }
+    var body = el.querySelector(".filter-section__body");
+    if(body){ body.innerHTML = bodyFor(sec); body.querySelectorAll("[data-range]").forEach(initRange); }
   }
-  onText("catPriceFromV1", function(v){ state.priceFrom = v; });
-  onText("catPriceToV1", function(v){ state.priceTo = v; });
-  onText("catYearFromV1", function(v){ state.yearFrom = v; });
-  onText("catYearToV1", function(v){ state.yearTo = v; });
-  onText("catOdoFromV1", function(v){ state.odoFrom = v; });
-  onText("catOdoToV1", function(v){ state.odoTo = v; });
-  onText("catEngineVolFromV1", function(v){ state.engineVolFrom = v; });
-  onText("catEngineVolToV1", function(v){ state.engineVolTo = v; });
-  onText("catPowerFromV1", function(v){ state.powerFrom = v; });
-  onText("catPowerToV1", function(v){ state.powerTo = v; });
-  var curSel = document.getElementById("catCurrencyV1");
-  if(curSel) curSel.addEventListener("change", function(){ state.currency = curSel.value; scheduleSearch(true); });
-  var sortSel = document.getElementById("catSortSelV1");
-  if(sortSel) sortSel.addEventListener("change", function(){ state.sort = sortSel.value; scheduleSearch(true); });
 
-  // ---- Переключатель вида (сетка/список) — чисто визуальный, те же карточки (CSS), без новых запросов ----
-  var viewToggle = document.getElementById("catViewToggleV1");
-  function applyView(v){
-    grid.classList.toggle("isListV1", v === "list");
-    if(viewToggle) viewToggle.querySelectorAll("[data-view]").forEach(function(b){
-      var on = b.getAttribute("data-view") === v;
-      b.classList.toggle("isOnV1", on);
-      b.setAttribute("aria-pressed", on ? "true" : "false");
+  // Двойной слайдер диапазона (как rangeFilter у эталона)
+  function initRange(box){
+    var min = Number(box.getAttribute("data-min")), max = Number(box.getAttribute("data-max")), step = Number(box.getAttribute("data-step")), format = box.getAttribute("data-format") === "1";
+    var fromKey = box.getAttribute("data-from-key"), toKey = box.getAttribute("data-to-key");
+    var lo = box.querySelector("[data-lo]"), hi = box.querySelector("[data-hi]"), fill = box.querySelector("[data-fill]"), tFrom = box.querySelector("[data-from]"), tTo = box.querySelector("[data-to]");
+    function show(v){ return v === "" ? "" : (format ? fmtNum(v) : String(v)); }
+    function digits(v){ return String(v).replace(/\D/g, "").slice(0, 9); }
+    function loVal(){ return state[fromKey] === "" ? min : Math.max(min, Math.min(Number(state[fromKey]), max)); }
+    function hiVal(){ return state[toKey] === "" ? max : Math.min(max, Math.max(Number(state[toKey]), min)); }
+    function paint(){
+      var l = loVal(), h = hiVal(), span = (max - min) || 1;
+      lo.value = l; hi.value = h;
+      fill.style.left = ((l - min) / span * 100) + "%"; fill.style.right = (100 - (h - min) / span * 100) + "%";
+    }
+    lo.addEventListener("input", function(){ var v = Math.min(Number(lo.value), hiVal()); state[fromKey] = v <= min ? "" : String(v); tFrom.value = show(state[fromKey]); paint(); });
+    hi.addEventListener("input", function(){ var v = Math.max(Number(hi.value), loVal()); state[toKey] = v >= max ? "" : String(v); tTo.value = show(state[toKey]); paint(); });
+    lo.addEventListener("change", function(){ scheduleSearch(true); });
+    hi.addEventListener("change", function(){ scheduleSearch(true); });
+    tFrom.addEventListener("input", function(){ state[fromKey] = digits(tFrom.value); tFrom.value = show(state[fromKey]); paint(); });
+    tTo.addEventListener("input", function(){ state[toKey] = digits(tTo.value); tTo.value = show(state[toKey]); paint(); });
+    tFrom.addEventListener("change", function(){ scheduleSearch(true); });
+    tTo.addEventListener("change", function(){ scheduleSearch(true); });
+    tFrom.addEventListener("focus", function(){ tFrom.select(); });
+    tTo.addEventListener("focus", function(){ tTo.select(); });
+    paint();
+  }
+
+  // Делегированные обработчики сайдбара
+  if(sectionsBox){
+    sectionsBox.addEventListener("click", function(e){
+      var tg = e.target.closest("[data-sec-toggle]");
+      if(tg){
+        var sec = tg.closest(".filter-section"), key = sec.getAttribute("data-sec"), body = sec.querySelector("[data-sec-body]"), chev = sec.querySelector(".filter-section__chevron");
+        var open = body.style.display === "none";
+        body.style.display = open ? "" : "none"; chev.classList.toggle("is-open", open); tg.setAttribute("aria-expanded", open ? "true" : "false");
+        openState[key] = open; try{ localStorage.setItem("catalog-filter-open:" + key, open ? "1" : "0"); }catch(err){}
+        return;
+      }
+      var cl = e.target.closest("[data-sec-clear]");
+      if(cl){ var k = cl.closest(".filter-section").getAttribute("data-sec"); clearSection(k); renderSections(); scheduleSearch(true); return; }
+      var seat = e.target.closest("[data-seat]");
+      if(seat){ var v = seat.getAttribute("data-seat"); state.seats = state.seats === v ? "" : v; renderSection("seats"); scheduleSearch(true); return; }
     });
-    try{ localStorage.setItem("apexCatalogViewV1", v); }catch(e){}
+    sectionsBox.addEventListener("change", function(e){
+      var inp = e.target;
+      if(inp.hasAttribute("data-brand-id")){
+        var id = parseInt(inp.getAttribute("data-brand-id"), 10), idx = state.brands.findIndex(function(b){ return b.id === id; });
+        if(inp.checked){ if(idx < 0) state.brands.push({id:id, models:[]}); } else if(idx >= 0) state.brands.splice(idx, 1);
+        renderSections(); scheduleSearch(true); return;
+      }
+      if(inp.hasAttribute("data-model-id")){
+        var bid = parseInt(inp.getAttribute("data-brand-ref"), 10), mid = parseInt(inp.getAttribute("data-model-id"), 10);
+        var b = state.brands.find(function(x){ return x.id === bid; }); if(!b) return;
+        b.models = b.models || [];
+        var mi = b.models.findIndex(function(m){ return m.id === mid; });
+        if(inp.checked){ if(mi < 0) b.models.push({id:mid}); } else if(mi >= 0) b.models.splice(mi, 1);
+        renderSection("generation"); renderHeadControls(); scheduleSearch(true); return;
+      }
+      if(inp.hasAttribute("data-gen-id")){
+        var bid2 = parseInt(inp.getAttribute("data-brand-ref"), 10), mid2 = parseInt(inp.getAttribute("data-model-ref"), 10), gid = parseInt(inp.getAttribute("data-gen-id"), 10);
+        var b2 = state.brands.find(function(x){ return x.id === bid2; }); var m2 = b2 && (b2.models || []).find(function(m){ return m.id === mid2; }); if(!m2) return;
+        m2.generations = m2.generations || [];
+        var gi = m2.generations.findIndex(function(g){ return g.id === gid; });
+        if(inp.checked){ if(gi < 0) m2.generations.push({id:gid}); } else if(gi >= 0) m2.generations.splice(gi, 1);
+        scheduleSearch(true); return;
+      }
+      var radio = inp.closest("[data-radio]");
+      if(radio){ var sec = SECTIONS.find(function(s){ return s.key === radio.getAttribute("data-radio"); }); if(sec) sec.set(inp.value); scheduleSearch(true); return; }
+      var tri = inp.closest("[data-tri]");
+      if(tri){ var sec2 = SECTIONS.find(function(s){ return s.key === tri.getAttribute("data-tri"); }); if(sec2) state[sec2.prop] = inp.value; scheduleSearch(true); return; }
+      var checks = inp.closest("[data-checks]");
+      if(checks){ var sec3 = SECTIONS.find(function(s){ return s.key === checks.getAttribute("data-checks"); }); if(sec3){ var arr = state[sec3.arr], v = parseInt(inp.value, 10), i = arr.indexOf(v); if(inp.checked){ if(i < 0) arr.push(v); } else if(i >= 0) arr.splice(i, 1); } scheduleSearch(true); return; }
+      var rows = inp.closest("[data-rows]");
+      if(rows){
+        var sec4 = SECTIONS.find(function(s){ return s.key === rows.getAttribute("data-rows"); });
+        if(sec4){
+          if(inp.hasAttribute("data-rows-all")){ state[sec4.arr] = []; }
+          else{ var arr2 = state[sec4.arr], v2 = parseInt(inp.value, 10), i2 = arr2.indexOf(v2); if(inp.checked){ if(i2 < 0) arr2.push(v2); } else if(i2 >= 0) arr2.splice(i2, 1); }
+          renderSection(sec4.key);
+        }
+        scheduleSearch(true); return;
+      }
+      if(inp.closest("[data-colors]")){ var cv = parseInt(inp.value, 10), ci = state.colorIds.indexOf(cv); if(inp.checked){ if(ci < 0) state.colorIds.push(cv); } else if(ci >= 0) state.colorIds.splice(ci, 1); scheduleSearch(true); return; }
+      if(inp.hasAttribute("data-seats-input")){ state.seats = inp.value.replace(/\D/g, "").slice(0, 2); renderSection("seats"); scheduleSearch(true); return; }
+    });
+    sectionsBox.addEventListener("input", debounce(function(e){
+      var el = document.getElementById("catMakeSearchV1");
+      if(el && document.activeElement === el){ makeSearchQuery = el.value; var list = document.getElementById("catMakeListV1"); if(list){ var tmp = document.createElement("div"); tmp.innerHTML = brandsBodyHtml(); list.innerHTML = tmp.querySelector("#catMakeListV1").innerHTML; } }
+    }, 120));
   }
-  if(viewToggle) viewToggle.addEventListener("click", function(e){
-    var b = e.target.closest("[data-view]");
-    if(!b) return;
-    applyView(b.getAttribute("data-view"));
-  });
-  try{ var savedView = localStorage.getItem("apexCatalogViewV1"); if(savedView === "list") applyView("list"); }catch(e){}
-  var makeSearch = document.getElementById("catMakeSearchV1");
-  if(makeSearch) makeSearch.addEventListener("input", debounce(function(){ makeSearchQuery = makeSearch.value; renderMakeList(); }, 150));
-  var resetBtn = document.getElementById("catResetAllBtnV1");
-  if(resetBtn) resetBtn.addEventListener("click", resetAll);
-  var applyBtn = document.getElementById("catApplyBtnV1");
-  if(applyBtn) applyBtn.addEventListener("click", function(){ closeMobileFilters(); search(); });
 
-  function openMobileFilters(){ document.body.classList.add("catFiltersOpenV1"); var c = document.getElementById("catFiltersCloseBtnV1"); if(c) c.style.display = "inline-flex"; }
-  function closeMobileFilters(){ document.body.classList.remove("catFiltersOpenV1"); }
-  var mobBtn = document.getElementById("catFiltersMobBtnV1");
-  if(mobBtn) mobBtn.addEventListener("click", openMobileFilters);
-  var closeBtn = document.getElementById("catFiltersCloseBtnV1");
-  if(closeBtn) closeBtn.addEventListener("click", closeMobileFilters);
-  document.body.addEventListener("click", function(e){
-    if(document.body.classList.contains("catFiltersOpenV1") && e.target === document.body) closeMobileFilters();
-  });
+  // ---- Словари ----
+  function ensureBrands(){
+    if(dict.brands) return Promise.resolve(dict.brands);
+    return fetch("/api/catalog?action=brands&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
+      .then(function(d){ dict.brands = (d && d.items) || []; return dict.brands; }).catch(function(){ dict.brands = []; return dict.brands; });
+  }
+  function ensureModels(brandId){
+    if(dict.modelsByBrand[brandId]) return Promise.resolve(dict.modelsByBrand[brandId]);
+    return fetch("/api/catalog?action=models&brand_id=" + encodeURIComponent(brandId) + "&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
+      .then(function(d){ dict.modelsByBrand[brandId] = (d && d.items) || []; return dict.modelsByBrand[brandId]; }).catch(function(){ dict.modelsByBrand[brandId] = []; return []; });
+  }
+  function ensureGenerations(modelId){
+    if(dict.gensByModel[modelId]) return Promise.resolve(dict.gensByModel[modelId]);
+    return fetch("/api/catalog?action=generations&model_id=" + encodeURIComponent(modelId) + "&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
+      .then(function(d){ dict.gensByModel[modelId] = (d && d.items) || []; return dict.gensByModel[modelId]; }).catch(function(){ dict.gensByModel[modelId] = []; return []; });
+  }
 
-  // ---- Пагинация клики ----
+  // ========== Результаты ==========
+  function renderSkeleton(){
+    var out = "";
+    for(var i = 0; i < 8; i++) out += '<article class="vcard vcard--api is-skeleton"><div class="vcard__media"></div><div class="vcard__body flex flex-1 flex-col gap-3 px-4 pb-4 pt-3.5"><div class="vcard__main"><div class="skel-line w-3/4"></div><div class="skel-line w-1/2"></div><div class="skel-line w-2/3"></div></div></div></article>';
+    grid.innerHTML = out;
+  }
+  function renderError(status){
+    grid.setAttribute("aria-busy", "false");
+    var msg = status === 503 ? T("Каталог временно недоступен. Попробуйте чуть позже.") : T("Не удалось загрузить каталог. Попробуйте ещё раз.");
+    grid.innerHTML = '<div class="catalog-empty col-span-full" role="alert"><p class="catalog-empty__title">' + esc(T("Ошибка загрузки")) + '</p><p class="catalog-empty__text">' + esc(msg) + '</p><button type="button" class="btn btn-dark btn-sm" id="catRetryBtnV1">' + esc(T("Повторить")) + '</button></div>';
+    var b = document.getElementById("catRetryBtnV1"); if(b) b.addEventListener("click", search);
+    document.getElementById("catPagerV1").innerHTML = "";
+  }
+  function renderEmpty(){
+    grid.innerHTML = '<div class="catalog-empty col-span-full"><p class="catalog-empty__title">' + esc(T("Ничего не найдено")) + '</p><p class="catalog-empty__text">' + esc(T("Попробуйте изменить или сбросить часть фильтров.")) + '</p><button type="button" class="btn btn-dark btn-sm" id="catEmptyResetV1">' + esc(T("Сбросить всё")) + '</button></div>';
+    var b = document.getElementById("catEmptyResetV1"); if(b) b.addEventListener("click", resetAll);
+  }
+  function pickListing(car){
+    var listings = Array.isArray(car.listings) ? car.listings : [];
+    var active = listings.filter(function(l){ return !l.archived; });
+    return active[0] || listings[0] || null;
+  }
+  function imageUrl(img){ return img.original || img.downloaded || img.preview || ""; }
+  function titleOf(car){
+    var brand = car.brand && car.brand.name, model = car.model && car.model.name;
+    if(brand || model) return [car.year, brand, model].filter(Boolean).join(" ");
+    var l = pickListing(car), tm = l && l.title;
+    if(tm && typeof tm === "object"){ var lg = uiLang() === "ru" ? "ru" : "en"; return tm[lg] || tm.en || Object.values(tm)[0] || T("Автомобиль"); }
+    return T("Автомобиль");
+  }
+  function lbl(table, id){ var r = table.find(function(x){ return x[0] === id; }); return r ? T(r[1]) : ""; }
+  function carHref(car, listing){
+    var p = new URLSearchParams();
+    if(listing && listing.external){ p.set("domain_id", listing.external.domain.id); p.set("listing_id", listing.external.id); }
+    return "/catalog/" + encodeURIComponent(car.id) + (p.toString() ? "?" + p.toString() : "");
+  }
+  function specLi(icon, text, more){
+    return '<li class="' + (more ? "vcard__more" : "flex") + ' min-w-0 items-center gap-2">' + icon + '<span class="truncate" data-no-i18n="true">' + esc(text) + '</span></li>';
+  }
+  function cardHtml(car){
+    var listing = pickListing(car);
+    var imgs = listing && Array.isArray(listing.images) ? listing.images.map(imageUrl).filter(Boolean) : [];
+    var shown = imgs.slice(0, 6), more = imgs.length - shown.length;
+    var href = carHref(car, listing), title = titleOf(car);
+    var slides = shown.map(function(u){
+      return '<a href="' + esc(href) + '" class="vcard__slide" tabindex="-1" rel="nofollow"><img src="' + esc(u) + '" alt="' + esc(title) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></a>';
+    }).join("");
+    var stage = shown.map(function(u, i){ return '<img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="" class="vcard__stage-img' + (i === 0 ? " is-active" : "") + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false">'; }).join("")
+      + (more > 0 ? '<div class="vcard__more-photos" style="display:none" data-more-photos><span>' + I.photos + ' +' + more + '</span></div>' : "");
+    var segments = shown.length > 1 ? '<div class="vcard__segments" aria-hidden="true">' + shown.map(function(_, i){ return '<span data-active="' + (i === 0 ? "true" : "false") + '"></span>'; }).join("") + '</div>' : "";
+    var nav = shown.length > 1 ? '<button type="button" class="vcard__nav vcard__nav--prev" data-nav="-1" aria-label="‹" tabindex="-1">' + I.prev + '</button><button type="button" class="vcard__nav vcard__nav--next" data-nav="1" aria-label="›" tabindex="-1">' + I.next + '</button>' : "";
+    var badges = "";
+    if(car.has_inspections) badges += '<span class="badge badge-glass h-[22px] gap-1 rounded-[7px] px-2 text-[11px] text-emerald-700 max-sm:hidden">' + I.shield + esc(T("Инспекция")) + '</span>';
+    if(car.has_history_reports) badges += '<span class="badge badge-glass h-[22px] gap-1 rounded-[7px] px-2 text-[11px] text-blue-700 max-sm:hidden">' + I.clock + esc(T("История")) + '</span>';
+    var mobReports = (car.has_inspections || car.has_history_reports) ? '<div class="vcard__reports sm:hidden"><div class="flex gap-1.5">'
+      + (car.has_inspections ? '<span class="vcard__report is-inspection" aria-label="' + esc(T("Есть инспекция")) + '">' + I.shield.replace('class="h-3 w-3"', "") + '</span>' : "")
+      + (car.has_history_reports ? '<span class="vcard__report is-history" aria-label="' + esc(T("Есть история")) + '">' + I.clock.replace('class="h-3 w-3"', "") + '</span>' : "")
+      + '</div></div>' : "";
+    var specs = "";
+    if(listing && listing.odometer != null) specs += specLi(I.odo, fmtNum(listing.odometer) + " " + T("км"));
+    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) specs += specLi(I.engine, (car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л"));
+    else if(car.battery_capacity_kwh) specs += specLi(I.engine, car.battery_capacity_kwh + " " + T("кВт·ч"));
+    if(car.transmission) specs += specLi(I.trans, lbl(TRANSMISSIONS, car.transmission.id) || car.transmission.name);
+    if(car.fuel) specs += specLi(I.fuel, lbl(FUELS, car.fuel.id) || car.fuel.name);
+    if(car.body_type) specs += specLi(I.body, lbl(BODY_TYPES, car.body_type.id) || car.body_type.name, true);
+    if(car.color){ var c = COLORS.find(function(x){ return x[0] === car.color.id; }); specs += specLi('<span class="mx-0.5 h-3 w-3 shrink-0 rounded-full border border-line-2" style="background: ' + (c ? c[2] : "#9ca3af") + '" aria-hidden="true"></span>', c ? T(c[1]) : car.color.name, true); }
+    if(car.drive_wheels) specs += specLi(I.drive, (lbl(DRIVE_WHEELS, car.drive_wheels.id) || car.drive_wheels.name) + " " + T("привод"), true);
+    if(car.seats) specs += specLi(I.seats, car.seats + " " + T("мест"), true);
+    if(listing && listing.keys_available) specs += specLi(I.key, T("Ключи в наличии"), true);
+    var price = listing && listing.price && listing.price.price > 0 ? {amt:listing.price.price, cur:listing.price.currency && listing.price.currency.name} : (listing && listing.current_bid != null ? {amt:listing.current_bid, cur:listing.price && listing.price.currency && listing.price.currency.name} : null);
+    var priceLabel = listing && listing.is_auction && listing.current_bid != null ? T("Текущая ставка") : T("Цена");
+    var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
+    var sold = listing && listing.archived;
+    return '<article class="vcard vcard--api group' + (sold ? " is-sold" : "") + '">'
+      + '<div class="vcard__media' + (shown.length ? " has-gallery" : " no-photo is-loaded") + '" data-no-photo="' + esc(T("Фото скоро появятся")) + '" data-count="' + shown.length + '" data-href="' + esc(href) + '">'
+        + '<div class="vcard__track" data-track>' + (slides || '<a href="' + esc(href) + '" class="vcard__slide has-error" tabindex="-1"></a>') + '</div>'
+        + '<div class="vcard__stage" data-stage aria-hidden="true">' + stage + '</div>'
+        + nav + segments
+        + '<span class="vcard__scrim" aria-hidden="true"></span>'
+        + '<div class="vcard__badges pointer-events-none absolute start-2.5 top-2.5 z-[2] flex flex-wrap items-start gap-1.5 end-11">' + badges + mobReports + '</div>'
+        + (sold ? '<span class="vcard__sold">' + esc(T("Продано")) + '</span>' : "")
+      + '</div>'
+      + '<div class="vcard__body flex flex-1 flex-col gap-3 px-4 pb-4 pt-3.5">'
+        + '<div class="vcard__main">'
+          + '<div class="flex items-start gap-2.5"><h3 class="min-w-0 flex-1">'
+            + '<a href="' + esc(href) + '" title="' + esc(car.badge || "") + '" class="vcard__hit vcard__title font-display text-[16px] font-semibold leading-snug tracking-tight text-ink line-clamp-2" data-no-i18n="true">' + esc(title) + '</a>'
+            + (car.badge ? '<span class="vcard__badge mt-0.5 block truncate text-[13px] font-normal text-ink-3 max-sm:hidden" data-no-i18n="true">' + esc(car.badge) + '</span>' : "")
+          + '</h3></div>'
+          + (car.vin ? '<div class="vcard__ids flex min-w-0 items-center gap-2 max-sm:hidden"><button type="button" class="vcard__copy min-w-0 truncate" data-copy="' + esc(String(car.vin).toUpperCase()) + '" aria-label="VIN" data-no-i18n="true"><span class="text-ink-4">VIN</span> ' + esc(String(car.vin).toUpperCase()) + I.copy + '</button></div>' : "")
+          + '<ul class="vcard__specs grid grid-cols-2 gap-x-3 gap-y-2 text-[13px] text-ink-2">' + specs + '</ul>'
+          + (src ? '<p class="vcard__domain sm:hidden">' + I.globe + '<span class="truncate" data-no-i18n="true">' + esc(src.toLowerCase().indexOf(".") > 0 ? src : src + ".com") + '</span></p>' : "")
+        + '</div>'
+        + '<div class="vcard__foot mt-auto flex items-end justify-between gap-3 border-t border-line pt-3">'
+          + '<div class="vcard__pricebox flex min-w-0 items-end gap-5"><div class="min-w-0">'
+            + '<p class="truncate text-[11.5px] text-ink-4">' + esc(priceLabel) + '</p>'
+            + '<div class="vcard__price-row flex items-center gap-2"><p class="vcard__price num whitespace-nowrap font-display text-[18px] font-semibold leading-tight tracking-tight text-ink" data-no-i18n="true"' + (price ? ' data-price-amt="' + price.amt + '" data-price-cur="' + esc(price.cur || "") + '"' : "") + '>' + (price ? esc(priceText(price.amt, price.cur)) : esc(T("Цена по запросу"))) + '</p></div>'
+          + '</div></div>'
+        + '</div>'
+      + '</div>'
+    + '</article>';
+  }
+  function renderResults(data){
+    grid.setAttribute("aria-busy", "false");
+    var items = Array.isArray(data.items) ? data.items : [];
+    setHeading(data.total || 0);
+    if(!items.length){ renderEmpty(); renderPager(data); return; }
+    grid.innerHTML = items.map(cardHtml).join("");
+    renderPager(data);
+  }
+
+  // Галерея карточки: скраб мышью (hover-устройства), стрелки, свайп по треку (тач) — как cardGallery эталона
+  var fineHover = window.matchMedia("(hover:hover) and (pointer:fine)");
+  function mediaIndex(media){ return parseInt(media.getAttribute("data-idx") || "0", 10) || 0; }
+  function warm(media){
+    if(media.getAttribute("data-warm")) return;
+    media.setAttribute("data-warm", "1");
+    media.querySelectorAll("img[data-src]").forEach(function(im){ im.src = im.getAttribute("data-src"); im.removeAttribute("data-src"); });
+  }
+  function goTo(media, idx, instant){
+    var count = parseInt(media.getAttribute("data-count"), 10) || 0;
+    if(count < 2) return;
+    idx = (idx + count) % count;
+    media.setAttribute("data-idx", String(idx));
+    warm(media);
+    var stage = media.querySelector("[data-stage]");
+    var staged = stage && stage.offsetParent;
+    if(staged){
+      stage.querySelectorAll(".vcard__stage-img").forEach(function(im, i){ im.classList.toggle("is-active", i === idx); });
+      var mp = media.querySelector("[data-more-photos]"); if(mp) mp.style.display = idx === count - 1 ? "" : "none";
+    }else{
+      var track = media.querySelector("[data-track]");
+      if(track) track.scrollTo({left:track.clientWidth * idx, behavior:instant ? "instant" : "smooth"});
+    }
+    media.querySelectorAll(".vcard__segments span").forEach(function(s, i){ s.setAttribute("data-active", i === idx ? "true" : "false"); });
+  }
+  grid.addEventListener("pointermove", function(e){
+    if(!fineHover.matches) return;
+    var media = e.target.closest(".vcard__media"); if(!media) return;
+    var count = parseInt(media.getAttribute("data-count"), 10) || 0; if(count < 2) return;
+    var r = media.getBoundingClientRect();
+    var n = Math.min(count - 1, Math.max(0, Math.floor((e.clientX - r.left) / r.width * count)));
+    if(n !== mediaIndex(media)) goTo(media, n, true);
+  });
+  grid.addEventListener("pointerleave", function(){}, true);
+  grid.addEventListener("mouseout", function(e){
+    var media = e.target.closest && e.target.closest(".vcard__media");
+    if(!media || !fineHover.matches) return;
+    if(e.relatedTarget && media.contains(e.relatedTarget)) return;
+    if(mediaIndex(media) !== 0) goTo(media, 0, true);
+  });
+  grid.addEventListener("click", function(e){
+    var nav = e.target.closest("[data-nav]");
+    if(nav){ e.preventDefault(); e.stopPropagation(); var media = nav.closest(".vcard__media"); goTo(media, mediaIndex(media) + parseInt(nav.getAttribute("data-nav"), 10)); return; }
+    var cp = e.target.closest("[data-copy]");
+    if(cp){ e.preventDefault(); e.stopPropagation(); if(navigator.clipboard){ navigator.clipboard.writeText(cp.getAttribute("data-copy")).then(function(){ cp.classList.add("is-copied"); setTimeout(function(){ cp.classList.remove("is-copied"); }, 1200); }).catch(function(){}); } return; }
+    var media2 = e.target.closest(".vcard__media");
+    if(media2 && !e.target.closest("a")){ var href = media2.getAttribute("data-href"); if(href) location.href = href; }
+  });
+  grid.addEventListener("scroll", function(e){
+    var track = e.target;
+    if(!track || !track.hasAttribute || !track.hasAttribute("data-track") || !track.clientWidth) return;
+    var media = track.closest(".vcard__media");
+    var idx = Math.round(track.scrollLeft / track.clientWidth);
+    if(idx !== mediaIndex(media)){ media.setAttribute("data-idx", String(idx)); media.querySelectorAll(".vcard__segments span").forEach(function(s, i){ s.setAttribute("data-active", i === idx ? "true" : "false"); }); }
+  }, true);
+  grid.addEventListener("load", function(e){
+    var im = e.target; if(!im || im.tagName !== "IMG") return;
+    im.classList.add("is-loaded"); var media = im.closest(".vcard__media"); if(media) media.classList.add("is-loaded");
+  }, true);
+  grid.addEventListener("error", function(e){
+    var im = e.target; if(!im || im.tagName !== "IMG") return;
+    var slide = im.closest(".vcard__slide"), media = im.closest(".vcard__media");
+    if(slide) slide.classList.add("has-error"); if(media){ media.classList.add("is-loaded"); if(slide && !slide.previousElementSibling) media.classList.add("no-photo"); }
+  }, true);
+
+  // ---- Пагинация (разметка эталона: мобильная и десктопная версии) ----
+  function pageHref(p){ var q = stateToParams(); if(p > 1) q.set("page", String(p)); else q.delete("page"); var s = q.toString(); return location.pathname + (s ? "?" + s : ""); }
+  function renderPager(data){
+    var pager = document.getElementById("catPagerV1");
+    if(!pager) return;
+    var perPage = data.perPage || PER_PAGE, total = data.total || 0;
+    var last = Math.min(data.lastReachablePage || 416, Math.max(1, Math.ceil(total / perPage)));
+    if(total <= perPage){ pager.innerHTML = ""; return; }
+    var cur = state.page, from = (cur - 1) * perPage + 1, to = Math.min(total, cur * perPage);
+    var pages = pagerPages(cur, last);
+    var mob = pages.map(function(p){
+      if(p === "...") return '<span class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium min-w-6 px-0 text-ink-4" aria-hidden="true">…</span>';
+      if(p === cur) return '<span class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium bg-brand-500/10 font-semibold text-brand-700" aria-current="page">' + p + '</span>';
+      return '<a href="' + esc(pageHref(p)) + '" data-page="' + p + '" class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Страница")) + ' ' + p + '">' + p + '</a>';
+    }).join("");
+    var desk = pages.map(function(p){
+      if(p === "...") return '<span class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 text-ink-4" aria-disabled="true">...</span>';
+      if(p === cur) return '<span aria-current="page" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 bg-ink text-surface shadow-sm">' + p + '</span>';
+      return '<a href="' + esc(pageHref(p)) + '" data-page="' + p + '" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 text-ink-3 hover:bg-surface hover:text-ink" aria-label="' + esc(T("Страница")) + ' ' + p + '">' + p + '</a>';
+    }).join("");
+    var prevMob = cur > 1 ? '<a href="' + esc(pageHref(cur - 1)) + '" data-page="' + (cur - 1) + '" rel="prev" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Предыдущая")) + '">' + I.arrL + '</a>'
+      : '<span class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5 opacity-40" aria-disabled="true">' + I.arrL + '</span>';
+    var nextMob = cur < last ? '<a href="' + esc(pageHref(cur + 1)) + '" data-page="' + (cur + 1) + '" rel="next" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Следующая")) + '">' + I.arrR + '</a>'
+      : '<span class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5 opacity-40" aria-disabled="true">' + I.arrR + '</span>';
+    var prevDesk = cur > 1 ? '<a href="' + esc(pageHref(cur - 1)) + '" data-page="' + (cur - 1) + '" rel="prev" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 w-9 px-0 text-ink-3 hover:bg-surface hover:text-ink" aria-label="' + esc(T("Предыдущая")) + '">' + I.chevL + '</a>'
+      : '<span class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 w-9 px-0 text-ink-4 opacity-50" aria-disabled="true">' + I.chevL + '</span>';
+    var nextDesk = cur < last ? '<a href="' + esc(pageHref(cur + 1)) + '" data-page="' + (cur + 1) + '" rel="next" class="btn btn-dark btn-sm" aria-label="' + esc(T("Следующая")) + '"><span class="hidden sm:inline">' + esc(T("Следующая")) + ' &raquo;</span>' + I.chevR + '</a>' : "";
+    pager.innerHTML = '<div class="pagination mt-6 border-t border-line pb-2 pt-5 sm:mt-8 sm:pb-0 sm:pt-6"><nav role="navigation" aria-label="Pagination Navigation" class="flex flex-col items-center justify-between gap-4 sm:flex-row">'
+      + '<p class="order-2 hidden text-[13px] text-ink-3 sm:order-1 sm:block">' + esc(T("Показано с")) + ' <span class="num font-semibold text-ink">' + fmtNum(from) + '</span> ' + esc(T("до")) + ' <span class="num font-semibold text-ink">' + fmtNum(to) + '</span> ' + esc(T("из")) + ' <span class="num font-semibold text-ink">' + fmtNum(total) + '</span> ' + esc(T("результатов")) + '</p>'
+      + '<div class="order-1 flex items-center gap-1 sm:hidden">' + prevMob + mob + nextMob + '</div>'
+      + '<div class="order-1 hidden items-center gap-2 sm:order-2 sm:flex">' + prevDesk + '<div class="flex items-center gap-1.5 rounded-full bg-ink/[.05] p-1">' + desk + '</div>' + nextDesk + '</div>'
+    + '</nav></div>';
+  }
+  function pagerPages(cur, last){
+    if(last <= 7){ var all = []; for(var i = 1; i <= last; i++) all.push(i); return all; }
+    var set = [1, last, cur];
+    if(cur <= 4){ for(var j = 2; j <= 6; j++) set.push(j); }
+    else if(cur >= last - 3){ for(var k = last - 5; k <= last - 1; k++) set.push(k); }
+    else{ set.push(cur - 1, cur + 1); }
+    var uniq = Array.from(new Set(set)).filter(function(n){ return n >= 1 && n <= last; }).sort(function(a, b){ return a - b; });
+    var out = [];
+    for(var q = 0; q < uniq.length; q++){ if(q > 0 && uniq[q] - uniq[q - 1] > 1) out.push("..."); out.push(uniq[q]); }
+    return out;
+  }
   document.getElementById("catPagerV1").addEventListener("click", function(e){
-    var b = e.target.closest("[data-page]");
-    if(!b || b.disabled) return;
-    var p = parseInt(b.getAttribute("data-page"), 10);
-    if(!isFinite(p) || p < 1) return;
-    state.page = p;
-    pushUrlForce();
-    search();
-    var results = document.querySelector(".catalogResultsV1");
-    if(results) results.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+    var a = e.target.closest("[data-page]"); if(!a) return;
+    e.preventDefault();
+    var p = parseInt(a.getAttribute("data-page"), 10); if(!isFinite(p) || p < 1) return;
+    state.page = p; pushUrlForce(); search();
+    var top = document.querySelector(".catalog-frame");
+    if(top) window.scrollTo({top:top.getBoundingClientRect().top + window.scrollY - 80, behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   });
 
   // ---- Back/Forward ----
   window.addEventListener("popstate", function(){
     stateFromParams(new URLSearchParams(location.search));
-    renderSidebarAll();
-    renderChips();
-    updateCrumbs();
-    updateHeroHeading();
+    renderSections(); renderSortMenu(); renderHeadControls(); updateCrumbs(); updateHeroHeading();
     search();
   });
 
   // ---- Старт ----
   function boot(){
     stateFromParams(new URLSearchParams(location.search));
-    ensureBrands().then(function(){
-      var modelPromises = state.brands.map(function(b){ return ensureModels(b.id); });
-      Promise.all(modelPromises).then(function(){
-        var genPromises = [];
-        state.brands.forEach(function(b){ (b.models || []).forEach(function(m){ if((m.generations || []).length) genPromises.push(ensureGenerations(m.id)); }); });
-        Promise.all(genPromises).then(function(){ renderSidebarAll(); renderChips(); updateCrumbs(); updateHeroHeading(); });
-      });
-    });
-    updateCrumbs();
-    updateHeroHeading();
+    renderSortMenu(); renderHeadControls(); renderSections(); updateCrumbs(); updateHeroHeading();
+    loadRates();
     search();
+    ensureBrands().then(function(){
+      renderSections(); renderHeadControls(); updateCrumbs(); updateHeroHeading();
+    });
   }
   boot();
 })();
