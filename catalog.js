@@ -995,7 +995,11 @@
     var pager = document.getElementById("catPagerV1");
     if(!pager) return;
     var perPage = data.perPage || PER_PAGE, total = data.total || 0;
-    var last = Math.min(data.lastReachablePage || 416, Math.max(1, Math.ceil(total / perPage)));
+    // Elastic у провайдера листает не дальше 10 000 записей (416 стр. × 24). Как у эталона: на последней доступной странице —
+    // «417» и «Следующая» открывают блок «Дальше страницы не листаются», плюс подсказка уточнить фильтры.
+    var realLast = Math.max(1, Math.ceil(total / perPage));
+    var last = Math.min(data.lastReachablePage || 416, realLast);
+    var limited = realLast > last, atLimit = limited && state.page >= last;
     if(total <= perPage){ pager.innerHTML = ""; return; }
     var cur = state.page, from = (cur - 1) * perPage + 1, to = Math.min(total, cur * perPage);
     var pages = pagerPages(cur, last);
@@ -1003,24 +1007,31 @@
       if(p === "...") return '<span class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium min-w-6 px-0 text-ink-4" aria-hidden="true">…</span>';
       if(p === cur) return '<span class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium bg-brand-500/10 font-semibold text-brand-700" aria-current="page">' + p + '</span>';
       return '<a href="' + esc(pageHref(p)) + '" data-page="' + p + '" class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Страница")) + ' ' + p + '">' + p + '</a>';
-    }).join("");
+    }).join("") + (atLimit ? '<button type="button" data-limit class="num inline-flex h-10 min-w-9 items-center justify-center rounded-xl px-2 text-[14px] font-medium text-ink-4 active:bg-ink/5" aria-label="' + esc(T("Страница")) + ' ' + (last + 1) + '">' + (last + 1) + '</button>' : "");
     var desk = pages.map(function(p){
       if(p === "...") return '<span class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 text-ink-4" aria-disabled="true">...</span>';
       if(p === cur) return '<span aria-current="page" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 bg-ink text-surface shadow-sm">' + p + '</span>';
       return '<a href="' + esc(pageHref(p)) + '" data-page="' + p + '" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 text-ink-3 hover:bg-surface hover:text-ink" aria-label="' + esc(T("Страница")) + ' ' + p + '">' + p + '</a>';
-    }).join("");
+    }).join("") + (atLimit ? '<button type="button" data-limit class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 text-ink-4 hover:bg-surface hover:text-ink" aria-label="' + esc(T("Страница")) + ' ' + (last + 1) + '">' + (last + 1) + '</button>' : "");
     var prevMob = cur > 1 ? '<a href="' + esc(pageHref(cur - 1)) + '" data-page="' + (cur - 1) + '" rel="prev" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Предыдущая")) + '">' + I.arrL + '</a>'
       : '<span class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5 opacity-40" aria-disabled="true">' + I.arrL + '</span>';
-    var nextMob = cur < last ? '<a href="' + esc(pageHref(cur + 1)) + '" data-page="' + (cur + 1) + '" rel="next" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Следующая")) + '">' + I.arrR + '</a>'
+    var nextMob = atLimit ? '<button type="button" data-limit class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Следующая")) + '">' + I.arrR + '</button>'
+      : cur < last ? '<a href="' + esc(pageHref(cur + 1)) + '" data-page="' + (cur + 1) + '" rel="next" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5" aria-label="' + esc(T("Следующая")) + '">' + I.arrR + '</a>'
       : '<span class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line-2 bg-surface text-ink-2 active:bg-ink/5 opacity-40" aria-disabled="true">' + I.arrR + '</span>';
-    var prevDesk = cur > 1 ? '<a href="' + esc(pageHref(cur - 1)) + '" data-page="' + (cur - 1) + '" rel="prev" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 w-9 px-0 text-ink-3 hover:bg-surface hover:text-ink" aria-label="' + esc(T("Предыдущая")) + '">' + I.chevL + '</a>'
+    var prevDesk = cur > 1 ? '<a href="' + esc(pageHref(cur - 1)) + '" data-page="' + (cur - 1) + '" rel="prev" class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 w-9 border border-line-2 bg-surface px-0 text-ink-2 hover:border-ink/25 hover:text-ink" aria-label="' + esc(T("Предыдущая")) + '">' + I.chevL + '</a>'
       : '<span class="inline-flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[13px] font-semibold num transition duration-200 w-9 px-0 text-ink-4 opacity-50" aria-disabled="true">' + I.chevL + '</span>';
-    var nextDesk = cur < last ? '<a href="' + esc(pageHref(cur + 1)) + '" data-page="' + (cur + 1) + '" rel="next" class="btn btn-dark btn-sm" aria-label="' + esc(T("Следующая")) + '"><span class="hidden sm:inline">' + esc(T("Следующая")) + ' &raquo;</span>' + I.chevR + '</a>' : "";
+    var nextArrow = '<svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+    var nextDesk = atLimit ? '<button type="button" data-limit class="btn btn-dark btn-sm" aria-label="' + esc(T("Следующая")) + '"><span class="hidden sm:inline">' + esc(T("Следующая")) + ' &raquo;</span>' + nextArrow + '</button>'
+      : cur < last ? '<a href="' + esc(pageHref(cur + 1)) + '" data-page="' + (cur + 1) + '" rel="next" class="btn btn-dark btn-sm" aria-label="' + esc(T("Следующая")) + '"><span class="hidden sm:inline">' + esc(T("Следующая")) + ' &raquo;</span>' + nextArrow + '</a>' : "";
+    var limitHtml = atLimit ? '<p data-limit-note class="mt-4 flex items-start justify-center gap-2 text-[13px] leading-relaxed text-ink-3 sm:justify-start"><svg class="mt-0.5 h-4 w-4 shrink-0 text-ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>' + esc(T("Можно пролистать только первые 10 000 результатов. Уточните фильтры, чтобы увидеть остальные.")) + '</p>'
+      + '<div data-limit-panel class="mt-5 flex flex-col gap-4 rounded-[18px] border border-line bg-surface-2 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6" role="status" style="display:none"><span class="hidden h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-500/10 text-brand-600 sm:grid" aria-hidden="true"><svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></span>'
+        + '<div class="min-w-0 flex-1"><h3 class="font-display text-[17px] font-semibold tracking-tight text-ink">' + esc(T("Дальше страницы не листаются")) + '</h3><p class="mt-1 max-w-2xl text-[14px] leading-relaxed text-ink-3">' + esc(T("Каталог листает не больше 10 000 машин подряд, а под ваш запрос подходит")) + ' <span class="num">' + fmtNum(total) + '</span>. ' + esc(T("Остальные откроются, если сузить поиск фильтрами: марка, модель, год или цена.")) + '</p></div>'
+        + '<div class="flex shrink-0 flex-wrap gap-2"><button type="button" class="btn btn-dark btn-sm" data-limit-filters><svg class="h-4 w-4 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>' + esc(T("Уточнить фильтры")) + '</button><button type="button" class="btn btn-secondary btn-sm" data-limit-back>' + esc(T("Вернуться к страницам")) + '</button></div></div>' : "";
     pager.innerHTML = '<div class="pagination mt-6 border-t border-line pb-2 pt-5 sm:mt-8 sm:pb-0 sm:pt-6"><nav role="navigation" aria-label="Pagination Navigation" class="flex flex-col items-center justify-between gap-4 sm:flex-row">'
       + '<p class="order-2 hidden text-[13px] text-ink-3 sm:order-1 sm:block">' + esc(T("Показано с")) + ' <span class="num font-semibold text-ink">' + fmtNum(from) + '</span> ' + esc(T("до")) + ' <span class="num font-semibold text-ink">' + fmtNum(to) + '</span> ' + esc(T("из")) + ' <span class="num font-semibold text-ink">' + fmtNum(total) + '</span> ' + esc(T("результатов")) + '</p>'
       + '<div class="order-1 flex items-center gap-1 sm:hidden">' + prevMob + mob + nextMob + '</div>'
       + '<div class="order-1 hidden items-center gap-2 sm:order-2 sm:flex">' + prevDesk + '<div class="flex items-center gap-1.5 rounded-full bg-ink/[.05] p-1">' + desk + '</div>' + nextDesk + '</div>'
-    + '</nav></div>';
+    + '</nav>' + limitHtml + '</div>';
   }
   // Телефон — как у эталона: «1 2 3 … N» / «1 … 4 5 6 … N» (полный ряд 1–6 не влезал в 390px)
   function pagerPagesMob(cur, last){
@@ -1042,6 +1053,24 @@
     return out;
   }
   document.getElementById("catPagerV1").addEventListener("click", function(e){
+    var pg = e.currentTarget;
+    if(e.target.closest("[data-limit]")){
+      var note = pg.querySelector("[data-limit-note]"), panel = pg.querySelector("[data-limit-panel]");
+      if(note) note.style.display = "none";
+      if(panel){ panel.style.display = ""; pg.querySelectorAll("[data-limit].num").forEach(function(b){ b.classList.add("bg-surface", "text-ink", "shadow-sm"); }); panel.scrollIntoView({behavior:"smooth", block:"nearest"}); }
+      return;
+    }
+    if(e.target.closest("[data-limit-back]")){
+      var n2 = pg.querySelector("[data-limit-note]"), p2 = pg.querySelector("[data-limit-panel]");
+      if(p2) p2.style.display = "none"; if(n2) n2.style.display = "";
+      pg.querySelectorAll("[data-limit].num").forEach(function(b){ b.classList.remove("bg-surface", "text-ink", "shadow-sm"); });
+      return;
+    }
+    if(e.target.closest("[data-limit-filters]")){
+      if(window.matchMedia("(min-width: 1024px)").matches){ (document.querySelector(".catalog-sidebar") || document.body).scrollIntoView({behavior:"smooth", block:"start"}); }
+      else openMobileFilters();
+      return;
+    }
     var a = e.target.closest("[data-page]"); if(!a) return;
     e.preventDefault();
     var p = parseInt(a.getAttribute("data-page"), 10); if(!isFinite(p) || p < 1) return;
