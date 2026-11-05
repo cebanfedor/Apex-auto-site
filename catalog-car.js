@@ -146,6 +146,7 @@
     renderSold();
     renderGallery();
     renderOverview();
+    renderAside();
     // 05.11.2026 (эталон autopartner.by/korea): секции ниже — вертикальный скролл, не переключаемые
     // табы, поэтому все рендерятся сразу (не лениво по клику) — renderStickyNav прячет и nav-пункт,
     // и саму секцию, если для неё реально нет данных у выбранного объявления.
@@ -176,6 +177,29 @@
     el.innerHTML = parts.join('<i class="catCrumbSepV1" aria-hidden="true">›</i>');
   }
 
+  // Иконки для чипов строки меты (05.11.2026, эталон autopartner.by/korea) — те же, что уже рисует
+  // facts-таблица ниже, просто меньшего размера под пилюлю.
+  var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" width="13" height="13"><rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  var ICON_ODO = '<svg viewBox="0 0 24 24" fill="none" width="13" height="13"><circle cx="12" cy="13" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 13l3.2-3.2M3.5 13A8.5 8.5 0 0 1 12 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  var ICON_FUEL = '<svg viewBox="0 0 24 24" fill="none" width="13" height="13"><path d="M4 21V8a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v13M4 21h9M4 11h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15 8.5l2.5 2.5v6a1.5 1.5 0 0 0 3 0V9.8a1 1 0 0 0-.3-.7L18 6.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_TRANS = '<svg viewBox="0 0 24 24" fill="none" width="13" height="13"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 8v8M16 8v8M8 12h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  function fmtMonthYear(car){
+    if(!car.year) return "";
+    return car.month ? (String(car.month).padStart(2, "0") + "." + car.year) : String(car.year);
+  }
+  // "Обновлено N минут/часов назад" (05.11.2026, эталон) — гранулярность до минут, в отличие от `relTime`
+  // (день+, используется для «Размещено …» в карточке цены).
+  function updatedAgo(iso){
+    if(!iso) return "";
+    var d = new Date(iso), now = new Date();
+    if(isNaN(d.getTime())) return "";
+    var mins = Math.floor((now - d) / 60000);
+    if(mins < 1) return T("Только что");
+    if(mins < 60) return mins + " " + T("мин. назад");
+    var hrs = Math.floor(mins / 60);
+    if(hrs < 24) return hrs + " " + T("ч. назад");
+    return fmtDate(iso);
+  }
   function renderMeta(){
     var car = state.car, listing = state.listing;
     var el = document.getElementById("catCarMetaRowV1");
@@ -187,9 +211,21 @@
     }else if(listing && listing.external){
       parts.push('<a href="' + esc(listing.external.url) + '" target="_blank" rel="noopener noreferrer" data-no-i18n="true">🌐 ' + esc(listing.external.domain.name || "") + '</a>');
     }
+    if(listing && listing.condition){
+      var condName = T(CONDITIONS[listing.condition.id] || listing.condition.name);
+      var condOk = listing.condition.id !== 3;
+      parts.push('<span class="catMetaChipV1 ' + (condOk ? "isOkV1" : "isWarnV1") + '" data-no-i18n="true">' + esc(T("Состояние")) + ' · ' + esc(condName) + '</span>');
+    }
+    var myd = fmtMonthYear(car);
+    if(myd) parts.push('<span class="catMetaChipV1" data-no-i18n="true">' + ICON_CAL + esc(myd) + '</span>');
+    if(listing && listing.odometer != null) parts.push('<span class="catMetaChipV1" data-no-i18n="true">' + ICON_ODO + esc(fmtNum(listing.odometer)) + ' ' + esc(T("км")) + '</span>');
+    if(car.fuel) parts.push('<span class="catMetaChipV1" data-no-i18n="true">' + ICON_FUEL + esc(T(FUELS[car.fuel.id] || car.fuel.name)) + '</span>');
+    if(car.transmission) parts.push('<span class="catMetaChipV1" data-no-i18n="true">' + ICON_TRANS + esc(T(TRANSMISSIONS[car.transmission.id] || car.transmission.name)) + '</span>');
     var place = placeOf(listing);
     if(place) parts.push('<span data-no-i18n="true">📍 ' + esc(place) + '</span>');
     if(car.vin) parts.push('<button type="button" class="catVinBtnV1" id="catVinBtnV1" data-vin="' + esc(car.vin) + '" data-no-i18n="true">VIN ' + esc(String(car.vin).toUpperCase()) + '</button>');
+    var upd = listing && (listing.last_seen_at || listing.updated_at);
+    if(upd) parts.push('<span class="catMetaUpdatedV1" data-no-i18n="true">🕐 ' + esc(T("Обновлено")) + ' ' + esc(updatedAgo(upd)) + '</span>');
     el.innerHTML = parts.join("");
     var vb = document.getElementById("catVinBtnV1");
     if(vb) vb.addEventListener("click", function(){
@@ -409,35 +445,6 @@
 
     var nav = document.getElementById("catStickyNavV1");
     if(nav) nav.hidden = !(insp.length || optCount || hist.length || hasListings);
-
-    renderTocCard(car, insp, optCount, hist, hasListings, listings.length);
-  }
-  var ICON_TOC_INSP = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M16 16l-3.2-3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  var ICON_TOC_EQ = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M4 6h12M4 10h8M4 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M15 12.5l1.3 1.3 2.2-2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  var ICON_TOC_HIST = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><circle cx="10" cy="10.5" r="7.2" stroke="currentColor" stroke-width="1.5"/><path d="M10 6.8v4l2.6 1.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  var ICON_TOC_LISTINGS = '<svg viewBox="0 0 20 20" fill="none" width="15" height="15"><path d="M10 3l7 3.5-7 3.5-7-3.5L10 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 10l7 3.5 7-3.5M3 13.5l7 3.5 7-3.5" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
-  // Карточка-навигатор под фото (05.11.2026, эталон `.lot-toc`): 4 плитки с иконкой+подписью+значением,
-  // та же логика видимости, что и у #catStickyNavV1 (toggleSection уже решил, что показывать).
-  function renderTocCard(car, insp, optCount, hist, hasListings, listingsCount){
-    var box = document.getElementById("catTocCardV1");
-    var grid = document.getElementById("catTocGridV1");
-    if(!box || !grid) return;
-    var tiles = "";
-    if(insp.length){
-      var cItems = Array.isArray(insp[0].checked_items) ? insp[0].checked_items : [];
-      var issueN = cItems.filter(function(i){ return i.result_key === "issue"; }).length;
-      tiles += '<a href="#inspection" data-anchor-link="inspection" class="catTocTileV1 ' + (issueN ? "isWarnV1" : "isOkV1") + '">' + ICON_TOC_INSP + '<span>' + esc(T("Техосмотр")) + '</span><b data-no-i18n="true">' + (issueN ? (T("Замечаний") + ": " + issueN) : T("Без замечаний")) + '</b></a>';
-    }
-    if(optCount) tiles += '<a href="#options" data-anchor-link="options" class="catTocTileV1">' + ICON_TOC_EQ + '<span>' + esc(T("Комплектация")) + '</span><b data-no-i18n="true">' + optCount + '</b></a>';
-    if(hist.length){
-      var s = (hist[0].summary && !Array.isArray(hist[0].summary)) ? hist[0].summary : {};
-      var risky = historyHasRisk(car);
-      var hv = s.insurance_claim_count > 0 ? (String(s.insurance_claim_count) + " " + T("случаев")) : T("Без рисков");
-      tiles += '<a href="#history" data-anchor-link="history" class="catTocTileV1 ' + (risky ? "isWarnV1" : "isOkV1") + '">' + ICON_TOC_HIST + '<span>' + esc(T("История")) + '</span><b data-no-i18n="true">' + esc(hv) + '</b></a>';
-    }
-    if(hasListings) tiles += '<a href="#listings" data-anchor-link="listings" class="catTocTileV1 isOkV1">' + ICON_TOC_LISTINGS + '<span>' + esc(T("Объявления")) + '</span><b data-no-i18n="true">' + listingsCount + '</b></a>';
-    grid.innerHTML = tiles;
-    box.hidden = !tiles;
   }
   function toggleSection(id, navId, show){
     var sec = document.getElementById(id);
@@ -453,8 +460,6 @@
     document.querySelectorAll("#catStickyNavV1 [data-anchor]").forEach(function(btn){
       btn.addEventListener("click", function(){ scrollToAnchor(btn.getAttribute("data-anchor")); });
     });
-    var tocCta = document.getElementById("catTocCtaV1");
-    if(tocCta) tocCta.addEventListener("click", openLeadModal);
     if(!("IntersectionObserver" in window)) return;
     var sections = Array.from(document.querySelectorAll(".catAnchorSecV1")).filter(function(s){ return !s.hidden; });
     if(!sections.length) return;
@@ -511,51 +516,7 @@
     var car = state.car, listing = state.listing;
     var html = "";
 
-    var price = priceBlock(car, listing);
-    var trend = priceTrend(listing);
-    var facts = [];
-    if(listing && listing.odometer != null) facts.push([T("Пробег"), fmtNum(listing.odometer) + " " + T("км")]);
-    if(car.fuel) facts.push([T("Топливо"), T(FUELS[car.fuel.id] || car.fuel.name)]);
-    if(car.transmission) facts.push([T("КПП"), T(TRANSMISSIONS[car.transmission.id] || car.transmission.name)]);
-    // Электро: engine_volume в фиде — не объём двигателя (см. catalog.js), не показываем.
-    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) facts.push([T("Объём"), (car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л")]);
-    if(car.battery_capacity_kwh) facts.push([T("Батарея"), car.battery_capacity_kwh + " " + T("кВт·ч")]);
-    if(car.power_hp) facts.push([T("Мощность"), car.power_hp + " " + T("л.с.")]);
-    if(car.drive_wheels) facts.push([T("Привод"), T(DRIVE_WHEELS[car.drive_wheels.id] || car.drive_wheels.name)]);
-    if(car.body_type) facts.push([T("Кузов"), T(BODY_TYPES[car.body_type.id] || car.body_type.name)]);
-
-    // 05.11.2026 (эталон autopartner.by/korea, Федор со скриншотов: «ты видишь разницу?») — кнопка-CTA +
-    // мессенджеры прямо под ценой (у них «Написать менеджеру» + Telegram/WhatsApp/Viber; Viber у нас нигде
-    // на сайте не подключён — не выдумываю несуществующий контакт, оставляю только Telegram+WhatsApp,
-    // те же номер/бот, что уже использует auctions.js для лотов — `t.me/fedukusa`, `api.whatsapp.com/send`
-    // вместо wa.me, см. transit.js — site-content.js иначе перепишет голый wa.me-линк).
-    var msgTitle = titleOf(car, listing) + (car.badge ? " " + car.badge : "");
-    var msgText = T("Здравствуйте! Интересует автомобиль.") + "\n" + T("Авто") + ": " + msgTitle + (car.vin ? ("\nVIN: " + String(car.vin).toUpperCase()) : "") + "\n" + location.href;
-    var tgHref = "https://t.me/fedukusa?text=" + encodeURIComponent(msgText);
-    var waHref = "https://api.whatsapp.com/send?phone=37368832032&text=" + encodeURIComponent(msgText);
-
-    html += '<div class="catOverviewTopCardV1"><div class="catOvPriceColV1">'
-      + '<span class="catPriceLblV1">' + esc(price.label) + '</span>'
-      + '<div class="catPriceBigV1" data-no-i18n="true">' + esc(price.amt) + (price.cur ? ' <span class="catPriceCurV1">' + esc(price.cur) + '</span>' : "") + (listing && listing.price && listing.price.negotiable ? '<span class="catNegTagV1">' + esc(T("Торг")) + '</span>' : "") + '</div>'
-      + (listing && listing.external ? '<div class="catPriceSrcV1">' + esc(T("на")) + ' <a href="' + esc(listing.external.url) + '" target="_blank" rel="noopener noreferrer" data-no-i18n="true">' + esc(listing.external.domain.name) + '</a></div>' : "")
-      + '<div class="catOvMetaRowV1">'
-        + (listing && listing.created_at ? '<span class="catListedChipV1">📅 ' + esc(relTime(listing.created_at)) + '</span>' : "")
-        + (trend ? '<span class="catTrendBadgeV1 ' + (trend.up ? "isUpV1" : "isDownV1") + '" data-no-i18n="true">' + (trend.up ? "↗" : "↘") + " " + (trend.up ? "+" : "") + trend.pct.toFixed(0) + "% " + esc(T("с момента размещения")) + '</span>' : "")
-      + '</div>'
-      + '<div class="catPriceActionsV1">'
-        + '<button type="button" class="catPriceCtaV1" id="catLeadBtnV1">' + esc(T("Узнать цену под ключ")) + ' <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
-        + '<p class="catMsgOrV1">' + esc(T("или напишите в мессенджер")) + '</p>'
-        + '<div class="catMsgRowV1">'
-          + '<a href="' + esc(tgHref) + '" target="_blank" rel="noopener noreferrer nofollow" class="catMsgBtnV1" style="--msgBrand:#229ed9" aria-label="Telegram">' + ICON_TG + '<span>Telegram</span></a>'
-          + '<a href="' + esc(waHref) + '" target="_blank" rel="noopener noreferrer nofollow" class="catMsgBtnV1" style="--msgBrand:#25d366" aria-label="WhatsApp">' + ICON_WA + '<span>WhatsApp</span></a>'
-        + '</div>'
-      + '</div>'
-    + '</div>'
-    + (facts.length ? '<div class="catOvFactsColV1">' + facts.map(function(f){ return '<div class="catFactV1"><small>' + esc(f[0]) + '</small><b data-no-i18n="true">' + esc(f[1]) + '</b></div>'; }).join("") + '</div>' : "")
-    + '</div>';
-
     html += mainInfoHtml(car, listing);
-    html += reportsCardHtml(car, listing);
 
     // Details card
     html += '<div class="catDetailsCardV1">';
@@ -579,9 +540,20 @@
     if(car.brand) rows.push([T("Марка"), car.brand.name]);
     if(car.model) rows.push([T("Модель"), car.model.name]);
     if(car.badge) rows.push([T("Комплектация"), car.badge]);
+    var myd2 = fmtMonthYear(car);
+    if(myd2) rows.push([T("Дата выпуска"), myd2]);
+    if(listing && listing.odometer != null) rows.push([T("Пробег"), fmtNum(listing.odometer) + " " + T("км")]);
+    if(car.fuel) rows.push([T("Топливо"), T(FUELS[car.fuel.id] || car.fuel.name)]);
+    if(car.transmission) rows.push([T("Трансмиссия"), T(TRANSMISSIONS[car.transmission.id] || car.transmission.name)]);
+    // Электро: engine_volume в фиде — не объём двигателя (см. catalog.js), не показываем.
+    if(car.engine_volume && !(car.fuel && car.fuel.id === 2)) rows.push([T("Объём"), (car.engine_volume / 1000).toFixed(1).replace(/\.0$/, "") + " " + T("л")]);
+    if(car.battery_capacity_kwh) rows.push([T("Батарея"), car.battery_capacity_kwh + " " + T("кВт·ч")]);
+    if(car.power_hp) rows.push([T("Мощность"), car.power_hp + " " + T("л.с.")]);
+    if(car.drive_wheels) rows.push([T("Привод"), T(DRIVE_WHEELS[car.drive_wheels.id] || car.drive_wheels.name)]);
+    if(car.body_type) rows.push([T("Тип кузова"), T(BODY_TYPES[car.body_type.id] || car.body_type.name)]);
     if(car.color) rows.push([T("Цвет"), swatchRow(car.color.id, T(COLORS_MAP[car.color.id] || car.color.name))]);
     if(car.interior_color) rows.push([T("Цвет салона"), swatchRow(car.interior_color.id, T(COLORS_MAP[car.interior_color.id] || car.interior_color.name))]);
-    if(car.seats) rows.push([T("Мест"), String(car.seats)]);
+    if(car.seats) rows.push([T("Количество мест"), String(car.seats)]);
     if(car.cylinders) rows.push([T("Цилиндров"), String(car.cylinders)]);
     if(car.market_origin) rows.push([T("Рынок"), (MARKET_FLAG[car.market_origin.id] || "") + " " + T(MARKET_ORIGIN[car.market_origin.id] || car.market_origin.name)]);
     if(car.steering_wheel_position) rows.push([T("Руль"), T(STEERING[car.steering_wheel_position.id] || car.steering_wheel_position.name)]);
@@ -627,14 +599,52 @@
 
     document.getElementById("catPanelOverviewV1").innerHTML = html;
 
-    var leadBtn = document.getElementById("catLeadBtnV1");
-    if(leadBtn) leadBtn.addEventListener("click", openLeadModal);
     var moreBtn = document.getElementById("catDescMoreBtnV1");
     if(moreBtn) moreBtn.addEventListener("click", function(){
       var box = document.getElementById(clampId);
       box.style.maxHeight = "none";
       moreBtn.remove();
     });
+  }
+
+  // 05.11.2026 (повторный проход — «структура страницы также не настроил», сверка со скриншотами
+  // автопартнёра): цена+CTA+переходы на Техосмотр/Историю — ВСЕГДА видимая правая колонка, а не первый
+  // блок общего потока контента (было так раньше, цена «терялась» при скролле длинной страницы).
+  function renderAside(){
+    var car = state.car, listing = state.listing;
+    var box = document.getElementById("catCarAsideV1");
+    if(!box) return;
+    var price = priceBlock(car, listing);
+    var trend = priceTrend(listing);
+
+    var msgTitle = titleOf(car, listing) + (car.badge ? " " + car.badge : "");
+    var msgText = T("Здравствуйте! Интересует автомобиль.") + "\n" + T("Авто") + ": " + msgTitle + (car.vin ? ("\nVIN: " + String(car.vin).toUpperCase()) : "") + "\n" + location.href;
+    var tgHref = "https://t.me/fedukusa?text=" + encodeURIComponent(msgText);
+    var waHref = "https://api.whatsapp.com/send?phone=37368832032&text=" + encodeURIComponent(msgText);
+
+    var html = '<div class="catAsideCardV1"><div class="catOvPriceColV1">'
+      + '<span class="catPriceLblV1">' + esc(price.label) + '</span>'
+      + '<div class="catPriceBigV1" data-no-i18n="true">' + esc(price.amt) + (price.cur ? ' <span class="catPriceCurV1">' + esc(price.cur) + '</span>' : "") + (listing && listing.price && listing.price.negotiable ? '<span class="catNegTagV1">' + esc(T("Торг")) + '</span>' : "") + '</div>'
+      + (listing && listing.external ? '<div class="catPriceSrcV1">' + esc(T("на")) + ' <a href="' + esc(listing.external.url) + '" target="_blank" rel="noopener noreferrer" data-no-i18n="true">' + esc(listing.external.domain.name) + '</a></div>' : "")
+      + '<div class="catOvMetaRowV1">'
+        + (listing && listing.created_at ? '<span class="catListedChipV1">📅 ' + esc(relTime(listing.created_at)) + '</span>' : "")
+        + (trend ? '<span class="catTrendBadgeV1 ' + (trend.up ? "isUpV1" : "isDownV1") + '" data-no-i18n="true">' + (trend.up ? "↗" : "↘") + " " + (trend.up ? "+" : "") + trend.pct.toFixed(0) + "% " + esc(T("с момента размещения")) + '</span>' : "")
+      + '</div>'
+      + '<div class="catPriceActionsV1">'
+        + '<button type="button" class="catPriceCtaV1" id="catLeadBtnV1">' + esc(T("Узнать цену под ключ")) + ' <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'
+        + '<p class="catMsgOrV1">' + esc(T("или напишите в мессенджер")) + '</p>'
+        + '<div class="catMsgRowV1">'
+          + '<a href="' + esc(tgHref) + '" target="_blank" rel="noopener noreferrer nofollow" class="catMsgBtnV1" style="--msgBrand:#229ed9" aria-label="Telegram">' + ICON_TG + '<span>Telegram</span></a>'
+          + '<a href="' + esc(waHref) + '" target="_blank" rel="noopener noreferrer nofollow" class="catMsgBtnV1" style="--msgBrand:#25d366" aria-label="WhatsApp">' + ICON_WA + '<span>WhatsApp</span></a>'
+        + '</div>'
+      + '</div>'
+    + '</div></div>';
+
+    html += reportsCardHtml(car, listing);
+
+    box.innerHTML = html;
+    var leadBtn = document.getElementById("catLeadBtnV1");
+    if(leadBtn) leadBtn.addEventListener("click", openLeadModal);
   }
   // «Главное» — кликабельные строки-итоги (эталон autopartner.by/korea, Федор со скриншотов «ты видишь
   // разницу?»): ДТП / Техосмотр(ссылка на #inspection) / Страховые случаи(ссылка на #history) / Изменения

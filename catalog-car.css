@@ -10,16 +10,41 @@
 
 .catCarHeadV1 { margin-bottom: 18px; }
 .catCarHeadV1 h1 { font-family: var(--font-display); font-size: 24px; margin: 0 0 8px; }
-.catCarMetaRowV1 { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; color: var(--muted); font-size: 13.5px; }
+.catCarMetaRowV1 { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; color: var(--muted); font-size: 13.5px; }
 .catCarMetaRowV1 a { color: var(--ink-2); text-decoration: none; }
 .catCarMetaRowV1 a:hover { color: var(--red); }
 .catVinBtnV1 { font-family: ui-monospace, monospace; background: var(--field); border-radius: 7px; padding: 3px 8px; cursor: pointer; border: none; font-size: 12.5px; }
+/* 05.11.2026 (эталон autopartner.by/korea — скриншот Hyundai IONIQ 5): под заголовком не только
+   источник+VIN, а полная строка чипов — состояние/дата выпуска/пробег/топливо/КПП + «обновлено N назад»
+   справа. Было пусто — у нас эта строка почти ничего не показывала. */
+.catMetaChipV1 { display: inline-flex; align-items: center; gap: 5px; background: var(--field); color: var(--ink-2); border-radius: 999px; padding: 4px 10px 4px 9px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.catMetaChipV1 svg { flex: 0 0 auto; color: var(--muted); }
+.catMetaChipV1.isOkV1 { background: #e7f7ee; color: #1a7f4b; }
+.catMetaChipV1.isOkV1 svg { color: #1a7f4b; }
+.catMetaChipV1.isWarnV1 { background: #fdeee9; color: #b9440c; }
+.catMetaChipV1.isWarnV1 svg { color: #b9440c; }
+.catMetaUpdatedV1 { margin-left: auto; font-size: 12px; color: var(--muted); }
 
 .catSoldNoticeV1 { margin-top: 12px; background: var(--red-soft); border: 1px solid var(--red-line); border-radius: 12px; padding: 12px 14px; font-size: 13.5px; }
 .catSoldNoticeV1 b { display: block; margin-bottom: 3px; }
 
-.catCarGridV1 { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: 26px; align-items: start; }
-@media (max-width: 1023px) { .catCarGridV1 { grid-template-columns: minmax(0, 1fr); } }
+/* 05.11.2026 (эталон autopartner.by/korea, Федор: «страница машины выглядит кардинально по-разному» +
+   «структура страницы также не настроил») — у эталона цена+CTA+переходы на Техосмотр/Историю ВСЕГДА
+   видны в правой липкой колонке, не теряются где-то в середине длинной страницы характеристик. Было:
+   2 колонки (фото | весь контент одним потоком, цена — просто первый блок в том же потоке). Теперь —
+   3 зоны (grid-template-areas): фото | контент | правая колонка. DOM-порядок — фото → aside → контент,
+   поэтому на узких экранах (стек в 1 колонку) цена видна СРАЗУ под фото, а не в конце страницы. */
+.catCarGridV1 { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "gallery" "aside" "main"; align-items: start; }
+.catCarGalleryV1 { grid-area: gallery; }
+.catCarAsideV1 { grid-area: aside; }
+.catCarMainV1 { grid-area: main; min-width: 0; }
+@media (min-width: 1024px) {
+  .catCarGridV1 { grid-template-columns: minmax(0, 460px) minmax(0, 1fr); grid-template-areas: "gallery main" "aside main"; }
+}
+@media (min-width: 1440px) {
+  .catCarGridV1 { grid-template-columns: minmax(0, 420px) minmax(0, 1fr) minmax(300px, 340px); grid-template-areas: "gallery main aside"; }
+  .catCarAsideV1 { position: sticky; top: 76px; align-self: start; }
+}
 
 .catCarGalleryV1 { position: sticky; top: 16px; }
 @media (max-width: 1023px) { .catCarGalleryV1 { position: static; } }
@@ -39,18 +64,6 @@
 .catGalThumbsV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .catViewSrcBtnV1 { display: block; text-align: center; margin-top: 10px; background: var(--field); border-radius: 10px; padding: 10px; font-size: 13.5px; font-weight: 600; text-decoration: none; color: var(--ink); }
 
-/* Карточка-навигатор по разделам под фото (05.11.2026, эталон `.lot-toc`) */
-.catTocCardV1 { margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px; }
-.catTocGridV1 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.catTocTileV1 { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 11px; text-decoration: none; color: var(--ink-2); }
-.catTocTileV1 span { display: flex; align-items: center; gap: 5px; font-size: 12px; }
-.catTocTileV1 b { font-size: 13px; font-weight: 700; color: var(--ink); }
-.catTocTileV1.isOkV1 b { color: #1a7f4b; }
-.catTocTileV1.isWarnV1 b { color: var(--red-600); }
-.catTocTileV1:hover { border-color: var(--red-line); background: var(--red-soft); }
-.catTocCtaV1 { width: 100%; margin-top: 10px; border: none; background: var(--red); color: #fff; border-radius: 12px; padding: 11px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
-.catTocCtaV1:hover { background: var(--red-600); }
-@media (max-width: 1023px) { .catTocCardV1 { display: none; } } /* на мобильном это дублирует горизонтальную sticky-навигацию ниже — не плодим одно и то же дважды в узком экране */
 .catGalZoomHintV1 { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(255,255,255,.9); color: #1b2029; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
 /* ===== Лайтбокс фото (05.11.2026) ===== */
@@ -94,10 +107,15 @@ body.catLbOpenV1 { overflow: hidden; }
 .catModelTileV1 { border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; text-decoration: none; color: var(--ink-2); background: var(--surface); }
 .catModelTileV1:hover { border-color: var(--red-line); color: var(--red-600); background: var(--red-soft); }
 
-/* 05.11.2026: цена+факты — ОДНА светлая карточка (было: тёмная карточка цены отдельно от серой полосы фактов) */
-.catOverviewTopCardV1 { display: flex; flex-wrap: wrap; gap: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px 22px; margin-bottom: 16px; }
-.catOvPriceColV1 { flex: 1 1 200px; min-width: 0; padding-right: 24px; border-right: 1px solid var(--line-2); }
-.catOvFactsColV1 { flex: 2 1 320px; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 18px; align-content: start; }
+/* 05.11.2026 (повторный проход, «структура страницы также не настроил»): цена+CTA+переходы на отчёты
+   переехали из общего потока контента в правую липкую колонку `.catCarAsideV1` (эталон: цена у них
+   НИКОГДА не находится в середине страницы — это отдельная карточка, закреплённая в поле зрения).
+   Факты (пробег/топливо/КПП и т.п.), которые раньше лежали рядом с ценой отдельной сеткой, теперь —
+   чипы в строке `.catCarMetaRowV1` под заголовком (как у эталона) + расширенная таблица «Автомобиль»
+   ниже (объём/батарея/мощность/привод/кузов туда добавлены, не потеряны). */
+.catCarAsideV1:empty { display: none; }
+.catAsideCardV1 { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 14px; }
+.catCarAsideV1 .catOvPriceColV1 { padding: 0; border: none; }
 
 /* CTA + мессенджеры под ценой (05.11.2026, эталон autopartner.by/korea) */
 .catPriceActionsV1 { margin-top: 14px; }
@@ -122,7 +140,6 @@ body.catLbOpenV1 { overflow: hidden; }
 .catMainInfoRowV1 dd.isWarnV1 .catMainInfoFactV1 { color: var(--red-600); }
 .catMainInfoRowV1.isLinkV1 a { color: inherit; text-decoration: none; }
 .catMainInfoRowV1.isLinkV1 a:hover { text-decoration: underline; }
-@media (max-width: 760px) { .catOvPriceColV1 { border-right: none; padding-right: 0; flex-basis: 100%; } .catOvFactsColV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); flex-basis: 100%; } }
 .catOvPriceColV1 .catPriceLblV1 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
 .catOvPriceColV1 .catPriceBigV1 { font-size: 26px; font-weight: 800; margin: 4px 0; }
 .catOvPriceColV1 .catPriceCurV1 { font-size: 13px; color: var(--muted); font-weight: 700; }
@@ -132,10 +149,6 @@ body.catLbOpenV1 { overflow: hidden; }
 .catTrendBadgeV1 { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 4px 10px; }
 .catTrendBadgeV1.isDownV1 { background: #e7f7ee; color: #1a7f4b; }
 .catTrendBadgeV1.isUpV1 { background: #fdeee9; color: #b9440c; }
-.catFactV1 { background: var(--field); border-radius: 10px; padding: 10px 12px; }
-.catFactV1 small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
-.catFactV1 b { font-size: 14px; }
-
 .catDetailsCardV1 { margin-bottom: 18px; }
 .catDetailsCardV1 h4 { font-family: var(--font-display); font-size: 14.5px; margin: 16px 0 8px; }
 .catDetailsCardV1 h4:first-child { margin-top: 0; }
@@ -147,10 +160,6 @@ body.catLbOpenV1 { overflow: hidden; }
 .catDescCardV1 { margin-bottom: 18px; white-space: pre-line; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
 .catDescClampV1 { max-height: 9em; overflow: hidden; position: relative; }
 .catDescMoreV1 { border: none; background: none; color: var(--red-600); font-weight: 700; font-size: 13px; cursor: pointer; padding: 4px 0; }
-
-.catLeadCardV1 { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 16px; text-align: center; margin-bottom: 18px; }
-.catLeadCardV1 button { width: 100%; background: var(--red); color: #fff; border: none; border-radius: 11px; padding: 12px; font-weight: 700; cursor: pointer; font-size: 14.5px; }
-.catLeadCardV1 p { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
 
 .catListingRowV1 { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--line-2); border-radius: 10px; margin-bottom: 8px; }
 .catListingRowV1 img { width: 64px; height: 48px; object-fit: cover; border-radius: 8px; background: var(--field); }
