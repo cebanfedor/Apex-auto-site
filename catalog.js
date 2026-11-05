@@ -837,11 +837,8 @@
     return T("Автомобиль");
   }
   function lbl(table, id){ var r = table.find(function(x){ return x[0] === id; }); return r ? T(r[1]) : ""; }
-  function carHref(car, listing){
-    var p = new URLSearchParams();
-    if(listing && listing.external){ p.set("domain_id", listing.external.domain.id); p.set("listing_id", listing.external.id); }
-    return "/catalog/" + encodeURIComponent(car.id) + (p.toString() ? "?" + p.toString() : "");
-  }
+  // Чистая ссылка как у эталона: /catalog/<id> (страница сама берёт активное объявление — то же, что pickListing здесь)
+  function carHref(car){ return "/catalog/" + encodeURIComponent(car.id); }
   function specLi(icon, text, more){
     return '<li class="' + (more ? "vcard__more" : "flex") + ' min-w-0 items-center gap-2">' + icon + '<span class="truncate" data-no-i18n="true">' + esc(text) + '</span></li>';
   }
