@@ -600,7 +600,8 @@
   }
   var makeSearchQuery = "";
   // Популярные марки — первыми в фильтре (Федор 05.11.2026). Порядок по реальному числу авто на Encar
-  // (замер 05.11.2026: Hyundai 35k, Kia 34k, BMW 12.8k, Mercedes 12.5k, Genesis 8.2k … Peugeot 364); остальные — по алфавиту ниже.
+  // (замер 05.11.2026: Hyundai 35k, Kia 34k, BMW 12.8k, Mercedes 12.5k, Genesis 8.2k … Peugeot 364); внутри группы — по алфавиту
+  // (Федор 05.11.2026), остальные — тоже по алфавиту ниже.
   var POPULAR_BRANDS = [58,70,16,88,232,131,26,123,9,110,74,94,147,187,148,68,48,76,140,56,83,21,77,67,107];
   function brandsBodyHtml(){
     var all = dict.brands || [];
@@ -610,7 +611,7 @@
     var row = function(b){
       return '<label class="cf-row"><input type="checkbox" value="' + b.id + '"' + (selectedIds.indexOf(b.id) >= 0 ? " checked" : "") + ' class="peer sr-only" data-brand-id="' + b.id + '">' + I.check + logoHtml(b.name) + '<span class="cf-label" data-no-i18n="true">' + esc(b.name || ("ID " + b.id)) + '</span></label>';
     };
-    var top = POPULAR_BRANDS.map(function(id){ return filtered.find(function(b){ return b.id === id; }); }).filter(Boolean);
+    var top = filtered.filter(function(b){ return POPULAR_BRANDS.indexOf(b.id) >= 0; }).sort(function(a, b){ return (a.name || "").localeCompare(b.name || ""); });
     var rest = filtered.filter(function(b){ return POPULAR_BRANDS.indexOf(b.id) < 0; });
     var rows = top.map(row).join("")
       + (top.length && rest.length ? '<p class="cf-brand-sep">' + esc(T("Другие марки")) + '</p>' : "")
