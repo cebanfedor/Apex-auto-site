@@ -26,7 +26,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v496">
-  <link rel="stylesheet" href="/catalog.css?v=v4">
+  <link rel="stylesheet" href="/catalog.css?v=v5">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -134,13 +134,18 @@
           <div class="catSecBodyV1"><div class="catRangeRowV1"><input type="text" inputmode="numeric" id="catOdoFromV1" placeholder="От"><span>—</span><input type="text" inputmode="numeric" id="catOdoToV1" placeholder="До"></div></div>
         </section>
 
+        <section class="catSecV1" data-sec="drive" id="catSecDriveV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Привод<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catDrivePillsV1"></div>
+        </section>
+
         <section class="catSecV1 isOpenV1" data-sec="transmission" id="catSecTransV1">
-          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>КПП<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Трансмиссия<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
           <div class="catSecBodyV1 catPillsV1" id="catTransPillsV1"></div>
         </section>
 
         <section class="catSecV1" data-sec="body" id="catSecBodyTypeV1">
-          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Кузов<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Тип кузова<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
           <div class="catSecBodyV1 catPillsV1" id="catBodyPillsV1"></div>
         </section>
 
@@ -149,14 +154,64 @@
           <div class="catSecBodyV1 catPillsV1" id="catFuelPillsV1"></div>
         </section>
 
-        <section class="catSecV1" data-sec="drive" id="catSecDriveV1">
-          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Привод<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
-          <div class="catSecBodyV1 catPillsV1" id="catDrivePillsV1"></div>
-        </section>
-
         <section class="catSecV1" data-sec="condition" id="catSecCondV1">
           <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Состояние<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
           <div class="catSecBodyV1 catPillsV1" id="catCondPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="availability" id="catSecAvailV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Наличие<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catAvailPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="damage" id="catSecDamageV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Повреждения<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catDamagePillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="keys" id="catSecKeysV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Ключи<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catKeysPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="steering" id="catSecSteeringV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Руль<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catSteeringPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="emission" id="catSecEmissionV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Экологический класс<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catEmissionPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="airbags" id="catSecAirbagsV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Подушки безопасности<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catAirbagsPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="sellertype" id="catSecSellerV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Тип продавца<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catSellerPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="mfgcert" id="catSecMfgCertV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Сертифицированный продавец<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catMfgCertPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="hasinsp" id="catSecHasInspV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Есть отчёт об инспекции<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catHasInspPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="isauction" id="catSecIsAuctionV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Аукцион<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catIsAuctionPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="hashist" id="catSecHasHistV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>История автомобиля<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catHasHistPillsV1"></div>
         </section>
 
         <section class="catSecV1" data-sec="color" id="catSecColorV1">
@@ -164,13 +219,24 @@
           <div class="catSecBodyV1"><div class="catSwatchWrapV1" id="catColorSwatchesV1"></div><button type="button" class="catShowMoreV1" id="catColorMoreV1">Показать ещё</button></div>
         </section>
 
-        <section class="catSecV1" data-sec="flags" id="catSecFlagsV1">
-          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Дополнительно<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
-          <div class="catSecBodyV1">
-            <label class="catCheckRowV1"><input type="checkbox" id="catFlagKeysV1">Ключи в наличии</label>
-            <label class="catCheckRowV1"><input type="checkbox" id="catFlagInspV1">Есть отчёт осмотра</label>
-            <label class="catCheckRowV1"><input type="checkbox" id="catFlagHistV1">Есть отчёт истории</label>
-          </div>
+        <section class="catSecV1" data-sec="enginevol" id="catSecEngineVolV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Объём двигателя, см³<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1"><div class="catRangeRowV1"><input type="text" inputmode="numeric" id="catEngineVolFromV1" placeholder="От"><span>—</span><input type="text" inputmode="numeric" id="catEngineVolToV1" placeholder="До"></div></div>
+        </section>
+
+        <section class="catSecV1" data-sec="power" id="catSecPowerV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Мощность, л.с.<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1"><div class="catRangeRowV1"><input type="text" inputmode="numeric" id="catPowerFromV1" placeholder="От"><span>—</span><input type="text" inputmode="numeric" id="catPowerToV1" placeholder="До"></div></div>
+        </section>
+
+        <section class="catSecV1" data-sec="seats" id="catSecSeatsV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>Количество мест<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catSeatsPillsV1"></div>
+        </section>
+
+        <section class="catSecV1" data-sec="leasing" id="catSecLeasingV1">
+          <button type="button" class="catSecBtnV1" data-toggle><span class="catDotV1"></span>В лизинге<svg class="catChevV1" width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+          <div class="catSecBodyV1 catPillsV1" id="catLeasingPillsV1"></div>
         </section>
 
         <div class="catSidebarFootV1"><button type="button" class="catApplyBtnV1" id="catApplyBtnV1">Показать</button></div>
@@ -191,8 +257,9 @@
               <option value="expensive">Сначала дороже</option>
               <option value="odometer_asc">Пробег: меньше</option>
               <option value="odometer_desc">Пробег: больше</option>
-              <option value="year_desc">Год: новее</option>
               <option value="year_asc">Год: старше</option>
+              <option value="year_desc">Год: новее</option>
+              <option value="auction_nearest">Ближайшие аукционы</option>
             </select>
             <button type="button" class="catFiltersMobBtnV1" id="catFiltersMobBtnV1">Фильтры</button>
           </div>
@@ -246,8 +313,8 @@
     </div>
   </footer>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v549" defer></script>
-  <script src="catalog.js?v=v5" defer></script>
+  <script src="i18n.js?v=multilang-v550" defer></script>
+  <script src="catalog.js?v=v6" defer></script>
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
 </body>
