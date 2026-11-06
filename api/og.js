@@ -6,6 +6,7 @@ const ogCatalog = require("../server/og-catalog");
 
 const {describeTrack} = require("../server/og-track");
 const {selfOrigin} = require("../server/origin");
+const ogCat = require("../server/og-catcar");
 
 function origin(req){ return selfOrigin(req); }
 async function getJson(url, ms = 7000){
@@ -47,6 +48,16 @@ async function buildCatalog(req){
   return og.pageCard({kicker:d.X.kicker, title:d.names, sub, path:"apexauto.md/auctions" + (lang === "ru" ? "" : `?lang=${lang}`), image:uri});
 }
 
+// Машина из каталога Кореи/Канады: фото + название + цена в $ + пробег/топливо/КПП. Источник Канады не называем.
+async function buildCatCar(req, id){
+  const src = String(req.query.src || "") === "ca" ? "ca" : "kr";
+  const {car} = await ogCat.fetchCar(src, id, 6000);
+  if(!car) return null;
+  const s = await ogCat.summary(src, car, langOf(req));
+  return og.lotCard({title:s.title, auction:"", image:s.image, price:s.price, priceLabel:s.priceLabel, canada:src === "ca",
+    tag:s.tag, tagBg:"#1c9c5b", chips:[s.km, s.fuel, s.trans].filter(Boolean), date:""});
+}
+
 module.exports = async function(req, res){
   const type = String(req.query.type || ""), id = String(req.query.id || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
   let png = null, ttl = "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400";
@@ -54,6 +65,7 @@ module.exports = async function(req, res){
     if(type === "lot") png = await buildLot(req, id);
     else if(type === "transit") png = await buildTransit(req, id);
     else if(type === "catalog"){ png = await buildCatalog(req); }
+    else if(type === "cat"){ png = await buildCatCar(req, id); }
     else if(type === "track"){ png = await buildTrack(req, id); ttl = "public, max-age=120, s-maxage=600, stale-while-revalidate=3600"; }
   }catch(e){ png = null; }
   if(!png){

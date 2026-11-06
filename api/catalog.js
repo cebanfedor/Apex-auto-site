@@ -305,3 +305,4 @@ module.exports = async function handler(req, res){
     return sendJson(res, 500, {ok:false, error:"internal"});
   }
 };
+module.exports.getRates = getRates;

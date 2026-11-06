@@ -39,3 +39,14 @@ test("parseLotSlug: числовой и буквенный лот, мусор �
   assert.equal(parsed.auction, "copart");
   assert.equal(parsed.lot, "61420506");
 });
+
+test("catSlug/parseCatSlug: Корея/Канада — название + VIN + id, id с дефисом разбирается по VIN", () => {
+  const {catSlug, parseCatSlug} = require("../server/slug");
+  const car = {id:"l_guA4-6x4STi02xa8ra9nXQ", year:2024, brand:{name:"Hyundai"}, model:{name:"IONIQ 6"}, vin:"kmhm141bfsa094405"};
+  const s = catSlug(car);
+  assert.equal(s, "2024-Hyundai-IONIQ-6-KMHM141BFSA094405-l_guA4-6x4STi02xa8ra9nXQ");
+  assert.equal(parseCatSlug(s), car.id);
+  assert.equal(parseCatSlug("l_guA4-6x4STi02xa8ra9nXQ"), car.id);
+  assert.equal(parseCatSlug("l_8oYEykAIITWTKTvKj1TMaA"), "l_8oYEykAIITWTKTvKj1TMaA");
+  assert.equal(catSlug({id:"abc", vin:""}), "abc");
+});
