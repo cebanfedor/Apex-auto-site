@@ -35,8 +35,10 @@
     { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
     { "source": "/hot", "destination": "/in-transit", "permanent": true },
     { "source": "/hot.html", "destination": "/in-transit", "permanent": true },
-    { "source": "/korea", "destination": "/catalog", "permanent": true },
-    { "source": "/korea.html", "destination": "/catalog", "permanent": true }
+    { "source": "/korea.html", "destination": "/korea", "permanent": true },
+    { "source": "/catalog", "destination": "/korea", "permanent": true },
+    { "source": "/catalog.html", "destination": "/korea", "permanent": true },
+    { "source": "/catalog/:id", "destination": "/korea/:id", "permanent": true }
   ],
   "rewrites": [
     { "source": "/", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=index" },
@@ -106,8 +108,8 @@
     { "source": "/contacts", "destination": "/contacts.html" },
     { "source": "/in-transit", "destination": "/in-transit.html" },
     { "source": "/in-transit/:slug(\\d[^/]*)", "destination": "/api/transit-page?slug=:slug" },
-    { "source": "/catalog", "destination": "/catalog.html" },
-    { "source": "/catalog/:id", "destination": "/catalog-car.html" },
+    { "source": "/korea", "destination": "/catalog.html" },
+    { "source": "/korea/:id", "destination": "/catalog-car.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },

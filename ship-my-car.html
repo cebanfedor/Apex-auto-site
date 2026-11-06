@@ -41,7 +41,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v496">
+  <link rel="stylesheet" href="styles.css?v=v497">
   <link rel="stylesheet" href="guide.css?v=v2">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -57,17 +57,60 @@
       <img src="/assets/apex-logo-dark-80.webp" alt="Apex Auto" width="80" height="80">
       <span class="apexBrandTextV201" aria-hidden="true">
         <strong class="brandTextV77"><span class="brandApexV77">Apex</span><span class="brandAutoV77">Auto</span></strong>
-        <small>Доставка авто из США и Канады в Молдову</small>
+        <small>Авто из США, Канады и Кореи в Молдову</small>
       </span>
     </a>
+    <input type="checkbox" id="hdrSearchToggleV1" class="hdrSearchToggleV1" aria-hidden="true" tabindex="-1">
+    <label for="hdrSearchToggleV1" class="hdrSearchBtnV1" title="Поиск"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><b class="srOnlyV1">Поиск</b></label>
+    <form class="hdrSearchV1" action="/auctions" method="get" role="search" data-hdr-search>
+      <select name="region" aria-label="Где искать"><option value="us">США</option><option value="ca">Канада</option><option value="kr">Корея</option></select>
+      <input type="search" name="q" placeholder="Марка, модель, номер лота или VIN" aria-label="Поиск по марке, модели, лоту или VIN" autocomplete="off" enterkeyhint="search">
+      <button type="submit" aria-label="Найти"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    </form>
     <a class="headerPhoneV308" href="tel:+37368832032" aria-label="Позвонить 068-832-032">068-832-032</a>
     <input type="checkbox" id="navToggleV210" class="navToggleV210">
     <label for="navToggleV210" class="burgerV210"><span></span><span></span><span></span><b class="srOnlyV1">Меню</b></label>
     <nav class="mainNavV82 apexNavV201">
       <a href="/">Главная</a>
-      <a href="/auctions">Аукционы</a>
+      <div class="navMegaV1">
+        <button class="navMegaBtnV1" type="button" aria-expanded="false" aria-haspopup="true">Автомобили <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
+        <div class="navMegaPanelV1">
+          <p class="navMegaCapV1">Откуда привозим</p>
+          <div class="navMegaCardsV1">
+            <a class="navMegaCardV1" href="/auctions?country=US"><svg class="navMegaFlagV1" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><g fill="#d22f27"><rect width="30" height="1.54"/><rect y="3.08" width="30" height="1.54"/><rect y="6.15" width="30" height="1.54"/><rect y="9.23" width="30" height="1.54"/><rect y="12.31" width="30" height="1.54"/><rect y="15.38" width="30" height="1.54"/><rect y="18.46" width="30" height="1.54"/></g><rect width="13" height="10.77" fill="#1e3a8a"/></svg><span><b>Авто из США</b><small>Copart · IAAI</small></span></a>
+            <a class="navMegaCardV1" href="/auctions?country=CA"><svg class="navMegaFlagV1" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><rect width="7.5" height="20" fill="#d52b1e"/><rect x="22.5" width="7.5" height="20" fill="#d52b1e"/><path d="M15 4.2l1.1 2.2 1.6-.6-.5 3.3 1.9-1.5.4 1.1 2-.4-.7 2.1.9.5-3.2 2.5.4 1.3-3.1-.4V17h-.6v-3.2l-3.1.4.4-1.3-3.2-2.5.9-.5-.7-2.1 2 .4.4-1.1 1.9 1.5-.5-3.3 1.6.6z" fill="#d52b1e"/></svg><span><b>Авто из Канады</b><small>Copart · IAAI</small></span></a>
+            <a class="navMegaCardV1" href="/korea"><svg class="navMegaFlagV1" viewBox="0 0 30 20" aria-hidden="true"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="5" fill="#cd2e3a"/><path d="M10 10a5 5 0 0 0 10 0a2.5 2.5 0 0 0-5 0a2.5 2.5 0 0 1-5 0z" fill="#0047a0"/><g stroke="#111" stroke-width="1.1"><path d="M4.2 4.8l2.6-1.8M4.8 5.7l2.6-1.8M5.4 6.6l2.6-1.8M22.6 13.2l2.6 1.8M22 14.1l2.6 1.8M21.4 15l2.6 1.8M4.2 15.2l2.6 1.8M4.8 14.3l2.6 1.8M5.4 13.4l2.6 1.8M22.6 6.8l2.6-1.8M22 5.9l2.6-1.8M21.4 5l2.6-1.8"/></g></svg><span><b>Авто из Кореи</b><small data-mega-count="kr">Encar</small></span></a>
+            <a class="navMegaCardV1 isDarkV1" href="/in-transit"><svg class="navMegaIcoV1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h3l2-3h10l3 3h2v5h-2.2M4.2 17H2v-5"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg><span><b>Авто в пути</b><small>Уже едут в Молдову</small></span></a>
+          </div>
+          <div class="navMegaColsV1">
+            <div class="navMegaColV1">
+              <p class="navMegaCapV1">Аукционы США и Канады <span class="navMegaNumV1" data-mega-count="auc"></span></p>
+              <a href="/auctions"><i class="navMegaLiveV1" aria-hidden="true"></i>Текущие аукционы</a>
+              <a href="/auctions?tab=soon">Сегодня и завтра</a>
+              <a href="/auctions?tab=buy_now">Купить сейчас</a>
+              <a href="/auctions?saleStatus=timed">Timed аукционы</a>
+              <a href="/auctions?tab=archived">Архив продаж</a>
+            </div>
+            <div class="navMegaColV1">
+              <p class="navMegaCapV1">Подборки</p>
+              <a class="navMegaFeatV1" href="/auctions?smart=1"><span aria-hidden="true">★</span><span><b>Feduk Clean Select</b><small>Без перекупов</small></span></a>
+              <a href="/auctions?fuel=2,3,5">Электро и гибриды</a>
+              <a href="/auctions?yearFrom=2024">Свежие, от 2024</a>
+              <a href="/korea?has_inspections=1">Корея с техосмотром</a>
+            </div>
+            <div class="navMegaColV1 navMegaSvcV1">
+              <p class="navMegaCapV1">Онлайн-сервисы</p>
+              <div class="navMegaSvcGridV1">
+                <a href="/#calculator"><span class="navMegaSvcIcoV1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M16 11v4"/></svg></span><span><b>Калькулятор под ключ</b><small>Доставка и растаможка</small></span></a>
+                <a href="/vin-check"><span class="navMegaSvcIcoV1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span><b>Проверка по VIN</b><small>История авто</small></span></a>
+                <a href="/tracking"><span class="navMegaSvcIcoV1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span><b>Отслеживание</b><small>Где сейчас машина</small></span></a>
+                <a href="/customs"><span class="navMegaSvcIcoV1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M9 7V4h6v3M4 12h16"/></svg></span><span><b>Растаможка</b><small>Акцизы и пошлины</small></span></a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <a href="/in-transit">Продажа авто в пути</a>
-      <a href="/catalog">Каталог Encar</a>
       <a href="/tracking">Отследить</a>
       <div class="navDropV420">
         <button class="navDropBtnV420" type="button">Полезное <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>
@@ -240,7 +283,7 @@
     <div class="container footerInner">
       <div class="footerBrand">
         <strong>Apex <span>Auto</span></strong>
-        <p>Доставка авто из США и Канады в Молдову</p>
+        <p>Авто из США, Канады и Кореи в Молдову</p>
         <div class="footerFedukV320">
           <span class="footerFedukLabelV320">Меня вы можете знать как</span>
           <a href="https://www.instagram.com/feduk.usa" target="_blank" rel="noopener" aria-label="Feduk USA — Instagram"><img src="/assets/feduk-usa-dark.png?v=3" alt="Feduk USA" class="footerFedukImgV320" width="172" height="65" loading="lazy"></a>
@@ -272,7 +315,7 @@
       <div class="footerLegalV1">Apex Auto Import S.R.L. &middot; IDNO 1026023053147</div>
     </div>
   </footer>
-  <script src="i18n.js?v=multilang-v560" defer></script>
+  <script src="i18n.js?v=multilang-v561" defer></script>
 
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Article","headline":"Работаете в США? Отправим вашу машину домой в Молдову","description":"Доставка личного автомобиля из США в Молдову для молдаван, работающих в Америке: заберём от дома или примем на складе, доставим до Кишинёва.","url":"https://apexauto.md/ship-my-car","datePublished":"2026-08-15","dateModified":"2026-08-15","author":{"@type":"Person","name":"Федор Чебан","url":"https://apexauto.md/about","sameAs":["https://t.me/fedukusa","https://www.instagram.com/feduk.usa"]},"publisher":{"@type":"Organization","name":"Apex Auto","logo":{"@type":"ImageObject","url":"https://apexauto.md/assets/apex-logo-light.png"}},"image":"https://apexauto.md/assets/og/ship-my-car.png?v=4","inLanguage":"ru","about":{"@type":"Thing","name":"Доставка личного автомобиля из США в Молдову"}}
@@ -285,5 +328,6 @@
 </script>
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
+<script src="/site-nav.js?v=v1" defer></script>
 </body>
 </html>

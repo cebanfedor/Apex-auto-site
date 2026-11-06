@@ -125,7 +125,7 @@
   }
 
   // ---- Данные ----
-  var m = location.pathname.match(/^\/catalog\/([^/?#]+)/);
+  var m = location.pathname.match(/^\/(?:korea|catalog)\/([^/?#]+)/);
   var carId = m ? decodeURIComponent(m[1]) : "";
   var qp = new URLSearchParams(location.search);
   var refDomainId = qp.get("domain_id"), refListingId = qp.get("listing_id");
@@ -168,7 +168,7 @@
     return T("Автомобиль");
   }
   function listingHref(car, l){
-    var base = "/catalog/" + encodeURIComponent(car.id), def = defaultListing(car);
+    var base = "/korea/" + encodeURIComponent(car.id), def = defaultListing(car);
     if(!l || !l.external || l === def) return base;
     var p = new URLSearchParams(); p.set("listing", l.external.id);
     var lg = qp.get("lang"); if(lg) p.set("lang", lg);
@@ -304,9 +304,9 @@
     var el = document.getElementById("catCrumbsV1"), car = state.car;
     var sep = '<svg class="crumb-sep" aria-hidden="true" fill="none" viewBox="0 0 6 10"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m1 9 4-4-4-4"/></svg>';
     var parts = ['<a href="/" class="crumb crumb--home" aria-label="' + esc(T("Главная")) + '"><svg class="h-[15px] w-[15px]" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-5.5h-6V20H5a1 1 0 0 1-1-1z"/></svg></a>',
-      '<a href="/catalog" class="crumb">' + esc(T("Авто из Кореи")) + '</a>'];
-    if(car.brand){ var bp = new URLSearchParams(); bp.set("brand_id", car.brand.id); parts.push('<a href="/catalog?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(car.brand.name) + '</a>'); }
-    if(car.brand && car.model){ var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + car.model.id); parts.push('<a href="/catalog?' + mp.toString() + '" class="crumb" data-no-i18n="true">' + esc(car.model.name) + '</a>'); }
+      '<a href="/korea" class="crumb">' + esc(T("Авто из Кореи")) + '</a>'];
+    if(car.brand){ var bp = new URLSearchParams(); bp.set("brand_id", car.brand.id); parts.push('<a href="/korea?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(car.brand.name) + '</a>'); }
+    if(car.brand && car.model){ var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + car.model.id); parts.push('<a href="/korea?' + mp.toString() + '" class="crumb" data-no-i18n="true">' + esc(car.model.name) + '</a>'); }
     parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(titleOf(car, state.listing)) + '</span>');
     el.innerHTML = parts.join(sep);
   }
@@ -695,7 +695,7 @@
     var d = "";
     if(car.brand){
       var bp = new URLSearchParams(); bp.set("brand_id", car.brand.id);
-      d += infoRow(T("Марка"), car.brand.name, "is-make", {html:'<a class="lot-make" href="/catalog?' + bp.toString() + '" title="' + esc(T("Все лоты")) + ' ' + esc(car.brand.name) + '"><span class="lot-make__logo" aria-hidden="true">' + logoHtml(car.brand.name) + '</span><span class="lot-info__value" data-no-i18n="true">' + esc(car.brand.name) + '</span>' + ico('<path d="m9 18 6-6-6-6"/>', "h-4 w-4 lot-make__go") + '</a>'});
+      d += infoRow(T("Марка"), car.brand.name, "is-make", {html:'<a class="lot-make" href="/korea?' + bp.toString() + '" title="' + esc(T("Все лоты")) + ' ' + esc(car.brand.name) + '"><span class="lot-make__logo" aria-hidden="true">' + logoHtml(car.brand.name) + '</span><span class="lot-info__value" data-no-i18n="true">' + esc(car.brand.name) + '</span>' + ico('<path d="m9 18 6-6-6-6"/>', "h-4 w-4 lot-make__go") + '</a>'});
     }
     if(car.model) d += infoRow(T("Модель"), car.model.name);
     if(car.badge) d += infoRow(T("Метка"), car.badge);
@@ -1280,7 +1280,7 @@
         // Как у эталона (.similar): заголовок, «Все …», стрелки, горизонтальная лента карточек. Вкладки «Корея/Китай» не нужны — у нас только Корея.
         simSlot.innerHTML = '<section class="similar max-sm:px-1"><h2 class="lot-block-title">' + esc(T("Похожие автомобили")) + '</h2>'
           + '<div class="market-bar"><p class="text-[13px] text-ink-4" data-no-i18n="true">' + esc(car.brand.name + " " + car.model.name) + (car.year ? " · " + (car.year - 2) + "–" + (car.year + 2) : "") + '</p><div class="market-bar__side">'
-            + '<a href="/catalog?' + mp.toString() + '" class="market-bar__all" aria-label="' + esc(allLabel) + '"><span class="max-sm:hidden" data-no-i18n="true">' + esc(allLabel) + '</span><span class="sm:hidden">' + esc(T("Все")) + '</span>' + I.arrR + '</a>'
+            + '<a href="/korea?' + mp.toString() + '" class="market-bar__all" aria-label="' + esc(allLabel) + '"><span class="max-sm:hidden" data-no-i18n="true">' + esc(allLabel) + '</span><span class="sm:hidden">' + esc(T("Все")) + '</span>' + I.arrR + '</a>'
             + '<div class="similar__arrows"><button type="button" class="home-slider__arrow" data-sim-step="-1" aria-label="' + esc(T("Назад")) + '" disabled>' + I.prev + '</button><button type="button" class="home-slider__arrow" data-sim-step="1" aria-label="' + esc(T("Вперёд")) + '">' + I.next + '</button></div>'
           + '</div></div>'
           + '<div class="similar__stage"><div class="similar__panel"><div class="similar__track is-start">' + items.map(function(c){ return '<div class="similar__slide">' + simCard(c) + '</div>'; }).join("") + '</div></div></div></section>';
@@ -1294,8 +1294,8 @@
         var bp = new URLSearchParams(); bp.set("brand_id", car.brand.id);
         var allTxt = T("Все") + " " + items.length + " " + plural(items.length, T("модель"), T("модели"), T("моделей"));
         // Как у эталона (.model-tiles): плитки моделей марки, текущая подсвечена. Счётчиков авто по моделям наш API не отдаёт.
-        modSlot.innerHTML = '<section class="model-tiles max-sm:px-1"><header class="market-bar is-plain"><h2 class="lot-block-title market-bar__title" data-no-i18n="true">' + esc(T("Другие модели")) + ' ' + esc(car.brand.name) + '</h2><div class="market-bar__side"><a href="/catalog?' + bp.toString() + '" class="market-bar__all" aria-label="' + esc(allTxt) + '"><span class="max-sm:hidden" data-no-i18n="true">' + esc(allTxt) + '</span><span class="sm:hidden">' + esc(T("Все")) + ' <span class="num">' + items.length + '</span></span>' + I.arrR + '</a></div></header>'
-          + '<ul class="model-tiles__grid">' + items.map(function(mm){ var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + mm.id); var cur = car.model && mm.id === car.model.id; return '<li data-tile><a href="/catalog?' + mp.toString() + '" class="model-tile' + (cur ? " is-current" : "") + '"' + (cur ? ' aria-current="page"' : "") + '><span class="model-tile__name" data-no-i18n="true">' + esc(mm.name || ("ID " + mm.id)) + '</span></a></li>'; }).join("") + '</ul></section>';
+        modSlot.innerHTML = '<section class="model-tiles max-sm:px-1"><header class="market-bar is-plain"><h2 class="lot-block-title market-bar__title" data-no-i18n="true">' + esc(T("Другие модели")) + ' ' + esc(car.brand.name) + '</h2><div class="market-bar__side"><a href="/korea?' + bp.toString() + '" class="market-bar__all" aria-label="' + esc(allTxt) + '"><span class="max-sm:hidden" data-no-i18n="true">' + esc(allTxt) + '</span><span class="sm:hidden">' + esc(T("Все")) + ' <span class="num">' + items.length + '</span></span>' + I.arrR + '</a></div></header>'
+          + '<ul class="model-tiles__grid">' + items.map(function(mm){ var mp = new URLSearchParams(); mp.set("brand_id", car.brand.id); mp.set("model_id", car.brand.id + ":" + mm.id); var cur = car.model && mm.id === car.model.id; return '<li data-tile><a href="/korea?' + mp.toString() + '" class="model-tile' + (cur ? " is-current" : "") + '"' + (cur ? ' aria-current="page"' : "") + '><span class="model-tile__name" data-no-i18n="true">' + esc(mm.name || ("ID " + mm.id)) + '</span></a></li>'; }).join("") + '</ul></section>';
       }).catch(function(){});
     }
   }

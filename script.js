@@ -169,7 +169,7 @@ function refreshGlassSelect(select){
 }
 
 function refreshGlassSelects(){
-  document.querySelectorAll("select:not(#leadBudget)").forEach(refreshGlassSelect);
+  document.querySelectorAll("select:not(#leadBudget):not(.siteHeader select)").forEach(refreshGlassSelect);
 }
 
 document.addEventListener("click", event => {
