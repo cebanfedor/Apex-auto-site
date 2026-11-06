@@ -1714,3 +1714,12 @@ body.leadModalOpenV1 { overflow:hidden; }
 .vhStatus-warn { background:#fdf2df; color:#b3790a; }
 .vhStatus-neutral { background:var(--aSoft,#f6f8fb); color:var(--aMuted,#6b7280); }
 @media (max-width:640px){ .vhTableV1{display:block;overflow-x:auto;} }
+
+/* Мобильная проверка 06.11.2026: узкие телефоны (≤380px) */
+@media (max-width: 380px) {
+  .dSec { grid-template-columns: 92px minmax(0, 1fr); column-gap: 10px; }
+  .dRowVal { min-width: 0; }
+  .dRowVal > .copyChipV1 { min-width: 0; max-width: 100%; word-break: break-all; font-size: 12.5px; flex-wrap: wrap; }
+  .lotStickyCtaV1 > * { min-width: 0; }
+  .lotStickyBtnV1 { flex: 0 1 auto; padding: 9px 12px; font-size: 14px; line-height: 1.15; white-space: normal; text-align: center; }
+}
