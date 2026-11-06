@@ -5,9 +5,9 @@
   "use strict";
   var LANG = function(){ return String(window.APEX_LANG || document.documentElement.lang || "ru").slice(0, 2); };
   var WORD = {
-    ru:{cars:"авто", lots:"лотов", ca:"Канада", caAuc:"Аукционы Канады", usca:"США и Канада", kr:"Корея", none:"не найдено", found:"найдено", byVin:"история по VIN", byLot:"по номеру лота", noKr:"марка не распознана", where:"Где показать результаты"},
-    ro:{cars:"auto", lots:"loturi", ca:"Canada", caAuc:"Licitații Canada", usca:"SUA și Canada", kr:"Coreea", none:"nu s-a găsit", found:"găsit", byVin:"istoric după VIN", byLot:"după numărul lotului", noKr:"marca nu a fost recunoscută", where:"Unde afișăm rezultatele"},
-    en:{cars:"cars", lots:"lots", ca:"Canada", caAuc:"Canada auctions", usca:"USA & Canada", kr:"Korea", none:"not found", found:"found", byVin:"VIN history", byLot:"by lot number", noKr:"make not recognised", where:"Where to show results"}
+    ru:{cars:"авто", lots:"лотов", ca:"Канада", caAuc:"Аукционы Канады", caDeal:"Дилерские аукционы", usca:"США и Канада", kr:"Корея", none:"не найдено", found:"найдено", byVin:"история по VIN", byLot:"по номеру лота", noKr:"марка не распознана", where:"Где показать результаты"},
+    ro:{cars:"auto", lots:"loturi", ca:"Canada", caAuc:"Licitații Canada", caDeal:"Licitații pentru dealeri", usca:"SUA și Canada", kr:"Coreea", none:"nu s-a găsit", found:"găsit", byVin:"istoric după VIN", byLot:"după numărul lotului", noKr:"marca nu a fost recunoscută", where:"Unde afișăm rezultatele"},
+    en:{cars:"cars", lots:"lots", ca:"Canada", caAuc:"Canada auctions", caDeal:"Dealer auctions", usca:"USA & Canada", kr:"Korea", none:"not found", found:"found", byVin:"VIN history", byLot:"by lot number", noKr:"make not recognised", where:"Where to show results"}
   };
   function w(k){ var l = WORD[LANG()] || WORD.ru; return l[k]; }
   function fmt(n){ try{ return Number(n).toLocaleString("ru-RU").replace(/,/g, " "); }catch(e){ return String(n); } }
@@ -40,7 +40,7 @@
   function paint(){
     var kr = cacheGet("apexMegaKr"), ca = cacheGet("apexMegaCa"), auc = cacheGet("apexMegaAuc");
     document.querySelectorAll('[data-mega-count="kr"]').forEach(function(el){ if(kr) el.textContent = fmt(kr) + " " + w("cars"); });
-    document.querySelectorAll('[data-mega-count="ca"]').forEach(function(el){ if(ca) el.textContent = "OpenLane · " + fmt(ca) + " " + w("cars"); });
+    document.querySelectorAll('[data-mega-count="ca"]').forEach(function(el){ if(ca) el.textContent = fmt(ca) + " " + w("cars"); });
     document.querySelectorAll('[data-mega-count="auc"]').forEach(function(el){ if(auc) el.textContent = fmt(auc) + " " + w("lots"); });
   }
   function loadCounts(){
@@ -155,7 +155,7 @@
       box.setAttribute("role", "menu");
       var aucSub = isVin ? w("byVin") : isNum ? w("byLot") : "Copart · IAAI";
       var aucRow = row("auc", flag(region === "ca" ? 1 : 0), region === "ca" ? w("caAuc") : w("usca"), aucSub, aucUrl);
-      var caRow = row("ca", flag(1), w("ca"), "OpenLane", "/canada");
+      var caRow = row("ca", flag(1), w("ca"), w("caDeal"), "/canada");
       var krRow = row("kr", flag(2), w("kr"), "Encar", "/korea");
       box.innerHTML = '<p class="hdrResCapV1">' + w("where") + '</p>' + (region === "ca" ? caRow + aucRow : aucRow + caRow + krRow);
       form.appendChild(box);

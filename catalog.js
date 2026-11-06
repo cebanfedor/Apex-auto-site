@@ -923,7 +923,7 @@
       price = op ? {amt:op.amt, cur:op.cur} : null; priceLabel = op ? op.label : "";
       aucLine = olAuctionText(listing);
     }
-    var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
+    var src = CA ? "" : (listing && listing.external && listing.external.domain && listing.external.domain.name || "");
     var sold = listing && listing.archived;
     return '<article class="vcard vcard--api group' + (sold ? " is-sold" : "") + '">'
       + '<div class="vcard__media' + (shown.length ? " has-gallery" : " no-photo is-loaded") + '" data-no-photo="' + esc(T("Фото скоро появятся")) + '" data-count="' + shown.length + '" data-href="' + esc(href) + '">'
