@@ -13,8 +13,15 @@ const BASE = "https://api.auctionsapi.com";
 const KNOWN_ENCAR_DOMAIN_ID = 55613; // проверено живым /domains 04.11.2026; resolveEncarDomainId() всё равно переспрашивает с кэшем на случай смены.
 const DEFAULT_TIMEOUT_MS = 20000;
 
-function apiKey(){
-  return process.env.AUCTIONSAPI_CATALOG_KEY || "";
+// Источники (06.11.2026): kr — Encar (Корея, ключ AUCTIONSAPI_CATALOG_KEY), ca — OpenLane (Канада, отдельный ключ
+// AUCTIONSAPI_OPENLANE_KEY, домен app.openlane.ca id 55835 — проверено живым /domains). Хост и контракт API одни и те же.
+const SOURCES = {
+  kr:{env:"AUCTIONSAPI_CATALOG_KEY", domainId:KNOWN_ENCAR_DOMAIN_ID, match:/encar/i},
+  ca:{env:"AUCTIONSAPI_OPENLANE_KEY", domainId:55835, match:/openlane/i},
+};
+function srcOf(src){ return SOURCES[src] ? src : "kr"; }
+function apiKey(src){
+  return process.env[SOURCES[srcOf(src)].env] || "";
 }
 
 class CatalogApiError extends Error {
@@ -130,9 +137,9 @@ function buildErrorMessage(json, text){
  * path: "/search" (без базы и без api_key)
  * query: готовая строка параметров (без ведущего "&"/"?"), без api_key — добавляем сами.
  */
-async function catalogFetch(path, query = "", {timeoutMs = DEFAULT_TIMEOUT_MS, retries = 3} = {}){
-  const key = apiKey();
-  if(!key) throw new CatalogApiError("AUCTIONSAPI_CATALOG_KEY не настроен", {status:503, kind:"no_key"});
+async function catalogFetch(path, query = "", {timeoutMs = DEFAULT_TIMEOUT_MS, retries = 3, src = "kr"} = {}){
+  const key = apiKey(src);
+  if(!key) throw new CatalogApiError(SOURCES[srcOf(src)].env + " не настроен", {status:503, kind:"no_key"});
 
   const sep = query ? "&" : "";
   const url = `${BASE}${path}?api_key=${encodeURIComponent(key)}${sep}${query}`;
@@ -200,24 +207,28 @@ function cacheSet(key, data, ttlMs){
   dictCache.set(key, {data, exp:Date.now() + ttlMs});
 }
 
-async function resolveEncarDomainId(){
-  const cached = cacheGet("domains:encar");
+async function resolveDomainId(src = "kr"){
+  src = srcOf(src);
+  const conf = SOURCES[src];
+  const cached = cacheGet("domains:" + src);
   if(cached !== undefined) return cached;
-  let id = KNOWN_ENCAR_DOMAIN_ID;
+  let id = conf.domainId;
   try{
-    const list = await catalogFetch("/domains", "lang=en");
+    const list = await catalogFetch("/domains", "lang=en", {src});
     const arr = Array.isArray(list) ? list : (Array.isArray(list?.data) ? list.data : []);
-    const encar = arr.find(d => /encar/i.test(d?.name || d?.base_url || d?.domain || ""));
-    if(encar?.id) id = encar.id;
+    const hit = arr.find(d => conf.match.test(d?.name || d?.base_url || d?.domain || ""));
+    if(hit?.id) id = hit.id;
   }catch(e){
     // сеть легла — используем известное значение, не роняем весь каталог из-за словаря
   }
-  cacheSet("domains:encar", id, 6 * 60 * 60 * 1000);
+  cacheSet("domains:" + src, id, 6 * 60 * 60 * 1000);
   return id;
 }
+function resolveEncarDomainId(){ return resolveDomainId("kr"); }
 
-async function listBrands(lang, vehicleType){
-  const cacheKey = `brands:${vehicleType}:${lang}`;
+async function listBrands(lang, vehicleType, src = "kr"){
+  src = srcOf(src);
+  const cacheKey = `${src}:brands:${vehicleType}:${lang}`;
   const cached = cacheGet(cacheKey);
   if(cached !== undefined) return cached;
   const out = [];
@@ -225,7 +236,7 @@ async function listBrands(lang, vehicleType){
   for(;;){
     const q = [`lang=${encodeURIComponent(lang)}`, `per_page=100`, `page=${page}`];
     if(vehicleType === "motorcycle") q.push("vehicle_type=motorcycle");
-    const resp = await catalogFetch("/brands", q.join("&"));
+    const resp = await catalogFetch("/brands", q.join("&"), {src});
     const rows = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp) ? resp : []);
     out.push(...rows);
     const hasMore = !!resp?.meta?.has_more;
@@ -236,18 +247,20 @@ async function listBrands(lang, vehicleType){
   return out;
 }
 
-async function listModels(brandId, lang){
-  const cacheKey = `models:${brandId}:${lang}`;
+async function listModels(brandId, lang, src = "kr"){
+  src = srcOf(src);
+  const cacheKey = `${src}:models:${brandId}:${lang}`;
   const cached = cacheGet(cacheKey);
   if(cached !== undefined) return cached;
-  const resp = await catalogFetch(`/models/${encodeURIComponent(brandId)}`, `lang=${encodeURIComponent(lang)}&per_page=100`);
+  const resp = await catalogFetch(`/models/${encodeURIComponent(brandId)}`, `lang=${encodeURIComponent(lang)}&per_page=100`, {src});
   const rows = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp) ? resp : []);
   cacheSet(cacheKey, rows, 24 * 60 * 60 * 1000);
   return rows;
 }
 
-async function listGenerations(modelId, lang){
-  const cacheKey = `gens:${modelId}:${lang}`;
+async function listGenerations(modelId, lang, src = "kr"){
+  src = srcOf(src);
+  const cacheKey = `${src}:gens:${modelId}:${lang}`;
   const cached = cacheGet(cacheKey);
   if(cached !== undefined) return cached;
   const out = [];
@@ -255,7 +268,7 @@ async function listGenerations(modelId, lang){
   for(;;){
     const q = [`lang=${encodeURIComponent(lang)}`, `per_page=100`];
     if(afterId) q.push(`after_id=${encodeURIComponent(afterId)}`);
-    const resp = await catalogFetch(`/generations/${encodeURIComponent(modelId)}`, q.join("&"));
+    const resp = await catalogFetch(`/generations/${encodeURIComponent(modelId)}`, q.join("&"), {src});
     const rows = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp) ? resp : []);
     out.push(...rows);
     const hasMore = !!resp?.meta?.has_more;
@@ -270,7 +283,7 @@ module.exports = {
   CatalogApiError,
   catalogFetch,
   qsPush, qsArray, qsBrands, qsCountries,
-  resolveEncarDomainId,
+  resolveEncarDomainId, resolveDomainId, srcOf,
   listBrands, listModels, listGenerations,
   KNOWN_ENCAR_DOMAIN_ID,
 };
