@@ -2101,3 +2101,7 @@ body.lbOpenV1 { overflow:hidden; }
 }
 @media (max-width: 480px) { .heroV45.heroWideV302, .heroSlidesV1 { min-height: 376px; } }
 @media (max-width: 340px) { .heroV45.heroWideV302, .heroSlidesV1 { min-height: 398px; } }
+/* Заблокированный список калькулятора (объём двигателя у электро) */
+.glassSelectV152.isDisabledV1 { pointer-events: none; }
+.glassSelectV152.isDisabledV1 .glassSelectButtonV152 { opacity: .6; cursor: not-allowed; }
+.glassSelectV152.isDisabledV1 .glassSelectButtonV152 b { display: none; }

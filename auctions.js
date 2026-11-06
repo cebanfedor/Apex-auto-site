@@ -2927,6 +2927,16 @@
     if(!state.selectedLot || !$("#lotBidInput")) return;
     const veh = $("#lotCalcVehType")?.value || vehicleKind(state.selectedLot);
     const fuel = $("#lotCalcFuel")?.value || mapFuel(state.selectedLot.fuel, false, state.selectedLot);
+    // Электро: объём не участвует в расчёте — в поле «—», поле заблокировано; смена топлива возвращает прежний объём
+    const engSel = $("#lotCalcEngine");
+    if(engSel){
+      let dash = engSel.querySelector('option[value="0"]');
+      if(fuel === "electric"){
+        if(!dash){ if(engSel.value && engSel.value !== "0") engSel.dataset.prev = engSel.value; dash = document.createElement("option"); dash.value = "0"; dash.textContent = "—"; engSel.insertBefore(dash, engSel.firstChild); }
+        engSel.value = "0"; engSel.disabled = true;
+      } else if(dash){ dash.remove(); engSel.value = engSel.dataset.prev || "2.0"; engSel.disabled = false; }
+      else engSel.disabled = false;
+    }
     const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
     const year = Number($("#lotCalcYear")?.value) || Number(state.selectedLot.year) || new Date().getFullYear();
     const usdMdl = Number($("#lotCalcUsdMdl")?.value) || liveRates.usdMdl;

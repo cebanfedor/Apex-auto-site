@@ -50,7 +50,7 @@ function initLiters(){const e=$("engineLiters");if(!e)return;const unit=(typeof 
   // Один раз перелокализуем единицу по готовности словаря, не сбрасывая выбранное значение. Для RU словарь не трогаем.
   if(!initLiters._i18nHooked && window.APEX_LANG && window.APEX_LANG !== "ru" && typeof window.__apexEnsureDict === "function"){
     initLiters._i18nHooked = true;
-    window.__apexEnsureDict(() => { const el = $("engineLiters"); if(!el) return; const u = (typeof window.i18nT === "function" ? window.i18nT("л") : "л"); [...el.options].forEach(o => { o.textContent = `${o.value} ${u}`; }); refreshGlassSelect(el); });
+    window.__apexEnsureDict(() => { const el = $("engineLiters"); if(!el) return; const u = (typeof window.i18nT === "function" ? window.i18nT("л") : "л"); [...el.options].forEach(o => { o.textContent = o.value === "0" ? "—" : `${o.value} ${u}`; }); refreshGlassSelect(el); });
   }}
 function normalizeAuction(v){return String(v||"").toLowerCase().replace(/\s+/g,"")}function matchesAuction(item){let a=normalizeAuction(item.auction),s=$("auction")?.value||"copart";if(s==="copart")return a.includes("copart");if(s==="iaai")return a.includes("iaai");return a.includes("manheim")||a.includes("manhei")}
 function getFilteredLocations(){return (window.LOCATIONS||[]).filter(matchesAuction)}
@@ -63,6 +63,35 @@ function updateHybridGuard(data){
   if(!box) return;
   box.hidden = true;
   box.classList.remove("isPhevV125");
+}
+
+// Электро: объём двигателя не нужен (акциз считается без него) — поле «—» и заблокировано; при смене топлива возвращаем прежний объём
+let evPrevLiters = "2.0";
+function syncEvEngine(){
+  const f = $("fuel"), e = $("engineLiters");
+  if(!f || !e) return;
+  const ev = f.value === "electric";
+  let dash = e.querySelector('option[value="0"]');
+  let changed = false;
+  if(ev){
+    if(!dash){
+      if(e.value && e.value !== "0") evPrevLiters = e.value;
+      dash = document.createElement("option"); dash.value = "0"; dash.textContent = "—";
+      e.insertBefore(dash, e.firstChild); changed = true;
+    }
+    if(e.value !== "0"){ e.value = "0"; changed = true; }
+    if(!e.disabled){ e.disabled = true; changed = true; }
+  } else {
+    if(dash){ const cur = e.value; dash.remove(); e.value = (cur && cur !== "0") ? cur : (evPrevLiters || "2.0"); if(!e.value) e.value = "2.0"; changed = true; }
+    if(e.disabled){ e.disabled = false; changed = true; }
+  }
+  if(!changed) return;
+  refreshGlassSelect(e);
+  const wrap = e.nextElementSibling;
+  if(wrap && wrap.classList.contains("glassSelectV152")){
+    wrap.classList.toggle("isDisabledV1", ev);
+    const b = wrap.querySelector("button"); if(b) b.disabled = ev;
+  }
 }
 
 function closeGlassSelects(except){
@@ -1158,6 +1187,7 @@ function applyLotParamImport(){
 }
 
 function calculate(){
+  syncEvEngine();
   if(typeof calcMode !== "undefined" && calcMode === "canada") { calculateCanada(); return; }
   if(!$("calcForm")) return;
   updateLocation();
