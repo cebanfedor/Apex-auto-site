@@ -522,14 +522,11 @@
 .catHeroCardV1 a.afLotV1:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) { .afLiveV1 { animation: none; } .catHeroCardV1 .afListV1 li { transition: none; } }
 
-/* Текст шапки /korea и /canada на светлой подложке (06.11.2026, Федор: «текст не читается» — мешали бегущие точки фона) */
-.catHeroTxtV1 { padding: 16px 22px 18px; border-radius: 18px; border: 1px solid rgb(237 0 18 / .12);
-  background: linear-gradient(135deg, rgb(255 255 255 / .92), rgb(255 241 242 / .88));
-  box-shadow: 0 16px 36px -28px rgb(11 18 32 / .35); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+/* Текст шапки /korea и /canada (06.11.2026): без подложки — точки фона под ним гаснут сами (site-bg.js, data-bg-quiet);
+   текст чуть крупнее и темнее; справа место под карточку фактов. */
 .catHeroTxtV1 .catalog-intro { margin-top: 8px; font-size: 16.5px; line-height: 1.5; color: rgb(var(--c-ink-2)); }
 .catHeroTxtV1 .kindRowV1 { font-size: 14.5px; }
 .catHeroTxtV1 .kindHintV1 { color: rgb(var(--c-ink-2)); }
-/* место под карточку фактов справа, чтобы подложка под неё не заезжала */
 @media (width >= 1180px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 480px)); } }
 @media (width >= 1400px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 520px)); } }
-@media (width <= 639px) { .catHeroTxtV1 { padding: 12px 14px 14px; border-radius: 14px; } .catHeroTxtV1 .catalog-intro { font-size: 15px; } .catHeroTxtV1 .kindRowV1 { font-size: 13px; } }
+@media (width <= 639px) { .catHeroTxtV1 .catalog-intro { font-size: 15px; } .catHeroTxtV1 .kindRowV1 { font-size: 13px; } }

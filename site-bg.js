@@ -23,6 +23,61 @@
   // стабильный «случайный» множитель для каждой точки — чтобы волна мерцала неровно
   function hash(i, j){ var h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
 
+  // «Тихие зоны» (06.11.2026, Федор: «текст не читается, точки мешают»): под заголовками и текстом шапок
+  // (h1 и элементы с атрибутом data-bg-quiet) точки плавно гаснут — без подложек и рамок, фон вокруг остаётся живым.
+  var QUIET_SEL = "[data-bg-quiet], h1", PAD = 14, FEATHER = 56;
+  var zones = [], zonesKey = "";
+  function readZones(){
+    var els = document.querySelectorAll(QUIET_SEL), out = [], key = "";
+    for(var i = 0; i < els.length; i++){
+      var r = els[i].getBoundingClientRect();
+      if(!r.width || !r.height || r.bottom < -FEATHER || r.top > H + FEATHER || r.right < -FEATHER || r.left > W + FEATHER) continue;
+      var z = [r.left - PAD, r.top - PAD, r.right + PAD, r.bottom + PAD];
+      out.push(z); key += (z[0] | 0) + "," + (z[1] | 0) + "," + (z[2] | 0) + "," + (z[3] | 0) + ";";
+    }
+    var changed = key !== zonesKey; zones = out; zonesKey = key; return changed;
+  }
+  // 0 — точка внутри тихой зоны, 1 — далеко от неё, между — плавный переход
+  function quiet(x, y){
+    var q = 1;
+    for(var k = 0; k < zones.length; k++){
+      var z = zones[k];
+      var dx = x < z[0] ? z[0] - x : (x > z[2] ? x - z[2] : 0);
+      var dy = y < z[1] ? z[1] - y : (y > z[3] ? y - z[3] : 0);
+      if(dx > FEATHER || dy > FEATHER) continue;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if(d >= FEATHER) continue;
+      var f = d / FEATHER; f = f * f * (3 - 2 * f);
+      if(f < q) q = f;
+      if(q === 0) return 0;
+    }
+    return q;
+  }
+  function drawBase(){
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    bctx.clearRect(0, 0, W, H);
+    bctx.fillStyle = BASE;
+    bctx.beginPath();
+    var soft = [];
+    for(var i = 0; i < cols; i++) for(var j = 0; j < rows; j++){
+      var x = ox + i * STEP, y = oy + j * STEP, q = zones.length ? quiet(x, y) : 1;
+      if(q <= 0.02) continue;
+      if(q >= 0.98){ bctx.moveTo(x + 1, y); bctx.arc(x, y, 1, 0, 6.2832); }
+      else soft.push(x, y, q);
+    }
+    bctx.fill();
+    for(var s = 0; s < soft.length; s += 3){
+      bctx.globalAlpha = soft[s + 2];
+      bctx.beginPath(); bctx.arc(soft[s], soft[s + 1], 1, 0, 6.2832); bctx.fill();
+    }
+    bctx.globalAlpha = 1;
+  }
+  function paintStatic(){
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(base, 0, 0);
+  }
+
   function resize(){
     dpr = Math.min(window.devicePixelRatio || 1, 1.75);
     W = window.innerWidth; H = window.innerHeight;
@@ -30,15 +85,9 @@
     cv.height = base.height = Math.round(H * dpr);
     cols = Math.ceil(W / STEP) + 1; rows = Math.ceil(H / STEP) + 1;
     ox = (W - (cols - 1) * STEP) / 2; oy = STEP / 2;
-    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    bctx.clearRect(0, 0, W, H);
-    bctx.fillStyle = BASE;
-    for(var i = 0; i < cols; i++) for(var j = 0; j < rows; j++){
-      bctx.beginPath(); bctx.arc(ox + i * STEP, oy + j * STEP, 1, 0, 6.2832); bctx.fill();
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    ctx.drawImage(base, 0, 0);
+    readZones();
+    drawBase();
+    paintStatic();
   }
 
   // курсор: точка подсветки догоняет курсор, позади — след из прошлых положений
@@ -77,6 +126,7 @@
     if(mouse.on){ trail.unshift({ x: mouse.x, y: mouse.y }); if(trail.length > 10) trail.length = 10; }
     else if(trail.length) trail.pop();
 
+    if(readZones()) drawBase();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.drawImage(base, 0, 0);
@@ -124,8 +174,9 @@
     for(var t = 0; t < touched.length; t++){
       var key = touched[t], e = energy[key]; energy[key] = 0;
       var ci = (key / rows) | 0, cj = key - ci * rows;
-      var v = Math.min(1, e);
-      dot(ox + ci * STEP, oy + cj * STEP, 0.15 + 0.7 * v, 1 + 1.7 * v);
+      var v = Math.min(1, e), dx0 = ox + ci * STEP, dy0 = oy + cj * STEP, qq = zones.length ? quiet(dx0, dy0) : 1;
+      if(qq <= 0.02) continue;
+      dot(dx0, dy0, (0.15 + 0.7 * v) * qq, 1 + 1.7 * v * qq);
     }
   }
 
@@ -142,6 +193,11 @@
     var rt = 0;
     window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(resize, 120); });
     document.addEventListener("visibilitychange", function(){ document.hidden ? stop() : start(); });
+    if(reduce){
+      var st = 0, upd = function(){ st = 0; if(readZones()){ drawBase(); paintStatic(); } };
+      window.addEventListener("scroll", function(){ if(!st) st = requestAnimationFrame(upd); }, { passive: true });
+      setTimeout(upd, 800); setTimeout(upd, 2500);
+    }
     start();
   }
   if(document.body) init(); else document.addEventListener("DOMContentLoaded", init);
