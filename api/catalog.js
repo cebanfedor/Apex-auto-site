@@ -5,6 +5,7 @@
 // Федора и server/catalog-api.js). Ключ никогда не уходит в браузер: только через этот эндпоинт.
 const {sendJson, methodNotAllowed, getQuery} = require("../server/http");
 const cat = require("../server/catalog-api");
+const {fetchCadUsdRate} = require("../server/cad-rate");
 const {fetchT} = require("../server/fetchx");
 
 const LANGS = new Set(["en", "ru", "uk", "pl", "bg", "sq"]);
@@ -198,10 +199,12 @@ async function getRates(){
     try{
       const v = await get();
       if(v && v.krw > 100 && v.krw < 10000){
-        // CAD (OpenLane, Канада): тот же запас в нашу пользу; нет CAD у источника — 0, клиент покажет цену в CAD.
-        const cad = v.cad > 0.5 && v.cad < 3 ? v.cad : 0;
+        // CAD (Канада): тот же курс TD Bank, что у калькулятора лота на странице аукционов (server/cad-rate.js), БЕЗ своего запаса —
+        // иначе одна и та же машина в каталоге Канады и на аукционах стоила бы по-разному. usdCad = CAD за 1 $ (= 1 / cadUsd).
+        const cadUsd = await fetchCadUsdRate().catch(() => 0);
+        const cad = cadUsd > 0.3 && cadUsd < 2 ? Math.round(10000 / cadUsd) / 10000 : 0;
         const out = {usdKrw:Math.round(v.krw * (1 - RATE_MARGIN) * 100) / 100, marketKrw:v.krw, margin:RATE_MARGIN, usdEur:v.eur || 0,
-          usdCad:cad ? Math.round(cad * (1 - RATE_MARGIN) * 10000) / 10000 : 0, marketCad:cad, src, at:new Date().toISOString()};
+          usdCad:cad, marketCad:cad, cadUsd:cadUsd || 0, cadSrc:"td", src, at:new Date().toISOString()};
         ratesCache = {t:Date.now(), v:out};
         return out;
       }
