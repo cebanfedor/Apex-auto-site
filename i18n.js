@@ -183,6 +183,8 @@
     if(typeof window._trackRerender === "function"){ try { window._trackRerender(); apply(lang); } catch(e){} }
     // re-render /catalog breadcrumbs + dynamic H1 (brand/model name composed in JS, not a DOM-text match)
     if(typeof window._catalogRerenderHeading === "function"){ try { window._catalogRerenderHeading(); apply(lang); } catch(e){} }
+    // живые факты с аукционов (карточка в шапке /korea, /canada) — тексты собираются в JS
+    if(typeof window._factsRerender === "function"){ try { window._factsRerender(); } catch(e){} }
   }
 
   let currentLang = getLang();

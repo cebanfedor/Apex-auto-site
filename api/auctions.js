@@ -4,6 +4,7 @@ const tesla = require("../server/tesla");
 const supabase = require("../server/supabase");
 const priceGuide = require("../server/price-guide");
 const {isValidContact, isValidVin} = require("../server/validators");
+const {lotSlug} = require("../server/slug");
 
 const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
 const CACHE_TTL = 7 * 60 * 1000;
@@ -2669,6 +2670,69 @@ async function countRows(url, key, params){
     if(filteredCountCache.size > 300) filteredCountCache.delete(filteredCountCache.keys().next().value);
   }
   return n;
+}
+
+// ---- Живые факты с аукционов для карточки в шапке /korea и /canada (06.11.2026, Федор: «продано вчера N машин,
+// добавилось за сутки N гибридов, самая дорогая продажа вчера…»). Только наша база лотов Copart/IAAI (США+Канада),
+// ничего не додумываем: не посчиталось — факта нет. «Вчера/сегодня» — по часовому поясу Кишинёва. Кэш 30 мин.
+function chisinauOffMs(ts){
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {timeZone:"Europe/Chisinau", hourCycle:"h23", year:"numeric", month:"numeric", day:"numeric", hour:"numeric", minute:"numeric", second:"numeric"})
+    .formatToParts(new Date(ts)).map(x => [x.type, x.value]));
+  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - ts;
+}
+function chisinauMidnight(dayShift){
+  const [y, m, d] = new Intl.DateTimeFormat("en-CA", {timeZone:"Europe/Chisinau", year:"numeric", month:"2-digit", day:"2-digit"}).format(new Date()).split("-").map(Number);
+  const guess = Date.UTC(y, m - 1, d + dayShift);
+  return guess - chisinauOffMs(guess);
+}
+let factsCache = null, factsBusy = null;
+async function computeAuctionFacts(){
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if(!url || !key) return null;
+  const iso = ms => encodeURIComponent(new Date(ms).toISOString());
+  const y0 = chisinauMidnight(-1), t0 = chisinauMidnight(0), t1 = chisinauMidnight(1), d24 = Date.now() - 24 * 3600e3;
+  const notCa = "or=(country.neq.ca,country.is.null)";
+  const sold = `archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=gte.${iso(y0)}&sale_date=lt.${iso(t0)}`;
+  const req = async (q, ms, count) => {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
+    try{
+      const r = await fetch(`${url}/rest/v1/api_lots?${q}`, {headers:Object.assign({apikey:key, authorization:`Bearer ${key}`},
+        count ? {prefer:"count=exact", range:"0-0", "range-unit":"items"} : {}), signal:ctrl.signal});
+      if(!(r.ok || r.status === 416)) throw new Error("HTTP " + r.status);
+      if(count) return Number((r.headers.get("content-range") || "*/0").split("/").pop()) || 0;
+      return await r.json();
+    }finally{ clearTimeout(t); }
+  };
+  const cnt = q => req(`select=id&${q}`, 7000, true).catch(() => null);
+  const fx = await fuelXReady().catch(() => false);
+  const fresh = `archived=eq.false&first_seen=gte.${iso(d24)}`;
+  const [soldYesterday, soldYesterdayCa, top, todayLots, newLots24h, newHybrids24h, newEv24h] = await Promise.all([
+    cnt(sold),
+    cnt(`${sold}&country=eq.ca`),
+    req(`select=id,title,vin,year,final_bid&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 7000).catch(() => null),
+    cnt(`archived=eq.false&sale_date=gte.${iso(t0)}&sale_date=lt.${iso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
+    cnt(fresh),
+    fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${notCa}`) : null,
+    fx ? cnt(`${fresh}&fuel_x=eq.2&${notCa}`) : null
+  ]);
+  let topSale = null;
+  const tr = Array.isArray(top) && top[0];
+  if(tr && Number(tr.final_bid) > 0){
+    const [auction, lot] = String(tr.id || "").replace(/-s\d{8}$/, "").split("-");
+    const title = String(tr.title || "").trim();
+    topSale = {price:Number(tr.final_bid), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:tr.vin}) : ""};
+  }
+  const out = {ok:true, at:new Date().toISOString(), soldYesterday, soldYesterdayCa, topSale, todayLots, newLots24h, newHybrids24h, newEv24h};
+  out._n = ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => out[k]).length;
+  return out;
+}
+async function auctionFacts(){
+  if(factsCache && Date.now() - factsCache.at < (factsCache.v._n >= 3 ? 30 : 3) * 60e3) return factsCache.v;
+  if(!factsBusy) factsBusy = computeAuctionFacts().then(v => { if(v) factsCache = {v, at:Date.now()}; return v; }).finally(() => { factsBusy = null; });
+  // есть старое значение — отдаём его сразу, пересчёт идёт в фоне
+  if(factsCache) return factsCache.v;
+  return factsBusy;
 }
 
 async function searchFromDb(query){
@@ -6099,6 +6163,13 @@ module.exports = async function handler(request, response){
       }
       setCached(ck, out, 600);
       sendJson(response, 200, out, {"cache-control":"no-store"});
+      return;
+    }
+    if(action === "facts"){
+      const f = await auctionFacts().catch(() => null);
+      if(!f){ sendJson(response, 200, {ok:false}, {"cache-control":"public, s-maxage=60"}); return; }
+      const {_n, ...pub} = f;
+      sendJson(response, 200, pub, {"cache-control":_n >= 3 ? "public, s-maxage=900, stale-while-revalidate=3600" : "public, s-maxage=120"});
       return;
     }
     if(action === "count"){
