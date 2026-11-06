@@ -41,14 +41,14 @@
   }
   function kmFromMi(mi) {
     mi = Number(mi) || 0;
-    return mi ? Math.round((mi * 1.609) / 1000) + " тыс. км" : "";
+    return mi ? Math.round((mi * 1.609) / 1000) + " " + T("тыс. км") : "";
   }
   function shortDate(iso) {
     if (!iso) return "";
     var d = new Date(iso);
     if (isNaN(d)) return "";
     // «26 сент.» вместо «09/26» (Федор 23.09.2026: MM/YY читался как непонятно что)
-    var t = d.toLocaleDateString("ru-RU", {day:"numeric", month:"short"}).replace(/ /g, "\u00a0");
+    var t = d.toLocaleDateString(({ro:"ro-RO", en:"en-GB"})[window.APEX_LANG] || "ru-RU", {day:"numeric", month:"short"}).replace(/ /g, "\u00a0");
     return d.getFullYear() !== new Date().getFullYear() ? t + " " + d.getFullYear() : t;
   }
   function specLine(it) {

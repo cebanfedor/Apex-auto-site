@@ -649,7 +649,7 @@
       model:lot.model || "",
       location:lot.location || ""
     });
-    return `/index.html?${params}`;
+    return `/?${params}`;
   }
 
   async function api(path, options = {}){
@@ -4452,7 +4452,7 @@
         <div class="vinEmptyV1">
           <h2>${L("Некорректный VIN")}</h2>
           <p>${L("VIN должен содержать ровно 17 символов, без букв I, O, Q. Проверьте номер и попробуйте снова.")}</p>
-          <a class="vinLeadBtnV1" href="/index.html#lead">${L("Оставить заявку")}</a>
+          <a class="vinLeadBtnV1" href="/#lead">${L("Оставить заявку")}</a>
         </div>`;
       return;
     }
@@ -4465,7 +4465,7 @@
         <div class="vinEmptyV1">
           <h2>По VIN ${escapeHtml(clean)} лот не найден</h2>
           <p>Возможно, машина ещё не выставлена на Copart/IAAI или VIN указан с ошибкой. Проверьте номер или оставьте заявку — найдём и проверим вручную.</p>
-          <a class="vinLeadBtnV1" href="/index.html#lead">Оставить заявку</a>
+          <a class="vinLeadBtnV1" href="/#lead">Оставить заявку</a>
         </div>`;
     }
   }

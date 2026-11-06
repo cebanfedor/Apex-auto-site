@@ -59,7 +59,7 @@ function esc(s){
         + '<div class="transitChipsV1">' + chips + '</div>'
         + '<div class="transitCardFootV1">'
           + '<b class="transitPriceV1"' + (it.price ? " data-num" : "") + ' data-no-i18n="true">' + (it.price ? money(it.price) : esc(T("Цена по запросу"))) + '</b>'
-          + '<span class="transitMoreV1">' + esc(T("Подробнее")) + ' →</span>'
+          + '<span class="transitMoreV1">' + '<span>' + esc(T("Подробнее")) + '</span> →</span>'
         + '</div>'
       + '</div></a>';
   }

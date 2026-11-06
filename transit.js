@@ -89,14 +89,14 @@ function esc(s){
     return '<a class="transitCardV1' + (it.sold ? " isSoldV1" : "") + '" href="' + transitHref(it) + '" data-transit-id="' + esc(it.id) + '">'
       + '<div class="transitCardImgV1">' + img
         + '<span class="transitBadgeV1">' + esc(T(it.sold ? "Продан" : "В пути")) + '</span>'
-        + (it.photos.length > 1 ? '<span class="transitPhotoCntV1">' + it.photos.length + ' ' + esc(T("фото")) + '</span>' : "")
+        + (it.photos.length > 1 ? '<span class="transitPhotoCntV1">' + it.photos.length + ' <span>' + esc(T("фото")) + '</span></span>' : "")
       + '</div>'
       + '<div class="transitCardBodyV1">'
         + '<h3 data-no-i18n="true">' + esc(it.title) + '</h3>'
         + '<div class="transitChipsV1">' + chips(it) + '</div>'
         + '<div class="transitCardFootV1">'
           + '<b class="transitPriceV1"' + (it.price ? " data-num" : "") + ' data-no-i18n="true">' + (it.price ? money(it.price) : esc(T("Цена по запросу"))) + '</b>'
-          + '<span class="transitMoreV1">' + esc(T("Подробнее")) + ' →</span>'
+          + '<span class="transitMoreV1">' + '<span>' + esc(T("Подробнее")) + '</span> →</span>'
         + '</div>'
       + '</div>'
     + '</a>';

@@ -102,6 +102,14 @@
       const val = lang === "ru" ? src : (map[src] || main[src] || src);
       if(el.getAttribute("aria-label") !== val) el.setAttribute("aria-label", val);
     });
+    document.querySelectorAll("[title]").forEach(el => {
+      if(el.closest("[data-no-i18n]") || el.tagName === "TITLE") return;
+      let src = el.__i18nTitle;
+      if(src === undefined){ src = el.getAttribute("title") || ""; el.__i18nTitle = src; }
+      if(!/[А-Яа-яЁё]/.test(src)) return;
+      const val = lang === "ru" ? src : (map[src] || main[src] || src);
+      if(el.getAttribute("title") !== val) el.setAttribute("title", val);
+    });
     const titleMap = {
       ro:{
         "APEX AUTO — просчет под ключ":"APEX AUTO — calcul la cheie",
