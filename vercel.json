@@ -24,7 +24,8 @@
     { "path": "/api/cron/warm", "schedule": "*/3 * * * *" },
     { "path": "/api/cron/powertrain", "schedule": "1-59/4 * * * *" },
     { "path": "/api/cron/buynow", "schedule": "4-59/10 * * * *" },
-    { "path": "/api/cron/timedsync", "schedule": "*/2 5,9,15,16 * * *" }
+    { "path": "/api/cron/timedsync", "schedule": "*/2 5,9,15,16 * * *" },
+    { "path": "/api/cron/facts", "schedule": "7-59/10 * * * *" }
   ],
   "redirects": [
     { "source": "/", "has": [{ "type": "query", "key": "lang", "value": "(?<lang>ro|en)" }, { "type": "header", "key": "user-agent", "value": ".*(TelegramBot|WhatsApp|facebookexternalhit|Facebot|Twitterbot|Slackbot|LinkedInBot|Viber|Discordbot|SkypeUriPreview|Pinterest|Google-InspectionTool|Googlebot).*" }], "destination": "/api/page-meta?page=index&lang=:lang", "permanent": false },
@@ -69,6 +70,7 @@
     { "source": "/api/cron/warm", "destination": "/api/auctions?action=warm&source=cron" },
     { "source": "/api/cron/powertrain", "destination": "/api/auctions?action=ptfill&source=cron" },
     { "source": "/api/cron/buynow", "destination": "/api/auctions?action=buynowcheck&source=cron" },
+    { "source": "/api/cron/facts", "destination": "/api/auctions?action=factsrefresh&source=cron" },
     { "source": "/api/cron/timedsync", "destination": "/api/auctions?action=timedsync&source=cron" },
     { "source": "/api/sync-lots", "destination": "/api/auctions?action=synclots" },
     { "source": "/api/calc", "destination": "/api/content?calc=1" },

@@ -2686,16 +2686,15 @@ function chisinauMidnight(dayShift){
   return guess - chisinauOffMs(guess);
 }
 let factsCache = null, factsBusy = null;
-async function computeAuctionFacts(){
+const FACT_KEYS = ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h", "teslaSoldYesterday", "freshSoldYesterday", "recentSales", "buyNowActive"];
+const factsScore = v => ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => v && v[k]).length;
+const factsTitle = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
+function factsDb(){
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return null;
-  const iso = ms => encodeURIComponent(new Date(ms).toISOString());
-  const y0 = chisinauMidnight(-1), t0 = chisinauMidnight(0), t1 = chisinauMidnight(1), d24 = Date.now() - 24 * 3600e3;
-  const notCa = "or=(country.neq.ca,country.is.null)";
-  const sold = `archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=gte.${iso(y0)}&sale_date=lt.${iso(t0)}`;
-  const req = async (q, ms, count) => {
-    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
+  return async (q, ms, count) => {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), Math.max(1000, ms));
     try{
       const r = await fetch(`${url}/rest/v1/api_lots?${q}`, {headers:Object.assign({apikey:key, authorization:`Bearer ${key}`},
         count ? {prefer:"count=exact", range:"0-0", "range-unit":"items"} : {}), signal:ctrl.signal});
@@ -2704,77 +2703,110 @@ async function computeAuctionFacts(){
       return await r.json();
     }finally{ clearTimeout(t); }
   };
-  const cnt = q => req(`select=id&${q}`, 10000, true).catch(() => null);
+}
+const factsIso = ms => encodeURIComponent(new Date(ms).toISOString());
+const FACTS_NOT_CA = "or=(country.neq.ca,country.is.null)";
+// Лента «только что продано»: последние продажи за 12 ч с нормальным названием и фото, без повторов. Один запрос — живой на каждый пересчёт.
+async function factsRecentSales(ms){
+  const req = factsDb(); if(!req) return null;
+  const q = `select=id,title,vin,year,final_bid,sale_date,pt:payload->>title,mk:payload->>make,md:payload->>model,img:payload->>image` +
+    `&archived=eq.true&status_id=eq.6&final_bid=gt.500&final_bid=lt.2000000&year=gte.2014&sale_date=lte.${factsIso(Date.now())}&sale_date=gte.${factsIso(Date.now() - 12 * 3600e3)}&${FACTS_NOT_CA}&order=sale_date.desc&limit=80`;
+  const rows = await req(q, ms).catch(() => null);
+  if(!Array.isArray(rows)) return null;
+  const out = [], seen = new Set();
+  for(const r of rows){
+    const base = String(r.id || "").replace(/-s\d{8}$/, "");
+    if(seen.has(base)) continue;
+    const title = factsTitle(r.title) || factsTitle(r.pt) || [r.year, r.mk, r.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
+    if(!title || !/\d{4}/.test(title) || !r.img || !/^https:\/\//.test(String(r.img))) continue;
+    seen.add(base);
+    const [auction, lot] = base.split("-");
+    out.push({title, price:Number(r.final_bid) || 0, at:r.sale_date, img:String(r.img), auction, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:r.vin}) : ""});
+    if(out.length >= 24) break;
+  }
+  return out.length ? out : null;
+}
+// Тяжёлые счётчики. slow (фоновая задача): по одному запросу, до 25 с каждый, общий бюджет; иначе две волны по 10 с.
+async function computeAuctionFacts(opts = {}){
+  const req = factsDb(); if(!req) return null;
+  const slow = !!opts.slow, deadline = Date.now() + (opts.budget || 50000);
+  const left = cap => Math.min(cap, deadline - Date.now());
+  const y0 = chisinauMidnight(-1), t0 = chisinauMidnight(0), t1 = chisinauMidnight(1), d24 = Date.now() - 24 * 3600e3;
+  const sold = `archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=gte.${factsIso(y0)}&sale_date=lt.${factsIso(t0)}`;
+  const per = slow ? 25000 : 10000;
+  const cnt = q => left(per) < 1500 ? Promise.resolve(null) : req(`select=id&${q}`, left(per), true).catch(() => null);
   const fx = await fuelXReady().catch(() => false);
-  const fresh = `archived=eq.false&first_seen=gte.${iso(d24)}`;
+  const fresh = `archived=eq.false&first_seen=gte.${factsIso(d24)}`;
   const freshYear = new Date().getFullYear() - 2;
-  const recentQ = `select=id,title,vin,year,final_bid,sale_date,pt:payload->>title,mk:payload->>make,md:payload->>model,img:payload->>image` +
-    `&archived=eq.true&status_id=eq.6&final_bid=gt.500&final_bid=lt.2000000&year=gte.2014&sale_date=lte.${iso(Date.now())}&sale_date=gte.${iso(Date.now() - 12 * 3600e3)}&${notCa}&order=sale_date.desc&limit=80`;
-  // Две волны, а не 11 запросов разом: под одновременной нагрузкой база не успевала и часть цифр пропадала
-  const [soldYesterday, top, todayLots, recent, newHybrids24h] = await Promise.all([
-    cnt(sold),
-    req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 10000).catch(() => null),
-    cnt(`archived=eq.false&sale_date=gte.${iso(t0)}&sale_date=lt.${iso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
-    req(recentQ, 10000).catch(() => null),
-    fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${notCa}`) : null
-  ]);
-  const [soldYesterdayCa, newLots24h, newEv24h, teslaSoldYesterday, freshSoldYesterday, buyNowActive] = await Promise.all([
-    cnt(`${sold}&country=eq.ca`),
-    cnt(fresh),
-    fx ? cnt(`${fresh}&fuel_x=eq.2&${notCa}`) : null,
-    cnt(`${sold}&make_id=eq.187`),
-    cnt(`${sold}&year=gte.${freshYear}`),
-    tabTotal("buy_now").catch(() => null)
-  ]);
+  const tasks = {
+    soldYesterday:() => cnt(sold),
+    top:() => left(per) < 1500 ? null : req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${FACTS_NOT_CA}&order=final_bid.desc&limit=1`, left(per)).catch(() => null),
+    todayLots:() => cnt(`archived=eq.false&sale_date=gte.${factsIso(t0)}&sale_date=lt.${factsIso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
+    recentSales:() => left(per) < 1500 ? null : factsRecentSales(left(per)),
+    newHybrids24h:() => fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${FACTS_NOT_CA}`) : null,
+    soldYesterdayCa:() => cnt(`${sold}&country=eq.ca`),
+    newLots24h:() => cnt(fresh),
+    newEv24h:() => fx ? cnt(`${fresh}&fuel_x=eq.2&${FACTS_NOT_CA}`) : null,
+    teslaSoldYesterday:() => cnt(`${sold}&make_id=eq.187`),
+    freshSoldYesterday:() => cnt(`${sold}&year=gte.${freshYear}`),
+    buyNowActive:() => tabTotal("buy_now").catch(() => null)
+  };
+  const r = {}, names = Object.keys(tasks);
+  if(slow){ for(const k of names) r[k] = await tasks[k](); }
+  else for(const wave of [names.slice(0, 5), names.slice(5)]){
+    const vals = await Promise.all(wave.map(k => tasks[k]()));
+    wave.forEach((k, i) => { r[k] = vals[i]; });
+  }
   let topSale = null;
-  const tr = Array.isArray(top) && top[0];
+  const tr = Array.isArray(r.top) && r.top[0];
   if(tr && Number(tr.final_bid) > 0){
     const [auction, lot] = String(tr.id || "").replace(/-s\d{8}$/, "").split("-");
     // в колонке title бывает заглушка «Автомобиль» — берём название из payload, иначе год+марка+модель,
-    // а если в строке базы нет ничего — спрашиваем сам лот у аукциона (раз в 30 мин, один запрос)
-    const real = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
-    let title = real(tr.title) || real(tr.pt) || [tr.year, tr.mk, tr.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
+    // а если в строке базы нет ничего — спрашиваем сам лот у аукциона (один запрос на пересчёт)
+    let title = factsTitle(tr.title) || factsTitle(tr.pt) || [tr.year, tr.mk, tr.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
     if(!title && auction && lot){
-      try{ const d = await fetchDetail(new URLSearchParams({auction, lot})); title = real(d && d.title) || [d && d.year, d && d.make, d && d.model].filter(Boolean).join(" "); }catch(_){}
+      try{ const d = await fetchDetail(new URLSearchParams({auction, lot})); title = factsTitle(d && d.title) || [d && d.year, d && d.make, d && d.model].filter(Boolean).join(" "); }catch(_){}
     }
     topSale = {price:Number(tr.final_bid), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:tr.vin}) : ""};
   }
-  // Лента «только что продано»: последние продажи за 12 ч с нормальным названием и фото, без повторов
-  const recentSales = [];
-  if(Array.isArray(recent)){
-    const seen = new Set();
-    const real = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
-    for(const r of recent){
-      const base = String(r.id || "").replace(/-s\d{8}$/, "");
-      if(seen.has(base)) continue;
-      const title = real(r.title) || real(r.pt) || [r.year, r.mk, r.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
-      if(!title || !/\d{4}/.test(title) || !r.img || !/^https:\/\//.test(String(r.img))) continue;
-      seen.add(base);
-      const [auction, lot] = base.split("-");
-      recentSales.push({title, price:Number(r.final_bid) || 0, at:r.sale_date, img:String(r.img), auction,
-        href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:r.vin}) : ""});
-      if(recentSales.length >= 24) break;
-    }
-  }
-  const out = {ok:true, at:new Date().toISOString(), soldYesterday, soldYesterdayCa, topSale, todayLots, newLots24h, newHybrids24h, newEv24h,
-    teslaSoldYesterday, freshSoldYesterday, freshYear, buyNowActive:Number(buyNowActive) > 0 ? Number(buyNowActive) : null, recentSales:recentSales.length ? recentSales : null};
-  out._n = ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => out[k]).length;
-  return out;
+  return {ok:true, at:new Date().toISOString(), soldYesterday:r.soldYesterday, soldYesterdayCa:r.soldYesterdayCa, topSale, todayLots:r.todayLots,
+    newLots24h:r.newLots24h, newHybrids24h:r.newHybrids24h, newEv24h:r.newEv24h, teslaSoldYesterday:r.teslaSoldYesterday, freshSoldYesterday:r.freshSoldYesterday,
+    freshYear, buyNowActive:Number(r.buyNowActive) > 0 ? Number(r.buyNowActive) : null, recentSales:r.recentSales || null};
 }
+// Снимок фактов в alert_meta.facts_v1 — его считает фоновая задача action=factsrefresh (cron /api/cron/facts)
+async function readFactsSnapshot(){
+  try{
+    const rows = await Promise.race([syncSbFetch(`/alert_meta?k=eq.facts_v1&select=v,updated_at`), new Promise(res => setTimeout(() => res(null), 4000))]);
+    const row = Array.isArray(rows) && rows[0];
+    return row && row.v && row.v.ok ? {v:row.v, at:Date.parse(row.updated_at) || 0} : null;
+  }catch(_){ return null; }
+}
+// Пересчёт снимка: по одному запросу, недосчитанное берём из прошлого снимка (если ему < 6 ч)
+async function refreshFactsSnapshot(){
+  const prev = await readFactsSnapshot();
+  const v = await computeAuctionFacts({slow:true, budget:50000});
+  if(!v) return {ok:false, error:"no_db"};
+  const filled = [];
+  if(prev && Date.now() - prev.at < 6 * 3600e3) for(const k of FACT_KEYS) if(v[k] == null && prev.v[k] != null){ v[k] = prev.v[k]; filled.push(k); }
+  await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify({k:"facts_v1", v, updated_at:new Date().toISOString()})});
+  factsCache = null;
+  return {ok:true, score:factsScore(v), filled, missing:FACT_KEYS.filter(k => v[k] == null)};
+}
+// Ответ сайту: снимок (быстро) + свежая лента продаж (один запрос). Снимка нет или он старше 3 ч — считаем по-старому, двумя волнами.
 async function auctionFacts(){
-  if(factsCache && Date.now() - factsCache.at < (factsCache.v._n >= 3 ? 30 : 3) * 60e3) return factsCache.v;
-  if(!factsBusy) factsBusy = computeAuctionFacts().then(v => {
-    if(!v) return v;
-    // не посчиталось в этот раз (таймаут под нагрузкой) — оставляем прежнее значение, если ему меньше 3 ч
-    const prev = factsCache && Date.now() - (factsCache.full || factsCache.at) < 3 * 3600e3 ? factsCache.v : null;
-    let filled = false;
-    if(prev) for(const k of ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h", "teslaSoldYesterday", "freshSoldYesterday", "recentSales", "buyNowActive"]) if(v[k] == null && prev[k] != null){ v[k] = prev[k]; filled = true; }
-    v._n = ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => v[k]).length;
-    factsCache = {v, at:Date.now(), full:filled ? factsCache.full || factsCache.at : Date.now()};
+  if(factsCache && Date.now() - factsCache.at < 5 * 60e3) return factsCache.v;
+  if(!factsBusy) factsBusy = (async () => {
+    const [snap, recent] = await Promise.all([readFactsSnapshot(), factsRecentSales(8000)]);
+    let v = snap && Date.now() - snap.at < 3 * 3600e3 ? {...snap.v} : null;
+    if(!v) v = await computeAuctionFacts().catch(() => null);
+    if(!v) return factsCache ? factsCache.v : null;
+    if(recent) v.recentSales = recent;
+    v._n = factsScore(v);
+    factsCache = {v, at:Date.now()};
     return v;
-  }).finally(() => { factsBusy = null; });
-  // есть старое значение — отдаём его сразу, пересчёт идёт в фоне
-  if(factsCache) return factsCache.v;
+  })().finally(() => { factsBusy = null; });
+  if(factsCache) return factsCache.v;   // старое значение — сразу, пересчёт в фоне
   return factsBusy;
 }
 
@@ -5321,7 +5353,7 @@ module.exports = async function handler(request, response){
   // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
   // разрешаем валидному секрету ИЛИ админу. Если CRON_SECRET не задан в env — НЕ блокируем
   // (обратная совместимость: исключаем риск залочить синк при отсутствии переменной).
-  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync"]);
+  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync", "factsrefresh"]);
   if(CRON_ACTIONS.has(action)){
     const secret = process.env.CRON_SECRET;
     if(secret){
@@ -5604,6 +5636,12 @@ module.exports = async function handler(request, response){
     out.upcoming.feedHybridButNotHybrid = await cnt("&fuel_id=eq.3&fuel_x=not.in.(3,5)&fuel_x=not.is.null");
     out.upcoming.feedGasButHybrid = await cnt("&fuel_id=eq.4&fuel_x=in.(3,5)");
     sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
+  if(action === "factsrefresh"){
+    // Не чаще раза в 25 мин, даже если cron/ручной вызов придут чаще
+    if(query.get("force") !== "1" && !(await takeMetaLock("facts_lock", 25 * 60e3).catch(() => false))){ sendJson(response, 200, {ok:true, skipped:true}, {"cache-control":"no-store"}); return; }
+    sendJson(response, 200, await refreshFactsSnapshot().catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
     return;
   }
   if(action === "enginefill"){
@@ -6212,7 +6250,7 @@ module.exports = async function handler(request, response){
       const f = await auctionFacts().catch(() => null);
       if(!f){ sendJson(response, 200, {ok:false}, {"cache-control":"public, s-maxage=60"}); return; }
       const {_n, ...pub} = f;
-      sendJson(response, 200, pub, {"cache-control":_n >= 3 ? "public, s-maxage=900, stale-while-revalidate=3600" : "public, s-maxage=120"});
+      sendJson(response, 200, pub, {"cache-control":_n >= 3 ? "public, s-maxage=300, stale-while-revalidate=1800" : "public, s-maxage=120"});
       return;
     }
     if(action === "count"){
