@@ -2379,3 +2379,87 @@ a.tkItemV1:hover b { text-decoration: underline; }
 /* в одну колонку (планшет/телефон) карта лезла бы за кнопки — там её нет */
 @media (max-width: 1023px) { .heroMapV1 { display: none; } }
 .heroCalmV1 .heroSearchCardV1 { background: rgba(255,255,255,0.92); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+
+
+/* ---- Главная: «Как мы работаем» v2 (06.11.2026, Федор: «занимает слишком много места, сделай современно, с анимацией») ----
+   Компактная лента на всю ширину в светлой плашке: заголовок слева, подпись справа; шаги — иконка + номер в строку, короткий текст.
+   Анимация (home-process.js вешает isReadyV1/isInV1): линия прорисовывается → шаги всплывают по очереди → по линии бежит красная точка
+   (как машина на карте) и подсвечивает шаги. ≤1023px — лента листается пальцем (scroll-snap). «Уменьшить движение» — всё статично. */
+.apexProcessV205.procV2 {
+  max-width: var(--maxw); padding: 26px 32px 28px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.procV2 .procHeadV1 { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 40px; }
+.procV2 .procHeadV1 h2 { margin: 4px 0 0; font-size: clamp(22px, 2.6vw, 30px); }
+.procV2 .apexProcessLeadV205 { margin: 0; max-width: 44ch; font-size: 14.5px; text-align: right; }
+.procV2 .apexProcessGridV205 {
+  position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 18px; margin-top: 24px;
+}
+.procV2 .apexProcessGridV205::before {            /* серая линия-основа через центры иконок */
+  content: ""; position: absolute; top: 22px; left: 22px; width: calc(83.333% - 3px); right: auto; height: 2px; border-radius: 2px;
+  background: #ead9db; z-index: 0;
+}
+.procV2 .apexProcessGridV205::after {             /* красная линия-прогресс (появляется при показе) */
+  content: ""; position: absolute; top: 22px; left: 22px; width: calc(83.333% - 3px); height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--red), #ff7a44); z-index: 0; transform: scaleX(0); transform-origin: left;
+}
+.procV2 .apexStepV205 {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); grid-template-areas: "ico num" "ttl ttl" "txt txt";
+  column-gap: 10px; align-items: center; text-align: left; padding: 0; position: relative; z-index: 1;
+}
+.procV2 .apexStepV205::before {
+  grid-area: ico; width: 44px; height: 44px; margin: 0; border-radius: 14px; background-size: 21px; box-shadow: 0 6px 16px rgba(237,0,18,0.14);
+  border: 2px solid var(--surface);
+}
+.procV2 .apexStepNumV205 { grid-area: num; margin: 0; justify-self: start; font-size: 11.5px; padding: 0 8px 0 6px; background: var(--surface); position: relative; }
+.procV2 .apexStepV205 h3 { grid-area: ttl; justify-content: flex-start; margin: 14px 0 5px; min-height: 0; font-size: 15px; line-height: 1.25; }
+.procV2 .apexStepV205 p { grid-area: txt; margin: 0; min-height: 0; font-size: 13px; line-height: 1.5; max-width: 30ch; }
+.procV2 .apexStepV205 p a { color: var(--red); font-weight: 600; white-space: nowrap; }
+.procV2 .procDotV1 { display: none; }
+
+/* анимации — только при включённом JS-триггере и без запрета на движение */
+@media (prefers-reduced-motion: no-preference) {
+  .procV2.isReadyV1 .apexStepV205 { opacity: 0; transform: translateY(12px); }
+  .procV2.isReadyV1 .apexStepV205::before { transform: scale(0.6); }
+  .procV2.isInV1 .apexStepV205 {
+    opacity: 1; transform: none; transition: opacity .55s var(--ease), transform .55s var(--ease); transition-delay: calc(var(--i, 0) * 0.16s + 0.15s);
+  }
+  .procV2.isInV1 .apexStepV205::before { transform: none; transition: transform .6s cubic-bezier(.3,1.5,.5,1); transition-delay: calc(var(--i, 0) * 0.16s + 0.15s); }
+  .procV2.isInV1 .apexProcessGridV205::after { transform: scaleX(1); transition: transform 1.15s cubic-bezier(.4,0,.2,1) .15s; }
+  /* бегущая точка + подсветка шагов: цикл 8с, точка идёт 6с, шаг k загорается на 1.2k с */
+  .procV2.isInV1 .procDotV1 {
+    display: block; position: absolute; top: 22px; left: 22px; width: 10px; height: 10px; margin: -4px 0 0 -5px; border-radius: 50%; z-index: 2;
+    background: var(--red); box-shadow: 0 0 0 4px rgba(237,0,18,.16), 0 0 14px rgba(237,0,18,.55); opacity: 0;
+    animation: procDotRun 8s linear 1.6s infinite;
+  }
+  .procV2.isInV1 .apexStepV205::before { animation: procIconGlow 8s ease-out calc(var(--i, 0) * 1.2s + 1.6s) infinite; }
+}
+@keyframes procDotRun {
+  0% { left: 22px; opacity: 0; } 3% { opacity: 1; }
+  75% { left: calc(83.333% + 19px); opacity: 1; } 80% { left: calc(83.333% + 19px); opacity: 0; } 100% { left: calc(83.333% + 19px); opacity: 0; }
+}
+@keyframes procIconGlow {
+  0% { box-shadow: 0 6px 16px rgba(237,0,18,.14); } 3% { box-shadow: 0 0 0 7px rgba(237,0,18,.18), 0 6px 16px rgba(237,0,18,.32); background-color: #ffd4d6; }
+  14% { box-shadow: 0 6px 16px rgba(237,0,18,.14); background-color: var(--red-soft); } 100% { box-shadow: 0 6px 16px rgba(237,0,18,.14); }
+}
+.procV2 .apexStepV205:nth-of-type(1) { --i: 0; } .procV2 .apexStepV205:nth-of-type(2) { --i: 1; } .procV2 .apexStepV205:nth-of-type(3) { --i: 2; }
+.procV2 .apexStepV205:nth-of-type(4) { --i: 3; } .procV2 .apexStepV205:nth-of-type(5) { --i: 4; } .procV2 .apexStepV205:nth-of-type(6) { --i: 5; }
+
+/* планшет и телефон: лента листается пальцем */
+@media (max-width: 1023px) {
+  .apexProcessV205.procV2 { padding: 22px 20px 20px; }
+  .procV2 .procHeadV1 { flex-direction: column; align-items: flex-start; }
+  .procV2 .apexProcessLeadV205 { text-align: left; max-width: none; }
+  .procV2 .apexProcessGridV205 {
+    display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+    margin: 18px -20px 0; padding: 4px 20px 8px; scroll-padding: 0 20px; scrollbar-width: none;
+  }
+  .procV2 .apexProcessGridV205::-webkit-scrollbar { display: none; }
+  .procV2 .apexProcessGridV205::before, .procV2 .apexProcessGridV205::after, .procV2 .procDotV1, .procV2.isInV1 .procDotV1 { display: none; }
+  .procV2 .apexStepV205 {
+    flex: 0 0 min(76%, 280px); scroll-snap-align: start; padding: 16px 16px 18px; background: var(--field); border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  .procV2 .apexStepV205::before { border-color: var(--field); }
+  .procV2 .apexStepNumV205 { background: transparent; }
+}
+@media (max-width: 640px) { .procV2 .apexProcessLeadV205 { display: none; } .procV2 .apexStepV205 { flex-basis: 78%; } }
