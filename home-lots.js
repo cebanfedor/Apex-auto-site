@@ -16,7 +16,19 @@
   var sec = document.getElementById("homeLots");
   if (!grid || !sec) return;
 
-  var COUNT = 8;
+  // Число карточек = колонки × ряды, чтобы последний ряд всегда был полным
+  // (колонок 6/5/3/2 по ширине — см. .homeLotsGridV1 в styles.css).
+  function cols() {
+    var t = getComputedStyle(grid).gridTemplateColumns || "";
+    return Math.max(1, t.split(" ").filter(Boolean).length);
+  }
+  function countFor(c, avail) {
+    var rows = c >= 5 ? 2 : c >= 3 ? 3 : 4;
+    var n = c * rows;
+    if (avail != null && avail < n) n = Math.max(c, Math.floor(avail / c) * c);
+    return avail != null ? Math.min(n, avail) : n;
+  }
+  var pool = null, shownCols = 0;
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -91,9 +103,15 @@
   }
 
   function skeleton() {
-    var s = "";
-    for (var i = 0; i < COUNT; i++) s += '<div class="homeLotSkelV1"></div>';
+    var s = "", n = countFor(cols());
+    for (var i = 0; i < n; i++) s += '<div class="homeLotSkelV1"></div>';
     grid.innerHTML = s;
+  }
+
+  function render() {
+    if (!pool) return;
+    shownCols = cols();
+    grid.innerHTML = pool.slice(0, countFor(shownCols, pool.length)).map(card).join("");
   }
 
   function load() {
@@ -103,12 +121,21 @@
       .then(function (j) {
         var items = (j && j.items) || [];
         if (!items.length) { sec.hidden = true; return; }
-        // Сервер отдаёт пул до 24 — берём случайные 8, чтобы витрина менялась на каждом заходе.
+        // Сервер отдаёт пул до 24 — перемешиваем, чтобы витрина менялась на каждом заходе.
         for (var i = items.length - 1; i > 0; i--) { var k = Math.floor(Math.random() * (i + 1)); var t = items[i]; items[i] = items[k]; items[k] = t; }
-        grid.innerHTML = items.slice(0, COUNT).map(card).join("");
+        pool = items;
+        render();
       })
       .catch(function () { sec.hidden = true; });
   }
+
+  var rt;
+  function onResize() {
+    clearTimeout(rt);
+    rt = setTimeout(function () { if (pool && cols() !== shownCols) render(); }, 150);
+  }
+  if ("ResizeObserver" in window) new ResizeObserver(onResize).observe(grid);
+  else window.addEventListener("resize", onResize);
 
   if ("requestIdleCallback" in window) requestIdleCallback(load, { timeout: 1500 });
   else setTimeout(load, 200);
