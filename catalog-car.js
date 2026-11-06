@@ -101,9 +101,9 @@
       .then(function(d){ return d && d.ok && d.usdKrw ? {rates:{KRW:d.usdKrw, EUR:d.usdEur, CAD:d.usdCad || 0}} : null; });
   }
   function loadRates(){
-    try{ var c = JSON.parse(localStorage.getItem("apexKrwRateV3") || "null"); if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; rates.usdCad = c.cad || 0; } }catch(e){}
+    try{ var c = JSON.parse(localStorage.getItem("apexKrwRateV4") || "null"); if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; rates.usdCad = c.cad || 0; } }catch(e){}
     return fetchRates().then(function(d){
-      if(d && d.rates && d.rates.KRW){ rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0; rates.usdCad = d.rates.CAD || 0; try{ localStorage.setItem("apexKrwRateV3", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur, cad:rates.usdCad})); }catch(e){} }
+      if(d && d.rates && d.rates.KRW){ rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0; rates.usdCad = d.rates.CAD || 0; try{ localStorage.setItem("apexKrwRateV4", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur, cad:rates.usdCad})); }catch(e){} }
     }).catch(function(){});
   }
   function toUsd(amount, cur){

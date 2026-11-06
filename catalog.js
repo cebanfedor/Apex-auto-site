@@ -14,6 +14,8 @@
   // Источник по странице (06.11.2026): /korea — Encar (Корея), /canada — OpenLane (Канада). Разметка /canada — canada.html
   // (собирается scripts/build-canada-pages.js из catalog.html), движок общий, запросы к API с src=ca.
   var CA = !!document.querySelector('main[data-cat-src="ca"]');
+  // Канада по умолчанию — «Ближайшие аукционы» (Федор 06.11.2026: машины с прошедшими торгами неинтересны)
+  var DEF_SORT = CA ? "auction_nearest" : "newest";
   var BASE = CA ? "/canada" : "/korea";
   var API = "/api/catalog?" + (CA ? "src=ca&" : "");
   var PAGE_NAME = CA ? "Авто из Канады" : "Авто из Кореи";
@@ -109,7 +111,7 @@
     hasInsp:"", isAuction:"", hasHist:"",
     colorIds:[],
     engineVolFrom:"", engineVolTo:"", powerFrom:"", powerTo:"", seats:"", isLeasing:"",
-    sort:"newest", page:1
+    sort:DEF_SORT, page:1
   };
   var PER_PAGE = 24;
   var dict = {brands:null, modelsByBrand:{}, gensByModel:{}};
@@ -156,7 +158,7 @@
     if(state.powerTo) p.set("power_hp_to", state.powerTo);
     if(state.seats) p.set("seats", state.seats);
     if(state.isLeasing) p.set("is_leasing", state.isLeasing);
-    if(state.sort !== "newest") p.set("sort", state.sort);
+    if(state.sort !== DEF_SORT) p.set("sort", state.sort);
     if(state.page > 1) p.set("page", String(state.page));
     return p;
   }
@@ -205,7 +207,7 @@
     state.powerTo = clampInt(p.get("power_hp_to"), 0, 100000);
     state.seats = /^\d{1,2}$/.test(p.get("seats") || "") ? p.get("seats") : "";
     state.isLeasing = triOf(p.get("is_leasing"));
-    state.sort = SORTS.some(function(s){ return s[0] === p.get("sort"); }) ? p.get("sort") : "newest";
+    state.sort = SORTS.some(function(s){ return s[0] === p.get("sort"); }) ? p.get("sort") : DEF_SORT;
     state.page = Math.max(1, parseInt(p.get("page"), 10) || 1);
   }
   function pushUrl(){
@@ -239,13 +241,13 @@
   }
   function loadRates(){
     try{
-      var c = JSON.parse(localStorage.getItem("apexKrwRateV3") || "null");
+      var c = JSON.parse(localStorage.getItem("apexKrwRateV4") || "null");
       if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; rates.usdCad = c.cad || 0; applyRates(); }
     }catch(e){}
     fetchRates().then(function(d){
       if(d && d.rates && d.rates.KRW){
         rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0; rates.usdCad = d.rates.CAD || 0;
-        try{ localStorage.setItem("apexKrwRateV3", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur, cad:rates.usdCad})); }catch(e){}
+        try{ localStorage.setItem("apexKrwRateV4", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur, cad:rates.usdCad})); }catch(e){}
         applyRates();
       }
     }).catch(function(){});
@@ -273,6 +275,7 @@
   function buildQuery(){
     var p = stateToParams();
     p.set("action", "search"); p.set("lang", uiLang()); p.set("per_page", String(PER_PAGE)); p.set("page", String(state.page));
+    p.set("sort", state.sort);   // сортировка по умолчанию (у Канады своя) — серверу всегда явно
     return p.toString();
   }
   var frame = document.querySelector(".catalog-frame");
