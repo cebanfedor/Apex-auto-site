@@ -2317,3 +2317,13 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
     и липкая кнопка «Подобрать похожую» вылезали на 6–21px — поправлено (styles.css / auctions.css, `≤380px`).
   - Карточки Кореи показывают домен «fem.encar.com» — так у эталона, оставлено.
   `styles.css?v=v500`, `auctions.css?v=v607`.
+
+## Возим из США, Канады, Кореи и Европы + объём у электро (06.11.2026, Федор)
+- Тексты на всех страницах: «Авто из США, Канады, Кореи и Европы в Молдову» (подпись под логотипом, подвал, title/description/OG главной, JSON-LD,
+  слайд главной; RO «SUA, Canada, Coreea și Europa», EN «USA, Canada, Korea and Europe»; ключи и переводы в i18n-dict.js заменены одной правкой).
+  «аукционы США, Канады и Европы» (про площадки Manheim/Adesa/Openlane/BCA) оставлено — Encar не аукцион. Превью главной перерисовано
+  (`node scripts/build-og-pages.js index`, «США · КАНАДА · КОРЕЯ · ЕВРОПА»), `index.png?v=6`, RO/EN `?v=7` (api/page-meta.js).
+- Калькулятор: при топливе «Электро» поле объёма показывает «—» и заблокировано (объём в акцизе электро не участвует, calc-core его игнорирует);
+  при смене топлива возвращается прежний объём (или импортированный). Главная — `syncEvEngine()` в script.js (вызывается в начале `calculate()`,
+  опция value="0", стиль `.glassSelectV152.isDisabledV1`); страница лота — в `updateLotCalculator` (auctions.js, `#lotCalcEngine`, `dataset.prev`).
+  `styles.css?v=v501`, `script.js?v=calc-v457`, `auctions.js?v=auctions-v433`, `i18n.js?v=multilang-v563`.
