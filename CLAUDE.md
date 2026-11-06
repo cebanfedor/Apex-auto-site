@@ -2425,3 +2425,4 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   (каждые 10 мин, по факту не чаще раза в 25 мин — лок `alert_meta.facts_lock`) → `action=factsrefresh` → `refreshFactsSnapshot`: запросы по одному, до 25 с каждый, бюджет 50 с,
   недосчитанное — из прошлого снимка (<6 ч), результат в `alert_meta` (k=`facts_v1`). `action=facts` отдаёт снимок + ЖИВУЮ ленту продаж (`factsRecentSales`, один запрос),
   кэш 5 мин в памяти, CDN 5 мин. Снимка нет/старше 3 ч — прежний расчёт двумя волнами. Ручной пересчёт: `?action=factsrefresh&force=1` (нужен админ или CRON_SECRET).
+  Тот же блок «Пульс аукционов» стоит на /auctions — под списком лотов и пагинацией, внутри `#auctionCatalog` (на странице лота скрыт вместе с каталогом), класс `.pulseAucV1`. auction-facts.js v3, styles.css v509.
