@@ -105,7 +105,7 @@
     }
     // курсор и его след
     if(mouse.power > 0.02 || trail.length){
-      var R = 150;
+      var R = 95;
       for(var s = 0; s < trail.length + 1; s++){
         var p = s === 0 ? mouse : trail[s - 1];
         var k0 = s === 0 ? mouse.power : mouse.power * 0.55 * (1 - s / (trail.length + 1));
