@@ -139,6 +139,19 @@ section { position: relative; }
 }
 .mainNavV82 > a:hover { background: rgba(17, 20, 26, 0.05); color: var(--ink); }
 .mainNavV82 > a.active { color: var(--red-600); background: var(--red-soft); } /* 27.09: var(--red) на --red-soft — контраст 3.9, ниже AA 4.5 */
+/* Быстрые пункты «Авто из США/Канады» и «Авто из Кореи» рядом с «Автомобили» */
+.mainNavV82 > a.navQuickV1 { display: inline-flex; align-items: center; gap: 7px; }
+.navQuickFlagsV1 { display: inline-flex; gap: 3px; flex: none; }
+.navQuickFlagsV1 svg { width: 17px; height: 11px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(17, 20, 26, .14); }
+.navQuickShortV1 { display: none; }
+/* Узкий десктоп: короткие подписи; ещё уже — прячем (те же ссылки есть в «Автомобили»), иначе меню вылезает за край */
+@media (min-width: 821px) and (max-width: 1290px) {
+  .navQuickFullV1 { display: none; }
+  .navQuickShortV1 { display: inline; }
+}
+@media (min-width: 821px) and (max-width: 1050px) {
+  .mainNavV82 > a.navQuickV1 { display: none; }
+}
 
 /* Dropdown nav */
 .navDropV420 { position: relative; }
