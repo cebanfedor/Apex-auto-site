@@ -1634,24 +1634,26 @@ details > summary::-webkit-details-marker { display: none; }
 .homeLotsAllV1 span { font-size: 1.15em; line-height: 0; transition: transform .16s var(--ease); }
 .homeLotsAllV1:hover { background: var(--red-600); color: #fff; transform: translateY(-1px); }
 .homeLotsAllV1:hover span { transform: translateX(3px); }
-.homeLotsGridV1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.homeLotsGridV1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
 .homeLotCardV1 { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); transition: transform .18s var(--ease), box-shadow .18s var(--ease), border-color .18s var(--ease); }
 .homeLotCardV1:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--field-line); }
-.homeLotImgV1 { position: relative; aspect-ratio: 4 / 3; background: var(--field); overflow: hidden; }
+.homeLotImgV1 { position: relative; aspect-ratio: 4 / 3.2; background: var(--field); overflow: hidden; }
 .homeLotImgV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.homeLotPriceV1 { position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 8px; background: rgba(18, 21, 27, .86); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: -.02em; }
-.homeLotAucV1 { position: absolute; right: 8px; bottom: 8px; padding: 3px 8px; border-radius: 7px; background: rgba(255, 255, 255, .92); color: var(--ink); font-weight: 700; font-size: 10.5px; letter-spacing: .04em; }
-.homeLotBodyV1 { padding: 11px 12px 13px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
-.homeLotTitleV1 { font-size: 15px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-.homeLotSpecV1 { font-size: 12.5px; color: var(--muted); }
-.homeLotMetaV1 { margin-top: auto; display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 8px; font-size: 12.5px; color: var(--ink-2); }
+.homeLotPriceV1 { position: absolute; left: 7px; bottom: 7px; padding: 3px 8px; border-radius: 7px; background: rgba(18, 21, 27, .86); color: #fff; font-weight: 800; font-size: 12.5px; letter-spacing: -.02em; }
+.homeLotAucV1 { position: absolute; right: 7px; bottom: 7px; padding: 2px 7px; border-radius: 6px; background: rgba(255, 255, 255, .92); color: var(--ink); font-weight: 700; font-size: 9.5px; letter-spacing: .04em; }
+.homeLotBodyV1 { padding: 9px 10px 11px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.homeLotTitleV1 { font-size: 13px; font-weight: 700; letter-spacing: -.02em; line-height: 1.25; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.homeLotSpecV1 { font-size: 11px; color: var(--muted); }
+.homeLotMetaV1 { margin-top: auto; display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 7px; font-size: 11px; color: var(--ink-2); }
 .homeLotMetaV1 i { font-style: normal; font-weight: 700; }
 .homeLotRunV1 { color: #12864b; }
 .homeLotNoRunV1 { color: #b23; }
 .homeLotSubV1 { color: var(--muted); font-variant-numeric: tabular-nums; }
-.homeLotSkelV1 { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(100deg, var(--field) 30%, #f7f9fc 50%, var(--field) 70%); background-size: 200% 100%; animation: homeLotSkel 1.2s infinite; aspect-ratio: 4 / 3.35; }
+.homeLotSkelV1 { border-radius: var(--radius); border: 1px solid var(--line); background: linear-gradient(100deg, var(--field) 30%, #f7f9fc 50%, var(--field) 70%); background-size: 200% 100%; animation: homeLotSkel 1.2s infinite; aspect-ratio: 4 / 3.55; }
 @keyframes homeLotSkel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .homeLotsMoreBtnV1 { display: none; }
+@media (min-width: 1500px) { .homeLotsGridV1 { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 1081px) and (max-width: 1499px) { .homeLotsGridV1 { grid-template-columns: repeat(5, 1fr); } }
 @media (max-width: 1080px) { .homeLotsGridV1 { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 720px) {
   .homeLotsV1 { padding: 28px 0 4px; }
