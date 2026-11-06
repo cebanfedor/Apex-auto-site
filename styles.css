@@ -41,7 +41,7 @@
   --shadow: 0 1px 2px rgba(16, 20, 28, 0.05), 0 18px 44px rgba(16, 20, 28, 0.10);
   --shadow-red: 0 8px 22px rgba(237, 0, 18, 0.25);
 
-  --maxw: 1292px;
+  --maxw: 1624px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --font-display: "Onest", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -102,7 +102,7 @@ input, select, textarea { font-family: inherit; }
 }
 
 /* ---- Layout ------------------------------------------------------------ */
-.container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+.container { width: 100%; max-width: calc(var(--maxw) + 48px); margin: 0 auto; padding: 0 24px; }
 .homeMainV201 { display: block; width: 100%; }
 .heroV45, #calculator.layout, .calcInfoPlainV52, .apexProcessV205, .apexWhyV212,
 .apexReviewsV212, .apexFaqV205, .apexSeoV431, .hotSectionIntroV89, .hotLots, .seaDeliveryV305,
@@ -2054,3 +2054,19 @@ body.lbOpenV1 { overflow:hidden; }
 @media (max-width: 400px) {
   .siteHeader.apexHdrV201 .apexBrandTextV201 { display: none; }
 }
+
+/* Поиск «Везде» (06.11.2026): список «США и Канада / Корея» под строкой поиска, site-nav.js */
+.siteHeader .hdrSearchV1 { position: relative; }
+.hdrResV1 { position: absolute; left: -2px; right: -2px; top: calc(100% + 8px); z-index: 5; padding: 8px; background: #fff;
+  border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 18px 44px rgba(16,20,28,.16); }
+.hdrResCapV1 { margin: 2px 8px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hdrResRowV1 { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 10px; color: var(--ink); text-decoration: none; outline: none; }
+.hdrResRowV1:hover, .hdrResRowV1:focus-visible, .hdrResRowV1:focus { background: var(--red-soft); }
+.hdrResRowV1 .navMegaFlagV1 { width: 28px; height: 19px; flex: none; border-radius: 4px; box-shadow: 0 0 0 1px rgba(16,20,28,.1); }
+.hdrResRowV1 span { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.hdrResRowV1 b { font-size: 14.5px; font-weight: 700; }
+.hdrResRowV1 small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdrResRowV1 em { font-style: normal; font-weight: 700; font-size: 14px; color: var(--ink); white-space: nowrap; }
+.hdrResRowV1 i { font-style: normal; color: var(--red); font-weight: 700; }
+.hdrResRowV1.isEmptyV1 { opacity: .55; }
+.hdrResRowV1.isEmptyV1 em { color: var(--muted); font-weight: 600; }
