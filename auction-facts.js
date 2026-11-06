@@ -79,9 +79,9 @@
   function cardItem(it){
     var sub = "";
     if(it.extra && it.extra.title){
-      sub = it.extra.href ? '<a class="afLotV1" href="' + esc(it.extra.href) + '">' + esc(it.extra.title) + "</a>" : '<em class="afLotV1">' + esc(it.extra.title) + "</em>";
+      sub = it.extra.href ? '<a class="afLotV1" href="' + esc(it.extra.href) + '" title="' + esc(it.extra.title) + '">' + esc(it.extra.title) + "</a>" : '<em class="afLotV1">' + esc(it.extra.title) + "</em>";
     }
-    return '<b class="afNumV1">' + bigOf(it) + '</b><div class="afCapV1"><span>' + esc(capOf(it)) + "</span>" + sub + "</div>";
+    return '<b class="afNumV1">' + bigOf(it) + '</b><div class="afCapV1"><span title="' + esc(capOf(it)) + '">' + esc(capOf(it)) + "</span>" + sub + "</div>";
   }
   var cardPool = null, cardShown = null;
   function renderCard(){
