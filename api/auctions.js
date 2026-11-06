@@ -2704,23 +2704,26 @@ async function computeAuctionFacts(){
       return await r.json();
     }finally{ clearTimeout(t); }
   };
-  const cnt = q => req(`select=id&${q}`, 7000, true).catch(() => null);
+  const cnt = q => req(`select=id&${q}`, 10000, true).catch(() => null);
   const fx = await fuelXReady().catch(() => false);
   const fresh = `archived=eq.false&first_seen=gte.${iso(d24)}`;
   const freshYear = new Date().getFullYear() - 2;
   const recentQ = `select=id,title,vin,year,final_bid,sale_date,pt:payload->>title,mk:payload->>make,md:payload->>model,img:payload->>image` +
     `&archived=eq.true&status_id=eq.6&final_bid=gt.500&final_bid=lt.2000000&year=gte.2014&sale_date=lte.${iso(Date.now())}&sale_date=gte.${iso(Date.now() - 12 * 3600e3)}&${notCa}&order=sale_date.desc&limit=80`;
-  const [soldYesterday, soldYesterdayCa, top, todayLots, newLots24h, newHybrids24h, newEv24h, teslaSoldYesterday, freshSoldYesterday, recent, buyNowActive] = await Promise.all([
+  // Две волны, а не 11 запросов разом: под одновременной нагрузкой база не успевала и часть цифр пропадала
+  const [soldYesterday, top, todayLots, recent, newHybrids24h] = await Promise.all([
     cnt(sold),
-    cnt(`${sold}&country=eq.ca`),
-    req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 7000).catch(() => null),
+    req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 10000).catch(() => null),
     cnt(`archived=eq.false&sale_date=gte.${iso(t0)}&sale_date=lt.${iso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
+    req(recentQ, 10000).catch(() => null),
+    fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${notCa}`) : null
+  ]);
+  const [soldYesterdayCa, newLots24h, newEv24h, teslaSoldYesterday, freshSoldYesterday, buyNowActive] = await Promise.all([
+    cnt(`${sold}&country=eq.ca`),
     cnt(fresh),
-    fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${notCa}`) : null,
     fx ? cnt(`${fresh}&fuel_x=eq.2&${notCa}`) : null,
     cnt(`${sold}&make_id=eq.187`),
     cnt(`${sold}&year=gte.${freshYear}`),
-    req(recentQ, 7000).catch(() => null),
     tabTotal("buy_now").catch(() => null)
   ]);
   let topSale = null;
