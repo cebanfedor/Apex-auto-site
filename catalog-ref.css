@@ -316,7 +316,11 @@
 :root { --hero-offset: 0px; --header-h: 0px; }
 .apx-korea .font-display, .apx-korea .lot-head__title, .apx-korea .lot-price__value { font-family: Onest, Inter, ui-sans-serif, system-ui, sans-serif; }
 .apx-korea .num { font-variant-numeric: tabular-nums; }
-.apx-korea .wrap-wide { width: 100%; max-width: 1680px; margin-left: auto; margin-right: auto; }
+.apx-korea .wrap-wide { width: 100%; max-width: calc(var(--maxw, 1624px) + 48px); margin-left: auto; margin-right: auto; }
+/* 06.11.2026: одна ширина сайта — край контента совпадает с шапкой и подвалом (отступ 24px, как на остальных страницах) */
+@media (min-width: 1024px){ .apx-korea .wrap-wide { padding-left: 24px; padding-right: 24px; } }
+/* Tailwind-класс .container из стилей эталона сужал наш подвал до 1280/1536px */
+.siteFooter > .container { max-width: calc(var(--maxw, 1624px) + 48px); }
 /* glow в hero (у эталона — произвольный класс bg-[radial-gradient(...)] с их оранжевым; здесь то же с нашим красным) */
 .catalog-hero__glow { background: radial-gradient(55% 75% at 8% 60%, rgb(237 0 18 / .12), transparent 70%), radial-gradient(40% 60% at 92% 20%, rgb(37 99 235 / .10), transparent 70%); }
 .catalog-hero__glow--lot { background: radial-gradient(45% 70% at 10% 100%, rgb(237 0 18 / .10), transparent 70%); }

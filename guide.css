@@ -9,7 +9,7 @@
 .guideArticle { background: #fff; border: 1px solid #e6e8ec; border-radius: 20px; box-shadow: 0 1px 2px rgba(16,20,28,.04), 0 14px 34px rgba(16,20,28,.08); overflow: hidden; }
 
 .guideHeader { padding: 40px 48px 32px; border-bottom: 1px solid #eef0f3; }
-.guideKicker { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ed0012; margin-bottom: 12px; }
+.guideKicker { display: block; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #ed0012; margin-bottom: 12px; }
 .guideHeader h1 { font-size: clamp(26px, 3.5vw, 38px); letter-spacing: -.025em; color: #14181f; line-height: 1.15; margin-bottom: 14px; }
 .guideLead { font-size: 17px; color: #5a6472; line-height: 1.6; margin-bottom: 24px; }
 .guideAuthor { display: flex; align-items: center; gap: 12px; }
@@ -18,6 +18,8 @@
 .guideAuthor span { font-size: 12px; color: #5a6472; }
 
 .guideBody { padding: 40px 48px; }
+/* 06.11.2026: карточка статьи шириной с шапку (общий --maxw), а текст внутри — колонкой ≤1120px по центру, чтобы строки читались */
+.guideArticle .guideHeader > *, .guideArticle .guideBody > * { max-width: 1120px; margin-inline: auto; }
 .guideBody h2 { font-size: 22px; font-weight: 700; color: #14181f; letter-spacing: -.02em; margin: 36px 0 14px; }
 .guideBody h2:first-child { margin-top: 0; }
 .guideBody h3 { font-size: 16px; font-weight: 700; color: #14181f; margin: 0 0 6px; }

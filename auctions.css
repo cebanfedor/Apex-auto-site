@@ -19,11 +19,11 @@
    (значение, что было до правки «пошире» 27.09.2026); dreambid.pl закрыт Cloudflare
    bot-check, точный px не сверить, не проходя капчу — если у Федора будет цифра из
    DevTools, подогнать точнее. */
-.auctionsShellV1 { width:100%; max-width:1720px; margin:0 auto; padding:24px clamp(20px,2.4vw,64px) 80px; }
+.auctionsShellV1 { width:100%; max-width:calc(var(--maxw) + 48px); margin:0 auto; padding:24px 24px 80px; }
 /* Шапка сайта общий --maxw (1292px, styles.css) — на странице каталога/лота выглядела ощутимо
    уже контента ниже; auctions.css грузится только тут, поэтому переопределяем без риска для
    остальных (не-каталожных) страниц сайта. */
-.siteHeader.apexHdrV201 { padding: 0 max(24px, calc((100% - 1720px) / 2)); }
+/* 06.11.2026: одна ширина сайта — шапка и каталог берут общий --maxw (1624px), своё значение не нужно. */
 
 /* Compact header */
 .auctionsHeadV2 { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
