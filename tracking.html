@@ -39,7 +39,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v513">
+  <link rel="stylesheet" href="styles.css?v=v514">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -52,8 +52,9 @@
     /* ---- Tracking page styles ---- */
     .trackPageV401 {
       width: calc(100% - 48px); max-width: var(--maxw);
-      margin: 0 auto; padding: 32px 0 64px;
+      margin: 0 auto; padding: 21px 0 64px;
     }
+    @media (max-width: 640px) { .trackPageV401 { padding-top: 13px; } }
 
     /* search block */
     .trackSearchV401 {
