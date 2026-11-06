@@ -2299,3 +2299,47 @@ a.tkItemV1:hover b { text-decoration: underline; }
   .heroCalmV1 .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
   .heroCalmV1 .heroSearchCardV1 { max-width: none; justify-self: stretch; box-shadow: var(--shadow); }
 }
+
+
+/* ---- Заявка на подбор + проверка VIN (06.11.2026, Федор: «эта часть выглядит пустой, блок за блоком») ----
+   Слева теперь не только абзац: что получите (3 пункта), площадки и карточка Федора с рейтингом Google
+   (ровно 4,4 / 41 — как в LocalBusiness на главной; менять вместе с ним). Проверка VIN — одна тёмная полоса:
+   текст слева, поле и кнопка в строку справа, вместо двух больших блоков с пустым местом. id/классы форм не менялись. */
+.leadText { display: flex; flex-direction: column; }
+.leadGetV1 { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 14px; }
+.leadGetV1 li { position: relative; padding-left: 36px; display: flex; flex-direction: column; gap: 2px; }
+.leadGetV1 li::before {
+  content: ""; position: absolute; left: 0; top: 1px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--red-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ed0012' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 12.5 10.5 17 18 8'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+.leadGetV1 b { font-size: 15.5px; color: var(--ink); font-weight: 700; }
+.leadGetV1 span { font-size: 14px; color: var(--muted); }
+.leadPersonV1 {
+  display: flex; align-items: center; gap: 14px; margin-top: auto; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm);
+}
+.leadSection .leadText .auctionHintV48 { margin-bottom: 22px; }
+.leadPersonV1 img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex: none; }
+.leadPersonV1 div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.leadPersonV1 strong { font-size: 15px; color: var(--ink); }
+.leadPersonV1 div span { font-size: 13px; color: var(--muted); }
+.leadPersonV1 em { margin-left: auto; font-style: normal; font-size: 13px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.leadPersonV1 em span { font-weight: 500; color: var(--muted); }
+.vinBandV1.infoCard { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-items: center; padding: 30px 34px; }
+.checkSection > .vinBandV1.container { padding: 30px 34px; }
+.vinBandV1 .vinBandTextV1, .vinBandV1 .checkForm { position: relative; }
+.vinBandV1 .darkInfo h2, .vinBandV1 h2 { font-size: clamp(22px, 2.2vw, 30px); line-height: 1.12; margin: 4px 0 10px; }
+.vinBandV1 .vinBandTextV1 p { font-size: 14.5px; max-width: 62ch; }
+.vinBandV1 .checkForm { background: none; border: 0; box-shadow: none; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.vinBandV1 .checkForm button { width: auto; padding: 0 26px; white-space: nowrap; }
+.vinBandV1 .checkForm small { grid-column: 1 / -1; color: rgba(255,255,255,0.6); text-align: left; }
+@media (min-width: 981px) {
+  .vinBandV1.infoCard { grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr); gap: 44px; }
+}
+@media (max-width: 640px) {
+  .checkSection > .vinBandV1.container { padding: 22px 18px; }
+  .vinBandV1 .checkForm { grid-template-columns: minmax(0, 1fr); }
+  .vinBandV1 .checkForm button { width: 100%; }
+  .leadPersonV1 { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; row-gap: 6px; }
+  .leadPersonV1 em { grid-column: 2; margin-left: 0; white-space: normal; }
+}
