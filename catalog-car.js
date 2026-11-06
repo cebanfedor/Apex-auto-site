@@ -516,8 +516,8 @@
   }
   document.addEventListener("click", function(e){
     var st = e.target.closest("[data-gal-step]"); if(st){ galGo(gal.idx + parseInt(st.getAttribute("data-gal-step"), 10)); return; }
-    var th = e.target.closest("[data-gal-thumb]"); if(th){ var k = parseInt(th.getAttribute("data-gal-thumb"), 10); if(galSwiping()) galGo(k); else openLightbox(state.photosFull, k); return; }
-    var op = e.target.closest("[data-gal-open]"); if(op){ openLightbox(state.photosFull, parseInt(op.getAttribute("data-gal-open"), 10)); return; }
+    var th = e.target.closest("[data-gal-thumb]"); if(th){ var k = parseInt(th.getAttribute("data-gal-thumb"), 10); if(galSwiping()) galGo(k); else openLightbox(state.photosFull, k, state.photos); return; }
+    var op = e.target.closest("[data-gal-open]"); if(op){ openLightbox(state.photosFull, parseInt(op.getAttribute("data-gal-open"), 10), state.photos); return; }
   });
   document.addEventListener("mouseover", function(e){ var th = e.target.closest && e.target.closest("[data-gal-thumb]"); if(th && fineHover()) galGo(parseInt(th.getAttribute("data-gal-thumb"), 10)); });
   document.addEventListener("scroll", function(e){
@@ -530,18 +530,31 @@
   });
 
   // ---- Лайтбокс (зум двойным кликом/колесом/пинчем, как на /auctions) ----
-  var lb = {images:[], idx:0, zoom:1, panX:0, panY:0, dragging:false, startX:0, startY:0, pinchDist:0, pinchZoom:1}, lbEl = null;
+  var lb = {images:[], thumbs:[], idx:0, zoom:1, panX:0, panY:0, dragging:false, startX:0, startY:0, pinchDist:0, pinchZoom:1}, lbEl = null;
   function ensureLightbox(){
     if(lbEl) return lbEl;
     var el = document.createElement("div"); el.className = "lot-lb"; el.hidden = true; el.tabIndex = -1;
-    el.innerHTML = '<button type="button" class="lot-lb__close" aria-label="' + esc(T("Закрыть")) + '">' + I.x + '</button><button type="button" class="lot-lb__arr lot-lb__prev" aria-label="' + esc(T("Предыдущее фото")) + '">' + I.prev + '</button><button type="button" class="lot-lb__arr lot-lb__next" aria-label="' + esc(T("Следующее фото")) + '">' + I.next + '</button><div class="lot-lb__stage"><img class="lot-lb__img" alt=""></div><span class="lot-lb__count num"></span>';
+    el.innerHTML = '<button type="button" class="lot-lb__close" aria-label="' + esc(T("Закрыть")) + '">' + I.x + '</button><button type="button" class="lot-lb__arr lot-lb__prev" aria-label="' + esc(T("Предыдущее фото")) + '">' + I.prev + '</button><button type="button" class="lot-lb__arr lot-lb__next" aria-label="' + esc(T("Следующее фото")) + '">' + I.next + '</button><div class="lot-lb__stage"><img class="lot-lb__img" alt=""></div><span class="lot-lb__count num"></span><div class="lot-lb__strip scrollbar-none" aria-label="' + esc(T("Фото")) + '"></div>';
     document.body.appendChild(el); lbEl = el; wireLightbox(el); return el;
   }
   function lbApply(){ var img = lbEl.querySelector(".lot-lb__img"); img.style.transform = "translate(" + lb.panX + "px," + lb.panY + "px) scale(" + lb.zoom + ")"; lbEl.classList.toggle("is-zoomed", lb.zoom > 1.01); }
-  function lbRender(){ lbEl.querySelector(".lot-lb__img").src = lb.images[lb.idx] || ""; lb.zoom = 1; lb.panX = lb.panY = 0; lbApply(); lbEl.querySelector(".lot-lb__count").textContent = (lb.idx + 1) + " / " + lb.images.length; }
+  function lbRender(){ lbEl.querySelector(".lot-lb__img").src = lb.images[lb.idx] || ""; lb.zoom = 1; lb.panX = lb.panY = 0; lbApply(); lbEl.querySelector(".lot-lb__count").textContent = (lb.idx + 1) + " / " + lb.images.length; lbStripSync(); }
+  // Карусель миниатюр внизу просмотра (Федор 06.11.2026): превью 800px (state.photos), активная — в рамке, сама доезжает в видимую область.
+  function lbStripBuild(){
+    var strip = lbEl.querySelector(".lot-lb__strip"); if(!strip) return;
+    strip.hidden = lb.images.length < 2;
+    strip.innerHTML = lb.images.map(function(src, i){ return '<button type="button" class="lot-lb__thumb" data-lb-thumb="' + i + '" aria-label="' + esc(T("Фото")) + ' ' + (i + 1) + '"><img src="' + esc(lb.thumbs[i] || src) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></button>'; }).join("");
+  }
+  function lbStripSync(){
+    var strip = lbEl && lbEl.querySelector(".lot-lb__strip"); if(!strip) return;
+    strip.querySelectorAll(".lot-lb__thumb").forEach(function(b, i){
+      var on = i === lb.idx; b.classList.toggle("is-on", on); if(on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+      if(on){ var l = b.offsetLeft - (strip.clientWidth - b.offsetWidth) / 2; strip.scrollTo({left:Math.max(0, l), behavior:"smooth"}); }
+    });
+  }
   function lbNav(d){ if(!lb.images.length) return; lb.idx = (lb.idx + d + lb.images.length) % lb.images.length; lbRender(); }
   function lbCycle(){ var steps = [1, 2, 3], cur = steps.indexOf(Math.round(lb.zoom)); lb.zoom = steps[(cur + 1) % steps.length]; if(lb.zoom <= 1){ lb.panX = lb.panY = 0; } lbApply(); }
-  function openLightbox(images, idx){ if(!images || !images.length) return; ensureLightbox(); lb.images = images; lb.idx = Math.max(0, Math.min(images.length - 1, idx || 0)); lbRender(); lbEl.hidden = false; document.documentElement.classList.add("overflow-hidden"); lbEl.focus(); }
+  function openLightbox(images, idx, thumbs){ if(!images || !images.length) return; ensureLightbox(); lb.images = images; lb.thumbs = thumbs || images; lb.idx = Math.max(0, Math.min(images.length - 1, idx || 0)); lbStripBuild(); lbRender(); lbEl.hidden = false; document.documentElement.classList.add("overflow-hidden"); lbEl.focus(); }
   function closeLightbox(){ if(!lbEl || lbEl.hidden) return; lbEl.hidden = true; document.documentElement.classList.remove("overflow-hidden"); }
   function dist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy); }
   function wireLightbox(el){
@@ -549,6 +562,7 @@
     el.querySelector(".lot-lb__close").addEventListener("click", closeLightbox);
     el.querySelector(".lot-lb__prev").addEventListener("click", function(){ lbNav(-1); });
     el.querySelector(".lot-lb__next").addEventListener("click", function(){ lbNav(1); });
+    el.querySelector(".lot-lb__strip").addEventListener("click", function(e){ var t = e.target.closest("[data-lb-thumb]"); if(!t) return; lb.idx = parseInt(t.getAttribute("data-lb-thumb"), 10) || 0; lbRender(); });
     el.addEventListener("click", function(e){ if(e.target === el && lb.zoom <= 1) closeLightbox(); });
     stage.addEventListener("dblclick", function(e){ e.preventDefault(); lbCycle(); });
     stage.addEventListener("wheel", function(e){ e.preventDefault(); lb.zoom = Math.min(3, Math.max(1, lb.zoom + (e.deltaY < 0 ? 0.25 : -0.25))); if(lb.zoom <= 1){ lb.panX = lb.panY = 0; } lbApply(); }, {passive:false});
