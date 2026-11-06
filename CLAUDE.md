@@ -2350,3 +2350,17 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   (было обрезанное «Нет (по данным пр…»); (4) названия отметок осмотра OpenLane с заглавной (`partName`); (5) на телефоне значения в «Объявление/Описание» переносятся, а не режутся многоточием
   (`.lot-info__value`, касается и Кореи). catalog-ref.css пересобран БЕЗ бандла эталона: первые 274 строки (сгенерированная часть) + новый extra — так можно, пока сгенерированная часть не менялась.
   Версии: catalog.js v21, catalog-car.js v20, catalog-ref.css v13.
+- **Все поля API OpenLane (06.11.2026, Федор: «проверь все поля, нужно больше инфы, там есть история»)** — разбор 80 машин (карта полей с долей заполнения).
+  Добавлено на страницу авто Канады (`catalog-car.js`, только при `CA`):
+  (1) **История** — у OpenLane нет сводки/событий, но есть проверки продавца/Carfax (`checks[].source_code=knownHistory`, ~41% машин): прокат, ДТП в прошлом,
+  ущерб >$3 000 / суммарно >$2 000, тотал от страховой, Branded (Rebuilt), другая провинция, машина из США, перекраска. `olHistFacts` (таблица `OL_HIST`, значение из
+  `description` после «:» — True/Yes → Да, false → Нет, «Brand/status: Rebuilt» → Rebuilt). Раньше такие отчёты отфильтровывались целиком. `histSummary` → `{ca:true, facts, found, tone}`,
+  своя секция `historySectionHtmlCA` + кнопка «Полный отчёт Carfax» (`source_data.vhr_url`), вердикты/чип «Состояние»/плитка навигатора/строка «История» в «Главное» — ветки `h.ca`.
+  Секция видна только при наличии knownHistory; одна проверка «ДТП по данным продавца» — это строка «ДТП» в «Главное» (и без осмотра — тоже).
+  (2) **Видео осмотра** (`listing.video[]`, mp4 с pub-us.kar-media.com, ~39%): кнопка «▶ Видео осмотра» на фото + окно-плеер `.olVidV1` (Escape/крестик, несколько видео — переключатель). CSP `media-src https:` уже пускает.
+  (3) **Оценка ремонта по осмотру** (`checked_items[].source_code=inspection.damages.cost`, `measurements[0].value_number` CAD, ~23%): убрана из списка пунктов осмотра → строка
+  «Оценка ремонта (осмотр)» в «Объявлении» и «ремонт ≈ $X» в вердикте техосмотра (`olDamageCost`).
+  (4) **Детали торгов**: формат (`channel`: dealerBlock/tradeRev/simulcast), площадка (`location_name`), начало/окончание торгов с временем (`starts_at`/`ends_at`, вместо «Дата аукциона»),
+  линия/номер (`lane_number`/`run_number`), шаг ставки (`bid_increment`), точность оценки рынка (`market_value.confidence`).
+  Не показываем (служебное): `vehicle_status`, `sale_access`, `event_id`, `hash`, `vehicle_wmi`, `listing.description` (дублирует отметки осмотра).
+  Версии: catalog-car.js v21, catalog-ref.css v14 (+стили `.olVidBtnV1/.olVidV1` в extra), i18n multilang-v566 (37 новых ключей ro/en).

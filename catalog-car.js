@@ -289,12 +289,50 @@
         if(it.source_code === "conditions" && it.result_key === "unknown"){ it.result_key = "issue"; it.description = T("Повреждение"); }
         if(it.source_code === "tires"){ var nm = TIRE_RU[String(it.source_label || "").toLowerCase()]; if(nm) it.part_label = T(nm); delete it.part_key; it.olTire = true; }
       });
+      // «Estimated damage cost» — не пункт осмотра, а оценка ремонта от OpenLane (CAD): выносим в отдельное поле
+      var keep = [];
+      (r.checked_items || []).forEach(function(it){
+        if(it.source_code === "inspection.damages.cost"){ var m = (it.measurements || [])[0]; if(m && isFinite(m.value_number)) r._dmgCost = Number(m.value_number); return; }
+        keep.push(it);
+      });
+      r.checked_items = keep;
     });
+    // История OpenLane: сводки и событий нет, есть проверки продавца / Carfax (knownHistory) — разбираем их в «факты»
     car.vehicle_history_reports = (car.vehicle_history_reports || []).filter(function(r){
       var sm = r && r.summary && !Array.isArray(r.summary) ? Object.keys(r.summary).length : 0;
-      return sm > 0 || (Array.isArray(r && r.events) && r.events.length > 0);
+      if(sm > 0 || (Array.isArray(r && r.events) && r.events.length > 0)) return true;
+      r._olFacts = olHistFacts(r);
+      return r._olFacts.length > 0;
     });
   }
+  // Проверки истории OpenLane → [{label, value, tone}]; ДТП по данным продавца уже в «Главное», здесь — только известная история
+  var OL_HIST = [
+    [/daily rental|rental/i, "Использовался в прокате", "is-warn"],
+    [/previous accident/i, "ДТП в прошлом", "is-warn"],
+    [/damage exceeding\s*\$?\s*3,?000/i, "Повреждения дороже $3 000", "is-warn"],
+    [/cumulative damage/i, "Суммарные повреждения дороже $2 000", "is-warn"],
+    [/total loss/i, "Признан тоталом страховой", "is-bad"],
+    [/^branded/i, "Особый статус документа", "is-bad"],
+    [/out of (province|state)/i, "Регистрировался в другой провинции", ""],
+    [/us vehicle/i, "Машина из США", ""],
+    [/paint/i, "Была перекраска", "is-warn"]
+  ];
+  function olHistFacts(r){
+    var out = [];
+    (r.checks || []).forEach(function(c){
+      if(c.source_code !== "knownHistory") return;
+      var lbl = String(c.source_label || "").trim(), d = String(c.description || "");
+      var raw = d.indexOf(":") >= 0 ? d.slice(d.indexOf(":") + 1).trim() : "";
+      var no = /^(false|no)$/i.test(raw);
+      var hit = OL_HIST.find(function(m){ return m[0].test(lbl); });
+      var label = hit ? T(hit[1]) : lbl;
+      var prov = lbl.match(/Province:\s*([^,]+)/i);
+      var value = no ? T("Нет") : (/^(true|yes)$/i.test(raw) || !raw) ? (prov ? prov[1].trim() : T("Да")) : raw;
+      out.push({label:label, value:value, tone:no ? "is-ok" : (hit ? hit[2] : ""), no:no});
+    });
+    return out;
+  }
+  function olDamageCost(){ var r = matchingReports(state.car.inspections)[0]; return r && r._dmgCost != null ? r._dmgCost : null; }
   // Значение пункта осмотра без вердикта (шины OpenLane): глубина протектора вместо «Норма»
   function neutralValue(it){
     if(!(CA && it.result_key === "unknown")) return null;
@@ -429,7 +467,9 @@
       rows += '<div><dt>' + esc(T("ДТП")) + '</dt><dd class="' + insp.accidentTone + '">' + esc(insp.accidentText) + '</dd></div>';
       rows += '<div><dt>' + esc(T("Техосмотр")) + '</dt><dd class="' + (insp.issues.length ? "is-warn" : "is-ok") + '">' + esc(insp.countText) + '</dd></div>';
     }
-    if(hist){
+    if(hist && hist.ca){
+      hist.found.filter(function(f){ return f.tone; }).slice(0, 4).forEach(function(f){ rows += '<div><dt>' + esc(f.label) + '</dt><dd class="' + f.tone + '">' + esc(f.value) + '</dd></div>'; });
+    }else if(hist){
       rows += '<div><dt>' + esc(T("Страховые случаи")) + '</dt><dd class="' + (hist.claimCount > 0 ? "is-warn" : "is-ok") + '">' + esc(hist.claimCount > 0 ? (hist.claimCount + " " + plural(hist.claimCount, T("случай"), T("случая"), T("случаев"))) : T("Нет")) + '</dd></div>';
       rows += '<div><dt>' + esc(T("Изменения владельца")) + '</dt><dd>' + esc(hist.owners > 0 ? (hist.owners + " " + plural(hist.owners, T("смена"), T("смены"), T("смен"))) : T("Нет")) + '</dd></div>';
       rows += '<div><dt>' + esc(T("Тотал, затопление, угон")) + '</dt><dd class="' + (hist.total ? "is-bad" : "is-ok") + '">' + esc(hist.total ? T("Да") : T("Нет")) + '</dd></div>';
@@ -534,12 +574,38 @@
         + (n > 1 ? '<div><button type="button" class="car-gallery__arrow car-gallery__arrow--prev" data-gal-step="-1" aria-label="' + esc(T("Предыдущее фото")) + '">' + I.prev + '</button><button type="button" class="car-gallery__arrow car-gallery__arrow--next" data-gal-step="1" aria-label="' + esc(T("Следующее фото")) + '">' + I.next + '</button></div>' : "")
         + (n > 1 ? '<span class="car-gallery__counter num"><span data-gal-idx>1</span> / <span>' + n + '</span></span>' : "")
         + favBtnHtml("lot-gallery__fav")
+        + videoBtnHtml()
         + (n === 0 ? '<div class="car-gallery__empty">' + esc(T("Фото скоро появятся")) + '</div>' : "")
       + '</div>'
       + (n > 1 ? '<div class="car-gallery__thumbs">' + thumbs + more + '</div>' : "")
     + '</div>';
     gal.idx = 0;
   }
+  // Видео осмотра (OpenLane отдаёт mp4 в listing.video) — кнопка на фото и окно с плеером
+  function videoList(){ var v = state.listing && state.listing.video; return Array.isArray(v) ? v.filter(function(u){ return /^https:\/\//.test(String(u || "")); }) : []; }
+  function videoBtnHtml(){
+    var v = videoList(); if(!v.length) return "";
+    return '<button type="button" class="olVidBtnV1" data-ol-video="0"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>' + esc(T("Видео осмотра")) + (v.length > 1 ? ' <span class="num">' + v.length + '</span>' : "") + '</button>';
+  }
+  var vidEl = null;
+  function openVideo(i){
+    var v = videoList(); if(!v.length) return; i = ((i % v.length) + v.length) % v.length;
+    if(!vidEl){
+      vidEl = document.createElement("div"); vidEl.className = "olVidV1"; vidEl.setAttribute("role", "dialog"); vidEl.setAttribute("aria-modal", "true");
+      document.body.appendChild(vidEl);
+      vidEl.addEventListener("click", function(e){
+        if(e.target === vidEl || e.target.closest("[data-vid-close]")) closeVideo();
+        var b = e.target.closest("[data-vid-go]"); if(b) openVideo(parseInt(b.getAttribute("data-vid-go"), 10));
+      });
+      document.addEventListener("keydown", function(e){ if(e.key === "Escape" && vidEl && !vidEl.hidden) closeVideo(); });
+    }
+    vidEl.innerHTML = '<button type="button" class="olVidV1__x" data-vid-close aria-label="' + esc(T("Закрыть")) + '">' + I.x + '</button>'
+      + '<video class="olVidV1__v" src="' + esc(v[i]) + '" controls autoplay playsinline preload="metadata"></video>'
+      + (v.length > 1 ? '<div class="olVidV1__nav">' + v.map(function(_, k){ return '<button type="button" data-vid-go="' + k + '" class="' + (k === i ? "is-on" : "") + '">' + esc(T("Видео")) + ' ' + (k + 1) + '</button>'; }).join("") + '</div>' : "");
+    vidEl.hidden = false; document.documentElement.style.overflow = "hidden";
+  }
+  function closeVideo(){ if(!vidEl) return; var vv = vidEl.querySelector("video"); if(vv){ try{ vv.pause(); }catch(e){} } vidEl.innerHTML = ""; vidEl.hidden = true; document.documentElement.style.overflow = ""; }
+  document.addEventListener("click", function(e){ var b = e.target.closest && e.target.closest("[data-ol-video]"); if(!b) return; e.preventDefault(); e.stopPropagation(); openVideo(parseInt(b.getAttribute("data-ol-video"), 10) || 0); }, true);
   function galTrack(){ return document.querySelector("[data-gal-track]"); }
   function galSwiping(){ var t = galTrack(); return !!t && t.scrollWidth > t.clientWidth + 4; }
   function galReveal(i){ var t = galTrack(); if(!t) return; [i - 1, i, i + 1].forEach(function(k){ var im = t.querySelector('[data-index="' + k + '"] img'); if(im && im.getAttribute("data-src")){ im.src = im.getAttribute("data-src"); im.removeAttribute("data-src"); } }); }
@@ -655,8 +721,9 @@
     if(!insp && !hist) return null;
     if(insp && insp.accident) return {text:T("Было ДТП"), tone:"is-bad"};
     if(hist && hist.total) return {text:T("Тотал / затопление / угон"), tone:"is-bad"};
+    if(hist && hist.ca && hist.tone === "is-bad") return {text:T("Проблемная история"), tone:"is-bad"};
     if(insp && insp.traces.length) return {text:T("Следы ремонта"), tone:"is-warn"};
-    if((insp && insp.issues.length) || (hist && hist.claimCount > 0)) return {text:T("Есть замечания"), tone:"is-warn"};
+    if((insp && insp.issues.length) || (hist && (hist.claimCount > 0 || (hist.ca && hist.tone !== "is-ok")))) return {text:T("Есть замечания"), tone:"is-warn"};
     return {text:T("Без замечаний"), tone:"is-ok"};
   }
   function inspVerdictText(s){
@@ -664,7 +731,8 @@
       // OpenLane: отметки о повреждениях кузова/салона без деления на механику, ДТП — по данным продавца
       var acc = olAuction(state.listing).sd.has_accident;
       return (s.issues.length ? T("Отметок о повреждениях") + ": " + s.issues.length : T("Отметок о повреждениях нет"))
-        + (acc === true ? ", " + T("продавец сообщает о ДТП") : acc === false ? ", " + T("без ДТП по данным продавца") : "");
+        + (acc === true ? ", " + T("продавец сообщает о ДТП") : acc === false ? ", " + T("без ДТП по данным продавца") : "")
+        + (function(){ var dc = olDamageCost(); if(!(dc > 0)) return ""; var u = toUsd(dc, "cad"); return ", " + T("ремонт") + " ≈ " + (u != null ? fmtNum(Math.round(u)) + " $" : fmtNum(Math.round(dc)) + " CAD"); })();
     }
     // как у эталона: без замечаний — «Все 32 проверки пройдены без замечаний»
     if(!s.issues.length && !s.accident && !s.traces.length && s.total) return T("Все") + " " + s.total + " " + plural(s.total, T("проверка"), T("проверки"), T("проверок")) + " " + T("пройдены без замечаний");
@@ -676,6 +744,12 @@
   }
   function histSummary(){
     var r = matchingReports(state.car.vehicle_history_reports)[0]; if(!r) return null;
+    if(r._olFacts){
+      var yes = r._olFacts.filter(function(f){ return !f.no; });
+      var bad = yes.some(function(f){ return f.tone === "is-bad"; }), warn = yes.some(function(f){ return f.tone === "is-warn"; });
+      return {ca:true, r:r, facts:r._olFacts, found:yes, s:{}, events:[], checks:[], claims:[], claimsTotal:0, claimCount:0, owners:0, total:false, readings:[], rollback:false,
+        tone: bad ? "is-bad" : warn ? "is-warn" : "is-ok"};
+    }
     var s = (r.summary && !Array.isArray(r.summary)) ? r.summary : {};
     var events = Array.isArray(r.events) ? r.events.slice() : [];
     var checks = Array.isArray(r.checks) ? r.checks : [];
@@ -690,7 +764,12 @@
     return {r:r, s:s, events:events, checks:checks, claims:claims, claimsTotal:claimsTotal, claimsCur:claimsCur, claimCount:claimCount, owners:owners, total:total, readings:readings, rollback:rollback,
       tone: total ? "is-bad" : (claimCount > 0 || rollback) ? "is-warn" : "is-ok"};
   }
+  function olFoundText(h){
+    var f = h.found.filter(function(x){ return x.tone; });
+    return f.length ? T("Найдено") + ": " + f.map(function(x, i){ var l = x.label; return i && !/^[A-ZА-ЯЁ]{2}/.test(l) ? l.charAt(0).toLowerCase() + l.slice(1) : l; }).join(", ") : T("Проблем в истории не найдено");
+  }
   function histVerdictText(h){
+    if(h.ca) return olFoundText(h);
     var p = [];
     p.push(h.claimCount > 0 ? (h.claimCount + " " + plural(h.claimCount, T("страховой случай"), T("страховых случая"), T("страховых случаев"))) : T("без страховых случаев"));
     p.push(h.owners > 0 ? (h.owners + " " + plural(h.owners, T("смена владельца"), T("смены владельца"), T("смен владельца"))) : T("владелец не менялся"));
@@ -698,6 +777,7 @@
     return p.join(", ");
   }
   function histShortVerdict(h){
+    if(h.ca){ var n = h.found.filter(function(x){ return x.tone; }).length; return n ? n + " " + plural(n, T("отметка"), T("отметки"), T("отметок")) + " " + T("в истории") : T("Проблем в истории не найдено"); }
     var a = [h.total ? T("Есть тотал/затопление/угон") : T("Без тотальных и утоплений")];
     a.push(h.owners > 0 ? (h.owners + " " + plural(h.owners, T("смена владельца"), T("смены владельца"), T("смен владельца"))) : T("без смены владельца"));
     return a.join(" · ");
@@ -728,7 +808,10 @@
       main += infoRow(T("ДТП"), insp.accidentText, insp.accidentTone, {fact:true, icon:insp.accidentTone === "is-ok" ? I.check : I.warn, go:"inspection"});
       main += infoRow(T("Техосмотр"), insp.countText, insp.issues.length ? "is-warn" : "is-ok", {fact:true, icon:insp.issues.length ? I.warn : I.check, go:"inspection"});
     }
-    if(hist){
+    if(CA && !insp && state.listing){ var acc0 = olAuction(state.listing).sd.has_accident; if(acc0 != null) main += infoRow(T("ДТП"), acc0 ? T("Было ДТП") : T("Не заявлено"), acc0 ? "is-bad" : "is-ok", {fact:true, icon:acc0 ? I.warn : I.check, go:hist ? "history" : undefined}); }
+    if(hist && hist.ca){
+      main += infoRow(T("История"), histShortVerdict(hist), hist.tone, {fact:true, icon:hist.tone === "is-ok" ? I.check : I.warn, go:"history"});
+    }else if(hist){
       main += infoRow(T("Страховые случаи"), hist.claimCount > 0 ? (hist.claimCount + " " + plural(hist.claimCount, T("случай"), T("случая"), T("случаев"))) : T("Нет"), hist.claimCount > 0 ? "is-warn" : "is-ok", {fact:true, icon:hist.claimCount > 0 ? I.warn : I.check, go:"history"});
       main += infoRow(T("Изменения владельца"), hist.owners > 0 ? (hist.owners + " " + plural(hist.owners, T("смена"), T("смены"), T("смен"))) : T("Нет"), "", {fact:true, icon:I.owners});
       main += infoRow(T("Тотал, затопление, угон"), hist.total ? T("Да") : T("Нет"), hist.total ? "is-warn" : "is-ok", {fact:true, icon:hist.total ? I.warn : I.check});
@@ -737,7 +820,7 @@
     if(car.vin) ad += infoRow("VIN", String(car.vin).toUpperCase(), "is-mono", {copy:String(car.vin).toUpperCase()});
     if(listing && listing.availability) ad += infoRow(T("Наличие"), T(AVAIL[listing.availability.id] || listing.availability.name));
     if(listing) ad += infoRow(T("Тип продажи"), listing.is_auction ? T("Аукцион") : T("Фиксированная цена"));
-    if(listing && listing.auction_at) ad += infoRow(T("Дата аукциона"), fmtDate(listing.auction_at));
+    if(listing && listing.auction_at && !CA) ad += infoRow(T("Дата аукциона"), fmtDate(listing.auction_at));
     if(listing && listing.created_at) ad += infoRow(T("Размещено"), fmtDate(listing.created_at));
     if(listing && listing.last_seen_at) ad += infoRow(T("Последняя проверка"), fmtDate(listing.last_seen_at));
     if(listing && listing.has_registration != null) ad += infoRow(T("Документы (ПТС)"), listing.has_registration ? T("Да") : T("Нет"), listing.has_registration ? "is-ok" : "");
@@ -751,10 +834,21 @@
       var o = olAuction(listing), ccur = "CAD";
       var cadTxt = function(v){ var u = toUsd(v, "cad"); return fmtNum(Math.round(v)) + " CAD" + (u != null ? " ≈ " + fmtNum(Math.round(u)) + " $" : ""); };
       var st = Number(o.sd.starting_bid || o.oa.start_price || 0);
+      var dt = function(iso){ var x = new Date(iso); return isNaN(x.getTime()) ? "" : x.toLocaleString(uiLang() === "en" ? "en-GB" : uiLang() === "ro" ? "ro-RO" : "ru-RU", {day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}); };
+      var CHAN = {dealerBlock:"Онлайн-торги дилеров (DealerBlock)", tradeRev:"Онлайн-аукцион trade-in (TradeRev)", simulcast:"Живой аукцион с онлайн-трансляцией (Simulcast)"};
+      var ch = o.oa.channel || o.sd.auction_channel; if(ch) ad += infoRow(T("Формат торгов"), CHAN[ch] ? T(CHAN[ch]) : ch);
+      if(o.oa.location_name) ad += infoRow(T("Площадка"), o.oa.location_name);
+      if(o.oa.starts_at && dt(o.oa.starts_at)) ad += infoRow(T("Начало торгов"), dt(o.oa.starts_at));
+      var endAt = o.oa.ends_at || listing.auction_at; if(endAt && dt(endAt)) ad += infoRow(T("Окончание торгов"), dt(endAt));
+      var lane = o.oa.lane_number || o.sd.auction_lane, run = o.oa.run_number || o.sd.auction_run_number;
+      if(lane || run) ad += infoRow(T("Линия / номер"), [lane ? T("Линия") + " " + lane : "", run ? "№ " + run : ""].filter(Boolean).join(" · "));
       if(st >= 500) ad += infoRow(T("Стартовая ставка"), cadTxt(st));
+      var inc = Number(o.oa.bid_increment || o.sd.bid_increment || 0); if(inc > 0) ad += infoRow(T("Шаг ставки"), fmtNum(inc) + " CAD");
       var rs = Number(o.sd.reserve_price || o.oa.reserve_price || 0);
       if(rs > 0) ad += infoRow(T("Резерв продавца"), cadTxt(rs));
       if(Number(o.mv.average_price) > 0) ad += infoRow(T("Оценка рынка (OpenLane)"), fmtNum(Math.round(o.mv.min_price || o.mv.average_price)) + "–" + fmtNum(Math.round(o.mv.max_price || o.mv.average_price)) + " " + ccur + (o.mv.total_sales ? " · " + o.mv.total_sales + " " + plural(o.mv.total_sales, T("продажа"), T("продажи"), T("продаж")) : ""));
+      var CONF = {HIGH:"высокая", MEDIUM:"средняя", LOW:"низкая"}; if(Number(o.mv.average_price) > 0 && CONF[o.mv.confidence]) ad += infoRow(T("Точность оценки рынка"), T(CONF[o.mv.confidence]), o.mv.confidence === "HIGH" ? "is-ok" : "");
+      var dc = olDamageCost(); if(dc != null) ad += infoRow(T("Оценка ремонта (осмотр)"), dc > 0 ? cadTxt(dc) : T("Не требуется"), dc > 3000 ? "is-warn" : "is-ok");
       if(o.sd.condition_grade) ad += infoRow(T("Оценка состояния"), String(o.sd.condition_grade) + " / 5", Number(o.sd.condition_grade) >= 4 ? "is-ok" : "");
       if(o.oa.listing_type && o.oa.listing_type !== "Not Provided") ad += infoRow(T("Происхождение"), T(o.oa.listing_type === "Off Lease" ? "После лизинга" : o.oa.listing_type === "TradeIn" ? "Trade-in (сдан дилеру)" : o.oa.listing_type));
       if(o.sd.has_accident != null) ad += infoRow(T("ДТП по данным продавца"), o.sd.has_accident ? T("Да") : T("Нет"), o.sd.has_accident ? "is-warn" : "is-ok");
@@ -875,7 +969,8 @@
       var cls = "", val = "", unit = "", words = false;
       if(s.id === "options"){ val = String(opts); }
       if(s.id === "inspection"){ cls = insp.tone === "is-ok" ? "is-ok" : "is-warn"; if(insp.issues.length){ val = String(insp.issues.length); unit = plural(insp.issues.length, T("замечание"), T("замечания"), T("замечаний")); } else { val = T("Без замечаний"); words = true; } }
-      if(s.id === "history"){ cls = hist.tone === "is-ok" ? "is-ok" : "is-warn"; if(hist.claimCount){ val = String(hist.claimCount); unit = plural(hist.claimCount, T("случай"), T("случая"), T("случаев")); } else { val = T("Чисто"); words = true; } }
+      if(s.id === "history" && hist.ca){ cls = hist.tone === "is-ok" ? "is-ok" : "is-warn"; var nf = hist.found.filter(function(x){ return x.tone; }).length; if(nf){ val = String(nf); unit = plural(nf, T("отметка"), T("отметки"), T("отметок")); } else { val = T("Чисто"); words = true; } }
+      else if(s.id === "history"){ cls = hist.tone === "is-ok" ? "is-ok" : "is-warn"; if(hist.claimCount){ val = String(hist.claimCount); unit = plural(hist.claimCount, T("случай"), T("случая"), T("случаев")); } else { val = T("Чисто"); words = true; } }
       if(s.id === "listings"){ var prices = new Set(listings.map(function(l){ var p = listingPrice(l); return p ? p.amount : null; }).filter(function(x){ return x != null; })); cls = prices.size <= 1 ? "is-ok" : ""; val = prices.size <= 1 ? T("Одна цена") : (listings.length + " " + plural(listings.length, T("объявление"), T("объявления"), T("объявлений"))); words = true; }
       return '<a href="#' + s.id + '" class="lot-tcard__tile ' + cls + '" data-toc="' + s.id + '" data-go="' + s.id + '"><span class="lot-tcard__name">' + s.icon + esc(T(s.label)) + '</span>' + (words ? '<b class="is-words" data-no-i18n="true">' + esc(val) + '</b>' : '<b class="num">' + esc(val) + '</b><span class="lot-tcard__unit">' + esc(unit) + '</span>') + '</a>';
     }).join("");
@@ -1116,7 +1211,7 @@
     var b = e.target.closest("[data-full-open]"); if(!b) return;
     var kind = b.getAttribute("data-full-open");
     if(kind === "inspection"){ var s = inspSummary(); if(s) fullInspectionPanel(s); }
-    if(kind === "timeline"){ var h = histSummary(); if(h) timelinePanel(h); }
+    if(kind === "timeline"){ var h = histSummary(); if(h && !h.ca) timelinePanel(h); }
   });
 
   // ============ Комплектация ============
@@ -1174,7 +1269,17 @@
 
   // ============ История ============
   function checkTone(k){ return k === "present" ? "is-warn" : k === "not_present" ? "is-ok" : "is-muted"; }
+  function historySectionHtmlCA(h){
+    var vhr = olAuction(state.listing).sd.vhr_url, acc = olAuction(state.listing).sd.has_accident;
+    var rows = (acc != null ? '<li class="' + (acc ? "is-bad" : "is-ok") + ' is-main"><span class="lot-hist__mark">' + (acc ? I.warn : I.check) + '</span><span class="lot-hist__label">' + esc(T("ДТП по данным продавца")) + '</span><b class="lot-hist__value num">' + esc(acc ? T("Было") : T("Не заявлено")) + '</b></li>' : "")
+      + h.facts.map(function(f){ var cls = f.tone === "is-bad" ? "is-bad" : f.tone === "is-warn" ? "is-warn" : f.no ? "is-ok" : "is-info"; return '<li class="' + cls + '"><span class="lot-hist__mark">' + (cls === "is-ok" ? I.check : cls === "is-info" ? I.minus : I.warn) + '</span><span class="lot-hist__label" data-no-i18n="true">' + esc(f.label) + '</span><b class="lot-hist__value" data-no-i18n="true">' + esc(f.value) + '</b></li>'; }).join("");
+    var carfax = vhr && /^https:\/\//.test(vhr) ? '<a class="lot-rep__full !mt-0" href="' + esc(vhr) + '" target="_blank" rel="noopener noreferrer nofollow"><span class="lot-rep__full-icon">' + I.historyBig + '</span><span class="min-w-0 flex-1"><span class="lot-rep__full-title">' + esc(T("Полный отчёт Carfax")) + '</span><span class="lot-rep__full-sub">' + esc(T("ДТП, страховые выплаты, владельцы и регистрации — на сайте Carfax Canada")) + '</span></span><span class="lot-rep__full-go">' + esc(T("Открыть")) + I.arrR + '</span></a>' : "";
+    return '<section id="history" class="lot-section"><header class="lot-section__head"><div class="min-w-0"><h2 class="lot-section__title">' + esc(T("История")) + '</h2><p class="lot-section__verdict"><span class="lot-section__dot ' + h.tone + '"></span><span data-no-i18n="true">' + esc(histVerdictText(h)) + '<span class="lot-section__meta">' + esc(T("по данным продавца и Carfax")) + '</span></span></p></div></header><div class="lot-section__body"><div class="lot-rep lot-hist">'
+      + '<div class="lot-hist__side"><p class="lot-hist__cap">' + esc(T("Главное")) + '</p><ul class="lot-hist__answers">' + rows + '</ul></div>'
+      + '<div class="lot-hist__main">' + (carfax ? '<div>' + carfax + '</div>' : "") + '</div></div></div></section>';
+  }
   function historySectionHtml(h){
+    if(h.ca) return historySectionHtmlCA(h);
     var r = h.r, s = h.s;
     var lastKm = h.readings.length ? h.readings[h.readings.length - 1].km : (state.listing && state.listing.odometer);
     var answers = '<li class="' + (h.claimCount > 0 ? "is-bad" : "is-ok") + ' is-main"><span class="lot-hist__mark">' + (h.claimCount > 0 ? I.warn : I.check) + '</span><span class="lot-hist__label">' + esc(T("Страховые случаи")) + '</span><b class="lot-hist__value num" data-no-i18n="true">' + (h.claimCount > 0 ? (h.claimCount + (h.claimsTotal ? " · " + esc(usdApprox(h.claimsTotal, h.claimsCur)) : "")) : esc(T("Не было"))) + '</b></li>'
