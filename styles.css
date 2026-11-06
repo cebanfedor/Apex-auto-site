@@ -2261,3 +2261,5 @@ a.tkItemV1:hover b { text-decoration: underline; }
   .tkLiveV1 { padding: 0 10px; font-size: 10px; }
   .pulseTileV1 span { font-size: 12px; }
 }
+.pulseAucV1 { padding: 34px 0 6px; }
+@media (max-width: 720px) { .pulseAucV1 { padding: 24px 0 4px; } }
