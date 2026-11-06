@@ -1730,3 +1730,6 @@ body.leadModalOpenV1 { overflow:hidden; }
   background: linear-gradient(90deg, #e6e9ee 0%, #f3f4f7 45%, #e6e9ee 90%); background-size: 200% 100%; animation: h1CntShimmer 1.4s ease-in-out infinite; }
 @keyframes h1CntShimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @media (prefers-reduced-motion: reduce) { .h1CountV3:empty { animation: none; } }
+/* Страница лота: верхняя строка (назад + поиск) выше крошек из-за поля поиска — поднимаем, чтобы текст «Вернуться к каталогу» стоял на той же высоте, что крошки на других страницах (06.11.2026) */
+@media (min-width: 641px) { #auctionDetail .detailTopRowV1 { margin-top: -7px; } }
+@media (max-width: 640px) { #auctionDetail .detailTopRowV1 { margin-top: -9px; } }
