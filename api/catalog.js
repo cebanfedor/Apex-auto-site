@@ -265,19 +265,26 @@ async function brandCount(src, dom, names){
 }
 async function carFact(src, dom, sort){
   const parts = ["lang=en"]; if(dom) cat.qsArray(parts, "domains", [dom]);
-  cat.qsPush(parts, "sort", sort); cat.qsPush(parts, "perPage", 8); cat.qsPush(parts, "page", 1);
+  cat.qsPush(parts, "sort", sort); cat.qsPush(parts, "perPage", 12); cat.qsPush(parts, "page", 1);
   const r = await cat.catalogFetch("/search", parts.join("&"), {src, timeoutMs:8000, retries:0});
   const rates = await getRates().catch(() => null);
+  const cands = [];
   for(const car of (Array.isArray(r && r.data) ? r.data : [])){
-    const title = [car.year, car.brand && car.brand.name, car.model && car.model.name].filter(Boolean).join(" ");
+    if(!(car.brand && car.brand.name && car.model && car.model.name && car.year)) continue;   // без модели («2023 BMW») не показываем
+    const title = [car.year, car.brand.name, car.model.name].join(" ");
     const ls = ogc.defaultListing(car), p = ogc.priceOf(ls, src);
-    if(!title || !p) continue;
+    if(!p) continue;
     const c = String(p.cur || "").toLowerCase();
     const usd = c === "usd" ? p.amount : c === "krw" && rates && rates.usdKrw ? p.amount / rates.usdKrw : c === "cad" && rates && rates.usdCad ? p.amount / rates.usdCad : 0;
-    if(!(usd > 300) || usd > 1500000) continue;   // заглушки цен («999 999 999») пропускаем
-    return {title, usd:Math.round(usd), href:(src === "ca" ? "/canada/" : "/korea/") + catSlug(car), at:(ls && ls.created_at) || null};
+    if(!(usd > 300) || usd > 900000) continue;   // заглушки цен («999 999 999 ₩», $1.2M за BMW) пропускаем
+    cands.push({title, usd:Math.round(usd), href:(src === "ca" ? "/canada/" : "/korea/") + catSlug(car), at:(ls && ls.created_at) || null});
   }
-  return null;
+  if(sort === "expensive"){
+    // выброс: цена больше чем вдвое выше следующей — скорее ошибка продавца, берём следующую
+    for(let i = 0; i < cands.length; i++) if(!cands[i + 1] || cands[i].usd <= cands[i + 1].usd * 2) return cands[i];
+    return null;
+  }
+  return cands[0] || null;
 }
 
 module.exports = async function handler(req, res){
