@@ -54,12 +54,15 @@ function buildBrandsParam(q){
   return brandIds.map(id => ({id, models:(modelMap[id] || []).map(mid => ({id:mid}))}));
 }
 
+// Источник: kr — Encar (Корея, по умолчанию), ca — OpenLane (Канада). 06.11.2026.
+function pickSrc(q){ return cat.srcOf(String(q.get("src") || "").toLowerCase()); }
+
 async function buildSearchQuery(q, {forCount}){
   const parts = [];
   const lang = pickLang(q);
   parts.push(`lang=${encodeURIComponent(lang)}`);
 
-  const domainId = await cat.resolveEncarDomainId();
+  const domainId = await cat.resolveDomainId(pickSrc(q));
   cat.qsArray(parts, "domains", [domainId]);
 
   const vehicleType = q.get("vehicle_type") === "motorcycle" ? "motorcycle" : null;
@@ -140,8 +143,9 @@ async function doSearch(q){
   const {query: searchQ} = await buildSearchQuery(q, {forCount:false});
   const {query: countQ} = await buildSearchQuery(q, {forCount:true});
 
-  const searchP = cat.catalogFetch("/search", searchQ);
-  const countP = cacheCount(countQ, cat.catalogFetch("/search/count", countQ).catch(e => ({__failed:true, error:e})));
+  const src = pickSrc(q);
+  const searchP = cat.catalogFetch("/search", searchQ, {src});
+  const countP = cacheCount(src + "|" + countQ, cat.catalogFetch("/search/count", countQ, {src}).catch(e => ({__failed:true, error:e})));
 
   const [searchRes, countRes] = await Promise.all([searchP, countP]);
 
@@ -186,15 +190,18 @@ let ratesCache = null;
 async function getRates(){
   if(ratesCache && Date.now() - ratesCache.t < 3600e3) return ratesCache.v;
   const sources = [
-    ["m.search.naver.com", async () => { const [krw, eur] = await Promise.all([naverRate("KRW"), naverRate("EUR").catch(() => 0)]); return {krw, eur}; }],
-    ["api.frankfurter.app", async () => { const r = await fetchT("https://api.frankfurter.app/latest?from=USD&to=KRW,EUR", {headers:{accept:"application/json"}}, 5000); const d = r.ok ? await r.json() : null; return d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}; }],
-    ["open.er-api.com", async () => { const r = await fetchT("https://open.er-api.com/v6/latest/USD", {headers:{accept:"application/json"}}, 5000); const d = r.ok ? await r.json() : null; return d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR}; }],
+    ["m.search.naver.com", async () => { const [krw, eur, cad] = await Promise.all([naverRate("KRW"), naverRate("EUR").catch(() => 0), naverRate("CAD").catch(() => 0)]); return {krw, eur, cad}; }],
+    ["api.frankfurter.app", async () => { const r = await fetchT("https://api.frankfurter.app/latest?from=USD&to=KRW,EUR,CAD", {headers:{accept:"application/json"}}, 5000); const d = r.ok ? await r.json() : null; return d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR, cad:d.rates.CAD}; }],
+    ["open.er-api.com", async () => { const r = await fetchT("https://open.er-api.com/v6/latest/USD", {headers:{accept:"application/json"}}, 5000); const d = r.ok ? await r.json() : null; return d && d.rates && {krw:d.rates.KRW, eur:d.rates.EUR, cad:d.rates.CAD}; }],
   ];
   for(const [src, get] of sources){
     try{
       const v = await get();
       if(v && v.krw > 100 && v.krw < 10000){
-        const out = {usdKrw:Math.round(v.krw * (1 - RATE_MARGIN) * 100) / 100, marketKrw:v.krw, margin:RATE_MARGIN, usdEur:v.eur || 0, src, at:new Date().toISOString()};
+        // CAD (OpenLane, Канада): тот же запас в нашу пользу; нет CAD у источника — 0, клиент покажет цену в CAD.
+        const cad = v.cad > 0.5 && v.cad < 3 ? v.cad : 0;
+        const out = {usdKrw:Math.round(v.krw * (1 - RATE_MARGIN) * 100) / 100, marketKrw:v.krw, margin:RATE_MARGIN, usdEur:v.eur || 0,
+          usdCad:cad ? Math.round(cad * (1 - RATE_MARGIN) * 10000) / 10000 : 0, marketCad:cad, src, at:new Date().toISOString()};
         ratesCache = {t:Date.now(), v:out};
         return out;
       }
@@ -207,6 +214,7 @@ module.exports = async function handler(req, res){
   if(req.method !== "GET") return methodNotAllowed(res);
   const q = getQuery(req);
   const action = String(q.get("action") || "search");
+  const src = pickSrc(q);
 
   try{
     if(action === "search"){
@@ -218,7 +226,7 @@ module.exports = async function handler(req, res){
       const id = String(q.get("id") || "").trim();
       if(!id) return sendJson(res, 400, {ok:false, error:"missing_id"});
       const lang = pickLang(q);
-      const data = await cat.catalogFetch(`/cars/${encodeURIComponent(id)}`, `lang=${encodeURIComponent(lang)}`);
+      const data = await cat.catalogFetch(`/cars/${encodeURIComponent(id)}`, `lang=${encodeURIComponent(lang)}`, {src});
       return sendJson(res, 200, {ok:true, car:data?.data || data}, {"cache-control":"no-store, private"});
     }
 
@@ -226,7 +234,7 @@ module.exports = async function handler(req, res){
       const vin = String(q.get("vin") || "").trim();
       if(!/^[A-Za-z0-9]{10,19}$/.test(vin)) return sendJson(res, 400, {ok:false, error:"bad_vin"});
       const lang = pickLang(q);
-      const data = await cat.catalogFetch(`/cars/vin/${encodeURIComponent(vin)}`, `lang=${encodeURIComponent(lang)}`);
+      const data = await cat.catalogFetch(`/cars/vin/${encodeURIComponent(vin)}`, `lang=${encodeURIComponent(lang)}`, {src});
       return sendJson(res, 200, {ok:true, car:data?.data || data}, {"cache-control":"no-store, private"});
     }
 
@@ -235,14 +243,14 @@ module.exports = async function handler(req, res){
       const listingId = String(q.get("listing_id") || "").trim();
       if(!domainId || !listingId) return sendJson(res, 400, {ok:false, error:"missing_listing_ref"});
       const lang = pickLang(q);
-      const data = await cat.catalogFetch(`/listing/${encodeURIComponent(domainId)}/${encodeURIComponent(listingId)}`, `lang=${encodeURIComponent(lang)}`);
+      const data = await cat.catalogFetch(`/listing/${encodeURIComponent(domainId)}/${encodeURIComponent(listingId)}`, `lang=${encodeURIComponent(lang)}`, {src});
       return sendJson(res, 200, {ok:true, car:data?.data || data}, {"cache-control":"no-store, private"});
     }
 
     if(action === "brands"){
       const lang = pickLang(q);
       const vehicleType = q.get("vehicle_type") === "motorcycle" ? "motorcycle" : "automobile";
-      const rows = await cat.listBrands(lang, vehicleType);
+      const rows = await cat.listBrands(lang, vehicleType, src);
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
     }
 
@@ -250,7 +258,7 @@ module.exports = async function handler(req, res){
       const brandId = String(q.get("brand_id") || "").trim();
       if(!brandId) return sendJson(res, 400, {ok:false, error:"missing_brand_id"});
       const lang = pickLang(q);
-      const rows = await cat.listModels(brandId, lang);
+      const rows = await cat.listModels(brandId, lang, src);
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
     }
 
@@ -258,7 +266,7 @@ module.exports = async function handler(req, res){
       const ids = String(q.get("ids") || "").split(",").map(s => parseInt(s, 10)).filter(Number.isFinite).slice(0, 100);
       if(!ids.length) return sendJson(res, 200, {ok:true, items:[]});
       const lang = pickLang(q);
-      const data = await cat.catalogFetch("/car-options", `ids=${encodeURIComponent(ids.join(","))}&per_page=${ids.length}&lang=${encodeURIComponent(lang)}`);
+      const data = await cat.catalogFetch("/car-options", `ids=${encodeURIComponent(ids.join(","))}&per_page=${ids.length}&lang=${encodeURIComponent(lang)}`, {src});
       const rows = Array.isArray(data?.data) ? data.data : [];
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
     }
@@ -273,7 +281,7 @@ module.exports = async function handler(req, res){
       const modelId = String(q.get("model_id") || "").trim();
       if(!modelId) return sendJson(res, 400, {ok:false, error:"missing_model_id"});
       const lang = pickLang(q);
-      const rows = await cat.listGenerations(modelId, lang);
+      const rows = await cat.listGenerations(modelId, lang, src);
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
     }
 

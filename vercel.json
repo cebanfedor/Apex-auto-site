@@ -38,7 +38,8 @@
     { "source": "/korea.html", "destination": "/korea", "permanent": true },
     { "source": "/catalog", "destination": "/korea", "permanent": true },
     { "source": "/catalog.html", "destination": "/korea", "permanent": true },
-    { "source": "/catalog/:id", "destination": "/korea/:id", "permanent": true }
+    { "source": "/catalog/:id", "destination": "/korea/:id", "permanent": true },
+    { "source": "/canada.html", "destination": "/canada", "permanent": true }
   ],
   "rewrites": [
     { "source": "/", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=index" },
@@ -110,6 +111,8 @@
     { "source": "/in-transit/:slug(\\d[^/]*)", "destination": "/api/transit-page?slug=:slug" },
     { "source": "/korea", "destination": "/catalog.html" },
     { "source": "/korea/:id", "destination": "/catalog-car.html" },
+    { "source": "/canada", "destination": "/canada.html" },
+    { "source": "/canada/:id", "destination": "/canada-car.html" },
     { "source": "/guide", "destination": "/guide.html" },
     { "source": "/customs", "destination": "/customs.html" },
     { "source": "/auction-fees", "destination": "/auction-fees.html" },

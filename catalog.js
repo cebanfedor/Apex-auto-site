@@ -11,6 +11,13 @@
   var grid = document.getElementById("catGridV1");
   if(!grid) return;
 
+  // Источник по странице (06.11.2026): /korea — Encar (Корея), /canada — OpenLane (Канада). Разметка /canada — canada.html
+  // (собирается scripts/build-canada-pages.js из catalog.html), движок общий, запросы к API с src=ca.
+  var CA = !!document.querySelector('main[data-cat-src="ca"]');
+  var BASE = CA ? "/canada" : "/korea";
+  var API = "/api/catalog?" + (CA ? "src=ca&" : "");
+  var PAGE_NAME = CA ? "Авто из Канады" : "Авто из Кореи";
+
   function T(s){ return typeof window.i18nT === "function" ? window.i18nT(s) : s; }
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
   function fmtNum(n){ return Number(n || 0).toLocaleString("ru-RU").replace(/ /g, " "); }
@@ -224,21 +231,21 @@
   }
 
   // ---- Курс USD→KRW для показа цен в $ (эталон показывает цену в долларах; Encar отдаёт KRW) ----
-  var rates = {usdKrw:0, usdEur:0};
+  var rates = {usdKrw:0, usdEur:0, usdCad:0};
   // Курс отдаёт наш сервер (/api/catalog?action=rates): прямые запросы браузера к сервисам курсов режут CORS/лимиты.
   function fetchRates(){
     return fetch("/api/catalog?action=rates").then(function(r){ return r.json(); })
-      .then(function(d){ return d && d.ok && d.usdKrw ? {rates:{KRW:d.usdKrw, EUR:d.usdEur}} : null; });
+      .then(function(d){ return d && d.ok && d.usdKrw ? {rates:{KRW:d.usdKrw, EUR:d.usdEur, CAD:d.usdCad || 0}} : null; });
   }
   function loadRates(){
     try{
-      var c = JSON.parse(localStorage.getItem("apexKrwRateV2") || "null");
-      if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; applyRates(); }
+      var c = JSON.parse(localStorage.getItem("apexKrwRateV3") || "null");
+      if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; rates.usdCad = c.cad || 0; applyRates(); }
     }catch(e){}
     fetchRates().then(function(d){
       if(d && d.rates && d.rates.KRW){
-        rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0;
-        try{ localStorage.setItem("apexKrwRateV2", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur})); }catch(e){}
+        rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0; rates.usdCad = d.rates.CAD || 0;
+        try{ localStorage.setItem("apexKrwRateV3", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur, cad:rates.usdCad})); }catch(e){}
         applyRates();
       }
     }).catch(function(){});
@@ -248,6 +255,7 @@
     if(cur === "usd") return amount;
     if(cur === "krw" && rates.usdKrw) return amount / rates.usdKrw;
     if(cur === "eur" && rates.usdEur) return amount / rates.usdEur;
+    if(cur === "cad" && rates.usdCad) return amount / rates.usdCad;
     return null;
   }
   function priceText(amount, cur){
@@ -275,7 +283,7 @@
     grid.setAttribute("aria-busy", "true");
     if(frame) frame.classList.add("catalog-loading");
     if(!grid.children.length) renderSkeleton();
-    fetch("/api/catalog?" + buildQuery(), {signal:abortCtrl.signal})
+    fetch(API + buildQuery(), {signal:abortCtrl.signal})
       .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, status:r.status, data:d}; }); })
       .then(function(res){
         if(myToken !== reqToken) return;
@@ -320,14 +328,14 @@
     var b = state.brands[0], bName = b ? brandNameOf(b) : null;
     var parts = ['<a href="/" class="crumb crumb--home" aria-label="' + esc(T("Главная")) + '">' + I.home + '</a>'];
     if(b && bName){
-      parts.push('<a href="/korea" class="crumb">' + esc(T("Авто из Кореи")) + '</a>');
+      parts.push('<a href="' + BASE + '" class="crumb">' + esc(T(PAGE_NAME)) + '</a>');
       var m = (b.models || [])[0], mName = m ? modelNameOf(b, m) : null;
       if(m && mName){
         var bp = new URLSearchParams(); bp.set("brand_id", b.id);
-        parts.push('<a href="/korea?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(bName) + '</a>');
+        parts.push('<a href="' + BASE + '?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(bName) + '</a>');
         parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(mName) + '</span>');
       }else parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(bName) + '</span>');
-    }else parts.push('<span class="crumb-current">' + esc(T("Авто из Кореи")) + '</span>');
+    }else parts.push('<span class="crumb-current">' + esc(T(PAGE_NAME)) + '</span>');
     el.innerHTML = parts.join(I.crumbSep);
   }
   function updateHeroHeading(){
@@ -337,8 +345,8 @@
     if(b && bName){
       var m = (b.models || [])[0], mName = m ? modelNameOf(b, m) : null;
       h1.setAttribute("data-no-i18n", "true");
-      h1.textContent = bName + (mName ? " " + mName : "") + " - " + T("Авто из Кореи");
-    }else{ h1.removeAttribute("data-no-i18n"); h1.textContent = T("Авто из Кореи"); }
+      h1.textContent = bName + (mName ? " " + mName : "") + " - " + T(PAGE_NAME);
+    }else{ h1.removeAttribute("data-no-i18n"); h1.textContent = T(PAGE_NAME); }
   }
   window._catalogRerenderHeading = function(){ updateCrumbs(); updateHeroHeading(); renderSortMenu(); renderHeadControls(); };
 
@@ -602,7 +610,10 @@
   // Популярные марки — первыми в фильтре (Федор 05.11.2026). Порядок по реальному числу авто на Encar
   // (замер 05.11.2026: Hyundai 35k, Kia 34k, BMW 12.8k, Mercedes 12.5k, Genesis 8.2k … Peugeot 364); внутри группы — по алфавиту
   // (Федор 05.11.2026), остальные — тоже по алфавиту ниже.
-  var POPULAR_BRANDS = [58,70,16,88,232,131,26,123,9,110,74,94,147,187,148,68,48,76,140,56,83,21,77,67,107];
+  // Канада (OpenLane, замер 06.11.2026 из 31k): Ford 4425, Chevrolet 2994, Nissan 2146, Toyota 2119, GMC 1886, Hyundai 1866, Jeep 1691, Honda 1551,
+  // Ram 1391, Kia 1367, VW 1170, Mercedes 1075, Audi 1024, BMW 930, Subaru 811 … Volvo 240 (≥240 машин).
+  var POPULAR_BRANDS = CA ? [48,26,99,140,52,58,68,56,275,70,147,88,9,16,132,19,41,21,187,74,110,76,27,60,2,148]
+    : [58,70,16,88,232,131,26,123,9,110,74,94,147,187,148,68,48,76,140,56,83,21,77,67,107];
   function brandsBodyHtml(){
     var all = dict.brands || [];
     var q = makeSearchQuery.trim().toLowerCase();
@@ -624,7 +635,7 @@
   // Популярные модели — первыми, по алфавиту (Федор 05.11.2026, как у марок). Замер 05.11.2026 по реальному числу авто на Encar
   // (action=search&model_id=<марка:модель>): модель с ≥2% машин своей марки и ≥20 шт. Пример: BMW 5er 2473, X5 1051, 3er 1020…;
   // Hyundai Grandeur 7191, Santa Fe 4037… Остальные модели марки — ниже, тоже по алфавиту. Пересчитывать тем же замером раз в полгода.
-  var POPULAR_MODELS = {"9":[60,1577,1715,61,58,1092,1461,2951,1788,2988,57],"16":[94,1665,93,96,1896,1895,2177,2978,2070,95,1042,1894],"21":[118,2404,2517,115,3020],"26":[1123,3219,141,152,1787,1600,1103,1000089,1427,138,1686],"48":[303,324,1387,1151,325,1436,310],"56":[350,356,371,1967,354],"58":[1268,398,400,1486,2995,1034,394,2812,3259,1000087,2723,1510,2933,3232],"67":[1502,427,2240,2491,1994,2738],"68":[432,429,2231,1321,431,3078],"70":[435,448,1840,2764,2765,449,2807,2818,1511,3056,1000084,2570,2823],"74":[474,472,475,2246,1792,1908,2700],"76":[476,2220,481,479,2972,478,480,1171,1740,3154],"77":[483,1464,3000,3046,1363,1180,484,2185],"83":[2585,520,527,1000039],"88":[573,576,2426,2396,570,1052,2239,574,1926,569,3062,2507],"94":[1000040,1535,1534,1000063,1937],"107":[1629,2164,1687,1709,1838,1523],"110":[762,1634,757,2139,3054,1000098,760],"123":[2827,1000080,1000082,800,801,1000088,1348,1000093,1000100,1002090],"131":[825,2399,1242,1000091,1005866,2235,2690],"140":[872,906,902,910,1391],"147":[1485,970,1201,2703,976,983,3184,1932,975,978],"148":[1599,999,1002,2774,996,1760,1001,1000,998],"187":[3119,2741,2497,1772],"232":[2669,3138,2668,3217,2910]};
+  var POPULAR_MODELS = CA ? {} : {"9":[60,1577,1715,61,58,1092,1461,2951,1788,2988,57],"16":[94,1665,93,96,1896,1895,2177,2978,2070,95,1042,1894],"21":[118,2404,2517,115,3020],"26":[1123,3219,141,152,1787,1600,1103,1000089,1427,138,1686],"48":[303,324,1387,1151,325,1436,310],"56":[350,356,371,1967,354],"58":[1268,398,400,1486,2995,1034,394,2812,3259,1000087,2723,1510,2933,3232],"67":[1502,427,2240,2491,1994,2738],"68":[432,429,2231,1321,431,3078],"70":[435,448,1840,2764,2765,449,2807,2818,1511,3056,1000084,2570,2823],"74":[474,472,475,2246,1792,1908,2700],"76":[476,2220,481,479,2972,478,480,1171,1740,3154],"77":[483,1464,3000,3046,1363,1180,484,2185],"83":[2585,520,527,1000039],"88":[573,576,2426,2396,570,1052,2239,574,1926,569,3062,2507],"94":[1000040,1535,1534,1000063,1937],"107":[1629,2164,1687,1709,1838,1523],"110":[762,1634,757,2139,3054,1000098,760],"123":[2827,1000080,1000082,800,801,1000088,1348,1000093,1000100,1002090],"131":[825,2399,1242,1000091,1005866,2235,2690],"140":[872,906,902,910,1391],"147":[1485,970,1201,2703,976,983,3184,1932,975,978],"148":[1599,999,1002,2774,996,1760,1001,1000,998],"187":[3119,2741,2497,1772],"232":[2669,3138,2668,3217,2910]};
   function byName(a, b){ return String(a.name || "").localeCompare(String(b.name || ""), "en", {numeric:true, sensitivity:"base"}); }
   function modelsBodyHtml(){
     return state.brands.map(function(b){
@@ -800,17 +811,17 @@
   // ---- Словари ----
   function ensureBrands(){
     if(dict.brands) return Promise.resolve(dict.brands);
-    return fetch("/api/catalog?action=brands&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
+    return fetch(API + "action=brands&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
       .then(function(d){ dict.brands = (d && d.items) || []; return dict.brands; }).catch(function(){ dict.brands = []; return dict.brands; });
   }
   function ensureModels(brandId){
     if(dict.modelsByBrand[brandId]) return Promise.resolve(dict.modelsByBrand[brandId]);
-    return fetch("/api/catalog?action=models&brand_id=" + encodeURIComponent(brandId) + "&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
+    return fetch(API + "action=models&brand_id=" + encodeURIComponent(brandId) + "&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
       .then(function(d){ dict.modelsByBrand[brandId] = (d && d.items) || []; return dict.modelsByBrand[brandId]; }).catch(function(){ dict.modelsByBrand[brandId] = []; return []; });
   }
   function ensureGenerations(modelId){
     if(dict.gensByModel[modelId]) return Promise.resolve(dict.gensByModel[modelId]);
-    return fetch("/api/catalog?action=generations&model_id=" + encodeURIComponent(modelId) + "&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
+    return fetch(API + "action=generations&model_id=" + encodeURIComponent(modelId) + "&lang=" + encodeURIComponent(uiLang())).then(function(r){ return r.json(); })
       .then(function(d){ dict.gensByModel[modelId] = (d && d.items) || []; return dict.gensByModel[modelId]; }).catch(function(){ dict.gensByModel[modelId] = []; return []; });
   }
 
@@ -847,9 +858,29 @@
   }
   function lbl(table, id){ var r = table.find(function(x){ return x[0] === id; }); return r ? T(r[1]) : ""; }
   // Чистая ссылка как у эталона: /catalog/<id> (страница сама берёт активное объявление — то же, что pickListing здесь)
-  function carHref(car){ return "/korea/" + encodeURIComponent(car.id); }
+  function carHref(car){ return BASE + "/" + encodeURIComponent(car.id); }
   function specLi(icon, text, more){
     return '<li class="' + (more ? "vcard__more" : "flex") + ' min-w-0 items-center gap-2">' + icon + '<span class="truncate" data-no-i18n="true">' + esc(text) + '</span></li>';
+  }
+  // OpenLane (Канада) — дилерский аукцион: обычной цены почти нет. Показываем текущую ставку, иначе стартовую (не символическую 50 CAD),
+  // иначе цену, иначе среднюю цену продаж таких машин на OpenLane (market_value, их данные), иначе «по запросу».
+  function olPrice(listing){
+    if(!listing) return null;
+    var sd = listing.source_data || {}, oa = sd.openlane_auction || {}, mv = oa.market_value || {};
+    var cur = (listing.price && listing.price.currency && listing.price.currency.name) || "cad";
+    if(Number(listing.current_bid) > 0) return {amt:Number(listing.current_bid), cur:cur, label:T("Текущая ставка")};
+    var start = Number(sd.starting_bid || oa.start_price || 0);
+    if(start >= 500) return {amt:start, cur:cur, label:T("Стартовая ставка")};
+    if(listing.price && listing.price.price > 0) return {amt:listing.price.price, cur:cur, label:T("Цена")};
+    if(Number(mv.average_price) > 0) return {amt:Math.round(mv.average_price), cur:"cad", label:T("Средняя цена продаж")};
+    return null;
+  }
+  function olAuctionText(listing){
+    var t = listing && Date.parse(listing.auction_at || "");
+    if(!t) return "";
+    var loc = uiLang() === "en" ? "en-GB" : uiLang() === "ro" ? "ro-RO" : "ru-RU";
+    var d = new Date(t).toLocaleString(loc, {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
+    return t < Date.now() - 3 * 3600e3 ? T("Торги прошли") + " · " + new Date(t).toLocaleDateString(loc, {day:"numeric", month:"short"}) : T("Торги") + ": " + d;
   }
   function cardHtml(car){
     var listing = pickListing(car);
@@ -885,6 +916,12 @@
     if(listing && listing.keys_available) specs += specLi(I.key, T("Ключи в наличии"), true);
     var price = listing && listing.price && listing.price.price > 0 ? {amt:listing.price.price, cur:listing.price.currency && listing.price.currency.name} : (listing && listing.current_bid != null ? {amt:listing.current_bid, cur:listing.price && listing.price.currency && listing.price.currency.name} : null);
     var priceLabel = listing && listing.is_auction && listing.current_bid != null ? T("Текущая ставка") : T("Цена");
+    var aucLine = "";
+    if(CA){
+      var op = olPrice(listing);
+      price = op ? {amt:op.amt, cur:op.cur} : null; priceLabel = op ? op.label : T("Цена");
+      aucLine = olAuctionText(listing);
+    }
     var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
     var sold = listing && listing.archived;
     return '<article class="vcard vcard--api group' + (sold ? " is-sold" : "") + '">'
@@ -910,6 +947,7 @@
           + '<div class="vcard__pricebox flex min-w-0 items-end gap-5"><div class="min-w-0">'
             + '<p class="truncate text-[11.5px] text-ink-4">' + esc(priceLabel) + '</p>'
             + '<div class="vcard__price-row flex items-center gap-2"><p class="vcard__price num whitespace-nowrap font-display text-[18px] font-semibold leading-tight tracking-tight text-ink" data-no-i18n="true"' + (price ? ' data-price-amt="' + price.amt + '" data-price-cur="' + esc(price.cur || "") + '"' : "") + '>' + (price ? esc(priceText(price.amt, price.cur)) : esc(T("Цена по запросу"))) + '</p></div>'
+          + (aucLine ? '<p class="vcard__auc truncate text-[11.5px] text-ink-4" data-no-i18n="true">' + esc(aucLine) + '</p>' : "")
           + '</div></div>'
         + '</div>'
       + '</div>'

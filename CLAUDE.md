@@ -2327,3 +2327,20 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   при смене топлива возвращается прежний объём (или импортированный). Главная — `syncEvEngine()` в script.js (вызывается в начале `calculate()`,
   опция value="0", стиль `.glassSelectV152.isDisabledV1`); страница лота — в `updateLotCalculator` (auctions.js, `#lotCalcEngine`, `dataset.prev`).
   `styles.css?v=v501`, `script.js?v=calc-v457`, `auctions.js?v=auctions-v433`, `i18n.js?v=multilang-v563`.
+
+## Авто из Канады — OpenLane (`/canada`, 06.11.2026, Федор: «подключаем так же, как Encar Корею»)
+- Тот же хост `api.auctionsapi.com`, ОТДЕЛЬНЫЙ ключ: env **`AUCTIONSAPI_OPENLANE_KEY`** (Vercel, production+preview; в код/git НЕ класть). Домен OpenLane `55835` (~31 тыс. авто).
+  `server/catalog-api.js`: `SOURCES = {kr: Encar/AUCTIONSAPI_CATALOG_KEY/55613, ca: OpenLane/AUCTIONSAPI_OPENLANE_KEY/55835}`, `srcOf`, `resolveDomainId(src)`, кэши словарей с префиксом источника.
+  `api/catalog.js`: параметр `src=ca` у всех action (по умолчанию kr — Корея не задета). `action=rates` отдаёт ещё `usdCad` (с тем же запасом 2%) и `marketCad`.
+- Фронт — общий движок Кореи: `<main data-cat-src="ca">` → в catalog.js/catalog-car.js `CA`, `BASE=/canada`, `API=/api/catalog?src=ca&`. Страницы `canada.html`/`canada-car.html`
+  СОБИРАЮТСЯ из catalog*.html скриптом `node scripts/build-canada-pages.js` — после ЛЮБОЙ правки catalog.html / catalog-car.html перезапускать.
+- Данные OpenLane: цена в CAD (показываем $ по курсу, CAD мелко), это аукцион (`is_auction`), `current_bid` часто 0 → `olPrice`: ставка → стартовая (≥500, $50 = символическая) → цена → средняя цена продаж
+  (`openlane_auction.market_value`). Дата торгов `ends_at` («Торги прошли», если >3ч назад). На странице авто: стартовая ставка, резерв, оценка рынка min–max и число продаж, оценка состояния X/5,
+  происхождение (После лизинга / Trade-in), ДТП по данным продавца, ссылка на отчёт Carfax (`source_data.vhr_url`), кнопка «Открыть на OpenLane».
+- Осмотр OpenLane = отметки о повреждениях (`source_code conditions`, результат unknown → показываем как отметку, не «Норма») + шины с глубиной протектора (`normalizeOpenLane`, `neutralValue`);
+  оценки «X из 100» нет. История у OpenLane пустая (только проверка ДТП) — пустые отчёты истории скрываем, не рисуем «0 владельцев / нет случаев».
+- Сортировка по умолчанию для Канады — «сначала новые» (`auction_nearest` оставляет лишь ~1.6 тыс. авто). Популярные марки — свой список `POPULAR_BRANDS` для CA, популярных моделей пока нет.
+- Меню «Автомобили»: карточка «Авто из Канады» → `/canada` (счётчик «OpenLane · N авто»), рядом ссылка «Copart и IAAI — Канада» (`/auctions?country=CA`). Поиск в шапке: «Канада» = OpenLane + Copart/IAAI Канада,
+  «Везде» = аукционы + OpenLane + Корея (номер лота для OpenLane не ищется). Лид — source «Авто из Канады (OpenLane)».
+- `vercel.json`: rewrites `/canada`, `/canada/:id`, редирект `/canada.html`. Версии: catalog.js v18, catalog-car.js v18, site-nav.js v5, i18n multilang-v564.
+- ⚠️ Локальный `local-server.js` без Supabase падает на /api/auctions?action=count — при проверке поиска перезапускать; на проде не проявляется.

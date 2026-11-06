@@ -5,9 +5,9 @@
   "use strict";
   var LANG = function(){ return String(window.APEX_LANG || document.documentElement.lang || "ru").slice(0, 2); };
   var WORD = {
-    ru:{cars:"авто", lots:"лотов", usca:"США и Канада", kr:"Корея", none:"не найдено", found:"найдено", byVin:"история по VIN", byLot:"по номеру лота", noKr:"марка не распознана", where:"Где показать результаты"},
-    ro:{cars:"auto", lots:"loturi", usca:"SUA și Canada", kr:"Coreea", none:"nu s-a găsit", found:"găsit", byVin:"istoric după VIN", byLot:"după numărul lotului", noKr:"marca nu a fost recunoscută", where:"Unde afișăm rezultatele"},
-    en:{cars:"cars", lots:"lots", usca:"USA & Canada", kr:"Korea", none:"not found", found:"found", byVin:"VIN history", byLot:"by lot number", noKr:"make not recognised", where:"Where to show results"}
+    ru:{cars:"авто", lots:"лотов", ca:"Канада", caAuc:"Аукционы Канады", usca:"США и Канада", kr:"Корея", none:"не найдено", found:"найдено", byVin:"история по VIN", byLot:"по номеру лота", noKr:"марка не распознана", where:"Где показать результаты"},
+    ro:{cars:"auto", lots:"loturi", ca:"Canada", caAuc:"Licitații Canada", usca:"SUA și Canada", kr:"Coreea", none:"nu s-a găsit", found:"găsit", byVin:"istoric după VIN", byLot:"după numărul lotului", noKr:"marca nu a fost recunoscută", where:"Unde afișăm rezultatele"},
+    en:{cars:"cars", lots:"lots", ca:"Canada", caAuc:"Canada auctions", usca:"USA & Canada", kr:"Korea", none:"not found", found:"found", byVin:"VIN history", byLot:"by lot number", noKr:"make not recognised", where:"Where to show results"}
   };
   function w(k){ var l = WORD[LANG()] || WORD.ru; return l[k]; }
   function fmt(n){ try{ return Number(n).toLocaleString("ru-RU").replace(/,/g, " "); }catch(e){ return String(n); } }
@@ -31,63 +31,70 @@
   document.addEventListener("click", function(){ document.querySelectorAll(".navMegaV1.open").forEach(function(m){ m.classList.remove("open"); var b = m.querySelector(".navMegaBtnV1"); if(b) b.setAttribute("aria-expanded", "false"); }); });
   document.addEventListener("keydown", function(e){ if(e.key === "Escape") document.querySelectorAll(".navMegaV1.open").forEach(function(m){ m.classList.remove("open"); }); });
 
-  // Счётчики: Корея — точное число объявлений Encar, аукционы — общее число лотов США и Канады.
-  // По одной стране база даёт только грубую оценку, поэтому разбивку США/Канада не показываем.
+  // Счётчики: Корея (Encar) и Канада (OpenLane) — точное число объявлений, аукционы — общее число лотов США и Канады.
+  // По одной стране база аукционов даёт только грубую оценку, поэтому разбивку США/Канада для Copart/IAAI не показываем.
   var countsLoaded = false;
   function cacheGet(k){ try{ var v = JSON.parse(sessionStorage.getItem(k) || "null"); if(v && Date.now() - v.t < 30 * 60e3) return v.n; }catch(e){} return null; }
   function cacheSet(k, n){ try{ sessionStorage.setItem(k, JSON.stringify({t:Date.now(), n:n})); }catch(e){} }
   function getJson(url){ return fetch(url, {credentials:"same-origin"}).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; }); }
   function paint(){
-    var kr = cacheGet("apexMegaKr"), auc = cacheGet("apexMegaAuc");
+    var kr = cacheGet("apexMegaKr"), ca = cacheGet("apexMegaCa"), auc = cacheGet("apexMegaAuc");
     document.querySelectorAll('[data-mega-count="kr"]').forEach(function(el){ if(kr) el.textContent = fmt(kr) + " " + w("cars"); });
+    document.querySelectorAll('[data-mega-count="ca"]').forEach(function(el){ if(ca) el.textContent = "OpenLane · " + fmt(ca) + " " + w("cars"); });
     document.querySelectorAll('[data-mega-count="auc"]').forEach(function(el){ if(auc) el.textContent = fmt(auc) + " " + w("lots"); });
   }
   function loadCounts(){
     paint();
     if(countsLoaded) return; countsLoaded = true;
     if(!cacheGet("apexMegaKr")) getJson("/api/catalog?action=search&per_page=1").then(function(d){ if(d && d.total > 0){ cacheSet("apexMegaKr", d.total); paint(); } });
+    if(!cacheGet("apexMegaCa")) getJson("/api/catalog?src=ca&action=search&per_page=1").then(function(d){ if(d && d.total > 0){ cacheSet("apexMegaCa", d.total); paint(); } });
     if(!cacheGet("apexMegaAuc")) getJson("/api/auctions?action=count").then(function(d){ if(d && d.total > 1000){ cacheSet("apexMegaAuc", d.total); paint(); } });
   }
 
   // ---------- Поиск в шапке ----------
+  // Регионы: all — везде; us — аукционы США; ca — Канада (OpenLane + Copart/IAAI Канада); kr — Корея (Encar).
   var REGION_KEY = "apexHdrRegionV1";
   function defaultRegion(){
     var p = location.pathname;
     if(/^\/(korea|catalog)(\/|$)/.test(p)) return "kr";
+    if(/^\/canada(\/|$)/.test(p)) return "ca";
     if(/^\/auctions/.test(p)){ var c = new URLSearchParams(location.search).get("country"); if(c === "CA") return "ca"; return "us"; }
     try{ var s = localStorage.getItem(REGION_KEY); if(s === "all" || s === "us" || s === "ca" || s === "kr") return s; }catch(e){}
     return "all";
   }
   var VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/i;
-  var KR_ALIASES = {"хендай":"hyundai","хундай":"hyundai","хюндай":"hyundai","хендэ":"hyundai","киа":"kia","бмв":"bmw","мерседес":"mercedes-benz","мерс":"mercedes-benz","mercedes":"mercedes-benz","генезис":"genesis","тойота":"toyota","ауди":"audi","порше":"porsche","лексус":"lexus","тесла":"tesla","шевроле":"chevrolet","вольво":"volvo","фольксваген":"volkswagen","vw":"volkswagen","ниссан":"nissan","хонда":"honda","форд":"ford","мини":"mini","джип":"jeep","ленд":"land rover","рено":"renault samsung","ссангйонг":"ssangyong","санг":"ssangyong","кадиллак":"cadillac","линкольн":"lincoln","ягуар":"jaguar","пежо":"peugeot","мазерати":"maserati"};
+  var KR_ALIASES = {"хендай":"hyundai","хундай":"hyundai","хюндай":"hyundai","хендэ":"hyundai","киа":"kia","бмв":"bmw","мерседес":"mercedes-benz","мерс":"mercedes-benz","mercedes":"mercedes-benz","генезис":"genesis","тойота":"toyota","ауди":"audi","порше":"porsche","лексус":"lexus","тесла":"tesla","шевроле":"chevrolet","вольво":"volvo","фольксваген":"volkswagen","vw":"volkswagen","ниссан":"nissan","хонда":"honda","форд":"ford","мини":"mini","джип":"jeep","ленд":"land rover","рено":"renault samsung","ссангйонг":"ssangyong","санг":"ssangyong","кадиллак":"cadillac","линкольн":"lincoln","ягуар":"jaguar","пежо":"peugeot","мазерати":"maserati","додж":"dodge","рам":"ram","джмс":"gmc","бьюик":"buick","акура":"acura","инфинити":"infiniti","субару":"subaru","мазда":"mazda","крайслер":"chrysler"};
   function norm(s){ return String(s || "").toLowerCase().replace(/klasse/g, "class").replace(/[\s\-_.]+/g, ""); }
-  function koreaTarget(q){ return koreaResolve(q).then(function(r){ return r.url; }); }
-  // Куда вести в Корее и есть ли там что-то: {url, found, count}
-  function koreaResolve(q){
+  // Каталоги api.auctionsapi.com: kr — Encar (/korea), ca — OpenLane (/canada)
+  var CATS = {kr:{base:"/korea", api:"/api/catalog?", domain:55613}, ca:{base:"/canada", api:"/api/catalog?src=ca&", domain:55835}};
+  function catTarget(q, src){ return catResolve(q, src).then(function(r){ return r.url; }); }
+  // Куда вести в каталоге и есть ли там что-то: {url, found, count}
+  function catResolve(q, src){
+    var C = CATS[src] || CATS.kr;
     q = q.trim();
-    var miss = {url:"/korea", found:false, count:0};
-    if(!q) return Promise.resolve({url:"/korea", found:true, count:null});
-    var byCar = function(d){ return d && d.car && d.car.id ? {url:"/korea/" + encodeURIComponent(d.car.id), found:true, count:1} : miss; };
-    if(VIN_RE.test(q)) return getJson("/api/catalog?action=vin&vin=" + encodeURIComponent(q)).then(byCar);
-    if(/^\d{6,10}$/.test(q)) return getJson("/api/catalog?action=listing&domain_id=55613&listing_id=" + q).then(byCar);
-    return getJson("/api/catalog?action=brands").then(function(d){
+    var miss = {url:C.base, found:false, count:0};
+    if(!q) return Promise.resolve({url:C.base, found:true, count:null});
+    var byCar = function(d){ return d && d.car && d.car.id ? {url:C.base + "/" + encodeURIComponent(d.car.id), found:true, count:1} : miss; };
+    if(VIN_RE.test(q)) return getJson(C.api + "action=vin&vin=" + encodeURIComponent(q)).then(byCar);
+    if(/^\d{6,10}$/.test(q)) return src === "ca" ? Promise.resolve(miss) : getJson(C.api + "action=listing&domain_id=" + C.domain + "&listing_id=" + q).then(byCar);
+    return getJson(C.api + "action=brands").then(function(d){
       var brands = (d && d.items) || [], low = q.toLowerCase(), words = low.split(/\s+/);
       var alias = KR_ALIASES[words[0]];
       if(alias){ low = (alias + " " + words.slice(1).join(" ")).trim(); }
       // Самая длинная марка, с которой начинается запрос («land rover range rover» → Land Rover)
       var brand = null;
       brands.forEach(function(b){ var n = String(b.name || "").toLowerCase(); if(n && (low === n || low.indexOf(n + " ") === 0) && (!brand || n.length > brand.name.length)) brand = b; });
-      if(!brand) return {url:"/korea", found:false, count:0, noBrand:true};
+      if(!brand) return {url:C.base, found:false, count:0, noBrand:true};
       var rest = low.slice(String(brand.name).length).trim();
-      var base = "/korea?brand_id=" + brand.id;
+      var base = C.base + "?brand_id=" + brand.id;
       var withCount = function(url){
-        return getJson("/api/catalog?action=search&per_page=1&" + url.split("?")[1]).then(function(d){
+        return getJson(C.api + "action=search&per_page=1&" + url.split("?")[1]).then(function(d){
           var n = d && typeof d.total === "number" ? d.total : null;
           return {url:url, found:n === null ? true : n > 0, count:n};
         });
       };
       if(!rest) return withCount(base);
-      return getJson("/api/catalog?action=models&brand_id=" + brand.id).then(function(m){
+      return getJson(C.api + "action=models&brand_id=" + brand.id).then(function(m){
         var models = (m && m.items) || [], r = norm(rest.replace(/^(\d)\s*(series|серия|seria)$/, "$1er"));
         var hit = models.find(function(x){ return norm(x.name) === r; }) || models.find(function(x){ var n = norm(x.name); return n && (r.indexOf(n) === 0 || n.indexOf(r) === 0); });
         return withCount(hit ? base + "&model_id=" + brand.id + ":" + hit.id : base);
@@ -113,38 +120,33 @@
   }
   function krLang(url){ return LANG() !== "ru" ? url + (url.indexOf("?") < 0 ? "?" : "&") + "lang=" + LANG() : url; }
 
-  // ---------- «Везде»: ищем сразу в США/Канаде и в Корее ----------
-  // Номер лота / VIN: если в Корее нет — сразу на аукционы. Текст — список из двух строк с числом найденного.
-  function aucCount(q){
+  // ---------- «Везде» и «Канада»: список площадок под строкой поиска ----------
+  // Везде: аукционы США и Канады (Copart · IAAI) + Канада (OpenLane) + Корея (Encar). Канада: OpenLane + Copart/IAAI Канада.
+  // Номер лота / VIN: если в каталогах нет — сразу на аукционы. Текст — список строк с числом найденного.
+  function aucCount(q, region){
     var p = new URLSearchParams({action:"search", per_page:"1", tab:"all", auction:"all"});
     if(VIN_RE.test(q)) return Promise.resolve(null);
     if(/^\d{6,10}$/.test(q)) return Promise.resolve(null);
     p.set("name", enQuery(q));
+    if(region === "ca") p.set("country", "CA");
     return getJson("/api/auctions?" + p.toString()).then(function(d){ return d && typeof d.total === "number" ? d.total : null; });
   }
   function closeRes(){ document.querySelectorAll(".hdrResV1").forEach(function(el){ el.remove(); }); document.querySelectorAll(".hdrSearchV1.isBusyV1").forEach(function(f){ f.classList.remove("isBusyV1"); }); }
   document.addEventListener("click", function(e){ if(!e.target.closest(".hdrSearchV1")) closeRes(); });
   document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeRes(); });
   function flag(i){ var f = document.querySelectorAll(".navMegaCardV1 .navMegaFlagV1")[i]; return f ? f.outerHTML : ""; }
-  function row(cls, flagHtml, title, sub, url){
-    return '<a class="hdrResRowV1 ' + cls + '" href="' + url + '">' + flagHtml + '<span><b>' + title + '</b><small>' + sub + '</small></span><em data-res-n>…</em><i aria-hidden="true">→</i></a>';
+  function row(key, flagHtml, title, sub, url){
+    return '<a class="hdrResRowV1" data-res="' + key + '" href="' + url + '">' + flagHtml + '<span><b>' + title + '</b><small>' + sub + '</small></span><em data-res-n>…</em><i aria-hidden="true">→</i></a>';
   }
   function within(pr, ms){ return Promise.race([pr, new Promise(function(r){ setTimeout(function(){ r(undefined); }, ms); })]); }
-  function searchEverywhere(form, q){
+  function searchMulti(form, q, region){
     q = q.trim();
-    if(!q){ location.href = auctionsTarget("", "all"); return; }
+    if(!q){ location.href = region === "ca" ? "/canada" : auctionsTarget("", "all"); return; }
     var isVin = VIN_RE.test(q), isNum = /^\d{6,10}$/.test(q);
-    var aucUrl = auctionsTarget(q, "all");
-    var kr = koreaResolve(q).catch(function(){ return {url:"/korea", found:false, count:0}; });
-    if(isVin || isNum){
-      // Сначала смотрим Корею: нет там — это лот/VIN аукционов, ведём сразу
-      within(kr, 8000).then(function(r){ if(!r || !r.found){ location.href = aucUrl; return; } openBox(); fillKr(r); });
-      return;
-    }
-    openBox();
-    // Каждая строка обновляется сама; не пришло число (аукционы 12 с, Корея 6 с) — остаётся просто ссылкой
-    within(aucCount(q).catch(function(){ return null; }), 12000).then(fillAuc);
-    within(kr, 6000).then(function(r){ if(r) fillKr(r); else fillKr({url:"/korea", count:null, found:null, timeout:true}); });
+    var aucUrl = auctionsTarget(q, region);
+    var cats = region === "ca" ? ["ca"] : ["ca", "kr"];
+    var res = {};
+    cats.forEach(function(k){ res[k] = catResolve(q, k).catch(function(){ return {url:CATS[k].base, found:false, count:0}; }); });
     var box;
     function openBox(){
       closeRes();
@@ -152,11 +154,12 @@
       box.className = "hdrResV1";
       box.setAttribute("role", "menu");
       var aucSub = isVin ? w("byVin") : isNum ? w("byLot") : "Copart · IAAI";
-      box.innerHTML = '<p class="hdrResCapV1">' + w("where") + '</p>' +
-        row("isAucV1", flag(0), w("usca"), aucSub, aucUrl) +
-        row("isKrV1", flag(2), w("kr"), "Encar", "/korea");
+      var aucRow = row("auc", flag(region === "ca" ? 1 : 0), region === "ca" ? w("caAuc") : w("usca"), aucSub, aucUrl);
+      var caRow = row("ca", flag(1), w("ca"), "OpenLane", "/canada");
+      var krRow = row("kr", flag(2), w("kr"), "Encar", "/korea");
+      box.innerHTML = '<p class="hdrResCapV1">' + w("where") + '</p>' + (region === "ca" ? caRow + aucRow : aucRow + caRow + krRow);
       form.appendChild(box);
-      if(isVin || isNum) box.querySelector(".isAucV1 em").textContent = "";
+      if(isVin || isNum) box.querySelector('[data-res="auc"] em').textContent = "";
     }
     function setN(rowEl, n, found){
       var em = rowEl.querySelector("em");
@@ -166,12 +169,14 @@
     }
     function fillAuc(n){
       if(!box || !box.isConnected) return;
-      setN(box.querySelector(".isAucV1"), typeof n === "number" ? n : null, typeof n === "number" ? n > 0 : null);
+      setN(box.querySelector('[data-res="auc"]'), typeof n === "number" ? n : null, typeof n === "number" ? n > 0 : null);
       done();
     }
-    function fillKr(r){
+    function fillCat(k, r){
       if(!box || !box.isConnected) return;
-      var el = box.querySelector(".isKrV1");
+      var el = box.querySelector('[data-res="' + k + '"]');
+      if(!el) return;
+      if(!r){ el.querySelector("em").textContent = ""; done(); return; }
       el.setAttribute("href", krLang(r.url));
       if(r.noBrand){ el.querySelector("em").textContent = ""; el.querySelector("small").textContent = w("noKr"); el.classList.add("isEmptyV1"); }
       else setN(el, r.count, r.found);
@@ -183,6 +188,20 @@
       var first = box.querySelector(".hdrResRowV1:not(.isEmptyV1)");
       if(first && document.activeElement && document.activeElement.closest(".hdrSearchV1")) try{ first.focus({preventScroll:true}); }catch(e){}
     }
+    if(isVin || isNum){
+      // Сначала смотрим каталоги: нигде нет — это лот/VIN аукционов, ведём сразу
+      Promise.all(cats.map(function(k){ return within(res[k], 8000); })).then(function(list){
+        if(!list.some(function(r){ return r && r.found; })){ location.href = aucUrl; return; }
+        openBox();
+        cats.forEach(function(k, i){ fillCat(k, list[i]); });
+        if(region !== "ca") ["ca", "kr"].forEach(function(k){ if(cats.indexOf(k) < 0) fillCat(k, null); });
+      });
+      return;
+    }
+    openBox();
+    // Каждая строка обновляется сама; не пришло число (аукционы 12 с, каталоги 6 с) — остаётся просто ссылкой
+    within(aucCount(q, region).catch(function(){ return null; }), 12000).then(fillAuc);
+    cats.forEach(function(k){ within(res[k], 6000).then(function(r){ fillCat(k, r || {url:CATS[k].base, count:null, found:null}); }); });
   }
   function initSearch(){
     document.querySelectorAll("[data-hdr-search]").forEach(function(form){
@@ -206,8 +225,8 @@
         e.preventDefault();
         var region = sel ? sel.value : "us", q = inp ? inp.value : "";
         form.classList.add("isBusyV1");
-        if(region === "all"){ searchEverywhere(form, q); return; }
-        var go = region === "kr" ? koreaTarget(q) : Promise.resolve(auctionsTarget(q, region));
+        if(region === "all" || region === "ca"){ searchMulti(form, q, region); return; }
+        var go = region === "kr" ? catTarget(q, "kr") : Promise.resolve(auctionsTarget(q, region));
         go.then(function(url){
           location.href = region === "kr" ? krLang(url) : url;
         }).catch(function(){ location.href = region === "kr" ? "/korea" : "/auctions"; });
