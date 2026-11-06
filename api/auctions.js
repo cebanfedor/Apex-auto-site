@@ -2710,7 +2710,7 @@ async function computeAuctionFacts(){
   const [soldYesterday, soldYesterdayCa, top, todayLots, newLots24h, newHybrids24h, newEv24h] = await Promise.all([
     cnt(sold),
     cnt(`${sold}&country=eq.ca`),
-    req(`select=id,title,vin,year,final_bid&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 7000).catch(() => null),
+    req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 7000).catch(() => null),
     cnt(`archived=eq.false&sale_date=gte.${iso(t0)}&sale_date=lt.${iso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
     cnt(fresh),
     fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${notCa}`) : null,
@@ -2720,7 +2720,9 @@ async function computeAuctionFacts(){
   const tr = Array.isArray(top) && top[0];
   if(tr && Number(tr.final_bid) > 0){
     const [auction, lot] = String(tr.id || "").replace(/-s\d{8}$/, "").split("-");
-    const title = String(tr.title || "").trim();
+    // в колонке title бывает заглушка «Автомобиль» — берём название из payload, иначе год+марка+модель
+    const real = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
+    const title = real(tr.title) || real(tr.pt) || [tr.year, tr.mk, tr.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
     topSale = {price:Number(tr.final_bid), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:tr.vin}) : ""};
   }
   const out = {ok:true, at:new Date().toISOString(), soldYesterday, soldYesterdayCa, topSale, todayLots, newLots24h, newHybrids24h, newEv24h};
