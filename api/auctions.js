@@ -2714,7 +2714,10 @@ async function sbEarliestArchived(ms){
 function archBuckets(earliest, now){
   const D = 864e5, d0 = new Date(now), today = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), d0.getUTCDate());
   const dailyFrom = today - 89 * D, out = [];
-  const e = new Date(Math.min(earliest, dailyFrom));
+  // всё, что раньше 2020 года (в базе есть мусорные даты вроде 1900-х), — одним куском, дальше по месяцам
+  const OLD = Date.UTC(2020, 0, 1);
+  if(earliest < OLD) out.push([Date.UTC(1800, 0, 1), OLD]);
+  const e = new Date(Math.min(Math.max(earliest, OLD), dailyFrom));
   let t = Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), 1);
   while(t < dailyFrom){ const m = new Date(t); const nx = Math.min(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1), dailyFrom); out.push([t, nx]); t = nx; }
   for(let x = dailyFrom; x <= today; x += D) out.push([x, x + D]);
