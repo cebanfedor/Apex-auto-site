@@ -282,29 +282,31 @@
       <div class="trackPhotosCardV401">
         <div class="trackCardTitleV401">Фото <span class="trackPhotoCountV401">1 / ${total}</span></div>
         <div class="trackPhotoTabsV401">${tabs}</div>
-        <div class="trackGalleryWrapV401">
+        <div class="trackGalLayoutV1"><div class="trackGalMainColV1"><div class="trackGalleryWrapV401">
           <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
           <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${esc(first.photos[0])}" target="_blank" rel="noopener">
             <img id="trackGalleryImgV401" src="${esc(pv(first.photos[0], 960))}" data-fb="${esc(first.photos[0])}" alt="Фото автомобиля" fetchpriority="high" decoding="async">
             <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
           </a>
           <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${total <= 1 ? " disabled" : ""}>&#8250;</button>
+        </div></div>
+        <div class="trackGalThumbsColV1"><div class="trackGalleryThumbsV401">${thumbs}</div></div>
         </div>
-        <div class="trackGalleryThumbsV401">${thumbs}</div>
       </div>`;
         })() : d.photos?.length ? `
       <div class="trackPhotosCardV401">
         <div class="trackCardTitleV401">Фото <span class="trackPhotoCountV401">1 / ${d.photos.length}</span></div>
-        <div class="trackGalleryWrapV401">
+        <div class="trackGalLayoutV1"><div class="trackGalMainColV1"><div class="trackGalleryWrapV401">
           <button class="trackGalleryArrowV401 isPrevV401" aria-label="Предыдущее фото" disabled>&#8249;</button>
           <a class="trackGalleryMainV401" id="trackGalleryLinkV401" href="${esc(d.photos[0])}" target="_blank" rel="noopener">
             <img id="trackGalleryImgV401" src="${esc(pv(d.photos[0], 960))}" data-fb="${esc(d.photos[0])}" alt="Фото автомобиля" fetchpriority="high" decoding="async">
             <span class="trackGalleryExpandV401"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>Увеличить</span>
           </a>
           <button class="trackGalleryArrowV401 isNextV401" aria-label="Следующее фото"${d.photos.length <= 1 ? " disabled" : ""}>&#8250;</button>
-        </div>
-        <div class="trackGalleryThumbsV401">
+        </div></div>
+        <div class="trackGalThumbsColV1"><div class="trackGalleryThumbsV401">
           ${d.photos.map((url, i) => `<button class="trackThumbV401${i === 0 ? " isActiveV401" : ""}" data-src="${esc(url)}" data-idx="${i}" data-total="${d.photos.length}"><img src="${esc(pv(url, 160))}" data-fb="${esc(url)}" alt="${i + 1}" width="76" height="57" decoding="async" loading="${i < 6 ? "eager" : "lazy"}"></button>`).join("")}
+        </div></div>
         </div>
       </div>` : ""}
 
