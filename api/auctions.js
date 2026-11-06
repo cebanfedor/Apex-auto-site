@@ -2600,7 +2600,7 @@ async function readCountSnapRow(){
   try{
     const rows = await Promise.race([syncSbFetch(`/alert_meta?k=eq.count_v1&select=v,updated_at`), new Promise(res => setTimeout(() => res(null), 3000))]);
     const row = Array.isArray(rows) && rows[0];
-    return row && row.v && row.v.keys ? {keys:row.v.keys, payload:row.v.payload || null, at:Date.parse(row.updated_at) || 0} : null;
+    return row && row.v && row.v.keys ? {keys:row.v.keys, payload:row.v.payload || null, arch:row.v.arch || null, at:Date.parse(row.updated_at) || 0} : null;
   }catch(_){ return null; }
 }
 async function loadCountSnap(){
@@ -2683,18 +2683,73 @@ async function tabTotal(tab, auction, vtype, opts = {}){
   return n;
 }
 // Фоновый пересчёт снимка счётчиков (cron /api/cron/count): по одному запросу, до 20 с каждый; не успевшее — из прошлого снимка (до 12 ч).
-const COUNT_COMBOS = [["all","all"],["all","copart"],["all","iaai"],["soon","all"],["buy_now","all"],["archived","all"],["dated","all"],
+const COUNT_COMBOS = [["all","all"],["all","copart"],["all","iaai"],["soon","all"],["buy_now","all"],["dated","all"],
   ["all","all","1"],["all","all","2"],["all","all","5"],["all","all","7"],
-  ["soon","copart"],["soon","iaai"],["buy_now","copart"],["buy_now","iaai"],["archived","copart"],["archived","iaai"]];
+  ["soon","copart"],["soon","iaai"],["buy_now","copart"],["buy_now","iaai"]];
+// Архив целиком точным счётом не успевает даже за 20 с (сотни тысяч продаж). Считаем КУСКАМИ по датам торгов: последние 90 дней — по дням,
+// раньше — по месяцам. Каждый кусок — быстрый точный счёт по индексу (archived, sale_date). Прошлые куски почти не меняются: последние 3 дня
+// пересчитываем каждый прогон, остальные — раз в 7 дней. Итог показываем, когда посчитаны все куски (до этого — прошлый итог).
+const ARCH_Q = "archived=eq.true&status_id=eq.6&final_bid=gt.0";
+function sbCountExact(q, ms){
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if(!url || !key) return Promise.resolve(null);
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
+  return fetch(`${url}/rest/v1/api_lots?select=id&${q}`, {headers:{apikey:key, authorization:`Bearer ${key}`, prefer:"count=exact", range:"0-0", "range-unit":"items"}, signal:ctrl.signal})
+    .then(r => r.ok || r.status === 416 ? Number((r.headers.get("content-range") || "*/").split("/").pop()) : null)
+    .then(n => Number.isFinite(n) ? n : null).catch(() => null).finally(() => clearTimeout(t));
+}
+async function sbEarliestArchived(ms){
+  const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), ms);
+  try{
+    const r = await fetch(`${url}/rest/v1/api_lots?select=sale_date&${ARCH_Q}&sale_date=not.is.null&order=sale_date.asc&limit=1`, {headers:{apikey:key, authorization:`Bearer ${key}`}, signal:ctrl.signal});
+    const rows = r.ok ? await r.json() : null;
+    const ms0 = Array.isArray(rows) && rows[0] ? Date.parse(rows[0].sale_date) : NaN;
+    return Number.isFinite(ms0) ? ms0 : null;
+  }catch(_){ return null; }
+  finally{ clearTimeout(t); }
+}
+function archBuckets(earliest, now){
+  const D = 864e5, d0 = new Date(now), today = Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), d0.getUTCDate());
+  const dailyFrom = today - 89 * D, out = [];
+  const e = new Date(Math.min(earliest, dailyFrom));
+  let t = Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), 1);
+  while(t < dailyFrom){ const m = new Date(t); const nx = Math.min(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1), dailyFrom); out.push([t, nx]); t = nx; }
+  for(let x = dailyFrom; x <= today; x += D) out.push([x, x + D]);
+  return out;
+}
+async function refreshArchiveCount(prevArch, deadline){
+  const now = Date.now(), arch = {days:{...((prevArch && prevArch.days) || {})}, earliest:prevArch && prevArch.earliest || null};
+  if(deadline - Date.now() > 3000){ const e = await sbEarliestArchived(Math.min(8000, deadline - Date.now() - 500)); if(e) arch.earliest = e; }
+  if(!arch.earliest) return {arch, total:null, done:0, all:0};
+  const buckets = archBuckets(arch.earliest, now), keyOf = b => new Date(b[0]).toISOString().slice(0, 10) + "_" + new Date(b[1]).toISOString().slice(0, 10);
+  const live = new Set(buckets.map(keyOf));
+  for(const k of Object.keys(arch.days)) if(!live.has(k)) delete arch.days[k];   // сетка сместилась (дни ушли в месяцы)
+  const recent = b => b[1] > now - 3 * 864e5;
+  const need = buckets.filter(b => { const v = arch.days[keyOf(b)]; return recent(b) || !v || now - v.at > 7 * 864e5; })
+    .sort((x, y) => (recent(y) - recent(x)) || (((arch.days[keyOf(x)] || {}).at || 0) - ((arch.days[keyOf(y)] || {}).at || 0)));
+  for(const b of need){
+    const left = deadline - Date.now(); if(left < 2500) break;
+    const hi = Math.min(b[1], now);
+    const n = await sbCountExact(`${ARCH_Q}&sale_date=gte.${encodeURIComponent(new Date(b[0]).toISOString())}&sale_date=lt.${encodeURIComponent(new Date(hi).toISOString())}`, Math.min(15000, left - 500));
+    if(n != null) arch.days[keyOf(b)] = {n, at:Date.now()};
+  }
+  let total = 0, done = 0;
+  for(const b of buckets){ const v = arch.days[keyOf(b)]; if(v){ total += v.n; done++; } }
+  return {arch, total:done === buckets.length ? total : null, done, all:buckets.length};
+}
 async function refreshCountSnapshot(budget = 50000){
   const prev = await readCountSnapRow();
-  const deadline = Date.now() + budget, keys = {}, failed = [], kept = [];
+  const t0 = Date.now(), deadline = t0 + budget, keys = {}, failed = [], kept = [];
+  const combosDeadline = t0 + Math.round(budget * 0.55);   // остальное — архиву
   for(const [tab, auc, vt] of COUNT_COMBOS){
     const ck = `${tab}|${auc}${vt ? "|t" + vt : ""}`;
-    const left = deadline - Date.now();
+    const left = combosDeadline - Date.now();
     let n = null;
     if(left > 2500){
-      const ms = Math.min(20000, left - 500);
+      const ms = Math.min(12000, left - 500);
       n = await tabTotal(tab, auc, vt, {fresh:true, noFallback:true, ms, exactMs:ms}).catch(() => null);
     }
     if(n > 0) keys[ck] = n;
@@ -2704,18 +2759,21 @@ async function refreshCountSnapshot(budget = 50000){
       if(pv > 0){ keys[ck] = pv; kept.push(ck); }
     }
   }
-  if(!keys["all|all"]) return {ok:false, error:"no_total", failed};
+  const ar = await refreshArchiveCount(prev && prev.arch, deadline).catch(() => ({arch:prev && prev.arch || null, total:null, done:0, all:0}));
+  if(ar.total > 0) keys["archived|all"] = ar.total;
+  else if(prev && Number(prev.keys["archived|all"]) > 0 && Date.now() - prev.at < 24 * 3600e3) keys["archived|all"] = Number(prev.keys["archived|all"]);
+  if(!keys["all|all"]) return {ok:false, error:"no_total", failed, archive:{done:ar.done, all:ar.all}};
   const types = {};
   for(const vt of ["1", "2", "5", "7"]) if(keys["all|all|t" + vt] > 0) types[vt] = keys["all|all|t" + vt];
   const payload = {ok:true, total:keys["all|all"], copart:keys["all|copart"] || 0, iaai:keys["all|iaai"] || 0, dated:keys["dated|all"] || 0,
     buyNow:keys["buy_now|all"] || 0, soon:keys["soon|all"] || 0, archived:keys["archived|all"] || 0, types, src:"snap", at:new Date().toISOString()};
   payload._complete = payload.total > 0 && payload.soon > 0 && payload.buyNow > 0 && payload.archived > 0;
   await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"},
-    body:JSON.stringify({k:"count_v1", v:{keys, payload}, updated_at:new Date().toISOString()})});
+    body:JSON.stringify({k:"count_v1", v:{keys, payload, arch:ar.arch}, updated_at:new Date().toISOString()})});
   countSnap = {keys, payload, at:Date.now(), readAt:Date.now()};
   for(const k of Object.keys(keys)) tabTotalCache.set(k, {n:keys[k], at:Date.now()});
   cache.delete("catalog-count"); cache.delete("catalog-count:stale");
-  return {ok:true, total:payload.total, failed, kept};
+  return {ok:true, total:payload.total, archived:payload.archived, archive:{done:ar.done, all:ar.all}, failed, kept, ms:Date.now() - t0};
 }
 // Счёт для выборок с «широкими» фильтрами (топливо, год, цена, повреждения, статус продажи, даты…). Оценка планировщика по ним
 // врёт в разы (timed и «без резерва» показывали одно и то же «2491»), а count=exact в одном запросе с выборкой держал ответ.
