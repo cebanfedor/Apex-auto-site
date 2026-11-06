@@ -117,7 +117,7 @@
     }
     .trackVehCardV401::before {
       content: ""; position: absolute; top: -40%; right: -10%; width: 50%; height: 80%;
-      background: radial-gradient(circle, rgba(237,0,18,0.18), transparent 70%);
+      background: radial-gradient(closest-side, rgba(237,0,18,0.2), rgba(237,0,18,0.08) 55%, transparent);
       pointer-events: none;
     }
     .trackVehStatusV401 {
@@ -154,22 +154,27 @@
     }
     .trackVehVinV401.isContainerV401 b { font-size: 17px; color: #fff; letter-spacing: 0.06em; }
 
-    /* ETA */
-    .trackEtaV401 {
-      display: flex; align-items: center; gap: 16px; padding: 16px 20px;
-      background: rgba(237,0,18,0.05); border: 1px solid rgba(237,0,18,0.18);
-      border-radius: var(--radius); margin-bottom: 16px;
+    /* Дата прибытия — в верхней тёмной карточке справа (06.11.2026, Федор: «дату — в верхний блок справа, чтобы клиент сразу видел») */
+    .trackVehCardV401 { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 28px; align-items: start; }
+    .trackVehCardV401 > * { grid-column: 1; min-width: 0; }
+    .trackVehCardV401 > .trackVehStatusV401 { justify-self: start; }
+    .trackVehEtaV1 {
+      display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-radius: 16px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.13);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); position: relative; z-index: 1;
+      margin-top: 16px;
     }
-    .trackEtaIconV401 {
-      width: 44px; height: 44px; flex: none; border-radius: 13px;
-      background: var(--red); display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(237,0,18,0.28);
-    }
-    .trackEtaIconV401 svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-    .trackEtaLabelV401 { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--red); margin-bottom: 3px; }
-    .trackEtaValV401 { font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
-    @media (max-width: 540px) {
-      .trackEtaV401 { flex-wrap: wrap; }
+    .trackVehEtaIconV1 { width: 44px; height: 44px; flex: none; border-radius: 13px; background: var(--red); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(237,0,18,0.35); }
+    .trackVehEtaIconV1 svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .trackVehEtaBodyV1 { min-width: 0; }
+    .trackVehEtaLabelV1 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #ff7a85; margin-bottom: 4px; }
+    .trackVehEtaValV1 { font-size: 21px; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1.15; }
+    .trackVehEtaValV1 span { font-weight: 600; color: rgba(255,255,255,0.78); }
+    .trackVehEtaHintV1 { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 5px; line-height: 1.35; max-width: 300px; }
+    @media (min-width: 860px) {
+      .trackVehCardV401 { grid-template-columns: minmax(0, 1fr) auto; }
+      .trackVehEtaV1 { grid-column: 2; grid-row: 1 / span 8; align-self: center; margin-top: 0; max-width: 440px; }
+      .trackVehEtaValV1 { white-space: nowrap; }
     }
 
     /* stages */
@@ -283,7 +288,6 @@
       transition: opacity 0.18s;
     }
     .trackCtaV401:hover { opacity: 0.88; }
-    .trackEtaHintV401 { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
 
     /* photo gallery */
     .trackPhotosCardV401 {
@@ -808,7 +812,7 @@
   </footer>
 
   <script src="i18n.js?v=multilang-v578"></script>
-  <script src="tracking-app.js?v=v7" defer></script>
+  <script src="tracking-app.js?v=v8" defer></script>
 
   <!-- Lightbox -->
   <div class="trackLightboxV401" id="trackLightboxV401">

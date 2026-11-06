@@ -266,6 +266,15 @@
               Ключи отсутствуют
             </div>` : ""}
         </div>` : ""}
+        ${etaDisplay ? `
+        <div class="trackVehEtaV1">
+          <div class="trackVehEtaIconV1"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="trackVehEtaBodyV1">
+            <div class="trackVehEtaLabelV1">${d.source === "dealer" ? "Ожидаемая дата" : (isEstimate ? "Ориентировочное прибытие" : "Ожидаемое прибытие")}</div>
+            <div class="trackVehEtaValV1">${etaDisplay}${d.source === "dealer" ? (d.arrivedCity ? " · <span>" + esc(d.arrivedCity) + "</span>" : "") : " · <span>Кишинёв</span>"}</div>
+            ${isEstimate ? '<div class="trackVehEtaHintV1">После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней</div>' : ""}
+          </div>
+        </div>` : ""}
       </div>
 
         ${d.photoCategories?.length ? (function(){
@@ -310,17 +319,7 @@
         </div>
       </div>` : ""}
 
-    ${etaDisplay ? `
-      <div class="trackEtaV401">
-        <div class="trackEtaIconV401">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
-        <div>
-          <div class="trackEtaLabelV401">${d.source === "dealer" ? "Ожидаемая дата" : (isEstimate ? "Ориентировочное прибытие" : "Ожидаемое прибытие")}</div>
-          <div class="trackEtaValV401">${etaDisplay}${d.source === "dealer" ? (d.arrivedCity ? " · <span>" + esc(d.arrivedCity) + "</span>" : "") : " · <span>Кишинёв</span>"}</div>
-          ${isEstimate ? '<div class="trackEtaHintV401">После выгрузки в порту Клайпеда — доставка до Кишинёва 10–15 дней</div>' : ""}
-        </div>
-      </div>` : ""}
+
 
       <div class="trackStagesCardV401">
         <div class="trackCardTitleV401">Маршрут доставки</div>
