@@ -27,7 +27,7 @@ module.exports = async function(req, res){
 
   // остальные параметры адреса (?listing=, ?lang=, старые ?domain_id=&listing_id=) сохраняем
   const rest = new URLSearchParams();
-  for(const [k, v] of Object.entries(req.query || {})) if(k !== "slug" && k !== "src" && v != null) rest.set(k, Array.isArray(v) ? v[0] : String(v));
+  for(const [k, v] of Object.entries(req.query || {})) if(k !== "slug" && k !== "src" && k !== "id" && v != null) rest.set(k, Array.isArray(v) ? v[0] : String(v));
   const qs = rest.toString() ? "?" + rest.toString() : "";
 
   const {car, notFound} = await ogc.fetchCar(src, id);
