@@ -206,10 +206,9 @@
 
 /* --- Свой фон hero каталогов (06.11.2026, Федор: точки и маршрут были как у autopartner) ---
    Тонкие диагональные полосы фирменного красного, гаснут к левому краю и вниз; справа — карточка «Почему через Apex Auto». */
-.catHeroPatV1 { position: absolute; inset: 0; pointer-events: none; overflow: hidden;
-  background-image: repeating-linear-gradient(-55deg, rgb(237 0 18 / .07) 0 1px, transparent 1px 14px);
-  -webkit-mask-image: linear-gradient(90deg, transparent 25%, #000 85%), linear-gradient(180deg, #000 45%, transparent 100%);
-  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 25%, #000 85%), linear-gradient(180deg, #000 45%, transparent 100%); mask-composite: intersect; }
+.catHeroPatV1 { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+/* полосы теперь фоном всей страницы (body в styles.css); каталог прозрачный, чтобы их было видно */
+.apx-korea.bg-paper { background-color: transparent; }
 .catHeroPatV1::after { content: ""; position: absolute; right: -6%; top: -30%; width: 46%; height: 160%; transform: skewX(-20deg);
   background: linear-gradient(90deg, transparent, rgb(237 0 18 / .05) 40%, rgb(237 0 18 / .09)); }
 .catHeroCardV1 { position: absolute; right: clamp(24px, 4vw, 72px); top: 22px; width: 300px; padding: 14px 18px; border-radius: 18px;
