@@ -25,7 +25,11 @@
 
   // «Тихие зоны» (06.11.2026, Федор: «текст не читается, точки мешают»): под заголовками и текстом шапок
   // (h1 и элементы с атрибутом data-bg-quiet) точки плавно гаснут — без подложек и рамок, фон вокруг остаётся живым.
-  var QUIET_SEL = "[data-bg-quiet], h1", PAD = 14, FEATHER = 56;
+  // Под текстом точки не пропадают, а становятся мельче и тусклее (Федор: «по бокам есть, а по центру пусто — суть теряется»).
+  var QUIET_SEL = "[data-bg-quiet], h1", PAD = 10, FEATHER = 70;
+  var BASE_FLOOR = 0.45;  // яркость обычной точки под текстом (от обычной)
+  var ACT_FLOOR = 0.32;   // яркость волны/подсветки курсора под текстом
+  var SIZE_FLOOR = 0.2;   // насколько точка волны «раздувается» под текстом (от обычного)
   var zones = [], zonesKey = "";
   function readZones(){
     var els = document.querySelectorAll(QUIET_SEL), out = [], key = "";
@@ -61,7 +65,7 @@
     var soft = [];
     for(var i = 0; i < cols; i++) for(var j = 0; j < rows; j++){
       var x = ox + i * STEP, y = oy + j * STEP, q = zones.length ? quiet(x, y) : 1;
-      if(q <= 0.02) continue;
+      q = BASE_FLOOR + (1 - BASE_FLOOR) * q;
       if(q >= 0.98){ bctx.moveTo(x + 1, y); bctx.arc(x, y, 1, 0, 6.2832); }
       else soft.push(x, y, q);
     }
@@ -175,8 +179,7 @@
       var key = touched[t], e = energy[key]; energy[key] = 0;
       var ci = (key / rows) | 0, cj = key - ci * rows;
       var v = Math.min(1, e), dx0 = ox + ci * STEP, dy0 = oy + cj * STEP, qq = zones.length ? quiet(dx0, dy0) : 1;
-      if(qq <= 0.02) continue;
-      dot(dx0, dy0, (0.15 + 0.7 * v) * qq, 1 + 1.7 * v * qq);
+      dot(dx0, dy0, (0.15 + 0.7 * v) * (ACT_FLOOR + (1 - ACT_FLOOR) * qq), 1 + 1.7 * v * (SIZE_FLOOR + (1 - SIZE_FLOOR) * qq));
     }
   }
 
