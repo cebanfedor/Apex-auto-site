@@ -1,67 +1,10 @@
-// Hero-слайдер (29.09.2026, Федор: «как у ДримБида») — 3 слайда, автопрокрутка + точки,
-// первый слайд («Быстрый поиск авто») активен по умолчанию. Лёгкий отдельный файл: главная
+// Hero главной: виджет «Быстрый поиск авто» (карусель убрана 06.11.2026). Лёгкий отдельный файл: главная
 // намеренно не грузит тяжёлый auctions.js — марки/модели/поколения тянутся тем же
 // action=manufacturers|models|generations API, что и каталог, но лениво и с кэшем в памяти.
 (function(){
   "use strict";
   const L = window.i18nT || (s => s);
   const $ = sel => document.querySelector(sel);
-
-  /* ================= Слайдер ================= */
-  function initSlider(){
-    const track = document.getElementById("heroSlidesV1");
-    const dotsWrap = document.getElementById("heroDotsV1");
-    if(!track || !dotsWrap) return;
-    const slides = Array.from(track.querySelectorAll(".heroSlideV1"));
-    if(slides.length < 2) return;
-    let idx = Math.max(0, slides.findIndex(s => s.classList.contains("heroSlideActiveV1")));
-    const AUTOPLAY_MS = 10000;
-    let timer = null;
-
-    slides.forEach((s, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.setAttribute("role", "tab");
-      b.setAttribute("aria-label", `${L("Слайд")} ${i + 1}`);
-      if(i === idx) b.classList.add("heroDotActiveV1");
-      b.addEventListener("click", () => { go(i); restart(); });
-      dotsWrap.appendChild(b);
-    });
-    const dots = Array.from(dotsWrap.children);
-
-    function go(i){
-      if(i === idx) return;
-      slides[idx].classList.remove("heroSlideActiveV1");
-      if(dots[idx]) dots[idx].classList.remove("heroDotActiveV1");
-      idx = i;
-      slides[idx].classList.add("heroSlideActiveV1");
-      if(dots[idx]) dots[idx].classList.add("heroDotActiveV1");
-    }
-    function next(){ go((idx + 1) % slides.length); }
-    function prev(){ go((idx - 1 + slides.length) % slides.length); }
-    // 30.09.2026 (дизайн-аудит: автопрокрутка без паузы на hover и без учёта prefers-reduced-motion) —
-    // тем, кто просил браузер/ОС меньше двигать интерфейс, автопрокрутку вообще не включаем (стрелки/точки
-    // по-прежнему работают вручную); остальным — пауза, пока курсор над hero, как у любого приличного слайдера.
-    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let hovered = false;
-    function restart(){ clearInterval(timer); if(!reduceMotion && !hovered) timer = setInterval(next, AUTOPLAY_MS); }
-    restart();
-
-    const prevBtn = document.getElementById("heroArrowPrevV1"), nextBtn = document.getElementById("heroArrowNextV1");
-    if(prevBtn) prevBtn.addEventListener("click", () => { prev(); restart(); });
-    if(nextBtn) nextBtn.addEventListener("click", () => { next(); restart(); });
-
-    track.addEventListener("mouseenter", () => { hovered = true; clearInterval(timer); });
-    track.addEventListener("mouseleave", () => { hovered = false; restart(); });
-
-    // Не дёргать слайд, пока открыт/в фокусе виджет поиска (не сбрасывать выбор марки/модели).
-    const card = document.querySelector(".heroSearchCardV1");
-    if(card){
-      card.addEventListener("focusin", () => clearInterval(timer));
-      card.addEventListener("focusout", () => { setTimeout(() => { if(!card.contains(document.activeElement)) restart(); }, 30); });
-    }
-    document.addEventListener("visibilitychange", () => { if(document.hidden) clearInterval(timer); else restart(); });
-  }
 
   /* ================= Виджет «Быстрый поиск авто» ================= */
   function initSearch(){
@@ -276,7 +219,7 @@
     if(vinInp) vinInp.addEventListener("keydown", e => { if(e.key === "Enter") btn.click(); });
   }
 
-  function boot(){ initSlider(); initSearch(); }
+  function boot(){ initSearch(); }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();

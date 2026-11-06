@@ -2263,3 +2263,39 @@ a.tkItemV1:hover b { text-decoration: underline; }
 }
 .pulseAucV1 { padding: 34px 0 6px; }
 @media (max-width: 720px) { .pulseAucV1 { padding: 24px 0 4px; } }
+
+
+/* ---- Hero v3 (06.11.2026, Федор: «карусель как грязное пятно»): без карусели и без тёмного фото.
+   Один спокойный светлый экран: слева заголовок + 2 кнопки + 3 факта, справа карточка быстрого поиска.
+   Карточка и её id/классы (home-hero.js) не менялись. Заголовок h1 — единственный на странице. */
+.heroV45.heroCalmV1 { display: block; padding: 0; margin-top: 10px; }
+.heroCalmGridV1 {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: center;
+  padding: 36px 40px; border-radius: var(--radius-lg); border: 1px solid var(--line);
+  background: radial-gradient(560px 340px at 100% 0%, rgba(237,0,18,0.07), transparent 70%), var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.heroCalmV1 .heroMainV45 { align-self: center; }
+.heroCalmV1 .heroMainV45 h1 {
+  font-size: clamp(26px, 2.9vw, 42px); line-height: 1.08; color: var(--ink); text-wrap: balance; max-width: 22em;
+}
+.heroCalmV1 .heroMainV45 p { margin-top: 16px; font-size: 16px; color: var(--ink-2); max-width: 46ch; display: block; }
+.heroCalmV1 .heroCtasV207 { margin-top: 22px; }
+.heroCalmV1 .heroTrustV207 { display: flex; flex-direction: column; gap: 9px; margin-top: 22px; }
+.heroCalmV1 .heroSearchCardV1 { max-width: 480px; justify-self: end; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+@media (min-width: 1024px) {
+  .heroCalmGridV1 { grid-template-columns: minmax(0, 1fr) 480px; gap: 56px; padding: 44px 52px; }
+}
+@media (max-width: 1023px) {
+  .heroCalmGridV1 { padding: 28px; }
+  .heroCalmV1 .heroSearchCardV1 { justify-self: start; max-width: 560px; }
+}
+@media (max-width: 640px) {
+  /* Телефон: заголовок и сразу карточка поиска, без второй рамки вокруг. Кнопки/факты тут не нужны —
+     калькулятор идёт следом. */
+  .heroCalmGridV1 { padding: 0; gap: 14px; border: 0; background: none; box-shadow: none; }
+  .heroCalmV1 .heroEyebrowV207, .heroCalmV1 .heroMainV45 p, .heroCalmV1 .heroCtasV207, .heroCalmV1 .heroTrustV207 { display: none; }
+  .heroCalmV1 .heroMainV45 h1 { font-size: 22px; line-height: 1.15; padding: 4px 2px 0; }
+  .heroCalmV1 .heroMainV45 h1::after { margin-top: 10px; width: 44px; height: 3px; }
+  .heroCalmV1 .heroSearchCardV1 { max-width: none; justify-self: stretch; box-shadow: var(--shadow); }
+}
