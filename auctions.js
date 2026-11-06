@@ -2258,10 +2258,12 @@
       // «total» витрин по типам — фид считает их по-разному, сумма врала (60k против 120k у DreamBid).
       state.total = 0;
       $("#auctionCards").innerHTML = html;
-      $("#auctionResultCount").textContent = "…";
+      $("#auctionResultCount").textContent = "";   // пока число не пришло — серая заглушка (CSS :empty), не «0»/«…»
       setResultNum("");
       crP.then(cr => {
-        if(reqId !== state.loadSeq || !discoveryMode || !cr || !(cr.total > 0)) return;
+        if(reqId !== state.loadSeq || !discoveryMode) return;
+        // числа нет — заглушку не крутим вечно, просто прячем число
+        if(!cr || !(cr.total > 0)){ $("#auctionResultCount").textContent = "\u00a0"; return; }
         state.total = cr.total;
         $("#auctionResultCount").textContent = cr.total.toLocaleString("ru-RU");
         setResultNum(cr.total.toLocaleString("ru-RU"));
