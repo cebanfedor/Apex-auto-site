@@ -1,5 +1,7 @@
 /* Guide page styles */
-.guideMain { background: #f1f4f8; min-height: 100vh; padding: 32px 0 80px; }
+.guideMain { background: #f1f4f8; min-height: 100vh; padding: 21px 0 80px; }
+/* единый отступ от меню до первой строки на всех страницах (06.11.2026): текст крошек — 24px на компьютере, 16px на телефоне */
+@media (max-width: 640px) { .guideMain { padding-top: 13px; } }
 .guideShell { width: calc(100% - 48px); max-width: var(--maxw); margin: 0 auto; }
 
 .guideBreadcrumb { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #5a6472; margin-bottom: 24px; }
