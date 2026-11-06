@@ -142,8 +142,8 @@
       return;
     }
     openBox();
-    // Каждая строка обновляется сама; не пришло число за 6 с — остаётся просто ссылкой
-    within(aucCount(q).catch(function(){ return null; }), 6000).then(fillAuc);
+    // Каждая строка обновляется сама; не пришло число (аукционы 12 с, Корея 6 с) — остаётся просто ссылкой
+    within(aucCount(q).catch(function(){ return null; }), 12000).then(fillAuc);
     within(kr, 6000).then(function(r){ if(r) fillKr(r); else fillKr({url:"/korea", count:null, found:null, timeout:true}); });
     var box;
     function openBox(){
