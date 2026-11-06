@@ -1723,3 +1723,5 @@ body.leadModalOpenV1 { overflow:hidden; }
   .lotStickyCtaV1 > * { min-width: 0; }
   .lotStickyBtnV1 { flex: 0 1 auto; padding: 9px 12px; font-size: 14px; line-height: 1.15; white-space: normal; text-align: center; }
 }
+/* Шапка каталога читаемее (06.11.2026): точки фона под ней гаснут (site-bg.js, data-bg-quiet), подпись крупнее и темнее */
+@media (min-width: 641px) { .auctionsSubV3 { font-size: 14.5px; color: #4b5563; } .auctionsHeadV2 .kindRowV1 { font-size: 14px; } .auctionsHeadV2 .kindNoteV1, .auctionsHeadV2 .kindHintV1 { color: #4b5563; } }
