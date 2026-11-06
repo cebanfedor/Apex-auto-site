@@ -144,7 +144,17 @@
 
   // ---- Данные ----
   var m = location.pathname.match(/^\/(?:korea|catalog|canada)\/([^/?#]+)/);
-  var carId = m ? decodeURIComponent(m[1]) : "";
+  // Ссылка как у лотов США: /korea|/canada/<название>-<VIN>-<id>; без VIN — просто id. Тот же алгоритм на сервере (server/slug.js catSlug/parseCatSlug).
+  function catSlug(car){
+    var id = String(car && car.id || ""); if(!id) return "";
+    var vin = String(car.vin || "").trim(); vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(vin) ? vin.toUpperCase() : "";
+    if(!vin) return id;
+    var t = String([car.year, car.brand && car.brand.name, car.model && car.model.name].filter(Boolean).join(" ")).normalize("NFKD").replace(/[^\x00-\x7F]/g, "")
+      .split(/[^A-Za-z0-9]+/).filter(Boolean).map(function(w){ return w[0].toUpperCase() + w.slice(1); }).join("-").slice(0, 60).replace(/-+$/g, "");
+    return [t, vin, id].filter(Boolean).join("-");
+  }
+  function parseCatSlug(seg){ var m = String(seg || "").match(/^(?:.*?-)?([A-HJ-NPR-Z0-9]{17})-(.+)$/); return m ? m[2] : String(seg || ""); }
+  var carId = m ? parseCatSlug(decodeURIComponent(m[1])) : "";
   var qp = new URLSearchParams(location.search);
   var refDomainId = qp.get("domain_id"), refListingId = qp.get("listing_id");
   // Чистая ссылка как у эталона: /catalog/<id>; другое объявление той же машины — ?listing=<номер на площадке>.
@@ -186,7 +196,7 @@
     return T("Автомобиль");
   }
   function listingHref(car, l){
-    var base = BASE + "/" + encodeURIComponent(car.id), def = defaultListing(car);
+    var base = BASE + "/" + catSlug(car), def = defaultListing(car);
     if(!l || !l.external || l === def) return base;
     var p = new URLSearchParams(); p.set("listing", l.external.id);
     var lg = qp.get("lang"); if(lg) p.set("lang", lg);

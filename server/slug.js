@@ -19,4 +19,18 @@ function parseLotSlug(slug){
   const m = s.match(/^(copart|iaai)-(\d{5,12})(?:-.*)?$/i) || s.match(/^(copart|iaai)-(.+)$/i);
   return m ? {auction:m[1].toLowerCase(), lot:m[2]} : null;
 }
-module.exports = {lotSlug, transitSlug, parseLotSlug, words};
+// Корея/Канада (каталоги api.auctionsapi.com): /korea|/canada/<название>-<VIN>-<id машины>, как у лотов США — с названием и VIN.
+// id может сам содержать «-» (l_guA4-6x4STi…), поэтому разбираем по VIN: всё после первого 17-значного VIN — это id. Без VIN — просто id.
+// Тот же алгоритм в catalog.js (carHref) и catalog-car.js (listingHref) — менять синхронно.
+function catSlug(car){
+  const id = String(car && car.id || ""); if(!id) return "";
+  const vin = vinPart(car.vin); if(!vin) return id;
+  const title = words([car.year, car.brand && car.brand.name, car.model && car.model.name].filter(Boolean).join(" "), 60);
+  return [title, vin, id].filter(Boolean).join("-");
+}
+function parseCatSlug(seg){
+  const s = String(seg || "");
+  const m = s.match(/^(?:.*?-)?([A-HJ-NPR-Z0-9]{17})-(.+)$/);
+  return m ? m[2] : s;
+}
+module.exports = {lotSlug, transitSlug, parseLotSlug, words, catSlug, parseCatSlug};

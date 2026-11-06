@@ -858,7 +858,17 @@
   }
   function lbl(table, id){ var r = table.find(function(x){ return x[0] === id; }); return r ? T(r[1]) : ""; }
   // Чистая ссылка как у эталона: /catalog/<id> (страница сама берёт активное объявление — то же, что pickListing здесь)
-  function carHref(car){ return BASE + "/" + encodeURIComponent(car.id); }
+  // Ссылка как у лотов США: /korea|/canada/<название>-<VIN>-<id>; без VIN — просто id. Тот же алгоритм на сервере (server/slug.js catSlug/parseCatSlug).
+  function catSlug(car){
+    var id = String(car && car.id || ""); if(!id) return "";
+    var vin = String(car.vin || "").trim(); vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(vin) ? vin.toUpperCase() : "";
+    if(!vin) return id;
+    var t = String([car.year, car.brand && car.brand.name, car.model && car.model.name].filter(Boolean).join(" ")).normalize("NFKD").replace(/[^\x00-\x7F]/g, "")
+      .split(/[^A-Za-z0-9]+/).filter(Boolean).map(function(w){ return w[0].toUpperCase() + w.slice(1); }).join("-").slice(0, 60).replace(/-+$/g, "");
+    return [t, vin, id].filter(Boolean).join("-");
+  }
+  function parseCatSlug(seg){ var m = String(seg || "").match(/^(?:.*?-)?([A-HJ-NPR-Z0-9]{17})-(.+)$/); return m ? m[2] : String(seg || ""); }
+  function carHref(car){ return BASE + "/" + catSlug(car); }
   function specLi(icon, text, more){
     return '<li class="' + (more ? "vcard__more" : "flex") + ' min-w-0 items-center gap-2">' + icon + '<span class="truncate" data-no-i18n="true">' + esc(text) + '</span></li>';
   }

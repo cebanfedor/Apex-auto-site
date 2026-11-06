@@ -2426,3 +2426,11 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   недосчитанное — из прошлого снимка (<6 ч), результат в `alert_meta` (k=`facts_v1`). `action=facts` отдаёт снимок + ЖИВУЮ ленту продаж (`factsRecentSales`, один запрос),
   кэш 5 мин в памяти, CDN 5 мин. Снимка нет/старше 3 ч — прежний расчёт двумя волнами. Ручной пересчёт: `?action=factsrefresh&force=1` (нужен админ или CRON_SECRET).
   Тот же блок «Пульс аукционов» стоит на /auctions — под списком лотов и пагинацией, внутри `#auctionCatalog` (на странице лота скрыт вместе с каталогом), класс `.pulseAucV1`. auction-facts.js v3, styles.css v509.
+
+## Ссылки и превью машин Кореи/Канады (06.11.2026, Федор: «превью на Канаде нет, ссылку с VIN как на США»)
+- Адрес: `/korea|/canada/<год-марка-модель>-<VIN>-<id>` (`catSlug` в server/slug.js; копии в catalog.js `carHref` и catalog-car.js `listingHref` — менять синхронно).
+  id бывает с «-» (`l_guA4-6x4…`) → `parseCatSlug` режет по первому 17-значному VIN; без VIN адрес = голый id. Названия марок/моделей в API от языка не зависят.
+- `/korea/:id`, `/canada/:id` → `api/catalog-car-page.js` (раньше — статичный html без og:*, Telegram показывал голую ссылку): 301 на канонический адрес
+  (голый id/старое название, query сохраняется), title/description/canonical/og/twitter, 404 если машины нет. Шаблон — catalog-car.html / canada-car.html с диска.
+- Картинка превью `/og/cat/<kr|ca>/<id>` (api/og.js `buildCatCar`, `og.lotCard`): фото, название, цена в $ (логика `listingPrice` клиента, курс `getRates` из api/catalog.js), пробег/топливо/КПП, плашка «Канада»/«Корея» + флаг Канады. OpenLane нигде не упоминается.
+  Данные/тексты RU/RO/EN — `server/og-catcar.js`. Мессенджеры кэшируют картинку по адресу — смена дизайна → бамп `?v=` в catalog-car-page.js.
