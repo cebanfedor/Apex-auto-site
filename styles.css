@@ -139,6 +139,19 @@ section { position: relative; }
 }
 .mainNavV82 > a:hover { background: rgba(17, 20, 26, 0.05); color: var(--ink); }
 .mainNavV82 > a.active { color: var(--red-600); background: var(--red-soft); } /* 27.09: var(--red) на --red-soft — контраст 3.9, ниже AA 4.5 */
+/* Быстрые пункты «Авто из США/Канады» и «Авто из Кореи» рядом с «Автомобили» */
+.mainNavV82 > a.navQuickV1 { display: inline-flex; align-items: center; gap: 7px; }
+.navQuickFlagsV1 { display: inline-flex; gap: 3px; flex: none; }
+.navQuickFlagsV1 svg { width: 17px; height: 11px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(17, 20, 26, .14); }
+.navQuickShortV1 { display: none; }
+/* Узкий десктоп: короткие подписи; ещё уже — прячем (те же ссылки есть в «Автомобили»), иначе меню вылезает за край */
+@media (min-width: 821px) and (max-width: 1290px) {
+  .navQuickFullV1 { display: none; }
+  .navQuickShortV1 { display: inline; }
+}
+@media (min-width: 821px) and (max-width: 1050px) {
+  .mainNavV82 > a.navQuickV1 { display: none; }
+}
 
 /* Dropdown nav */
 .navDropV420 { position: relative; }
@@ -1782,8 +1795,30 @@ details > summary::-webkit-details-marker { display: none; }
   .apexBrandTextV201 { display: none; }
 }
 .homeTransitV1[hidden] { display: none; }
-.homeTransitV1 .transitGridV1 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-@media (max-width: 560px) { .homeTransitV1 .transitGridV1 { grid-template-columns: 1fr; } }
+/* Главная, «Авто в пути»: фиксированные колонки — home-transit.js добивает ряд плиткой подбора */
+.homeTransitV1 .transitGridV1 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (min-width: 1500px) { .homeTransitV1 .transitGridV1 { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 1080px) { .homeTransitV1 .transitGridV1 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) { .homeTransitV1 .transitGridV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.homeTransitV1 .transitCardBodyV1 { padding: 14px 16px 16px; gap: 9px; }
+.homeTransitV1 .transitCardBodyV1 h3 { font-size: 16px; }
+.homeTransitV1 .transitPriceV1 { font-size: 20px; }
+.transitCtaV1 { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; padding: 24px 22px; border-radius: var(--radius-lg); color: #fff;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(237, 0, 18, .28), transparent 60%), var(--ink); box-shadow: var(--shadow-sm); }
+.transitCtaV1.isWideV1 { flex-direction: row; align-items: center; padding: 32px 36px; gap: 32px; }
+.transitCtaTextV1 { display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.transitCtaKickerV1 { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #ff8a8f; }
+.transitCtaV1 h3 { margin: 0; font-size: 22px; line-height: 1.2; color: #fff; text-wrap: balance; }
+.transitCtaV1.isWideV1 h3 { font-size: 28px; }
+.transitCtaV1 p { margin: 0; font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, .72); }
+.transitCtaBtnsV1 { display: flex; flex-direction: column; gap: 10px; flex: none; }
+.transitCtaBtnsV1 a { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 22px; border-radius: 12px; font-weight: 800; font-size: 15px; text-decoration: none; white-space: nowrap; transition: background .16s var(--ease), transform .16s var(--ease); }
+.transitCtaMainV1 { background: var(--red); color: #fff; box-shadow: var(--shadow-red); }
+.transitCtaMainV1:hover { background: var(--red-600); color: #fff; transform: translateY(-1px); }
+.transitCtaTgV1 { background: rgba(255, 255, 255, .08); color: #fff; border: 1px solid rgba(255, 255, 255, .22); }
+.transitCtaTgV1:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+.transitCtaMainV1:focus-visible, .transitCtaTgV1:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.transitCtaV1.isWideV1 .transitCtaBtnsV1 { margin-left: auto; }
 /* Лид-форма: видимые подписи полей (плейсхолдер исчезает при вводе — на телефоне терялся контекст) */
 .miniFieldV1 { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .miniFieldV1 > span { font-size: 12.5px; font-weight: 700; color: var(--ink-2); }
@@ -1812,7 +1847,7 @@ details > summary::-webkit-details-marker { display: none; }
   .apexReviewsGridV212, #homeTransitV1 .transitGridV1 { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; gap:12px; margin-left:-16px; margin-right:-16px; padding:4px 16px 14px; scrollbar-width:none; }
   .apexReviewsGridV212::-webkit-scrollbar, #homeTransitV1 .transitGridV1::-webkit-scrollbar { display:none; }
   .apexReviewsGridV212 > .apexReviewCardV212 { flex:0 0 84%; scroll-snap-align:center; }
-  #homeTransitV1 .transitGridV1 > .transitCardV1 { flex:0 0 82%; scroll-snap-align:center; }
+  #homeTransitV1 .transitGridV1 > .transitCardV1, #homeTransitV1 .transitGridV1 > .transitCtaV1 { flex:0 0 82%; scroll-snap-align:center; }
 }
 @media (max-width: 640px){
   .transitBackV1, .transitShareV1, .transitWhereV1 a { display:inline-flex; align-items:center; min-height:44px; }

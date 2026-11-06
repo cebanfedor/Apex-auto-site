@@ -63,12 +63,45 @@ function esc(s){
         + '</div>'
       + '</div></a>';
   }
+  /* Ряд всегда полный при любом числе объявлений: машины + плитка подбора на оставшиеся колонки.
+     Объявлений больше, чем помещается, — показываем (колонки − 1), остальные по «Все авто в пути». */
+  function ctaTile(span){
+    return '<div class="transitCtaV1' + (span >= 2 ? " isWideV1" : "") + '"' + (span > 1 ? ' style="grid-column:span ' + span + '"' : "") + '>'
+      + '<div class="transitCtaTextV1">'
+        + '<span class="transitCtaKickerV1">' + esc(T("Подбор под ваш бюджет")) + '</span>'
+        + '<h3>' + esc(T("Не нашли подходящее авто?")) + '</h3>'
+        + '<p>' + esc(T("Подберём машину на аукционах США, Канады и Кореи: проверим историю по VIN и посчитаем цену под ключ до ставки.")) + '</p>'
+      + '</div>'
+      + '<div class="transitCtaBtnsV1">'
+        + '<a class="transitCtaMainV1" href="#selection">' + esc(T("Подобрать авто")) + '</a>'
+        + '<a class="transitCtaTgV1" href="https://t.me/fedukusa" target="_blank" rel="noopener">' + esc(T("Написать в Telegram")) + '</a>'
+      + '</div></div>';
+  }
+  function carousel(){ return getComputedStyle(grid).display === "flex"; }
+  function cols(){ return Math.max(1, (getComputedStyle(grid).gridTemplateColumns || "").split(" ").filter(Boolean).length); }
+  var pool = null, shownKey = "";
+  function render(){
+    if(!pool) return;
+    var flex = carousel(), c = flex ? 0 : cols();
+    var key = flex ? "flex" : String(c);
+    if(key === shownKey) return;
+    shownKey = key;
+    if(flex){ grid.innerHTML = pool.slice(0, 6).map(card).join("") + ctaTile(1); return; }
+    var rows = c <= 3 ? 2 : 1;
+    var shown = pool.slice(0, Math.max(1, c * rows - 1));
+    grid.innerHTML = shown.map(card).join("") + ctaTile(c - (shown.length % c));
+  }
   fetch("/api/hot-lots?type=transit")
     .then(function(r){ return r.json(); })
     .then(function(d){
-      var items = (d.items || []).filter(function(x){ return !x.sold; }).slice(0, 4);
+      var items = (d.items || []).filter(function(x){ return !x.sold; });
       if(!items.length) return;
-      grid.innerHTML = items.map(card).join("");
+      pool = items;
       sec.hidden = false;
+      render();
     }).catch(function(){});
+  var rt;
+  function onResize(){ clearTimeout(rt); rt = setTimeout(render, 150); }
+  if("ResizeObserver" in window) new ResizeObserver(onResize).observe(grid);
+  else window.addEventListener("resize", onResize);
 })();

@@ -2342,5 +2342,5 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 - Сортировка по умолчанию для Канады — «сначала новые» (`auction_nearest` оставляет лишь ~1.6 тыс. авто). Популярные марки — свой список `POPULAR_BRANDS` для CA, популярных моделей пока нет.
 - Меню «Автомобили»: карточка «Авто из Канады» → `/canada` (счётчик «OpenLane · N авто»), рядом ссылка «Copart и IAAI — Канада» (`/auctions?country=CA`). Поиск в шапке: «Канада» = OpenLane + Copart/IAAI Канада,
   «Везде» = аукционы + OpenLane + Корея (номер лота для OpenLane не ищется). Лид — source «Авто из Канады (OpenLane)».
-- `vercel.json`: rewrites `/canada`, `/canada/:id`, редирект `/canada.html`. Версии: catalog.js v18, catalog-car.js v18, site-nav.js v5, i18n multilang-v564.
+- `vercel.json`: rewrites `/canada`, `/canada/:id`, редирект `/canada.html`. Версии: catalog.js v18, catalog-car.js v18, site-nav.js v5, i18n multilang-v565. В шапке на /canada подсвечен быстрый пункт «США/Канада» (подмена в build-canada-pages.js).
 - ⚠️ Локальный `local-server.js` без Supabase падает на /api/auctions?action=count — при проверке поиска перезапускать; на проде не проявляется.
