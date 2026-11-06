@@ -2389,3 +2389,8 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   пояснение `.kindNoteV1` скрыто. Главная: 2-й слайд hero `.heroSlideOkV1` (фото `hero-carmeet.webp`, h2, кнопки /canada и /korea —
   на телефоне обе кнопки в ряд). ⚠️ Текст слайда — `<div class="heroSlideTxtV1">`, НЕ `<p>`: site-content.js пишет админ-текст
   (`hero_text`) в ПЕРВЫЙ `.heroMainV45 p` на странице — новый `<p>` в слайде перед остальными перехватил бы его. Версии: styles.css v505, i18n multilang-v569.
+- **Свой фон hero у /korea и /canada (06.11.2026, Федор: «точки и маршрут Канада→Молдова копируют autopartner»)**: точечный фон
+  (`canvas-ph--dots`) и анимированный маршрут (`.catalog-route`) убраны из catalog.html и catalog-car.html. Вместо них — `.catHeroPatV1`
+  (тонкие диагональные полосы фирменного красного, гаснут влево/вниз) и справа карточка `.catHeroCardV1` «Почему через Apex Auto»
+  (целые машины · фото и отчёт о состоянии · под ключ до Кишинёва; скрыта ≤1179px). Синий отблеск из glow эталона заменён на графитовый.
+  Стили — конец catalog-ref.extra.css (catalog-ref.css = первые 274 строки + extra). Версии: catalog-ref.css v15, i18n multilang-v570.

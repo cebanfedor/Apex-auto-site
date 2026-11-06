@@ -27,7 +27,7 @@
   <link rel="preload" href="/assets/fonts/onest-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css?v=v505">
-  <link rel="stylesheet" href="/catalog-ref.css?v=v14">
+  <link rel="stylesheet" href="/catalog-ref.css?v=v15">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -124,18 +124,16 @@
        и перекрашен в наш красный. Поведение Alpine.js заменено на vanilla в catalog.js (CSP без unsafe-eval). -->
   <main id="main" data-cat-src="ca" class="apx-korea relative flex-1 w-full bg-paper text-ink antialiased">
     <section class="catalog-hero relative isolate">
-      <div class="canvas-wrap -z-10 mask-fade-b"><div class="canvas-ph canvas-ph--dots" aria-hidden="true"></div></div>
+      <div class="catHeroPatV1 -z-10" aria-hidden="true"></div>
       <div class="mask-fade-b absolute inset-0 -z-10 catalog-hero__glow"></div>
       <div class="wrap-wide relative pb-24 pt-[calc(var(--hero-offset)+20px)] sm:pb-[104px] sm:pt-[calc(var(--hero-offset)+28px)]">
-        <div class="catalog-route" aria-hidden="true">
-          <svg width="280" height="96" viewBox="0 0 280 96">
-            <path class="catalog-route__line" d="M14 78C84 6 190 6 266 44"/>
-            <circle class="catalog-route__from" cx="14" cy="78" r="4.5"/>
-            <circle class="catalog-route__to" cx="266" cy="44" r="5"/>
-          </svg>
-          <span class="catalog-route__dot"></span>
-          <span class="catalog-route__label catalog-route__label--from">Канада</span>
-          <span class="catalog-route__label catalog-route__label--to">Молдова</span>
+        <div class="catHeroCardV1">
+          <div class="catHeroCardTtlV1">Почему через Apex Auto</div>
+          <ul>
+            <li><b>Целые машины</b><span>не с аварийных аукционов</span></li>
+            <li><b>Фото и отчёт о состоянии</b><span>по каждой машине в каталоге</span></li>
+            <li><b>Под ключ до Кишинёва</b><span>покупка, доставка, растаможка</span></li>
+          </ul>
         </div>
         <div class="scrollbar-none mb-5 max-w-full overflow-x-auto whitespace-nowrap">
           <div class="flex items-center gap-0.5 text-[13px]" aria-label="Breadcrumb" id="catListCrumbsV1">
@@ -272,7 +270,7 @@
     </div>
   </footer>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v569" defer></script>
+  <script src="i18n.js?v=multilang-v570" defer></script>
   <script src="catalog.js?v=v22" defer></script>
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
