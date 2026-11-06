@@ -94,6 +94,8 @@
       if(form._init) return; form._init = true;
       var sel = form.querySelector("select"), inp = form.querySelector("input[type=search]");
       if(sel) sel.value = defaultRegion();
+      // На телефоне поле узкое — короткая подсказка, чтобы не обрезалась
+      if(inp && isMobile()){ var ph = {ru:"Марка, модель или VIN", ro:"Marcă, model sau VIN", en:"Make, model or VIN"}; inp.placeholder = ph[LANG()] || ph.ru; }
       if(sel) sel.addEventListener("change", function(){ try{ localStorage.setItem(REGION_KEY, sel.value); }catch(e){} if(inp) inp.focus(); });
       form.addEventListener("submit", function(e){
         e.preventDefault();

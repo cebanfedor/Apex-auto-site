@@ -2288,3 +2288,4 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 - **Адрес Кореи `/korea`**: `vercel.json` — rewrite `/korea` → catalog.html, `/korea/:id` → catalog-car.html; 301 `/catalog`, `/catalog/:id`, `/catalog.html`
   → `/korea…`. Ссылки в catalog*.js, канонические, sitemap — на `/korea`. Подпись под логотипом и футер: «Авто из США, Канады и Кореи в Молдову».
   `styles.css?v=v497`, `catalog-ref.css?v=v11`, `catalog.js?v=v17`, `catalog-car.js?v=v17`, `script.js?v=calc-v456`, `i18n.js?v=multilang-v561`.
+- На телефоне подсказка поиска короче («Марка, модель или VIN», задаётся в `site-nav.js`), `site-nav.js?v=v2`.
