@@ -39,7 +39,7 @@
     dictState = 1;
     const s = document.createElement("script");
     s.src = SELF_SRC ? SELF_SRC.replace(/i18n\.js/, "i18n-dict.js") : "/i18n-dict.js";
-    s.onload = () => { dict = window.__APEX_DICT.dict; attrDict = window.__APEX_DICT.attrDict; dictState = 2; const w = dictWaiters; dictWaiters = []; w.forEach(f => { try{ f(); }catch(e){} }); };
+    s.onload = () => { dict = window.__APEX_DICT.dict; attrDict = window.__APEX_DICT.attrDict; dictState = 2; const w = dictWaiters; dictWaiters = []; w.forEach(f => { try{ f(); }catch(e){} }); try{ document.dispatchEvent(new Event("apex-dict-ready")); }catch(e){} };
     s.onerror = () => { dictState = 0; const w = dictWaiters; dictWaiters = []; w.forEach(f => { try{ f(); }catch(e){} }); };
     document.head.appendChild(s);
   }
@@ -185,6 +185,7 @@
       history.replaceState(null, "", url.toString());
     } catch(e){}
     apply(lang);
+    try{ document.dispatchEvent(new Event("apex-dict-ready")); }catch(e){}
     // re-render the calculator so its generated rows pick up the new language
     if(typeof window.calculate === "function"){ try { window.calculate(); apply(lang); } catch(e){} }
     // re-render tracking results so dates and dynamic labels update

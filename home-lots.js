@@ -129,6 +129,7 @@
       .catch(function () { sec.hidden = true; });
   }
 
+  document.addEventListener("apex-dict-ready", function () { if (pool) render(); });
   var rt;
   function onResize() {
     clearTimeout(rt);

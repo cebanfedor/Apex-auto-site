@@ -60,6 +60,7 @@
         render();
       }).catch(function(){});
   }
+  document.addEventListener("apex-dict-ready", function(){ if(pool){ shown = 0; render(); } });
   var rt;
   function onResize(){ clearTimeout(rt); rt = setTimeout(render, 150); }
   if("ResizeObserver" in window) new ResizeObserver(onResize).observe(grid);
