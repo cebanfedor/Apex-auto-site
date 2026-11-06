@@ -37,7 +37,8 @@ function textW(s, size, bold){
 }
 // До maxLines строк, слова целиком; лишнее — «…»
 function wrap(text, size, maxW, maxLines, bold){
-  const words = String(text || "").split(/\s+/).filter(Boolean);
+  // неразрывный пробел (\u00a0) держит слова вместе — делим только по обычным пробелам
+  const words = String(text || "").split(/[ \t\r\n]+/).filter(Boolean);
   const lines = []; let cur = "";
   for(let i = 0; i < words.length; i++){
     const next = cur ? cur + " " + words[i] : words[i];
@@ -45,7 +46,7 @@ function wrap(text, size, maxW, maxLines, bold){
     else{ lines.push(cur); cur = words[i]; if(lines.length === maxLines) break; }
   }
   if(lines.length < maxLines && cur) lines.push(cur);
-  const used = lines.join(" ").split(/\s+/).length;
+  const used = lines.join(" ").split(/[ \t\r\n]+/).length;
   if(used < words.length && lines.length){ let last = lines[lines.length - 1]; while(last.length > 1 && textW(last + "…", size, bold) > maxW) last = last.slice(0, -1); lines[lines.length - 1] = last.replace(/[\s,.-]+$/, "") + "…"; }
   return lines;
 }

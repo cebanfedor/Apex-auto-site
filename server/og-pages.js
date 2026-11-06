@@ -2,10 +2,10 @@
 // и для мета-тегов при ?lang=ro|en (api/page-meta.js). k — метка раздела, h — заголовок на картинке, s — подпись, t — <title>/og:title, d — описание.
 // RU-версия дублирует то, что уже стоит в HTML страниц (для картинок); отдельные ro-* страницы описаны в scripts/build-og-pages.js.
 const PAGES = {
-  index:{path:"", img:"hero-bg-v43.jpg",
-    ru:{k:"ПОД КЛЮЧ ИЗ США И КАНАДЫ", h:"Авто из США и Канады под ключ в Молдову", s:"Расчёт полной стоимости онлайн: Copart, IAAI, Manheim"},
-    ro:{k:"LA CHEIE DIN SUA ȘI CANADA", h:"Mașini din SUA și Canada la cheie în Moldova", s:"Calcul complet online: Copart, IAAI, Manheim", t:"Apex Auto — mașini din SUA și Canada la cheie în Moldova", d:"Calculează costul complet al unei mașini din SUA și Canada până la Chișinău: licitații Copart, IAAI, Manheim, livrare și vămuire."},
-    en:{k:"TURNKEY DELIVERY", h:"Cars from the USA and Canada to Moldova", s:"Full cost online: Copart, IAAI, Manheim", t:"Apex Auto — cars from the USA and Canada turnkey to Moldova", d:"Get the full turnkey cost of a car from the USA and Canada to Chisinau: Copart, IAAI and Manheim auctions, shipping and customs."}},
+  index:{path:"", img:"hot/hero-carfleet.jpg",
+    ru:{k:"США · КАНАДА · КОРЕЯ", h:"Авто из США, Канады и\u00a0Кореи в\u00a0Молдову", s:"Под ключ: Copart, IAAI, Manheim и\u00a0Encar\u00a0· расчёт полной стоимости онлайн"},
+    ro:{k:"SUA · CANADA · COREEA", h:"Mașini din SUA, Canada și\u00a0Coreea în\u00a0Moldova", s:"La cheie: Copart, IAAI, Manheim și\u00a0Encar · calcul complet online", t:"Apex Auto — mașini din SUA, Canada și Coreea la cheie în Moldova", d:"Calculează costul complet al unei mașini din SUA, Canada sau Coreea până la Chișinău: licitații Copart, IAAI, Manheim, catalog Encar, livrare și vămuire."},
+    en:{k:"USA · CANADA · KOREA", h:"Cars from the USA, Canada and\u00a0Korea to Moldova", s:"Copart, IAAI, Manheim and Encar · full cost online", t:"Apex Auto — cars from the USA, Canada and Korea turnkey to Moldova", d:"Get the full turnkey cost of a car from the USA, Canada or Korea to Chisinau: Copart, IAAI and Manheim auctions, the Encar catalog, shipping and customs."}},
   auctions:{path:"auctions", img:"hot/honda-accord.jpg",
     ru:{k:"КАТАЛОГ АУКЦИОНОВ", h:"Аукционы Copart и IAAI", s:"Поиск по VIN и лоту · фото · расчёт под ключ до Кишинёва"},
     ro:{k:"CATALOG LICITAȚII", h:"Licitații Copart și IAAI", s:"Căutare după VIN și lot · foto · calcul la cheie până la Chișinău", t:"Licitații Copart și IAAI — catalog auto din SUA și Canada | Apex Auto", d:"Catalog de mașini de la licitațiile Copart și IAAI: căutare după VIN și lot, filtre, fotografii și calcul la cheie până la Chișinău."},
