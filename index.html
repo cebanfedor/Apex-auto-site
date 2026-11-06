@@ -44,7 +44,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v507">
+  <link rel="stylesheet" href="styles.css?v=v508">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512">
@@ -489,6 +489,24 @@
   </div>
 </section>
 
+<section class="homeLotsV1 pulseV1" data-auction-pulse hidden aria-label="Пульс аукционов">
+  <div class="container">
+    <div class="homeLotsHeadV1">
+      <div class="homeLotsHeadTxtV1">
+        <h2><i class="afLiveV1" aria-hidden="true"></i>Пульс аукционов</h2>
+        <p>Живые цифры Copart и IAAI — обновляются каждые 15 минут</p>
+      </div>
+      <a class="homeLotsAllV1" href="/auctions?tab=archived">Все продажи <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="pulseStatsV1" data-pulse-stats></div>
+    <div data-pulse-sales-wrap hidden>
+      <h3 class="pulseSubV1">Только что продано</h3>
+      <div class="homeLotsGridV1" data-pulse-sales></div>
+    </div>
+    <div class="tkHostV1 tkInPulseV1" data-auction-ticker data-skip-cards hidden></div>
+  </div>
+</section>
+
 <section class="homeLotsV1" id="homeLots" aria-label="Лоты с аукциона">
   <div class="container">
     <div class="homeLotsHeadV1">
@@ -552,7 +570,7 @@
   <script src="calc-core.js?v=core-v17" defer></script>
   <script src="script.js?v=calc-v457" defer></script>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v571" defer></script>
+  <script src="i18n.js?v=multilang-v572" defer></script>
   <script src="home-transit.js?v=ht-v11" defer></script>
   <script src="home-lots.js?v=home-v15" defer></script>
   <script src="home-hero.js?v=hh-v11" defer></script>
@@ -915,5 +933,6 @@
 <script src="/cookie-consent.js?v=1" defer></script>
 <script src="/site-nav.js?v=v6" defer></script>
 <script src="/site-bg.js?v=v2" defer></script>
+<script src="/auction-facts.js?v=v2" defer></script>
 </body>
 </html>
