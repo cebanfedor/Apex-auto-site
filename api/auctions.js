@@ -2731,7 +2731,16 @@ async function computeAuctionFacts(){
 }
 async function auctionFacts(){
   if(factsCache && Date.now() - factsCache.at < (factsCache.v._n >= 3 ? 30 : 3) * 60e3) return factsCache.v;
-  if(!factsBusy) factsBusy = computeAuctionFacts().then(v => { if(v) factsCache = {v, at:Date.now()}; return v; }).finally(() => { factsBusy = null; });
+  if(!factsBusy) factsBusy = computeAuctionFacts().then(v => {
+    if(!v) return v;
+    // не посчиталось в этот раз (таймаут под нагрузкой) — оставляем прежнее значение, если ему меньше 3 ч
+    const prev = factsCache && Date.now() - (factsCache.full || factsCache.at) < 3 * 3600e3 ? factsCache.v : null;
+    let filled = false;
+    if(prev) for(const k of ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"]) if(v[k] == null && prev[k] != null){ v[k] = prev[k]; filled = true; }
+    v._n = ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => v[k]).length;
+    factsCache = {v, at:Date.now(), full:filled ? factsCache.full || factsCache.at : Date.now()};
+    return v;
+  }).finally(() => { factsBusy = null; });
   // есть старое значение — отдаём его сразу, пересчёт идёт в фоне
   if(factsCache) return factsCache.v;
   return factsBusy;
