@@ -416,9 +416,12 @@
 .lot-modal .sheet-close { display: inline-grid; }
 
 /* --- 5. подгонки под наш хедер (не фиксированный → липкие элементы прижаты к верху окна) --- */
-.apx-korea .lot-nav { top: 8px; }
-.apx-korea .lot-buy-col { top: 16px; }
-.apx-korea .lot-toc { top: 16px; }
+/* 06.11.2026: под липкую часть шапки (компьютер — строка меню 49px, телефон — 56px), иначе навигация разделов уходила под неё */
+.apx-korea { --hdrStickyH: 56px; }
+@media (min-width: 821px) { .apx-korea { --hdrStickyH: 49px; } }
+.apx-korea .lot-nav { top: var(--hdrStickyH); }
+.apx-korea .lot-buy-col, .apx-korea .lot-aside { top: calc(var(--hdrStickyH) + 16px); }
+.apx-korea .lot-toc { top: calc(var(--hdrStickyH) + 16px); }
 @media (max-width: 1023px){ .apx-korea .lot-sheet { margin-inline: 0; } }
 
 

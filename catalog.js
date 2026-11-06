@@ -320,11 +320,11 @@
     var b = state.brands[0], bName = b ? brandNameOf(b) : null;
     var parts = ['<a href="/" class="crumb crumb--home" aria-label="' + esc(T("Главная")) + '">' + I.home + '</a>'];
     if(b && bName){
-      parts.push('<a href="/catalog" class="crumb">' + esc(T("Авто из Кореи")) + '</a>');
+      parts.push('<a href="/korea" class="crumb">' + esc(T("Авто из Кореи")) + '</a>');
       var m = (b.models || [])[0], mName = m ? modelNameOf(b, m) : null;
       if(m && mName){
         var bp = new URLSearchParams(); bp.set("brand_id", b.id);
-        parts.push('<a href="/catalog?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(bName) + '</a>');
+        parts.push('<a href="/korea?' + bp.toString() + '" class="crumb" data-no-i18n="true">' + esc(bName) + '</a>');
         parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(mName) + '</span>');
       }else parts.push('<span class="crumb-current" data-no-i18n="true">' + esc(bName) + '</span>');
     }else parts.push('<span class="crumb-current">' + esc(T("Авто из Кореи")) + '</span>');
@@ -847,7 +847,7 @@
   }
   function lbl(table, id){ var r = table.find(function(x){ return x[0] === id; }); return r ? T(r[1]) : ""; }
   // Чистая ссылка как у эталона: /catalog/<id> (страница сама берёт активное объявление — то же, что pickListing здесь)
-  function carHref(car){ return "/catalog/" + encodeURIComponent(car.id); }
+  function carHref(car){ return "/korea/" + encodeURIComponent(car.id); }
   function specLi(icon, text, more){
     return '<li class="' + (more ? "vcard__more" : "flex") + ' min-w-0 items-center gap-2">' + icon + '<span class="truncate" data-no-i18n="true">' + esc(text) + '</span></li>';
   }

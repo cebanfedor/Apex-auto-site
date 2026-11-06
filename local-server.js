@@ -213,9 +213,9 @@ http.createServer((req, res) => {
   if(pathname === "/auctions") pathname = "/auctions.html";
   if(pathname === "/tracking") pathname = "/tracking.html";
   if(pathname === "/in-transit") pathname = "/in-transit.html";
-  if(pathname === "/catalog") pathname = "/catalog.html";
+  if(pathname === "/catalog" || pathname === "/korea") pathname = "/catalog.html";
   if(/^\/auctions\/[^/]+$/.test(pathname)) pathname = "/auctions.html";
-  if(/^\/catalog\/[^/]+$/.test(pathname)) pathname = "/catalog-car.html";
+  if(/^\/(catalog|korea)\/[^/]+$/.test(pathname)) pathname = "/catalog-car.html";
   const safePath = path.normalize(pathname === "/" ? "/index.html" : pathname);
   const filePath = path.join(root, safePath.endsWith("/") ? `${safePath}index.html` : safePath);
   if(!filePath.startsWith(root)){
