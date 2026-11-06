@@ -1,7 +1,7 @@
 // Витрина Кореи для главной: фильтры цены/фото/названия (06.11.2026)
 const test = require("node:test");
 const assert = require("node:assert");
-const {showcaseItem} = require("../api/catalog");
+const {showcaseItem, niceModel} = require("../api/catalog");
 
 const rates = {usdKrw:1330};
 const car = (over = {}) => Object.assign({
@@ -37,4 +37,12 @@ test("без курса KRW цену не выдумываем", () => {
 test("электро: объём двигателя не показываем", () => {
   const it = showcaseItem(car({fuel:{id:2}, engine_volume:120}), rates, "kr");
   assert.strictEqual(it.engine, 0);
+});
+
+test("немецкие названия моделей: 5er → 5 Series, C-klasse → C-Class, обычные не трогаем", () => {
+  assert.strictEqual(niceModel("5er"), "5 Series");
+  assert.strictEqual(niceModel("3er Touring"), "3 Series Touring");
+  assert.strictEqual(niceModel("C-klasse"), "C-Class");
+  assert.strictEqual(niceModel("Sonata"), "Sonata");
+  assert.strictEqual(niceModel("X5"), "X5");
 });

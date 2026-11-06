@@ -299,6 +299,13 @@ async function carFact(src, dom, sort){
 // НЕ «под ключ» (доставки и растаможки в ней нет), так и подписывается на странице.
 const SHOWCASE_MIN_USD = 6000, SHOWCASE_MAX_USD = 45000;
 const showcaseCache = new Map();
+// «5er» → «5 Series», «C-klasse» → «C-Class» — как displayModel на странице аукционов (названия моделей BMW/Mercedes в справочнике немецкие)
+function niceModel(m){
+  m = String(m || "").trim();
+  const ser = m.match(/^(\d)er\b(.*)$/i);
+  if(ser) return (ser[1] + " Series" + ser[2]).trim();
+  return m.replace(/-klasse\b/i, "-Class");
+}
 function showcaseItem(car, rates, src){
   if(!(car && car.id && car.year && car.brand && car.brand.name && car.model && car.model.name)) return null;
   const ls = ogc.defaultListing(car);
@@ -313,7 +320,7 @@ function showcaseItem(car, rates, src){
   const ev = car.fuel && car.fuel.id === 2;
   return {
     href:"/korea/" + catSlug(car),
-    title:[car.year, car.brand.name, car.model.name].join(" "),
+    title:[car.year, car.brand.name, niceModel(car.model.name)].join(" "),
     img:im,
     usd:Math.round(usd / 10) * 10,
     km:ls && Number(ls.odometer) > 0 ? Number(ls.odometer) : 0,
@@ -470,3 +477,4 @@ module.exports.getRates = getRates;
 module.exports.catalogFacts = catalogFacts;
 module.exports.catalogShowcase = catalogShowcase;
 module.exports.showcaseItem = showcaseItem;
+module.exports.niceModel = niceModel;
