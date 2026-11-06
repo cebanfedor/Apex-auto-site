@@ -48,7 +48,7 @@
 /* Tailwind-класс .container из стилей эталона сужал наш подвал до 1280/1536px */
 .siteFooter > .container { max-width: calc(var(--maxw, 1624px) + 48px); }
 /* glow в hero (у эталона — произвольный класс bg-[radial-gradient(...)] с их оранжевым; здесь то же с нашим красным) */
-.catalog-hero__glow { background: radial-gradient(55% 75% at 8% 60%, rgb(237 0 18 / .12), transparent 70%), radial-gradient(40% 60% at 92% 20%, rgb(37 99 235 / .10), transparent 70%); }
+.catalog-hero__glow { background: radial-gradient(50% 80% at 0% 70%, rgb(237 0 18 / .10), transparent 70%), radial-gradient(35% 70% at 100% 0%, rgb(15 23 42 / .06), transparent 70%); }
 .catalog-hero__glow--lot { background: radial-gradient(45% 70% at 10% 100%, rgb(237 0 18 / .10), transparent 70%); }
 /* overflow-x: clip тут НЕ ставить: предок с clip переводит sticky-блоки (галерея, цена, шапка лота) на главный поток → при прокрутке трекпадом верх страницы отрисовывается с отставанием («мерцание», 05.11.2026) */
 .apx-korea { min-height: 60vh; }
@@ -203,3 +203,23 @@
 .olVidV1__nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .olVidV1__nav button { height: 34px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, .12); color: #fff; border: 0; font-size: 13px; cursor: pointer; }
 .olVidV1__nav button.is-on { background: #ed0012; }
+
+/* --- Свой фон hero каталогов (06.11.2026, Федор: точки и маршрут были как у autopartner) ---
+   Тонкие диагональные полосы фирменного красного, гаснут к левому краю и вниз; справа — карточка «Почему через Apex Auto». */
+.catHeroPatV1 { position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  background-image: repeating-linear-gradient(-55deg, rgb(237 0 18 / .07) 0 1px, transparent 1px 14px);
+  -webkit-mask-image: linear-gradient(90deg, transparent 25%, #000 85%), linear-gradient(180deg, #000 45%, transparent 100%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 25%, #000 85%), linear-gradient(180deg, #000 45%, transparent 100%); mask-composite: intersect; }
+.catHeroPatV1::after { content: ""; position: absolute; right: -6%; top: -30%; width: 46%; height: 160%; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgb(237 0 18 / .05) 40%, rgb(237 0 18 / .09)); }
+.catHeroCardV1 { position: absolute; right: clamp(24px, 4vw, 72px); top: 22px; width: 300px; padding: 14px 18px; border-radius: 18px;
+  background: rgb(255 255 255 / .86); border: 1px solid rgb(var(--c-line)); box-shadow: 0 18px 40px -26px rgb(11 18 32 / .35);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.catHeroCardTtlV1 { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgb(var(--c-ink-3)); margin-bottom: 10px; }
+.catHeroCardV1 ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.catHeroCardV1 li { position: relative; padding-left: 30px; line-height: 1.25; }
+.catHeroCardV1 li::before { content: ""; position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 6px; background: rgb(237 0 18 / .1)
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ed0012' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") no-repeat center / 12px; }
+.catHeroCardV1 b { display: block; font-size: 14px; font-weight: 650; color: rgb(var(--c-ink)); }
+.catHeroCardV1 span { display: block; font-size: 12.5px; color: rgb(var(--c-ink-3)); margin-top: 2px; }
+@media (width <= 1179px) { .catHeroCardV1 { display: none; } }

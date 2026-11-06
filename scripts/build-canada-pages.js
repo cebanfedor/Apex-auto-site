@@ -25,7 +25,6 @@ build("catalog.html", "canada.html", [
   MAIN,
   ['class="navQuickV1" href="/canada"', 'class="navQuickV1 active" href="/canada"'],
   ['class="navQuickV1 active" href="/korea"', 'class="navQuickV1" href="/korea"'],
-  ['catalog-route__label--from">Корея</span>', 'catalog-route__label--from">Канада</span>'],
   ['<span class="crumb-current">Авто из Кореи</span>', '<span class="crumb-current">Авто из Канады</span>'],
   ['sm:text-[40px]">Авто из Кореи</h1>', 'sm:text-[40px]">Авто из Канады</h1>'],
   ['<p class="catalog-intro">Авто из Южной Кореи с пробегом и историей, доставка под ключ.</p>', '<p class="catalog-intro">Дилерские аукционы Канады: машины после лизинга и trade-in, с отчётом о состоянии. Доставка под ключ.</p>'],
