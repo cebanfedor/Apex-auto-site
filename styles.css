@@ -2140,3 +2140,44 @@ body.lbOpenV1 { overflow:hidden; }
 .glassSelectV152.isDisabledV1 { pointer-events: none; }
 .glassSelectV152.isDisabledV1 .glassSelectButtonV152 { opacity: .6; cursor: not-allowed; }
 .glassSelectV152.isDisabledV1 .glassSelectButtonV152 b { display: none; }
+
+/* Битые / целые (06.11.2026): метка у быстрых пунктов шапки и групп в меню «Автомобили» */
+.navQuickTagV1 { display: inline-flex; align-items: center; height: 19px; padding: 0 7px; border-radius: 999px; font-style: normal; font-size: 11px; font-weight: 700; line-height: 1; letter-spacing: .01em; white-space: nowrap; }
+.navQuickTagV1.isDmgV1 { background: #fff1e6; color: #b45309; }
+.navQuickTagV1.isOkV1 { background: #e7f6ec; color: #15803d; }
+.mainNavV82 > a.navQuickV1 { gap: 6px; }
+.navMegaCapV1 .navQuickTagV1 { margin-right: 8px; text-transform: uppercase; font-size: 10.5px; letter-spacing: .04em; }
+.navMegaCapV1:has(.navQuickTagV1) { display: flex; align-items: center; }
+.navMegaGroupsV1 { display: grid; grid-template-columns: 2fr 2fr 1fr; gap: 22px; }
+.navMegaGroupV1 { min-width: 0; }
+.navMegaGroupV1 .navMegaCardsV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.navMegaGroupV1.isOneV1 .navMegaCardsV1 { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 821px) and (max-width: 1130px) {
+  .navMegaGroupsV1 { grid-template-columns: 1fr 1fr; }
+  .navMegaGroupV1.isOneV1 { grid-column: 1 / -1; }
+  .navMegaGroupV1 .navMegaCardsV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .navMegaGroupsV1 { grid-template-columns: 1fr; gap: 14px; }
+  .navMegaGroupV1 .navMegaCardsV1, .navMegaGroupV1.isOneV1 .navMegaCardsV1 { grid-template-columns: 1fr 1fr; }
+  .navMegaCapV1 { margin-bottom: 8px; }
+}
+/* Три быстрых пункта с метками шире прежних двух — на средних экранах ужимаемся, а не вылезаем за край */
+@media (min-width: 821px) and (max-width: 1380px) {
+  .mainNavV82 > a.navQuickV1 .navQuickFlagsV1 { display: none; }
+  .mainNavV82 > a, .navDropBtnV420, .navMegaBtnV1 { padding-left: 8px; padding-right: 8px; }
+}
+@media (min-width: 821px) and (max-width: 1250px) {
+  .mainNavV82 > a[href="/"] { display: none; }
+  .mainNavV82 > a.navQuickV1 { gap: 5px; }
+}
+@media (min-width: 821px) and (max-width: 1160px) {
+  .mainNavV82 > a.navQuickV1 { display: none; }
+}
+@media (min-width: 821px) {
+  .navMegaGroupV1 .navMegaCardV1 { gap: 11px; padding: 12px 14px; min-height: 72px; }
+  .navMegaGroupV1 .navMegaFlagV1 { width: 34px; height: 23px; }
+  .navMegaGroupV1 .navMegaCardV1 b { font-size: 15px; white-space: nowrap; }
+  .navMegaGroupV1 .navMegaCardV1 small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .navMegaGroupV1 .navMegaCardsV1 { gap: 10px; }
+}
