@@ -12,6 +12,9 @@
   var pulse = document.querySelector("[data-auction-pulse]");
   if(!card && !tickers.length && !pulse) return;
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Каталоги Кореи и Канады показывают СВОИ факты (06.11.2026, Федор: «в Корее про Корею, в Канаде про Канаду»): /api/catalog?action=facts
+  var catMain = document.querySelector("main.apx-korea");
+  var PAGE_SRC = catMain ? (catMain.getAttribute("data-cat-src") === "ca" ? "ca" : "kr") : "";
 
   function T(s){ return typeof window.i18nT === "function" ? window.i18nT(s) : s; }
   function num(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
@@ -52,6 +55,29 @@
     add(cached("apexMegaCa"), "целых авто на дилерских аукционах Канады");
     return f;
   }
+  function pageFacts(d){
+    var f = [], B = PAGE_SRC === "ca" ? "/canada" : "/korea", Y = d.freshYear;
+    function add(n, cap, href, yr){ if(typeof n === "number" && n > 0) f.push({n: n, cap: cap, href: href, year: yr}); }
+    if(PAGE_SRC === "ca"){
+      add(d.total, "целых авто на дилерских аукционах Канады", B);
+      add(d.auctionSoon, "авто на ближайших торгах", B + "?sort=auction_nearest");
+      add(d.inspections, "с отчётом об осмотре и фото", B + "?has_inspections=1");
+      add(d.fresh, "машин {Y}+ года", B + "?year_from=" + Y, Y);
+      add(d.pickups, "пикапов в продаже", B + "?body_type_id=4");
+      add(d.hybrids, "гибридов в продаже", B + "?fuel_id=3");
+      add(d.ev, "электромобилей в продаже", B + "?fuel_id=2");
+      add(d.lowkm, "с пробегом до 50 000 км", B + "?odometer_to=50000");
+    }else{
+      add(d.total, "авто в каталоге Кореи прямо сейчас", B);
+      add(d.inspections, "с отчётом техосмотра", B + "?has_inspections=1");
+      add(d.history, "с историей владельцев и страховых случаев", B + "?has_history_reports=1");
+      add(d.fresh, "машин {Y}+ года", B + "?year_from=" + Y, Y);
+      add(d.hybrids, "гибридов в продаже", B + "?fuel_id=3");
+      add(d.ev, "электромобилей в продаже", B + "?fuel_id=2");
+      add(d.lowkm, "с пробегом до 30 000 км", B + "?odometer_to=30000");
+    }
+    return f;
+  }
   function capOf(it){ var c = T(it.cap); return it.year ? c.replace("{Y}", it.year) : c; }
   function bigOf(it){ return it.money ? "$" + num(it.money) : num(it.n); }
 
@@ -81,18 +107,22 @@
     if(it.extra && it.extra.title){
       sub = it.extra.href ? '<a class="afLotV1" href="' + esc(it.extra.href) + '" title="' + esc(it.extra.title) + '">' + esc(it.extra.title) + "</a>" : '<em class="afLotV1">' + esc(it.extra.title) + "</em>";
     }
-    return '<b class="afNumV1">' + bigOf(it) + '</b><div class="afCapV1"><span title="' + esc(capOf(it)) + '">' + esc(capOf(it)) + "</span>" + sub + "</div>";
+    var cap = it.href ? '<a class="afCapLnkV1" href="' + esc(it.href) + '">' + esc(capOf(it)) + "</a>" : '<span title="' + esc(capOf(it)) + '">' + esc(capOf(it)) + "</span>";
+    return '<b class="afNumV1">' + bigOf(it) + '</b><div class="afCapV1">' + cap + sub + "</div>";
   }
   var cardPool = null, cardShown = null;
   function renderCard(){
     if(!card || !cardPool) return;
     card.classList.add("isFactsV1");
-    card.innerHTML = '<a class="catHeroCardTtlV1 afTtlV1" href="/auctions"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Аукционы США и Канады")) + ' <span aria-hidden="true">→</span></a>' +
+    var ttl = PAGE_SRC === "ca" ? '<div class="catHeroCardTtlV1 afTtlV1"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Канада сейчас")) + "</div>"
+      : PAGE_SRC === "kr" ? '<div class="catHeroCardTtlV1 afTtlV1"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Корея сейчас")) + "</div>"
+      : '<a class="catHeroCardTtlV1 afTtlV1" href="/auctions"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Аукционы США и Канады")) + ' <span aria-hidden="true">→</span></a>';
+    card.innerHTML = ttl +
       '<ul class="afListV1" aria-live="polite">' + cardShown.map(function(i){ return "<li>" + cardItem(cardPool[i]) + "</li>"; }).join("") + "</ul>";
   }
   function startCard(d){
     if(!card) return;
-    var pool = facts(d);
+    var pool = PAGE_SRC ? pageFacts(d) : facts(d);
     if(pool.length < 2) return;   // мало цифр — оставляем прежнюю карточку
     cardPool = pool; cardShown = pool.slice(0, 3).map(function(_, i){ return i; });
     renderCard();
@@ -102,14 +132,14 @@
   // ---- 2. Бегущая строка: продажи вперемешку с фактами
   var pulseCards = 0;   // сколько продаж уже показано карточками в «Пульсе» — строка внутри него начинает со следующих
   function tickerItems(d, skip){
-    var sales = (d.recentSales || []).slice(skip || 0, (skip || 0) + 18), fs = facts(d), out = [], fi = 0;
+    var sales = PAGE_SRC ? [] : (d.recentSales || []).slice(skip || 0, (skip || 0) + 18), fs = PAGE_SRC ? pageFacts(d) : facts(d), out = [], fi = 0;
     sales.forEach(function(s, i){
       out.push('<a class="tkItemV1" href="' + esc(s.href || "/auctions") + '">' +
         (s.img ? '<img src="' + esc(thumb(s.img, 160)) + '" alt="" width="40" height="30" loading="lazy" onerror="this.remove()">' : "") +
         "<b>" + esc(s.title) + "</b><em>$" + num(s.price) + "</em><span>" + esc(ago(s.at)) + "</span></a>");
       if(i % 3 === 2 && fi < fs.length){ var it = fs[fi++]; out.push('<span class="tkItemV1 isFactV1"><i aria-hidden="true"></i><b>' + bigOf(it) + "</b> " + esc(capOf(it)) + "</span>"); }
     });
-    if(!sales.length) fs.forEach(function(it){ out.push('<span class="tkItemV1 isFactV1"><i aria-hidden="true"></i><b>' + bigOf(it) + "</b> " + esc(capOf(it)) + "</span>"); });
+    if(!sales.length) fs.forEach(function(it){ var tag = it.href ? 'a href="' + esc(it.href) + '"' : "span"; out.push("<" + tag + ' class="tkItemV1 isFactV1"><i aria-hidden="true"></i><b>' + bigOf(it) + "</b> " + esc(capOf(it)) + "</" + tag.split(" ")[0] + ">"); });
     return out;
   }
   function renderTickers(){
@@ -118,7 +148,9 @@
       var items = tickerItems(data, el.hasAttribute("data-skip-cards") ? pulseCards : 0);
       if(items.length < 3) return;
       var seq = items.join("");
-      el.innerHTML = '<div class="tkV1"><a class="tkLiveV1" href="/auctions?tab=archived"><i aria-hidden="true"></i>' + esc(T("Продано сейчас")) + "</a>" +
+      var lbl = PAGE_SRC ? '<span class="tkLiveV1"><i aria-hidden="true"></i>' + esc(T(PAGE_SRC === "ca" ? "Канада сейчас" : "Корея сейчас")) + "</span>"
+        : '<a class="tkLiveV1" href="/auctions?tab=archived"><i aria-hidden="true"></i>' + esc(T("Продано сейчас")) + "</a>";
+      el.innerHTML = '<div class="tkV1">' + lbl +
         '<div class="tkViewV1"><div class="tkTrackV1"><div class="tkSeqV1">' + seq + '</div><div class="tkSeqV1" aria-hidden="true">' + seq + "</div></div></div></div>";
       el.hidden = false;
       el.querySelectorAll('.tkSeqV1[aria-hidden] a').forEach(function(a){ a.tabIndex = -1; });
@@ -178,7 +210,7 @@
   }
   function load(){
     if(!anyVisible()) return;
-    fetch("/api/auctions?action=facts").then(function(r){ return r.ok ? r.json() : null; })
+    fetch(PAGE_SRC ? "/api/catalog?action=facts&src=" + PAGE_SRC : "/api/auctions?action=facts").then(function(r){ return r.ok ? r.json() : null; })
       .then(function(d){ if(!d || !d.ok) return; data = d; startCard(d); startPulse(d); renderTickers(); }).catch(function(){});
   }
   // Блок на главной далеко внизу — грузим, когда до него недалеко докрутили; остальное сразу.

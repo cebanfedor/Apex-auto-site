@@ -508,17 +508,21 @@
 .afLiveV1 { width: 7px; height: 7px; border-radius: 50%; background: rgb(237 0 18); box-shadow: 0 0 0 0 rgb(237 0 18 / .45); animation: afPulse 2s infinite; flex: none; }
 @keyframes afPulse { 0% { box-shadow: 0 0 0 0 rgb(237 0 18 / .45); } 70% { box-shadow: 0 0 0 7px rgb(237 0 18 / 0); } 100% { box-shadow: 0 0 0 0 rgb(237 0 18 / 0); } }
 /* 06.11.2026 (Федор): карточка ниже и шире — каждый факт одной строкой: число · подпись · (машина) */
-.catHeroCardV1.isFactsV1 { width: 460px; padding: 12px 18px 11px; }
+/* 06.11.2026 (Федор: «не нравится, что на фоне, просто текст лучше; левее, чтобы текст был виден полностью»): без карточки — просто текст,
+   точки фона под ним приглушает site-bg.js сам; шире и с правого края контента. */
+.catHeroCardV1.isFactsV1 { width: 560px; right: 24px; padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; }
 .catHeroCardV1 .afListV1 { gap: 7px; grid-template-columns: minmax(0, 1fr); }
 .catHeroCardV1 .afListV1 li { display: flex; align-items: baseline; gap: 10px; min-width: 0; overflow: hidden; padding-left: 0; min-height: 22px; white-space: nowrap; transition: opacity .3s ease, transform .3s ease; }
 .catHeroCardV1 .afListV1 li::before { content: none; }
 .catHeroCardV1 .afListV1 li.isOutV1 { opacity: 0; transform: translateY(-5px); }
 .catHeroCardV1 .afNumV1 { flex: 0 0 auto; min-width: 82px; font-size: 16.5px; font-weight: 750; line-height: 1.25; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .catHeroCardV1 .afCapV1 { display: flex; align-items: baseline; gap: 6px; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.catHeroCardV1 .afCapV1 .afCapLnkV1 { display: block; flex: 0 1 auto; min-width: 0; font-size: 13.5px; line-height: 1.3; color: rgb(var(--c-ink-2)); text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
+.catHeroCardV1 .afCapV1 .afCapLnkV1:hover { color: rgb(237 0 18); text-decoration: underline; }
 .catHeroCardV1 .afCapV1 span { display: block; flex: 0 1 auto; min-width: 0; margin: 0; font-size: 13px; line-height: 1.3; color: rgb(var(--c-ink-2)); overflow: hidden; text-overflow: ellipsis; }
 .catHeroCardV1 .afLotV1 { display: block; flex: 1 1 0; min-width: 0; margin: 0; font-size: 13px; font-style: normal; font-weight: 600; line-height: 1.3; color: rgb(237 0 18); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .catHeroCardV1 .afLotV1::before { content: "· "; color: rgb(var(--c-ink-4)); font-weight: 400; }
-@media (width <= 1399px) { .catHeroCardV1.isFactsV1 { width: 420px; } }
+@media (width <= 1399px) { .catHeroCardV1.isFactsV1 { width: 480px; } }
 .catHeroCardV1 a.afLotV1:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) { .afLiveV1 { animation: none; } .catHeroCardV1 .afListV1 li { transition: none; } }
 
@@ -527,6 +531,6 @@
 .catHeroTxtV1 .catalog-intro { margin-top: 8px; font-size: 16.5px; line-height: 1.5; color: rgb(var(--c-ink-2)); }
 .catHeroTxtV1 .kindRowV1 { font-size: 14.5px; }
 .catHeroTxtV1 .kindHintV1 { color: rgb(var(--c-ink-2)); }
-@media (width >= 1180px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 480px)); } }
-@media (width >= 1400px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 520px)); } }
+@media (width >= 1180px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 530px)); } }
+@media (width >= 1400px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 610px)); } }
 @media (width <= 639px) { .catHeroTxtV1 .catalog-intro { font-size: 15px; } .catHeroTxtV1 .kindRowV1 { font-size: 13px; } }

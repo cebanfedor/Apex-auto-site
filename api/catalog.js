@@ -210,6 +210,38 @@ async function getRates(){
   return ratesCache ? ratesCache.v : null;
 }
 
+// Факты для карточки в шапке /korea и /canada (06.11.2026, Федор: «в Корее про Корею, в Канаде про Канаду»).
+// Только реальные подсчёты /search/count с фильтрами каталога; кэш 30 мин в памяти (+ CDN), запросы — параллельно.
+const FRESH_YEAR = () => new Date().getFullYear() - 2;
+const CAT_FACTS = {
+  kr:[["total", p => {}], ["inspections", p => cat.qsPush(p, "has_inspections", "1")], ["history", p => cat.qsPush(p, "has_history_reports", "1")],
+      ["hybrids", p => cat.qsArray(p, "fuels", [3])], ["ev", p => cat.qsArray(p, "fuels", [2])],
+      ["fresh", p => cat.qsPush(p, "year_from", FRESH_YEAR())], ["lowkm", p => cat.qsPush(p, "odometer_to", 30000)]],
+  ca:[["total", p => {}], ["auctionSoon", p => {}, "auction_nearest"], ["inspections", p => cat.qsPush(p, "has_inspections", "1")],
+      ["fresh", p => cat.qsPush(p, "year_from", FRESH_YEAR())], ["ev", p => cat.qsArray(p, "fuels", [2])], ["hybrids", p => cat.qsArray(p, "fuels", [3])],
+      ["pickups", p => cat.qsArray(p, "body_types", [4])], ["lowkm", p => cat.qsPush(p, "odometer_to", 50000)]]
+};
+const catFactsCache = new Map();
+async function catalogFacts(src){
+  const c = catFactsCache.get(src);
+  if(c && Date.now() - c.t < 30 * 60e3) return c.v;
+  const dom = await cat.resolveDomainId(src).catch(() => null);
+  const out = {ok:true, src, freshYear:FRESH_YEAR()};
+  await Promise.all(CAT_FACTS[src].map(async ([k, add, sort]) => {
+    const parts = ["lang=en"];
+    if(dom) cat.qsArray(parts, "domains", [dom]);
+    add(parts);
+    cat.qsPush(parts, "sort", sort || "newest");
+    try{
+      const r = await cat.catalogFetch("/search/count", parts.join("&"), {src, timeoutMs:8000, retries:0});
+      const n = Number(r && r.count);
+      if(Number.isFinite(n) && n > 0) out[k] = n;
+    }catch(_){}
+  }));
+  if(Object.keys(out).length > 3){ catFactsCache.set(src, {t:Date.now(), v:out}); return out; }
+  return c ? c.v : out;
+}
+
 module.exports = async function handler(req, res){
   if(req.method !== "GET") return methodNotAllowed(res);
   const q = getQuery(req);
@@ -271,6 +303,11 @@ module.exports = async function handler(req, res){
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
     }
 
+    if(action === "facts"){
+      const src = pickSrc(q) === "ca" ? "ca" : "kr";
+      const v = await catalogFacts(src);
+      return sendJson(res, 200, v, {"cache-control":Object.keys(v).length > 3 ? "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" : "no-store"});
+    }
     if(action === "rates"){
       const r = await getRates();
       if(!r) return sendJson(res, 503, {ok:false, error:"rates_unavailable"}, {"cache-control":"no-store"});
@@ -306,3 +343,4 @@ module.exports = async function handler(req, res){
   }
 };
 module.exports.getRates = getRates;
+module.exports.catalogFacts = catalogFacts;
