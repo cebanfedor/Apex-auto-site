@@ -2707,10 +2707,14 @@ function factsDb(){
 const factsIso = ms => encodeURIComponent(new Date(ms).toISOString());
 const FACTS_NOT_CA = "or=(country.neq.ca,country.is.null)";
 // Лента «только что продано»: последние продажи за 12 ч с нормальным названием и фото, без повторов. Один запрос — живой на каждый пересчёт.
+// «Продано сейчас» (06.11.2026, Федор): только 2018+ и популярные у нас немцы и японцы (Buick и пр. не нужны).
+// make_id: BMW 16, Mercedes-Benz 88, Audi 9, Volkswagen 147, Porsche 110, Toyota 140, Lexus 76, Honda 56, Mazda 85, Subaru 132, Nissan 99.
+const FACTS_SALE_MAKES = [16, 88, 9, 147, 110, 140, 76, 56, 85, 132, 99];
+const FACTS_SALE_MIN_YEAR = 2018;
 async function factsRecentSales(ms){
   const req = factsDb(); if(!req) return null;
   const q = `select=id,title,vin,year,final_bid,sale_date,pt:payload->>title,mk:payload->>make,md:payload->>model,img:payload->>image` +
-    `&archived=eq.true&status_id=eq.6&final_bid=gt.500&final_bid=lt.2000000&year=gte.2014&sale_date=lte.${factsIso(Date.now())}&sale_date=gte.${factsIso(Date.now() - 12 * 3600e3)}&${FACTS_NOT_CA}&order=sale_date.desc&limit=80`;
+    `&archived=eq.true&status_id=eq.6&final_bid=gt.500&final_bid=lt.2000000&year=gte.${FACTS_SALE_MIN_YEAR}&make_id=in.(${FACTS_SALE_MAKES.join(",")})&sale_date=lte.${factsIso(Date.now())}&sale_date=gte.${factsIso(Date.now() - 12 * 3600e3)}&${FACTS_NOT_CA}&order=sale_date.desc&limit=80`;
   const rows = await req(q, ms).catch(() => null);
   if(!Array.isArray(rows)) return null;
   const out = [], seen = new Set();
