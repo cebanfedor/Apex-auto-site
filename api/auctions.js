@@ -2707,14 +2707,21 @@ async function computeAuctionFacts(){
   const cnt = q => req(`select=id&${q}`, 7000, true).catch(() => null);
   const fx = await fuelXReady().catch(() => false);
   const fresh = `archived=eq.false&first_seen=gte.${iso(d24)}`;
-  const [soldYesterday, soldYesterdayCa, top, todayLots, newLots24h, newHybrids24h, newEv24h] = await Promise.all([
+  const freshYear = new Date().getFullYear() - 2;
+  const recentQ = `select=id,title,vin,year,final_bid,sale_date,pt:payload->>title,mk:payload->>make,md:payload->>model,img:payload->>image` +
+    `&archived=eq.true&status_id=eq.6&final_bid=gt.500&final_bid=lt.2000000&year=gte.2014&sale_date=lte.${iso(Date.now())}&sale_date=gte.${iso(Date.now() - 12 * 3600e3)}&${notCa}&order=sale_date.desc&limit=80`;
+  const [soldYesterday, soldYesterdayCa, top, todayLots, newLots24h, newHybrids24h, newEv24h, teslaSoldYesterday, freshSoldYesterday, recent, buyNowActive] = await Promise.all([
     cnt(sold),
     cnt(`${sold}&country=eq.ca`),
     req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${notCa}&order=final_bid.desc&limit=1`, 7000).catch(() => null),
     cnt(`archived=eq.false&sale_date=gte.${iso(t0)}&sale_date=lt.${iso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
     cnt(fresh),
     fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${notCa}`) : null,
-    fx ? cnt(`${fresh}&fuel_x=eq.2&${notCa}`) : null
+    fx ? cnt(`${fresh}&fuel_x=eq.2&${notCa}`) : null,
+    cnt(`${sold}&make_id=eq.187`),
+    cnt(`${sold}&year=gte.${freshYear}`),
+    req(recentQ, 7000).catch(() => null),
+    tabTotal("buy_now").catch(() => null)
   ]);
   let topSale = null;
   const tr = Array.isArray(top) && top[0];
@@ -2729,7 +2736,25 @@ async function computeAuctionFacts(){
     }
     topSale = {price:Number(tr.final_bid), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:tr.vin}) : ""};
   }
-  const out = {ok:true, at:new Date().toISOString(), soldYesterday, soldYesterdayCa, topSale, todayLots, newLots24h, newHybrids24h, newEv24h};
+  // Лента «только что продано»: последние продажи за 12 ч с нормальным названием и фото, без повторов
+  const recentSales = [];
+  if(Array.isArray(recent)){
+    const seen = new Set();
+    const real = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
+    for(const r of recent){
+      const base = String(r.id || "").replace(/-s\d{8}$/, "");
+      if(seen.has(base)) continue;
+      const title = real(r.title) || real(r.pt) || [r.year, r.mk, r.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
+      if(!title || !/\d{4}/.test(title) || !r.img || !/^https:\/\//.test(String(r.img))) continue;
+      seen.add(base);
+      const [auction, lot] = base.split("-");
+      recentSales.push({title, price:Number(r.final_bid) || 0, at:r.sale_date, img:String(r.img), auction,
+        href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:r.vin}) : ""});
+      if(recentSales.length >= 24) break;
+    }
+  }
+  const out = {ok:true, at:new Date().toISOString(), soldYesterday, soldYesterdayCa, topSale, todayLots, newLots24h, newHybrids24h, newEv24h,
+    teslaSoldYesterday, freshSoldYesterday, freshYear, buyNowActive:Number(buyNowActive) > 0 ? Number(buyNowActive) : null, recentSales:recentSales.length ? recentSales : null};
   out._n = ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => out[k]).length;
   return out;
 }
@@ -2740,7 +2765,7 @@ async function auctionFacts(){
     // не посчиталось в этот раз (таймаут под нагрузкой) — оставляем прежнее значение, если ему меньше 3 ч
     const prev = factsCache && Date.now() - (factsCache.full || factsCache.at) < 3 * 3600e3 ? factsCache.v : null;
     let filled = false;
-    if(prev) for(const k of ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"]) if(v[k] == null && prev[k] != null){ v[k] = prev[k]; filled = true; }
+    if(prev) for(const k of ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h", "teslaSoldYesterday", "freshSoldYesterday", "recentSales", "buyNowActive"]) if(v[k] == null && prev[k] != null){ v[k] = prev[k]; filled = true; }
     v._n = ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => v[k]).length;
     factsCache = {v, at:Date.now(), full:filled ? factsCache.full || factsCache.at : Date.now()};
     return v;

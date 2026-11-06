@@ -42,7 +42,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/styles.css?v=v507">
+  <link rel="stylesheet" href="/styles.css?v=v508">
   <link rel="stylesheet" href="/auctions.css?v=v607">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
@@ -148,6 +148,7 @@
   <main class="auctionsShellV1">
     <section id="auctionCatalog" class="auctionsCatalogV1">
       <nav class="auctionsCrumbV3" aria-label="Навигация"><a href="/">Apex Auto</a><span>•</span><span>Текущие аукционы</span></nav>
+      <div class="tkHostV1" data-auction-ticker hidden></div>
       <div class="auctionsHeadV2">
         <div class="auctionsHeadLeftV2">
           <div class="kindRowV1"><span class="kindBadgeV1 isDmgV1">Битые авто</span><span class="kindNoteV1">страховые аукционы Copart и IAAI</span><span class="kindHintV1">Ищете целую машину? <a href="/canada">Канада</a> · <a href="/korea">Корея</a></span></div>
@@ -510,7 +511,7 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v571" defer></script>
+  <script src="/i18n.js?v=multilang-v572" defer></script>
   <script src="/auctions.js?v=auctions-v433" defer></script>
   <script src="/site-content.js?v=admin-v168" defer></script>
 
@@ -563,5 +564,6 @@
 <script src="/cookie-consent.js?v=1" defer></script>
 <script src="/site-nav.js?v=v6" defer></script>
 <script src="/site-bg.js?v=v2" defer></script>
+<script src="/auction-facts.js?v=v2" defer></script>
 </body>
 </html>
