@@ -23,7 +23,7 @@ build("catalog.html", "canada.html", [
   ['<meta property="og:description" content="Авто из Южной Кореи с пробегом и историей, доставка под ключ в Молдову.">', '<meta property="og:description" content="Авто из Канады с дилерских аукционов, доставка под ключ в Молдову.">'],
   ['<meta property="og:url" content="https://apexauto.md/korea">', '<meta property="og:url" content="https://apexauto.md/canada">'],
   MAIN,
-  ['class="navQuickV1" href="/auctions"', 'class="navQuickV1 active" href="/auctions"'],
+  ['class="navQuickV1" href="/canada"', 'class="navQuickV1 active" href="/canada"'],
   ['class="navQuickV1 active" href="/korea"', 'class="navQuickV1" href="/korea"'],
   ['catalog-route__label--from">Корея</span>', 'catalog-route__label--from">Канада</span>'],
   ['<span class="crumb-current">Авто из Кореи</span>', '<span class="crumb-current">Авто из Канады</span>'],
@@ -33,7 +33,7 @@ build("catalog.html", "canada.html", [
 build("catalog-car.html", "canada-car.html", [
   ['<title id="catCarTitleTagV1">Автомобиль из Кореи | Apex Auto</title>', '<title id="catCarTitleTagV1">Автомобиль из Канады | Apex Auto</title>'],
   MAIN,
-  ['class="navQuickV1" href="/auctions"', 'class="navQuickV1 active" href="/auctions"'],
+  ['class="navQuickV1" href="/canada"', 'class="navQuickV1 active" href="/canada"'],
   ['class="navQuickV1 active" href="/korea"', 'class="navQuickV1" href="/korea"'],
   ['<a href="/korea" class="crumb">Авто из Кореи</a>', '<a href="/canada" class="crumb">Авто из Канады</a>'],
   ['<a class="btn btn-dark btn-sm" href="/korea">← Вернуться в каталог</a>', '<a class="btn btn-dark btn-sm" href="/canada">← Вернуться в каталог</a>'],
