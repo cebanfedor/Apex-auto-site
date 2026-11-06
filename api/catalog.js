@@ -276,7 +276,9 @@ async function carFact(src, dom, sort){
     if(!p) continue;
     const c = String(p.cur || "").toLowerCase();
     const usd = c === "usd" ? p.amount : c === "krw" && rates && rates.usdKrw ? p.amount / rates.usdKrw : c === "cad" && rates && rates.usdCad ? p.amount / rates.usdCad : 0;
-    if(!(usd > 300) || usd > 900000) continue;   // заглушки цен («999 999 999 ₩», $1.2M за BMW) пропускаем
+    // заглушки и ошибки цены («999 999 999 ₩», BMW 7 за $748k): обычная марка — до $300k, суперкар — до $900k
+    const exo = EXOTIC_BRANDS.concat(["Porsche"]).some(n => n.toLowerCase() === String(car.brand.name).toLowerCase());
+    if(!(usd > 300) || usd > (exo ? 900000 : 300000)) continue;
     cands.push({title, usd:Math.round(usd), href:(src === "ca" ? "/canada/" : "/korea/") + catSlug(car), at:(ls && ls.created_at) || null});
   }
   if(sort === "expensive"){
