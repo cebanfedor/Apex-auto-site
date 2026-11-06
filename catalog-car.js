@@ -193,7 +193,8 @@
     return base + "?" + p.toString();
   }
   // Как у эталона: площадку показываем брендом («Encar»), домен — в подсказке
-  function siteName(n){ n = String(n || ""); return /encar/i.test(n) ? "Encar" : /openlane/i.test(n) ? "OpenLane" : (n || (CA ? "OpenLane" : "Encar")); }
+  // Канада: источник не называем (просьба коллег 06.11.2026) — вместо площадки «Дилерский аукцион», без домена и ссылок на источник
+  function siteName(n){ n = String(n || ""); return CA ? T("Дилерский аукцион") : /encar/i.test(n) ? "Encar" : (n || "Encar"); }
   function pageUrl(){ return location.origin + location.pathname + location.search; }
   function matchingReports(list){
     var listing = state.listing;
@@ -416,7 +417,7 @@
 
     var chips = '<span class="lot-head__flag" title="' + esc(T(CA ? "Канада" : "Корея")) + '">' + (CA ? FLAG_CA : (ART.flag || "🇰🇷")) + '</span>';
     var domainName = siteName(listing && listing.external && listing.external.domain && listing.external.domain.name);
-    var domainHost = listing && listing.external && listing.external.url ? String(listing.external.url).replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : (CA ? "openlane.ca" : "encar.com");
+    var domainHost = listing && listing.external && listing.external.url ? String(listing.external.url).replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "encar.com"; if(CA) domainHost = "";
     if(listings.length > 1){
       var sites = new Set(listings.map(function(l){ return l.external && l.external.domain.id; })).size;
       var countText = listings.length + " " + plural(listings.length, T("объявление"), T("объявления"), T("объявлений")) + " · " + sites + " " + plural(sites, T("площадка"), T("площадки"), T("площадок"));
@@ -835,9 +836,9 @@
       var cadTxt = function(v){ var u = toUsd(v, "cad"); return fmtNum(Math.round(v)) + " CAD" + (u != null ? " ≈ " + fmtNum(Math.round(u)) + " $" : ""); };
       var st = Number(o.sd.starting_bid || o.oa.start_price || 0);
       var dt = function(iso){ var x = new Date(iso); return isNaN(x.getTime()) ? "" : x.toLocaleString(uiLang() === "en" ? "en-GB" : uiLang() === "ro" ? "ro-RO" : "ru-RU", {day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"}); };
-      var CHAN = {dealerBlock:"Онлайн-торги дилеров (DealerBlock)", tradeRev:"Онлайн-аукцион trade-in (TradeRev)", simulcast:"Живой аукцион с онлайн-трансляцией (Simulcast)"};
-      var ch = o.oa.channel || o.sd.auction_channel; if(ch) ad += infoRow(T("Формат торгов"), CHAN[ch] ? T(CHAN[ch]) : ch);
-      if(o.oa.location_name) ad += infoRow(T("Площадка"), o.oa.location_name);
+      var CHAN = {dealerBlock:"Онлайн-торги дилеров", tradeRev:"Онлайн-аукцион trade-in", simulcast:"Живой аукцион с онлайн-трансляцией"};
+      var ch = o.oa.channel || o.sd.auction_channel; if(CHAN[ch]) ad += infoRow(T("Формат торгов"), T(CHAN[ch]));
+      var locName = String(o.oa.location_name || "").replace(/open\s*lane/ig, "").trim(); if(locName) ad += infoRow(T("Площадка"), locName);
       if(o.oa.starts_at && dt(o.oa.starts_at)) ad += infoRow(T("Начало торгов"), dt(o.oa.starts_at));
       var endAt = o.oa.ends_at || listing.auction_at; if(endAt && dt(endAt)) ad += infoRow(T("Окончание торгов"), dt(endAt));
       var lane = o.oa.lane_number || o.sd.auction_lane, run = o.oa.run_number || o.sd.auction_run_number;
@@ -846,7 +847,7 @@
       var inc = Number(o.oa.bid_increment || o.sd.bid_increment || 0); if(inc > 0) ad += infoRow(T("Шаг ставки"), fmtNum(inc) + " CAD");
       var rs = Number(o.sd.reserve_price || o.oa.reserve_price || 0);
       if(rs > 0) ad += infoRow(T("Резерв продавца"), cadTxt(rs));
-      if(Number(o.mv.average_price) > 0) ad += infoRow(T("Оценка рынка (OpenLane)"), fmtNum(Math.round(o.mv.min_price || o.mv.average_price)) + "–" + fmtNum(Math.round(o.mv.max_price || o.mv.average_price)) + " " + ccur + (o.mv.total_sales ? " · " + o.mv.total_sales + " " + plural(o.mv.total_sales, T("продажа"), T("продажи"), T("продаж")) : ""));
+      if(Number(o.mv.average_price) > 0) ad += infoRow(T("Оценка рынка"), fmtNum(Math.round(o.mv.min_price || o.mv.average_price)) + "–" + fmtNum(Math.round(o.mv.max_price || o.mv.average_price)) + " " + ccur + (o.mv.total_sales ? " · " + o.mv.total_sales + " " + plural(o.mv.total_sales, T("продажа"), T("продажи"), T("продаж")) : ""));
       var CONF = {HIGH:"высокая", MEDIUM:"средняя", LOW:"низкая"}; if(Number(o.mv.average_price) > 0 && CONF[o.mv.confidence]) ad += infoRow(T("Точность оценки рынка"), T(CONF[o.mv.confidence]), o.mv.confidence === "HIGH" ? "is-ok" : "");
       var dc = olDamageCost(); if(dc != null) ad += infoRow(T("Оценка ремонта (осмотр)"), dc > 0 ? cadTxt(dc) : T("Не требуется"), dc > 3000 ? "is-warn" : "is-ok");
       if(o.sd.condition_grade) ad += infoRow(T("Оценка состояния"), String(o.sd.condition_grade) + " / 5", Number(o.sd.condition_grade) >= 4 ? "is-ok" : "");
@@ -892,9 +893,9 @@
   // Ссылка на это же объявление на Encar (просьба Федора 05.11.2026; у эталона кнопки нет — источник скрыт)
   function encarBtnHtml(listing){
     var u = listing && listing.external && listing.external.url;
-    if(!u || !/^https:\/\//.test(u)) return "";
+    if(CA || !u || !/^https:\/\//.test(u)) return "";
     var host = String(u).replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
-    return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-secondary btn-lg lot-encar-btn" title="' + esc(host) + '">' + I.ext + '<span>' + esc(T(CA ? "Открыть на OpenLane" : "Открыть на Encar")) + '</span></a>';
+    return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-secondary btn-lg lot-encar-btn" title="' + esc(host) + '">' + I.ext + '<span>' + esc(T("Открыть на Encar")) + '</span></a>';
   }
   // Точки истории цены в $: [время, цена]; последняя — текущая цена
   function pricePoints(listing){
@@ -1387,7 +1388,7 @@
       + '<figure class="lot-tree__car"><span class="lot-tree__photo">' + (state.photos[0] ? '<img src="' + esc(state.photos[0]) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : "") + '</span><figcaption class="min-w-0"><span class="lot-tree__title" data-no-i18n="true">' + esc(titleOf(car, cur)) + '</span>' + (car.vin ? '<span class="lot-tree__vin" data-no-i18n="true">VIN ' + esc(String(car.vin).toUpperCase()) + '</span>' : "") + '</figcaption></figure><div class="lot-sites">';
     Object.keys(byDomain).forEach(function(k){
       var ls = byDomain[k].sort(function(a, b){ return (a.archived ? 1 : 0) - (b.archived ? 1 : 0); }), d0 = ls[0].external;
-      var host = d0 && d0.url ? String(d0.url).replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "";
+      var host = !CA && d0 && d0.url ? String(d0.url).replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "";
       html += '<section class="lot-site"><span class="lot-tree__dot" aria-hidden="true"></span><header class="lot-site__head"><span class="lot-site__mark" aria-hidden="true">' + I.globe + '</span><div class="min-w-0"><p class="lot-site__name" data-no-i18n="true">' + esc(d0 ? siteName(d0.domain.name) : "") + (host ? '<span class="lot-site__domain">' + esc(host) + '</span>' : "") + '</p><p class="lot-site__meta" data-no-i18n="true">' + ls.length + ' ' + plural(ls.length, T("объявление"), T("объявления"), T("объявлений")) + '</p></div></header><ol class="lot-site__rows">'
         + ls.map(function(l, idx){
           var isCur = l === cur, pr = listingPrice(l), mp = pr ? moneyParts(pr.amount, pr.cur) : null, img = Array.isArray(l.images) && l.images.length ? imageUrl(l.images[0]) : "";
@@ -1404,7 +1405,7 @@
   }
 
   // Ссылка на само объявление на площадке (Encar) — в дереве объявлений, рядом с «Открыть»
-  function srcLink(l){ var u = l && l.external && l.external.url; return u && /^https:\/\//.test(u) ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer nofollow" class="lot-btn" title="' + esc(T("Открыть на Encar")) + '">Encar ' + I.ext + '</a>' : ""; }
+  function srcLink(l){ var u = !CA && l && l.external && l.external.url; return u && /^https:\/\//.test(u) ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer nofollow" class="lot-btn" title="' + esc(T("Открыть на Encar")) + '">Encar ' + I.ext + '</a>' : ""; }
 
   // ============ Похожие / другие модели ============
   // Карточка «похожего» — та же разметка vcard, что в каталоге эталона (фото, название, VIN, 4 факта, цена)

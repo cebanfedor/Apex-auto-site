@@ -13,14 +13,14 @@ function build(src, dst, reps){
   fs.writeFileSync(path.join(root, dst), s);
   console.log("ok", dst);
 }
-const DESC = "Авто из Канады с дилерского аукциона OpenLane: машины после лизинга и trade-in, с отчётом о состоянии и Carfax. Фильтры по марке, модели, цене, году и пробегу; доставка под ключ в Молдову.";
+const DESC = "Авто из Канады с дилерских аукционов: машины после лизинга и trade-in, с отчётом о состоянии и Carfax. Фильтры по марке, модели, цене, году и пробегу; доставка под ключ в Молдову.";
 const MAIN = ['<main id="main" class="apx-korea relative', '<main id="main" data-cat-src="ca" class="apx-korea relative'];
 build("catalog.html", "canada.html", [
-  ["<title>Авто из Кореи — каталог Encar | Apex Auto</title>", "<title>Авто из Канады — аукцион OpenLane | Apex Auto</title>"],
+  ["<title>Авто из Кореи — каталог Encar | Apex Auto</title>", "<title>Авто из Канады — дилерские аукционы | Apex Auto</title>"],
   [/<meta name="description" content="[^"]*">/.exec(fs.readFileSync(path.join(root, "catalog.html"), "utf8"))[0], `<meta name="description" content="${DESC}">`],
   ['<link rel="canonical" href="https://apexauto.md/korea">', '<link rel="canonical" href="https://apexauto.md/canada">'],
-  ['<meta property="og:title" content="Авто из Кореи — каталог Encar | Apex Auto">', '<meta property="og:title" content="Авто из Канады — аукцион OpenLane | Apex Auto">'],
-  ['<meta property="og:description" content="Авто из Южной Кореи с пробегом и историей, доставка под ключ в Молдову.">', '<meta property="og:description" content="Авто из Канады с дилерского аукциона OpenLane, доставка под ключ в Молдову.">'],
+  ['<meta property="og:title" content="Авто из Кореи — каталог Encar | Apex Auto">', '<meta property="og:title" content="Авто из Канады — дилерские аукционы | Apex Auto">'],
+  ['<meta property="og:description" content="Авто из Южной Кореи с пробегом и историей, доставка под ключ в Молдову.">', '<meta property="og:description" content="Авто из Канады с дилерских аукционов, доставка под ключ в Молдову.">'],
   ['<meta property="og:url" content="https://apexauto.md/korea">', '<meta property="og:url" content="https://apexauto.md/canada">'],
   MAIN,
   ['class="navQuickV1" href="/auctions"', 'class="navQuickV1 active" href="/auctions"'],
@@ -28,7 +28,7 @@ build("catalog.html", "canada.html", [
   ['catalog-route__label--from">Корея</span>', 'catalog-route__label--from">Канада</span>'],
   ['<span class="crumb-current">Авто из Кореи</span>', '<span class="crumb-current">Авто из Канады</span>'],
   ['sm:text-[40px]">Авто из Кореи</h1>', 'sm:text-[40px]">Авто из Канады</h1>'],
-  ['<p class="catalog-intro">Авто из Южной Кореи с пробегом и историей, доставка под ключ.</p>', '<p class="catalog-intro">Дилерский аукцион OpenLane: машины после лизинга и trade-in, с отчётом о состоянии. Доставка под ключ.</p>'],
+  ['<p class="catalog-intro">Авто из Южной Кореи с пробегом и историей, доставка под ключ.</p>', '<p class="catalog-intro">Дилерские аукционы Канады: машины после лизинга и trade-in, с отчётом о состоянии. Доставка под ключ.</p>'],
 ]);
 build("catalog-car.html", "canada-car.html", [
   ['<title id="catCarTitleTagV1">Автомобиль из Кореи | Apex Auto</title>', '<title id="catCarTitleTagV1">Автомобиль из Канады | Apex Auto</title>'],

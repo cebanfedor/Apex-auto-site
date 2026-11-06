@@ -2364,3 +2364,12 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   линия/номер (`lane_number`/`run_number`), шаг ставки (`bid_increment`), точность оценки рынка (`market_value.confidence`).
   Не показываем (служебное): `vehicle_status`, `sale_access`, `event_id`, `hash`, `vehicle_wmi`, `listing.description` (дублирует отметки осмотра).
   Версии: catalog-car.js v21, catalog-ref.css v14 (+стили `.olVidBtnV1/.olVidV1` в extra), i18n multilang-v566 (37 новых ключей ro/en).
+- **Источник Канады скрыт от клиентов (06.11.2026, Федор: «коллеги попросили скрыть, что это машины с OpenLane»)**: слово OpenLane и ссылки на openlane.ca
+  убраны из всего видимого в разделе: заголовок/описание/OG и вступление `/canada` (build-canada-pages.js → «дилерские аукционы»), подпись карточки меню
+  (`data-mega-count="ca"` → «Дилерские аукционы» / RO «Licitații pentru dealeri»; счётчик site-nav.js без «OpenLane ·»), строка поиска в шапке (`caDeal`),
+  домен на карточке (`src` в catalog.js при CA пустой), чип площадки и переключатель объявлений (`siteName` при CA → «Дилерский аукцион», без домена в title),
+  кнопка «Открыть на OpenLane» и ссылки на объявление-источник (`encarBtnHtml`/`srcLink` при CA не рисуются), «Оценка рынка (OpenLane)» → «Оценка рынка»,
+  «OPENLANE Halifax» → «Halifax», форматы торгов без брендов DealerBlock/TradeRev/Simulcast. Проверено Playwright (список + 2 машины, RU/RO/EN, 1440/390): в тексте,
+  title/meta, ссылках и alt «openlane» не встречается. Осталось НЕвидимым: имена полей в ответе `/api/catalog` (devtools), адреса фото/видео pub-us.kar-media.com,
+  источник лида «Авто из Канады (OpenLane)» в CRM (для менеджеров). Упоминания Openlane в статьях и на главной («покупаем на Copart, IAAI, Manheim и Openlane»)
+  НЕ трогали — это общий маркетинговый текст, не про раздел Канады. Версии: catalog.js v22, catalog-car.js v22, site-nav.js v6, i18n multilang-v567.
