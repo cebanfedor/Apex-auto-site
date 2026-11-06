@@ -2181,3 +2181,34 @@ body.lbOpenV1 { overflow:hidden; }
   .navMegaGroupV1 .navMegaCardV1 small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .navMegaGroupV1 .navMegaCardsV1 { gap: 10px; }
 }
+
+/* ---- Битые / целые: метка в заголовке раздела + подсказка (06.11.2026) ---- */
+.kindRowV1 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 10px; font-size: 13.5px; line-height: 1.35; }
+.kindBadgeV1 { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px; border-radius: 999px; font-size: 12.5px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
+.kindBadgeV1::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.kindBadgeV1.isDmgV1 { background: #fff1e6; color: #b45309; }
+.kindBadgeV1.isOkV1 { background: #e7f6ec; color: #15803d; }
+.kindNoteV1 { color: var(--muted); font-weight: 600; }
+.kindHintV1 { color: var(--muted); }
+.kindHintV1 a { color: var(--red); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.kindHintV1 a:hover { text-decoration: underline; }
+.kindNoteV1 + .kindHintV1::before { content: "·"; margin-right: 10px; color: #c3c8d0; }
+@media (max-width: 640px) {
+  .kindRowV1 { font-size: 12.5px; margin-bottom: 8px; }
+  .kindNoteV1 { display: none; }
+  .kindNoteV1 + .kindHintV1::before { content: none; }
+  .kindHintV1 { flex-basis: 100%; }
+}
+
+/* Слайд «Целые авто» на главной: фото McLaren/BMW/Mercedes (1400×933) — машины справа. */
+.heroBgOkV1 { object-position: 70% 55%; }
+.heroOkTagV1 { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px; background: #e7f6ec; color: #15803d; font-style: normal; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+.heroSlideOkV1 .heroEyebrowV207::before { display: none; }
+/* Не <p>: site-content.js пишет админ-текст в первый «.heroMainV45 p» — абзац этого слайда его бы перехватил. */
+.heroSlideTxtV1 { margin-top: 16px; font-size: 15.5px; color: rgba(255,255,255,0.82); max-width: 44ch; }
+@media (max-width: 480px) { .heroSlideTxtV1 { display: none; } }
+@media (max-width: 480px) {
+  .heroSlideOkV1 .heroCtasV207 { flex-wrap: nowrap; }
+  .heroV45.heroWideV302 .heroSlideOkV1 .heroCtasV207 a { flex: 1 1 0; min-width: 0; height: 40px; padding: 0 10px; font-size: 14px; align-self: auto; white-space: nowrap; }
+  .heroV45.heroWideV302 .heroSlideOkV1 .heroBtnGhostV207 { display: inline-flex; }
+}
