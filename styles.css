@@ -2263,3 +2263,15 @@ a.tkItemV1:hover b { text-decoration: underline; }
 }
 .pulseAucV1 { padding: 34px 0 6px; }
 @media (max-width: 720px) { .pulseAucV1 { padding: 24px 0 4px; } }
+
+/* Единый отступ от меню до первой строки страницы (06.11.2026, Федор: «подтяни и остальные страницы»): ~23px на компьютере, ~15px на телефоне —
+   как у крошек на /auctions, в каталогах и статьях. «Контакты», «В пути» — текст блока выровнен по верху (не по центру сетки), «О нас» — верх баннера. */
+.hotPageV101 { padding-top: 21px; }
+.hotHeroTextV101 { align-self: start; }
+.contactsHeroV110 { padding-top: 14px; }
+.aboutHeroV344 { margin-top: 21px; }
+@media (max-width: 640px) {
+  .hotPageV101 { padding-top: 13px; }
+  .contactsHeroV110 { padding-top: 13px; }
+  .aboutHeroV344 { margin-top: 13px; }
+}
