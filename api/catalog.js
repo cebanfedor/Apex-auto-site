@@ -238,8 +238,46 @@ async function catalogFacts(src){
       if(Number.isFinite(n) && n > 0) out[k] = n;
     }catch(_){}
   }));
+  // «Живое» (06.11.2026, Федор: «самые дорогие, эксклюзивные, новости — будь уникальным»): самая дорогая машина, только что
+  // добавленное объявление, суперкары, курс валюты. Всё — из того же каталога/курса, что на странице, ничего не выдумываем.
+  await Promise.all([
+    carFact(src, dom, "expensive").then(v => { if(v) out.topCar = v; }).catch(() => {}),
+    carFact(src, dom, "newest").then(v => { if(v) out.newest = v; }).catch(() => {}),
+    brandCount(src, dom, EXOTIC_BRANDS).then(n => { if(n > 0) out.exotic = n; }).catch(() => {}),
+    brandCount(src, dom, ["Porsche"]).then(n => { if(n > 0) out.porsche = n; }).catch(() => {}),
+    getRates().then(r => { if(r){ if(src === "kr" && r.marketKrw) out.rate = {cur:"KRW", v:r.marketKrw}; if(src === "ca" && r.marketCad) out.rate = {cur:"CAD", v:r.marketCad}; } }).catch(() => {})
+  ]);
   if(Object.keys(out).length > 3){ catFactsCache.set(src, {t:Date.now(), v:out}); return out; }
   return c ? c.v : out;
+}
+const EXOTIC_BRANDS = ["Ferrari", "Lamborghini", "Rolls-Royce", "Bentley", "McLaren", "Aston Martin", "Maybach", "Bugatti"];
+const ogc = require("../server/og-catcar");
+const {catSlug} = require("../server/slug");
+async function brandCount(src, dom, names){
+  const all = await cat.listBrands("en", "automobile", src);
+  const want = new Set(names.map(n => n.toLowerCase()));
+  const ids = (all || []).filter(b => b && want.has(String(b.name || "").toLowerCase())).map(b => ({id:b.id}));
+  if(!ids.length) return 0;
+  const parts = ["lang=en"]; if(dom) cat.qsArray(parts, "domains", [dom]);
+  cat.qsBrands(parts, ids); cat.qsPush(parts, "sort", "newest");
+  const r = await cat.catalogFetch("/search/count", parts.join("&"), {src, timeoutMs:8000, retries:0});
+  return Number(r && r.count) || 0;
+}
+async function carFact(src, dom, sort){
+  const parts = ["lang=en"]; if(dom) cat.qsArray(parts, "domains", [dom]);
+  cat.qsPush(parts, "sort", sort); cat.qsPush(parts, "perPage", 8); cat.qsPush(parts, "page", 1);
+  const r = await cat.catalogFetch("/search", parts.join("&"), {src, timeoutMs:8000, retries:0});
+  const rates = await getRates().catch(() => null);
+  for(const car of (Array.isArray(r && r.data) ? r.data : [])){
+    const title = [car.year, car.brand && car.brand.name, car.model && car.model.name].filter(Boolean).join(" ");
+    const ls = ogc.defaultListing(car), p = ogc.priceOf(ls, src);
+    if(!title || !p) continue;
+    const c = String(p.cur || "").toLowerCase();
+    const usd = c === "usd" ? p.amount : c === "krw" && rates && rates.usdKrw ? p.amount / rates.usdKrw : c === "cad" && rates && rates.usdCad ? p.amount / rates.usdCad : 0;
+    if(!(usd > 300) || usd > 1500000) continue;   // заглушки цен («999 999 999») пропускаем
+    return {title, usd:Math.round(usd), href:(src === "ca" ? "/canada/" : "/korea/") + catSlug(car), at:(ls && ls.created_at) || null};
+  }
+  return null;
 }
 
 module.exports = async function handler(req, res){
