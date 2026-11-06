@@ -2072,3 +2072,32 @@ body.lbOpenV1 { overflow:hidden; }
 .hdrResRowV1 i { font-style: normal; color: var(--red); font-weight: 700; }
 .hdrResRowV1.isEmptyV1 { opacity: .55; }
 .hdrResRowV1.isEmptyV1 em { color: var(--muted); font-weight: 600; }
+
+/* Мобильная проверка 06.11.2026 */
+@media (max-width: 820px) {
+  /* Раскрытое меню длиннее экрана, а шапка липкая — нижние пункты было не достать. Меню прокручивается внутри себя. */
+  .navToggleV210:checked ~ .mainNavV82.apexNavV201 { max-height: calc(100vh - 76px); max-height: calc(100dvh - 76px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+}
+/* Стрелки слайдера на главной заходили на карточку поиска (карточка с отступом 18px, стрелка 3+24px) */
+@media (max-width: 720px) {
+  .heroV45 .heroSlideSearchV1 .heroSearchWrapV1 { padding-left: 26px; padding-right: 26px; }
+  .heroV45 .heroArrowV1 { width: 22px; height: 22px; }
+  .heroV45 .heroArrowV1 svg { width: 13px; height: 13px; }
+  .heroV45 .heroArrowPrevV1 { left: 2px; }
+  .heroV45 .heroArrowNextV1 { right: 2px; }
+  .heroSearchHintV1 b { white-space: nowrap; }
+}
+/* Совсем узкий экран: стрелкам места нет — листаются точками и автопрокруткой */
+@media (max-width: 400px) {
+  .heroV45 .heroSlideSearchV1 .heroSearchWrapV1 { padding-left: 18px; padding-right: 18px; }
+  .heroV45 .heroArrowV1 { display: none; }
+  .heroSearchHintPreV1 { display: none; }
+}
+/* Узкие телефоны (320–380px): колонки сетки не шире экрана */
+@media (max-width: 640px) {
+  .layout, .hotNoteV101 { grid-template-columns: minmax(0, 1fr); }
+  .layout > *, .hotNoteV101 > * { min-width: 0; }
+  .hotNoteV101 a { white-space: normal !important; max-width: 100%; text-align: center; justify-content: center; }
+}
+@media (max-width: 480px) { .heroV45.heroWideV302, .heroSlidesV1 { min-height: 376px; } }
+@media (max-width: 340px) { .heroV45.heroWideV302, .heroSlidesV1 { min-height: 398px; } }
