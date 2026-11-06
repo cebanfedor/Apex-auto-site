@@ -128,8 +128,8 @@
     if(!listing) return null;
     if(CA){
       var o = olAuction(listing), ccur = (listing.price && listing.price.currency && listing.price.currency.name) || "cad";
-      if(Number(listing.current_bid) > 0) return {amount:Number(listing.current_bid), cur:ccur, label:T("Текущая ставка")};
       var st = Number(o.sd.starting_bid || o.oa.start_price || 0);
+      if(Number(listing.current_bid) > 0 && Number(listing.current_bid) !== st) return {amount:Number(listing.current_bid), cur:ccur, label:T("Текущая ставка")};
       if(st >= 500) return {amount:st, cur:ccur, label:T("Стартовая ставка")};
       if(listing.price && listing.price.price > 0) return {amount:listing.price.price, cur:ccur, label:T("Цена")};
       if(Number(o.mv.average_price) > 0) return {amount:Math.round(o.mv.average_price), cur:"cad", label:T("Средняя цена продаж")};
@@ -643,7 +643,7 @@
       // У OpenLane нет вердикта по пунктам — оценку «доля пунктов без замечаний» не считаем; ДТП — по данным продавца.
       score = null;
       var hasAcc = olAuction(state.listing).sd.has_accident;
-      if(!c.accident_status_key){ accident = hasAcc === true; accidentText = hasAcc === true ? T("Было ДТП") : hasAcc === false ? T("Нет (по данным продавца)") : T("Нет данных"); }
+      if(!c.accident_status_key){ accident = hasAcc === true; accidentText = hasAcc === true ? T("Было ДТП") : hasAcc === false ? T("Не заявлено") : T("Нет данных"); }
     }
     var countText = issues.length ? (issues.length + " " + plural(issues.length, T("замечание"), T("замечания"), T("замечаний")) + (total ? " " + T("из") + " " + total : "")) : T("Без замечаний");
     return {r:r, items:items, c:c, issues:issues, bodyIssues:bodyIssues, mechIssues:mechIssues, accident:accident, traces:traces, total:total, score:score,
@@ -979,7 +979,8 @@
     steering_universal_joint:"Карданчик рулевого вала", tie_rod_end_and_ball_joint:"Рулевые наконечники и шаровые опоры", power_steering_high_pressure_hose:"Шланг высокого давления ГУР"};
   // Названия по source_code: API кладёт разные проверки под один part_key (масло/антифриз у прокладки ГБЦ и т.п.)
   var SRC_RU = {motor_operation_status:"Работа двигателя на холостых", motor_oil_leak_locker_arm_cover:"Утечка масла: клапанная крышка", motor_oil_leak_cylinder_header_gasket:"Утечка масла: прокладка ГБЦ", motor_oil_leak_oil_fan:"Утечка масла: блок цилиндров и поддон", motor_oil_flow_rate:"Уровень и циркуляция масла", motor_water_leak_cylinder_header_gasket:"Утечка антифриза: прокладка ГБЦ", motor_water_leak_pump:"Утечка антифриза: водяной насос", motor_water_leak_radiator:"Утечка антифриза: радиатор", trans_auto_oil_leakage:"Утечка масла АКПП", trans_auto_status:"Работа АКПП", brake_master_cylinder_oil_leakage:"Утечка: главный тормозной цилиндр", brake_oil_leakage:"Утечка: тормозные трубки", brake_system_status:"Состояние тормозной системы", self_check_motor:"Самодиагностика двигателя", self_check_transmission:"Самодиагностика КПП", other_fuel_leaks:"Утечка топлива", electric_generator_output:"Генератор", electric_starter_motor:"Стартер"};
-  function partName(r, it){ if(it.olTire && it.part_label) return it.part_label; if(it.source_code && SRC_RU[it.source_code]) return T(SRC_RU[it.source_code]); if(uiLang() === "ru" && PART_RU[it.part_key]) return PART_RU[it.part_key]; return termOr(r, "part", it.part_key, it.part_label || it.source_label); }
+  function partName(r, it){ if(it.olTire && it.part_label) return it.part_label; if(CA){ var nm0 = partNameRaw(r, it); return nm0 ? nm0.charAt(0).toUpperCase() + nm0.slice(1) : nm0; } return partNameRaw(r, it); }
+  function partNameRaw(r, it){ if(it.source_code && SRC_RU[it.source_code]) return T(SRC_RU[it.source_code]); if(uiLang() === "ru" && PART_RU[it.part_key]) return PART_RU[it.part_key]; return termOr(r, "part", it.part_key, it.part_label || it.source_label); }
   function blockName(r, k){ return BLOCK_NAME[k] ? T(BLOCK_NAME[k]) : termOr(r, "section", k, humanizeKey(k)); }
   var REP_ROWS = 24;
   function isTraceTag(txt){ return /дтп|замен|repl|accident|weld|свар/i.test(txt); }

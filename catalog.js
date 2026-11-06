@@ -868,8 +868,9 @@
     if(!listing) return null;
     var sd = listing.source_data || {}, oa = sd.openlane_auction || {}, mv = oa.market_value || {};
     var cur = (listing.price && listing.price.currency && listing.price.currency.name) || "cad";
-    if(Number(listing.current_bid) > 0) return {amt:Number(listing.current_bid), cur:cur, label:T("Текущая ставка")};
     var start = Number(sd.starting_bid || oa.start_price || 0);
+    // До первых ставок фид кладёт стартовую в current_bid — это не «текущая ставка»
+    if(Number(listing.current_bid) > 0 && Number(listing.current_bid) !== start) return {amt:Number(listing.current_bid), cur:cur, label:T("Текущая ставка")};
     if(start >= 500) return {amt:start, cur:cur, label:T("Стартовая ставка")};
     if(listing.price && listing.price.price > 0) return {amt:listing.price.price, cur:cur, label:T("Цена")};
     if(Number(mv.average_price) > 0) return {amt:Math.round(mv.average_price), cur:"cad", label:T("Средняя цена продаж")};
@@ -946,8 +947,8 @@
         + '<div class="vcard__foot mt-auto flex items-end justify-between gap-3 border-t border-line pt-3">'
           + '<div class="vcard__pricebox flex min-w-0 items-end gap-5"><div class="min-w-0">'
             + '<p class="truncate text-[11.5px] text-ink-4">' + esc(priceLabel) + '</p>'
-            + '<div class="vcard__price-row flex items-center gap-2"><p class="vcard__price num whitespace-nowrap font-display text-[18px] font-semibold leading-tight tracking-tight text-ink" data-no-i18n="true"' + (price ? ' data-price-amt="' + price.amt + '" data-price-cur="' + esc(price.cur || "") + '"' : "") + '>' + (price ? esc(priceText(price.amt, price.cur)) : esc(T("Цена по запросу"))) + '</p></div>'
-          + (aucLine ? '<p class="vcard__auc truncate text-[11.5px] text-ink-4" data-no-i18n="true">' + esc(aucLine) + '</p>' : "")
+            + '<div class="vcard__price-row flex items-center gap-2"><p class="vcard__price num whitespace-nowrap font-display text-[18px] font-semibold leading-tight tracking-tight text-ink" data-no-i18n="true"' + (price ? ' data-price-amt="' + price.amt + '" data-price-cur="' + esc(price.cur || "") + '"' : "") + '>' + (price ? esc(priceText(price.amt, price.cur)) : '<span class="vcard__noprice">' + esc(T("Цена по запросу")) + '</span>') + '</p></div>'
+          + (aucLine ? '<p class="vcard__auc text-[11.5px] leading-snug text-ink-4" data-no-i18n="true">' + esc(aucLine) + '</p>' : "")
           + '</div></div>'
         + '</div>'
       + '</div>'

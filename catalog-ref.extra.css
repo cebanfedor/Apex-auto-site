@@ -182,3 +182,11 @@
   .apx-korea .hidden.sm\:block { display: block !important; }
   .apx-korea .hidden.sm\:inline { display: inline !important; }
 }
+
+/* «Цена по запросу» в карточке — мельче цены, чтобы влезала в узкую колонку (320px) */
+.apx-korea .vcard__noprice { font-size: 15px; white-space: normal; letter-spacing: -0.01em; }
+
+/* Телефон: значения в «Объявление / Описание» переносятся, а не обрезаются многоточием («16 000 CAD ≈ 11 57…») */
+@media (max-width: 639px) {
+  .apx-korea .lot-info__value { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+}
