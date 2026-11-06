@@ -23,40 +23,82 @@
   // стабильный «случайный» множитель для каждой точки — чтобы волна мерцала неровно
   function hash(i, j){ var h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
 
-  // «Тихие зоны» (06.11.2026, Федор: «текст не читается, точки мешают»): под заголовками и текстом шапок
-  // (h1 и элементы с атрибутом data-bg-quiet) точки плавно гаснут — без подложек и рамок, фон вокруг остаётся живым.
-  // Под текстом точки не пропадают, а становятся мельче и тусклее (Федор: «по бокам есть, а по центру пусто — суть теряется»).
-  var QUIET_SEL = "[data-bg-quiet], h1", PAD = 10, FEATHER = 70;
+  // «Тихие зоны» (06.11.2026, Федор: «текст не читается, точки мешают»): под текстом точки становятся мельче и тусклее,
+  // плавно, без подложек и рамок; вокруг фон живой. Под текстом не пропадают совсем (Федор: «по центру пусто — суть теряется»).
+  // Какой текст: ЛЮБОЙ, что стоит прямо на фоне страницы (заголовки, ссылки, подписи, крошки), — находим сами: текстовые узлы,
+  // у которых ни один предок не закрашен плотным фоном (текст в белых карточках не трогаем — там точек и так не видно).
+  // Плюс явные: h1 и элементы с атрибутом data-bg-quiet.
+  var QUIET_SEL = "[data-bg-quiet], h1", PAD_EL = 10, PAD_TXT = 7, FEATHER = 48;
   var BASE_FLOOR = 0.45;  // яркость обычной точки под текстом (от обычной)
   var ACT_FLOOR = 0.32;   // яркость волны/подсветки курсора под текстом
   var SIZE_FLOOR = 0.2;   // насколько точка волны «раздувается» под текстом (от обычного)
-  var zones = [], zonesKey = "";
-  function readZones(){
-    var els = document.querySelectorAll(QUIET_SEL), out = [], key = "";
-    for(var i = 0; i < els.length; i++){
-      var r = els[i].getBoundingClientRect();
+  var SKIP_TAGS = { SCRIPT:1, STYLE:1, NOSCRIPT:1, TEMPLATE:1, SVG:1, svg:1, CANVAS:1, IFRAME:1, TEXTAREA:1, SELECT:1, OPTION:1 };
+  var targets = [], targetsDirty = true, lastScan = 0, range = document.createRange();
+  function alphaOf(c){ var m = /rgba?\(([^)]+)\)/.exec(c || ""); if(!m) return c && c !== "transparent" ? 1 : 0; var p = m[1].split(/[ ,\/]+/).filter(Boolean); return p.length > 3 ? parseFloat(p[3]) : 1; }
+  function scanTargets(){
+    var memo = new Map();
+    function onBg(el){
+      if(!el || el === document.body || el === document.documentElement) return true;
+      if(memo.has(el)) return memo.get(el);
+      var cs = getComputedStyle(el), r;
+      if(cs.display === "none" || cs.visibility === "hidden") r = false;
+      else if(cs.backgroundImage && cs.backgroundImage !== "none") r = false;
+      else if(alphaOf(cs.backgroundColor) >= 0.55) r = false;
+      else r = onBg(el.parentElement);
+      memo.set(el, r); return r;
+    }
+    var out = [], seen = new Set();
+    var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: function(n){
+      if(!n.nodeValue || !/\S/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+      for(var e = n.parentElement; e && e !== document.body; e = e.parentElement) if(SKIP_TAGS[e.tagName]) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }});
+    for(var n = w.nextNode(); n; n = w.nextNode()) if(onBg(n.parentElement)) out.push({ t: n });
+    var els = document.querySelectorAll(QUIET_SEL);
+    for(var i = 0; i < els.length; i++) if(!seen.has(els[i])){ seen.add(els[i]); out.push({ e: els[i] }); }
+    targets = out; targetsDirty = false; lastScan = performance.now();
+  }
+  // маска яркости по точкам сетки: 1 — обычная, 0 — под текстом (дальше подтягивается к *_FLOOR)
+  var mask = null, zonesKey = "", lastSY = -1, lastSX = -1, lastRectAt = 0;
+  function readZones(force){
+    var now = performance.now();
+    if(targetsDirty && (!lastScan || now - lastScan > 1500)) scanTargets();
+    var sy = window.scrollY, sx = window.scrollX;
+    if(!force && sy === lastSY && sx === lastSX && now - lastRectAt < 700) return false;
+    lastSY = sy; lastSX = sx; lastRectAt = now;
+    var zs = [], key = "";
+    for(var i = 0; i < targets.length; i++){
+      var tg = targets[i], r, pad;
+      if(tg.t){ if(!tg.t.isConnected) continue; range.selectNodeContents(tg.t); r = range.getBoundingClientRect(); pad = PAD_TXT; }
+      else { if(!tg.e.isConnected) continue; r = tg.e.getBoundingClientRect(); pad = PAD_EL; }
       if(!r.width || !r.height || r.bottom < -FEATHER || r.top > H + FEATHER || r.right < -FEATHER || r.left > W + FEATHER) continue;
-      var z = [r.left - PAD, r.top - PAD, r.right + PAD, r.bottom + PAD];
-      out.push(z); key += (z[0] | 0) + "," + (z[1] | 0) + "," + (z[2] | 0) + "," + (z[3] | 0) + ";";
+      var z = [r.left - pad, r.top - pad, r.right + pad, r.bottom + pad];
+      zs.push(z); key += (z[0] | 0) + "," + (z[1] | 0) + "," + (z[2] | 0) + "," + (z[3] | 0) + ";";
     }
-    var changed = key !== zonesKey; zones = out; zonesKey = key; return changed;
-  }
-  // 0 — точка внутри тихой зоны, 1 — далеко от неё, между — плавный переход
-  function quiet(x, y){
-    var q = 1;
-    for(var k = 0; k < zones.length; k++){
-      var z = zones[k];
-      var dx = x < z[0] ? z[0] - x : (x > z[2] ? x - z[2] : 0);
-      var dy = y < z[1] ? z[1] - y : (y > z[3] ? y - z[3] : 0);
-      if(dx > FEATHER || dy > FEATHER) continue;
-      var d = Math.sqrt(dx * dx + dy * dy);
-      if(d >= FEATHER) continue;
-      var f = d / FEATHER; f = f * f * (3 - 2 * f);
-      if(f < q) q = f;
-      if(q === 0) return 0;
+    if(key === zonesKey && mask) return false;
+    zonesKey = key;
+    var n = cols * rows;
+    if(!mask || mask.length !== n) mask = new Float32Array(n);
+    mask.fill(1);
+    for(var k = 0; k < zs.length; k++){
+      var z2 = zs[k];
+      var i0 = Math.max(0, Math.floor((z2[0] - FEATHER - ox) / STEP)), i1 = Math.min(cols - 1, Math.ceil((z2[2] + FEATHER - ox) / STEP));
+      var j0 = Math.max(0, Math.floor((z2[1] - FEATHER - oy) / STEP)), j1 = Math.min(rows - 1, Math.ceil((z2[3] + FEATHER - oy) / STEP));
+      for(var a = i0; a <= i1; a++){
+        var x = ox + a * STEP, dx = x < z2[0] ? z2[0] - x : (x > z2[2] ? x - z2[2] : 0);
+        for(var b = j0; b <= j1; b++){
+          var y = oy + b * STEP, dy = y < z2[1] ? z2[1] - y : (y > z2[3] ? y - z2[3] : 0);
+          var d = Math.sqrt(dx * dx + dy * dy);
+          if(d >= FEATHER) continue;
+          var f = d / FEATHER; f = f * f * (3 - 2 * f);
+          var idx = a * rows + b;
+          if(f < mask[idx]) mask[idx] = f;
+        }
+      }
     }
-    return q;
+    return true;
   }
+  function quietAt(i, j){ return mask ? mask[i * rows + j] : 1; }
   function drawBase(){
     bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     bctx.clearRect(0, 0, W, H);
@@ -64,7 +106,7 @@
     bctx.beginPath();
     var soft = [];
     for(var i = 0; i < cols; i++) for(var j = 0; j < rows; j++){
-      var x = ox + i * STEP, y = oy + j * STEP, q = zones.length ? quiet(x, y) : 1;
+      var x = ox + i * STEP, y = oy + j * STEP, q = quietAt(i, j);
       q = BASE_FLOOR + (1 - BASE_FLOOR) * q;
       if(q >= 0.98){ bctx.moveTo(x + 1, y); bctx.arc(x, y, 1, 0, 6.2832); }
       else soft.push(x, y, q);
@@ -89,7 +131,8 @@
     cv.height = base.height = Math.round(H * dpr);
     cols = Math.ceil(W / STEP) + 1; rows = Math.ceil(H / STEP) + 1;
     ox = (W - (cols - 1) * STEP) / 2; oy = STEP / 2;
-    readZones();
+    mask = null; zonesKey = "";
+    readZones(true);
     drawBase();
     paintStatic();
   }
@@ -178,7 +221,7 @@
     for(var t = 0; t < touched.length; t++){
       var key = touched[t], e = energy[key]; energy[key] = 0;
       var ci = (key / rows) | 0, cj = key - ci * rows;
-      var v = Math.min(1, e), dx0 = ox + ci * STEP, dy0 = oy + cj * STEP, qq = zones.length ? quiet(dx0, dy0) : 1;
+      var v = Math.min(1, e), dx0 = ox + ci * STEP, dy0 = oy + cj * STEP, qq = quietAt(ci, cj);
       dot(dx0, dy0, (0.15 + 0.7 * v) * (ACT_FLOOR + (1 - ACT_FLOOR) * qq), 1 + 1.7 * v * (SIZE_FLOOR + (1 - SIZE_FLOOR) * qq));
     }
   }
@@ -192,12 +235,16 @@
 
   function init(){
     document.body.insertBefore(cv, document.body.firstChild);
+    try{
+      new MutationObserver(function(){ targetsDirty = true; lastRectAt = 0; }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    }catch(e){}
+    window.addEventListener("load", function(){ targetsDirty = true; lastScan = 0; lastRectAt = 0; });
     resize();
     var rt = 0;
     window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(resize, 120); });
     document.addEventListener("visibilitychange", function(){ document.hidden ? stop() : start(); });
     if(reduce){
-      var st = 0, upd = function(){ st = 0; if(readZones()){ drawBase(); paintStatic(); } };
+      var st = 0, upd = function(){ st = 0; if(readZones(true)){ drawBase(); paintStatic(); } };
       window.addEventListener("scroll", function(){ if(!st) st = requestAnimationFrame(upd); }, { passive: true });
       setTimeout(upd, 800); setTimeout(upd, 2500);
     }
