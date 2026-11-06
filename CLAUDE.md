@@ -2421,3 +2421,7 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
   Сервер добавил в `action=facts`: `recentSales` (до 24 продаж за 12 ч, 2014+, с названием и фото, без канадских CAD), `teslaSoldYesterday` (make_id 187),
   `freshSoldYesterday` (год ≥ текущий−2), `buyNowActive` (`tabTotal("buy_now")`). Счётчики Кореи/Канады в фактах — из кэша меню (sessionStorage `apexMegaKr/Ca`), отдельно не запрашиваются.
   Стили — конец styles.css (`.tkV1`, `.pulseTileV1`). styles.css v508, i18n multilang-v572.
+  ⚠️ Вечером под нагрузкой точные подсчёты по архиву шли >10 с, и на живом запросе цифры пропадали. Поэтому счётчики считает ФОНОВАЯ задача: cron `/api/cron/facts`
+  (каждые 10 мин, по факту не чаще раза в 25 мин — лок `alert_meta.facts_lock`) → `action=factsrefresh` → `refreshFactsSnapshot`: запросы по одному, до 25 с каждый, бюджет 50 с,
+  недосчитанное — из прошлого снимка (<6 ч), результат в `alert_meta` (k=`facts_v1`). `action=facts` отдаёт снимок + ЖИВУЮ ленту продаж (`factsRecentSales`, один запрос),
+  кэш 5 мин в памяти, CDN 5 мин. Снимка нет/старше 3 ч — прежний расчёт двумя волнами. Ручной пересчёт: `?action=factsrefresh&force=1` (нужен админ или CRON_SECRET).
