@@ -33,6 +33,7 @@
     el.querySelector('.cookieBtnAcceptV1').addEventListener('click', function(){
       try{ localStorage.setItem(KEY,'1'); }catch(e){}
       if(window.apexLoadGA) window.apexLoadGA();
+      if(window.apexLoadGTM) window.apexLoadGTM();
       el.remove();
     });
     el.querySelector('.cookieBtnRejectV1').addEventListener('click', function(){
