@@ -2720,9 +2720,13 @@ async function computeAuctionFacts(){
   const tr = Array.isArray(top) && top[0];
   if(tr && Number(tr.final_bid) > 0){
     const [auction, lot] = String(tr.id || "").replace(/-s\d{8}$/, "").split("-");
-    // в колонке title бывает заглушка «Автомобиль» — берём название из payload, иначе год+марка+модель
+    // в колонке title бывает заглушка «Автомобиль» — берём название из payload, иначе год+марка+модель,
+    // а если в строке базы нет ничего — спрашиваем сам лот у аукциона (раз в 30 мин, один запрос)
     const real = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
-    const title = real(tr.title) || real(tr.pt) || [tr.year, tr.mk, tr.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
+    let title = real(tr.title) || real(tr.pt) || [tr.year, tr.mk, tr.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
+    if(!title && auction && lot){
+      try{ const d = await fetchDetail(new URLSearchParams({auction, lot})); title = real(d && d.title) || [d && d.year, d && d.make, d && d.model].filter(Boolean).join(" "); }catch(_){}
+    }
     topSale = {price:Number(tr.final_bid), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:tr.vin}) : ""};
   }
   const out = {ok:true, at:new Date().toISOString(), soldYesterday, soldYesterdayCa, topSale, todayLots, newLots24h, newHybrids24h, newEv24h};
