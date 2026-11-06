@@ -631,7 +631,7 @@
     var owners = s.owner_change_count != null ? s.owner_change_count : events.filter(function(e){ return e.type_key === "owner_change"; }).length;
     var total = (s.total_loss_count > 0) || (s.flood_total_loss_count > 0) || (s.flood_partial_loss_count > 0) || (s.theft_count > 0);
     var readings = events.filter(function(e){ return e.mileage_km != null && isFinite(e.mileage_km) && e.occurred_at; }).map(function(e){ return {date:e.occurred_at, km:Math.round(e.mileage_km), e:e}; }).sort(function(a, b){ return new Date(a.date) - new Date(b.date); });
-    var rollback = readings.some(function(rd, i){ return i > 0 && rd.km < readings[i - 1].km; });
+    var rollback = readings.some(function(rd, i){ return i > 0 && rd.km < readings[i - 1].km; }) || checks.some(function(c){ return c.type_key === "odometer_rollback" && c.result_key === "present"; });
     return {r:r, s:s, events:events, checks:checks, claims:claims, claimsTotal:claimsTotal, claimsCur:claimsCur, claimCount:claimCount, owners:owners, total:total, readings:readings, rollback:rollback,
       tone: total ? "is-bad" : (claimCount > 0 || rollback) ? "is-warn" : "is-ok"};
   }
@@ -896,7 +896,7 @@
   function underZone(it){
     var k = String(it.part_key || ""), b = it.block_key;
     if(b === "electrical" || /clutch/.test(k)) return null;
-    if(/transmission|cv_joint|differential|propeller|drive_shaft|axle/.test(k)) return "transmission";
+    if(/transmission|cv_joint|differential|propeller|drive_shaft|axle/.test(k) || /^trans_/.test(String(it.source_code || ""))) return "transmission";
     if(/steer|tie_rod|ball_joint|front_suspension/.test(k)) return "front_suspension";
     if(/brake/.test(k)) return "brake_lines";
     if(/exhaust|muffler/.test(k)) return "exhaust";
@@ -909,7 +909,9 @@
   var PART_RU = {engine_idle_operation:"Работа двигателя на холостых", cylinder_block_oil_pan:"Блок цилиндров, масляный поддон", automatic_transmission_oil_leak:"Утечка масла АКПП",
     transmission:"Коробка передач", clutch_assembly:"Сцепление", cv_joint:"Шрус", power_steering_fluid_leak:"Утечка жидкости ГУР", power_steering_pump:"Насос ГУР",
     steering_universal_joint:"Карданчик рулевого вала", tie_rod_end_and_ball_joint:"Рулевые наконечники и шаровые опоры", power_steering_high_pressure_hose:"Шланг высокого давления ГУР"};
-  function partName(r, it){ if(uiLang() === "ru" && PART_RU[it.part_key]) return PART_RU[it.part_key]; return termOr(r, "part", it.part_key, it.part_label || it.source_label); }
+  // Названия по source_code: API кладёт разные проверки под один part_key (масло/антифриз у прокладки ГБЦ и т.п.)
+  var SRC_RU = {motor_operation_status:"Работа двигателя на холостых", motor_oil_leak_locker_arm_cover:"Утечка масла: клапанная крышка", motor_oil_leak_cylinder_header_gasket:"Утечка масла: прокладка ГБЦ", motor_oil_leak_oil_fan:"Утечка масла: блок цилиндров и поддон", motor_oil_flow_rate:"Уровень и циркуляция масла", motor_water_leak_cylinder_header_gasket:"Утечка антифриза: прокладка ГБЦ", motor_water_leak_pump:"Утечка антифриза: водяной насос", motor_water_leak_radiator:"Утечка антифриза: радиатор", trans_auto_oil_leakage:"Утечка масла АКПП", trans_auto_status:"Работа АКПП", brake_master_cylinder_oil_leakage:"Утечка: главный тормозной цилиндр", brake_oil_leakage:"Утечка: тормозные трубки", brake_system_status:"Состояние тормозной системы", self_check_motor:"Самодиагностика двигателя", self_check_transmission:"Самодиагностика КПП", other_fuel_leaks:"Утечка топлива", electric_generator_output:"Генератор", electric_starter_motor:"Стартер"};
+  function partName(r, it){ if(it.source_code && SRC_RU[it.source_code]) return T(SRC_RU[it.source_code]); if(uiLang() === "ru" && PART_RU[it.part_key]) return PART_RU[it.part_key]; return termOr(r, "part", it.part_key, it.part_label || it.source_label); }
   function blockName(r, k){ return BLOCK_NAME[k] ? T(BLOCK_NAME[k]) : termOr(r, "section", k, humanizeKey(k)); }
   var REP_ROWS = 24;
   function isTraceTag(txt){ return /дтп|замен|repl|accident|weld|свар/i.test(txt); }
@@ -1067,7 +1069,10 @@
       var items = (d && d.items) || [];
       if(!items.length){ body.innerHTML = '<p class="lot-options__loading">' + esc(T("Не удалось загрузить комплектацию.")) + '</p>'; return; }
       var ul = uiLang() === "en" ? "en" : (uiLang() === "ro" ? "ro" : "ru");
-      function nameOf(o){ var tr = o.translations && o.translations.name; if(tr && typeof tr === "object") return tr[ul] || tr.ru || tr.en || o.name || (T("Опция") + " #" + o.id); return o.name || (T("Опция") + " #" + o.id); }
+      // Опции без перевода у провайдера приходят по-корейски — переводим известные; первая буква — заглавная
+      var KO_OPT = {"가죽시트":"Кожаные сиденья", "열선시트":"Подогрев сидений", "통풍시트":"Вентиляция сидений", "선루프":"Люк в крыше", "파노라마 선루프":"Панорамная крыша", "네비게이션":"Навигация", "후방카메라":"Камера заднего вида", "스마트키":"Смарт-ключ"};
+      function nameRaw(o){ var tr = o.translations && o.translations.name; if(tr && typeof tr === "object") return tr[ul] || tr.ru || tr.en || o.name || (T("Опция") + " #" + o.id); return o.name || (T("Опция") + " #" + o.id); }
+      function nameOf(o){ var n = String(nameRaw(o)).trim(); if(KO_OPT[n]) n = T(KO_OPT[n]); return n.charAt(0).toUpperCase() + n.slice(1); }
       function secOf(o){ var s = o.section; if(!s) return T("Другое"); var tr = s.translations && s.translations.name; if(tr && typeof tr === "object") return tr[ul] || tr.ru || tr.en || s.name || T("Другое"); return s.name || T("Другое"); }
       var bySec = {}; items.forEach(function(o){ var k = secOf(o); (bySec[k] = bySec[k] || []).push(o); });
       var secs = Object.keys(bySec).sort();
@@ -1106,10 +1111,12 @@
     var answers = '<li class="' + (h.claimCount > 0 ? "is-bad" : "is-ok") + ' is-main"><span class="lot-hist__mark">' + (h.claimCount > 0 ? I.warn : I.check) + '</span><span class="lot-hist__label">' + esc(T("Страховые случаи")) + '</span><b class="lot-hist__value num" data-no-i18n="true">' + (h.claimCount > 0 ? (h.claimCount + (h.claimsTotal ? " · " + esc(usdApprox(h.claimsTotal, h.claimsCur)) : "")) : esc(T("Не было"))) + '</b></li>'
       + '<li class="is-info is-main"><span class="lot-hist__mark">' + I.minus + '</span><span class="lot-hist__label">' + esc(T("Смены владельца")) + '</span><b class="lot-hist__value num" data-no-i18n="true">' + h.owners + '</b></li>'
       + (lastKm != null ? '<li class="' + (h.rollback ? "is-warn" : "is-ok") + ' is-main"><span class="lot-hist__mark">' + (h.rollback ? I.warn : I.check) + '</span><span class="lot-hist__label">' + esc(T("Пробег")) + '</span><b class="lot-hist__value num" data-no-i18n="true">' + esc(fmtNum(lastKm)) + ' ' + esc(T("км")) + '<small>' + esc(h.rollback ? T("есть признак скрутки") : T("скрутки не видно")) + '</small></b></li>' : "");
+    // Перерывы страховки и скрутка уже есть в проверках/строке «Пробег» — без дублей
+    var hasGapCheck = h.checks.some(function(c){ return c.type_key === "insurance_gap_history"; });
     var gaps = h.events.filter(function(e){ return e.type_key === "insurance_coverage_gap"; }).length;
-    answers += '<li class="' + (gaps ? "is-warn" : "is-ok") + '"><span class="lot-hist__mark">' + (gaps ? I.warn : I.check) + '</span><span class="lot-hist__label">' + esc(T("Перерывы в страховке")) + '</span><b class="lot-hist__value num">' + esc(gaps ? T("Было") : T("Не было")) + '</b></li>';
+    if(!hasGapCheck) answers += '<li class="' + (gaps ? "is-warn" : "is-ok") + '"><span class="lot-hist__mark">' + (gaps ? I.warn : I.check) + '</span><span class="lot-hist__label">' + esc(T("Перерывы в страховке")) + '</span><b class="lot-hist__value num">' + esc(gaps ? T("Было") : T("Не было")) + '</b></li>';
     var unknownChecks = [];
-    h.checks.slice().sort(function(a, b){ var rk = {present:0, not_present:1}; return (rk[a.result_key] != null ? rk[a.result_key] : 2) - (rk[b.result_key] != null ? rk[b.result_key] : 2); }).forEach(function(c){
+    h.checks.filter(function(c){ return c.type_key !== "odometer_rollback"; }).sort(function(a, b){ var rk = {present:0, not_present:1}; return (rk[a.result_key] != null ? rk[a.result_key] : 2) - (rk[b.result_key] != null ? rk[b.result_key] : 2); }).forEach(function(c){
       var label = termOr(r, "check_type", c.type_key, humanizeKey(c.type_key));
       if(c.result_key !== "present" && c.result_key !== "not_present"){ unknownChecks.push(label); return; }
       var bad = c.result_key === "present";
