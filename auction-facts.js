@@ -43,6 +43,9 @@
     function add(n, cap, extra){ if(typeof n === "number" && n > 0) f.push({n: n, cap: cap, extra: extra || null}); }
     add(d.soldYesterday, "машин продано вчера на Copart и IAAI");
     if(d.topSale && d.topSale.price > 0) f.push({money: d.topSale.price, cap: "самая дорогая продажа вчера", extra: d.topSale});
+    if(typeof d.resaleSoon === "number" && d.resaleSoon > 0) f.push({n: d.resaleSoon, cap: "перекупов на торгах за 3 дня — Clean Select их скрывает", href: "/auctions?smart=1"});
+    if(d.topBuyNow && d.topBuyNow.price > 0) f.push({money: d.topBuyNow.price, cap: "самый дорогой Buy Now на торгах", extra: d.topBuyNow});
+    add(d.exoticActive, "суперкаров на торгах: Ferrari, Lamborghini, Rolls-Royce…");
     add(d.newHybrids24h, "новых гибридов в США за сутки");
     add(d.todayLots, "лотов на торгах сегодня");
     if(d.freshSoldYesterday > 0 && d.freshYear) f.push({n: d.freshSoldYesterday, cap: "машин {Y}+ года продано вчера", year: d.freshYear});
@@ -58,20 +61,31 @@
   function pageFacts(d){
     var f = [], B = PAGE_SRC === "ca" ? "/canada" : "/korea", Y = d.freshYear;
     function add(n, cap, href, yr){ if(typeof n === "number" && n > 0) f.push({n: n, cap: cap, href: href, year: yr}); }
+    function top(){ if(d.topCar && d.topCar.usd > 0) f.push({money: d.topCar.usd, cap: "самая дорогая машина в каталоге", extra: {title: d.topCar.title, href: d.topCar.href}}); }
+    function fresh(){ if(d.newest && d.newest.at && Date.now() - Date.parse(d.newest.at) < 48 * 3600e3) f.push({big: ago(d.newest.at), cap: "новое объявление", extra: {title: d.newest.title, href: d.newest.href}}); }
+    function rate(){ if(d.rate && d.rate.v > 0) f.push({big: "1 $ = " + (d.rate.cur === "KRW" ? num(d.rate.v) + " ₩" : d.rate.v.toFixed(2) + " CAD"), cap: "курс доллара сегодня"}); }
     if(PAGE_SRC === "ca"){
+      top(); fresh();
       add(d.total, "целых авто на дилерских аукционах Канады", B);
       add(d.auctionSoon, "авто на ближайших торгах", B + "?sort=auction_nearest");
+      add(d.exotic, "суперкаров: Ferrari, Lamborghini, Bentley…", B + "?sort=expensive");
       add(d.inspections, "с отчётом об осмотре и фото", B + "?has_inspections=1");
+      rate();
       add(d.fresh, "машин {Y}+ года", B + "?year_from=" + Y, Y);
+      add(d.porsche, "Porsche в продаже");
       add(d.pickups, "пикапов в продаже", B + "?body_type_id=4");
       add(d.hybrids, "гибридов в продаже", B + "?fuel_id=3");
       add(d.ev, "электромобилей в продаже", B + "?fuel_id=2");
       add(d.lowkm, "с пробегом до 50 000 км", B + "?odometer_to=50000");
     }else{
+      top(); fresh();
       add(d.total, "авто в каталоге Кореи прямо сейчас", B);
+      add(d.exotic, "суперкаров: Ferrari, Lamborghini, Bentley…", B + "?sort=expensive");
       add(d.inspections, "с отчётом техосмотра", B + "?has_inspections=1");
+      rate();
       add(d.history, "с историей владельцев и страховых случаев", B + "?has_history_reports=1");
       add(d.fresh, "машин {Y}+ года", B + "?year_from=" + Y, Y);
+      add(d.porsche, "Porsche в продаже");
       add(d.hybrids, "гибридов в продаже", B + "?fuel_id=3");
       add(d.ev, "электромобилей в продаже", B + "?fuel_id=2");
       add(d.lowkm, "с пробегом до 30 000 км", B + "?odometer_to=30000");
@@ -79,7 +93,7 @@
     return f;
   }
   function capOf(it){ var c = T(it.cap); return it.year ? c.replace("{Y}", it.year) : c; }
-  function bigOf(it){ return it.money ? "$" + num(it.money) : num(it.n); }
+  function bigOf(it){ return it.big ? esc(it.big) : it.money ? "$" + num(it.money) : num(it.n); }
 
   // Смена фактов по одному: в каждом виджете свой набор «слотов», раз в N мс один слот получает следующий факт.
   function rotator(root, sel, pool, slots, html, every){
@@ -114,6 +128,7 @@
   function renderCard(){
     if(!card || !cardPool) return;
     card.classList.add("isFactsV1");
+    card.hidden = false;
     var ttl = PAGE_SRC === "ca" ? '<div class="catHeroCardTtlV1 afTtlV1"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Канада сейчас")) + "</div>"
       : PAGE_SRC === "kr" ? '<div class="catHeroCardTtlV1 afTtlV1"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Корея сейчас")) + "</div>"
       : '<a class="catHeroCardTtlV1 afTtlV1" href="/auctions"><i class="afLiveV1" aria-hidden="true"></i>' + esc(T("Аукционы США и Канады")) + ' <span aria-hidden="true">→</span></a>';

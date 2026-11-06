@@ -2825,7 +2825,10 @@ function chisinauMidnight(dayShift){
   return guess - chisinauOffMs(guess);
 }
 let factsCache = null, factsBusy = null;
-const FACT_KEYS = ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h", "teslaSoldYesterday", "freshSoldYesterday", "recentSales", "buyNowActive"];
+const FACT_KEYS = ["soldYesterday", "soldYesterdayCa", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h", "teslaSoldYesterday", "freshSoldYesterday", "recentSales", "buyNowActive",
+  "exoticActive", "resaleSoon", "topBuyNow"];
+// Суперкары (make_id справочника аукционов): Ferrari 46, Lamborghini 72, Rolls-Royce 118, Bentley 13, McLaren 86, Aston Martin 8
+const FACTS_EXOTIC = [46, 72, 118, 13, 86, 8];
 const factsScore = v => ["soldYesterday", "topSale", "todayLots", "newLots24h", "newHybrids24h", "newEv24h"].filter(k => v && v[k]).length;
 const factsTitle = t => { t = String(t || "").trim(); return t && !/^автомобиль$/i.test(t) ? t : ""; };
 function factsDb(){
@@ -2892,7 +2895,11 @@ async function computeAuctionFacts(opts = {}){
     newEv24h:() => fx ? cnt(`${fresh}&fuel_x=eq.2&${FACTS_NOT_CA}`) : null,
     teslaSoldYesterday:() => cnt(`${sold}&make_id=eq.187`),
     freshSoldYesterday:() => cnt(`${sold}&year=gte.${freshYear}`),
-    buyNowActive:() => tabTotal("buy_now").catch(() => null)
+    buyNowActive:() => tabTotal("buy_now").catch(() => null),
+    // 06.11.2026 (Федор: «про самые дорогие, эксклюзивные машины, про перекупов»)
+    exoticActive:() => cnt(`archived=eq.false&make_id=in.(${FACTS_EXOTIC.join(",")})&or=(status_id.neq.6,status_id.is.null)&sale_date=gte.${factsIso(Date.now() - 2 * 3600e3)}`),
+    resaleSoon:() => cnt(`archived=eq.false&resale=in.(1,2)&sale_date=gte.${factsIso(Date.now())}&sale_date=lt.${factsIso(Date.now() + 72 * 3600e3)}`),
+    topBn:() => left(per) < 1500 ? null : req(`select=id,title,vin,year,buy_now,pt:payload->>title,mk:payload->>make,md:payload->>model&archived=eq.false&buy_now=gt.0&buy_now=lt.3000000&or=(status_id.neq.6,status_id.is.null)&sale_date=gte.${factsIso(Date.now())}&${FACTS_NOT_CA}&order=buy_now.desc&limit=1`, left(per)).catch(() => null)
   };
   const r = {}, names = Object.keys(tasks);
   if(slow){ for(const k of names) r[k] = await tasks[k](); }
@@ -2912,7 +2919,14 @@ async function computeAuctionFacts(opts = {}){
     }
     topSale = {price:Number(tr.final_bid), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:tr.vin}) : ""};
   }
-  return {ok:true, at:new Date().toISOString(), soldYesterday:r.soldYesterday, soldYesterdayCa:r.soldYesterdayCa, topSale, todayLots:r.todayLots,
+  let topBuyNow = null;
+  const bn = Array.isArray(r.topBn) && r.topBn[0];
+  if(bn && Number(bn.buy_now) > 0){
+    const [auction, lot] = String(bn.id || "").replace(/-s\d{8}$/, "").split("-");
+    const title = factsTitle(bn.title) || factsTitle(bn.pt) || [bn.year, bn.mk, bn.md].filter(x => x && !/^автомобиль$/i.test(String(x))).join(" ");
+    if(title) topBuyNow = {price:Number(bn.buy_now), title, href:auction && lot ? "/auctions/" + lotSlug({auction, lot, title, vin:bn.vin}) : ""};
+  }
+  return {ok:true, at:new Date().toISOString(), exoticActive:r.exoticActive, resaleSoon:r.resaleSoon, topBuyNow, soldYesterday:r.soldYesterday, soldYesterdayCa:r.soldYesterdayCa, topSale, todayLots:r.todayLots,
     newLots24h:r.newLots24h, newHybrids24h:r.newHybrids24h, newEv24h:r.newEv24h, teslaSoldYesterday:r.teslaSoldYesterday, freshSoldYesterday:r.freshSoldYesterday,
     freshYear, buyNowActive:Number(r.buyNowActive) > 0 ? Number(r.buyNowActive) : null, recentSales:r.recentSales || null};
 }
