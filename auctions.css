@@ -1725,3 +1725,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 }
 /* Шапка каталога читаемее (06.11.2026): точки фона под ней гаснут (site-bg.js, data-bg-quiet), подпись крупнее и темнее */
 @media (min-width: 641px) { .auctionsSubV3 { font-size: 14.5px; color: #4b5563; } .auctionsHeadV2 .kindRowV1 { font-size: 14px; } .auctionsHeadV2 .kindNoteV1, .auctionsHeadV2 .kindHintV1 { color: #4b5563; } }
+/* Число лотов в заголовке ещё не пришло — мягкая заглушка вместо «0» (06.11.2026) */
+.h1CountV3:empty { display: inline-block; width: 3.6em; height: .72em; border-radius: 8px; align-self: center;
+  background: linear-gradient(90deg, #e6e9ee 0%, #f3f4f7 45%, #e6e9ee 90%); background-size: 200% 100%; animation: h1CntShimmer 1.4s ease-in-out infinite; }
+@keyframes h1CntShimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .h1CountV3:empty { animation: none; } }

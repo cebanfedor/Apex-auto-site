@@ -2591,10 +2591,37 @@ const undatedCountCache = new Map();
 // Раньше total = оценка планировщика по конкретному запросу: у сортировок разные предикаты
 // («year.not.is.null», хвост без даты…) → «Все» показывало 526k / 164k / 483k при смене сортировки.
 const tabTotalCache = new Map();
-async function tabTotal(tab, auction, vtype){
+// Последнее УДАЧНОЕ значение по ключу: при таймауте запроса к базе отдаём его, а не 0/половину (Федор 06.11.2026: «Текущие аукционы 0»).
+const tabTotalLast = new Map();
+// Снимок счётчиков, который раз в 10 мин без спешки считает cron (action=countrefresh, alert_meta k=count_v1).
+// Сайт берёт числа из него и не гоняет по десятку запросов к базе на каждый визит: вечером под нагрузкой они не успевали за 4 с.
+let countSnap = null, countSnapBusy = null;
+async function readCountSnapRow(){
+  try{
+    const rows = await Promise.race([syncSbFetch(`/alert_meta?k=eq.count_v1&select=v,updated_at`), new Promise(res => setTimeout(() => res(null), 3000))]);
+    const row = Array.isArray(rows) && rows[0];
+    return row && row.v && row.v.keys ? {keys:row.v.keys, payload:row.v.payload || null, at:Date.parse(row.updated_at) || 0} : null;
+  }catch(_){ return null; }
+}
+async function loadCountSnap(){
+  if(countSnap && Date.now() - countSnap.readAt < 5 * 60e3) return countSnap;
+  if(!countSnapBusy) countSnapBusy = readCountSnapRow().then(r => {
+    countSnap = r ? {...r, readAt:Date.now()} : (countSnap ? {...countSnap, readAt:Date.now() - 4 * 60e3} : {keys:{}, at:0, readAt:Date.now() - 4 * 60e3});
+    return countSnap;
+  }).finally(() => { countSnapBusy = null; });
+  return countSnapBusy;
+}
+const COUNT_SNAP_MAX_AGE = 3 * 3600e3;
+async function tabTotal(tab, auction, vtype, opts = {}){
   const ck = `${tab}|${auction || "all"}${vtype ? "|t" + vtype : ""}`;
-  const c = tabTotalCache.get(ck);
-  if(c && Date.now() - c.at < 10 * 60e3) return c.n;
+  if(!opts.fresh){
+    const c = tabTotalCache.get(ck);
+    if(c && Date.now() - c.at < 10 * 60e3) return c.n;
+    const snap = await loadCountSnap().catch(() => null);
+    const sn = snap && Date.now() - snap.at < COUNT_SNAP_MAX_AGE ? Number(snap.keys[ck]) || 0 : 0;
+    if(sn > 0){ tabTotalCache.set(ck, {n:sn, at:Date.now()}); return sn; }
+  }
+  let failed = false;
   const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   if(!url || !key) return 0;
@@ -2616,8 +2643,8 @@ async function tabTotal(tab, auction, vtype){
   // Только оценка планировщика (EXPLAIN): точный счёт по 600k строк на этой базе шёл 5с+ и держал ответ каталога
   // (00:50 23.09: «Все» отвечало 15с, из них ~10с — счётчики). После ANALYZE оценка совпадает с точной до долей процента.
   const cnt = async q => {
-    try{ return await one(q, "planned", 4000); }
-    catch(e){ tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return 0; }
+    try{ return await one(q, "planned", opts.ms || 4000); }
+    catch(e){ failed = true; tabTotal.lastError = `${ck}: ${String(e.message || e).slice(0, 100)}`; return 0; }
   };
   const live = "or=(status_id.neq.6,status_id.is.null)";
   const grace = encodeURIComponent(new Date(Date.now() - LIVE_GRACE_MS).toISOString());
@@ -2633,7 +2660,7 @@ async function tabTotal(tab, auction, vtype){
   }else if(tab === "archived"){
     // Архив: точный счёт по частичному индексу (archived=true, status 6 → ~50k строк, <1с); оценка планировщика тут
     // врёт на порядки (28 вместо 52k). Не успели — лучше пусто, чем «28».
-    n = await one(`archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=lte.${encodeURIComponent(new Date().toISOString())}`, "exact", 6000).catch(() => 0);
+    n = await one(`archived=eq.true&status_id=eq.6&final_bid=gt.0&sale_date=lte.${encodeURIComponent(new Date().toISOString())}`, "exact", opts.exactMs || 6000).catch(() => { failed = true; return 0; });
   }else if(tab === "dated"){
     n = await cnt(`sale_date=gte.${grace}&${live}`);
   }else{
@@ -2642,9 +2669,53 @@ async function tabTotal(tab, auction, vtype){
     const [datedN, undatedN] = await Promise.all([cnt(`sale_date=gte.${grace}&${live}`), cnt(`sale_date=is.null&${live}`)]);
     n = datedN + undatedN;
   }
-  // n=0 (таймауты) тоже кэшируем, но на 2 мин — иначе каждый запрос каталога заново гонял точные счёты по 5с.
+  if(failed){
+    // Хоть один запрос не успел — половинное число не показываем: последнее удачное (до 12 ч), иначе что есть.
+    if(opts.noFallback) return null;
+    const lg = tabTotalLast.get(ck);
+    if(lg && Date.now() - lg.at < 12 * 3600e3) n = lg.n;
+    tabTotalCache.set(ck, {n, at:Date.now() - 8 * 60e3});   // повторим через 2 мин
+    return n;
+  }
+  if(n > 0) tabTotalLast.set(ck, {n, at:Date.now()});
+  // n=0 тоже кэшируем, но на 2 мин — иначе каждый запрос каталога заново гонял счёты.
   tabTotalCache.set(ck, {n, at:n > 0 ? Date.now() : Date.now() - 8 * 60e3});
   return n;
+}
+// Фоновый пересчёт снимка счётчиков (cron /api/cron/count): по одному запросу, до 20 с каждый; не успевшее — из прошлого снимка (до 12 ч).
+const COUNT_COMBOS = [["all","all"],["all","copart"],["all","iaai"],["soon","all"],["buy_now","all"],["archived","all"],["dated","all"],
+  ["all","all","1"],["all","all","2"],["all","all","5"],["all","all","7"],
+  ["soon","copart"],["soon","iaai"],["buy_now","copart"],["buy_now","iaai"],["archived","copart"],["archived","iaai"]];
+async function refreshCountSnapshot(budget = 50000){
+  const prev = await readCountSnapRow();
+  const deadline = Date.now() + budget, keys = {}, failed = [], kept = [];
+  for(const [tab, auc, vt] of COUNT_COMBOS){
+    const ck = `${tab}|${auc}${vt ? "|t" + vt : ""}`;
+    const left = deadline - Date.now();
+    let n = null;
+    if(left > 2500){
+      const ms = Math.min(20000, left - 500);
+      n = await tabTotal(tab, auc, vt, {fresh:true, noFallback:true, ms, exactMs:ms}).catch(() => null);
+    }
+    if(n > 0) keys[ck] = n;
+    else{
+      failed.push(ck);
+      const pv = prev && Date.now() - prev.at < 12 * 3600e3 ? Number(prev.keys[ck]) || 0 : 0;
+      if(pv > 0){ keys[ck] = pv; kept.push(ck); }
+    }
+  }
+  if(!keys["all|all"]) return {ok:false, error:"no_total", failed};
+  const types = {};
+  for(const vt of ["1", "2", "5", "7"]) if(keys["all|all|t" + vt] > 0) types[vt] = keys["all|all|t" + vt];
+  const payload = {ok:true, total:keys["all|all"], copart:keys["all|copart"] || 0, iaai:keys["all|iaai"] || 0, dated:keys["dated|all"] || 0,
+    buyNow:keys["buy_now|all"] || 0, soon:keys["soon|all"] || 0, archived:keys["archived|all"] || 0, types, src:"snap", at:new Date().toISOString()};
+  payload._complete = payload.total > 0 && payload.soon > 0 && payload.buyNow > 0 && payload.archived > 0;
+  await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify({k:"count_v1", v:{keys, payload}, updated_at:new Date().toISOString()})});
+  countSnap = {keys, payload, at:Date.now(), readAt:Date.now()};
+  for(const k of Object.keys(keys)) tabTotalCache.set(k, {n:keys[k], at:Date.now()});
+  cache.delete("catalog-count"); cache.delete("catalog-count:stale");
+  return {ok:true, total:payload.total, failed, kept};
 }
 // Счёт для выборок с «широкими» фильтрами (топливо, год, цена, повреждения, статус продажи, даты…). Оценка планировщика по ним
 // врёт в разы (timed и «без резерва» показывали одно и то же «2491»), а count=exact в одном запросе с выборкой держал ответ.
@@ -5357,7 +5428,7 @@ module.exports = async function handler(request, response){
   // Крон/синк-экшены (Vercel Cron и GitHub Actions шлют Authorization: Bearer CRON_SECRET):
   // разрешаем валидному секрету ИЛИ админу. Если CRON_SECRET не задан в env — НЕ блокируем
   // (обратная совместимость: исключаем риск залочить синк при отсутствии переменной).
-  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync", "factsrefresh"]);
+  const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync", "factsrefresh", "countrefresh"]);
   if(CRON_ACTIONS.has(action)){
     const secret = process.env.CRON_SECRET;
     if(secret){
@@ -5640,6 +5711,11 @@ module.exports = async function handler(request, response){
     out.upcoming.feedHybridButNotHybrid = await cnt("&fuel_id=eq.3&fuel_x=not.in.(3,5)&fuel_x=not.is.null");
     out.upcoming.feedGasButHybrid = await cnt("&fuel_id=eq.4&fuel_x=in.(3,5)");
     sendJson(response, 200, out, {"cache-control":"no-store"});
+    return;
+  }
+  if(action === "countrefresh"){
+    if(query.get("force") !== "1" && !(await takeMetaLock("count_lock", 8 * 60e3).catch(() => false))){ sendJson(response, 200, {ok:true, skipped:true}, {"cache-control":"no-store"}); return; }
+    sendJson(response, 200, await refreshCountSnapshot().catch(e => ({ok:false, error:String(e.message || e).slice(0, 160)})), {"cache-control":"no-store"});
     return;
   }
   if(action === "factsrefresh"){
@@ -6259,7 +6335,17 @@ module.exports = async function handler(request, response){
     }
     if(action === "count"){
       const ck = "catalog-count"; const c = getCached(ck);
-      if(c){ sendJson(response, 200, c, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"}); return; }
+      if(c && !query.get("debug")){ sendJson(response, 200, c, {"cache-control":"public, s-maxage=600, stale-while-revalidate=3600"}); return; }
+      // Готовый снимок фоновой задачи (06.11.2026): не считаем на каждом визите
+      if(!query.get("debug")){
+        const snap = await loadCountSnap().catch(() => null);
+        if(snap && snap.payload && snap.payload.total > 0 && Date.now() - snap.at < COUNT_SNAP_MAX_AGE){
+          const p = {...snap.payload, snapAt:new Date(snap.at).toISOString()};
+          setCached(ck, p, 5 * 60e3);
+          sendJson(response, 200, p, {"cache-control":"public, s-maxage=300, stale-while-revalidate=1800"});
+          return;
+        }
+      }
       // Протухшее значение (до 30 мин) отдаём сразу, пересчёт — в фоне: холодный count занимал до 9с.
       const stale = cache.get(ck + ":stale");
       if(stale && Date.now() - stale.at < 30 * 60e3 && !cache.get(ck + ":busy")){
