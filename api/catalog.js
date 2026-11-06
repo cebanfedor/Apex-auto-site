@@ -292,6 +292,75 @@ async function carFact(src, dom, sort){
   return cands[0] || null;
 }
 
+
+// Витрина для главной (06.11.2026, блок «Авто из Кореи»): свежие объявления с техосмотром и историей, обычный
+// ценовой диапазон. Сервер отдаёт уже ГОТОВЫЕ карточки (цена в $ по нашему курсу, без вложенных листингов) и
+// кэширует на 15 мин (память + CDN) — главная не дёргает платный поиск на каждый заход. Цена — цена в Корее,
+// НЕ «под ключ» (доставки и растаможки в ней нет), так и подписывается на странице.
+const SHOWCASE_MIN_USD = 6000, SHOWCASE_MAX_USD = 45000;
+const showcaseCache = new Map();
+function showcaseItem(car, rates, src){
+  if(!(car && car.id && car.year && car.brand && car.brand.name && car.model && car.model.name)) return null;
+  const ls = ogc.defaultListing(car);
+  const imgs = ls && Array.isArray(ls.images) ? ls.images : [];
+  const im = imgs.map(i => i && (i.preview || i.original || i.downloaded)).find(Boolean);
+  if(!im) return null;
+  const p = ogc.priceOf(ls, src);
+  if(!p) return null;
+  const c = String(p.cur || "").toLowerCase();
+  const usd = c === "usd" ? p.amount : c === "krw" && rates && rates.usdKrw ? p.amount / rates.usdKrw : 0;
+  if(!(usd >= SHOWCASE_MIN_USD && usd <= SHOWCASE_MAX_USD)) return null;   // заглушки («999 999 999 ₩») и выбросы не показываем
+  const ev = car.fuel && car.fuel.id === 2;
+  return {
+    href:"/korea/" + catSlug(car),
+    title:[car.year, car.brand.name, car.model.name].join(" "),
+    img:im,
+    usd:Math.round(usd / 10) * 10,
+    km:ls && Number(ls.odometer) > 0 ? Number(ls.odometer) : 0,
+    fuel:car.fuel ? car.fuel.id : 0,
+    engine:!ev && Number(car.engine_volume) > 0 ? Math.round(car.engine_volume / 100) / 10 : 0,
+    trans:car.transmission ? car.transmission.id : 0,
+    insp:!!car.has_inspections, hist:!!car.has_history_reports
+  };
+}
+async function catalogShowcase(src){
+  const c = showcaseCache.get(src);
+  if(c && Date.now() - c.t < 15 * 60e3) return c.v;
+  const dom = await cat.resolveDomainId(src);
+  const parts = ["lang=en"];
+  cat.qsArray(parts, "domains", [dom]);
+  cat.qsPush(parts, "has_inspections", "1");
+  cat.qsPush(parts, "has_history_reports", "1");
+  cat.qsPush(parts, "year_from", new Date().getFullYear() - 6);
+  cat.qsPush(parts, "currency", "usd");
+  cat.qsPush(parts, "price_from", SHOWCASE_MIN_USD);
+  cat.qsPush(parts, "price_to", SHOWCASE_MAX_USD);
+  cat.qsPush(parts, "sort", "newest");
+  cat.qsPush(parts, "perPage", 50);
+  cat.qsPush(parts, "page", 1);
+  const countParts = ["lang=en"]; cat.qsArray(countParts, "domains", [dom]); cat.qsPush(countParts, "sort", "newest");
+  const [res, cnt, rates] = await Promise.all([
+    cat.catalogFetch("/search", parts.join("&"), {src, timeoutMs:9000, retries:1}),
+    cat.catalogFetch("/search/count", countParts.join("&"), {src, timeoutMs:6000, retries:0}).catch(() => null),
+    getRates().catch(() => null)
+  ]);
+  const seenModel = new Set(), perBrand = {};
+  const items = [];
+  for(const car of (Array.isArray(res && res.data) ? res.data : [])){
+    const it = showcaseItem(car, rates, src);
+    if(!it) continue;
+    const bk = car.brand.name, mk = bk + "|" + car.model.name;
+    if(seenModel.has(mk) || (perBrand[bk] || 0) >= 3) continue;   // разнообразие: одна модель — одна карточка, марка — до трёх
+    seenModel.add(mk); perBrand[bk] = (perBrand[bk] || 0) + 1;
+    items.push(it);
+    if(items.length >= 12) break;
+  }
+  const total = Number(cnt && cnt.count) || 0;
+  const v = {ok:true, items, total};
+  if(items.length >= 4){ showcaseCache.set(src, {t:Date.now(), v}); return v; }
+  return c ? c.v : v;
+}
+
 module.exports = async function handler(req, res){
   if(req.method !== "GET") return methodNotAllowed(res);
   const q = getQuery(req);
@@ -358,6 +427,11 @@ module.exports = async function handler(req, res){
       const v = await catalogFacts(src);
       return sendJson(res, 200, v, {"cache-control":Object.keys(v).length > 3 ? "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" : "no-store"});
     }
+    if(action === "showcase"){
+      // только Корея: у Канады (дилерские аукционы) своя логика цены, витрины для неё пока нет
+      const v = await catalogShowcase("kr");
+      return sendJson(res, 200, v, {"cache-control":(v.items && v.items.length >= 4) ? "public, max-age=300, s-maxage=900, stale-while-revalidate=3600" : "no-store"});
+    }
     if(action === "rates"){
       const r = await getRates();
       if(!r) return sendJson(res, 503, {ok:false, error:"rates_unavailable"}, {"cache-control":"no-store"});
@@ -394,3 +468,5 @@ module.exports = async function handler(req, res){
 };
 module.exports.getRates = getRates;
 module.exports.catalogFacts = catalogFacts;
+module.exports.catalogShowcase = catalogShowcase;
+module.exports.showcaseItem = showcaseItem;
