@@ -919,7 +919,7 @@
     var aucLine = "";
     if(CA){
       var op = olPrice(listing);
-      price = op ? {amt:op.amt, cur:op.cur} : null; priceLabel = op ? op.label : T("Цена");
+      price = op ? {amt:op.amt, cur:op.cur} : null; priceLabel = op ? op.label : "";
       aucLine = olAuctionText(listing);
     }
     var src = listing && listing.external && listing.external.domain && listing.external.domain.name || "";
