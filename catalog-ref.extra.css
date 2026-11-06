@@ -260,3 +260,8 @@
 @media (width >= 1180px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 530px)); } }
 @media (width >= 1400px) { .catHeroTxtV1 { max-width: min(48rem, calc(100% - 610px)); } }
 @media (width <= 639px) { .catHeroTxtV1 .catalog-intro { font-size: 15px; } .catHeroTxtV1 .kindRowV1 { font-size: 13px; } }
+
+/* Единый отступ от меню до крошек на всех страницах (06.11.2026, Федор: «везде одна высота»): текст крошек — 24px от меню на компьютере, 16px на телефоне.
+   Строка крошек каталога 28px (текст ~7px от верха) → 17px / 9px. Так же /auctions (auctions.css), статьи (guide.css), растаможка. */
+@media (width >= 640px) { .apx-korea .catalog-hero > .wrap-wide { padding-top: 17px; } }
+@media (width <= 639px) { .apx-korea .catalog-hero > .wrap-wide { padding-top: 9px; } }

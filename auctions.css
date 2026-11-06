@@ -19,7 +19,7 @@
    (значение, что было до правки «пошире» 27.09.2026); dreambid.pl закрыт Cloudflare
    bot-check, точный px не сверить, не проходя капчу — если у Федора будет цифра из
    DevTools, подогнать точнее. */
-.auctionsShellV1 { width:100%; max-width:calc(var(--maxw) + 48px); margin:0 auto; padding:24px 24px 80px; }
+.auctionsShellV1 { width:100%; max-width:calc(var(--maxw) + 48px); margin:0 auto; padding:21px 24px 80px; }
 /* Шапка сайта общий --maxw (1292px, styles.css) — на странице каталога/лота выглядела ощутимо
    уже контента ниже; auctions.css грузится только тут, поэтому переопределяем без риска для
    остальных (не-каталожных) страниц сайта. */
@@ -330,7 +330,7 @@
 }
 
 /* Lot detail */
-.auctionDetailV1 { padding-top:8px; }
+.auctionDetailV1 { padding-top:0; }
 .detailBackV1 { display:inline-block; margin-bottom:16px; font-weight:600; color:var(--aInk2); }
 /* Верхняя строка детальной: назад + поиск (VIN / лот / марка) на каждой странице лота */
 .detailTopRowV1 { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
