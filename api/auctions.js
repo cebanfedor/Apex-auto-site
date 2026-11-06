@@ -2730,12 +2730,18 @@ async function refreshArchiveCount(prevArch, deadline){
   const recent = b => b[1] > now - 3 * 864e5;
   const need = buckets.filter(b => { const v = arch.days[keyOf(b)]; return recent(b) || !v || now - v.at > 7 * 864e5; })
     .sort((x, y) => (recent(y) - recent(x)) || (((arch.days[keyOf(x)] || {}).at || 0) - ((arch.days[keyOf(y)] || {}).at || 0)));
-  for(const b of need){
-    const left = deadline - Date.now(); if(left < 2500) break;
-    const hi = Math.min(b[1], now);
-    const n = await sbCountExact(`${ARCH_Q}&sale_date=gte.${encodeURIComponent(new Date(b[0]).toISOString())}&sale_date=lt.${encodeURIComponent(new Date(hi).toISOString())}`, Math.min(15000, left - 500));
-    if(n != null) arch.days[keyOf(b)] = {n, at:Date.now()};
-  }
+  // по 3 куска одновременно — иначе первый полный подсчёт растягивался на часы
+  let qi = 0;
+  const worker = async () => {
+    while(qi < need.length){
+      const b = need[qi++];
+      const left = deadline - Date.now(); if(left < 2500) return;
+      const hi = Math.min(b[1], now);
+      const n = await sbCountExact(`${ARCH_Q}&sale_date=gte.${encodeURIComponent(new Date(b[0]).toISOString())}&sale_date=lt.${encodeURIComponent(new Date(hi).toISOString())}`, Math.min(15000, left - 500));
+      if(n != null) arch.days[keyOf(b)] = {n, at:Date.now()};
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
   let total = 0, done = 0;
   for(const b of buckets){ const v = arch.days[keyOf(b)]; if(v){ total += v.n; done++; } }
   return {arch, total:done === buckets.length ? total : null, done, all:buckets.length};
@@ -2766,7 +2772,8 @@ async function refreshCountSnapshot(budget = 50000){
   const types = {};
   for(const vt of ["1", "2", "5", "7"]) if(keys["all|all|t" + vt] > 0) types[vt] = keys["all|all|t" + vt];
   const payload = {ok:true, total:keys["all|all"], copart:keys["all|copart"] || 0, iaai:keys["all|iaai"] || 0, dated:keys["dated|all"] || 0,
-    buyNow:keys["buy_now|all"] || 0, soon:keys["soon|all"] || 0, archived:keys["archived|all"] || 0, types, src:"snap", at:new Date().toISOString()};
+    buyNow:keys["buy_now|all"] || 0, soon:keys["soon|all"] || 0, archived:keys["archived|all"] || 0, types, src:"snap", at:new Date().toISOString(),
+    archProgress:ar.all ? `${ar.done}/${ar.all}` : "no-earliest"};
   payload._complete = payload.total > 0 && payload.soon > 0 && payload.buyNow > 0 && payload.archived > 0;
   await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"},
     body:JSON.stringify({k:"count_v1", v:{keys, payload, arch:ar.arch}, updated_at:new Date().toISOString()})});
