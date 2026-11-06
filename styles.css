@@ -2360,3 +2360,11 @@ a.tkItemV1:hover b { text-decoration: underline; }
 .apexFaqMoreV1:hover { border-color: var(--muted); transform: translateY(-1px); }
 .apexFaqMoreV1:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .seaNoteV1 { margin: 16px 0 0; font-size: 14px; color: rgba(255,255,255,0.78); max-width: 62ch; }
+
+/* ---- Главная: карта мира с маршрутами за текстом hero (06.11.2026) — рисует home-map.js ---- */
+.heroCalmGridV1 { position: relative; }
+.heroMapV1 { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.heroCalmTextV1, .heroCalmV1 .heroSearchCardV1 { position: relative; z-index: 1; }
+/* в одну колонку (планшет/телефон) карта лезла бы за кнопки — там её нет */
+@media (max-width: 1023px) { .heroMapV1 { display: none; } }
+.heroCalmV1 .heroSearchCardV1 { background: rgba(255,255,255,0.92); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
