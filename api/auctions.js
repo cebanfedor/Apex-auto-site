@@ -775,10 +775,22 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // висели «торги 23 сентября · финальная цена $1 700».
   const saleTsN = Date.parse(lot?.sale_date || lot?.auction_date || "");
   const soldByStatus = Number(statusId) === 6 || Number(statusId) === 8 || /sold/i.test(String(statusName || ""));
-  const preBidSold = soldByStatus && Number.isFinite(saleTsN) && saleTsN > Date.now();
+  // 07.11.2026 (реальный ответ /cars, фильтр buy_now=1): покупка по Buy Now ДО аукциона — status «sold», final_bid = bid = buy_now,
+  // final_bid_updated_at раньше даты торгов (Altima: куплена 27.09, торги по плану 28.09; Seltos, Pathfinder IAAI, Murano… — то же).
+  // Раньше такой лот при будущей дате торгов считался «пред-ставкой» (ниже) и висел активным с кнопкой «Купить сейчас».
+  // Ставка = цене выкупа ⇒ сработал выкуп, продано (иначе пред-ставка сама бы купила лот). Обычная продажа: final < buy_now или buy_now=0.
+  const feedBnSale = (() => {
+    if(Number(statusId) !== 6 || !(finalBid > 0) || !(buyNow > 0) || finalBid < buyNow * 0.99) return null;
+    const upd = Date.parse(lot?.final_bid_updated_at || "");
+    const st = Date.parse(lot?.sale_date || lot?.auction_date || "");
+    if(!Number.isFinite(upd) || upd > Date.now()) return null;
+    if(Number.isFinite(st) && upd >= st - 30 * 60e3) return null;   // обновлена на/после торгов — обычная продажа, не выкуп до аукциона
+    return {bid:finalBid, date:new Date(upd).toISOString()};
+  })();
+  const preBidSold = soldByStatus && Number.isFinite(saleTsN) && saleTsN > Date.now() && !feedBnSale;
   // Покупка по Buy Now (BMW 530e IAAI 45914882, 24.09.2026): фид пишет раунд «sold» с «живым» временем (14:13:29 — не время аукциона, секунды ≠ 0)
   // и ставкой = цене выкупа, а основная запись лота остаётся «в продаже» (устарела, updated_at раньше продажи, торги «28.09»). Такой лот продан.
-  const bnSale = (() => {
+  const bnSaleHist = (() => {
     if(!(buyNow > 0) || Number(statusId) === 6) return null;
     const upd = Date.parse(lot?.updated_at || "");
     for(const ph of priceHistory){
@@ -800,6 +812,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     }
     return null;
   })();
+  const bnSale = feedBnSale || bnSaleHist;
 
   // Timed-аукцион (IAAI) закрывается РОВНО в дату торгов. Если дата уже прошла (>1ч),
   // а финальная ставка достигла/превысила резерв продавца — лот ПРОДАН по этой ставке
@@ -6207,7 +6220,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g44" : "";   // бамп при смене таблицы поколений и формы detail (g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g45" : "";   // бамп при смене таблицы поколений и формы detail (g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

@@ -105,3 +105,39 @@ test("обход по площадке: Copart-обход берёт Copart-ло
   assert.strictEqual(syncRowFromItem(m3(), {preferDomain:3}).lot, "74095956");
   assert.strictEqual(syncRowFromItem(m3(), {preferDomain:1}).auction, "iaai");
 });
+
+// Реальный Copart-лот из /cars (Nissan Altima 68635016): куплен по Buy Now 27.09, торги по плану 28.09 — final=bid=buy_now, final_bid_updated_at раньше торгов.
+const bnLot = (extra = {}) => ({id:476928, vin:"1N4AL3AP6FC286975", year:2015, title:"2015 Nissan Altima 2.5 Sv", lots:[Object.assign({
+  id:22544031, lot:"68635016", domain:{name:"copart_com", id:3}, sale_date:"2026-09-28T17:00:00.000000Z",
+  bid:1100, bid_updated_at:"2026-09-27 15:49:10", buy_now:1100, final_bid:1100, final_bid_updated_at:"2026-09-28T00:01:09.000000Z",
+  status:{name:"sold", id:6}}, extra)]});
+
+test("Buy Now до аукциона: sold + final=buy_now, дата торгов в будущем → продан, не «пред-ставка»", () => {
+  const {normalizeLot} = require("../api/auctions.js");
+  const fut = new Date(Date.now() + 3 * 864e5).toISOString();
+  const nowPast = new Date(Date.now() - 2 * 864e5).toISOString();
+  const l = normalizeLot(bnLot({sale_date:fut, final_bid_updated_at:nowPast}));
+  assert.strictEqual(l.statusId, 6);
+  assert.strictEqual(l.finalBid, 1100);
+  assert.strictEqual(l.soldByBuyNow, true);
+  assert.strictEqual(l.buyNow, 0);
+});
+
+test("Buy Now: обычная продажа (final < buy_now) и пред-ставка при будущих торгах не становятся выкупом", () => {
+  const {normalizeLot} = require("../api/auctions.js");
+  const fut = new Date(Date.now() + 3 * 864e5).toISOString();
+  const normal = normalizeLot(bnLot({sale_date:"2026-09-28T17:00:00.000000Z", final_bid:1150, bid:1150, buy_now:2300, final_bid_updated_at:"2026-09-28T18:16:44.000000Z"}));
+  assert.notStrictEqual(normal.soldByBuyNow, true);
+  const pre = normalizeLot(bnLot({sale_date:fut, final_bid:900, bid:900, buy_now:2300, final_bid_updated_at:new Date().toISOString()}));
+  assert.strictEqual(pre.statusId, 3);   // пред-ставка: не продан
+  assert.strictEqual(pre.finalBid, 0);
+});
+
+test("Buy Now до аукциона: строка попадает в архив с финалом и датой покупки", () => {
+  const fut = new Date(Date.now() + 3 * 864e5).toISOString();
+  const nowPast = new Date(Date.now() - 2 * 864e5).toISOString();
+  const r = syncRowFromItem(bnLot({sale_date:fut, final_bid_updated_at:nowPast}), {});
+  assert.strictEqual(r.archived, true);
+  assert.strictEqual(r.final_bid, 1100);
+  assert.ok(Date.parse(r.sale_date) < Date.now());
+});
