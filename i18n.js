@@ -57,6 +57,20 @@
       const m = compact.match(PATTERNS[i][0]);
       if(m && PATTERNS[i][1][lang]) return PATTERNS[i][1][lang](m);
     }
+    // Составные строки «A: B», «A · B», «A — B»: переводим по частям (собираются в JS до загрузки словаря)
+    if(compact.length < 160){
+      const parts = compact.split(/(\s[·—–|•]\s|:\s)/);
+      if(parts.length > 1){
+        let changed = false;
+        const out = parts.map((p, i) => {
+          if(i % 2) return p;
+          const t = map[p] || (am && am[p]);
+          if(t){ changed = true; return t; }
+          return p;
+        });
+        if(changed) return out.join("");
+      }
+    }
     return text;
   }
   const PATTERNS = [
@@ -107,14 +121,14 @@
     document.querySelectorAll("[placeholder]").forEach(el => {
       let src = el.__i18nPh;
       if(src === undefined){ src = el.getAttribute("placeholder") || ""; el.__i18nPh = src; }
-      const val = lang === "ru" ? src : (map[src] || main[src] || src);
+      const val = lang === "ru" ? src : (map[src] || main[src] || translateText(src, lang));
       if(el.getAttribute("placeholder") !== val) el.setAttribute("placeholder", val);
     });
     document.querySelectorAll("[aria-label]").forEach(el => {
       if(el.closest("[data-no-i18n]")) return;
       let src = el.__i18nAria;
       if(src === undefined){ src = el.getAttribute("aria-label") || ""; el.__i18nAria = src; }
-      const val = lang === "ru" ? src : (map[src] || main[src] || src);
+      const val = lang === "ru" ? src : (map[src] || main[src] || translateText(src, lang));
       if(el.getAttribute("aria-label") !== val) el.setAttribute("aria-label", val);
     });
     document.querySelectorAll("img[alt]").forEach(el => {
