@@ -4584,7 +4584,13 @@ async function preserveSoldCopies(ids, laterTs = {}){
   preserveSoldCopies.demoted = 0;
   if(!ids.length) return 0;
   try{
-    const full = await syncSbFetch(`/api_lots?id=in.(${ids.map(x => `"${String(x).replace(/[^a-z0-9_-]/gi, "")}"`).join(",")})&select=*`);
+    // 07.11.2026 (расход egress Supabase): раньше тут читалась ПОЛНАЯ строка (select=*, payload ≈ 3–5 КБ) для каждого id на каждый upsert,
+    // хотя копию нужно делать только у архивных продаж. Сначала лёгкий запрос (5 колонок), полные строки — лишь у тех, кто продан.
+    const idList = ids.map(x => `"${String(x).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+    const light = await syncSbFetch(`/api_lots?id=in.(${idList})&select=id,archived,status_id,final_bid,sale_date`);
+    const saleIds = (Array.isArray(light) ? light : []).filter(isSaleRow).map(r => r.id);
+    if(!saleIds.length) return 0;
+    const full = await syncSbFetch(`/api_lots?id=in.(${saleIds.map(x => `"${String(x).replace(/[^a-z0-9_-]/gi, "")}"`).join(",")})&select=*`);
     const stamp = new Date().toISOString();
     const copies = (Array.isArray(full) ? full : []).filter(isSaleRow).map(r => {
       const copy = {...r, id:`${r.id}-s${String(r.sale_date || "").slice(0, 10).replace(/-/g, "")}`, archived:true};
@@ -5548,6 +5554,8 @@ async function runEngineFill(){
     }
   }catch(e){ out.sellerKindErr = String(e.message || e).slice(0, 80); }
   // Тот же тик пересчитывает live_until идущих аукционов (SQL-функция refresh_live_until: позиция лота в линии + 15 мин)
+  // 07.11.2026: тяжёлая оконная функция падала по таймауту (34 ошибки/сутки, до 29 с каждая) при вызове раз в 3 мин — теперь раз в ~15 мин.
+  if(new Date().getUTCMinutes() % 15 < 3)
   try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:JSON.stringify({factor:1.3, margin:10})})) || 0; }
   catch(e){
     try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:"{}"})) || 0; out.liveOld = true; }   // версия без параметров (×1.5 + 15)
@@ -6366,7 +6374,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g50" : "";   // бамп при смене таблицы поколений и формы detail (g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g51" : "";   // бамп при смене таблицы поколений и формы detail (g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -6382,7 +6390,9 @@ module.exports = async function handler(request, response){
   // 2.5 МБ пишется ~0.9-1с, читается ~0.3с, 4 параллельных операции разного размера — тоже без просадки.
   // Вернули search — теперь холодные (другой инстанс/после рестарта) заходы с одинаковыми фильтрами не бьют
   // по auctionsapi.com/DB заново в окне TTL (180с), только по CDN-кэшу (s-maxage=180) промахнуться сложнее.
-  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics","search"]);
+  // 07.11.2026 (расход egress/IO Supabase): "search" убран из DB-кэша — каждый показ каталога читал из api_cache ~90 КБ JSON, а промах писал
+  // их обратно (сотни тысяч upsert/сутки, рост таблицы, нагрузка на диск). Достаточно памяти инстанса + CDN (s-maxage 180–900 + swr).
+  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics"]);
   // Словарь повреждений теперь статический (не тратит квоту API) — Supabase-кэш
   // для него лишний round-trip, пропускаем (memory + edge-кэш достаточно). P3-16.
   const isStaticDamages = action === "usadict" && String(query.get("dict") || "").toLowerCase() === "damages";
@@ -6686,6 +6696,9 @@ module.exports = async function handler(request, response){
     }
     if(action === "livebids"){
       const ids = [...new Set(String(query.get("ids") || "").split(",").map(x => x.trim()).filter(x => /^(copart|iaai)-[0-9]+$/.test(x)))].slice(0, 30);
+      // nd — карточки, у которых в СПИСКЕ нет даты торгов (клиент знает): только для них (и для проданных) пишем лот в базу.
+      // 07.11.2026: безусловная запись каждого из 30 лотов на каждый показ страницы каталога давала сотни тысяч запросов к Supabase в сутки.
+      const ndSet = new Set(String(query.get("nd") || "").split(",").map(x => x.trim()).filter(Boolean));
       const out = {};
       const one = async id => {
         const ck = "livebid:" + id; const c = getCached(ck); if(c){ out[id] = c; return; }
@@ -6702,7 +6715,7 @@ module.exports = async function handler(request, response){
           // физически не видит, пока даты нет, а общий sweep раз в сутки. Карточку в каталоге как раз здесь
           // уже сверяем с живым фидом (fetchDetail выше) — пишем дату (и остальное) в базу сразу, не только
           // при «продан», как раньше. Та же функция, что самолечит detail&fresh=1 — сама решает, что писать.
-          upsertClosedLot(lot).catch(() => {});
+          if(r.sold || ndSet.has(id)) upsertClosedLot(lot).catch(() => {});
           setCached(ck, r, 2 * 60e3); out[id] = r;
         }catch(e){ out[id] = null; }
       };
@@ -7260,7 +7273,6 @@ module.exports = async function handler(request, response){
       setCached(key, payload, result._fallback ? 90 * 1000 : 3 * 60 * 1000);
       // 27.09.2026: api_cache для search вернули (см. комментарий у dbCacheActions) — но только для
       // настоящих DB-ответов (не live-фолбэк и не при dbErr), чтобы не законсервировать деградацию.
-      if(!result._fallback && !dbErr) setDbCache(key, payload, "search");
       sendJson(response, 200, payload);
       return;
     }

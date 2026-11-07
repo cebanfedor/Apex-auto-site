@@ -1768,7 +1768,8 @@
     const ids = cards.map(cd => cd.querySelector(".dbPhoto")?.dataset.lid).filter(id => byId.has(String(id)) && enrichable(byId.get(String(id))) && !lotSaleState(byId.get(String(id))).isSold);
     if(!ids.length) return;
     let live = {};
-    try{ const r = await api(`/api/auctions?action=livebids&ids=${encodeURIComponent(ids.slice(0, 30).join(","))}`); live = r.items || {}; }catch(e){ return; }
+    const ndIds = ids.slice(0, 30).filter(id => !byId.get(String(id)).auctionDate);   // карточки без даты в списке — серверу нужно сохранить найденную дату
+    try{ const r = await api(`/api/auctions?action=livebids&ids=${encodeURIComponent(ids.slice(0, 30).join(","))}${ndIds.length ? `&nd=${encodeURIComponent(ndIds.join(","))}` : ""}`); live = r.items || {}; }catch(e){ return; }
     let healed = false;
     // 30.09.2026 (Федор со скриншота: лот с фильтром «дата 30.09–30.09» показывал машину с торгами 5 окт.) —
     // торги перенесли ПОСЛЕ того, как лот попал в отфильтрованную выдачу; карточка ниже просто перерисовывалась
