@@ -911,8 +911,9 @@
     var imgs = listing && Array.isArray(listing.images) ? listing.images.map(imageUrl).filter(Boolean) : [];
     var shown = imgs.slice(0, 6), more = imgs.length - shown.length;
     var href = carHref(car, listing), title = titleOf(car);
-    var slides = shown.map(function(u){
-      return '<a href="' + esc(href) + '" class="vcard__slide" tabindex="-1" rel="nofollow"><img src="' + esc(u) + '" alt="' + esc(title) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></a>';
+    // Грузим заранее только ПЕРВОЕ фото; остальные (data-src) — по требованию: наведение, стрелка, свайп (loadAround).
+    var slides = shown.map(function(u, i){
+      return '<a href="' + esc(href) + '" class="vcard__slide" tabindex="-1" rel="nofollow"><img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="' + esc(title) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></a>';
     }).join("");
     var stage = shown.map(function(u, i){ return '<img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="" class="vcard__stage-img' + (i === 0 ? " is-active" : "") + '"' + (i === 0 && idx < 2 ? ' fetchpriority="high"' : "") + ' loading="' + (i === 0 && idx < 2 ? "eager" : "lazy") + '" decoding="async" referrerpolicy="no-referrer" draggable="false">'; }).join("")
       + (more > 0 ? '<div class="vcard__more-photos" style="display:none" data-more-photos><span>' + I.photos + ' +' + more + '</span></div>' : "");
@@ -989,17 +990,23 @@
   // Галерея карточки: скраб мышью (hover-устройства), стрелки, свайп по треку (тач) — как cardGallery эталона
   var fineHover = window.matchMedia("(hover:hover) and (pointer:fine)");
   function mediaIndex(media){ return parseInt(media.getAttribute("data-idx") || "0", 10) || 0; }
-  function warm(media){
-    if(media.getAttribute("data-warm")) return;
-    media.setAttribute("data-warm", "1");
-    media.querySelectorAll("img[data-src]").forEach(function(im){ im.src = im.getAttribute("data-src"); im.removeAttribute("data-src"); });
+  // Подгружает фото с номерами idx-1…idx+1 (только те, что ещё не загружены) — и в сцене, и в ленте свайпа.
+  function loadAround(media, idx){
+    var count = parseInt(media.getAttribute("data-count"), 10) || 0;
+    [idx, idx + 1, idx - 1].forEach(function(k){
+      if(k < 0 || k >= count) return;
+      media.querySelectorAll(".vcard__stage-img:nth-child(" + (k + 1) + "), .vcard__slide:nth-child(" + (k + 1) + ") img").forEach(function(im){
+        var d = im.getAttribute("data-src");
+        if(d){ im.src = d; im.removeAttribute("data-src"); }
+      });
+    });
   }
   function goTo(media, idx, instant){
     var count = parseInt(media.getAttribute("data-count"), 10) || 0;
     if(count < 2) return;
     idx = (idx + count) % count;
     media.setAttribute("data-idx", String(idx));
-    warm(media);
+    loadAround(media, idx);
     var stage = media.querySelector("[data-stage]");
     var staged = stage && stage.offsetParent;
     if(staged){
@@ -1011,6 +1018,13 @@
     }
     media.querySelectorAll(".vcard__segments span").forEach(function(s, i){ s.setAttribute("data-active", i === idx ? "true" : "false"); });
   }
+  grid.addEventListener("touchstart", function(e){
+    var media = e.target.closest && e.target.closest(".vcard__media"); if(media) loadAround(media, mediaIndex(media));
+  }, {passive:true});
+  grid.addEventListener("pointerover", function(e){
+    if(!fineHover.matches) return;
+    var media = e.target.closest && e.target.closest(".vcard__media"); if(media) loadAround(media, mediaIndex(media));
+  });
   grid.addEventListener("pointermove", function(e){
     if(!fineHover.matches) return;
     var media = e.target.closest(".vcard__media"); if(!media) return;
@@ -1039,6 +1053,7 @@
     if(!track || !track.hasAttribute || !track.hasAttribute("data-track") || !track.clientWidth) return;
     var media = track.closest(".vcard__media");
     var idx = Math.round(track.scrollLeft / track.clientWidth);
+    loadAround(media, idx);
     if(idx !== mediaIndex(media)){ media.setAttribute("data-idx", String(idx)); media.querySelectorAll(".vcard__segments span").forEach(function(s, i){ s.setAttribute("data-active", i === idx ? "true" : "false"); }); }
   }, true);
   grid.addEventListener("load", function(e){
