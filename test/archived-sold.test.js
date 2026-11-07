@@ -37,3 +37,17 @@ test("archived-lots: sold без ставки и без даты → живая 
   assert.strictEqual(r.archived, false);
   assert.strictEqual(r.final_bid, 0);
 });
+
+test("синк по площадке: лот ЭТОЙ площадки читается первым, даже если в lots[0] чужой", () => {
+  const car = {id:1, vin:"WBSAE0C06PCL70372", year:2023, title:"2023 BMW M3", lots:[
+    {id:2, lot:"40093457", external_id:"40093457", domain:{name:"iaai_com", id:1}, sale_date:"2026-11-20T15:00:00Z", bid:500, status:{name:"sale", id:3}},
+    {id:3, lot:"86246665", domain:{name:"copart_com", id:3}, sale_date:"2026-11-25T15:00:00Z", bid:900, status:{name:"sale", id:3}}
+  ]};
+  const copart = syncRowFromItem(JSON.parse(JSON.stringify(car)), {preferDomain:3});
+  assert.strictEqual(copart.auction, "copart");
+  assert.strictEqual(copart.lot, "86246665");
+  const iaai = syncRowFromItem(JSON.parse(JSON.stringify(car)), {preferDomain:1});
+  assert.strictEqual(iaai.auction, "iaai");
+  const none = syncRowFromItem(JSON.parse(JSON.stringify(car)), {});
+  assert.strictEqual(none.lot, "40093457");   // без фильтра — как раньше, lots[0]
+});

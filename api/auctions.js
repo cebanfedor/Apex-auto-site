@@ -4240,7 +4240,21 @@ async function syncApiFetch(url, timeoutMs){
 
 // item (сырой ответ API) → строка таблицы api_lots.
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
-function syncRowFromItem(item, {archived = false} = {}){
+// 07.11.2026 (документация auctionsapi, «Автомобили, лоты и ID»): /cars?domain_id=N выбирает машины, у которых ЕСТЬ подходящее объявление,
+// а во вложенных lots могут лежать и записи другой площадки (один VIN: Copart + IAAI) — «проверяйте источник каждого лота».
+// Мы всегда читали lots[0]; при обходе по площадке ставим вперёд лот ЭТОЙ площадки, иначе строка домена N строилась из чужого лота.
+function preferDomainLot(item, domainId){
+  const want = Number(domainId);
+  if(!want || !Array.isArray(item?.lots) || item.lots.length < 2) return item;
+  const idOf = l => { const d = l && l.domain; return Number(d && typeof d === "object" ? d.id : NaN); };
+  if(idOf(item.lots[0]) === want) return item;
+  const idx = item.lots.findIndex(l => idOf(l) === want);
+  if(idx > 0) item.lots = [item.lots[idx], ...item.lots.filter((_, i) => i !== idx)];
+  return item;
+}
+
+function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
+  preferDomainLot(item, preferDomain);
   tesla.fixTeslaItem(item);
   const lot = unwrapFeedValues((Array.isArray(item?.lots) && item.lots[0]) || (item?.lot && typeof item.lot === "object" ? item.lot : item) || {});
   unwrapFeedValues(item);
@@ -4575,7 +4589,7 @@ async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, de
   const feedTimeout = deadline ? Math.max(4000, Math.min(30000, deadline - Date.now() - 3000)) : 30000;
   const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`, feedTimeout);
   const items = findItems(payload) || [];
-  const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
+  const rows = items.map(it => syncRowFromItem(it, {...rowOpts, preferDomain:Number(extraParams.domain_id) || 0})).filter(Boolean);
   syncImportPage.lastFetchMs = Date.now() - tA;
   await syncUpsertRows(rows, deadline, upsertOpts);
   // 30.09.2026 (нашёл при срочной диагностике timedsync, курсор стоял на одной странице 12+ минут):
