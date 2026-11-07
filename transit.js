@@ -128,6 +128,9 @@ function esc(s){
   }
 
   function renderList(){
+    // Блоки под списком скрыты, пока список не отрисован (иначе они «прыгают» вниз, CLS ≈0.4) — см. .transitPendingV1 в styles.css
+    var pend = document.querySelector("main.transitPendingV1");
+    var done = function(){ if(pend) pend.classList.remove("transitPendingV1"); };
     var active = ITEMS.filter(function(x){ return !x.sold; }).length;
     if(countEl) countEl.textContent = active ? String(active) : "";
     if(!ITEMS.length){
@@ -138,9 +141,11 @@ function esc(s){
           + '<a class="transitBtnV1 isRedV1" href="https://t.me/fedukusa" target="_blank" rel="noopener">' + esc(T("Написать в Telegram")) + '</a>'
           + '<a class="transitBtnV1" href="/auctions">' + esc(T("Смотреть аукционы")) + '</a>'
         + '</div></div>';
+      done();
       return;
     }
     grid.innerHTML = ITEMS.map(card).join("");
+    done();
   }
 
   /* ── Лайтбокс фото (27.09.2026): фото объявления не увеличивались на весь экран ──

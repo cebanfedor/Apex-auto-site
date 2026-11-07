@@ -290,6 +290,7 @@
     var display = pool.slice(0, Math.floor(rawCount / 4) * 4 || rawCount);
 
     apiGrid.innerHTML = "";
+    apiGrid.removeAttribute("aria-hidden");
 
     if(!display.length){
       apiGrid.innerHTML = '<div class="hotApiEmptyV351">Гибриды и электрокары не найдены. Попробуйте позже.</div>';
@@ -305,6 +306,7 @@
     apiGrid.appendChild(frag);
 
   }).catch(function(){
+    apiGrid.removeAttribute("aria-hidden");
     apiGrid.innerHTML = '<div class="hotApiEmptyV351">Не удалось загрузить автомобили. Попробуйте позже.</div>';
   });
 
