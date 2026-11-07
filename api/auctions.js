@@ -368,6 +368,11 @@ function sellerLabel(lot, item){
   const insurerKeywords = /INSURANCE|GEICO|USAA|CSAA|PROGRESSIVE|ALLSTATE|NATIONWIDE|LIBERTY MUTUAL|STATE FARM|FARMERS|BRISTOL WEST|TRAVELERS|ERIE|MERCURY|ESURANCE|21ST CENTURY|AAA|METLIFE|KEMPER|AMERICAN FAMILY/;
   const isInsurance = /insurance/.test(t) || (!t && insurerKeywords.test(nameUp));
   const isDealer = /non.?insurance|dealer|dealership|private/.test(t);
+  const sObj = (lot?.seller && typeof lot.seller === "object") ? lot.seller : ((item?.seller && typeof item.seller === "object") ? item.seller : null);
+  if(name && sObj){
+    if(sObj.is_rental === true) return name + " · Прокат";
+    if(sObj.is_insurance === true && !/non.?insurance/.test(t)) return name + " · Страховая";
+  }
   if(name){
     if(/SIXT|TURO|AVIS|HERTZ|ENTERPRISE|BUDGET RENT|NATIONAL CAR|ALAMO|DOLLAR RENT|THRIFTY|ZIPCAR|GETAROUND|U-?HAUL|RYDER|PENSKE|FIREFLY|PAYLESS|FOX RENT/.test(nameUp)) return name + " · Прокат";   // прокат — хороший продавец, но не страховая
     if(isInsurance) return name + " · Страховая";
@@ -891,6 +896,12 @@ function normalizeLot(source, fallbackAuction = "copart"){
     // vis.iaai.com/Home/ThreeSixtyView?...&iframeview=true — сделана специально под встраивание в iframe).
     // У Copart поле не проверено — просто показываем кнопку, когда ссылка реально есть, никаких допущений.
     panoramaUrl:(lot?.images?.external_panorama_url) || (item?.images?.external_panorama_url) || "",
+    // Бриф провайдера §17: видео — YouTube-id (walk-around) ИЛИ прямой mp4; 360 внешний — кадры exterior[] (крутилка), интерьер — одна ссылка-панорама.
+    videoYoutubeId:(() => { const v = String(lot?.images?.video_youtube_id || item?.images?.video_youtube_id || ""); return /^[A-Za-z0-9_-]{8,}$/.test(v) ? v : ""; })(),
+    spinFrames:(() => { const a = lot?.images?.exterior || item?.images?.exterior; return Array.isArray(a) ? a.filter(u => /^https?:\/\//i.test(String(u || ""))).map(String) : []; })(),
+    interiorUrl:(() => { const u = String(lot?.images?.interior || item?.images?.interior || ""); return /^https?:\/\//i.test(u) ? u : ""; })(),
+    // Страна покупателя (Copart/IAAI, ISO-2, только у проданных): lowercase → верхний регистр.
+    buyerCountry:(() => { const c = String(lot?.buyer_country || item?.buyer_country || "").trim().toUpperCase(); return /^[A-Z]{2}$/.test(c) ? c : ""; })(),
     // ACV: IAAI actual_cash_value → Copart pre_accident_price. При pre_accident_price = -1 («оценки нет») НЕ падаем на
     // clean_wholesale_price: это другая величина (оптовая «чистой» машины), модель оценки калибровалась без неё — решение
     // «использовать ли её как замену ACV у Copart» требует отдельной калибровки по проданным (этап 2 разбора /cars).
@@ -1634,6 +1645,7 @@ async function fetchDetail(query){
       return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
+      if(error && isFinalApiStatus(error.status)) break;   // 404/423/403…: второй запрос с тем же результатом только съест лимит
     }
   }
   throw lastError || new Error("Lot detail failed");
@@ -1651,11 +1663,14 @@ function looksTimed(dateStr){
   return d.getUTCSeconds() !== 0 || d.getUTCMinutes() % 15 !== 0;
 }
 // ---- Надёжность истории по VIN: повтор запроса + постоянное хранилище (vin_hist) как запасной источник ----
+// Бриф провайдера §11: 400/401/403/404/423 повторять без изменений нельзя (каждый запрос, даже с ошибкой, идёт в лимит подписки).
+// 423 = «vin was excluded» — VIN удалён по просьбе владельца, для нас то же, что 404.
+function isFinalApiStatus(st){ return st === 400 || st === 401 || st === 403 || st === 404 || st === 423; }
 async function fetchJsonRetry(url, tries = 2){
   let err;
   for(let i = 0; i < tries; i++){
     try{ return await fetchJson(url); }
-    catch(e){ err = e; if(e && (e.status === 404 || e.status === 400)) throw e; if(i < tries - 1) await new Promise(r => setTimeout(r, 400)); }
+    catch(e){ err = e; if(e && isFinalApiStatus(e.status)) throw e; if(i < tries - 1) await new Promise(r => setTimeout(r, 400)); }
   }
   throw err;
 }
@@ -1828,7 +1843,7 @@ async function attachVinHistory(lot){
     }
   }catch(e){
     if(lot && isValidVin(String(lot.vin || ""))){
-      if(e && e.status === 404){ lot.vinChecked = true; }                 // фид не знает этот VIN — истории нет, это не сбой
+      if(e && (e.status === 404 || e.status === 423)){ lot.vinChecked = true; }                 // фид не знает этот VIN — истории нет, это не сбой
       else{
         vinFailStat.fail++;
         // Запасной источник: последняя удачная история этого VIN из нашей базы (до 14 дней)
@@ -6220,7 +6235,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g45" : "";   // бамп при смене таблицы поколений и формы detail (g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g46" : "";   // бамп при смене таблицы поколений и формы detail (g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
