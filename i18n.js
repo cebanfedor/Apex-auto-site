@@ -48,8 +48,23 @@
     if(lang === "ru") return text;
     const map = dict[lang] || {};
     const compact = String(text || "").replace(/\s+/g, " ").trim();
-    return map[compact] || text;
+    if(map[compact]) return map[compact];
+    // Ключи, которые лежат только в attrDict (placeholder/aria), тоже годятся для текста — частый источник «русских островков»
+    const am = attrDict[lang];
+    if(am && am[compact]) return am[compact];
+    // Динамические фразы с числами/названиями (их нельзя занести в словарь целиком)
+    for(let i = 0; i < PATTERNS.length; i++){
+      const m = compact.match(PATTERNS[i][0]);
+      if(m && PATTERNS[i][1][lang]) return PATTERNS[i][1][lang](m);
+    }
+    return text;
   }
+  const PATTERNS = [
+    [/^Открыть лот (\d+) на (\S+)$/, {en: m => `Open lot ${m[1]} on ${m[2]}`, ro: m => `Deschide lotul ${m[1]} pe ${m[2]}`}],
+    [/^([\d\s.,]+?)\s*км$/, {en: m => `${m[1]} km`, ro: m => `${m[1]} km`}],
+    [/^([\d\s.,]+?)\s*миль$/, {en: m => `${m[1]} mi`, ro: m => `${m[1]} mile`}],
+    [/^(\d+)\s+фото$/, {en: m => `${m[1]} photos`, ro: m => `${m[1]} foto`}]
+  ];
 
   function translateNodeText(node, lang){
     // Remember the original (Russian) text once, so we can switch languages
@@ -102,12 +117,21 @@
       const val = lang === "ru" ? src : (map[src] || main[src] || src);
       if(el.getAttribute("aria-label") !== val) el.setAttribute("aria-label", val);
     });
+    document.querySelectorAll("img[alt]").forEach(el => {
+      if(el.closest("[data-no-i18n]")) return;
+      let src = el.__i18nAlt;
+      if(src === undefined){ src = el.getAttribute("alt") || ""; el.__i18nAlt = src; }
+      if(!/[А-Яа-яЁё]/.test(src)) return;
+      const val = lang === "ru" ? src : translateText(src, lang);
+      if(el.getAttribute("alt") !== val) el.setAttribute("alt", val);
+    });
     document.querySelectorAll("[title]").forEach(el => {
       if(el.closest("[data-no-i18n]") || el.tagName === "TITLE") return;
       let src = el.__i18nTitle;
       if(src === undefined){ src = el.getAttribute("title") || ""; el.__i18nTitle = src; }
       if(!/[А-Яа-яЁё]/.test(src)) return;
-      const val = lang === "ru" ? src : (map[src] || main[src] || src);
+      let val = lang === "ru" ? src : (map[src] || main[src]);
+      if(!val) val = lang === "ru" ? src : translateText(src, lang);
       if(el.getAttribute("title") !== val) el.setAttribute("title", val);
     });
     const titleMap = {
@@ -128,7 +152,7 @@
     };
     if(!window.__i18nTitleSrc) window.__i18nTitleSrc = document.title;
     const titleSrc = window.__i18nTitleSrc;
-    document.title = lang === "ru" ? titleSrc : (titleMap[lang]?.[titleSrc] || titleSrc);
+    document.title = lang === "ru" ? titleSrc : (titleMap[lang]?.[titleSrc] || (dict[lang] || {})[titleSrc] || titleSrc);
   }
 
   function injectSwitcher(lang){

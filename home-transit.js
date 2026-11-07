@@ -46,9 +46,28 @@ function esc(s){
   function fmtEngine(v){ var s = String(v == null ? "" : v).trim(); return /^\d(\.\d)?$/.test(s) ? s + "\u00a0" + T("л") : s; }
   function fmtFuel(v){ var s = String(v == null ? "" : v).trim(); var r = FUEL_RU[s.toLowerCase()]; return r ? T(r) : s; }
 
+  // Повреждения из админки — свободный текст («Перед прав», «Задний бампер»): переводим по словам, неизвестное оставляем как есть.
+  var DMG_RU = [
+    [/^перед(ний|няя|нее)?$/i, "Front", "Față"], [/^зад(ний|няя|нее)?$/i, "Rear", "Spate"],
+    [/^лев(ый|ая|ое)?$/i, "left", "stânga"], [/^прав(ый|ая|ое)?$/i, "right", "dreapta"],
+    [/^бок(овой|овая|овое)?$/i, "Side", "Lateral"], [/^крыш[аиу]$/i, "Roof", "Acoperiș"],
+    [/^капот$/i, "Hood", "Capotă"], [/^багажник$/i, "Trunk", "Portbagaj"], [/^двер[ьиь]$/i, "Door", "Ușă"],
+    [/^крыл[оа]$/i, "Fender", "Aripă"], [/^бампер$/i, "Bumper", "Bară de protecție"],
+    [/^град(обой)?$/i, "Hail", "Grindină"], [/^вод[аы]$/i, "Water", "Apă"], [/^стекло$/i, "Glass", "Geam"],
+    [/^фара$/i, "Headlight", "Far"], [/^угол$/i, "Corner", "Colț"], [/^удар$/i, "Impact", "Impact"],
+    [/^без$/i, "No", "Fără"], [/^повреждени[йяе]$/i, "damage", "daune"], [/^царапины$/i, "Scratches", "Zgârieturi"],
+    [/^вмятины$/i, "Dents", "Îndoituri"], [/^сзади$/i, "Rear", "Spate"], [/^спереди$/i, "Front", "Față"]
+  ];
+  function dmgTr(s){
+    var lg = window.APEX_LANG; if(lg !== "en" && lg !== "ro") return s;
+    return String(s).replace(/[А-Яа-яЁё]+/g, function(w){
+      for(var i = 0; i < DMG_RU.length; i++) if(DMG_RU[i][0].test(w)) return lg === "en" ? DMG_RU[i][1] : DMG_RU[i][2];
+      return w;
+    });
+  }
   function money(n){ return n ? "$" + Math.round(n).toLocaleString("en-US").replace(/,/g, " ") : ""; }
   function card(it){
-    var chips = [fmtKm(it.mileage), fmtFuel(it.fuel), it.damage].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
+    var chips = [fmtKm(it.mileage), fmtFuel(it.fuel), it.damage && dmgTr(it.damage)].filter(Boolean).map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
     return '<a class="transitCardV1" href="' + transitHref(it) + '">'
       + '<div class="transitCardImgV1">'
         + (it.photos[0] ? '<img src="' + esc(photoSized(it.photos[0], 300)) + '" alt="' + esc(it.title) + '" width="300" height="225" loading="lazy" decoding="async" data-fb="' + esc(it.photos[0]) + '">' : '<div class="transitNoImgV1"></div>')
@@ -80,6 +99,7 @@ function esc(s){
   function carousel(){ return getComputedStyle(grid).display === "flex"; }
   function cols(){ return Math.max(1, (getComputedStyle(grid).gridTemplateColumns || "").split(" ").filter(Boolean).length); }
   var pool = null, shownKey = "";
+  document.addEventListener("apex-dict-ready", function(){ if(pool){ shownKey = ""; render(); } });
   function render(){
     if(!pool) return;
     var flex = carousel(), c = flex ? 0 : cols();

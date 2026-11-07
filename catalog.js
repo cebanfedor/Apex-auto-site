@@ -360,7 +360,13 @@
     if(rst) rst.innerHTML = n ? '<button type="button" class="cf-reset" id="catResetAllBtnV1">' + esc(T("Сбросить")) + '</button>' : "";
     var r = document.getElementById("catResetAllBtnV1"); if(r) r.addEventListener("click", resetAll);
     var fb = document.getElementById("btn-filters");
-    if(fb){ var lab = fb.lastChild; if(lab && lab.nodeType === 3) lab.textContent = " " + T("Фильтры") + (n ? " · " + n : ""); }
+    if(fb){
+      var lab = fb.querySelector("[data-fcnt]") ? fb.querySelector("[data-fcnt]").previousSibling : fb.lastChild;
+      if(lab && lab.nodeType === 3){ lab.__i18nSrc = undefined; lab.nodeValue = " " + T("Фильтры"); }
+      var fc = fb.querySelector("[data-fcnt]");
+      if(!fc){ fc = document.createElement("span"); fc.setAttribute("data-fcnt", ""); fc.setAttribute("data-no-i18n", "true"); fb.appendChild(fc); }
+      fc.textContent = n ? " · " + n : "";
+    }
     document.querySelectorAll(".filter-section[data-sec]").forEach(function(sec){
       var active = sectionActive(sec.getAttribute("data-sec"));
       var dot = sec.querySelector("[data-active-dot]"), clr = sec.querySelector(".filter-section__clear");

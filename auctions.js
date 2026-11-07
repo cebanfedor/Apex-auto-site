@@ -2609,7 +2609,13 @@
 
   function setSeo(lot){
     const title = `${lotTitle(lot)} — ${lot.auction.toUpperCase()} Lot ${lot.lot} | ApexAuto`;
-    const description = `Лот ${lot.auction.toUpperCase()} ${lot.lot}: ${lotTitle(lot)}, VIN ${lot.vin || "не указан"}, пробег ${lot.odometerText || "не указан"}, повреждение ${lot.damage || "не указано"}, дата торгов ${dateText(lot.auctionDate)}.`;
+    let description = `Лот ${lot.auction.toUpperCase()} ${lot.lot}: ${lotTitle(lot)}, VIN ${lot.vin || "не указан"}, пробег ${lot.odometerText || "не указан"}, повреждение ${lot.damage || "не указано"}, дата торгов ${dateText(lot.auctionDate)}.`;
+    {
+      // RO/EN: не затирать серверное описание русской строкой (SSR уже отдал его на нужном языке)
+      const lg = window.APEX_LANG;
+      if(lg === "en") description = `${lot.auction.toUpperCase()} lot ${lot.lot}: ${lotTitle(lot)}, VIN ${lot.vin || "n/a"}, mileage ${lot.odometerText || "n/a"}, damage ${lot.damage || "n/a"}. Turnkey cost to Moldova — Apex Auto.`;
+      else if(lg === "ro") description = `Lot ${lot.auction.toUpperCase()} ${lot.lot}: ${lotTitle(lot)}, VIN ${lot.vin || "nespecificat"}, rulaj ${lot.odometerText || "nespecificat"}, daune ${lot.damage || "nespecificate"}. Cost la cheie până în Moldova — Apex Auto.`;
+    }
     document.title = title;
     setMeta("name", "description", description);
     setMeta("property", "og:title", title);

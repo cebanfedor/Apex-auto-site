@@ -77,8 +77,27 @@ function esc(s){
     return isNaN(dt) ? "" : dt.toLocaleDateString(lang() === "ro" ? "ro-RO" : lang() === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"long", year:"numeric"}).replace(/\s?г\.$/, "");
   }
 
+  // Повреждения из админки — свободный текст («Перед прав», «Задний бампер»): переводим по словам, неизвестное оставляем как есть.
+  var DMG_RU = [
+    [/^перед(ний|няя|нее)?$/i, "Front", "Față"], [/^зад(ний|няя|нее)?$/i, "Rear", "Spate"],
+    [/^лев(ый|ая|ое)?$/i, "left", "stânga"], [/^прав(ый|ая|ое)?$/i, "right", "dreapta"],
+    [/^бок(овой|овая|овое)?$/i, "Side", "Lateral"], [/^крыш[аиу]$/i, "Roof", "Acoperiș"],
+    [/^капот$/i, "Hood", "Capotă"], [/^багажник$/i, "Trunk", "Portbagaj"], [/^двер[ьиь]$/i, "Door", "Ușă"],
+    [/^крыл[оа]$/i, "Fender", "Aripă"], [/^бампер$/i, "Bumper", "Bară de protecție"],
+    [/^град(обой)?$/i, "Hail", "Grindină"], [/^вод[аы]$/i, "Water", "Apă"], [/^стекло$/i, "Glass", "Geam"],
+    [/^фара$/i, "Headlight", "Far"], [/^угол$/i, "Corner", "Colț"], [/^удар$/i, "Impact", "Impact"],
+    [/^без$/i, "No", "Fără"], [/^повреждени[йяе]$/i, "damage", "daune"], [/^царапины$/i, "Scratches", "Zgârieturi"],
+    [/^вмятины$/i, "Dents", "Îndoituri"], [/^сзади$/i, "Rear", "Spate"], [/^спереди$/i, "Front", "Față"]
+  ];
+  function dmgTr(s){
+    var lg = window.APEX_LANG; if(lg !== "en" && lg !== "ro") return s;
+    return String(s).replace(/[А-Яа-яЁё]+/g, function(w){
+      for(var i = 0; i < DMG_RU.length; i++) if(DMG_RU[i][0].test(w)) return lg === "en" ? DMG_RU[i][1] : DMG_RU[i][2];
+      return w;
+    });
+  }
   function chips(it){
-    return [fmtKm(it.mileage), fmtFuel(it.fuel), fmtEngine(it.engine), it.damage].filter(Boolean)
+    return [fmtKm(it.mileage), fmtFuel(it.fuel), fmtEngine(it.engine), it.damage && dmgTr(it.damage)].filter(Boolean)
       .map(function(x){ return "<span>" + esc(x) + "</span>"; }).join("");
   }
 
@@ -224,7 +243,7 @@ function esc(s){
             + specRow("Пробег", fmtKm(it.mileage), true)
             + specRow("Двигатель", fmtEngine(it.engine), true)
             + specRow("Топливо", fmtFuel(it.fuel), true)
-            + specRow("Повреждения", it.damage)
+            + specRow("Повреждения", it.damage && dmgTr(it.damage))
             + specRow("VIN", it.vin, true)
             + specRow("Оценка ремонта", it.repairEstimate ? "≈ " + money(it.repairEstimate) : "", true)
             + specRow("Ожидается в Кишинёве", fmtEta(it.eta), true)
@@ -365,6 +384,7 @@ function esc(s){
     history.pushState({}, "", withLang(a.getAttribute("href")));
     route();
   });
+  document.addEventListener("apex-dict-ready", function(){ if(ITEMS && ITEMS.length){ renderList(); route(); } });
   window.addEventListener("popstate", route);
 
   // Серверная страница объявления уже вшила список в HTML — второй запрос не нужен.
