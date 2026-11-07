@@ -26,7 +26,10 @@ function lotJsonLd(lot, opts = {}){
   const ca = isCanada(lot);
   const ts = Date.parse(lot.auctionDate || "");
   const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now();
-  const price = sold ? Number(lot.finalBid) : (Number(lot.currentBid) || Number(lot.buyNow) || 0);
+  // Бриф провайдера §16 (SEO): availability SoldOut у завершённого лота, InStock пока открыт; цена = final_bid, иначе buy_now, иначе bid.
+  // Завершённый = продан, «ждёт утверждения» (4), не продан (8) или не состоялся (7) с прошедшей датой торгов.
+  const ended = sold || ([4, 7, 8].includes(Number(lot.statusId)) && Number.isFinite(ts) && ts < Date.now() - 30 * 60e3);
+  const price = Number(lot.finalBid) > 0 && ended ? Number(lot.finalBid) : (Number(lot.currentBid) || Number(lot.buyNow) || 0);
   const vin = /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(lot.vin || "")) ? String(lot.vin).toUpperCase() : undefined;
   const imgs = (Array.isArray(lot.images) && lot.images.length ? lot.images : (lot.image ? [lot.image] : [])).filter(Boolean).slice(0, 6);
   const transRaw = String(lot.transmission || "");
@@ -52,7 +55,7 @@ function lotJsonLd(lot, opts = {}){
       "@type": "Offer",
       priceCurrency: ca ? "CAD" : "USD",
       price: Math.round(price),
-      availability: sold ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
+      availability: ended ? "https://schema.org/SoldOut" : "https://schema.org/InStock",
       itemCondition: "https://schema.org/UsedCondition",
       url: q(url),
       seller: {"@type": "Organization", name: "Apex Auto", url: "https://apexauto.md"}

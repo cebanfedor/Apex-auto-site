@@ -48,3 +48,16 @@ test("fuelText: коды и текст фида", () => {
   assert.equal(fuelText({fuel:"Gasoline"}), "Gasoline");
   assert.equal(fuelText({}), undefined);
 });
+
+test("lotJsonLd: не проданный (8) и ждущий утверждения (4) лот с прошедшей датой — SoldOut, открытый — InStock", () => {
+  const base = {title:"2019 BMW X5", make:"BMW", model:"X5", year:2019, vin:"5UXCR6C57KLL12345", odometer:40000, auction:"copart", lot:"61420506"};
+  const past = new Date(Date.now() - 864e5).toISOString(), fut = new Date(Date.now() + 864e5).toISOString();
+  const notSold = lotJsonLd({...base, statusId:8, auctionDate:past, finalBid:5000, currentBid:5000}, {url:"https://apexauto.md/x"});
+  assert.equal(notSold.offers.availability, "https://schema.org/SoldOut");
+  assert.equal(notSold.offers.price, 5000);
+  const approval = lotJsonLd({...base, statusId:4, auctionDate:past, finalBid:4200}, {url:"https://apexauto.md/x"});
+  assert.equal(approval.offers.availability, "https://schema.org/SoldOut");
+  const open = lotJsonLd({...base, statusId:3, auctionDate:fut, currentBid:900}, {url:"https://apexauto.md/x"});
+  assert.equal(open.offers.availability, "https://schema.org/InStock");
+  assert.equal(open.offers.price, 900);
+});

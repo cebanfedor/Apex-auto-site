@@ -1650,6 +1650,13 @@ async function fetchDetail(query){
     error.status = 400;
     throw error;
   }
+  // Бриф провайдера §1/§5: номер лота — цифры и, возможно, одна буква в конце; всё остальное (VIN, слаг) API отвергает 400,
+  // а каждый запрос, даже с ошибкой, идёт в лимит подписки — проверяем локально.
+  if(!/^\d{1,12}[A-Za-z]?$/.test(lot)){
+    const error = new Error("lot should be a number or number with last letter");
+    error.status = 400;
+    throw error;
+  }
 
   const params = new URLSearchParams({prices_history:"1"});
   const domains = [auctionsApiDomain(auction), auction];
@@ -6252,7 +6259,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g46" : "";   // бамп при смене таблицы поколений и формы detail (g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g47" : "";   // бамп при смене таблицы поколений и формы detail (g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
