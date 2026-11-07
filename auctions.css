@@ -1863,3 +1863,12 @@ body.leadModalOpenV1 { overflow:hidden; }
   #paginationV1 .pgLoadMoreBtnV1 { width:100%; min-height:52px; font-size:16px; }
   .pgInfoV1 { text-align:center; font-size:12.5px; color:var(--aMuted); }
 }
+
+/* Быстрые фильтры-чипы (только телефон) */
+.quickChipsV1 { display:none; }
+@media (max-width:640px){
+  .quickChipsV1 { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 8px; margin:0 -2px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .quickChipsV1::-webkit-scrollbar { display:none; }
+  .qChipV1 { flex:none; min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--aLine,#dfe3ea); background:var(--aSurf,#fff); color:var(--aInk,#11141a); font:600 13.5px/1 inherit; white-space:nowrap; cursor:pointer; }
+  .qChipV1.active { background:var(--aRed,#ed0012); border-color:var(--aRed,#ed0012); color:#fff; }
+}

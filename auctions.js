@@ -2639,7 +2639,7 @@
     }finally{
       if(reqId === state.loadSeq){
         state.loading = false;
-        syncQuickTimed();
+        syncQuickTimed(); try{ window.syncQuickChips && window.syncQuickChips(); }catch(_){}
         if(!append){ try{ msApi.refreshFacets && msApi.refreshFacets(); }catch(e){} }
         clearTimeout(state.dimTimer);
         $("#auctionCards").classList.remove("lotsRefreshingV1");
@@ -5492,6 +5492,33 @@
         loadLots();
       });
     });
+    // Быстрые фильтры-чипы (только телефон): одним тапом то, что чаще всего ищут; те же поля формы, что в шторке фильтров.
+    {
+      const F = sel => [...document.querySelectorAll(sel)];
+      const boxOn = (name, vals) => F(`#auctionFiltersForm input[name="${name}"]`).filter(x => !vals || vals.includes(x.value));
+      const CHIPS = [
+        {key:"clean", label:"Без перекупов", on:() => boxOn("smart").some(x => x.checked), set:v => boxOn("smart").forEach(x => { x.checked = v; })},
+        {key:"ev", label:"Электро и гибриды", on:() => boxOn("fuel", ["2","3","5"]).some(x => x.checked) && !boxOn("fuel", ["1","4"]).some(x => x.checked), set:v => { boxOn("fuel").forEach(x => { x.checked = v && ["2","3","5"].includes(x.value); }); }},
+        {key:"ins", label:"Страховые", on:() => boxOn("sellerKind", ["1"]).some(x => x.checked), set:v => boxOn("sellerKind").forEach(x => { x.checked = v && x.value === "1"; })},
+        {key:"runs", label:"Заводятся и едут", on:() => boxOn("condition", ["0"]).some(x => x.checked), set:v => boxOn("condition").forEach(x => { x.checked = v && x.value === "0"; })},
+        {key:"ban", label:"Без запретов экспорта", on:() => boxOn("noBan").some(x => x.checked), set:v => boxOn("noBan").forEach(x => { x.checked = v; })}
+      ];
+      const bar = document.createElement("div");
+      bar.className = "quickChipsV1"; bar.id = "quickChipsV1"; bar.setAttribute("role", "group"); bar.setAttribute("aria-label", L("Быстрые фильтры"));
+      bar.innerHTML = CHIPS.map(c => `<button type="button" class="qChipV1" data-qchip="${c.key}" aria-pressed="false">${escapeHtml(L(c.label))}</button>`).join("");
+      const tb = document.querySelector(".auctionToolbarV2");
+      if(tb && tb.parentNode) tb.parentNode.insertBefore(bar, tb);
+      window.syncQuickChips = function(){ bar.querySelectorAll("[data-qchip]").forEach(b => { const c = CHIPS.find(x => x.key === b.dataset.qchip); const on = c && c.on(); b.classList.toggle("active", !!on); b.setAttribute("aria-pressed", on ? "true" : "false"); }); };
+      bar.addEventListener("click", e => {
+        const b = e.target.closest("[data-qchip]"); if(!b) return;
+        const c = CHIPS.find(x => x.key === b.dataset.qchip); if(!c) return;
+        if(["archived", "favorites"].includes(state.tab) && c.key !== "ban"){ state.tab = "all"; document.querySelectorAll("[data-tab]").forEach(item => item.classList.toggle("active", item.dataset.tab === "all")); }
+        c.set(!c.on()); window.syncQuickChips();
+        state.page = 1; state.displayPage = 1; exitDiscovery();
+        $("#auctionFiltersForm").requestSubmit();
+      });
+      window.syncQuickChips();
+    }
     document.getElementById("quickTimedV1")?.addEventListener("click", () => {
       const btn = document.getElementById("quickTimedV1"), on = btn.classList.contains("active");
       document.querySelectorAll('input[name="saleStatus"]').forEach(x => { x.checked = false; });
