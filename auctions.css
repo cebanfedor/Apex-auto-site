@@ -1805,3 +1805,15 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbPhotoCount { font-size:12px; }
   .tabCountV1 { font-size:11px; }
 }
+
+/* 07.11.2026 — страница лота на телефоне: минимумы шрифтов (подписи ≥10.5px, служебный текст ≥11.5px) */
+@media (max-width:640px) {
+  .dMobSumV1 small { font-size:10.5px; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { font-size:11.5px; }
+  .calcBidLabelV2 span, .calcSaleV2, .calcRatesV2 span, .calcOptColV1 > span { font-size:10.5px; }
+  .calcPairRowV1 .calcOptV2 { font-size:11px; }
+  .dGalChipV2 .dAuc, .dAuc.dGalChipV2 { font-size:10.5px; }
+  .dSecHead, .calcSecHeadV2, .calcNoteV2 { font-size:12px; }
+  .simCardV1 > span { font-size:12px; }
+  .simCardV1 .simCondV1, .simCardV1 .simVinV1 { font-size:11.5px; }
+}

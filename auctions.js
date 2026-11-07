@@ -1487,7 +1487,7 @@
     if(diff <= 0 || diff > 12 * 3600e3) return "";
     const h = Math.floor(diff / 3600e3);
     const m = Math.floor((diff % 3600e3) / 60e3);
-    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    return h > 0 ? `${h} ${L("ч")} ${m} ${L("мин")}` : `${m} ${L("мин")}`;
   }
 
   // Перевыставленный лот хранит finalBid прошлых торгов: если дата аукциона в будущем,
