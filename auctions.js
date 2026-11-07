@@ -4096,6 +4096,8 @@
           <span class="lotStickyTitleV1">${escapeHtml([lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" "))}</span>
           <span class="lotStickyTotalV1" id="lotStickyTotalV1" hidden><small>${L("Под ключ в Кишинёве")} ≈</small> <b data-no-i18n="true"></b></span>
         </button>
+        <a class="lotStickyIcoV1 lotStickyCallV1" href="tel:+37368832032" aria-label="${L("Позвонить")}"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></a>
+        <a class="lotStickyIcoV1 lotStickyWaV1" href="https://api.whatsapp.com/send?phone=37368832032&text=${encodeURIComponent(`${L("Здравствуйте! Интересует лот")}: ${[lot.year, lot.make, displayModel(lot.model)].filter(Boolean).join(" ")} — ${location.origin}${location.pathname}`)}" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a5 5 0 0 0 5 5l1.2-1.2-2-1-1 .7a3.5 3.5 0 0 1-1.7-1.7l.7-1-1-2z" fill="currentColor" stroke="none"/></svg></a>
         <button type="button" class="dbBtnPrimary lotStickyBtnV1" data-lead="${escapeHtml(lot.id)}">${s || exportBan(lot) ? L("Подобрать похожую") : L("Оставить заявку")}</button>
       </div>`; })()}
     `;
