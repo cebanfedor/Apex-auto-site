@@ -381,7 +381,8 @@ function sellerLabel(lot, item){
   // Detect insurance from seller_type or from well-known insurer names
   const nameUp = name.toUpperCase();
   const insurerKeywords = /INSURANCE|GEICO|USAA|CSAA|PROGRESSIVE|ALLSTATE|NATIONWIDE|LIBERTY MUTUAL|STATE FARM|FARMERS|BRISTOL WEST|TRAVELERS|ERIE|MERCURY|ESURANCE|21ST CENTURY|AAA|METLIFE|KEMPER|AMERICAN FAMILY/;
-  const isInsurance = /insurance/.test(t) || (!t && insurerKeywords.test(nameUp));
+  // seller_type «non_insurance» тоже содержит «insurance» — раньше любой не страховой продавец с именем помечался «· Страховая» (07.11.2026)
+  const isInsurance = (/insurance/.test(t) && !/non.?insurance/.test(t)) || (!t && insurerKeywords.test(nameUp));
   const isDealer = /non.?insurance|dealer|dealership|private/.test(t);
   const sObj = (lot?.seller && typeof lot.seller === "object") ? lot.seller : ((item?.seller && typeof item.seller === "object") ? item.seller : null);
   if(name && sObj){
@@ -396,7 +397,7 @@ function sellerLabel(lot, item){
   }
   // No name — show type category only
   if(isDealer) return "Дилер / частник";
-  if(/insurance/.test(t)) return "Страховая компания";
+  if(/insurance/.test(t) && !/non.?insurance/.test(t)) return "Страховая компания";
   if(t) return t.replace(/_/g, " ");
   return "";
 }
@@ -1959,7 +1960,7 @@ function lotQualityScore(l, todayStart){
   let s = 0;
   const st = String(l.sellerType || "").toLowerCase();
   const seller = String(l.seller || "");
-  if(/insurance/.test(st) || /Страховая/.test(seller)) s += 30;
+  if((/insurance/.test(st) && !/non.?insurance/.test(st)) || /Страховая/.test(seller)) s += 30;
   else if(/financ|credit|bank/.test(st)) s += 22;
   else if(/fleet|lease|rental/.test(st)) s += 18;
   else if(seller) s += 6; // известный продавец лучше «Неизвестен»
@@ -5111,7 +5112,7 @@ async function takeMetaLock(k, ms){
 }
 // Страховая/прокат/лизинговые автопарки — тот же список, что sellerIsInsurance/isRentalName/isFleetName в auctions.js
 const INS_SELLER_RE = /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre|corporate services|financial services|\b(sixt|turo|avis|hertz|enterprise|budget rent|national car|alamo|dollar rent|thrifty|zipcar|getaround|u-?haul|ryder|penske|firefly|payless|fox rent)/i;
-const sellerIsIns = s => /insurance/i.test(String(s.sellerType || "")) || INS_SELLER_RE.test(String(s.seller || ""));
+const sellerIsIns = s => (/insurance/i.test(String(s.sellerType || "")) && !/non.?insurance/i.test(String(s.sellerType || ""))) || INS_SELLER_RE.test(String(s.seller || ""));
 // Метка перекупа для Clean Select (правила Федора, едины с карточкой): 2 — уже продавался; 1 — подозрительный: у НЕ страховой менялся номер лота или 3+ выставлений
 // (страховая выставляет тот же лот 2–4 раза — норма; у неё 1 только при 8+ выставлениях или 3+ номерах лота). Продавец неизвестен коду (нет полей) — старые мягкие пороги.
 function resaleLevel(stub, lotNo, saleIso){

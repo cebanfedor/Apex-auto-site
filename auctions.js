@@ -1419,7 +1419,8 @@
   const isFleetName = v => FLEET_RE.test(String(v || ""));
   function sellerIsInsurance(lot){
     if(isRentalName(lot && lot.seller) || isFleetName(lot && lot.seller)) return true;
-    return /insurance/.test(String(lot.sellerType || "").toLowerCase())
+    const stl = String(lot.sellerType || "").toLowerCase();
+    return (/insurance/.test(stl) && !/non.?insurance/.test(stl))
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
   }
   function isCurrentRound(e, lot){
@@ -3871,7 +3872,7 @@
     // текст «Страховая · Имя», без цветных плашек внутри таблицы.
     // Первичен seller_type из API (mapfre и др. по имени не распознать).
     const sellerTypeRaw = String(lot.sellerType || "").toLowerCase();
-    const isIns = /insurance/.test(sellerTypeRaw)
+    const isIns = (/insurance/.test(sellerTypeRaw) && !/non.?insurance/.test(sellerTypeRaw))
       || /insurance|state farm|allstate|progressive|geico|nationwide|farmers|usaa|liberty mutual|statefarm|mapfre/i.test(String(lot.seller || ""));
     const isFleet = isFleetName(lot.seller);
     const sellerTypeLabel = L(isRentalName(lot.seller) ? "Прокат" : isFleet ? "Автопарк / лизинг" : isIns ? "Страховая"
