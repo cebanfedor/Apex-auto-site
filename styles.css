@@ -2586,3 +2586,10 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .mClampBtnV1 { display: block; margin: 8px auto 4px; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 700 14px/1 var(--font); cursor: pointer; box-shadow: var(--shadow-sm); }
   .mClampBtnV1:active { transform: scale(.97); }
 }
+
+/* Главная на телефоне (07.11.2026): лоты с аукциона и авто из Кореи — горизонтальные ленты вместо сетки 2×N (−900 px прокрутки) */
+@media (max-width: 640px) {
+  .homeLotsGridV1 { display: flex; grid-template-columns: none; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; margin: 0 -24px; padding: 2px 24px 12px; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .homeLotsGridV1::-webkit-scrollbar { display: none; }
+  .homeLotsGridV1 > .homeLotCardV1 { flex: 0 0 62%; max-width: 250px; scroll-snap-align: start; }
+}
