@@ -3213,7 +3213,28 @@
   const hasPano360 = l => !!(l && (l.panoramaUrl || l.interiorUrl || (Array.isArray(l.spinFrames) && l.spinFrames.length > 1)));
   // Крутилка 360° по кадрам exterior[]: автоповорот ~120 мс/кадр, перетаскивание (≈8 px на кадр), колесо — шаг, кнопки ◀ ▶ ⏯ и счётчик.
   let lbSpinTimer = null;
-  function lbStopSpin(){ clearInterval(lbSpinTimer); lbSpinTimer = null; }
+  let lbPanoViewer = null, pannellumP = null;
+  function lbStopSpin(){ clearInterval(lbSpinTimer); lbSpinTimer = null; if(lbPanoViewer){ try{ lbPanoViewer.destroy(); }catch(_){} lbPanoViewer = null; } }
+  // Панорама салона Copart (images.interior) — ЭТО картинка 2:1 (equirectangular JPEG), не страница: в iframe показывалась бы плоская лента.
+  // Настоящий обзор — Pannellum 2.5.6 (MIT, лежит в /vendor/pannellum, грузится лениво при первом открытии). Нет WebGL/сбой — запасной iframe.
+  function loadPannellum(){
+    if(window.pannellum) return Promise.resolve();
+    if(pannellumP) return pannellumP;
+    pannellumP = new Promise((resolve, reject) => {
+      const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "/vendor/pannellum/pannellum.css?v=2.5.6"; document.head.appendChild(css);
+      const sc = document.createElement("script"); sc.src = "/vendor/pannellum/pannellum.js?v=2.5.6"; sc.onload = () => resolve(); sc.onerror = () => { pannellumP = null; reject(new Error("pannellum")); };
+      document.head.appendChild(sc);
+    });
+    return pannellumP;
+  }
+  function lbStartPano(stage, url, fallback){
+    stage.innerHTML = `<div class="lbPanoBoxV1"><div id="lbPanoViewerV1" class="lbPanoViewerV1"></div></div>`;
+    loadPannellum().then(() => {
+      if(!document.getElementById("lbPanoViewerV1")) return;   // лайтбокс уже перерисован
+      lbPanoViewer = window.pannellum.viewer("lbPanoViewerV1", {type:"equirectangular", panorama:url, autoLoad:true, autoRotate:-3, showFullscreenCtrl:true, showZoomCtrl:true, hfov:100, minHfov:50, maxHfov:120, compass:false});
+      lbPanoViewer.on("error", fallback);
+    }).catch(fallback);
+  }
   function lbStartSpin(stage, frames){
     lbStopSpin();
     stage.innerHTML = `<div class="lbSpinV1"><img class="lbSpinImgV1" alt="" draggable="false"><div class="lbSpinBarV1"><button type="button" data-sp="prev" aria-label="‹">‹</button><button type="button" data-sp="play" aria-label="play">❚❚</button><button type="button" data-sp="next" aria-label="›">›</button><span class="lbSpinCntV1"></span></div></div>`;
@@ -3249,6 +3270,9 @@
         lbStartSpin(stage, item.frames);
       }else if(item.type === "video"){
         stage.innerHTML = `<video class="lbImgV1" src="${escapeHtml(item.src)}" controls autoplay playsinline${item.poster ? ` poster="${escapeHtml(item.poster)}"` : ""}></video>`;
+      }else if(item.type === "pano" && /\.(jpe?g|png|webp)(\?|#|$)/i.test(String(item.src || ""))){
+        const asFrame = () => { lbStopSpin(); const st = document.getElementById("lbStage"); if(st) st.innerHTML = `<iframe class="lbPanoV1" src="${escapeHtml(item.src)}" allowfullscreen loading="lazy"></iframe>`; };
+        lbStartPano(stage, item.src, asFrame);
       }else if(item.type === "pano"){
         // 360°-обзор площадки (пока подтверждён только у IAAI) — готовый вьюер в iframe, своя навигация внутри.
         stage.innerHTML = `<iframe class="lbPanoV1" src="${escapeHtml(item.src)}" allow="accelerometer; gyroscope" allowfullscreen loading="lazy"></iframe>`;

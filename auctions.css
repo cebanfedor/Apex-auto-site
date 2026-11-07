@@ -1741,7 +1741,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .lbSpinBarV1 { position:absolute; left:50%; bottom:10px; transform:translateX(-50%); display:flex; align-items:center; gap:6px; padding:6px 10px; background:rgba(0,0,0,.6); border-radius:999px; color:#fff; font:600 13px/1 var(--font, system-ui); }
 .lbSpinBarV1 button { min-width:40px; height:40px; border:0; border-radius:50%; background:rgba(255,255,255,.14); color:#fff; font-size:18px; cursor:pointer; }
 .lbSpinBarV1 button:hover { background:rgba(255,255,255,.28); }
-.lbSpinCntV1 { padding:0 6px; font-variant-numeric:tabular-nums; }
+.lbSpinCntV1 { padding:0 6px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 /* Фильтр «Цвет»: образец цвета перед названием */
 .colSwV1 { width:14px; height:14px; border-radius:50%; flex:0 0 14px; border:1px solid rgba(0,0,0,.28); margin-right:2px; }
@@ -1749,3 +1749,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Страна покупателя проданного лота: флаг-картинка перед названием */
 .buyerCtV1 { display:inline-flex; align-items:center; gap:7px; }
 .buyerCtV1 img { width:20px; height:15px; object-fit:cover; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.15); }
+
+/* Панорама салона (equirectangular, Pannellum) */
+.lbPanoBoxV1 { width:92vw; max-width:1200px; height:82vh; border-radius:8px; overflow:hidden; background:#111; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+.lbPanoViewerV1 { width:100%; height:100%; }
