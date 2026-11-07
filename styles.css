@@ -2566,6 +2566,8 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .rtPulse, .rtRouteFlow { animation: none !important; }
   .fxContactsV1 .fxItemV1 { opacity: 1; transform: none; transition: none; }
   .contactsQuickCardV110::after { animation: none; }
+}
+
 /* ===== Мобильная v3 (07.11.2026, Федор: 85% клиентов — телефоны): главная короче ===== */
 @media (max-width: 640px) {
   /* «Почему Apex»: 6 карточек стопкой = 1 400 px → горизонтальная лента со свайпом (≈230 px) */
