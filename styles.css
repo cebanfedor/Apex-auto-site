@@ -2566,4 +2566,21 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .rtPulse, .rtRouteFlow { animation: none !important; }
   .fxContactsV1 .fxItemV1 { opacity: 1; transform: none; transition: none; }
   .contactsQuickCardV110::after { animation: none; }
+/* ===== Мобильная v3 (07.11.2026, Федор: 85% клиентов — телефоны): главная короче ===== */
+@media (max-width: 640px) {
+  /* «Почему Apex»: 6 карточек стопкой = 1 400 px → горизонтальная лента со свайпом (≈230 px) */
+  .apexWhyGridV212 { display: flex; grid-template-columns: none; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; margin: 18px -24px 0; padding: 2px 24px 14px; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .apexWhyGridV212::-webkit-scrollbar { display: none; }
+  .apexWhyCardV212 { flex: 0 0 82%; scroll-snap-align: center; margin: 0; }
+  /* Блок заявки: ссылки-чипы — одной прокручиваемой строкой, а не столбцом */
+  .leadGrid > *, .leadText { min-width: 0; }   /* иначе nowrap-ряд ниже раздувает колонку грида (страница ехала вбок на 136 px) */
+  .leadBadgesLinksV48 { max-width: 100%; display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 8px; margin-right: -24px; padding-right: 24px; scrollbar-width: none; }
+  .leadBadgesLinksV48::-webkit-scrollbar { display: none; }
+  .leadBadgesLinksV48 a { flex: none; white-space: nowrap; }
+  /* Длинные тексты сворачиваются (кнопку добавляет mobile-ux.js; текст остаётся в DOM для поисковиков) */
+  .mClampV1 { position: relative; max-height: var(--mch, 300px); overflow: hidden; }
+  .mClampV1:not(.mOpenV1)::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 96px; background: linear-gradient(rgba(238,241,246,0), #eef1f6 85%); pointer-events: none; }
+  .mClampV1.mOpenV1 { max-height: none; }
+  .mClampBtnV1 { display: block; margin: 8px auto 4px; min-height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 700 14px/1 var(--font); cursor: pointer; box-shadow: var(--shadow-sm); }
+  .mClampBtnV1:active { transform: scale(.97); }
 }
