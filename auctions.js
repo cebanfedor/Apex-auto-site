@@ -1530,7 +1530,7 @@
           ${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" ${idx < 2 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async" class="dbSlideImg">` : `<span class="dbNoPhoto">${L("Нет фото")}</span>`}
         </a>
         ${exportBan(lot) ? `<span class="dbExportTagV1">${L("Экспорт запрещён")}</span>` : ""}
-        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${caFlagBadge(lot)}${lot.video ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
+        <span class="dbBadgesRowV3"><span class="dbAuc">${escapeHtml(lot.auction.toUpperCase())}</span>${caFlagBadge(lot)}${hasVideo(lot) ? `<span class="dbVideoBadgeV3">▶ ${L("Видео")}</span>` : ""}</span>
         <span class="dbPhotoCount">1/${escapeHtml(String(photos))}</span>
         ${photos > 1 ? `<span class="dbPhotoBarV1" aria-hidden="true"><i style="width:${(100 / photos).toFixed(3)}%"></i></span>` : ""}
         ${Number(priceVal) > 0 ? `<span class="dbPhotoPrice${isSold ? " dbPhotoPriceSold" : ""}">${price}</span>` : ""}
@@ -3181,14 +3181,45 @@
     }, 700);
   }
   function lbStopPanoFocusGuard(){ clearInterval(lbPanoFocusTimer); lbPanoFocusTimer = null; }
+  const hasVideo = l => !!(l && (l.video || l.videoYoutubeId));
+  const hasPano360 = l => !!(l && (l.panoramaUrl || l.interiorUrl || (Array.isArray(l.spinFrames) && l.spinFrames.length > 1)));
+  // Крутилка 360° по кадрам exterior[]: автоповорот ~120 мс/кадр, перетаскивание (≈8 px на кадр), колесо — шаг, кнопки ◀ ▶ ⏯ и счётчик.
+  let lbSpinTimer = null;
+  function lbStopSpin(){ clearInterval(lbSpinTimer); lbSpinTimer = null; }
+  function lbStartSpin(stage, frames){
+    lbStopSpin();
+    stage.innerHTML = `<div class="lbSpinV1"><img class="lbSpinImgV1" alt="" draggable="false"><div class="lbSpinBarV1"><button type="button" data-sp="prev" aria-label="‹">‹</button><button type="button" data-sp="play" aria-label="play">❚❚</button><button type="button" data-sp="next" aria-label="›">›</button><span class="lbSpinCntV1"></span></div></div>`;
+    const img = stage.querySelector(".lbSpinImgV1"), cnt = stage.querySelector(".lbSpinCntV1"), playBtn = stage.querySelector('[data-sp="play"]');
+    const n = frames.length; let i = 0, playing = true;
+    frames.forEach(u => { const im = new Image(); im.src = u; });   // прогрев всех кадров
+    const show = k => { i = ((k % n) + n) % n; img.src = frames[i]; cnt.textContent = `${i + 1} / ${n}`; };
+    const setPlay = on => { playing = on; playBtn.textContent = on ? "❚❚" : "▶"; };
+    show(0);
+    lbSpinTimer = setInterval(() => { if(playing) show(i + 1); }, 120);
+    let down = false, sx = 0, acc = 0;
+    img.addEventListener("pointerdown", e => { down = true; sx = e.clientX; acc = 0; setPlay(false); try{ img.setPointerCapture(e.pointerId); }catch(_){} });
+    img.addEventListener("pointermove", e => { if(!down) return; acc += e.clientX - sx; sx = e.clientX; const st = Math.trunc(acc / 8); if(st){ show(i - st); acc -= st * 8; } });
+    const up = () => { down = false; };
+    img.addEventListener("pointerup", up); img.addEventListener("pointercancel", up);
+    stage.querySelector(".lbSpinV1").addEventListener("wheel", e => { e.preventDefault(); setPlay(false); show(i + (e.deltaY > 0 ? 1 : -1)); }, {passive:false});
+    stage.querySelector(".lbSpinBarV1").addEventListener("click", e => {
+      const b = e.target.closest("[data-sp]"); if(!b) return; e.stopPropagation();
+      if(b.dataset.sp === "play") setPlay(!playing); else { setPlay(false); show(i + (b.dataset.sp === "next" ? 1 : -1)); }
+    });
+  }
   function renderLightbox(){
     const stage = document.getElementById("lbStage");
     const item = lb.images[lb.index];
     lb.zoom = 1; lb.panX = 0; lb.panY = 0;   // смена фото/видео/360° — зум предыдущего кадра не переносим
     lbStopPanoFocusGuard();
+    lbStopSpin();
     if(stage && item){
       // Перерисовка innerHTML заодно останавливает видео при листании
-      if(item.type === "video"){
+      if(item.type === "video" && item.yt){
+        stage.innerHTML = `<iframe class="lbPanoV1" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(item.yt)}?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      }else if(item.type === "spin"){
+        lbStartSpin(stage, item.frames);
+      }else if(item.type === "video"){
         stage.innerHTML = `<video class="lbImgV1" src="${escapeHtml(item.src)}" controls autoplay playsinline${item.poster ? ` poster="${escapeHtml(item.poster)}"` : ""}></video>`;
       }else if(item.type === "pano"){
         // 360°-обзор площадки (пока подтверждён только у IAAI) — готовый вьюер в iframe, своя навигация внутри.
@@ -3234,6 +3265,7 @@
     document.body.classList.remove("lbOpenV1");
     lb.zoom = 1; lb.panX = 0; lb.panY = 0;
     lbStopPanoFocusGuard();
+    lbStopSpin();
     // Видео могло уйти в НАТИВНЫЙ fullscreen (кнопка в его собственных controls) — такой режим рисуется
     // браузером ПОВЕРХ нашего оверлея; закрывая лайтбокс, выходим и из него, иначе пользователь остаётся
     // в полноэкранном видео, которое выглядит так, будто «ничего не закрылось».
@@ -3861,19 +3893,19 @@
                 </div>`;
               })()}
               <span class="dAuc dGalChipV2">${escapeHtml(lot.auction.toUpperCase())}</span>
-              ${lot.panoramaUrl ? `<span class="dGalTagV2 dGalPanoBtnV1" data-open-pano role="button">360°</span>` : ""}
+              ${hasPano360(lot) ? `<span class="dGalTagV2 dGalPanoBtnV1" data-open-pano role="button">360°</span>` : ""}
               ${images.length > 1 ? `
               <button class="dGalNavV1 dGalPrevV1" type="button" data-gal-step="-1" aria-label="Предыдущее фото">‹</button>
               <button class="dGalNavV1 dGalNextV1" type="button" data-gal-step="1" aria-label="Следующее фото">›</button>` : ""}
               <div class="dGalBadgesV2">
-                ${lot.video ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} ${L("Видео")}</span>` : ""}
+                ${hasVideo(lot) ? `<span class="dGalTagV2" data-open-video role="button">${dbIco("play")} ${L("Видео")}</span>` : ""}
                 <span class="dGalTagV2">${dbIco("zoom")} ${L("HD")} · ${escapeHtml(images.length || 1)} ${L("фото")}</span>
               </div>
             </div>
             <div class="detailThumbsV1">
               ${images.map((src, i) => `<img class="dThumbV2${i === 0 ? " isActiveThumbV2" : ""}" src="${escapeHtml(src)}" alt="${escapeHtml(title)}" data-detail-image="${escapeHtml(src)}" data-detail-index="${i}"${i > 0 ? ' loading="lazy"' : ""}>`).join("")}
-              ${lot.video ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="${escapeHtml(L("Видео осмотра"))}"><img src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(L("Видео осмотра"))}" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
-              ${lot.panoramaUrl ? `<span class="dThumbV2 dThumbPanoV1" role="button" data-open-pano title="360°"><img src="${escapeHtml(images[0] || "")}" alt="360°" loading="lazy"><i class="dThumbPanoIcoV1">360°</i></span>` : ""}
+              ${hasVideo(lot) ? `<span class="dThumbV2 dThumbVideoV1" role="button" data-open-video title="${escapeHtml(L("Видео осмотра"))}"><img src="${escapeHtml(images[0] || "")}" alt="${escapeHtml(L("Видео осмотра"))}" loading="lazy"><i class="dThumbPlayV1">${dbIco("play")}</i></span>` : ""}
+              ${hasPano360(lot) ? `<span class="dThumbV2 dThumbPanoV1" role="button" data-open-pano title="360°"><img src="${escapeHtml(images[0] || "")}" alt="360°" loading="lazy"><i class="dThumbPanoIcoV1">360°</i></span>` : ""}
             </div>
             <div class="dNoteV1">
               <label for="dNoteTextV1">${dbIco("note")}<span>${L("Моя заметка")}</span><span class="dNoteSavedV1" data-note-saved>${L("Сохранено ✓")}</span></label>
@@ -3951,7 +3983,7 @@
               ${lot.airbags ? dPlain("Подушки безопасности", L(/intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags)))) : ""}
               ${Number(lot.preAccidentPrice) > 100 ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
               ${Number(lot.cleanWholesalePrice) > 100 ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
-              ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
+              ${hasVideo(lot) ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot), lot)}
           </div>
@@ -3980,7 +4012,11 @@
     setTimeout(syncStickyTotal, 0);
     // Единый медиа-набор для лайтбокса: фото + видео осмотра последней плиткой
     state.detailMedia = images.map(src => ({type:"image", src}));
-    if(lot.video) state.detailMedia.push({type:"video", src:lot.video, poster:images[0] || ""});
+    if(lot.videoYoutubeId) state.detailMedia.push({type:"video", yt:lot.videoYoutubeId, poster:images[0] || ""});
+    else if(lot.video) state.detailMedia.push({type:"video", src:lot.video, poster:images[0] || ""});
+    // 360° (бриф провайдера §17): кадры exterior[] → своя крутилка; интерьер — панорама в iframe; иначе родной вьюер площадки.
+    if(Array.isArray(lot.spinFrames) && lot.spinFrames.length > 1) state.detailMedia.push({type:"spin", frames:lot.spinFrames});
+    if(lot.interiorUrl) state.detailMedia.push({type:"pano", src:lot.interiorUrl});
     if(lot.panoramaUrl) state.detailMedia.push({type:"pano", src:lot.panoramaUrl});
     state.detailIndex = 0;
     setSeo(lot);
@@ -5733,7 +5769,7 @@
       }
       if(event.target.closest("[data-open-pano]")){
         const media = state.detailMedia || [];
-        const pi = media.findIndex(m => m.type === "pano");
+        const pi = media.findIndex(m => m.type === "pano" || m.type === "spin");
         if(pi >= 0) openLightbox(media, pi);
         return;
       }

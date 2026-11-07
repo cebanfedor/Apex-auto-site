@@ -13,7 +13,7 @@ const cache = new Map();
 // Учёт расхода запросов к auctionsapi (аудит 30.09.2026): счётчик по эндпоинтам,
 // в памяти инстанса (без записи в БД, per-instance, сбрасывается на холодном старте).
 // Читается admin-экшеном ?action=apiusage — «разобраться, куда уходят запросы».
-const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, byEndpoint: Object.create(null) };
+const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, forbidden: 0, lastForbidden: "", byEndpoint: Object.create(null) };
 function noteApiCall(url){
   apiUsage.total++;
   const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
@@ -199,7 +199,22 @@ const SB_TIMEOUT = Symbol("sbTimeout");
 // синтетической 429-ошибкой, без реального похода к API. Отдельно от sbUp — разные апстримы.
 let apiDownUntil = 0;
 function apiUp(){ return Date.now() > apiDownUntil; }
-function noteApiRateLimit(){ apiDownUntil = Date.now() + 5 * 60e3; apiUsage.rateLimited++; }
+// Бриф провайдера §11: 429 — ждать Retry-After (секунды или дата); 403 (ключ неверный/подписка истекла/не активна) — остановить
+// все вызовы и оповестить, повторять бессмысленно. Без заголовка — прежние 5 минут.
+function noteApiRateLimit(retryAfter){
+  let wait = 5 * 60e3;
+  const ra = String(retryAfter || "").trim();
+  if(ra){
+    const sec = /^\d+$/.test(ra) ? Number(ra) : (Date.parse(ra) - Date.now()) / 1000;
+    if(Number.isFinite(sec) && sec > 0) wait = Math.min(Math.max(sec * 1000, 30e3), 60 * 60e3);
+  }
+  apiDownUntil = Math.max(apiDownUntil, Date.now() + wait); apiUsage.rateLimited++;
+}
+function noteApiForbidden(msg){
+  apiDownUntil = Math.max(apiDownUntil, Date.now() + 15 * 60e3);
+  apiUsage.forbidden++; apiUsage.lastForbidden = String(msg || "").slice(0, 160);
+  console.error("[auctionsapi] 403 — вызовы остановлены на 15 мин:", apiUsage.lastForbidden);   // «alert»: виден в логах Vercel и в ?action=apiusage
+}
 function apiLimitedError(){
   const error = new Error("AuctionsAPI rate-limited (circuit breaker)");
   error.status = 429;
@@ -368,6 +383,11 @@ function sellerLabel(lot, item){
   const insurerKeywords = /INSURANCE|GEICO|USAA|CSAA|PROGRESSIVE|ALLSTATE|NATIONWIDE|LIBERTY MUTUAL|STATE FARM|FARMERS|BRISTOL WEST|TRAVELERS|ERIE|MERCURY|ESURANCE|21ST CENTURY|AAA|METLIFE|KEMPER|AMERICAN FAMILY/;
   const isInsurance = /insurance/.test(t) || (!t && insurerKeywords.test(nameUp));
   const isDealer = /non.?insurance|dealer|dealership|private/.test(t);
+  const sObj = (lot?.seller && typeof lot.seller === "object") ? lot.seller : ((item?.seller && typeof item.seller === "object") ? item.seller : null);
+  if(name && sObj){
+    if(sObj.is_rental === true) return name + " · Прокат";
+    if(sObj.is_insurance === true && !/non.?insurance/.test(t)) return name + " · Страховая";
+  }
   if(name){
     if(/SIXT|TURO|AVIS|HERTZ|ENTERPRISE|BUDGET RENT|NATIONAL CAR|ALAMO|DOLLAR RENT|THRIFTY|ZIPCAR|GETAROUND|U-?HAUL|RYDER|PENSKE|FIREFLY|PAYLESS|FOX RENT/.test(nameUp)) return name + " · Прокат";   // прокат — хороший продавец, но не страховая
     if(isInsurance) return name + " · Страховая";
@@ -775,10 +795,22 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // висели «торги 23 сентября · финальная цена $1 700».
   const saleTsN = Date.parse(lot?.sale_date || lot?.auction_date || "");
   const soldByStatus = Number(statusId) === 6 || Number(statusId) === 8 || /sold/i.test(String(statusName || ""));
-  const preBidSold = soldByStatus && Number.isFinite(saleTsN) && saleTsN > Date.now();
+  // 07.11.2026 (реальный ответ /cars, фильтр buy_now=1): покупка по Buy Now ДО аукциона — status «sold», final_bid = bid = buy_now,
+  // final_bid_updated_at раньше даты торгов (Altima: куплена 27.09, торги по плану 28.09; Seltos, Pathfinder IAAI, Murano… — то же).
+  // Раньше такой лот при будущей дате торгов считался «пред-ставкой» (ниже) и висел активным с кнопкой «Купить сейчас».
+  // Ставка = цене выкупа ⇒ сработал выкуп, продано (иначе пред-ставка сама бы купила лот). Обычная продажа: final < buy_now или buy_now=0.
+  const feedBnSale = (() => {
+    if(Number(statusId) !== 6 || !(finalBid > 0) || !(buyNow > 0) || finalBid < buyNow * 0.99) return null;
+    const upd = Date.parse(lot?.final_bid_updated_at || "");
+    const st = Date.parse(lot?.sale_date || lot?.auction_date || "");
+    if(!Number.isFinite(upd) || upd > Date.now()) return null;
+    if(Number.isFinite(st) && upd >= st - 30 * 60e3) return null;   // обновлена на/после торгов — обычная продажа, не выкуп до аукциона
+    return {bid:finalBid, date:new Date(upd).toISOString()};
+  })();
+  const preBidSold = soldByStatus && Number.isFinite(saleTsN) && saleTsN > Date.now() && !feedBnSale;
   // Покупка по Buy Now (BMW 530e IAAI 45914882, 24.09.2026): фид пишет раунд «sold» с «живым» временем (14:13:29 — не время аукциона, секунды ≠ 0)
   // и ставкой = цене выкупа, а основная запись лота остаётся «в продаже» (устарела, updated_at раньше продажи, торги «28.09»). Такой лот продан.
-  const bnSale = (() => {
+  const bnSaleHist = (() => {
     if(!(buyNow > 0) || Number(statusId) === 6) return null;
     const upd = Date.parse(lot?.updated_at || "");
     for(const ph of priceHistory){
@@ -800,6 +832,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     }
     return null;
   })();
+  const bnSale = feedBnSale || bnSaleHist;
 
   // Timed-аукцион (IAAI) закрывается РОВНО в дату торгов. Если дата уже прошла (>1ч),
   // а финальная ставка достигла/превысила резерв продавца — лот ПРОДАН по этой ставке
@@ -878,6 +911,12 @@ function normalizeLot(source, fallbackAuction = "copart"){
     // vis.iaai.com/Home/ThreeSixtyView?...&iframeview=true — сделана специально под встраивание в iframe).
     // У Copart поле не проверено — просто показываем кнопку, когда ссылка реально есть, никаких допущений.
     panoramaUrl:(lot?.images?.external_panorama_url) || (item?.images?.external_panorama_url) || "",
+    // Бриф провайдера §17: видео — YouTube-id (walk-around) ИЛИ прямой mp4; 360 внешний — кадры exterior[] (крутилка), интерьер — одна ссылка-панорама.
+    videoYoutubeId:(() => { const v = String(lot?.images?.video_youtube_id || item?.images?.video_youtube_id || ""); return /^[A-Za-z0-9_-]{8,}$/.test(v) ? v : ""; })(),
+    spinFrames:(() => { const a = lot?.images?.exterior || item?.images?.exterior; return Array.isArray(a) ? a.filter(u => /^https?:\/\//i.test(String(u || ""))).map(String) : []; })(),
+    interiorUrl:(() => { const u = String(lot?.images?.interior || item?.images?.interior || ""); return /^https?:\/\//i.test(u) ? u : ""; })(),
+    // Страна покупателя (Copart/IAAI, ISO-2, только у проданных): lowercase → верхний регистр.
+    buyerCountry:(() => { const c = String(lot?.buyer_country || item?.buyer_country || "").trim().toUpperCase(); return /^[A-Z]{2}$/.test(c) ? c : ""; })(),
     // ACV: IAAI actual_cash_value → Copart pre_accident_price. При pre_accident_price = -1 («оценки нет») НЕ падаем на
     // clean_wholesale_price: это другая величина (оптовая «чистой» машины), модель оценки калибровалась без неё — решение
     // «использовать ли её как замену ACV у Copart» требует отдельной калибровки по проданным (этап 2 разбора /cars).
@@ -1147,8 +1186,9 @@ async function fetchJson(url){
     error.status = 502;
     throw error;
   }finally{ clearTimeout(timer); }
-  if(response.status === 429) noteApiRateLimit();
+  if(response.status === 429) noteApiRateLimit(response.headers.get("retry-after"));
   const payload = await response.json().catch(() => null);
+  if(response.status === 403) noteApiForbidden(payload?.error || payload?.message);
   if(!response.ok || payload?.error){
     const error = new Error(payload?.message || payload?.error || "Auctions API request failed");
     error.status = response.status;
@@ -1621,6 +1661,7 @@ async function fetchDetail(query){
       return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
+      if(error && isFinalApiStatus(error.status)) break;   // 404/423/403…: второй запрос с тем же результатом только съест лимит
     }
   }
   throw lastError || new Error("Lot detail failed");
@@ -1638,11 +1679,14 @@ function looksTimed(dateStr){
   return d.getUTCSeconds() !== 0 || d.getUTCMinutes() % 15 !== 0;
 }
 // ---- Надёжность истории по VIN: повтор запроса + постоянное хранилище (vin_hist) как запасной источник ----
+// Бриф провайдера §11: 400/401/403/404/423 повторять без изменений нельзя (каждый запрос, даже с ошибкой, идёт в лимит подписки).
+// 423 = «vin was excluded» — VIN удалён по просьбе владельца, для нас то же, что 404.
+function isFinalApiStatus(st){ return st === 400 || st === 401 || st === 403 || st === 404 || st === 423; }
 async function fetchJsonRetry(url, tries = 2){
   let err;
   for(let i = 0; i < tries; i++){
     try{ return await fetchJson(url); }
-    catch(e){ err = e; if(e && (e.status === 404 || e.status === 400)) throw e; if(i < tries - 1) await new Promise(r => setTimeout(r, 400)); }
+    catch(e){ err = e; if(e && isFinalApiStatus(e.status)) throw e; if(i < tries - 1) await new Promise(r => setTimeout(r, 400)); }
   }
   throw err;
 }
@@ -1815,7 +1859,7 @@ async function attachVinHistory(lot){
     }
   }catch(e){
     if(lot && isValidVin(String(lot.vin || ""))){
-      if(e && e.status === 404){ lot.vinChecked = true; }                 // фид не знает этот VIN — истории нет, это не сбой
+      if(e && (e.status === 404 || e.status === 423)){ lot.vinChecked = true; }                 // фид не знает этот VIN — истории нет, это не сбой
       else{
         vinFailStat.fail++;
         // Запасной источник: последняя удачная история этого VIN из нашей базы (до 14 дней)
@@ -4257,8 +4301,9 @@ async function syncApiFetch(url, timeoutMs){
   const timer = setTimeout(() => controller.abort(), timeoutMs || 30000);
   try{
     const res = await fetch(url, {headers:{"x-api-key":key, accept:"application/json"}, signal:controller.signal});
-    if(res.status === 429) noteApiRateLimit();
+    if(res.status === 429) noteApiRateLimit(res.headers.get("retry-after"));
     const payload = await res.json().catch(() => null);
+    if(res.status === 403) noteApiForbidden(payload?.error || payload?.message);
     if(!res.ok || payload?.error){
       const error = new Error(payload?.message || payload?.error || `AuctionsAPI ${res.status}`);
       error.status = res.status;
@@ -5582,7 +5627,7 @@ module.exports = async function handler(request, response){
     sendJson(response, 200, {
       ok: true, note: "per-instance, in-memory (сбрасывается на холодном старте); hot-lots.js/lot.js — отдельные функции, сюда не входят",
       sinceMinutes: Math.round(mins), total: apiUsage.total, perHour: Math.round(apiUsage.total / mins * 60),
-      rateLimited: apiUsage.rateLimited, byEndpoint: eps
+      rateLimited: apiUsage.rateLimited, forbidden: apiUsage.forbidden, lastForbidden: apiUsage.lastForbidden, byEndpoint: eps
     }, {"cache-control": "no-store"});
     return;
   }
@@ -6207,7 +6252,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g44" : "";   // бамп при смене таблицы поколений и формы detail (g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g46" : "";   // бамп при смене таблицы поколений и формы detail (g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
