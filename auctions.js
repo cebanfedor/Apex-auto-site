@@ -342,7 +342,7 @@
     { const bv = Number(form.elements.budget && form.elements.budget.value); if(bv >= 1000) add(`${L("Бюджет под ключ")}: ${L("до")} $${num(bv)}`, () => { form.elements.budget.value = ""; }); }
     if(form.querySelector('input[name="noBan"]:checked')) add(L("Без запрещённых к экспорту"), () => { form.querySelector('input[name="noBan"]').checked = false; });
     boxes("body", "Кузов"); boxes("vehicleType", "Тип техники"); boxes("drive", "Привод"); boxes("transmission", "Коробка");
-    boxes("cylinders", "Цилиндры"); boxes("country", "Страна"); boxes("condition", "Состояние");
+    boxes("cylinders", "Цилиндры"); boxes("color", "Цвет"); boxes("country", "Страна"); boxes("condition", "Состояние");
     damageList().forEach((d, i) => add(`${L("Повреждение")}: ${d}`, () => { const l = damageList(); l.splice(i, 1); setDamageList(l); }));
     const dTyped = String(byId("filterDamageV2")?.value || "").trim();
     if(dTyped && !damageList().some(d => d.toLowerCase() === dTyped.toLowerCase())) add(`${L("Повреждение")}: ${dTyped}`, () => { byId("filterDamageV2").value = ""; });
@@ -688,7 +688,7 @@
     const form = $("#auctionFiltersForm");
     const params = new URLSearchParams(new FormData(form));
     // Мультивыбор (топливо, статус лота): чекбоксы одного имени → «4,3» одним параметром.
-    for(const name of ["fuel", "lotStatus", "body", "vehicleType", "drive", "transmission", "cylinders", "country", "condition", "saleStatus"]){
+    for(const name of ["fuel", "lotStatus", "body", "vehicleType", "drive", "transmission", "cylinders", "color", "country", "condition", "saleStatus"]){
       const vals = params.getAll(name).filter(Boolean);
       params.delete(name);
       if(vals.length) params.set(name, vals.join(","));
