@@ -5657,7 +5657,9 @@
     });
     document.getElementById("paginationV1")?.addEventListener("click", e => {
       if(e.target.id === "pgLoadMoreBtn"){
-        if(state.loading || !state.hasMore) return;
+        // На телефоне (серверная пагинация) hasMore из ответа может быть false, хотя страниц ещё много — смотрим на total
+        const moreSrv = mobileInf() && state.page < MAX_SERVER_PAGES && state.page * SERVER_PAGE_SIZE < (state.total || 0);
+        if(state.loading || (!state.hasMore && !moreSrv)) return;
         // Мгновенная обратная связь: подгрузка может занять несколько секунд
         e.target.disabled = true;
         e.target.textContent = "Загружаем…";
