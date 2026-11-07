@@ -1817,3 +1817,27 @@ body.leadModalOpenV1 { overflow:hidden; }
   .simCardV1 > span { font-size:12px; }
   .simCardV1 .simCondV1, .simCardV1 .simVinV1 { font-size:11.5px; }
 }
+
+/* 07.11.2026 (десктоп): VIN в таблице «Аукцион» переносился («…C3385 / 0»), на телефоне это уже было закрыто — теперь и на компьютере */
+.dRowVal .dCopyValV1 { white-space:nowrap; letter-spacing:0; font-variant-numeric:tabular-nums; }
+.dRowVal .dCopyValV1 .copyTextV1 { white-space:nowrap; }
+@media (min-width:1101px) and (max-width:1500px) {
+  .dSec { grid-template-columns:118px 1fr; column-gap:12px; padding:14px 14px; }
+  .dRowVal .dCopyValV1 { font-size:12px; letter-spacing:-.01em; }
+}
+@media (min-width:1101px) and (max-width:1320px) {
+  .dRowVal .dCopyValV1 { font-size:11px; gap:0; }
+  .dRowVal .dCopyValV1 > .dbIco:last-child { display:none; }
+}
+
+/* 07.11.2026 (десктоп): на 1101–1359px три колонки страницы лота были тесными («Заводится и / едет», VIN вылезал) —
+   здесь две: слева фото, под ними характеристики, справа калькулятор. С 1360px — прежние три. */
+@media (min-width:1101px) and (max-width:1359px) {
+  .lotDetailGridV1 { grid-template-columns:minmax(0,1fr) 400px; grid-template-rows:auto 1fr; gap:20px 24px; }
+  .lotDetailGridV1 > .detailGalleryV1 { grid-column:1; grid-row:1; }
+  .lotDetailGridV1 > .lotDetailCenterV1 { grid-column:1; grid-row:2; }
+  .lotDetailGridV1 > .lotCalcV2 { grid-column:2; grid-row:1 / span 2; }
+  .dSec { grid-template-columns:150px 1fr; }
+  .dRowVal .dCopyValV1, .dRowVal .dCopyValV1 { font-size:13px; letter-spacing:0; }
+  .dRowVal .dCopyValV1 > .dbIco:last-child { display:inline-block; }
+}
