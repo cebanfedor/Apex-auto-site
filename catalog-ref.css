@@ -539,3 +539,6 @@
    Строка крошек каталога 28px (текст ~7px от верха) → 17px / 9px. Так же /auctions (auctions.css), статьи (guide.css), растаможка. */
 @media (width >= 640px) { .apx-korea .catalog-hero > .wrap-wide { padding-top: 17px; } }
 @media (width <= 639px) { .apx-korea .catalog-hero > .wrap-wide { padding-top: 9px; } }
+
+/* a11y 07.11.2026: контраст светло-серого текста (ink-4 был 3:1) */
+.apx-korea{--c-ink-4:107 116 132}

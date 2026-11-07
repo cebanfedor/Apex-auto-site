@@ -851,7 +851,11 @@
     return active[0] || listings[0] || null;
   }
   // Как у эталона: в карточке — preview источника (800×600 с ci.encar.com), не оригинал 2000px (~400 КБ на кадр).
-  function imageUrl(img){ return img.preview || img.original || img.downloaded || ""; }
+  // Карточка ~303px: просим у ci.encar.com 480×360 вместо 800×600 (52 КБ вместо 137 КБ на кадр; Lighthouse: 6 МБ → ~2.5 МБ на странице).
+  function smallEncar(u){
+    return /^https:\/\/ci\.encar\.com\//.test(u) ? u.replace(/([?&])rh=\d+/, "$1rh=360").replace(/([?&])cw=\d+/, "$1cw=480").replace(/([?&])ch=\d+/, "$1ch=360") : u;
+  }
+  function imageUrl(img){ return smallEncar(img.preview || img.original || img.downloaded || ""); }
   function titleOf(car){
     var brand = car.brand && car.brand.name, model = car.model && car.model.name;
     if(brand || model) return [car.year, brand, model].filter(Boolean).join(" ");
@@ -896,7 +900,7 @@
     var d = new Date(t).toLocaleString(loc, {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
     return t < Date.now() - 3 * 3600e3 ? T("Торги прошли") + " · " + new Date(t).toLocaleDateString(loc, {day:"numeric", month:"short"}) : T("Торги") + ": " + d;
   }
-  function cardHtml(car){
+  function cardHtml(car, idx){
     var listing = pickListing(car);
     var imgs = listing && Array.isArray(listing.images) ? listing.images.map(imageUrl).filter(Boolean) : [];
     var shown = imgs.slice(0, 6), more = imgs.length - shown.length;
@@ -904,7 +908,7 @@
     var slides = shown.map(function(u){
       return '<a href="' + esc(href) + '" class="vcard__slide" tabindex="-1" rel="nofollow"><img src="' + esc(u) + '" alt="' + esc(title) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></a>';
     }).join("");
-    var stage = shown.map(function(u, i){ return '<img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="" class="vcard__stage-img' + (i === 0 ? " is-active" : "") + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false">'; }).join("")
+    var stage = shown.map(function(u, i){ return '<img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="" class="vcard__stage-img' + (i === 0 ? " is-active" : "") + '"' + (i === 0 && idx < 2 ? ' fetchpriority="high"' : "") + ' loading="' + (i === 0 && idx < 2 ? "eager" : "lazy") + '" decoding="async" referrerpolicy="no-referrer" draggable="false">'; }).join("")
       + (more > 0 ? '<div class="vcard__more-photos" style="display:none" data-more-photos><span>' + I.photos + ' +' + more + '</span></div>' : "");
     var segments = shown.length > 1 ? '<div class="vcard__segments" aria-hidden="true">' + shown.map(function(_, i){ return '<span data-active="' + (i === 0 ? "true" : "false") + '"></span>'; }).join("") + '</div>' : "";
     var nav = shown.length > 1 ? '<button type="button" class="vcard__nav vcard__nav--prev" data-nav="-1" aria-label="‹" tabindex="-1">' + I.prev + '</button><button type="button" class="vcard__nav vcard__nav--next" data-nav="1" aria-label="›" tabindex="-1">' + I.next + '</button>' : "";
@@ -912,8 +916,8 @@
     if(car.has_inspections) badges += '<span class="badge badge-glass h-[22px] gap-1 rounded-[7px] px-2 text-[11px] text-emerald-700 max-sm:hidden">' + I.shield + esc(T("Инспекция")) + '</span>';
     if(car.has_history_reports) badges += '<span class="badge badge-glass h-[22px] gap-1 rounded-[7px] px-2 text-[11px] text-blue-700 max-sm:hidden">' + I.clock + esc(T("История")) + '</span>';
     var mobReports = (car.has_inspections || car.has_history_reports) ? '<div class="vcard__reports sm:hidden"><div class="flex gap-1.5">'
-      + (car.has_inspections ? '<span class="vcard__report is-inspection" aria-label="' + esc(T("Есть инспекция")) + '">' + I.shield.replace('class="h-3 w-3"', "") + '</span>' : "")
-      + (car.has_history_reports ? '<span class="vcard__report is-history" aria-label="' + esc(T("Есть история")) + '">' + I.clock.replace('class="h-3 w-3"', "") + '</span>' : "")
+      + (car.has_inspections ? '<span class="vcard__report is-inspection" role="img" aria-label="' + esc(T("Есть инспекция")) + '">' + I.shield.replace('class="h-3 w-3"', "") + '</span>' : "")
+      + (car.has_history_reports ? '<span class="vcard__report is-history" role="img" aria-label="' + esc(T("Есть история")) + '">' + I.clock.replace('class="h-3 w-3"', "") + '</span>' : "")
       + '</div></div>' : "";
     var specs = "";
     if(listing && listing.odometer != null) specs += specLi(I.odo, fmtNum(listing.odometer) + " " + T("км"));

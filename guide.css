@@ -29,6 +29,7 @@
 .guideBody ul, .guideBody ol { font-size: 15px; color: #3a4250; line-height: 1.7; padding-left: 22px; margin: 0 0 16px; }
 .guideBody li { margin-bottom: 6px; }
 .guideBody a { color: #ed0012; }
+.guideBody p a, .guideBody li a { text-decoration: underline; text-underline-offset: 2px; }
 
 /* Summary box */
 .guideSummaryBox { background: #f8faff; border: 1px solid #d0daf5; border-radius: 14px; padding: 20px 24px; margin-bottom: 32px; }
@@ -51,8 +52,8 @@
 .guidePriceBox td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .guidePriceBox tr:last-child td { border-bottom: none; }
 .guidePriceTotal td { color: #fff; font-size: 16px; padding-top: 14px; }
-.guidePriceNote { font-size: 12px; color: rgba(255,255,255,.5); margin: 12px 0 0; }
-.guidePriceNote a { color: rgba(255,255,255,.7); }
+.guideBody .guidePriceBox .guidePriceNote { font-size: 12px; color: rgba(255,255,255,.72); margin: 12px 0 0; }
+.guideBody .guidePriceBox .guidePriceNote a { color: rgba(255,255,255,.7); }
 
 /* Steps */
 .guideSteps { display: flex; flex-direction: column; gap: 0; margin: 16px 0 32px; }
