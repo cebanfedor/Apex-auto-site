@@ -47,7 +47,7 @@
     if(d.topBuyNow && d.topBuyNow.price > 0) f.push({money: d.topBuyNow.price, cap: "самый дорогой Buy Now на торгах", extra: d.topBuyNow});
     add(d.exoticActive, "суперкаров на торгах: Ferrari, Lamborghini, Rolls-Royce…");
     add(d.newHybrids24h, "новых гибридов в США за сутки");
-    add(d.todayLots, "лотов на торгах сегодня");
+    add(d.todayLots, "лотов на торгах сегодня и завтра");
     if(d.freshSoldYesterday > 0 && d.freshYear) f.push({n: d.freshSoldYesterday, cap: "машин {Y}+ года продано вчера", year: d.freshYear});
     add(d.newEv24h, "новых электромобилей в США за сутки");
     add(d.teslaSoldYesterday, "Tesla продано вчера на аукционах");

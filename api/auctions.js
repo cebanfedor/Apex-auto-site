@@ -3020,7 +3020,8 @@ async function computeAuctionFacts(opts = {}){
   const tasks = {
     soldYesterday:() => cnt(sold),
     top:() => left(per) < 1500 ? null : req(`select=id,title,vin,year,final_bid,pt:payload->>title,mk:payload->>make,md:payload->>model&${sold}&final_bid=lt.2000000&${FACTS_NOT_CA}&order=final_bid.desc&limit=1`, left(per)).catch(() => null),
-    todayLots:() => cnt(`archived=eq.false&sale_date=gte.${factsIso(t0)}&sale_date=lt.${factsIso(t1)}&or=(status_id.neq.6,status_id.is.null)`),
+    // 07.11.2026 (Федор: «1 172 при 4 тыс. в «Сегодня и завтра»»): раньше считали только календарный день по Кишинёву; теперь — то же число, что на вкладке «Сегодня и завтра» (торги ≤48 ч)
+    todayLots:() => tabTotal("soon").catch(() => null),
     recentSales:() => left(per) < 1500 ? null : factsRecentSales(left(per)),
     newHybrids24h:() => fx ? cnt(`${fresh}&fuel_x=in.(3,5)&${FACTS_NOT_CA}`) : null,
     soldYesterdayCa:() => cnt(`${sold}&country=eq.ca`),
