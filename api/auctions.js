@@ -278,6 +278,10 @@ function safeNumber(value){
   if(value && typeof value === "object"){
     return safeNumber(value.value || value.amount || value.usd || value.price || value.bid);
   }
+  // Фид кодирует «значения нет» отрицательным числом (Copart pre_accident_price: -1). Раньше регэксп
+  // срезал минус, и «-1» превращался в 1 → «Оценка (ACV): $1» на странице лота. Отрицательное = нет данных.
+  if(typeof value === "number" && value < 0) return 0;
+  if(typeof value === "string" && /^\s*-/.test(value)) return 0;
   const number = Number(String(value || "").replace(/[^\d.]/g, ""));
   return Number.isFinite(number) ? number : 0;
 }
@@ -399,13 +403,38 @@ function driveLabel(value){
 // Штат площадки по названию филиала. Фид у части IAAI-лотов кладёт в location.state штат ТАЙТЛА (Salvage (Idaho)), а не двора:
 // «shirley, idaho» при selling_branch «boston - shirley (ma)» и координатах Массачусетса. Штат в скобках филиала — надёжный.
 const US_STATE_NAMES = {"al": "alabama", "ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california", "co": "colorado", "ct": "connecticut", "de": "delaware", "dc": "district of columbia", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho", "il": "illinois", "in": "indiana", "ia": "iowa", "ks": "kansas", "ky": "kentucky", "la": "louisiana", "me": "maine", "md": "maryland", "ma": "massachusetts", "mi": "michigan", "mn": "minnesota", "ms": "mississippi", "mo": "missouri", "mt": "montana", "ne": "nebraska", "nv": "nevada", "nh": "new hampshire", "nj": "new jersey", "nm": "new mexico", "ny": "new york", "nc": "north carolina", "nd": "north dakota", "oh": "ohio", "ok": "oklahoma", "or": "oregon", "pa": "pennsylvania", "ri": "rhode island", "sc": "south carolina", "sd": "south dakota", "tn": "tennessee", "tx": "texas", "ut": "utah", "vt": "vermont", "va": "virginia", "wa": "washington", "wv": "west virginia", "wi": "wisconsin", "wy": "wyoming"};
+// Грубые рамки штатов (lat0,lat1,lon0,lon1) — только чтобы поймать ЗАВЕДОМО неверный штат из фида по координатам лота.
+// 07.11.2026: IAAI «dallas» (без «(xx)» в названии филиала) с титулом «Salvage (Kansas)» → фид клал state=Kansas при координатах
+// Техаса → «grand prairie, kansas», калькулятор считал доставку из Канзаса. Рамки с запасом 0.25°: если точка ВНУТРИ рамки заявленного
+// штата — доверяем фиду; вне её — штат заведомо неверен.
+const US_STATE_BOX = {al:[30.2,35,-88.5,-84.9],az:[31.3,37,-114.8,-109],ar:[33,36.5,-94.6,-89.6],ca:[32.5,42,-124.4,-114.1],co:[37,41,-109.1,-102],ct:[41,42.1,-73.7,-71.8],de:[38.4,39.8,-75.8,-75],dc:[38.8,39,-77.1,-76.9],fl:[24.5,31,-87.6,-80],ga:[30.4,35,-85.6,-80.8],id:[42,49,-117.2,-111],il:[37,42.5,-91.5,-87.5],in:[37.8,41.8,-88.1,-84.8],ia:[40.4,43.5,-96.6,-90.1],ks:[37,40,-102.1,-94.6],ky:[36.5,39.1,-89.6,-81.9],la:[28.9,33,-94,-89],me:[43,47.5,-71.1,-66.9],md:[37.9,39.7,-79.5,-75],ma:[41.2,42.9,-73.5,-69.9],mi:[41.7,48.3,-90.4,-82.4],mn:[43.5,49.4,-97.3,-89.5],ms:[30.2,35,-91.7,-88.1],mo:[36,40.6,-95.8,-89.1],mt:[44.4,49,-116.1,-104],ne:[40,43,-104.1,-95.3],nv:[35,42,-120,-114],nh:[42.7,45.3,-72.6,-70.6],nj:[38.9,41.4,-75.6,-73.9],nm:[31.3,37,-109.1,-103],ny:[40.5,45,-79.8,-71.9],nc:[33.8,36.6,-84.3,-75.4],nd:[45.9,49,-104.1,-96.5],oh:[38.4,42,-84.8,-80.5],ok:[33.6,37,-103,-94.4],or:[42,46.3,-124.6,-116.5],pa:[39.7,42.3,-80.5,-74.7],ri:[41.1,42,-71.9,-71.1],sc:[32,35.2,-83.4,-78.5],sd:[42.5,45.9,-104.1,-96.4],tn:[35,36.7,-90.3,-81.6],tx:[25.8,36.5,-106.7,-93.5],ut:[37,42,-114.1,-109],vt:[42.7,45,-73.4,-71.5],va:[36.5,39.5,-83.7,-75.2],wa:[45.5,49,-124.8,-116.9],wv:[37.2,40.6,-82.7,-77.7],wi:[42.5,47.1,-92.9,-86.8],wy:[41,45,-111.1,-104]};
+function stateByCoords(lat, lon, claimed){
+  if(!Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) return null;
+  const pad = 0.25, inBox = b => lat >= b[0] - pad && lat <= b[1] + pad && lon >= b[2] - pad && lon <= b[3] + pad;
+  const cb = US_STATE_BOX[claimed];
+  if(cb && inBox(cb)) return null;           // фид прав (или не опровергнут)
+  if(!cb && claimed) return null;            // AK/HI и пр. — рамки нет, не трогаем
+  let best = null, bd = Infinity;
+  for(const [code, b] of Object.entries(US_STATE_BOX)){
+    if(!inBox(b)) continue;
+    const d = Math.hypot(lat - (b[0] + b[1]) / 2, (lon - (b[2] + b[3]) / 2) * 0.8);
+    if(d < bd){ bd = d; best = code; }
+  }
+  return best;
+}
 function yardFix(lot){
   try{
-    const m = safeName(lot?.selling_branch || lot?.branch).toLowerCase().match(/\(([a-z]{2})\)\s*$/);
-    if(!m || !US_STATE_NAMES[m[1]]) return null;
     if(String(lot?.location?.country?.iso || "us").toLowerCase() !== "us") return null;
-    if(String(lot?.location?.state?.code || "").toLowerCase() === m[1]) return null;
-    return {code:m[1], name:US_STATE_NAMES[m[1]]};
+    const claimed = String(lot?.location?.state?.code || "").toLowerCase();
+    const m = safeName(lot?.selling_branch || lot?.branch).toLowerCase().match(/\(([a-z]{2})\)\s*$/);
+    if(m && US_STATE_NAMES[m[1]]){
+      if(claimed === m[1]) return null;
+      return {code:m[1], name:US_STATE_NAMES[m[1]]};
+    }
+    // Филиал без «(xx)» («dallas»): проверяем штат из фида по координатам двора
+    const code = stateByCoords(Number(lot?.location?.latitude), Number(lot?.location?.longitude), claimed);
+    if(code && code !== claimed && US_STATE_NAMES[code]) return {code, name:US_STATE_NAMES[code]};
+    return null;
   }catch(_){ return null; }
 }
 
@@ -530,6 +559,24 @@ function titleMakeMismatch(title, manufacturerName){
   return t.length > 0 && !t.includes(mk);
 }
 
+// 07.11.2026 (документация auctionsapi «Автомобили, лоты и ID» + реальный ответ /cars): во вложенных lots машины лежат записи РАЗНЫХ площадок и заходов,
+// порядок НЕ «новые первыми» (BMW M3 CS: lots[0] — старый IAAI-лот со ставкой $575 от 07.10, а продан он на Copart за $77 000 23.10, lots[1]).
+// «Текущий» лот выбираем явно: 1) запрошенный номер лота (страница лота), 2) лот нужной площадки (обход по domain_id), 3) самый свежий по created_at.
+// Остальные остаются после него — это «прошлые заходы» для истории (код читает lots.slice(1)). Однажды упорядоченное помечаем (_lotsPinned).
+function orderLots(item, {lot = "", domainId = 0} = {}){
+  if(!item || !Array.isArray(item.lots) || item.lots.length < 2 || item._lotsPinned) return item;
+  const want = Number(domainId) || 0;
+  const wantLot = String(lot || "").replace(/~.*/, "");
+  const idOf = l => { const d = l && l.domain; return Number(d && typeof d === "object" ? d.id : NaN); };
+  const lotMatch = l => !!wantLot && [l?.lot, l?.external_id].some(v => v != null && String(v).replace(/~.*/, "") === wantLot);
+  const createdTs = l => { const t = Date.parse(l?.created_at || ""); return Number.isFinite(t) ? t : 0; };
+  const ranked = item.lots.map((l, i) => ({l, i, a:lotMatch(l) ? 1 : 0, b:want && idOf(l) === want ? 1 : 0, c:createdTs(l)}));
+  ranked.sort((x, y) => (y.a - x.a) || (y.b - x.b) || (y.c - x.c) || (x.i - y.i));
+  item.lots = ranked.map(r => r.l);
+  Object.defineProperty(item, "_lotsPinned", {value:true, enumerable:false, configurable:true});
+  return item;
+}
+
 // /archived-lots (simple_paginate=1) отдаёт числа и даты объектами {value, updated_at} — bid, final_bid, sale_date…
 // (26.09.2026: из-за этого ВСЕ закрытые лоты из этого фида писались живыми без финала и в архив не попадали). Разворачиваем на месте:
 // поле = value, время обновления — в <поле>_updated_at. seller_reserve ({price, updated_at}) не трогаем — его разбирает saleStatusInfo.
@@ -548,6 +595,7 @@ function unwrapFeedValues(obj){
 function normalizeLot(source, fallbackAuction = "copart"){
   const item = source?.data && !Array.isArray(source.data) ? source.data : source;
   tesla.fixTeslaItem(item);   // модель Tesla — по VIN, фид её путает
+  orderLots(item);
   const lots = Array.isArray(item?.lots) ? item.lots : [];
   // плоская запись (как отдаёт /archived-lots): поля лота лежат в самом item, а item.lot — просто номер лота (строка/число), не объект
   const lot = unwrapFeedValues(lots[0] || (item?.lot && typeof item.lot === "object" ? item.lot : item));
@@ -569,6 +617,11 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
   const isCanadaLot = (() => {
+    // 07.11.2026: документация «Цены» — суммы без кода валюты, но у лота есть отдельное поле currency («USD»/«CAD»).
+    // Раньше канадские лоты узнавали только по локации; валюта лота — прямой признак, не зависящий от того, как записан город.
+    const curRaw = lot?.currency ?? item?.currency;
+    const cur = String(curRaw && typeof curRaw === "object" ? (curRaw.code || curRaw.name || "") : (curRaw || "")).toUpperCase();
+    if(cur === "CAD") return true;
     const iso = String(lot?.location?.country?.iso || lot?.location?.country_code || lot?.location?.country || "").toLowerCase();
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
@@ -706,7 +759,16 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // ставок появлялась «финальная цена» непроданного раунда. Додумываем только из записи со статусом продажи.
   const topHist = priceHistory[0];
   const topIsSale = topHist && /sold|approval/i.test(topHist.status || "") && !/not_sold/i.test(topHist.status || "");
-  const resolvedFinalBid = finalBid || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
+  // 07.11.2026: /archived-lots у ПРОДАННЫХ лотов IAAI отдаёт final_bid=null, а цену продажи кладёт в bid (41613432: sold, bid 2700,
+  // bid.updated_at на 20 мин позже торгов). Раньше финал 0 → продажа писалась в архив без цены и выпадала из выдачи.
+  // Берём bid как финал, только если статус «продан», торги УЖЕ прошли и ставка обновлялась не раньше торгов (не пред-ставка).
+  const soldBidTs = Date.parse(lot?.sale_date || lot?.auction_date || "");
+  const bidUpdTs = Date.parse(lot?.bid_updated_at || "");
+  const soldBidFinal = (Number(statusId) === 6 && currentBid > 0 && Number.isFinite(soldBidTs) && soldBidTs < Date.now() - 5 * 60e3
+    && Number.isFinite(bidUpdTs) && bidUpdTs >= soldBidTs - 10 * 60e3) ? currentBid : 0;
+  // Только новый формат {value, updated_at}: руководство по синку — «старое скалярное bid не гарантирует подтверждённую цену продажи»
+  // (без bid_updated_at не берём). Сверено: 43485236 bid 9100 = итог settle 9100; 44512659 bid 600 = итог 600.
+  const resolvedFinalBid = finalBid || soldBidFinal || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
   // ⚠️ Фид ставит статус «sold» (6) лотам, торги по которым ЕЩЁ НЕ ПРОШЛИ, а в final_bid кладёт текущую
   // пред-ставку. Торги в будущем → лот не может быть продан: это активный лот со ставкой. Иначе в архиве
@@ -816,9 +878,13 @@ function normalizeLot(source, fallbackAuction = "copart"){
     // vis.iaai.com/Home/ThreeSixtyView?...&iframeview=true — сделана специально под встраивание в iframe).
     // У Copart поле не проверено — просто показываем кнопку, когда ссылка реально есть, никаких допущений.
     panoramaUrl:(lot?.images?.external_panorama_url) || (item?.images?.external_panorama_url) || "",
-    estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || lot?.pre_accident_price || lot?.clean_wholesale_price || item?.estimated_retail_value || item?.acv),
+    // ACV: IAAI actual_cash_value → Copart pre_accident_price. При pre_accident_price = -1 («оценки нет») НЕ падаем на
+    // clean_wholesale_price: это другая величина (оптовая «чистой» машины), модель оценки калибровалась без неё — решение
+    // «использовать ли её как замену ACV у Copart» требует отдельной калибровки по проданным (этап 2 разбора /cars).
+    estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || safeNumber(lot?.pre_accident_price) || (Number(lot?.pre_accident_price) === -1 ? 0 : lot?.clean_wholesale_price) || item?.estimated_retail_value || item?.acv),
     repairCost:safeNumber(lot?.estimate_repair_price || lot?.estimated_repair_cost),
     airbags:safeName(lot?.airbags),
+    sellerNote:safeName(lot?.note).slice(0,200),   // примечание продавца (Copart: «REPOSSESSION» и т.п.)
     preAccidentPrice:safeNumber(lot?.pre_accident_price),
     cleanWholesalePrice:safeNumber(lot?.clean_wholesale_price),
     seller:sellerLabel(lot, item),
@@ -965,6 +1031,9 @@ function buildSearchParams(query){
     const v = params.get(key);
     if(v && v.includes(",")) params.delete(key);
   }
+  // Документация «Синтаксис фильтров»: несколько статусов — повторяющиеся ключи status[]=4&status[]=5, не «4,5».
+  const stCsv = params.get("status");
+  if(stCsv && stCsv.includes(",")){ params.delete("status"); stCsv.split(",").map(x => x.trim()).filter(Boolean).forEach(v => params.append("status[]", v)); }
   const fuelCsv = String(query.get("fuel") || "");
   if(/^\d+$/.test(fuelCsv)) params.set("fuel_type", fuelCsv === "5" ? "3" : fuelCsv);
   // Поколение из нашей таблицы (синтетический id) → диапазон лет вместо generation_id.
@@ -1548,6 +1617,7 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
+      orderLots(payload?.data && !Array.isArray(payload.data) ? payload.data : payload, {lot});   // запрошенный номер — первым (у машины могут быть лоты других площадок)
       return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
@@ -4200,7 +4270,8 @@ async function syncApiFetch(url, timeoutMs){
 
 // item (сырой ответ API) → строка таблицы api_lots.
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
-function syncRowFromItem(item, {archived = false} = {}){
+function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
+  orderLots(item, {domainId:preferDomain});
   tesla.fixTeslaItem(item);
   const lot = unwrapFeedValues((Array.isArray(item?.lots) && item.lots[0]) || (item?.lot && typeof item.lot === "object" ? item.lot : item) || {});
   unwrapFeedValues(item);
@@ -4527,6 +4598,11 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   }
 }
 
+// Строка из /archived-lots нужна, только если это продажа ИЛИ у лота будущая дата торгов (перевыставлен).
+function keepArchivedRow(r){
+  return !!r.archived || (!!r.sale_date && Date.parse(r.sale_date) > Date.now());
+}
+
 async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, deadline, upsertOpts = {}){
   const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
   const tA = Date.now();
@@ -4535,7 +4611,11 @@ async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, de
   const feedTimeout = deadline ? Math.max(4000, Math.min(30000, deadline - Date.now() - 3000)) : 30000;
   const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`, feedTimeout);
   const items = findItems(payload) || [];
-  const rows = items.map(it => syncRowFromItem(it, rowOpts)).filter(Boolean);
+  let rows = items.map(it => syncRowFromItem(it, {...rowOpts, preferDomain:Number(extraParams.domain_id) || 0})).filter(Boolean);
+  // 07.11.2026 (руководство по синку: запись /archived-lots = лота источника уже нет, независимо от статуса). Раньше НЕпроданные
+  // архивные записи (upcoming/sale без даты, давние) писались ЖИВЫМИ и освежали synced_at — ночная чистка их не удаляла, они висели
+  // в «Все» недатированными призраками. Теперь такие не пишем: если лот жив, он придёт из /cars; нет — чистка уберёт старую строку.
+  if(rowOpts.archived){ const b4 = rows.length; rows = rows.filter(keepArchivedRow); syncImportPage.lastGhostsDropped = b4 - rows.length; }
   syncImportPage.lastFetchMs = Date.now() - tA;
   await syncUpsertRows(rows, deadline, upsertOpts);
   // 30.09.2026 (нашёл при срочной диагностике timedsync, курсор стоял на одной странице 12+ минут):
@@ -6127,7 +6207,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g40" : "";   // бамп при смене таблицы поколений и формы detail (g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g44" : "";   // бамп при смене таблицы поколений и формы detail (g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -7064,3 +7144,6 @@ module.exports.titleMakeMismatch = titleMakeMismatch;
 module.exports.normalizeLot = normalizeLot;
 module.exports.demoteRelistedCopies = demoteRelistedCopies;
 module.exports.preserveSoldCopies = preserveSoldCopies;
+module.exports.syncRowFromItem = syncRowFromItem;
+module.exports.keepArchivedRow = keepArchivedRow;
+module.exports.orderLots = orderLots;

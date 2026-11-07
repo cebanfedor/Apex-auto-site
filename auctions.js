@@ -1509,7 +1509,7 @@
     const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "";
     const fuelShort = fuelKindRu(lot) || (lot.fuel ? L(ruEnum(RU_FUEL, lot.fuel)) : "");   // тип топлива в строке характеристик — на телефоне отдельной строки «Топливо» нет
     const engineLine = [cleanEngine(lot.engine), hpStr, fuelShort, upAbbr(lot.drive), cleanTrans(lot.transmission)].filter(Boolean).join(" • ");
-    const estimate = lot.estimatedRetailValue ? money(lot.estimatedRetailValue) : "";
+    const estimate = Number(lot.estimatedRetailValue) > 100 ? money(lot.estimatedRetailValue) : "";
     const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
     // Во вкладке «Купить сейчас» (и когда реальной ставки нет) показываем цену
     // выкупа, а не номинальную стартовую ставку ($25/$50) — иначе Buy Now лоты
@@ -1677,7 +1677,7 @@
     // «уже есть» отсюда и давала два разных числа на одном и том же лоте между перезагрузками страницы).
     const cadUsd = findCanadaLocation(lot) ? ((typeof liveRates !== "undefined" && Number(liveRates.cadUsd) > 0) ? Number(liveRates.cadUsd) : 0.7325) : 1;
     const toUsd = v => Math.round(Number(v) * cadUsd);
-    if(Number(lot.estimatedRetailValue) > 0) cp.set("acv", String(toUsd(lot.estimatedRetailValue)));
+    if(Number(lot.estimatedRetailValue) > 500) cp.set("acv", String(toUsd(lot.estimatedRetailValue)));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
     // 28.09.2026 (Федор, Tesla Model Y IAAI 40084037): оценка ремонта ЭТОГО VIN — прямой факт, которого
@@ -2754,7 +2754,7 @@
     const engL = numberFromEngine(lot.engine);
     const yearVal = Number(lot.year) || new Date().getFullYear();
     const calc = calcLotTotal(lot, {bid:initialBid, insurance:true, exportDocs:false, paymentFee:true, vehicleType:kind, fuel:fuelVal, engineLiters:engL, year:yearVal});
-    const est = lot.estimatedRetailValue ? `оценка ${money(lot.estimatedRetailValue)}` : "";
+    const est = Number(lot.estimatedRetailValue) > 100 ? `оценка ${money(lot.estimatedRetailValue)}` : "";
     const fOpt = v => `<option value="${v}"${fuelVal===v?" selected":""}>`;
     const countdown = isSold ? "" : timeLeftLabel(lot.auctionDate);
     // Канадские аукционы торгуют в CAD: показываем CAD как основную валюту
@@ -3938,7 +3938,8 @@
                 return dPlain("Дата аукциона", `${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` <span class="dAgoV1">(${escapeHtml(ago)})</span>` : ""}`);
               })()}
               ${dPlain("Локация", (findCanadaLocation(lot) ? CA_FLAG_SVG + " " : "") + escapeHtml(lotLocationText(lot)))}
-              ${lot.estimatedRetailValue ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
+              ${lot.sellerNote ? dPlain("Примечание продавца", escapeHtml(tc(lot.sellerNote))) : ""}
+              ${Number(lot.estimatedRetailValue) > 100 ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
               ${lot.repairCost ? dPlain("Оценка ремонта", caMoney(lot.repairCost)) : ""}
             </section>
             <section class="dSec">
@@ -3948,8 +3949,8 @@
               ${dPlain("Тип кузова", escapeHtml(ruEnum(RU_BODY, lot.body)))}
               ${lot.cylinders ? dPlain("Цилиндры", escapeHtml(lot.cylinders)) : ""}
               ${lot.airbags ? dPlain("Подушки безопасности", L(/intact/i.test(lot.airbags) ? "Целые" : /deploy/i.test(lot.airbags) ? "Сработали" : escapeHtml(tc(lot.airbags)))) : ""}
-              ${lot.preAccidentPrice ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
-              ${lot.cleanWholesalePrice ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
+              ${Number(lot.preAccidentPrice) > 100 ? dPlain("Оценка до аварии", caMoney(lot.preAccidentPrice)) : ""}
+              ${Number(lot.cleanWholesalePrice) > 100 ? dPlain("Оптовая (clean)", money(lot.cleanWholesalePrice)) : ""}
               ${lot.video ? dPlain("Видео осмотра", `<button type="button" class="dLink dLinkBtnV1" data-open-video>${L("Смотреть видео")}</button>`) : ""}
             </section>
             ${renderPriceHistory(lot.priceHistory, !!findCanadaLocation(lot), lot)}
