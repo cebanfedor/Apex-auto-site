@@ -1,14 +1,52 @@
 {
   "name": "Apex Auto — авто из США в Молдову",
   "short_name": "Apex Auto",
-  "description": "Доставка авто из США и Канады в Молдову под ключ",
+  "description": "Авто из США, Канады, Кореи и Европы в Молдову под ключ: каталог аукционов Copart и IAAI, калькулятор, отслеживание.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ed0012",
   "lang": "ru",
   "icons": [
-    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/assets/apex-logo-dark.png", "sizes": "600x600", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/apex-logo-dark.png",
+      "sizes": "600x600",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "orientation": "portrait",
+  "categories": [
+    "business",
+    "shopping",
+    "automotive"
+  ],
+  "shortcuts": [
+    {
+      "name": "Каталог аукционов",
+      "short_name": "Каталог",
+      "url": "/auctions"
+    },
+    {
+      "name": "Калькулятор под ключ",
+      "short_name": "Расчёт",
+      "url": "/#calculator"
+    },
+    {
+      "name": "Отследить авто",
+      "short_name": "Трекинг",
+      "url": "/tracking"
+    },
+    {
+      "name": "Авто в пути",
+      "short_name": "В пути",
+      "url": "/in-transit"
+    }
   ]
 }
