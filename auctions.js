@@ -1695,6 +1695,11 @@
     const cadUsd = findCanadaLocation(lot) ? ((typeof liveRates !== "undefined" && Number(liveRates.cadUsd) > 0) ? Number(liveRates.cadUsd) : 0.7325) : 1;
     const toUsd = v => Math.round(Number(v) * cadUsd);
     if(Number(lot.estimatedRetailValue) > 500) cp.set("acv", String(toUsd(lot.estimatedRetailValue)));
+    // 07.11.2026 (Федор: «ACV у Copart — делаем»): у ~8% лотов Copart нет pre_accident_price (-1), но есть clean_wholesale_price.
+    // Замер на проде (95 лотов, где есть оба): pre_accident ≈ 0.94 × clean_wholesale (медиана; p25–p75 = 0.78–1.03 — разброс широкий).
+    // Берём 0.94×CW как ЗАМЕНУ ACV только для расчёта вилки «Ориентира ставки» (на экране как «ACV» не показываем) — грубо, но лучше,
+    // чем усреднять весь кузов; разброс ±15% не хуже самой вилки (±15%).
+    else if(Number(lot.cleanWholesalePrice) > 500 && String(lot.auction || "").toLowerCase() === "copart") cp.set("acv", String(toUsd(Math.round(lot.cleanWholesalePrice * 0.94))));
     if(lot.airbags) cp.set("airbags", String(lot.airbags).slice(0, 30));
     if(lot.keys) cp.set("keys", String(lot.keys).slice(0, 20));
     // 28.09.2026 (Федор, Tesla Model Y IAAI 40084037): оценка ремонта ЭТОГО VIN — прямой факт, которого
