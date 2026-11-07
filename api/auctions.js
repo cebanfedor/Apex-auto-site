@@ -2698,6 +2698,7 @@ async function attachGenRange(lot){
 // payload в базе нормализован на момент синка — в старых записях finalBid мог быть «додуман» из
 // непроданного раунда. Финал оставляем только у лотов со статусом продажи.
 function sanitizeStoredLot(l){
+  if(l && (l.spinFrames || l.imagesDl || l.interiorUrl)) l = slimPayload(l);
   // Служебный код «Ao» вместо повреждения (Федор 07.11.2026) — убираем и из уже сохранённых строк.
   if(l && /(^|\/\s*)ao(\s*\/|$)/i.test(String(l.damage || "")) || (l && (/^ao$/i.test(String(l.primaryDamage || "").trim()) || /^ao$/i.test(String(l.secondaryDamage || "").trim())))){
     const noAo = v => /^ao$/i.test(String(v || "").trim()) ? "" : v;
@@ -4339,6 +4340,15 @@ async function syncApiFetch(url, timeoutMs){
 
 // item (сырой ответ API) → строка таблицы api_lots.
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
+// Тяжёлые поля ТОЛЬКО для страницы лота (приходят живым detail): кадры 360° (до 55 URL), копии фото, панорама салона.
+// В строку api_lots их писать нельзя — раздувают таблицу и каждый ответ поиска (egress Supabase).
+const HEAVY_DETAIL_FIELDS = ["spinFrames", "imagesDl", "interiorUrl"];
+function slimPayload(lot){
+  if(!lot || typeof lot !== "object") return lot;
+  const o = {...lot};
+  for(const k of HEAVY_DETAIL_FIELDS) delete o[k];
+  return o;
+}
 function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
   orderLots(item, {domainId:preferDomain});
   tesla.fixTeslaItem(item);
@@ -4406,7 +4416,7 @@ function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
     archived:isArchived,
     lane:normalized.laneKey || null,
     run_no:normalized.runNo || null,
-    payload:normalized,
+    payload:slimPayload(normalized),
     synced_at:new Date().toISOString()
   };
 }
@@ -4451,7 +4461,7 @@ async function upsertClosedLot(lot){
         preserveSoldCopies([rid], {[rid]:ts}).then(() => syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(rid)}`, {method:"PATCH", headers:{prefer:"return=minimal"},
           body:JSON.stringify({archived:false, status_id:lot.statusId || 3, final_bid:0, current_bid:Number(lot.currentBid) || 0, buy_now:Number(lot.buyNow) || 0,
             make_id:idOrNull(lot.makeId), model_id:idOrNull(lot.modelId),
-            sale_date:new Date(ts).toISOString(), payload:{...lot, finalBid:0}, synced_at:new Date().toISOString()})})).catch(() => {});
+            sale_date:new Date(ts).toISOString(), payload:slimPayload({...lot, finalBid:0}), synced_at:new Date().toISOString()})})).catch(() => {});
       }
       return;
     }
@@ -4463,7 +4473,7 @@ async function upsertClosedLot(lot){
       damage:lot.damage || null, document:lot.document || null, odometer_mi:n(lot.odometer),
       current_bid:n(lot.currentBid) || 0, buy_now:n(lot.buyNow) || 0, final_bid:n(lot.finalBid) || 0,
       sale_date:new Date(ts).toISOString(), status_id:lot.statusId, archived:true,
-      payload:{...lot, images:Array.isArray(lot.images) ? lot.images.slice(0, 4) : lot.images}, synced_at:new Date().toISOString()
+      payload:slimPayload({...lot, images:Array.isArray(lot.images) ? lot.images.slice(0, 4) : lot.images}), synced_at:new Date().toISOString()
     };
     syncUpsertRows([row]).catch(() => {});
   }catch(e){ /* не мешаем ответу */ }
@@ -6355,7 +6365,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g49" : "";   // бамп при смене таблицы поколений и формы detail (g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g50" : "";   // бамп при смене таблицы поколений и формы detail (g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

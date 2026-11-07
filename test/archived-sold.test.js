@@ -164,3 +164,12 @@ test("медиа и метаданные: теги, страна покупат�
   assert.strictEqual(l.interiorUrl, "https://x/in");
   assert.strictEqual(l.videoYoutubeId, "dQw4w9WgXcQ");
 });
+
+test("тяжёлые поля страницы лота (кадры 360°, копии фото, салон) не попадают в payload строки базы", () => {
+  const it = bnLot({images:{downloaded:["https://a/1.webp"], exterior:["https://x/1.jpg","https://x/2.jpg"], interior:"https://x/in.jpg"}});
+  const row = syncRowFromItem(it, {});
+  assert.ok(row && row.payload);
+  assert.strictEqual(row.payload.spinFrames, undefined);
+  assert.strictEqual(row.payload.imagesDl, undefined);
+  assert.strictEqual(row.payload.interiorUrl, undefined);
+});
