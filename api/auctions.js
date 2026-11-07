@@ -403,13 +403,38 @@ function driveLabel(value){
 // Штат площадки по названию филиала. Фид у части IAAI-лотов кладёт в location.state штат ТАЙТЛА (Salvage (Idaho)), а не двора:
 // «shirley, idaho» при selling_branch «boston - shirley (ma)» и координатах Массачусетса. Штат в скобках филиала — надёжный.
 const US_STATE_NAMES = {"al": "alabama", "ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california", "co": "colorado", "ct": "connecticut", "de": "delaware", "dc": "district of columbia", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho", "il": "illinois", "in": "indiana", "ia": "iowa", "ks": "kansas", "ky": "kentucky", "la": "louisiana", "me": "maine", "md": "maryland", "ma": "massachusetts", "mi": "michigan", "mn": "minnesota", "ms": "mississippi", "mo": "missouri", "mt": "montana", "ne": "nebraska", "nv": "nevada", "nh": "new hampshire", "nj": "new jersey", "nm": "new mexico", "ny": "new york", "nc": "north carolina", "nd": "north dakota", "oh": "ohio", "ok": "oklahoma", "or": "oregon", "pa": "pennsylvania", "ri": "rhode island", "sc": "south carolina", "sd": "south dakota", "tn": "tennessee", "tx": "texas", "ut": "utah", "vt": "vermont", "va": "virginia", "wa": "washington", "wv": "west virginia", "wi": "wisconsin", "wy": "wyoming"};
+// Грубые рамки штатов (lat0,lat1,lon0,lon1) — только чтобы поймать ЗАВЕДОМО неверный штат из фида по координатам лота.
+// 07.11.2026: IAAI «dallas» (без «(xx)» в названии филиала) с титулом «Salvage (Kansas)» → фид клал state=Kansas при координатах
+// Техаса → «grand prairie, kansas», калькулятор считал доставку из Канзаса. Рамки с запасом 0.25°: если точка ВНУТРИ рамки заявленного
+// штата — доверяем фиду; вне её — штат заведомо неверен.
+const US_STATE_BOX = {al:[30.2,35,-88.5,-84.9],az:[31.3,37,-114.8,-109],ar:[33,36.5,-94.6,-89.6],ca:[32.5,42,-124.4,-114.1],co:[37,41,-109.1,-102],ct:[41,42.1,-73.7,-71.8],de:[38.4,39.8,-75.8,-75],dc:[38.8,39,-77.1,-76.9],fl:[24.5,31,-87.6,-80],ga:[30.4,35,-85.6,-80.8],id:[42,49,-117.2,-111],il:[37,42.5,-91.5,-87.5],in:[37.8,41.8,-88.1,-84.8],ia:[40.4,43.5,-96.6,-90.1],ks:[37,40,-102.1,-94.6],ky:[36.5,39.1,-89.6,-81.9],la:[28.9,33,-94,-89],me:[43,47.5,-71.1,-66.9],md:[37.9,39.7,-79.5,-75],ma:[41.2,42.9,-73.5,-69.9],mi:[41.7,48.3,-90.4,-82.4],mn:[43.5,49.4,-97.3,-89.5],ms:[30.2,35,-91.7,-88.1],mo:[36,40.6,-95.8,-89.1],mt:[44.4,49,-116.1,-104],ne:[40,43,-104.1,-95.3],nv:[35,42,-120,-114],nh:[42.7,45.3,-72.6,-70.6],nj:[38.9,41.4,-75.6,-73.9],nm:[31.3,37,-109.1,-103],ny:[40.5,45,-79.8,-71.9],nc:[33.8,36.6,-84.3,-75.4],nd:[45.9,49,-104.1,-96.5],oh:[38.4,42,-84.8,-80.5],ok:[33.6,37,-103,-94.4],or:[42,46.3,-124.6,-116.5],pa:[39.7,42.3,-80.5,-74.7],ri:[41.1,42,-71.9,-71.1],sc:[32,35.2,-83.4,-78.5],sd:[42.5,45.9,-104.1,-96.4],tn:[35,36.7,-90.3,-81.6],tx:[25.8,36.5,-106.7,-93.5],ut:[37,42,-114.1,-109],vt:[42.7,45,-73.4,-71.5],va:[36.5,39.5,-83.7,-75.2],wa:[45.5,49,-124.8,-116.9],wv:[37.2,40.6,-82.7,-77.7],wi:[42.5,47.1,-92.9,-86.8],wy:[41,45,-111.1,-104]};
+function stateByCoords(lat, lon, claimed){
+  if(!Number.isFinite(lat) || !Number.isFinite(lon) || (lat === 0 && lon === 0)) return null;
+  const pad = 0.25, inBox = b => lat >= b[0] - pad && lat <= b[1] + pad && lon >= b[2] - pad && lon <= b[3] + pad;
+  const cb = US_STATE_BOX[claimed];
+  if(cb && inBox(cb)) return null;           // фид прав (или не опровергнут)
+  if(!cb && claimed) return null;            // AK/HI и пр. — рамки нет, не трогаем
+  let best = null, bd = Infinity;
+  for(const [code, b] of Object.entries(US_STATE_BOX)){
+    if(!inBox(b)) continue;
+    const d = Math.hypot(lat - (b[0] + b[1]) / 2, (lon - (b[2] + b[3]) / 2) * 0.8);
+    if(d < bd){ bd = d; best = code; }
+  }
+  return best;
+}
 function yardFix(lot){
   try{
-    const m = safeName(lot?.selling_branch || lot?.branch).toLowerCase().match(/\(([a-z]{2})\)\s*$/);
-    if(!m || !US_STATE_NAMES[m[1]]) return null;
     if(String(lot?.location?.country?.iso || "us").toLowerCase() !== "us") return null;
-    if(String(lot?.location?.state?.code || "").toLowerCase() === m[1]) return null;
-    return {code:m[1], name:US_STATE_NAMES[m[1]]};
+    const claimed = String(lot?.location?.state?.code || "").toLowerCase();
+    const m = safeName(lot?.selling_branch || lot?.branch).toLowerCase().match(/\(([a-z]{2})\)\s*$/);
+    if(m && US_STATE_NAMES[m[1]]){
+      if(claimed === m[1]) return null;
+      return {code:m[1], name:US_STATE_NAMES[m[1]]};
+    }
+    // Филиал без «(xx)» («dallas»): проверяем штат из фида по координатам двора
+    const code = stateByCoords(Number(lot?.location?.latitude), Number(lot?.location?.longitude), claimed);
+    if(code && code !== claimed && US_STATE_NAMES[code]) return {code, name:US_STATE_NAMES[code]};
+    return null;
   }catch(_){ return null; }
 }
 
@@ -826,6 +851,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || safeNumber(lot?.pre_accident_price) || (Number(lot?.pre_accident_price) === -1 ? 0 : lot?.clean_wholesale_price) || item?.estimated_retail_value || item?.acv),
     repairCost:safeNumber(lot?.estimate_repair_price || lot?.estimated_repair_cost),
     airbags:safeName(lot?.airbags),
+    sellerNote:safeName(lot?.note).slice(0,200),   // примечание продавца (Copart: «REPOSSESSION» и т.п.)
     preAccidentPrice:safeNumber(lot?.pre_accident_price),
     cleanWholesalePrice:safeNumber(lot?.clean_wholesale_price),
     seller:sellerLabel(lot, item),
@@ -6134,7 +6160,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g41" : "";   // бамп при смене таблицы поколений и формы detail (g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g42" : "";   // бамп при смене таблицы поколений и формы detail (g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

@@ -3932,6 +3932,7 @@
                 return dPlain("Дата аукциона", `${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` <span class="dAgoV1">(${escapeHtml(ago)})</span>` : ""}`);
               })()}
               ${dPlain("Локация", (findCanadaLocation(lot) ? CA_FLAG_SVG + " " : "") + escapeHtml(lotLocationText(lot)))}
+              ${lot.sellerNote ? dPlain("Примечание продавца", escapeHtml(tc(lot.sellerNote))) : ""}
               ${Number(lot.estimatedRetailValue) > 100 ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}
               ${lot.repairCost ? dPlain("Оценка ремонта", caMoney(lot.repairCost)) : ""}
             </section>
