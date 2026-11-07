@@ -1559,9 +1559,11 @@
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1${lot.auctionDate ? "" : " dbNoDateV1"}">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}${(() => { if(!isSold) return ""; const ago = timeAgoRu(lot.auctionDate); return ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""; })()}</span>
+          <div class="dbMobPanelV1">
           ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : isSold ? L("ставок не было") : L("ставок пока нет")}</b></span>` : ""}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<span class="dbMobReserveV1">${L("Резерв продавца")}: <b>${findCanadaLocation(lot) ? moneyCad(lot.sellerReserve) : money(lot.sellerReserve)}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
+          </div>
         </div>
         <div class="dbCols">
           <div class="dbLeftCol">

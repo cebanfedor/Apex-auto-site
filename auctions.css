@@ -1753,3 +1753,55 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Панорама салона (equirectangular, Pannellum) */
 .lbPanoBoxV1 { width:92vw; max-width:1200px; height:82vh; border-radius:8px; overflow:hidden; background:#111; box-shadow:0 20px 60px rgba(0,0,0,.55); }
 .lbPanoViewerV1 { width:100%; height:100%; }
+
+/* ======================================================================================
+   07.11.2026 (Федор: «текст на разном уровне, шрифт где-то большой, где-то нет»): единая шкала карточки каталога на телефоне.
+   Шкала: заголовок 17/800 · строки данных 14/400 (цвет ink2) · подписи 13.5 (muted) · цена 18/800 · ориентир 14/700.
+   Все строки — одна «сетка»: иконка-плашка 22px (14px + padding 4 = 22) + gap 10 → тексты начинаются с одного левого края.
+   ====================================================================================== */
+@media (max-width:640px) {
+  .dbCard { gap:12px; }
+  .dbBody { gap:8px; }
+  .dbTitle { font-size:17px; line-height:1.25; }
+  /* единый вид строки данных */
+  .dbCard .dbMobDateV1, .dbCard .dbIds > span, .dbCard .dbSpecs li, .dbCard .dbChecks li, .dbCard .dbLotRowV1 .dbLotNo {
+    font-size:14px; line-height:1.35; color:var(--aInk2); gap:10px; }
+  .dbCard .dbIds > span { color:var(--aInk2); font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+  /* единая иконка-плашка 24×24 */
+  .dbCard .dbMobDateV1 > .dbIco, .dbCard .dbIds > span > .dbIco:first-child, .dbCard .dbSpecs li > .dbIco, .dbCard .dbChecks li > .dbIco,
+  .dbCard .dbLotRowV1 .dbLotNo > .dbIco:first-child {
+    width:14px; height:14px; padding:4px; border-radius:7px; box-sizing:content-box; flex:none; margin:0; align-self:center;
+    background:var(--aSoft); color:var(--aMuted); }
+  .dbCard .dbCheck.good > .dbIco { background:#e6f7ee; color:#1b9c5b; }
+  .dbCard .dbCheck.warn > .dbIco { background:#fdf2df; color:#b3790a; }
+  .dbCard .dbCheck.bad > .dbIco { background:#fdeaec; color:var(--aRed); }
+  .dbCard .dbCheck b { font-weight:700; color:var(--aInk); }
+  .dbCard .dbSpecs, .dbCard .dbChecks, .dbCard .dbLeftCol, .dbCard .dbChecksCol { gap:6px; }
+  .dbCard .copyChipV1 .dbIco:last-child { width:13px; height:13px; padding:0; background:none; }
+  /* дата — отдельная строка в той же сетке, чуть плотнее остальных */
+  .dbCard:not(.dbOpenV1) .dbMobMetaV1 { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; gap:10px; margin:0; font-size:14px; }
+  .dbMobMetaV1 .dbMobDateV1 { display:flex; align-items:center; font-weight:600; color:var(--aInk); }
+  .dbMobMetaV1 .dbMobDateV1 .dbIco { margin:0; vertical-align:baseline; }
+  .dbMobMetaV1 .dbMobDateV1.dbNoDateV1 { display:inline-flex; align-self:flex-start; padding:3px 10px 3px 4px; font-size:12.5px; }
+  .dbMobMetaV1 .dbMobDateV1.dbNoDateV1 > .dbIco { padding:3px; width:14px; height:14px; background:none; }
+  .dbMobMetaV1 .dAgoV1 { font-style:normal; font-weight:500; color:var(--aMuted); margin-left:6px; }
+  /* панель цены: подпись слева, значение справа, одна база */
+  .dbMobPanelV1 { display:flex; flex-direction:column; gap:7px; padding:11px 14px; border-radius:12px; background:var(--aSoft); }
+  .dbMobPanelV1 > * { display:flex; align-items:baseline; justify-content:space-between; gap:12px; width:100%; margin:0; font-size:13.5px; line-height:1.35; color:var(--aMuted); }
+  .dbMobPanelV1 .dbMobPriceV1 b { font-size:18px; line-height:1.2; font-weight:800; color:var(--aInk); letter-spacing:-.01em; white-space:nowrap; }
+  .dbMobPanelV1 .dbMobReserveV1 { font-weight:500; }
+  .dbMobPanelV1 .dbMobReserveV1 b { font-size:14px; font-weight:700; }
+  .dbMobPanelV1 .dbMobForecastV1 { flex-direction:row; align-items:baseline; gap:12px; padding-top:7px; border-top:1px dashed var(--aLine); }
+  .dbMobPanelV1 .dbMobForecastV1[hidden] { display:none; }
+  .dbMobPanelV1 .dbMobForecastV1 .dbForecastLabV1 { font-size:13.5px; letter-spacing:0; color:var(--aMuted); gap:6px; align-items:center; }
+  .dbMobPanelV1 .dbMobForecastV1 .dbForecastLabV1 .dbIco { width:14px; height:14px; margin:0; }
+  .dbMobPanelV1 .dbMobForecastV1 b { font-size:14px; font-weight:700; color:var(--aInk); white-space:nowrap; }
+  .dbMobPanelV1 .dbMobForecastV1[data-pending] { min-height:20px; }
+  .dbMobPanelV1:not(:has(> *:not([hidden]))) { display:none; }
+  .dbCard .dbExpandV1 { margin-top:2px; height:40px; font-size:14px; }
+}
+@media (max-width:640px) {
+  .dbAuc, .dbVideoBadgeV3 { font-size:10.5px; }
+  .dbPhotoCount { font-size:12px; }
+  .tabCountV1 { font-size:11px; }
+}

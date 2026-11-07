@@ -2467,3 +2467,13 @@ a.tkItemV1:hover b { text-decoration: underline; }
 /* /in-transit: пока JS не нарисовал список машин, блоки под ним скрыты, а список держит высоту экрана — иначе они прыгали вниз (CLS ≈0.4) */
 main.transitPendingV1 .hotApiWrapV351, main.transitPendingV1 .hotNoteV101 { display: none; }
 main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
+
+/* 07.11.2026 — мобильная типографика: тексты не мельче 12px, бейджи не мельче 10.5px (Федор: «шрифт где-то слишком мелкий») */
+@media (max-width: 640px) {
+  .homeLotSpecV1, .homeLotSubV1, .homeLotRunV1 { font-size: 12px; }
+  .homeLotAucV1 { font-size: 10.5px; }
+  .homeLotPriceV1 small { font-size: 10.5px; }
+  .hotApiCarBodyV351 { font-size: 12px; }
+  .hotApiAucBadgeV351, .hotApiFuelBadgeV352 { font-size: 11px; }
+  .tkLiveV1 { font-size: 11px; }
+}
