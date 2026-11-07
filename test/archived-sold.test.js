@@ -51,3 +51,12 @@ test("синк по площадке: лот ЭТОЙ площадки чита�
   const none = syncRowFromItem(JSON.parse(JSON.stringify(car)), {});
   assert.strictEqual(none.lot, "40093457");   // без фильтра — как раньше, lots[0]
 });
+
+test("валюта лота CAD → канадский лот (пробег в км), даже если локация не распознана", () => {
+  const {normalizeLot} = require("../api/auctions.js");
+  const mk = cur => normalizeLot({id:1, vin:"WBSAE0C06PCL70372", year:2022, title:"2022 BMW X3", lots:[
+    {lot:"12700052", domain:{name:"iaai_com", id:1}, currency:cur, bid:5000, odometer:{mi:null, km:40201}, sale_date:"2099-01-01T00:00:00Z", status:{name:"sale", id:3}}
+  ]});
+  assert.strictEqual(mk("CAD").odometerUnit, "km");
+  assert.notStrictEqual(mk("USD").odometerUnit, "km");
+});

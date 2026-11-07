@@ -598,6 +598,11 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
   const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
   const isCanadaLot = (() => {
+    // 07.11.2026: документация «Цены» — суммы без кода валюты, но у лота есть отдельное поле currency («USD»/«CAD»).
+    // Раньше канадские лоты узнавали только по локации; валюта лота — прямой признак, не зависящий от того, как записан город.
+    const curRaw = lot?.currency ?? item?.currency;
+    const cur = String(curRaw && typeof curRaw === "object" ? (curRaw.code || curRaw.name || "") : (curRaw || "")).toUpperCase();
+    if(cur === "CAD") return true;
     const iso = String(lot?.location?.country?.iso || lot?.location?.country_code || lot?.location?.country || "").toLowerCase();
     if(iso === "ca" || iso === "canada") return true;
     return /\bcanada\b|,\s*(qc|on|ab|bc|mb|sk|ns|nb|nl|pe)\s*$/i.test(String(location || ""));
