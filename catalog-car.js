@@ -683,7 +683,7 @@
     el.querySelector(".lot-lb__prev").addEventListener("click", function(){ lbNav(-1); });
     el.querySelector(".lot-lb__next").addEventListener("click", function(){ lbNav(1); });
     el.querySelector(".lot-lb__strip").addEventListener("click", function(e){ var t = e.target.closest("[data-lb-thumb]"); if(!t) return; lb.idx = parseInt(t.getAttribute("data-lb-thumb"), 10) || 0; lbRender(); });
-    el.addEventListener("click", function(e){ if(e.target === el && lb.zoom <= 1) closeLightbox(); });
+    el.addEventListener("click", function(e){ if((e.target === el || e.target === stage) && lb.zoom <= 1) closeLightbox(); });
     stage.addEventListener("dblclick", function(e){ e.preventDefault(); lbCycle(); });
     stage.addEventListener("wheel", function(e){ e.preventDefault(); lb.zoom = Math.min(3, Math.max(1, lb.zoom + (e.deltaY < 0 ? 0.25 : -0.25))); if(lb.zoom <= 1){ lb.panX = lb.panY = 0; } lbApply(); }, {passive:false});
     stage.addEventListener("mousedown", function(e){ if(lb.zoom <= 1) return; lb.dragging = true; lb.startX = e.clientX - lb.panX; lb.startY = e.clientY - lb.panY; e.preventDefault(); });

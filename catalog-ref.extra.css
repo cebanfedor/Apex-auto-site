@@ -278,3 +278,4 @@
 
 /* a11y 07.11.2026: контраст светло-серого текста (ink-4 был 3:1) */
 .apx-korea{--c-ink-4:107 116 132}
+.vcard__media.has-gallery, .vcard__media.has-gallery .vcard__slide { cursor: zoom-in; }

@@ -906,9 +906,13 @@
     var d = new Date(t).toLocaleString(loc, {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"});
     return t < Date.now() - 3 * 3600e3 ? T("Торги прошли") + " · " + new Date(t).toLocaleDateString(loc, {day:"numeric", month:"short"}) : T("Торги") + ": " + d;
   }
+  function imageFull(img){ return img.original || img.preview || img.downloaded || ""; }
+  var cardPhotos = [];   // для просмотра фото без перехода на лот: [{full:[…], thumbs:[…]}] по номеру карточки на странице
   function cardHtml(car, idx){
     var listing = pickListing(car);
     var imgs = listing && Array.isArray(listing.images) ? listing.images.map(imageUrl).filter(Boolean) : [];
+    var rawImgs = listing && Array.isArray(listing.images) ? listing.images.filter(function(im){ return imageUrl(im); }) : [];
+    cardPhotos[idx] = {full: rawImgs.map(imageFull), thumbs: imgs};
     var shown = imgs.slice(0, 6), more = imgs.length - shown.length;
     var href = carHref(car, listing), title = titleOf(car);
     // Грузим заранее только ПЕРВОЕ фото; остальные (data-src) — по требованию: наведение, стрелка, свайп (loadAround).
@@ -950,7 +954,7 @@
     var src = CA ? "" : (listing && listing.external && listing.external.domain && listing.external.domain.name || "");
     var sold = listing && listing.archived;
     return '<article class="vcard vcard--api group' + (sold ? " is-sold" : "") + '">'
-      + '<div class="vcard__media' + (shown.length ? " has-gallery" : " no-photo is-loaded") + '" data-no-photo="' + esc(T("Фото скоро появятся")) + '" data-count="' + shown.length + '" data-href="' + esc(href) + '">'
+      + '<div class="vcard__media' + (shown.length ? " has-gallery" : " no-photo is-loaded") + '" data-no-photo="' + esc(T("Фото скоро появятся")) + '" data-count="' + shown.length + '" data-ci="' + idx + '" data-href="' + esc(href) + '">'
         + '<div class="vcard__track" data-track>' + (slides || '<a href="' + esc(href) + '" class="vcard__slide has-error" tabindex="-1"></a>') + '</div>'
         + '<div class="vcard__stage" data-stage aria-hidden="true">' + stage + '</div>'
         + nav + segments
@@ -983,6 +987,7 @@
     var items = Array.isArray(data.items) ? data.items : [];
     setHeading(data.total || 0);
     if(!items.length){ renderEmpty(); renderPager(data); return; }
+    cardPhotos = [];
     grid.innerHTML = items.map(cardHtml).join("");
     renderPager(data);
   }
@@ -1046,8 +1051,78 @@
     var cp = e.target.closest("[data-copy]");
     if(cp){ e.preventDefault(); e.stopPropagation(); if(navigator.clipboard){ navigator.clipboard.writeText(cp.getAttribute("data-copy")).then(function(){ cp.classList.add("is-copied"); setTimeout(function(){ cp.classList.remove("is-copied"); }, 1200); }).catch(function(){}); } return; }
     var media2 = e.target.closest(".vcard__media");
-    if(media2 && !e.target.closest("a")){ var href = media2.getAttribute("data-href"); if(href) location.href = href; }
+    if(media2 && !e.target.closest(".vcard__badges a, .vcard__hit")){
+      // Клик по фото — просмотр карусели прямо в каталоге (без захода на лот); Ctrl/⌘/Shift/средняя кнопка — как обычная ссылка.
+      if(e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
+      var cp2 = cardPhotos[parseInt(media2.getAttribute("data-ci"), 10)];
+      if(cp2 && cp2.full.length){ e.preventDefault(); openLightbox(cp2.full, mediaIndex(media2), cp2.thumbs); return; }
+      if(!e.target.closest("a")){ var href = media2.getAttribute("data-href"); if(href) location.href = href; }
+    }
   });
+
+  // ---- Просмотр фото (как на странице авто: зум, миниатюры, Esc / клик мимо фото — закрыть, свайп на телефоне) ----
+  var lb = {images:[], thumbs:[], idx:0, zoom:1, panX:0, panY:0, dragging:false, startX:0, startY:0, pinchDist:0, pinchZoom:1, swipeX:null}, lbEl = null;
+  function ensureLightbox(){
+    if(lbEl) return lbEl;
+    var el = document.createElement("div"); el.className = "lot-lb"; el.hidden = true; el.tabIndex = -1;
+    el.innerHTML = '<button type="button" class="lot-lb__close" aria-label="' + esc(T("Закрыть")) + '">' + I.x + '</button><button type="button" class="lot-lb__arr lot-lb__prev" aria-label="' + esc(T("Предыдущее фото")) + '">' + I.prev + '</button><button type="button" class="lot-lb__arr lot-lb__next" aria-label="' + esc(T("Следующее фото")) + '">' + I.next + '</button><div class="lot-lb__stage"><img class="lot-lb__img" alt="" referrerpolicy="no-referrer"></div><span class="lot-lb__count num"></span><div class="lot-lb__strip scrollbar-none" aria-label="' + esc(T("Фото")) + '"></div>';
+    document.body.appendChild(el); lbEl = el; wireLightbox(el); return el;
+  }
+  function lbApply(){ var img = lbEl.querySelector(".lot-lb__img"); img.style.transform = "translate(" + lb.panX + "px," + lb.panY + "px) scale(" + lb.zoom + ")"; lbEl.classList.toggle("is-zoomed", lb.zoom > 1.01); }
+  function lbRender(){
+    var img = lbEl.querySelector(".lot-lb__img"); img.src = lb.images[lb.idx] || "";
+    lb.zoom = 1; lb.panX = lb.panY = 0; lbApply();
+    lbEl.querySelector(".lot-lb__count").textContent = (lb.idx + 1) + " / " + lb.images.length;
+    var strip = lbEl.querySelector(".lot-lb__strip");
+    strip.querySelectorAll(".lot-lb__thumb").forEach(function(b, i){
+      var on = i === lb.idx; b.classList.toggle("is-on", on);
+      if(on){ var l = b.offsetLeft - (strip.clientWidth - b.offsetWidth) / 2; strip.scrollTo({left:Math.max(0, l), behavior:"smooth"}); }
+    });
+  }
+  function lbNav(d){ if(!lb.images.length) return; lb.idx = (lb.idx + d + lb.images.length) % lb.images.length; lbRender(); }
+  function lbCycle(){ var steps = [1, 2, 3], cur = steps.indexOf(Math.round(lb.zoom)); lb.zoom = steps[(cur + 1) % steps.length]; if(lb.zoom <= 1){ lb.panX = lb.panY = 0; } lbApply(); }
+  function openLightbox(images, idx, thumbs){
+    if(!images || !images.length) return; ensureLightbox();
+    lb.images = images; lb.thumbs = thumbs && thumbs.length === images.length ? thumbs : images;
+    lb.idx = Math.max(0, Math.min(images.length - 1, idx || 0));
+    var strip = lbEl.querySelector(".lot-lb__strip"); strip.hidden = images.length < 2;
+    strip.innerHTML = images.map(function(src, i){ return '<button type="button" class="lot-lb__thumb" data-lb-thumb="' + i + '" aria-label="' + esc(T("Фото")) + ' ' + (i + 1) + '"><img src="' + esc(lb.thumbs[i]) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></button>'; }).join("");
+    lbRender(); lbEl.hidden = false; document.documentElement.classList.add("overflow-hidden"); lbEl.focus();
+  }
+  function closeLightbox(){ if(!lbEl || lbEl.hidden) return; lbEl.hidden = true; document.documentElement.classList.remove("overflow-hidden"); }
+  function lbDist(t){ var dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY; return Math.sqrt(dx * dx + dy * dy); }
+  function wireLightbox(el){
+    var stage = el.querySelector(".lot-lb__stage");
+    el.querySelector(".lot-lb__close").addEventListener("click", closeLightbox);
+    el.querySelector(".lot-lb__prev").addEventListener("click", function(){ lbNav(-1); });
+    el.querySelector(".lot-lb__next").addEventListener("click", function(){ lbNav(1); });
+    el.querySelector(".lot-lb__strip").addEventListener("click", function(e){ var t = e.target.closest("[data-lb-thumb]"); if(!t) return; lb.idx = parseInt(t.getAttribute("data-lb-thumb"), 10) || 0; lbRender(); });
+    // Клик мимо фото (по тёмному полю вокруг) закрывает; пока фото увеличено — не закрываем, чтобы не гасить просмотр случайно.
+    el.addEventListener("click", function(e){ if((e.target === el || e.target === stage) && lb.zoom <= 1) closeLightbox(); });
+    stage.addEventListener("dblclick", function(e){ if(e.target.closest(".lot-lb__img")){ e.preventDefault(); lbCycle(); } });
+    stage.addEventListener("wheel", function(e){ e.preventDefault(); lb.zoom = Math.min(3, Math.max(1, lb.zoom + (e.deltaY < 0 ? 0.25 : -0.25))); if(lb.zoom <= 1){ lb.panX = lb.panY = 0; } lbApply(); }, {passive:false});
+    stage.addEventListener("mousedown", function(e){ if(lb.zoom <= 1) return; lb.dragging = true; lb.startX = e.clientX - lb.panX; lb.startY = e.clientY - lb.panY; e.preventDefault(); });
+    window.addEventListener("mousemove", function(e){ if(!lb.dragging) return; lb.panX = e.clientX - lb.startX; lb.panY = e.clientY - lb.startY; lbApply(); });
+    window.addEventListener("mouseup", function(){ lb.dragging = false; });
+    var lastTap = 0;
+    stage.addEventListener("touchstart", function(e){
+      if(e.touches.length === 2){ lb.pinchDist = lbDist(e.touches); lb.pinchZoom = lb.zoom; lb.swipeX = null; }
+      else if(e.touches.length === 1){
+        if(lb.zoom > 1){ lb.dragging = true; lb.startX = e.touches[0].clientX - lb.panX; lb.startY = e.touches[0].clientY - lb.panY; }
+        else lb.swipeX = e.touches[0].clientX;
+        var now = Date.now(); if(now - lastTap < 350 && e.target.closest(".lot-lb__img")) lbCycle(); lastTap = now;
+      }
+    }, {passive:true});
+    stage.addEventListener("touchmove", function(e){
+      if(e.touches.length === 2 && lb.pinchDist){ lb.zoom = Math.min(3, Math.max(1, lb.pinchZoom * (lbDist(e.touches) / lb.pinchDist))); if(lb.zoom <= 1){ lb.panX = lb.panY = 0; } lbApply(); e.preventDefault(); }
+      else if(e.touches.length === 1 && lb.dragging){ lb.panX = e.touches[0].clientX - lb.startX; lb.panY = e.touches[0].clientY - lb.startY; lbApply(); e.preventDefault(); }
+    }, {passive:false});
+    stage.addEventListener("touchend", function(e){
+      if(lb.swipeX != null && e.changedTouches.length && lb.zoom <= 1){ var dx = e.changedTouches[0].clientX - lb.swipeX; if(Math.abs(dx) > 50) lbNav(dx < 0 ? 1 : -1); }
+      lb.swipeX = null; if(e.touches.length < 2) lb.pinchDist = 0; if(e.touches.length === 0) lb.dragging = false;
+    });
+    document.addEventListener("keydown", function(e){ if(!lbEl || lbEl.hidden) return; if(e.key === "Escape") closeLightbox(); else if(e.key === "ArrowLeft") lbNav(-1); else if(e.key === "ArrowRight") lbNav(1); });
+  }
   grid.addEventListener("scroll", function(e){
     var track = e.target;
     if(!track || !track.hasAttribute || !track.hasAttribute("data-track") || !track.clientWidth) return;
