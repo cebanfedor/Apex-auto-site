@@ -62,7 +62,7 @@ test("demoteRelistedCopies: уже понижённая копия выреза�
 
 test("preserveSoldCopies: при релисте того же номера на более позднюю дату копия пишется как непроданный раунд, при ранней — как продажа", async () => {
   const saleRow = {id:"copart-71697016", auction:"copart", lot:"71697016", archived:true, status_id:6, final_bid:37000, sale_date:T14, payload:soldPayload()};
-  let calls = mockFetch([{test:p => /select=\*/.test(p), reply:() => [saleRow]}]);
+  let calls = mockFetch([{test:p => /select=id,archived/.test(p), reply:() => [saleRow]}, {test:p => /select=\*/.test(p), reply:() => [saleRow]}]);
   let n = await preserveSoldCopies(["copart-71697016"], {"copart-71697016":Date.parse(T21)});
   assert.strictEqual(n, 1);
   assert.strictEqual(preserveSoldCopies.demoted, 1);
@@ -72,7 +72,7 @@ test("preserveSoldCopies: при релисте того же номера на 
   assert.strictEqual(post.body[0].final_bid, 0);
   assert.strictEqual(post.body[0].payload.relistDemoted, true);
 
-  calls = mockFetch([{test:p => /select=\*/.test(p), reply:() => [saleRow]}]);
+  calls = mockFetch([{test:p => /select=id,archived/.test(p), reply:() => [saleRow]}, {test:p => /select=\*/.test(p), reply:() => [saleRow]}]);
   n = await preserveSoldCopies(["copart-71697016"], {"copart-71697016":Date.parse("2026-10-01T17:00:00Z")});   // входящая строка РАНЬШЕ продажи — не релист
   assert.strictEqual(n, 1);
   assert.strictEqual(preserveSoldCopies.demoted, 0);
