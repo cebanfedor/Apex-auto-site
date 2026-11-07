@@ -278,6 +278,10 @@ function safeNumber(value){
   if(value && typeof value === "object"){
     return safeNumber(value.value || value.amount || value.usd || value.price || value.bid);
   }
+  // Фид кодирует «значения нет» отрицательным числом (Copart pre_accident_price: -1). Раньше регэксп
+  // срезал минус, и «-1» превращался в 1 → «Оценка (ACV): $1» на странице лота. Отрицательное = нет данных.
+  if(typeof value === "number" && value < 0) return 0;
+  if(typeof value === "string" && /^\s*-/.test(value)) return 0;
   const number = Number(String(value || "").replace(/[^\d.]/g, ""));
   return Number.isFinite(number) ? number : 0;
 }
@@ -816,7 +820,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
     // vis.iaai.com/Home/ThreeSixtyView?...&iframeview=true — сделана специально под встраивание в iframe).
     // У Copart поле не проверено — просто показываем кнопку, когда ссылка реально есть, никаких допущений.
     panoramaUrl:(lot?.images?.external_panorama_url) || (item?.images?.external_panorama_url) || "",
-    estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || lot?.pre_accident_price || lot?.clean_wholesale_price || item?.estimated_retail_value || item?.acv),
+    // ACV: IAAI actual_cash_value → Copart pre_accident_price. При pre_accident_price = -1 («оценки нет») НЕ падаем на
+    // clean_wholesale_price: это другая величина (оптовая «чистой» машины), модель оценки калибровалась без неё — решение
+    // «использовать ли её как замену ACV у Copart» требует отдельной калибровки по проданным (этап 2 разбора /cars).
+    estimatedRetailValue:safeNumber(lot?.actual_cash_value || lot?.estimated_retail_value || safeNumber(lot?.pre_accident_price) || (Number(lot?.pre_accident_price) === -1 ? 0 : lot?.clean_wholesale_price) || item?.estimated_retail_value || item?.acv),
     repairCost:safeNumber(lot?.estimate_repair_price || lot?.estimated_repair_cost),
     airbags:safeName(lot?.airbags),
     preAccidentPrice:safeNumber(lot?.pre_accident_price),
@@ -6127,7 +6134,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g40" : "";   // бамп при смене таблицы поколений и формы detail (g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g41" : "";   // бамп при смене таблицы поколений и формы detail (g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
