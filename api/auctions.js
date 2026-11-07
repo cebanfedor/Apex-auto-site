@@ -735,7 +735,14 @@ function normalizeLot(source, fallbackAuction = "copart"){
   // ставок появлялась «финальная цена» непроданного раунда. Додумываем только из записи со статусом продажи.
   const topHist = priceHistory[0];
   const topIsSale = topHist && /sold|approval/i.test(topHist.status || "") && !/not_sold/i.test(topHist.status || "");
-  const resolvedFinalBid = finalBid || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
+  // 07.11.2026: /archived-lots у ПРОДАННЫХ лотов IAAI отдаёт final_bid=null, а цену продажи кладёт в bid (41613432: sold, bid 2700,
+  // bid.updated_at на 20 мин позже торгов). Раньше финал 0 → продажа писалась в архив без цены и выпадала из выдачи.
+  // Берём bid как финал, только если статус «продан», торги УЖЕ прошли и ставка обновлялась не раньше торгов (не пред-ставка).
+  const soldBidTs = Date.parse(lot?.sale_date || lot?.auction_date || "");
+  const bidUpdTs = Date.parse(lot?.bid_updated_at || "");
+  const soldBidFinal = (Number(statusId) === 6 && currentBid > 0 && Number.isFinite(soldBidTs) && soldBidTs < Date.now() - 5 * 60e3
+    && (!Number.isFinite(bidUpdTs) || bidUpdTs >= soldBidTs - 10 * 60e3)) ? currentBid : 0;
+  const resolvedFinalBid = finalBid || soldBidFinal || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
   // ⚠️ Фид ставит статус «sold» (6) лотам, торги по которым ЕЩЁ НЕ ПРОШЛИ, а в final_bid кладёт текущую
   // пред-ставку. Торги в будущем → лот не может быть продан: это активный лот со ставкой. Иначе в архиве
@@ -6160,7 +6167,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g42" : "";   // бамп при смене таблицы поколений и формы detail (g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g43" : "";   // бамп при смене таблицы поколений и формы detail (g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -7097,3 +7104,4 @@ module.exports.titleMakeMismatch = titleMakeMismatch;
 module.exports.normalizeLot = normalizeLot;
 module.exports.demoteRelistedCopies = demoteRelistedCopies;
 module.exports.preserveSoldCopies = preserveSoldCopies;
+module.exports.syncRowFromItem = syncRowFromItem;
