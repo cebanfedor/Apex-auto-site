@@ -559,6 +559,24 @@ function titleMakeMismatch(title, manufacturerName){
   return t.length > 0 && !t.includes(mk);
 }
 
+// 07.11.2026 (документация auctionsapi «Автомобили, лоты и ID» + реальный ответ /cars): во вложенных lots машины лежат записи РАЗНЫХ площадок и заходов,
+// порядок НЕ «новые первыми» (BMW M3 CS: lots[0] — старый IAAI-лот со ставкой $575 от 07.10, а продан он на Copart за $77 000 23.10, lots[1]).
+// «Текущий» лот выбираем явно: 1) запрошенный номер лота (страница лота), 2) лот нужной площадки (обход по domain_id), 3) самый свежий по created_at.
+// Остальные остаются после него — это «прошлые заходы» для истории (код читает lots.slice(1)). Однажды упорядоченное помечаем (_lotsPinned).
+function orderLots(item, {lot = "", domainId = 0} = {}){
+  if(!item || !Array.isArray(item.lots) || item.lots.length < 2 || item._lotsPinned) return item;
+  const want = Number(domainId) || 0;
+  const wantLot = String(lot || "").replace(/~.*/, "");
+  const idOf = l => { const d = l && l.domain; return Number(d && typeof d === "object" ? d.id : NaN); };
+  const lotMatch = l => !!wantLot && [l?.lot, l?.external_id].some(v => v != null && String(v).replace(/~.*/, "") === wantLot);
+  const createdTs = l => { const t = Date.parse(l?.created_at || ""); return Number.isFinite(t) ? t : 0; };
+  const ranked = item.lots.map((l, i) => ({l, i, a:lotMatch(l) ? 1 : 0, b:want && idOf(l) === want ? 1 : 0, c:createdTs(l)}));
+  ranked.sort((x, y) => (y.a - x.a) || (y.b - x.b) || (y.c - x.c) || (x.i - y.i));
+  item.lots = ranked.map(r => r.l);
+  Object.defineProperty(item, "_lotsPinned", {value:true, enumerable:false, configurable:true});
+  return item;
+}
+
 // /archived-lots (simple_paginate=1) отдаёт числа и даты объектами {value, updated_at} — bid, final_bid, sale_date…
 // (26.09.2026: из-за этого ВСЕ закрытые лоты из этого фида писались живыми без финала и в архив не попадали). Разворачиваем на месте:
 // поле = value, время обновления — в <поле>_updated_at. seller_reserve ({price, updated_at}) не трогаем — его разбирает saleStatusInfo.
@@ -577,6 +595,7 @@ function unwrapFeedValues(obj){
 function normalizeLot(source, fallbackAuction = "copart"){
   const item = source?.data && !Array.isArray(source.data) ? source.data : source;
   tesla.fixTeslaItem(item);   // модель Tesla — по VIN, фид её путает
+  orderLots(item);
   const lots = Array.isArray(item?.lots) ? item.lots : [];
   // плоская запись (как отдаёт /archived-lots): поля лота лежат в самом item, а item.lot — просто номер лота (строка/число), не объект
   const lot = unwrapFeedValues(lots[0] || (item?.lot && typeof item.lot === "object" ? item.lot : item));
@@ -1012,6 +1031,9 @@ function buildSearchParams(query){
     const v = params.get(key);
     if(v && v.includes(",")) params.delete(key);
   }
+  // Документация «Синтаксис фильтров»: несколько статусов — повторяющиеся ключи status[]=4&status[]=5, не «4,5».
+  const stCsv = params.get("status");
+  if(stCsv && stCsv.includes(",")){ params.delete("status"); stCsv.split(",").map(x => x.trim()).filter(Boolean).forEach(v => params.append("status[]", v)); }
   const fuelCsv = String(query.get("fuel") || "");
   if(/^\d+$/.test(fuelCsv)) params.set("fuel_type", fuelCsv === "5" ? "3" : fuelCsv);
   // Поколение из нашей таблицы (синтетический id) → диапазон лет вместо generation_id.
@@ -1595,6 +1617,7 @@ async function fetchDetail(query){
   for(const domain of domains){
     try{
       const payload = await fetchJson(`${AUCTIONS_API_BASE}/search-lot/${encodeURIComponent(lot)}/${domain}?${params}`);
+      orderLots(payload?.data && !Array.isArray(payload.data) ? payload.data : payload, {lot});   // запрошенный номер — первым (у машины могут быть лоты других площадок)
       return normalizeLot(payload, auction);
     }catch(error){
       lastError = error;
@@ -4247,21 +4270,8 @@ async function syncApiFetch(url, timeoutMs){
 
 // item (сырой ответ API) → строка таблицы api_lots.
 // payload — нормализованный лот в том же виде, что отдаёт action=search.
-// 07.11.2026 (документация auctionsapi, «Автомобили, лоты и ID»): /cars?domain_id=N выбирает машины, у которых ЕСТЬ подходящее объявление,
-// а во вложенных lots могут лежать и записи другой площадки (один VIN: Copart + IAAI) — «проверяйте источник каждого лота».
-// Мы всегда читали lots[0]; при обходе по площадке ставим вперёд лот ЭТОЙ площадки, иначе строка домена N строилась из чужого лота.
-function preferDomainLot(item, domainId){
-  const want = Number(domainId);
-  if(!want || !Array.isArray(item?.lots) || item.lots.length < 2) return item;
-  const idOf = l => { const d = l && l.domain; return Number(d && typeof d === "object" ? d.id : NaN); };
-  if(idOf(item.lots[0]) === want) return item;
-  const idx = item.lots.findIndex(l => idOf(l) === want);
-  if(idx > 0) item.lots = [item.lots[idx], ...item.lots.filter((_, i) => i !== idx)];
-  return item;
-}
-
 function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
-  preferDomainLot(item, preferDomain);
+  orderLots(item, {domainId:preferDomain});
   tesla.fixTeslaItem(item);
   const lot = unwrapFeedValues((Array.isArray(item?.lots) && item.lots[0]) || (item?.lot && typeof item.lot === "object" ? item.lot : item) || {});
   unwrapFeedValues(item);
@@ -6197,7 +6207,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g43" : "";   // бамп при смене таблицы поколений и формы detail (g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g44" : "";   // бамп при смене таблицы поколений и формы detail (g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -7136,3 +7146,4 @@ module.exports.demoteRelistedCopies = demoteRelistedCopies;
 module.exports.preserveSoldCopies = preserveSoldCopies;
 module.exports.syncRowFromItem = syncRowFromItem;
 module.exports.keepArchivedRow = keepArchivedRow;
+module.exports.orderLots = orderLots;

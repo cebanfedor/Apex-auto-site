@@ -76,3 +76,32 @@ test("archived-lots: призраки (непроданные без будущ�
   assert.strictEqual(keepArchivedRow(row(["sold", 6], 2700, "2026-11-06T01:29:00Z")), true);
   assert.strictEqual(keepArchivedRow(row(["sale", 3], 100, "2099-01-01T00:00:00Z")), true);
 });
+
+// Реальная машина из /cars (BMW M3 CS): lots[0] — старый IAAI-лот «на торгах» со ставкой 575, а продана на Copart за 77000 (lots[1], создан позже).
+const m3 = () => ({id:7077741, vin:"WBS63AY08RFP97726", year:2024, title:"2024 BMW M3 Cs", lots:[
+  {id:22369324, lot:"46063211", external_id:"46562738~US", domain:{name:"iaai_com", id:1}, created_at:"2026-09-05T07:21:23.000000Z",
+   sale_date:"2026-10-07T16:30:00.000000Z", bid:575, status:{name:"sale", id:3}},
+  {id:23297532, lot:"74095956", domain:{name:"copart_com", id:3}, created_at:"2026-10-21T17:30:39.000000Z",
+   sale_date:"2026-10-23T19:00:00.000000Z", bid:77000, bid_updated_at:"2026-10-23 21:19:10", final_bid:77000, status:{name:"sold", id:6}}
+]});
+
+test("несколько лотов без подсказки: текущий — самый свежий по created_at, а не lots[0]", () => {
+  const {normalizeLot} = require("../api/auctions.js");
+  const l = normalizeLot(m3());
+  assert.strictEqual(l.lot, "74095956");
+  assert.strictEqual(l.finalBid, 77000);
+});
+
+test("страница лота: запрошенный номер лота (в т.ч. IAAI по external_id) — первым", () => {
+  const {normalizeLot} = require("../api/auctions.js");
+  const {orderLots} = require("../api/auctions.js");
+  const item = orderLots(m3(), {lot:"46562738"});
+  assert.strictEqual(normalizeLot(item).statusId, 3);   // IAAI-лот, как запросили
+  const item2 = orderLots(m3(), {lot:"74095956"});
+  assert.strictEqual(normalizeLot(item2).statusId, 6);
+});
+
+test("обход по площадке: Copart-обход берёт Copart-лот, IAAI-обход — IAAI-лот", () => {
+  assert.strictEqual(syncRowFromItem(m3(), {preferDomain:3}).lot, "74095956");
+  assert.strictEqual(syncRowFromItem(m3(), {preferDomain:1}).auction, "iaai");
+});
