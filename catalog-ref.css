@@ -549,3 +549,6 @@
 /* ≤1179px карточки нет (факты показывает бегущая строка) — правила ширины выше не должны её «оживлять» */
 @media (width <= 1179px) { .catHeroCardV1.isFactsV1 { display: none; } }
 @media (width >= 1180px) { .catHeroRowV1 { flex-wrap: nowrap; } }
+
+/* a11y 07.11.2026: контраст светло-серого текста (ink-4 был 3:1) */
+.apx-korea{--c-ink-4:107 116 132}
