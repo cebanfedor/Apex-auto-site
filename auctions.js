@@ -1494,12 +1494,17 @@
     // finalBid сам по себе НЕ признак продажи: фид кладёт туда последнюю ставку и непроданных раундов
     // (BMW M4 64624966: «$78 000 · not_sold» 02.09 при реальных раундах $40 500/$29 750 и текущей ставке $0).
     // Проданным считаем только по статусу.
-    const soldLike = lot.statusId === 4 || /sold|not_sold|approval/i.test(lot.statusName || lot.lotStatus || "");
+    // Бриф провайдера §15: «продано» — ТОЛЬКО статус 6. Статус 8 (not_sold) — «наивысшая ставка, не продан», 4 — «ждёт утверждения».
+    const nm = String(lot.statusName || lot.lotStatus || "");
+    const notSoldName = /not[\s_-]?sold/i.test(nm);
+    const soldLike = lot.statusId === 4 || (!notSoldName && /sold|approval/i.test(nm)) || /approval/i.test(nm);
     const isSold = hardSold || (soldLike && !upcoming);
+    const notSold = !hardSold && !upcoming && (lot.statusId === 8 || notSoldName);
     const finalBid = isSold ? (lot.finalBid || lot.priceHistory?.[0]?.bid || 0) : 0;
+    const highBid = notSold ? (Number(lot.finalBid) || Number(lot.currentBid) || 0) : 0;
     // Торги прошли, ставка ждёт решения продавца (on_approval) — это ещё не продажа: подписываем «На утверждении», а не «Продано»
     const onApproval = isSold && !hardSold && (lot.statusId === 4 || /approval/i.test(lot.statusName || lot.lotStatus || ""));
-    return {isSold, finalBid, onApproval};
+    return {isSold, finalBid, onApproval, notSold, highBid};
   }
 
   function renderCard(lot, idx){
@@ -1518,8 +1523,10 @@
     // Продан, но финальная цена по VIN пока неизвестна (старый закрытый лот без истории) — всё равно
     // подписываем «Продано»/«На утверждении», а не «Текущая цена»/«ставок пока нет»: иначе выглядит,
     // будто торги ещё не начинались (Федор 28.09.2026, Tesla Model Y IAAI 40041958).
-    const priceVal = isSold ? effectiveFinalBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow));
-    const priceLabel = isSold ? (lotSaleState(lot).onApproval ? "На утверждении" : "Продано")
+    const _ns = lotSaleState(lot);
+    const priceVal = isSold ? effectiveFinalBid : (_ns.notSold && _ns.highBid > 0 ? _ns.highBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow)));
+    const priceLabel = isSold ? (_ns.onApproval ? "На утверждении" : "Продано")
+      : _ns.notSold ? "Не продан · наивысшая ставка"
       : showBuyNow ? "Купить сейчас" : "Текущая цена";
     // Канадские площадки торгуют в CAD
     const price = findCanadaLocation(lot) ? moneyCad(priceVal) : money(priceVal);
@@ -2728,7 +2735,8 @@
   }
 
   function renderLotCalculator(lot){
-    const {isSold, finalBid: effectiveFinalBid} = lotSaleState(lot);
+    const _st = lotSaleState(lot);
+    const {isSold, finalBid: effectiveFinalBid} = _st;
     // Финалку НЕ показываем на таймед-проданных: в фиде она расходится с реальной
     // (клиент: «пишете $10600, а купил за $11100»). auctionsapi часто НЕ помечает
     // IAAI-таймед как timed (лот 2022 Tesla шёл как «live»), поэтому прячем на
@@ -2769,6 +2777,7 @@
     const topBidValue = isSold ? initialBid : currOnly;
     const banned = exportBan(lot);
     return `<aside class="lotCalcV2${banned ? " calcBannedV1" : ""}">
+      ${_st.notSold ? `<div class="calcTimedEndedV1">${dbIco("clock")}<span>${L("Торги завершены — лот не продан")}${_st.highBid > 0 ? ` · ${L("Наивысшая ставка")}: <b>${fmtBid(_st.highBid)}</b>` : ""}</span></div>` : ""}
       ${isSold ? `
       <div class="calcSoldCardV1">
         <span>${L(lotSaleState(lot).onApproval ? "На утверждении" : "Продано")}</span>
