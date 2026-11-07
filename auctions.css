@@ -1872,3 +1872,11 @@ body.leadModalOpenV1 { overflow:hidden; }
   .qChipV1 { flex:none; min-height:40px; padding:0 14px; border-radius:999px; border:1px solid var(--aLine,#dfe3ea); background:var(--aSurf,#fff); color:var(--aInk,#11141a); font:600 13.5px/1 inherit; white-space:nowrap; cursor:pointer; }
   .qChipV1.active { background:var(--aRed,#ed0012); border-color:var(--aRed,#ed0012); color:#fff; }
 }
+
+/* Тап-цели на телефоне ≥ 40px (аудит 07.11.2026: чипы и вкладки были 22–36px) */
+@media (max-width:640px){
+  .qChipV1 { min-height:40px; padding-top:0; padding-bottom:0; line-height:40px; font-size:13.5px; }
+  .auctionTabsV1 > button { min-height:40px; }
+  .shareChipV3, .spMicV1 { min-width:40px; min-height:40px; }
+  #auctionSmartSearch { font-size:16px; }   /* iOS: ниже 16px приближает страницу при фокусе */
+}
