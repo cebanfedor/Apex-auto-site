@@ -1745,3 +1745,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* Фильтр «Цвет»: образец цвета перед названием */
 .colSwV1 { width:14px; height:14px; border-radius:50%; flex:0 0 14px; border:1px solid rgba(0,0,0,.28); margin-right:2px; }
+
+/* Страна покупателя проданного лота: флаг-картинка перед названием */
+.buyerCtV1 { display:inline-flex; align-items:center; gap:7px; }
+.buyerCtV1 img { width:20px; height:15px; object-fit:cover; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.15); }

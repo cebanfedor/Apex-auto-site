@@ -141,3 +141,26 @@ test("Buy Now до аукциона: строка попадает в архив
   assert.strictEqual(r.final_bid, 1100);
   assert.ok(Date.parse(r.sale_date) < Date.now());
 });
+
+test("служебное повреждение «Ao» скрывается (нормализатор и сохранённые строки)", () => {
+  const {normalizeLot, sanitizeStoredLot} = require("../api/auctions.js");
+  const it = bnLot({damage:{main:{id:84257, name:"Ao"}, second:{id:5, name:"Front End"}}});
+  const l = normalizeLot(it);
+  assert.strictEqual(l.primaryDamage, "");
+  assert.strictEqual(l.damage, "Front End");
+  const s = sanitizeStoredLot({primaryDamage:"Ao", secondaryDamage:"Side", damage:"Ao / Side", statusId:3});
+  assert.strictEqual(s.primaryDamage, "");
+  assert.strictEqual(s.damage, "Side");
+});
+
+test("медиа и метаданные: теги, страна покупателя, копии фото, YouTube, кадры 360°", () => {
+  const {normalizeLot} = require("../api/auctions.js");
+  const l = normalizeLot(bnLot({tags:["SITE-CA","FEATURED"], buyer_country:"mx",
+    images:{downloaded:["https://img2.auctionsapi.com/a/0.webp"], exterior:["https://x/1.jpg","https://x/2.jpg"], interior:"https://x/in", video_youtube_id:"dQw4w9WgXcQ"}}));
+  assert.deepStrictEqual(l.tags, ["SITE-CA","FEATURED"]);
+  assert.strictEqual(l.buyerCountry, "MX");
+  assert.strictEqual(l.imagesDl.length, 1);
+  assert.strictEqual(l.spinFrames.length, 2);
+  assert.strictEqual(l.interiorUrl, "https://x/in");
+  assert.strictEqual(l.videoYoutubeId, "dQw4w9WgXcQ");
+});

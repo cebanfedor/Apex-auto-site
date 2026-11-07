@@ -605,7 +605,15 @@
   }
   document.addEventListener("error", e => {
     const t = e.target;
-    if(t && t.tagName === "IMG" && t.dataset && t.dataset.full && t.src !== t.dataset.full){ t.src = t.dataset.full; }
+    if(t && t.tagName === "IMG" && t.dataset && t.dataset.full && t.src !== t.dataset.full){ t.src = t.dataset.full; return; }
+    // Бриф провайдера §17: ссылки аукциона протухают — на странице лота запасной вариант: наши стабильные копии (images.downloaded → lot.imagesDl).
+    try{
+      if(t && t.tagName === "IMG" && !t.dataset.dlTried && (t.id === "detailMainImage" || t.classList.contains("dThumbV2"))){
+        const dl = state.selectedLot && state.selectedLot.imagesDl;
+        const idx = t.id === "detailMainImage" ? (state.detailIndex || 0) : Number(t.dataset.detailIndex || 0);
+        if(Array.isArray(dl) && dl[idx] && t.src !== dl[idx]){ t.dataset.dlTried = "1"; t.src = dl[idx]; }
+      }
+    }catch(_){}
   }, true);
   // Ссылка = площадка-лот + название + VIN (тот же алгоритм на сервере: server/slug.js)
   function slugWords(s, max){
@@ -1525,7 +1533,9 @@
     // будто торги ещё не начинались (Федор 28.09.2026, Tesla Model Y IAAI 40041958).
     const _ns = lotSaleState(lot);
     const priceVal = isSold ? effectiveFinalBid : (_ns.notSold && _ns.highBid > 0 ? _ns.highBid : (showBuyNow ? lot.buyNow : (lot.currentBid || lot.buyNow)));
-    const priceLabel = isSold ? (_ns.onApproval ? "На утверждении" : "Продано")
+    // Продан/завершён, а цены нет (Copart в /archived-lots не отдаёт финал, ставок не было) — честно «Торги прошли · ставок не было» (Федор 07.11.2026).
+    const noPriceEnded = isSold && !(Number(effectiveFinalBid) > 0) && !_ns.onApproval;
+    const priceLabel = isSold ? (_ns.onApproval ? "На утверждении" : (noPriceEnded ? "Торги прошли" : "Продано"))
       : _ns.notSold ? "Не продан · наивысшая ставка"
       : showBuyNow ? "Купить сейчас" : "Текущая цена";
     // Канадские площадки торгуют в CAD
@@ -1549,7 +1559,7 @@
         <a class="dbTitle" href="${detailHref(lot)}">${escapeHtml(title)}</a>
         <div class="dbMobMetaV1">
           <span class="dbMobDateV1${lot.auctionDate ? "" : " dbNoDateV1"}">${dbIco("calendar")}${escapeHtml(dbDate(lot.auctionDate))}${(() => { if(!isSold) return ""; const ago = timeAgoRu(lot.auctionDate); return ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""; })()}</span>
-          ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : isSold ? "—" : L("ставок пока нет")}</b></span>` : ""}
+          ${Number(priceVal) > 0 || lot.auctionDate || isSold ? `<span class="dbMobPriceV1">${L(priceLabel)}: <b>${Number(priceVal) > 0 ? price : isSold ? L("ставок не было") : L("ставок пока нет")}</b></span>` : ""}
           ${Number(lot.sellerReserve) > 0 && !isSold ? `<span class="dbMobReserveV1">${L("Резерв продавца")}: <b>${findCanadaLocation(lot) ? moneyCad(lot.sellerReserve) : money(lot.sellerReserve)}</b></span>` : ""}
           <div class="dbForecastV1 dbMobForecastV1" data-forecast="${escapeHtml(lot.id)}"${forecastPending(lot) ? ' data-pending="1"><span class="dbForecastSkelV1"></span>' : " hidden>"}</div>
         </div>
@@ -1596,7 +1606,7 @@
         <div class="dbPriceWrap">
           <div class="dbPriceBox${isSold ? " dbPriceSold" : ""}">
             <span>${priceLabel}</span>
-            ${Number(priceVal) > 0 ? `<b>${price}</b>` : isSold ? `<b class="dbNoBidV1">—</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
+            ${Number(priceVal) > 0 ? `<b>${price}</b>` : isSold ? `<b class="dbNoBidV1">${L("ставок не было")}</b>` : `<b class="dbNoBidV1">${L("ставок пока нет")}</b>`}
             ${(() => {
               if(isSold) return "";
               const b = budgetValue();
@@ -2780,16 +2790,17 @@
       ${_st.notSold ? `<div class="calcTimedEndedV1">${dbIco("clock")}<span>${L("Торги завершены — лот не продан")}${_st.highBid > 0 ? ` · ${L("Наивысшая ставка")}: <b>${fmtBid(_st.highBid)}</b>` : ""}</span></div>` : ""}
       ${isSold ? `
       <div class="calcSoldCardV1">
-        <span>${L(lotSaleState(lot).onApproval ? "На утверждении" : "Продано")}</span>
+        <span>${L(lotSaleState(lot).onApproval ? "На утверждении" : (effectiveFinalBid ? "Продано" : "Торги прошли"))}</span>
         ${effectiveFinalBid ? `
         <b id="soldFinalV1">${fmtBid(effectiveFinalBid)}</b>
         ${isCa ? `<i id="soldUsdHintV1">≈ ${money(Math.round(effectiveFinalBid * calc.cadUsd))}</i>` : ""}
-        ` : `<b id="soldFinalV1" class="soldFinalUnknownV1">—</b>`}
+        ` : `<b id="soldFinalV1" class="soldFinalUnknownV1">${L("Ставок не было")}</b>`}
         ${(() => {
           if(!lot.auctionDate) return "";
           const ago = timeAgoRu(lot.auctionDate);
           return `<div class="soldDateV1"><small>${L("Дата продажи")}</small><b>${escapeHtml(dbDate(lot.auctionDate, true))}</b>${ago ? `<i>${escapeHtml(ago)}</i>` : ""}</div>`;
         })()}
+        ${lot.buyerCountry ? `<div class="soldDateV1"><small>${L("Страна покупателя")}</small><b>${buyerCountryHtml(lot.buyerCountry)}</b></div>` : ""}
       </div>
 ` : `
       <div class="calcTopV2">
@@ -2924,6 +2935,14 @@
   const CA_DELIVERY_TXT = {canada:"1,5–2 месяца", canada_ab:"≈ 2 месяца", canada_bc:"≈ 2,5 месяца"};
   // Маленький флаг Канады — чтобы канадские лоты узнавались сразу
   const CA_FLAG_SVG = '<svg class="caFlagV1" viewBox="0 0 24 13" width="20" height="11" aria-hidden="true"><rect width="24" height="13" fill="#fff"/><rect width="6" height="13" fill="#d52b1e"/><rect x="18" width="6" height="13" fill="#d52b1e"/><path fill="#d52b1e" d="M12 1.7l.9 1.8 1.3-.5-.4 2.7 1.4-1.1.4 1-1.4 1.1 1.8.6-.4 1.1-2.4-.3.3 1.5h-1.4v2h-.9v-2H9.4l.3-1.5-2.4.3-.4-1.1 1.8-.6-1.4-1.1.4-1 1.4 1.1-.4-2.7 1.3.5z"/></svg>';
+  // Страна покупателя проданного лота (buyer_country, ISO-2): флаг-картинка + название на языке сайта (Федор 07.11.2026).
+  function buyerCountryHtml(code){
+    const c = String(code || "").trim().toLowerCase();
+    if(!/^[a-z]{2}$/.test(c)) return "";
+    let name = c.toUpperCase();
+    try{ const lg = window.APEX_LANG === "ro" ? "ro" : window.APEX_LANG === "en" ? "en" : "ru"; name = new Intl.DisplayNames([lg], {type:"region"}).of(c.toUpperCase()) || name; }catch(_){}
+    return `<span class="buyerCtV1"><img src="https://flagcdn.com/w40/${c}.png" srcset="https://flagcdn.com/w80/${c}.png 2x" width="20" height="15" alt="" loading="lazy" onerror="this.remove()">${escapeHtml(name)}</span>`;
+  }
   function caFlagBadge(lot){
     const ca = findCanadaLocation(lot); if(!ca) return "";
     return `<span class="dbCaFlagV1" title="${escapeHtml(L("Канада"))} · ${escapeHtml(L("доставка"))} ${escapeHtml(L(CA_DELIVERY_TXT[canadaPortKey(ca)]))}">${CA_FLAG_SVG}</span>`;
@@ -3862,7 +3881,7 @@
               const when = lot.auctionDate ? dbDate(lot.auctionDate) : L("Дата аукциона не назначена");
               if(st.isSold){
                 const ago = timeAgoRu(lot.auctionDate);
-                return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : "Продано за")}</small><b>${b ? money(b) : "—"}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
+                return `<div class="dMobSumV1 isSoldV1"><span class="dmsPriceV1"><small>${L(st.onApproval ? "На утверждении" : (b ? "Продано за" : "Торги прошли"))}</small><b>${b ? money(b) : L("Ставок не было")}</b></span><span class="dmsDateV1"><small>${L(st.onApproval ? "Дата торгов" : "Дата продажи")}</small><b>${escapeHtml(when)}</b>${ago ? ` <i class="dAgoV1">${escapeHtml(ago)}</i>` : ""}</span></div>`;
               }
               return `<div class="dMobSumV1">${b ? `<span><small>${L(st.onApproval ? "На утверждении" : st.isSold ? "Продано" : "Ставка")}</small><b>${money(b)}</b></span>` : ""}<span class="dmsDateRowV1"><small>${L("Дата аукциона")}</small><b>${escapeHtml(when)}</b></span></div>`;
             })()}
@@ -3978,6 +3997,7 @@
                 const ago = lotSaleState(lot).isSold ? timeAgoRu(lot.auctionDate) : "";
                 return dPlain("Дата аукциона", `${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` <span class="dAgoV1">(${escapeHtml(ago)})</span>` : ""}`);
               })()}
+              ${lotSaleState(lot).isSold && lot.buyerCountry ? dPlain("Страна покупателя", buyerCountryHtml(lot.buyerCountry)) : ""}
               ${dPlain("Локация", (findCanadaLocation(lot) ? CA_FLAG_SVG + " " : "") + escapeHtml(lotLocationText(lot)))}
               ${lot.sellerNote ? dPlain("Примечание продавца", escapeHtml(tc(lot.sellerNote))) : ""}
               ${Number(lot.estimatedRetailValue) > 100 ? dPlain("Оценка (ACV)", caMoney(lot.estimatedRetailValue)) : ""}

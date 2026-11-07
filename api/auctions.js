@@ -634,8 +634,10 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const title = powertrain.cleanTitle(item?.title || [year, make, model].filter(Boolean).join(" ") || "Автомобиль");
   const yard = yardFix(lot);
   const location = yard ? [safeName(lot?.location?.city), yard.name].filter(Boolean).join(", ") : (locationLabel(lot?.location) || safeName(lot?.branch || lot?.selling_branch) || locationLabel(item?.location));
-  const primaryDamage = safeName(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
-  const secondaryDamage = safeName(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
+  // Служебный код фида «Ao» (id 84257) — не повреждение, а мусор справочника: скрываем (Федор 07.11.2026).
+  const dmgClean = v => { const n = safeName(v).trim(); return (/^ao$/i.test(n) || (v && typeof v === "object" && Number(v.id) === 84257)) ? "" : safeName(v); };
+  const primaryDamage = dmgClean(lot?.damage?.main || lot?.primary_damage || lot?.primaryDamage || item?.primary_damage || item?.damage);
+  const secondaryDamage = dmgClean(lot?.damage?.second || lot?.secondary_damage || lot?.secondaryDamage || item?.secondary_damage);
   const isCanadaLot = (() => {
     // 07.11.2026: документация «Цены» — суммы без кода валюты, но у лота есть отдельное поле currency («USD»/«CAD»).
     // Раньше канадские лоты узнавали только по локации; валюта лота — прямой признак, не зависящий от того, как записан город.
@@ -916,6 +918,8 @@ function normalizeLot(source, fallbackAuction = "copart"){
     spinFrames:(() => { const a = lot?.images?.exterior || item?.images?.exterior; return Array.isArray(a) ? a.filter(u => /^https?:\/\//i.test(String(u || ""))).map(String) : []; })(),
     interiorUrl:(() => { const u = String(lot?.images?.interior || item?.images?.interior || ""); return /^https?:\/\//i.test(u) ? u : ""; })(),
     // Страна покупателя (Copart/IAAI, ISO-2, только у проданных): lowercase → верхний регистр.
+    tags:(() => { const t = lot?.tags ?? item?.tags; const a = Array.isArray(t) ? t : (typeof t === "string" ? t.split(",") : []); return a.map(x => safeName(x).trim()).filter(Boolean).slice(0, 12); })(),
+    imagesDl:(() => { const a = lot?.images?.downloaded || item?.images?.downloaded; return Array.isArray(a) ? a.filter(u => /^https?:\/\//i.test(String(u || ""))).slice(0, 40).map(String) : []; })(),
     buyerCountry:(() => { const c = String(lot?.buyer_country || item?.buyer_country || "").trim().toUpperCase(); return /^[A-Z]{2}$/.test(c) ? c : ""; })(),
     // ACV: IAAI actual_cash_value → Copart pre_accident_price. При pre_accident_price = -1 («оценки нет») НЕ падаем на
     // clean_wholesale_price: это другая величина (оптовая «чистой» машины), модель оценки калибровалась без неё — решение
@@ -2693,6 +2697,12 @@ async function attachGenRange(lot){
 // payload в базе нормализован на момент синка — в старых записях finalBid мог быть «додуман» из
 // непроданного раунда. Финал оставляем только у лотов со статусом продажи.
 function sanitizeStoredLot(l){
+  // Служебный код «Ao» вместо повреждения (Федор 07.11.2026) — убираем и из уже сохранённых строк.
+  if(l && /(^|\/\s*)ao(\s*\/|$)/i.test(String(l.damage || "")) || (l && (/^ao$/i.test(String(l.primaryDamage || "").trim()) || /^ao$/i.test(String(l.secondaryDamage || "").trim())))){
+    const noAo = v => /^ao$/i.test(String(v || "").trim()) ? "" : v;
+    l = {...l, primaryDamage:noAo(l.primaryDamage), secondaryDamage:noAo(l.secondaryDamage),
+         damage:String(l.damage || "").split(/\s+\/\s+/).filter(x => x && !/^ao$/i.test(x.trim())).join(" / ")};
+  }
   // строка помечена проданной, но финала нет → это непроданный раунд, лот жив
   if(l && l.statusId === 6 && !(Number(l.finalBid) > 0)) l = {...l, statusId:3, lotStatus:"sale", statusName:"sale"};
   const ts = l && l.auctionDate ? Date.parse(l.auctionDate) : NaN;
@@ -7199,3 +7209,4 @@ module.exports.preserveSoldCopies = preserveSoldCopies;
 module.exports.syncRowFromItem = syncRowFromItem;
 module.exports.keepArchivedRow = keepArchivedRow;
 module.exports.orderLots = orderLots;
+module.exports.sanitizeStoredLot = sanitizeStoredLot;
