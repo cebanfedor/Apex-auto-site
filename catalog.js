@@ -963,7 +963,7 @@
             + '<a href="' + esc(href) + '" title="' + esc(car.badge || "") + '" class="vcard__hit vcard__title font-display text-[16px] font-semibold leading-snug tracking-tight text-ink line-clamp-2" data-no-i18n="true">' + esc(title) + '</a>'
             + (car.badge ? '<span class="vcard__badge mt-0.5 block truncate text-[13px] font-normal text-ink-3 max-sm:hidden" data-no-i18n="true">' + esc(car.badge) + '</span>' : "")
           + '</h3></div>'
-          + (car.vin ? '<div class="vcard__ids flex min-w-0 items-center gap-2 max-sm:hidden"><button type="button" class="vcard__copy min-w-0 truncate" data-copy="' + esc(String(car.vin).toUpperCase()) + '" aria-label="VIN" data-no-i18n="true"><span class="text-ink-4">VIN</span> ' + esc(String(car.vin).toUpperCase()) + I.copy + '</button></div>' : "")
+          + (car.vin ? '<div class="vcard__ids flex min-w-0 items-center gap-2 max-sm:hidden"><button type="button" class="vcard__copy min-w-0 truncate" data-copy="' + esc(String(car.vin).toUpperCase()) + '" data-no-i18n="true"><span class="text-ink-4">VIN</span> ' + esc(String(car.vin).toUpperCase()) + I.copy + '</button></div>' : "")
           + '<ul class="vcard__specs grid grid-cols-2 gap-x-3 gap-y-2 text-[13px] text-ink-2">' + specs + '</ul>'
           + (src ? '<p class="vcard__domain sm:hidden">' + I.globe + '<span class="truncate" data-no-i18n="true">' + esc(src.toLowerCase().indexOf(".") > 0 ? src : src + ".com") + '</span></p>' : "")
         + '</div>'

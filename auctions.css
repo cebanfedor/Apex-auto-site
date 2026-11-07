@@ -1455,7 +1455,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .calcBanNoteV1 { display:grid; gap:12px; padding:14px; border-radius:12px; background:#fff8dc; border:1px solid #f0d675; }
 .calcBanNoteV1 p { margin:0; font-size:14px; line-height:1.45; color:#5c4a00; }
 .spChipV1.sp-export { background:#fff4d6; color:#7a5800; }
-#quickTimedV1 .tabCountV1 { background:#fde8c8; color:#b45309; }
+#quickTimedV1 .tabCountV1 { background:#fde8c8; color:#92400e; }
 #quickTimedV1.active .tabCountV1 { background:rgba(255,255,255,.22); color:#fff; }
 
 /* Цена под ключ на карточке и бюджет */
