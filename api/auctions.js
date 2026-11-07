@@ -746,7 +746,9 @@ function normalizeLot(source, fallbackAuction = "copart"){
   const soldBidTs = Date.parse(lot?.sale_date || lot?.auction_date || "");
   const bidUpdTs = Date.parse(lot?.bid_updated_at || "");
   const soldBidFinal = (Number(statusId) === 6 && currentBid > 0 && Number.isFinite(soldBidTs) && soldBidTs < Date.now() - 5 * 60e3
-    && (!Number.isFinite(bidUpdTs) || bidUpdTs >= soldBidTs - 10 * 60e3)) ? currentBid : 0;
+    && Number.isFinite(bidUpdTs) && bidUpdTs >= soldBidTs - 10 * 60e3) ? currentBid : 0;
+  // Только новый формат {value, updated_at}: руководство по синку — «старое скалярное bid не гарантирует подтверждённую цену продажи»
+  // (без bid_updated_at не берём). Сверено: 43485236 bid 9100 = итог settle 9100; 44512659 bid 600 = итог 600.
   const resolvedFinalBid = finalBid || soldBidFinal || (!currentBid && topIsSale ? (topHist.bid || 0) : 0);
   const images = imageList(lot).length ? imageList(lot) : imageList(item);
   // ⚠️ Фид ставит статус «sold» (6) лотам, торги по которым ЕЩЁ НЕ ПРОШЛИ, а в final_bid кладёт текущую
@@ -4586,6 +4588,11 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   }
 }
 
+// Строка из /archived-lots нужна, только если это продажа ИЛИ у лота будущая дата торгов (перевыставлен).
+function keepArchivedRow(r){
+  return !!r.archived || (!!r.sale_date && Date.parse(r.sale_date) > Date.now());
+}
+
 async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, deadline, upsertOpts = {}){
   const p = new URLSearchParams({per_page:String(SYNC_PER_PAGE), page:String(page), simple_paginate:"1", prices_history:"1", ...extraParams});
   const tA = Date.now();
@@ -4594,7 +4601,11 @@ async function syncImportPage(pathBase, page, extraParams = {}, rowOpts = {}, de
   const feedTimeout = deadline ? Math.max(4000, Math.min(30000, deadline - Date.now() - 3000)) : 30000;
   const payload = await syncApiFetch(`${AUCTIONS_API_BASE}${pathBase}?${p}`, feedTimeout);
   const items = findItems(payload) || [];
-  const rows = items.map(it => syncRowFromItem(it, {...rowOpts, preferDomain:Number(extraParams.domain_id) || 0})).filter(Boolean);
+  let rows = items.map(it => syncRowFromItem(it, {...rowOpts, preferDomain:Number(extraParams.domain_id) || 0})).filter(Boolean);
+  // 07.11.2026 (руководство по синку: запись /archived-lots = лота источника уже нет, независимо от статуса). Раньше НЕпроданные
+  // архивные записи (upcoming/sale без даты, давние) писались ЖИВЫМИ и освежали synced_at — ночная чистка их не удаляла, они висели
+  // в «Все» недатированными призраками. Теперь такие не пишем: если лот жив, он придёт из /cars; нет — чистка уберёт старую строку.
+  if(rowOpts.archived){ const b4 = rows.length; rows = rows.filter(keepArchivedRow); syncImportPage.lastGhostsDropped = b4 - rows.length; }
   syncImportPage.lastFetchMs = Date.now() - tA;
   await syncUpsertRows(rows, deadline, upsertOpts);
   // 30.09.2026 (нашёл при срочной диагностике timedsync, курсор стоял на одной странице 12+ минут):
@@ -7124,3 +7135,4 @@ module.exports.normalizeLot = normalizeLot;
 module.exports.demoteRelistedCopies = demoteRelistedCopies;
 module.exports.preserveSoldCopies = preserveSoldCopies;
 module.exports.syncRowFromItem = syncRowFromItem;
+module.exports.keepArchivedRow = keepArchivedRow;

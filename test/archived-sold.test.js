@@ -60,3 +60,19 @@ test("валюта лота CAD → канадский лот (пробег в �
   assert.strictEqual(mk("CAD").odometerUnit, "km");
   assert.notStrictEqual(mk("USD").odometerUnit, "km");
 });
+
+test("archived-lots: legacy скалярный bid (без bid_updated_at) НЕ становится финалом", () => {
+  const r = syncRowFromItem({archived_at:"2026-11-07T04:13:21Z", lot_id:1, car_id:2, vin:"1gnek13rxxj475506", lot:"41613499",
+    domain:{name:"iaai_com", id:1}, status:{name:"sold", id:6}, bid:2700, buy_now:0, sale_date:"2026-11-06T01:29:00Z", final_bid:null}, {archived:true});
+  assert.strictEqual(r.final_bid, 0);
+});
+
+test("archived-lots: призраки (непроданные без будущей даты) не пишем, проданные и перевыставленные — пишем", () => {
+  const {keepArchivedRow} = require("../api/auctions.js");
+  const row = (st, bid, sale) => syncRowFromItem(rec("5", "copart_com", st, bid, sale), {archived:true});
+  assert.strictEqual(keepArchivedRow(row(["upcoming", 10], 0, null)), false);
+  assert.strictEqual(keepArchivedRow(row(["sale", 3], 0, null)), false);
+  assert.strictEqual(keepArchivedRow(row(["sale", 3], 225, "2026-11-04T15:00:00Z")), false);
+  assert.strictEqual(keepArchivedRow(row(["sold", 6], 2700, "2026-11-06T01:29:00Z")), true);
+  assert.strictEqual(keepArchivedRow(row(["sale", 3], 100, "2099-01-01T00:00:00Z")), true);
+});
