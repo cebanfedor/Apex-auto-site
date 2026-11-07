@@ -2172,7 +2172,7 @@
       const more = state.hasMore || state.page < totalPages;
       if(!more){ box.hidden = true; return; }
       box.hidden = false;
-      box.innerHTML = `<button class="pgLoadMoreBtnV1" id="pgLoadMoreBtn"${state.loading ? " disabled" : ""}>${L("Показать ещё лоты")}</button><div class="pgInfoV1">${L("Страница")} ${state.page} ${L("из")} ${totalPages}</div>`;
+      box.innerHTML = `<button class="pgLoadMoreBtnV1" id="pgLoadMoreBtn">${L("Показать ещё лоты")}</button><div class="pgInfoV1">${L("Страница")} ${state.page} ${L("из")} ${totalPages}</div>`;
       // автоподгрузка, когда кнопка подъезжает к экрану (не больше 4 раз подряд — потом только по тапу, чтобы не раздувать страницу)
       try{
         if(pgIO) pgIO.disconnect();
