@@ -3288,6 +3288,12 @@ async function searchFromDb(query){
     if(ids.length === 1) p.set(col, `eq.${ids[0]}`);
     else if(ids.length > 1) p.set(col, `in.(${ids.join(",")})`);   // мультивыбор
   }
+  // Тип продавца (07.11.2026): 1 страховая · 2 не страховая · 3 прокат — колонка api_lots.seller_kind (миграция 20261107_seller_kind.sql);
+  // без колонки фильтр молча игнорируется (выдача как без него).
+  {
+    const sk = String(query.get("sellerKind") || "").replace(/[^0-9,]/g, "").split(",").filter(x => /^[1-3]$/.test(x));
+    if(sk.length && await sellerKindReady()) p.set("seller_kind", sk.length === 1 ? `eq.${sk[0]}` : `in.(${sk.join(",")})`);
+  }
   // Бюджет «под ключ» (клиент считает точно): здесь только необходимое условие — ставка или выкуп не выше бюджета минус минимум доставки/сборов
   const budgetQ = query.get("budget");
   if(budgetQ && /^\d{4,7}$/.test(budgetQ) ){
@@ -4484,6 +4490,15 @@ async function fuelXReady(){
   fuelXState = {ok, at:Date.now()};
   return ok;
 }
+let sellerKindState = {ok:false, at:0};
+async function sellerKindReady(){
+  const ttl = sellerKindState.ok ? 600e3 : 60e3;
+  if(Date.now() - sellerKindState.at < ttl) return sellerKindState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=seller_kind&limit=1`); ok = true; }catch(_){ ok = false; }
+  sellerKindState = {ok, at:Date.now()};
+  return ok;
+}
 async function liveColReady(){
   const ttl = liveColState.ok ? 600e3 : 60e3;
   if(Date.now() - liveColState.at < ttl) return liveColState.ok;
@@ -4913,13 +4928,39 @@ async function handleSyncLots(response){
           // Окно по synced_at (индекс): [cursor, cursor+6ч) — узкий диапазон, без сортировки всей таблицы.
           const cur = sweep.purge_cursor || "2020-01-01T00:00:00.000Z";
           const hi = new Date(Math.min(new Date(cur).getTime() + 6 * 3600e3, new Date(cutoff).getTime())).toISOString();
-          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=gte.${encodeURIComponent(cur)}&synced_at=lt.${encodeURIComponent(hi)}&select=id&limit=200`);
+          const rows = await syncSbFetch(`/api_lots?archived=eq.false&synced_at=gte.${encodeURIComponent(cur)}&synced_at=lt.${encodeURIComponent(hi)}&select=id,auction,lot,sale_date,current_bid&limit=200`);
           if(!rows || !rows.length){ if(hi >= cutoff){ left = false; break; } sweep.purge_cursor = hi; continue; }
-          for(let i = 0; i < rows.length; i += 50){
-            const ids = rows.slice(i, i + 50).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
+          // 07.11.2026 (бриф провайдера §10 шаг 4, Федор: «делаем»): лот, которого нет в полном обходе, мог уйти с торгов ПРОДАННЫМ,
+          // а запись в /archived-lots потеряться — перед удалением перепроверяем через /search-lot те, у кого торги были за последние 7 дней
+          // и была ставка (таких вероятнее всего продали). Продан → в архив (upsertClosedLot), жив → оживает, 404 → удаляем как раньше,
+          // сбой запроса → строку не трогаем. Не больше 40 проверок на пачку и в рамках бюджета чистки — расход API ограничен.
+          const keepIds = new Set();
+          const nowMs = Date.now();
+          const cand = rows.filter(r => Number(r.current_bid) > 0 && r.auction && r.lot && r.sale_date
+            && Date.parse(r.sale_date) < nowMs - 3 * 3600e3 && Date.parse(r.sale_date) > nowMs - 7 * 86400e3 && /^\d{1,12}[A-Za-z]?$/.test(String(r.lot))).slice(0, 40);
+          if(cand.length && apiUp() && Date.now() - purgeStart < PURGE_BUDGET_MS - 3000){
+            let ci = 0;
+            const recheck = async () => {
+              while(ci < cand.length && Date.now() - purgeStart < PURGE_BUDGET_MS){
+                const r = cand[ci++];
+                try{
+                  const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
+                  await upsertClosedLot(lot);
+                  sweep.rechecked = (sweep.rechecked || 0) + 1;
+                  const lts = Date.parse(lot.auctionDate || "");
+                  // оставляем только то, что upsertClosedLot реально переписал: продан (ушёл в архив) или торги снова впереди (ожил)
+                  if(Number(lot.statusId) === 6 || (Number.isFinite(lts) && lts > Date.now())) keepIds.add(r.id);
+                }catch(e){ /* 404/423 или сбой запроса — строку удаляем, как и раньше (иначе зависнем на одних и тех же 200 строках окна) */ }
+              }
+            };
+            await Promise.all(Array.from({length:8}, recheck));
+          }
+          const delRows = rows.filter(r => !keepIds.has(r.id));
+          for(let i = 0; i < delRows.length; i += 50){
+            const ids = delRows.slice(i, i + 50).map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
             await syncSbFetch(`/api_lots?id=in.(${ids})&archived=eq.false`, {method:"DELETE", headers:{prefer:"return=minimal"}});
           }
-          sweep.deleted += rows.length;
+          sweep.deleted += delRows.length;
           if(rows.length < 200){ sweep.purge_cursor = hi; if(hi >= cutoff){ left = false; break; } }
         }
         }catch(e){
@@ -5229,6 +5270,41 @@ async function runBuyNowCheck(budgetMs = 44000){
       }
     }
 
+    // 07.11.2026 (Федор: «лоты Buy Now без даты — проверкой раз в несколько часов»): лоты выкупа БЕЗ даты торгов
+    // (sale_date is null) в выборки выше не попадали (там sale_date ≥ now−3д) — покупку по ним мы видели только
+    // когда кто-то открыл карточку. Отдельный проход с тем же кулдауном bn_checked_at, но ~6ч (BN_COOLDOWN_MS) —
+    // «в несколько часов» — и небольшим лимитом на тик, чтобы не разгонять расход API.
+    const remain3 = budgetMs - (Date.now() - t0);
+    if(remain3 > 4000){
+      const cutUnd = encodeURIComponent(new Date(Date.now() - BN_COOLDOWN_MS).toISOString());
+      const unUrl = `/api_lots?select=id,auction,lot&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=is.null&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutUnd})&order=synced_at.desc&limit=120`;
+      const unRows = await syncSbFetch(unUrl).catch(() => null);
+      if(Array.isArray(unRows) && unRows.length){
+        out.undatedDue = unRows.length;
+        const t2 = Date.now(); let uIdx = 0; const unChecked = [];
+        const unWorker = async () => {
+          while(uIdx < unRows.length && Date.now() - t2 < remain3 - 1500){
+            const r = unRows[uIdx++]; unChecked.push(r.id);
+            try{
+              const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
+              out.checked++;
+              const ts = Date.parse(lot.auctionDate || "");
+              if(Number(lot.statusId) === 6 && Number.isFinite(ts) && ts < Date.now()){
+                if(!(Number(lot.finalBid) > 0) && Number(lot.buyNow) > 0) lot.finalBid = lot.buyNow;
+                out.sold++;
+              }
+              upsertClosedLot(lot);   // сама решает: продан → архив; появилась дата/цена → обновит строку; без изменений — не трогает
+            }catch(e){ out.fail++; }
+          }
+        };
+        await Promise.all(Array.from({length:6}, unWorker));
+        if(unChecked.length){
+          const ids3 = unChecked.map(id => `"${String(id).replace(/"/g, "")}"`).join(",");
+          await syncSbFetch(`/api_lots?id=in.(${ids3})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({bn_checked_at:new Date().toISOString()})}).catch(() => {});
+        }
+      }
+    }
+
     out.ms = Date.now() - t0;
     return out;
   }
@@ -5450,6 +5526,15 @@ async function runEngineFill(){
     }
   }catch(e){ out.ok = false; out.error = String(e.message || e).slice(0, 160); }
   try{ out.fake = await purgeFakeLots(Date.now() + 15000); }catch(e){ out.fake = {error:String(e.message || e).slice(0, 100)}; }
+  // Тип продавца (фильтр каталога): заливка seller_kind порциями; нет функции/колонки (миграция не выполнена) — молча пропускаем.
+  try{
+    out.sellerKind = 0;
+    for(let k = 0; k < 6 && Date.now() - t0 < 42000; k++){
+      const n = await syncSbFetch("/rpc/fill_seller_kind", {method:"POST", body:JSON.stringify({n:2500})});
+      out.sellerKind += Number(n) || 0;
+      if(!(Number(n) >= 2500)) break;
+    }
+  }catch(e){ out.sellerKindErr = String(e.message || e).slice(0, 80); }
   // Тот же тик пересчитывает live_until идущих аукционов (SQL-функция refresh_live_until: позиция лота в линии + 15 мин)
   try{ out.live = Number(await syncSbFetch("/rpc/refresh_live_until", {method:"POST", body:JSON.stringify({factor:1.3, margin:10})})) || 0; }
   catch(e){
@@ -6269,7 +6354,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g47" : "";   // бамп при смене таблицы поколений и формы detail (g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g49" : "";   // бамп при смене таблицы поколений и формы detail (g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

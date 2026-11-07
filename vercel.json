@@ -15,7 +15,8 @@
     ]
   },
   "crons": [
-    { "path": "/api/cron/sync", "schedule": "1-59/2 * * * *" },
+    { "path": "/api/cron/sync", "schedule": "1-59/10 6-23 * * *" },
+    { "path": "/api/cron/sync-night", "schedule": "1-59/2 0-5 * * *" },
     { "path": "/api/cron/closed", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/settle", "schedule": "6-59/10 * * * *" },
     { "path": "/api/cron/alerts", "schedule": "2-59/3 * * * *" },
@@ -63,6 +64,7 @@
     { "source": "/privacy", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/page-meta?page=privacy" },
     { "source": "/auctions", "has": [{ "type": "query", "key": "lang", "value": "(ro|en)" }], "destination": "/api/catalog-page" },
     { "source": "/api/cron/sync", "destination": "/api/auctions?action=synclots&source=cron" },
+    { "source": "/api/cron/sync-night", "destination": "/api/auctions?action=synclots&source=cron" },
     { "source": "/api/cron/closed", "destination": "/api/auctions?action=syncclosed&source=cron" },
     { "source": "/api/cron/settle", "destination": "/api/auctions?action=syncsettle&source=cron" },
     { "source": "/api/cron/alerts", "destination": "/api/auctions?action=alerttick&source=cron" },
