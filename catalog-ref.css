@@ -542,6 +542,10 @@
 
 /* 06.11.2026 (Федор: «факты выровнять по высоте как слева»): карточка фактов — в одном ряду с текстом шапки, верх по верху левого блока (не абсолютно поверх) */
 .catHeroRowV1 { align-items: flex-start; }
-.catHeroCardV1.isFactsV1 { margin-top: 0; align-self: stretch; display: flex; flex-direction: column; }
-.catHeroCardV1.isFactsV1 .afListV1 { flex: 1 1 auto; align-content: space-between; margin-top: 6px; }
+@media (width >= 1180px) {
+  .catHeroCardV1.isFactsV1 { margin-top: 0; align-self: stretch; display: flex; flex-direction: column; }
+  .catHeroCardV1.isFactsV1 .afListV1 { flex: 1 1 auto; align-content: space-between; margin-top: 6px; }
+}
+/* ≤1179px карточки нет (факты показывает бегущая строка) — правила ширины выше не должны её «оживлять» */
+@media (width <= 1179px) { .catHeroCardV1.isFactsV1 { display: none; } }
 @media (width >= 1180px) { .catHeroRowV1 { flex-wrap: nowrap; } }
