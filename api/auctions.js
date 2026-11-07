@@ -13,7 +13,7 @@ const cache = new Map();
 // Учёт расхода запросов к auctionsapi (аудит 30.09.2026): счётчик по эндпоинтам,
 // в памяти инстанса (без записи в БД, per-instance, сбрасывается на холодном старте).
 // Читается admin-экшеном ?action=apiusage — «разобраться, куда уходят запросы».
-const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, byEndpoint: Object.create(null) };
+const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, forbidden: 0, lastForbidden: "", byEndpoint: Object.create(null) };
 function noteApiCall(url){
   apiUsage.total++;
   const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
@@ -199,7 +199,22 @@ const SB_TIMEOUT = Symbol("sbTimeout");
 // синтетической 429-ошибкой, без реального похода к API. Отдельно от sbUp — разные апстримы.
 let apiDownUntil = 0;
 function apiUp(){ return Date.now() > apiDownUntil; }
-function noteApiRateLimit(){ apiDownUntil = Date.now() + 5 * 60e3; apiUsage.rateLimited++; }
+// Бриф провайдера §11: 429 — ждать Retry-After (секунды или дата); 403 (ключ неверный/подписка истекла/не активна) — остановить
+// все вызовы и оповестить, повторять бессмысленно. Без заголовка — прежние 5 минут.
+function noteApiRateLimit(retryAfter){
+  let wait = 5 * 60e3;
+  const ra = String(retryAfter || "").trim();
+  if(ra){
+    const sec = /^\d+$/.test(ra) ? Number(ra) : (Date.parse(ra) - Date.now()) / 1000;
+    if(Number.isFinite(sec) && sec > 0) wait = Math.min(Math.max(sec * 1000, 30e3), 60 * 60e3);
+  }
+  apiDownUntil = Math.max(apiDownUntil, Date.now() + wait); apiUsage.rateLimited++;
+}
+function noteApiForbidden(msg){
+  apiDownUntil = Math.max(apiDownUntil, Date.now() + 15 * 60e3);
+  apiUsage.forbidden++; apiUsage.lastForbidden = String(msg || "").slice(0, 160);
+  console.error("[auctionsapi] 403 — вызовы остановлены на 15 мин:", apiUsage.lastForbidden);   // «alert»: виден в логах Vercel и в ?action=apiusage
+}
 function apiLimitedError(){
   const error = new Error("AuctionsAPI rate-limited (circuit breaker)");
   error.status = 429;
@@ -1171,8 +1186,9 @@ async function fetchJson(url){
     error.status = 502;
     throw error;
   }finally{ clearTimeout(timer); }
-  if(response.status === 429) noteApiRateLimit();
+  if(response.status === 429) noteApiRateLimit(response.headers.get("retry-after"));
   const payload = await response.json().catch(() => null);
+  if(response.status === 403) noteApiForbidden(payload?.error || payload?.message);
   if(!response.ok || payload?.error){
     const error = new Error(payload?.message || payload?.error || "Auctions API request failed");
     error.status = response.status;
@@ -4285,8 +4301,9 @@ async function syncApiFetch(url, timeoutMs){
   const timer = setTimeout(() => controller.abort(), timeoutMs || 30000);
   try{
     const res = await fetch(url, {headers:{"x-api-key":key, accept:"application/json"}, signal:controller.signal});
-    if(res.status === 429) noteApiRateLimit();
+    if(res.status === 429) noteApiRateLimit(res.headers.get("retry-after"));
     const payload = await res.json().catch(() => null);
+    if(res.status === 403) noteApiForbidden(payload?.error || payload?.message);
     if(!res.ok || payload?.error){
       const error = new Error(payload?.message || payload?.error || `AuctionsAPI ${res.status}`);
       error.status = res.status;
@@ -5610,7 +5627,7 @@ module.exports = async function handler(request, response){
     sendJson(response, 200, {
       ok: true, note: "per-instance, in-memory (сбрасывается на холодном старте); hot-lots.js/lot.js — отдельные функции, сюда не входят",
       sinceMinutes: Math.round(mins), total: apiUsage.total, perHour: Math.round(apiUsage.total / mins * 60),
-      rateLimited: apiUsage.rateLimited, byEndpoint: eps
+      rateLimited: apiUsage.rateLimited, forbidden: apiUsage.forbidden, lastForbidden: apiUsage.lastForbidden, byEndpoint: eps
     }, {"cache-control": "no-store"});
     return;
   }
