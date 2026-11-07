@@ -1841,3 +1841,25 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dRowVal .dCopyValV1, .dRowVal .dCopyValV1 { font-size:13px; letter-spacing:0; }
   .dRowVal .dCopyValV1 > .dbIco:last-child { display:inline-block; }
 }
+
+/* ===== Мобильная заявка (07.11.2026): нижняя шторка, крупные поля, без служебных полей ===== */
+.leadAltV1 { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; font-size:13px; color:var(--aMuted); }
+.leadAltV1 a { padding:7px 14px; border-radius:999px; background:var(--aSoft); color:var(--aInk); font-weight:700; text-decoration:none; }
+@keyframes leadSheetUpV1 { from { transform:translateY(36px); opacity:0; } to { transform:none; opacity:1; } }
+@media (max-width:640px){
+  .auctionModalV1 { align-items:flex-end; padding:0; }
+  .auctionLeadFormV1 { max-width:none; border-radius:22px 22px 0 0; padding:22px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92dvh; overflow-y:auto; gap:10px; animation:leadSheetUpV1 .22s ease-out; }
+  .auctionLeadFormV1 h2 { font-size:20px; padding-right:40px; }
+  .auctionLeadFormV1 input, .auctionLeadFormV1 textarea { font-size:16px; height:50px; }   /* 16px — иначе iOS приближает страницу при фокусе */
+  .auctionLeadFormV1 textarea { height:64px; min-height:64px; }
+  .auctionLeadFormV1 .filterGridV1, .auctionLeadFormV1 input[name="auction"] { display:none; }   /* VIN/лот/площадка уходят в заявку скрыто */
+  .auctionLeadFormV1 button[type="submit"] { height:52px; font-size:16px; }
+  .modalCloseV1 { top:10px; right:10px; width:40px; height:40px; }
+}
+
+/* Бесконечная лента на телефоне: большая кнопка «Показать ещё» и подпись страницы */
+@media (max-width:640px){
+  #paginationV1 { flex-direction:column; align-items:stretch; gap:8px; }
+  #paginationV1 .pgLoadMoreBtnV1 { width:100%; min-height:52px; font-size:16px; }
+  .pgInfoV1 { text-align:center; font-size:12.5px; color:var(--aMuted); }
+}

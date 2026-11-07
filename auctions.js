@@ -277,7 +277,7 @@
     const rawTo = document.querySelector('input[name="auctionDateTo"]')?.value;
     if(p.get("auctionDateTo")){ if(rawTo) p.set("auctionDateTo", rawTo); else p.delete("auctionDateTo"); }
     p.delete("per_page");
-    if(Number(p.get("page")) <= 1) p.delete("page");   // страница >1 остаётся в ссылке: «назад из лота» возвращает на неё
+    if(Number(p.get("page")) <= 1 || mobileInf()) p.delete("page");   // на телефоне лента растёт сама — номер страницы в ссылке не нужен   // страница >1 остаётся в ссылке: «назад из лота» возвращает на неё
     if(p.get("sort") === "smart") p.delete("sort"); // «Рекомендованные» — дефолт с 15.09.2026 (лучшие из ближайших торгов первыми)
     if(p.get("auction") === "all") p.delete("auction");
     if(p.get("tab") === "all") p.delete("tab");
@@ -2125,6 +2125,9 @@
   // renderCards по-прежнему подстраховывает клиентским фильтром (live-фолбэк, когда база недоступна), но пагинация — серверная.
   function clientFilterActive(){ return budgetApplies(); }
   function isServerPaging(){ return state.tab !== "favorites" && !clientFilterActive(); }
+  // Телефон (≤640px): вместо номеров страниц — бесконечная лента (кнопка «Показать ещё» + автоподгрузка при прокрутке, до 4 раз подряд).
+  function mobileInf(){ return !!(window.matchMedia && window.matchMedia("(max-width:640px)").matches) && isServerPaging(); }
+  let pgIO = null;
 
   function renderCards(){
     const box = $("#auctionCards");
@@ -2134,6 +2137,13 @@
     const bOn = budgetApplies();
     const filtered = state.items.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo) && (!bOn || lotFitsBudget(lot)));
     state.filteredCount = filtered.length;
+    // Бесконечная лента на телефоне: новая пачка ДОБАВЛЯЕТСЯ в конец, уже нарисованные карточки не перерисовываем
+    if(state._appendedItems){
+      const add = state._appendedItems.filter(lot => matchSale(lot, sale) && matchDateRange(lot, dateFrom, dateTo)); state._appendedItems = null;
+      box.insertAdjacentHTML("beforeend", add.map(renderCard).join(""));
+      renderPagination();
+      return;
+    }
     const start = (state.displayPage - 1) * state.displayPageSize;
     const pageItems = filtered.slice(start, start + state.displayPageSize);
     box.innerHTML = pageItems.map(renderCard).join("");
@@ -2156,7 +2166,24 @@
     const totalPages = server
       ? Math.min(MAX_SERVER_PAGES, Math.max(Math.ceil((state.total || 0) / SERVER_PAGE_SIZE), state.hasMore ? state.page + 1 : state.page))
       : Math.ceil(state.filteredCount / state.displayPageSize);
-    const showPageNums = totalPages > 1;
+    const inf = mobileInf();
+    const showPageNums = totalPages > 1 && !inf;
+    if(inf){
+      const more = state.hasMore || state.page < totalPages;
+      if(!more){ box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML = `<button class="pgLoadMoreBtnV1" id="pgLoadMoreBtn"${state.loading ? " disabled" : ""}>${L("Показать ещё лоты")}</button><div class="pgInfoV1">${L("Страница")} ${state.page} ${L("из")} ${totalPages}</div>`;
+      // автоподгрузка, когда кнопка подъезжает к экрану (не больше 4 раз подряд — потом только по тапу, чтобы не раздувать страницу)
+      try{
+        if(pgIO) pgIO.disconnect();
+        const btn = document.getElementById("pgLoadMoreBtn");
+        if(btn && "IntersectionObserver" in window && (state._autoMore || 0) < 4){
+          pgIO = new IntersectionObserver(es => { if(es.some(x => x.isIntersecting) && !state.loading){ pgIO.disconnect(); state._autoMore = (state._autoMore || 0) + 1; btn.click(); } }, {rootMargin:"700px 0px"});
+          pgIO.observe(btn);
+        }
+      }catch(_){}
+      return;
+    }
     if(!showPageNums && !state.hasMore){ box.hidden = true; return; }
     box.hidden = false;
     let html = "";
@@ -2556,8 +2583,10 @@
       if(append){
         const prevCount = state.items.length;
         state.items = [...state.items, ...nextItems];
-        state.displayPage = Math.floor(prevCount / state.displayPageSize) + 1;
+        if(mobileInf()){ state._appendedItems = nextItems; }
+        else state.displayPage = Math.floor(prevCount / state.displayPageSize) + 1;
       } else {
+        state._autoMore = 0;
         state.items = nextItems;
         state.displayPage = 1;
       }
