@@ -39,7 +39,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v526">
+  <link rel="stylesheet" href="styles.css?v=v527">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -141,6 +141,12 @@
       <a class="primaryContactV110" href="https://t.me/fedukusa" target="_blank" rel="noopener">Написать в Telegram</a>
       <a href="tel:+37368832032">Позвонить</a>
     </div>
+
+    <ul class="contactsTrustV1">
+      <li><a href="https://www.google.com/maps/place/Apex+Auto+Import/data=!4m2!3m1!1s0x0:0xb6f889dce405372a" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="#f5a300" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17l-6.1 3.4 1.5-6.8L2.2 9l6.9-.7z"/></svg>Google · ★ 4,5 · 46 отзывов</a></li>
+      <li><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>Быстрее всего — в Telegram</span></li>
+      <li><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Кишинёв, Bucovina 9F</span></li>
+    </ul>
   </div>
 
   <aside class="contactsQuickCardV110">
@@ -183,13 +189,57 @@
     </a>
   </div>
 
-  <div class="contactLocationV306">
+  <div class="contactLocationV306" id="contactLocationV1">
     <div class="contactAddressV306">
       <span class="sectionKicker">АДРЕС</span>
       <h2>Кишинёв, Bucovina&nbsp;9F</h2>
       <p>Приезд по предварительной договорённости — напишите в Telegram, и мы согласуем удобное время.</p>
+
+      <figure class="routeFigV1" aria-label="Схема проезда к офису Apex Auto">
+        <svg class="routeSvgV1" viewBox="0 0 600 300" role="img" aria-labelledby="routeTitleV1">
+          <title id="routeTitleV1">Схема проезда: от центра города по улице Букович к офису Apex Auto</title>
+          <rect class="rtBg" width="600" height="300" rx="18"/>
+          <!-- кварталы -->
+          <g class="rtBlocks">
+            <rect x="20" y="24" width="86" height="58" rx="8"/><rect x="118" y="24" width="96" height="58" rx="8"/><rect x="20" y="96" width="86" height="40" rx="8"/><rect x="118" y="96" width="96" height="40" rx="8"/>
+            <rect x="20" y="150" width="86" height="56" rx="8"/><rect x="118" y="150" width="96" height="56" rx="8"/>
+            <rect x="262" y="212" width="90" height="68" rx="8"/><rect x="368" y="212" width="86" height="68" rx="8"/><rect x="470" y="206" width="110" height="74" rx="8"/>
+            <rect x="262" y="24" width="96" height="70" rx="8"/><rect x="262" y="104" width="90" height="46" rx="8"/><rect x="372" y="24" width="70" height="46" rx="8"/>
+            <rect x="500" y="24" width="80" height="60" rx="8"/><rect x="20" y="248" width="86" height="40" rx="8"/><rect x="118" y="230" width="96" height="58" rx="8"/>
+          </g>
+          <path class="rtPark" d="M372 90h92q12 0 12 12v34q0 10-10 10H372q-10 0-10-10v-36q0-10 10-10z"/>
+          <!-- дороги -->
+          <g class="rtRoads">
+            <path d="M0 232H240"/><path d="M240 110V300"/><path d="M0 110H240"/><path d="M240 178L600 138"/><path d="M360 300V158"/><path d="M470 148V20"/>
+          </g>
+          <g class="rtRoadsIn">
+            <path d="M0 232H240"/><path d="M240 110V300"/><path d="M0 110H240"/><path d="M240 178L600 138"/><path d="M360 300V158"/><path d="M470 148V20"/>
+          </g>
+          <!-- маршрут -->
+          <path id="routePathV1" class="rtRouteBase" d="M64 270V232H240V178L470 152V108" pathLength="100"/>
+          <path class="rtRouteDraw" d="M64 270V232H240V178L470 152V108" pathLength="100"/>
+          <path class="rtRouteFlow" d="M64 270V232H240V178L470 152V108" pathLength="100"/>
+          <!-- старт -->
+          <g class="rtStart"><circle cx="64" cy="270" r="9"/><circle cx="64" cy="270" r="3.4"/></g>
+          <text class="rtLbl" x="80" y="274">Центр города</text>
+          <text class="rtRoadLbl" x="278" y="190" transform="rotate(-6 278 190)">ул. Букович · Strada Bucovinei</text>
+          <!-- машинка -->
+          <g class="rtCar"><circle r="9"/><path d="M-4 2.4v-3.2l1.8-2.4h4.4l1.8 2.4v3.2z" fill="#fff"/><circle cx="-2.2" cy="3" r="1.3" fill="#fff"/><circle cx="2.2" cy="3" r="1.3" fill="#fff"/><animateMotion dur="6s" repeatCount="indefinite" rotate="0" keyPoints="0;1;1" keyTimes="0;0.85;1" calcMode="linear"><mpath href="#routePathV1"/></animateMotion></g>
+          <!-- метка офиса -->
+          <g transform="translate(470 108)"><g class="rtPin">
+            <circle class="rtPulse rtPulse1" r="10"/><circle class="rtPulse rtPulse2" r="10"/>
+            <path class="rtPinBody" d="M0 0c-9-13-18-20-18-31a18 18 0 0136 0c0 11-9 18-18 31z" transform="translate(0 6)"/>
+            <circle class="rtPinDot" cx="0" cy="-25" r="6.5"/>
+          </g></g>
+          <g class="rtTag" transform="translate(486 54)"><rect width="104" height="34" rx="10"/><text x="12" y="15">Apex Auto</text><text class="rtTagSub" x="12" y="28">Bucovina 9F</text></g>
+        </svg>
+        <figcaption>Схема не в масштабе — точный маршрут построит навигатор</figcaption>
+      </figure>
+
       <div class="contactAddressLinksV306">
-        <a href="https://www.google.com/maps/search/?api=1&query=Apex+Auto+Import+Chisinau+Moldova" target="_blank" rel="noopener">Открыть в Google Maps</a>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=Apex+Auto+Import+Chisinau+Moldova&travelmode=driving" target="_blank" rel="noopener">Построить маршрут</a>
+        <a class="ghost" href="https://www.google.com/maps/search/?api=1&query=Apex+Auto+Import+Chisinau+Moldova" target="_blank" rel="noopener">Открыть в Google Maps</a>
+        <a class="ghost" href="https://waze.com/ul?q=Apex%20Auto%20Import%20Chisinau&navigate=yes" target="_blank" rel="noopener">Открыть в Waze</a>
       </div>
     </div>
     <div class="contactMapV306">
@@ -259,17 +309,18 @@
         <a href="https://www.instagram.com/feduk.usa" target="_blank" rel="noopener">Instagram</a>
         <a href="https://www.tiktok.com/@feduk.america" target="_blank" rel="noopener">TikTok</a>
         <a href="https://www.facebook.com/apexautomoldova/" target="_blank" rel="noopener">Facebook</a>
-        <a href="https://www.google.com/maps/place/Apex+Auto+Import/data=!4m2!3m1!1s0x0:0xb6f889dce405372a" target="_blank" rel="noopener">Google · ★ 4,4</a>
+        <a href="https://www.google.com/maps/place/Apex+Auto+Import/data=!4m2!3m1!1s0x0:0xb6f889dce405372a" target="_blank" rel="noopener">Google · ★ 4,5</a>
         <a href="/blog">Блог</a>
       </div>
       <div class="footerLegalV1">Apex Auto Import S.R.L. &middot; IDNO 1026023053147</div>
     </div>
   </footer>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v589" defer></script>
+  <script src="i18n.js?v=multilang-v590" defer></script>
   <!-- Форма контактов: самодостаточный обработчик (script.js на этой странице не грузится).
        Пишет лид на сервер (Supabase+Telegram-бот), Telegram-share — доп-канал. -->
   <script src="contacts-form.js?v=v1" defer></script>
+  <script src="contacts-fx.js?v=v1" defer></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",

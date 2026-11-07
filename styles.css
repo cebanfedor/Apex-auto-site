@@ -549,7 +549,7 @@ section { position: relative; }
 .formRow > label, .formCard > label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-input[type="text"], input[type="number"], input[type="url"], input[type="date"], input:not([type]), select, textarea {
+input[type="text"], input[type="number"], input[type="url"], input[type="date"], input[type="tel"], input[type="email"], input[type="search"], input:not([type]), select, textarea {
   width: 100%; height: 44px; padding: 0 14px; border: 1px solid var(--field-line); border-radius: 11px;
   background: var(--field); color: var(--ink); font-size: 15px; transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
 }
@@ -2303,7 +2303,7 @@ a.tkItemV1:hover b { text-decoration: underline; }
 
 /* ---- Заявка на подбор + проверка VIN (06.11.2026, Федор: «эта часть выглядит пустой, блок за блоком») ----
    Слева теперь не только абзац: что получите (3 пункта), площадки и карточка Федора с рейтингом Google
-   (ровно 4,4 / 41 — как в LocalBusiness на главной; менять вместе с ним). Проверка VIN — одна тёмная полоса:
+   (ровно 4,5 / 46 — как в LocalBusiness на главной; менять вместе с ним). Проверка VIN — одна тёмная полоса:
    текст слева, поле и кнопка в строку справа, вместо двух больших блоков с пустым местом. id/классы форм не менялись. */
 .leadText { display: flex; flex-direction: column; }
 .leadGetV1 { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 14px; }
@@ -2484,4 +2484,86 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 @media (max-width: 640px) {
   .contactsHeroActionsV110 { flex-wrap: nowrap; }
   .contactsHeroActionsV110 a { flex: 1 1 0; min-width: 0; padding: 0 8px; font-size: 14px; text-align: center; white-space: nowrap; }
+}
+
+
+/* ============ Контакты v2 (07.11.2026): значки доверия, схема проезда, форма ============ */
+.contactsTrustV1 { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 20px; list-style: none; padding: 0; }
+.contactsTrustV1 li a, .contactsTrustV1 li span { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.82); border: 1px solid var(--line); font-size: 13.5px; font-weight: 600; color: var(--ink-2); box-shadow: var(--shadow-sm); transition: transform .18s, border-color .18s, box-shadow .18s; }
+.contactsTrustV1 li svg { flex: none; color: var(--red); }
+.contactsTrustV1 li a:hover { transform: translateY(-1px); border-color: var(--red-line); box-shadow: var(--shadow); }
+.contactsQuickCardV110 { position: relative; overflow: hidden; }
+.contactsQuickCardV110::after { content: ""; position: absolute; right: -60px; top: -60px; width: 190px; height: 190px; border-radius: 50%; background: radial-gradient(closest-side, rgba(237,0,18,.38), rgba(237,0,18,0)); pointer-events: none; animation: ctGlowV1 5s ease-in-out infinite; }
+@keyframes ctGlowV1 { 0%,100% { transform: scale(1); opacity: .8; } 50% { transform: scale(1.25); opacity: 1; } }
+.contactMethodV110 { position: relative; overflow: hidden; }
+.contactMethodV110::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--red), #ff6a74); transform: scaleX(0); transform-origin: left; transition: transform .35s var(--ease); }
+.contactMethodV110:hover::before { transform: scaleX(1); }
+
+/* Схема проезда */
+.routeFigV1 { margin: 2px 0 18px; }
+.routeFigV1 figcaption { margin-top: 8px; font-size: 12.5px; color: var(--muted); text-align: center; }
+.routeSvgV1 { display: block; width: 100%; height: auto; border-radius: 18px; border: 1px solid var(--line); background: #eef1f5; }
+.routeSvgV1 text { font-family: inherit; }
+.rtBg { fill: #f1f3f7; }
+.rtBlocks rect { fill: #e4e8ee; }
+.rtPark { fill: #d6ecd9; }
+.rtRoads path { fill: none; stroke: #d3d9e2; stroke-width: 17; stroke-linecap: round; }
+.rtRoadsIn path { fill: none; stroke: #fff; stroke-width: 12; stroke-linecap: round; }
+.rtRouteBase { fill: none; stroke: rgba(237,0,18,.22); stroke-width: 7; stroke-linejoin: round; stroke-linecap: round; }
+.rtRouteDraw { fill: none; stroke: var(--red); stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.rtRouteFlow { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 1.2 3.4; opacity: 0; }
+.rtStart circle:first-child { fill: #fff; stroke: var(--ink); stroke-width: 3; }
+.rtStart circle:last-child { fill: var(--ink); }
+.rtLbl { font-size: 13px; font-weight: 700; fill: var(--ink-2); }
+.rtRoadLbl { font-size: 11.5px; font-weight: 600; fill: #7b8594; letter-spacing: .02em; }
+.rtCar circle:first-child { fill: var(--ink); stroke: #fff; stroke-width: 2.4; }
+.rtCar { opacity: 0; }
+.rtPinBody { fill: var(--red); stroke: #fff; stroke-width: 2.5; }
+.rtPinDot { fill: #fff; }
+.rtPulse { fill: none; stroke: var(--red); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.rtPin { opacity: 0; transform-box: fill-box; }
+.rtTag { opacity: 0; }
+.rtTag rect { fill: #fff; stroke: var(--line); }
+.rtTag text { font-size: 12.5px; font-weight: 800; fill: var(--ink); }
+.rtTag .rtTagSub { font-size: 11px; font-weight: 600; fill: var(--muted); }
+/* запуск при появлении блока на экране (или сразу, если JS/движение отключены) */
+.isInV1 .rtRouteDraw { animation: rtDrawV1 2.4s .2s cubic-bezier(.5,.1,.2,1) forwards; }
+.isInV1 .rtRouteFlow { animation: rtFlowShowV1 .1s 2.6s forwards, rtFlowV1 1.4s 2.6s linear infinite; }
+.isInV1 .rtCar { animation: rtShowV1 .3s .35s forwards; }
+.isInV1 .rtPin { animation: rtPinDropV1 .7s 2.2s cubic-bezier(.3,1.6,.5,1) forwards; }
+.isInV1 .rtTag { animation: rtShowV1 .5s 2.8s forwards; }
+.isInV1 .rtPulse1 { animation: rtPulseV1 2.4s 2.9s ease-out infinite; }
+.isInV1 .rtPulse2 { animation: rtPulseV1 2.4s 4.1s ease-out infinite; }
+@keyframes rtDrawV1 { to { stroke-dashoffset: 0; } }
+@keyframes rtFlowV1 { to { stroke-dashoffset: -9.2; } }
+@keyframes rtFlowShowV1 { to { opacity: .9; } }
+@keyframes rtShowV1 { to { opacity: 1; } }
+@keyframes rtPinDropV1 { 0% { opacity: 0; transform: translateY(-26px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes rtPulseV1 { 0% { opacity: .55; transform: scale(.6); } 100% { opacity: 0; transform: scale(3.6); } }
+
+/* Появление блоков при прокрутке (только если сработал JS) */
+.fxContactsV1 .fxItemV1 { opacity: 0; transform: translateY(18px); transition: opacity .55s ease var(--fxd, 0ms), transform .55s var(--ease) var(--fxd, 0ms); }
+.fxContactsV1 .fxItemV1.fxShownV1 { opacity: 1; transform: none; }
+.contactAddressV306 { overflow: hidden; }
+.contactMapV306 { position: relative; }
+.contactMapV306::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); pointer-events: none; }
+.contactAddressLinksV306 { margin-top: 0; }
+.contactAddressV306 > .contactAddressLinksV306 { margin-top: auto; }
+
+/* Форма */
+.contactPanelV110 { background: rgba(255,255,255,.8); backdrop-filter: blur(6px); border-radius: 22px; }
+.contactFormV110 input, .contactFormV110 textarea { height: 50px; border-radius: 13px; font-size: 15px; }
+.contactFormV110 textarea { height: auto; min-height: 116px; padding-top: 14px; }
+.contactFormV110 button { height: 52px; border-radius: 13px; }
+@media (max-width: 640px) {
+  .contactsTrustV1 li a, .contactsTrustV1 li span { height: 34px; padding: 0 12px; font-size: 12.5px; }
+  .routeFigV1 { margin-bottom: 14px; }
+  .contactAddressLinksV306 a { flex: 1 1 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rtRouteDraw { stroke-dashoffset: 0; animation: none !important; }
+  .rtCar, .rtPin, .rtTag { opacity: 1; animation: none !important; }
+  .rtPulse, .rtRouteFlow { animation: none !important; }
+  .fxContactsV1 .fxItemV1 { opacity: 1; transform: none; transition: none; }
+  .contactsQuickCardV110::after { animation: none; }
 }
