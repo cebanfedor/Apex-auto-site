@@ -2477,3 +2477,11 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .hotApiAucBadgeV351, .hotApiFuelBadgeV352 { font-size: 11px; }
   .tkLiveV1 { font-size: 11px; }
 }
+
+/* 07.11.2026 — «Контакты»: главная кнопка была белой (общее правило `.contactsHeroActionsV110 a` перебивало красную), на телефоне обе кнопки в ряд одной ширины */
+.contactsHeroActionsV110 a.primaryContactV110 { background: var(--red); border-color: var(--red); color: #fff; box-shadow: var(--shadow-red); }
+.contactsHeroActionsV110 a.primaryContactV110:hover { background: var(--red-600); border-color: var(--red-600); }
+@media (max-width: 640px) {
+  .contactsHeroActionsV110 { flex-wrap: nowrap; }
+  .contactsHeroActionsV110 a { flex: 1 1 0; min-width: 0; padding: 0 8px; font-size: 14px; text-align: center; white-space: nowrap; }
+}

@@ -42,7 +42,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v524">
+  <link rel="stylesheet" href="styles.css?v=v526">
   <link rel="stylesheet" href="guide.css?v=v6">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -143,7 +143,7 @@
     if(b && !l.startsWith("ru")){
       b.style.display = "block";
       if(l.startsWith("ro")||l.startsWith("mo")) b.innerHTML = "Acest articol este disponibil și în română: <a href=\"/ro/transport-maritim\" style=\"color:#c00;font-weight:700\">deschideți versiunea în română →</a>";
-      else b.innerHTML = "This article is currently available in <strong>Russian only</strong>. The English version is coming soon.";
+      else b.style.display = "none";
     }
   })();
   </script>
