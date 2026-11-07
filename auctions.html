@@ -324,6 +324,13 @@
                 <label class="optV2"><input type="checkbox" name="transmission" value="2"><span>Механика</span></label>
               </div>
             </details>
+            <details class="fSecV2"><summary>Тип продавца</summary>
+              <div class="optListV2">
+                <label class="optV2"><input type="checkbox" name="sellerKind" value="1"><span>Страховая</span></label>
+                <label class="optV2"><input type="checkbox" name="sellerKind" value="2"><span>Не страховая (дилер, частный)</span></label>
+                <label class="optV2"><input type="checkbox" name="sellerKind" value="3"><span>Прокат</span></label>
+              </div>
+            </details>
             <details class="fSecV2"><summary>Цвет</summary>
               <div class="optListV2">
                 <label class="optV2"><input type="checkbox" name="color" value="13"><span class="colSwV1" style="background:#f4f4f2"></span><span>Белый</span></label>
@@ -547,8 +554,8 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v587" defer></script>
-  <script src="/auctions.js?v=auctions-v443" defer></script>
+  <script src="/i18n.js?v=multilang-v588" defer></script>
+  <script src="/auctions.js?v=auctions-v444" defer></script>
   <script src="/site-content.js?v=admin-v168" defer></script>
 
 <!-- Exit-intent popup -->
