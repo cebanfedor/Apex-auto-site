@@ -4104,6 +4104,20 @@
     state.selectedLot = lot;
     state.detailImages = images;
     setTimeout(syncStickyTotal, 0);
+    // Липкая панель прячется, пока на экране кнопка «Оставить заявку» из калькулятора (08.11.2026)
+    try{
+      if(window.__stickyIO) window.__stickyIO.disconnect();
+      const bar = document.querySelector(".lotStickyCtaV1");
+      const ctas = document.querySelectorAll(".calcTopCtaV1, .calcCtasV2 .dbBtnPrimary[data-lead]");
+      if(bar && ctas.length && "IntersectionObserver" in window){
+        const seen = new Set();
+        window.__stickyIO = new IntersectionObserver(es => {
+          es.forEach(en => { if(en.isIntersecting) seen.add(en.target); else seen.delete(en.target); });
+          bar.classList.toggle("isHiddenV1", seen.size > 0);
+        }, {threshold:0.6});
+        ctas.forEach(el => window.__stickyIO.observe(el));
+      }
+    }catch(e){}
     // Единый медиа-набор для лайтбокса: фото + видео осмотра последней плиткой
     state.detailMedia = images.map(src => ({type:"image", src}));
     if(lot.videoYoutubeId) state.detailMedia.push({type:"video", yt:lot.videoYoutubeId, poster:images[0] || ""});

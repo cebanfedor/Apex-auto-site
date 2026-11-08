@@ -2598,7 +2598,7 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 /* iOS Safari приближает страницу при фокусе в поле со шрифтом <16px — на телефоне все поля ввода 16px (08.11.2026) */
 @media (max-width: 820px) {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]),
-  select, textarea { font-size: 16px !important; }
+  textarea { font-size: 16px !important; }
 }
 
 /* Калькулятор на главной: после единой ширины сайта (1624px) растянулся — на компьютере держим компактный блок по центру (форма и расчёт по ~570px) */
