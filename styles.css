@@ -2601,19 +2601,50 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   textarea { font-size: 16px !important; }
 }
 
-/* Калькулятор на главной (09.11.2026): полная ширина сайта, но внутри — форма в сетке из 6 колонок (поля не растягиваются на всю ширину),
-   справа расчёт фиксированной ширины. Так блок совпадает с краями остальной страницы и получается короче. */
+/* Группы разбивки (оплата после покупки / при получении): на узких экранах прозрачны — всё как было одним списком */
+.breakdownColV1 { display: contents; }
+.breakdown .breakdownColV1 + .breakdownColV1 > .breakdownSecV1 { margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.16); }
+
+/* Калькулятор главной на компьютере (09.11.2026, редизайн): полная ширина сайта.
+   Слева компактная форма фиксированной ширины (4 ряда полей), справа широкая карточка расчёта:
+   две колонки разбивки (после покупки | при получении), итог, срок и кнопка — всё на одном экране. */
 @media (min-width: 1300px) {
-  section.layout#calculator { grid-template-columns: minmax(0, 1fr) 520px; }
-  #calcForm.formCard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 14px; row-gap: 12px; align-content: start; }
-  #calcForm.formCard > * { grid-column: 1 / -1; }
+  section.layout#calculator { grid-template-columns: minmax(520px, 580px) minmax(0, 1fr); gap: 22px; margin-top: 16px; }
+
+  /* ссылка / номер лота / VIN — одной строкой */
+  section.layout#calculator > .lotImportV118 { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; padding: 12px 16px; }
+  .lotImportV118 > label { flex: 0 0 auto; margin: 0; font-size: 14px; font-weight: 700; }
+  .lotImportV118 .lotImportControlV118 { flex: 1 1 0; min-width: 0; margin: 0; }
+  .lotImportV118 .lotImportFooterV118 { flex: 1 1 100%; }
+  .lotImportV118 .lotImportFooterV118:not(:has(:not([hidden]))) { display: none; }
+
+  /* форма: сетка из 6 колонок */
+  #calcForm.formCard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 12px; row-gap: 12px; align-content: start; padding: 20px; }
+  #calcForm.formCard > * { grid-column: 1 / -1; margin: 0; }
+  #calcForm.formCard > .countryToggleV400 { grid-column: span 4; align-self: end; }
+  #calcForm.formCard > .countryToggleV400 .countryBtn { padding-left: 8px; padding-right: 8px; }
   #calcForm.formCard > .formRow.wide { grid-column: span 2; }
-  #calcForm.formCard > .locationOffsiteRowV314 { grid-column: span 4; }
+  #calcForm.formCard > .locationOffsiteRowV314 { grid-template-columns: minmax(0, 1fr) auto; }
   #calcForm.formCard > .grid { display: contents; }
   #calcForm.formCard > .grid:has(#portView) { display: none; }
-  #calcForm.formCard > .grid:has(#vehicleType) > .formRow,
-  #calcForm.formCard > .grid:has(#lotPrice) > .formRow { grid-column: span 2; }
-  #calcForm.formCard > .grid:has(#engineLiters) > .formRow { grid-column: span 3; }
+  #calcForm.formCard > .grid:has(#vehicleType) > .formRow { grid-column: span 3; }
+  #calcForm.formCard > .grid:has(#lotPrice) > .formRow,
+  #calcForm.formCard > .grid:has(#engineLiters) > .formRow { grid-column: span 2; }
   #calcForm.formCard > .grid > .formRow label { min-height: 0; }
   #calcForm.formCard > button[type="submit"] { margin-top: auto; }
+
+  /* результат: сетка, а не колонка */
+  .resultCard { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 48px; row-gap: 0; align-content: stretch; padding: 24px 28px; grid-template-areas: "head head" "a b" "total b" "deliv b" "act act"; }
+  .resultCard .resultHeader { grid-area: head; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+  .resultCard .breakdown { display: contents; border: 0; padding: 0; }
+  .resultCard .breakdown > .breakdownColV1 { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .resultCard .breakdown > .breakdownColV1:nth-child(1) { grid-area: a; }
+  .resultCard .breakdown > .breakdownColV1:nth-child(2) { grid-area: b; }
+  .resultCard .breakdown > .breakdownColV1 > .breakdownSecV1 { margin-top: 0; padding-top: 0; border-top: 0; }
+  .resultCard .totalFooter { grid-area: total; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 8px; padding-top: 18px; }
+  .resultCard .total { font-size: 46px; }
+  .resultCard .finalNote { text-align: left; max-width: 100%; font-size: 12.5px; }
+  .resultCard .calcDeliveryV366 { grid-area: deliv; margin: 14px 0 0; align-self: end; }
+  .resultCard .actions { grid-area: act; margin-top: 18px; }
+  .resultCard .actions #copyBtn, .resultCard .actions a { height: 50px; }
 }
