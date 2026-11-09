@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const C = require("../calc-core.js");
+C.setCustomsRules("2027");
 
 const cm = (o) => C.customsMdl(500000, 500000, o);
 
@@ -43,4 +44,21 @@ test("2027: полный расчёт электро включает акциз
   const r = C.compute({lotPrice:9000, auction:"copart", vehicleType:"crossover", fuel:"electric", year:C.CUSTOMS_YEAR - 2, curbKg:1950, port:"nj"});
   assert.ok(r.customs.ev);
   assert.ok(r.customsMdlValue > 20000);
+});
+
+test("2026: прежние правила — гибрид −25%, plug-in −50%, электро без акциза", () => {
+  const o = {vehicleType:"sedan", engineLiters:2, year:new Date().getFullYear() - 6, rules:"2026"};
+  const g = cm({...o, fuel:"gasoline"});
+  assert.strictEqual(g.rate, 19.57);                        // 2026, возраст 6 лет → колонка «5–6 лет» (при запуске в 2026 г.)
+  assert.strictEqual(cm({...o, fuel:"hybrid"}).baseExcise, g.baseExcise * 0.75);
+  assert.strictEqual(cm({...o, fuel:"phev"}).baseExcise, g.baseExcise * 0.5);
+  assert.strictEqual(cm({...o, fuel:"electric"}).baseExcise, 0);
+});
+
+test("setCustomsRules меняет правила по умолчанию", () => {
+  C.setCustomsRules("2026");
+  assert.strictEqual(C.getCustomsRules(), "2026");
+  assert.strictEqual(cm({vehicleType:"sedan", fuel:"electric", year:2024}).baseExcise, 0);
+  C.setCustomsRules("2027");
+  assert.ok(cm({vehicleType:"sedan", fuel:"electric", year:2024}).baseExcise > 0);
 });

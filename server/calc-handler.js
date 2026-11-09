@@ -208,6 +208,7 @@ function buildInput(params, rates) {
     fuel: params.fuel || "gasoline",
     engineLiters: num(params.engineLiters, 2),
     curbKg: num(params.curbKg, 0),
+    customsRules: params.rules === "2027" ? "2027" : params.rules === "2026" ? "2026" : undefined,
     year: num(params.year, new Date().getFullYear() - 5),
     insurance: bool(params.insurance, true),
     exportDocs: bool(params.exportDocs, false),

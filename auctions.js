@@ -2932,7 +2932,14 @@
             </select>
           </label>
         </div>
-        <label class="calcEvMassV1" id="lotCalcEvMassRow"${fuelVal === "electric" ? "" : " hidden"}>
+        <div class="calcRulesV1" id="lotCalcRulesRow">
+          <span>${L("Таможня по правилам")}</span>
+          <div class="rulesToggleV1" role="group" aria-label="${L("Правила растаможки")}">
+            <button type="button" data-lot-rules="2026" class="${rulesNow() === "2026" ? "isOnV1" : ""}">2026</button>
+            <button type="button" data-lot-rules="2027" class="${rulesNow() === "2027" ? "isOnV1" : ""}">2027</button>
+          </div>
+        </div>
+        <label class="calcEvMassV1" id="lotCalcEvMassRow"${fuelVal === "electric" && rulesNow() === "2027" ? "" : " hidden"}>
           <span>${L("Масса электромобиля, кг")}</span>
           <input id="lotCalcEvMass" data-calc-input type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="${defaultEvKg(kind)}">
           <small>${L("С 2027 года акциз на электро считается по массе без нагрузки — чем тяжелее, тем дороже.")}</small>
@@ -2999,6 +3006,14 @@
 
   // Список объёмов двигателя: авто/мото 1.0–5.0 л, квадроциклы (ATV) 0.5–2.0 л.
   // Реальный объём лота вне диапазона (kei <1.0, крупные V8 >5.0) добавляем, чтобы значение не терялось.
+  function rulesNow(){ return window.ApexCalc && ApexCalc.getCustomsRules ? ApexCalc.getCustomsRules() : "2026"; }
+  function paintLotRules(){
+    const cur = rulesNow();
+    document.querySelectorAll("[data-lot-rules]").forEach(b => b.classList.toggle("isOnV1", b.dataset.lotRules === cur));
+  }
+  // выбор правил хранится в localStorage (общий с главной); применяем при загрузке скрипта
+  try{ const st = localStorage.getItem("apexCustomsRulesV1"); if((st === "2026" || st === "2027") && window.ApexCalc) ApexCalc.setCustomsRules(st); }catch(_){}
+
   function defaultEvKg(kind){ return window.ApexCalc && window.ApexCalc.defaultCurbKg ? window.ApexCalc.defaultCurbKg(kind) : 1950; }
 
   function engineOptionsHtml(kind, engL, current){
@@ -3040,10 +3055,10 @@
     const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
     const evRow = $("#lotCalcEvMassRow");
     if(evRow){
-      evRow.hidden = fuel !== "electric";
+      evRow.hidden = !(fuel === "electric" && rulesNow() === "2027");
       const evIn = $("#lotCalcEvMass"); if(evIn) evIn.placeholder = String(defaultEvKg(veh));
     }
-    const curbKg = fuel === "electric" ? (Number($("#lotCalcEvMass")?.value) || 0) : 0;
+    const curbKg = (fuel === "electric" && rulesNow() === "2027") ? (Number($("#lotCalcEvMass")?.value) || 0) : 0;
     const year = Number($("#lotCalcYear")?.value) || Number(state.selectedLot.year) || new Date().getFullYear();
     const usdMdl = Number($("#lotCalcUsdMdl")?.value) || liveRates.usdMdl;
     const eurMdl = Number($("#lotCalcEurMdl")?.value) || liveRates.eurMdl;
@@ -5946,6 +5961,13 @@
         return;
       }
       if(event.target.closest("[data-close-lead]") || event.target.id === "leadModal") closeLead();
+      const rb = event.target.closest("[data-lot-rules]");
+      if(rb && window.ApexCalc){
+        ApexCalc.setCustomsRules(rb.dataset.lotRules);
+        try{ localStorage.setItem("apexCustomsRulesV1", rb.dataset.lotRules); }catch(_){}
+        paintLotRules();
+        updateLotCalculator();
+      }
     });
     document.addEventListener("input", event => {
       if(event.target.closest("[data-calc-input]")){ updateLotCalculator(); trackCalcUse(); }

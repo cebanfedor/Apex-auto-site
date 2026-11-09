@@ -86,9 +86,10 @@ function syncEvEngine(){
     if(e.disabled){ e.disabled = false; changed = true; }
   }
   const mr = $("evMassRow");
-  if(mr && mr.hidden !== !ev) mr.hidden = !ev;
+  const showMass = ev && (window.ApexCalc && ApexCalc.getCustomsRules() === "2027");
+  if(mr && mr.hidden !== !showMass) mr.hidden = !showMass;
   const mi = $("evMass");
-  if(mi && ev && window.ApexCalc && ApexCalc.defaultCurbKg) mi.placeholder = String(ApexCalc.defaultCurbKg($("vehicleType")?.value || "sedan"));
+  if(mi && showMass && window.ApexCalc && ApexCalc.defaultCurbKg) mi.placeholder = String(ApexCalc.defaultCurbKg($("vehicleType")?.value || "sedan"));
   if(!changed) return;
   refreshGlassSelect(e);
   const wrap = e.nextElementSibling;
@@ -96,6 +97,26 @@ function syncEvEngine(){
     wrap.classList.toggle("isDisabledV1", ev);
     const b = wrap.querySelector("button"); if(b) b.disabled = ev;
   }
+}
+
+function initCustomsRules(){
+  const row = $("customsRulesRow");
+  if(!row || !window.ApexCalc) return;
+  const paint = () => {
+    const cur = ApexCalc.getCustomsRules();
+    row.querySelectorAll("[data-rules]").forEach(b => { const on = b.dataset.rules === cur; b.classList.toggle("isOnV1", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    const note = $("customsRulesNote"); if(note) note.hidden = cur !== "2027";
+  };
+  try{ const st = localStorage.getItem("apexCustomsRulesV1"); if(st === "2026" || st === "2027") ApexCalc.setCustomsRules(st); }catch(_){}
+  paint();
+  row.addEventListener("click", e => {
+    const b = e.target.closest("[data-rules]"); if(!b) return;
+    ApexCalc.setCustomsRules(b.dataset.rules);
+    try{ localStorage.setItem("apexCustomsRulesV1", b.dataset.rules); }catch(_){}
+    paint();
+    markCalcTouchedV1();
+    calculate();
+  });
 }
 
 function closeGlassSelects(except){
@@ -229,12 +250,13 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl, landBaseMdl){
   const vatPct = result.vatPct || 20;
   const L = {
     vat: lang === "ro" ? `TVA ${vatPct}% din valoarea vamală` : lang === "en" ? `VAT ${vatPct}% of the customs value` : `НДС ${vatPct}% от таможенной стоимости`,
-    electric: lang === "ro" ? "electric: acciză pe masă" : lang === "en" ? "electric: excise by weight" : "электро: акциз по массе",
+    electric: lang === "ro" ? "electric: acciză 0" : lang === "en" ? "electric: excise 0" : "электро: акциз 0",
     lux: lang === "ro" ? "taxa de lux" : lang === "en" ? "luxury" : "люкс",
     cc: lang === "ru" ? "см³" : "cm³",
     from: lang === "ro" ? "din" : lang === "en" ? "of" : "от",
     kg: lang === "ru" ? "кг" : "kg",
-    plug: lang === "ro" ? "plug-in -25%" : lang === "en" ? "plug-in -25%" : "plug-in -25%"
+    hybrid: lang === "ro" ? "hibrid" : lang === "en" ? "hybrid" : "гибрид",
+    plug: "plug-in"
   };
 
   // Люкс-акциз в подпись не включаем: он показывается отдельной строкой
@@ -245,7 +267,8 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl, landBaseMdl){
   if(fuel === "electric"){
     return Object.assign({}, result, { text: result.ev ? `${result.kg} ${L.kg} × ${result.rate} MDL/${L.kg}` : L.electric });
   }
-  const discount = fuel === "phev" ? ` · ${L.plug}` : "";
+  // Скидка по правилам: 2026 — гибрид −25%, plug-in −50%; 2027 — только plug-in −25%
+  const discount = (result.discount && result.discount < 1) ? ` · ${fuel === "phev" ? L.plug : L.hybrid} -${Math.round((1 - result.discount) * 100)}%` : "";
   return Object.assign({}, result, {
     text: `${result.cc} ${L.cc} × ${result.rate} MDL/${L.cc}${discount}`
   });
@@ -1349,6 +1372,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   // Prevent mouse wheel from changing number inputs while they're focused
   $("calcForm").addEventListener("wheel",()=>{if(document.activeElement?.type==="number")document.activeElement.blur();},{passive:true});
   ["location","vehicleType","fuel","lotPrice","engineLiters","evMass","year","insurance","exportDocs","paymentFee","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()})}});
+  // Кнопка «Таможня по правилам 2026 / 2027» (общий выбор для главной и страницы лота — localStorage apexCustomsRulesV1)
+  initCustomsRules();
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();markCalcTouchedV1();calculate()}));
   if($("auction"))$("auction").addEventListener("change",()=>{if(calcMode==="canada"){initCanadaLocations();}else{initLocations();}calculate();});
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);

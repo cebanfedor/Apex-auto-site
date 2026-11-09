@@ -2676,3 +2676,11 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 /* Масса электромобиля (акциз 2027 считается по кг) */
 #evMassRow[hidden], .calcEvMassV1[hidden] { display:none !important; }
 .evMassHintV1 { display:block; margin-top:6px; font-size:12px; line-height:1.4; color:var(--muted, #667080); }
+
+/* Переключатель «Таможня по правилам 2026 / 2027» */
+.rulesRowV1 { display:flex; flex-direction:column; gap:6px; }
+.rulesToggleV1 { display:inline-flex; align-self:flex-start; background:var(--soft, #eef0f4); border-radius:12px; padding:3px; gap:2px; }
+.rulesToggleV1 button { appearance:none; border:0; background:transparent; font:inherit; font-size:14px; font-weight:700; color:var(--muted, #667080); min-width:72px; height:34px; padding:0 14px; border-radius:10px; cursor:pointer; }
+.rulesToggleV1 button.isOnV1 { background:var(--red, #ed0012); color:#fff; box-shadow:0 2px 8px rgba(237,0,18,.25); }
+.rulesToggleV1 button:focus-visible { outline:2px solid var(--red, #ed0012); outline-offset:2px; }
+#customsRulesNote[hidden] { display:none !important; }
