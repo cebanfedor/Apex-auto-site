@@ -1248,5 +1248,9 @@
       renderSections(); renderHeadControls(); updateCrumbs(); updateHeroHeading();
     });
   }
-  boot();
+  // Язык не русский: стартуем, когда словарь уже загружен (иначе T() на медленной сети отдаёт русский, а блоки помечены data-no-i18n)
+  (function(){
+    var go = function(){ var l = window.APEX_LANG || "ru"; if(l === "ru" || typeof window.__apexEnsureDict !== "function") boot(); else window.__apexEnsureDict(boot); };
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+  })();
 })();

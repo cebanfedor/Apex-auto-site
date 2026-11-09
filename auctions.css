@@ -1919,5 +1919,5 @@ body.leadModalOpenV1 { overflow:hidden; }
 
 /* Без скачков вёрстки при загрузке (09.11.2026): баннер виден сразу (скрывает auc-early.js, если закрыт), под бегущую строку места зарезервировано */
 html.aucInfoOffV1 #auctionInfoBanner { display: none; }
-.auctionsCatalogV1 > .tkHostV1[hidden] { display: block; height: 46px; visibility: hidden; }
+.auctionsCatalogV1 > .tkHostV1[hidden] { display: block !important; height: 46px; visibility: hidden; }
 @media (max-width: 640px) { .auctionsCatalogV1 > .tkHostV1[hidden] { height: 42px; } }

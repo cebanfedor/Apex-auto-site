@@ -57,17 +57,34 @@
       const m = compact.match(PATTERNS[i][0]);
       if(m && PATTERNS[i][1][lang]) return PATTERNS[i][1][lang](m);
     }
-    // Составные строки «A: B», «A · B», «A — B»: переводим по частям (собираются в JS до загрузки словаря)
+    // «Слово (N)» — счётчик в скобках у строки из словаря («Выставлялась ранее (2)»)
+    { const m = compact.match(/^(.+?)\s*\((\d+)\)$/); if(m){ const t = map[m[1]] || (am && am[m[1]]); if(t) return `${t} (${m[2]})`; } }
+    // Составные строки «A: B», «A · B», «A — B», «A / B», «N миль ≈ M км»: переводим по частям (собираются в JS до загрузки словаря).
+    // Фраза из нескольких частей, лежащая в словаре целиком («Днище / подвеска»), берётся целиком — идём от самой длинной.
     if(compact.length < 160){
-      const parts = compact.split(/(\s[·—–|•]\s|:\s)/);
+      const parts = compact.split(/(\s[·—–|•≈\/]\s|:\s)/);
       if(parts.length > 1){
         let changed = false;
-        const out = parts.map((p, i) => {
-          if(i % 2) return p;
-          const t = map[p] || (am && am[p]);
-          if(t){ changed = true; return t; }
-          return p;
-        });
+        const one = p => {
+          let t = map[p] || (am && am[p]);
+          if(!t){
+            for(let k = 0; k < PATTERNS.length; k++){
+              const m = p.match(PATTERNS[k][0]);
+              if(m && PATTERNS[k][1][lang]){ t = PATTERNS[k][1][lang](m); break; }
+            }
+          }
+          return t;
+        };
+        const out = [];
+        for(let i = 0; i < parts.length; i += 2){
+          let done = false;
+          for(let j = parts.length - 1; j >= i; j -= 2){
+            const cand = parts.slice(i, j + 1).join("");
+            const t = (j > i) ? (map[cand] || (am && am[cand])) : one(cand);
+            if(t){ out.push(t); if(j + 1 < parts.length) out.push(parts[j + 1]); i = j; changed = true; done = true; break; }
+          }
+          if(!done){ out.push(parts[i]); if(i + 1 < parts.length) out.push(parts[i + 1]); }
+        }
         if(changed) return out.join("");
       }
     }

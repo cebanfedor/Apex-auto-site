@@ -222,14 +222,15 @@
   }
   function humanizeKey(k){ k = String(k || "").replace(/_/g, " "); return k.charAt(0).toUpperCase() + k.slice(1); }
   function termOr(report, category, key, fallback){ return term(report, category, key) || fallback || humanizeKey(key); }
-  function fmtDate(iso){ if(!iso) return ""; var d = new Date(iso); if(isNaN(d.getTime())) return String(iso).slice(0, 10); return d.toLocaleDateString("ru-RU", {year:"numeric", month:"short", day:"numeric"}).replace(/\.$/, "").replace(" г.", ""); }
-  function fmtDayMon(iso){ var d = new Date(iso); if(isNaN(d.getTime())) return ""; return d.toLocaleDateString("ru-RU", {month:"short", day:"numeric", timeZone:"UTC"}).replace(/\.$/, ""); }
+  function dateLoc(){ var l = uiLang(); return l === "en" ? "en-GB" : l === "ro" ? "ro-RO" : "ru-RU"; }
+  function fmtDate(iso){ if(!iso) return ""; var d = new Date(iso); if(isNaN(d.getTime())) return String(iso).slice(0, 10); return d.toLocaleDateString(dateLoc(), {year:"numeric", month:"short", day:"numeric"}).replace(/\.$/, "").replace(" г.", ""); }
+  function fmtDayMon(iso){ var d = new Date(iso); if(isNaN(d.getTime())) return ""; return d.toLocaleDateString(dateLoc(), {month:"short", day:"numeric", timeZone:"UTC"}).replace(/\.$/, ""); }
   function fmtDatePrecise(iso, precision){
     if(!iso) return "";
     var d = new Date(iso); if(isNaN(d.getTime())) return "";
     if(precision === "year") return String(d.getUTCFullYear());
-    if(precision === "month"){ var s = d.toLocaleDateString("ru-RU", {month:"long", timeZone:"UTC"}); return s.charAt(0).toUpperCase() + s.slice(1); }
-    return d.toLocaleDateString("ru-RU", {month:"short", day:"numeric", timeZone:"UTC"}).replace(/\.$/, "");
+    if(precision === "month"){ var s = d.toLocaleDateString(dateLoc(), {month:"long", timeZone:"UTC"}); return s.charAt(0).toUpperCase() + s.slice(1); }
+    return d.toLocaleDateString(dateLoc(), {month:"short", day:"numeric", timeZone:"UTC"}).replace(/\.$/, "");
   }
   function fmtMonthYear(car){ if(!car.year) return ""; return car.month ? (String(car.month).padStart(2, "0") + "." + car.year) : String(car.year); }
   function agoText(iso){
@@ -461,7 +462,7 @@
     if(car.fuel) chips += '<span class="lot-chip" title="' + esc(T("Топливо")) + '">' + I.fuel + esc(T(FUELS[car.fuel.id] || car.fuel.name)) + '</span>';
     if(car.transmission) chips += '<span class="lot-chip" title="' + esc(T("Трансмиссия")) + '">' + I.trans + esc(T(TRANSMISSIONS[car.transmission.id] || car.transmission.name)) + '</span>';
     var upd = listing && (listing.last_seen_at || listing.updated_at);
-    if(upd) chips += '<span class="lot-head__seen" title="' + esc(new Date(upd).toLocaleString("ru-RU")) + '" data-no-i18n="true">' + I.clock + esc(agoText(upd)) + '</span>';
+    if(upd) chips += '<span class="lot-head__seen" title="' + esc(new Date(upd).toLocaleString(dateLoc())) + '" data-no-i18n="true">' + I.clock + esc(agoText(upd)) + '</span>';
 
     document.getElementById("lotHeadV1").innerHTML = '<div class="min-w-0 flex-1">'
       + '<h1><span class="lot-head__title" data-no-i18n="true">' + esc(title) + '</span>' + (car.badge ? ' <span class="lot-head__trim" data-no-i18n="true">' + esc(car.badge) + '</span>' : "") + '</h1>'
@@ -1521,5 +1522,11 @@
       });
   }
 
-  load();
+  // Язык не русский: данные рисуем, когда словарь (0.9 МБ) уже загружен. Иначе T() на медленной сети отдаёт русский,
+  // а блоки помечены data-no-i18n — так на RO/EN страница навсегда оставалась на русском (09.11.2026).
+  function whenDict(fn){
+    var go = function(){ var l = window.APEX_LANG || "ru"; if(l === "ru" || typeof window.__apexEnsureDict !== "function") fn(); else window.__apexEnsureDict(fn); };
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+  }
+  whenDict(load);
 })();
