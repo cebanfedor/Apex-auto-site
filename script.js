@@ -1297,8 +1297,8 @@ function calculate(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    `<div class="breakdownColV1">` + calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") + `</div>` +
-    `<div class="breakdownColV1">` + calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("") + `</div>`;
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
@@ -1386,15 +1386,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     applyLotParamImport();
   }
   document.querySelectorAll(".currency").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".currency").forEach(i=>i.classList.remove("active"));b.classList.add("active");currency=b.dataset.currency;markCalcTouchedV1();calculate()}));
-  // Переключатель валюты (USD/MDL/EUR) на компьютере живёт в шапке карточки расчёта, на узких экранах — в форме, как раньше
-  (function(){
-    const sw=document.querySelector(".currencyMiniV374"), home=document.querySelector(".exportCurrencyRowV374"), head=document.querySelector(".resultHeader");
-    if(!sw||!home||!head||!window.matchMedia) return;
-    const mq=window.matchMedia("(min-width:1300px)");
-    const place=()=>{ if(mq.matches){ if(sw.parentNode!==head) head.insertBefore(sw,$("auctionBadge")); } else if(sw.parentNode!==home) home.appendChild(sw); };
-    place();
-    if(mq.addEventListener) mq.addEventListener("change",place); else if(mq.addListener) mq.addListener(place);
-  })();
   if($("copyBtn"))$("copyBtn").addEventListener("click",()=>{markCalcActedV1();copyCalc();});
   if($("tgBtn"))$("tgBtn").addEventListener("click",markCalcActedV1);
   if($("pngBtn"))$("pngBtn").addEventListener("click",downloadPng);
@@ -1910,8 +1901,8 @@ function calculateCanada(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    `<div class="breakdownColV1">` + calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") + `</div>` +
-    `<div class="breakdownColV1">` + calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("") + `</div>`;
+    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
   updateShare();
 }
