@@ -29,7 +29,7 @@
 
     const cache = {models:{}};
     const state = {makeId:"", makeName:"", modelId:"", modelName:"", yearFrom:"", yearTo:""};
-    let countToken = 0;
+    let countToken = 0, firstCount = true;
 
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -181,6 +181,8 @@
         const r = await fetch("/api/auctions?" + p.toString()).then(x => x.json());
         if(my !== countToken) return;
         countEl.textContent = r && r.ok ? fmtLots(Number(r.total) || 0) : "—";
+        // первый расчёт — без фильтров: запоминаем, чтобы при следующем заходе число было на кнопке сразу, а не «…»
+        if(firstCount){ firstCount = false; try{ if(r && r.ok && Number(r.total) > 0) localStorage.setItem("apexHeroCountV1", String(Number(r.total))); }catch(e){} }
       }catch(e){ if(my === countToken) countEl.textContent = "—"; }
     }
     // 29.09.2026: словарь RO/EN (i18n-dict.js, ~250 КБ) грузится параллельно с разбором
@@ -190,8 +192,9 @@
     // класс гонки, что уже чинили в auctions.js (renderDetailI18nSafe) — здесь просто ждём
     // словарь перед первым вызовом; все ПОСЛЕДУЮЩИЕ вызовы (смена марки/модели) идут уже после.
     const lang = window.APEX_LANG || "ru";
-    if(lang !== "ru" && window.__apexEnsureDict) window.__apexEnsureDict(refreshCount);
-    else refreshCount();
+    const showCached = () => { try{ const c = Number(localStorage.getItem("apexHeroCountV1")); if(c > 0 && countEl.textContent.trim() === "…") countEl.textContent = fmtLots(c); }catch(e){} };
+    if(lang !== "ru" && window.__apexEnsureDict) window.__apexEnsureDict(() => { showCached(); refreshCount(); });
+    else { showCached(); refreshCount(); }
 
     // Тот же роутер VIN/номер лота/название, что и умный поиск на /auctions (parseSmartSearch) —
     // полный keyword-парсер (марка/повреждение/штат/цена) туда специально не тащим: главная
