@@ -2610,7 +2610,6 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 #evMassRow[hidden], .calcEvMassV1[hidden] { display:none !important; }
 .evMassHintV1 { display:block; margin-top:6px; font-size:12px; line-height:1.4; color:var(--muted, #667080); }
 
-<<<<<<< HEAD
 /* Переключатель «Таможня по правилам 2026 / 2027» */
 .rulesRowV1 { display:flex; flex-direction:column; gap:6px; }
 .rulesToggleV1 { display:flex; width:100%; box-sizing:border-box; background:var(--soft, #eef0f4); border:1px solid var(--line, #e3e6ec); border-radius:12px; padding:3px; gap:2px; }
@@ -2619,7 +2618,7 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 .rulesToggleV1 button:focus-visible { outline:2px solid var(--red, #ed0012); outline-offset:2px; }
 #customsRulesNote[hidden] { display:none !important; }
 #customsRulesNote { margin:-4px 0 0; }
-=======
+
 /* Единая типографика полей на главной (10.11.2026, Федор: «слишком много видов шрифта»).
    Было: текст в полях 12.5 / 14 / 16px и веса 400 / 500 / 600 (hero-кнопки, «стеклянные» селекты, текстовые поля — каждый свой).
    Теперь: значение/подсказка в любом поле — один размер и вес 500, подписи над полями — 13px / 600.
@@ -2633,4 +2632,3 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .lotImportV118 > label, .formRow > label, .rateFieldV374 label { font-size: 13px !important; font-weight: 600 !important; }
   #parseLotBtn, #heroSearchBtn { font-size: 15px; font-weight: 700; }
 }
->>>>>>> 084f9829 (Единая типографика полей на главной: текст в полях один размер и вес (16px/500 на телефоне, 14.5px/500 на компьютере), подписи 13px/600)
