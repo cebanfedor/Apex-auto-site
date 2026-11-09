@@ -2605,9 +2605,9 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 .breakdownColV1 { display: contents; }
 .breakdown .breakdownColV1 + .breakdownColV1 > .breakdownSecV1 { margin-top: 4px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.16); }
 
-/* Калькулятор главной на компьютере (09.11.2026, редизайн): полная ширина сайта.
-   Слева компактная форма фиксированной ширины (4 ряда полей), справа широкая карточка расчёта:
-   две колонки разбивки (после покупки | при получении), итог, срок и кнопка — всё на одном экране. */
+/* Калькулятор главной на компьютере (09.11.2026, редизайн v2): полная ширина сайта.
+   Слева форма (5 рядов полей, переключатели одной строкой), справа тёмная карточка: сверху крупный итог и срок,
+   справа от него «при получении», валюта — в шапке карточки. Обе карточки одной высоты, без пустот. */
 @media (min-width: 1300px) {
   section.layout#calculator { grid-template-columns: minmax(520px, 580px) minmax(0, 1fr); gap: 22px; margin-top: 16px; }
 
@@ -2618,35 +2618,59 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .lotImportV118 .lotImportFooterV118 { flex: 1 1 100%; }
   .lotImportV118 .lotImportFooterV118:not(:has(:not([hidden]))) { display: none; }
 
-  /* форма: сетка из 6 колонок */
-  #calcForm.formCard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 12px; row-gap: 12px; align-content: start; padding: 20px; }
+  /* форма: сетка из 6 колонок; обёртки полей прозрачны, поэтому порядок задаём через order */
+  #calcForm.formCard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 12px; row-gap: 14px; align-content: start; padding: 22px; }
   #calcForm.formCard > * { grid-column: 1 / -1; margin: 0; }
-  #calcForm.formCard > .countryToggleV400 { grid-column: span 4; align-self: end; }
-  #calcForm.formCard > .countryToggleV400 .countryBtn { padding-left: 8px; padding-right: 8px; }
+  #calcForm.formCard > .countryToggleV400 { grid-column: 1 / -1; }
   #calcForm.formCard > .formRow.wide { grid-column: span 2; }
-  #calcForm.formCard > .locationOffsiteRowV314 { grid-template-columns: minmax(0, 1fr) auto; }
+  #calcForm.formCard > .locationOffsiteRowV314,
+  #calcForm.formCard > .options,
+  #calcForm.formCard .exportCurrencyRowV374 { display: contents; }
+  #calcForm.formCard .locationOffsiteRowV314 > .formRow { grid-column: span 4; }
   #calcForm.formCard > .grid { display: contents; }
   #calcForm.formCard > .grid:has(#portView) { display: none; }
   #calcForm.formCard > .grid:has(#vehicleType) > .formRow { grid-column: span 3; }
   #calcForm.formCard > .grid:has(#lotPrice) > .formRow,
   #calcForm.formCard > .grid:has(#engineLiters) > .formRow { grid-column: span 2; }
   #calcForm.formCard > .grid > .formRow label { min-height: 0; }
-  #calcForm.formCard > button[type="submit"] { margin-top: auto; }
 
-  /* результат: сетка, а не колонка */
-  .resultCard { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 48px; row-gap: 0; align-content: stretch; padding: 24px 28px; grid-template-areas: "head head" "a b" "total b" "deliv b" "act act"; }
-  .resultCard .resultHeader { grid-area: head; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+  /* переключатели Offsite / Оплата в MDL / Экспортные документы — одним рядом, как поля */
+  #calcForm.formCard .offsiteCheck,
+  #calcForm.formCard .exportCurrencyRowV374 > .check { grid-column: span 2; order: 5; display: flex; align-items: center; gap: 9px; height: 46px; padding: 0 12px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; font-size: 12.5px; font-weight: 600; line-height: 1.2; white-space: normal; min-width: 0; }
+  #calcForm.formCard .offsiteCheck .infoTipV65, #calcForm.formCard .exportCurrencyRowV374 > .check .infoTipV65 { flex: none; }
+  #calcForm.formCard .exportCurrencyRowV374 > .check[hidden], #calcForm.formCard .exportCurrencyRowV374 > .check[data-usa-only][style*="none"] { display: none; }
+  #calcForm.formCard .insuranceFixedV313 { grid-column: 1 / -1; order: 6; padding: 10px 14px; font-size: 12.5px; }
+  #calcForm.formCard .ratesTopV375 { order: 7; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+  #calcForm.formCard .ratesTopV375 .rateFieldV374 input { height: 34px; }
+  #calcForm.formCard .ratesTopV375 .rateHintV404 { grid-column: 1 / -1; }
+  #calcForm.formCard .calcCanadaFactV1 { order: 8; }
+  #calcForm.formCard > button[type="submit"] { order: 9; margin-top: auto; }
+
+  /* карточка расчёта */
+  .resultCard { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 56px; row-gap: 0; align-content: stretch; padding: 24px 30px 26px; grid-template-areas: "head head" "total b" "a b" "deliv b" "act act"; }
+  .resultCard::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(520px 260px at 0% 0%, rgba(237, 0, 18, 0.2), transparent 70%); }
+  .resultCard > * { position: relative; }
+  .resultCard .resultHeader { grid-area: head; gap: 12px; margin-bottom: 4px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+  .resultCard .resultHeader .route { margin-right: auto; font-size: 15px; }
+  .resultCard .resultHeader .currencyMiniV374 { margin: 0; gap: 3px; padding: 3px; background: rgba(255, 255, 255, 0.07); border-radius: 10px; }
+  .resultCard .resultHeader .currencyMiniV374 .currency { height: 28px; padding: 0 11px; font-size: 12px; background: transparent; border-color: transparent; color: rgba(255, 255, 255, 0.7); }
+  .resultCard .resultHeader .currencyMiniV374 .currency:hover { color: #fff; }
+  .resultCard .resultHeader .currencyMiniV374 .currency.active { background: var(--red); color: #fff; }
   .resultCard .breakdown { display: contents; border: 0; padding: 0; }
-  .resultCard .breakdown > .breakdownColV1 { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  .resultCard .breakdown > .breakdownColV1:nth-child(1) { grid-area: a; }
-  .resultCard .breakdown > .breakdownColV1:nth-child(2) { grid-area: b; }
-  .resultCard .breakdown > .breakdownColV1 > .breakdownSecV1 { margin-top: 0; padding-top: 0; border-top: 0; }
-  .resultCard .totalFooter { grid-area: total; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 8px; padding-top: 18px; }
-  .resultCard .total { font-size: 46px; }
-  .resultCard .finalNote { text-align: left; max-width: 100%; font-size: 12.5px; }
-  .resultCard .calcDeliveryV366 { grid-area: deliv; margin: 14px 0 0; align-self: end; }
-  .resultCard .actions { grid-area: act; margin-top: 18px; }
-  .resultCard .actions #copyBtn, .resultCard .actions a { height: 50px; }
+  .resultCard .breakdown > .breakdownColV1 { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .resultCard .breakdown > .breakdownColV1:nth-child(1) { grid-area: a; margin-top: 22px; }
+  .resultCard .breakdown > .breakdownColV1:nth-child(2) { grid-area: b; margin-top: 22px; }
+  .resultCard .breakdown > .breakdownColV1 > .breakdownSecV1 { margin-top: 0; padding-top: 0; border-top: 0; padding-bottom: 10px; }
+  .resultCard .totalFooter { grid-area: total; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 4px; padding-top: 22px; }
+  .resultCard .total { font-size: 60px; line-height: 1; }
+  .resultCard .subTotal { font-size: 15px; margin-top: 6px; }
+  .resultCard .finalNote { text-align: left; max-width: 100%; font-size: 12.5px; margin-top: 8px; }
+  .resultCard .calcDeliveryV366 { grid-area: deliv; margin: 20px 0 0; align-self: end; }
+  .resultCard .actions { grid-area: act; margin-top: 22px; }
+  .resultCard .actions #copyBtn, .resultCard .actions a { height: 52px; font-size: 16px; }
+  /* Канада: «после покупки» длиннее «при получении» (8 строк против 4) — длинная группа слева на всю высоту, итог и короткая группа справа */
+  .resultCard:has(.breakdown > .breakdownColV1:nth-child(1) > :nth-child(7)) { grid-template-areas: "head head" "a total" "a b" "a deliv" "act act"; }
+  .resultCard:has(.breakdown > .breakdownColV1:nth-child(1) > :nth-child(7)) .breakdown > .breakdownColV1:nth-child(2) { margin-top: 18px; }
 }
 
 /* Масса электромобиля (акциз 2027 считается по кг) */

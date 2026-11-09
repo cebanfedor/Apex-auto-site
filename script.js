@@ -1361,6 +1361,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     applyLotParamImport();
   }
   document.querySelectorAll(".currency").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".currency").forEach(i=>i.classList.remove("active"));b.classList.add("active");currency=b.dataset.currency;markCalcTouchedV1();calculate()}));
+  // Переключатель валюты (USD/MDL/EUR) на компьютере живёт в шапке карточки расчёта, на узких экранах — в форме, как раньше
+  (function(){
+    const sw=document.querySelector(".currencyMiniV374"), home=document.querySelector(".exportCurrencyRowV374"), head=document.querySelector(".resultHeader");
+    if(!sw||!home||!head||!window.matchMedia) return;
+    const mq=window.matchMedia("(min-width:1300px)");
+    const place=()=>{ if(mq.matches){ if(sw.parentNode!==head) head.insertBefore(sw,$("auctionBadge")); } else if(sw.parentNode!==home) home.appendChild(sw); };
+    place();
+    if(mq.addEventListener) mq.addEventListener("change",place); else if(mq.addListener) mq.addListener(place);
+  })();
   if($("copyBtn"))$("copyBtn").addEventListener("click",()=>{markCalcActedV1();copyCalc();});
   if($("tgBtn"))$("tgBtn").addEventListener("click",markCalcActedV1);
   if($("pngBtn"))$("pngBtn").addEventListener("click",downloadPng);
