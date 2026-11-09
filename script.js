@@ -1285,7 +1285,7 @@ function calculate(){
     ["Экспортные документы", exportDocs, "", "usd", exportDocsBadge],
     ["Страховка", insurance, "", "usd"],
     ["Комиссия", company, "", "usd"],
-    ["Таможенные платежи", customs.total - (customs.luxury || 0), customs.text, "mdl"]
+    ["Таможенные платежи", customs.total - (customs.luxury || 0), "", "mdl", "", customs.text]
   ];
   if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "при оплате в MDL", "mdl"]);
 
@@ -1298,7 +1298,7 @@ function calculate(){
       : lng === "en"
       ? `calculated from lot + auction fee + sea: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
       : `считается от лот + аукцион + море: ${luxBaseStr} MDL · ${customs.luxuryPct}%`;
-    payLaterRows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
+    payLaterRows.push([luxLabel, customs.luxury, "", "mdl", "", luxNote]);
   }
 
   const rows = [...payNowRows, ...payLaterRows];
@@ -1619,34 +1619,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-// v80: VAT note fallback for moto/pickup if render uses customs.text
-document.addEventListener("DOMContentLoaded", () => {
-  function isMotoPickupV80(){
-    const el = document.getElementById("vehicleType")
-      || document.querySelector('select[name="vehicleType"], select[name="bodyType"], select[name="carType"], select[name="transportType"]');
-    const value = (el && (el.value || el.options?.[el.selectedIndex]?.text) || "").toString().toLowerCase();
-    return value.includes("moto") || value.includes("мото") || value.includes("pickup") || value.includes("пикап");
-  }
-
-  function applyVatNoteV80(){
-    if(!isMotoPickupV80()) return;
-    const rows = Array.from(document.querySelectorAll(".row, .resultRow, li, div"));
-    const customsRow = rows.find(row => /Таможенные платежи/i.test(row.textContent || ""));
-    if(!customsRow) return;
-
-    let small = customsRow.querySelector("small");
-    if(!small){
-      small = document.createElement("small");
-      customsRow.appendChild(small);
-    }
-    small.textContent = "НДС 20% от таможенной стоимости";
-  }
-
-  document.addEventListener("change", () => setTimeout(applyVatNoteV80, 80), true);
-  const form = document.getElementById("calcForm") || document.querySelector("form");
-  if(form) form.addEventListener("submit", () => setTimeout(applyVatNoteV80, 80), true);
-  setTimeout(applyVatNoteV80, 300);
-});
 
 // ═══════════════════════════════ CANADA CALCULATOR ════════════════════════════
 let calcMode = "usa";
@@ -1888,7 +1860,7 @@ function calculateCanada(){
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
     ["Комиссия",                    company,      "",                              "usd"],
-    ["Таможенные платежи",          customs.total - (customs.luxury || 0), customs.text, "mdl"]
+    ["Таможенные платежи",          customs.total - (customs.luxury || 0), "", "mdl", "", customs.text]
   ];
   if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "при оплате в MDL", "mdl"]);
 
@@ -1902,7 +1874,7 @@ function calculateCanada(){
       : en
       ? `calculated from lot + auction fee + sea: ${luxBaseStr} MDL · ${customs.luxuryPct}%`
       : `считается от лот + аукцион + море: ${luxBaseStr} MDL · ${customs.luxuryPct}%`;
-    payLaterRows.push([luxLabel, customs.luxury, luxNote, "mdl"]);
+    payLaterRows.push([luxLabel, customs.luxury, "", "mdl", "", luxNote]);
   }
 
   const rows = [...payNowRows, ...payLaterRows];
