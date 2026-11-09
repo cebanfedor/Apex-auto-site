@@ -3484,7 +3484,12 @@ async function searchFromDb(query){
   const hasNarrowFilter = !!(query.get("phev") === "1" || /(^|,)5(,|$)/.test(String(query.get("fuel") || "")) || query.get("make") || query.get("model") || query.get("generation") || query.get("vin") || query.get("q") || query.get("name"));
   // «Широкий» фильтр = любой параметр кроме служебных (вкладка/площадка/сортировка/страница) и без марки/модели/поиска.
   const NON_FILTER_KEYS = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action", "vehicleType", "debug"]);
-  const hasBroadFilter = !hasNarrowFilter && [...query.keys()].some(k => !NON_FILTER_KEYS.has(k));
+  // 09.11.2026 (Федор: «квадрики — одна страница и всё»): тип техники кроме легковых (2 мото, 4 грузовые, 5 квадро, 7 спец.) —
+  // маленькая выборка, а оценка планировщика (count=planned) по ней занижена в разы (73 против 367+) → страница 2 давала 416
+  // и total из tabTotal-оценки. Такой тип считаем «широким фильтром»: точный счёт отдельным запросом (до 2.5с, иначе оценка),
+  // выборка идёт с count=none.
+  const vtNonCar = (() => { const v = String(query.get("vehicleType") || "").replace(/[^0-9]/g, ""); return !!v && v !== "1"; })();
+  const hasBroadFilter = !hasNarrowFilter && ([...query.keys()].some(k => !NON_FILTER_KEYS.has(k)) || vtNonCar);
   let broadCountP = null;
   if(hasBroadFilter){
     // Счёт НЕ зависит от сортировки: убираем предикаты сортировки (годные значения, потолок даты) и возвращаем полный
@@ -3544,6 +3549,8 @@ async function searchFromDb(query){
     const floor = offset + rows.length;
     total = Math.max(n, floor);
     totalIsFull = n >= floor;
+    // Страница полная, а счёт не больше уже виденного — дальше точно что-то есть (иначе пейджер обрывался на текущей странице).
+    if(rows.length >= perPage && total <= floor){ total = floor + 1; totalIsFull = false; }
   }
   // Общий каталог шёл только по датированным (быстрый range-scan). Недатированные «Future»
   // добавляем отдельным дешёвым запросом (sale_date IS NULL — тот же индекс): в счётчик всегда,
@@ -3597,7 +3604,7 @@ async function searchFromDb(query){
   // vehicleType — тоже «без фильтров»: список «Автомобили» берёт то же число, что витрина (533k), а не оценку своего запроса (511k).
   const FILTER_FREE = new Set(["tab", "auction", "sort", "page", "per_page", "limit", "lang", "_", "fresh", "action", "vehicleType"]);
   const vtQ = String(query.get("vehicleType") || "").replace(/[^0-9]/g, "");
-  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab) && (!vtQ || tab === "all");
+  const unfiltered = [...query.keys()].every(k => FILTER_FREE.has(k)) && ["all", "soon", "buy_now", "archived"].includes(tab) && (!vtQ || (tab === "all" && vtQ === "1"));
   // tabTotal — только оценки планировщика (~200мс каждая), поэтому ждём: иначе первый ответ инстанса показывал
   // оценку основного запроса (564k), а следующий — tabTotal (599k), и число «прыгало» между инстансами.
   if(unfiltered){
@@ -6374,7 +6381,7 @@ module.exports = async function handler(request, response){
   // Supabase, до 6 ч) уже отсортированным, и без соли изменения sortItems /
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
-  const SEARCH_CACHE_VER = "36";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
+  const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g51" : "";   // бамп при смене таблицы поколений и формы detail (g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);

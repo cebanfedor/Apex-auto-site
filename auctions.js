@@ -2913,17 +2913,8 @@
           </label>
           <label class="calcOptColV1">
             <span>Объём</span>
-            <select id="lotCalcEngine" data-calc-input class="calcSelectV2">
-              ${(() => {
-                // Компактный список 1.0–5.0 л (41 пункт) — как у «Год». Реальный объём лота вне диапазона
-                // (kei <1.0, крупные V8 >5.0) добавляем, чтобы значение не терялось.
-                const vals = Array.from({length:41}, (_, i) => ((10 + i) / 10).toFixed(1));
-                const act = engL > 0 ? (Math.round(engL * 10) / 10).toFixed(1) : "";
-                if(act && !vals.includes(act)) vals.push(act);
-                vals.sort((a, b) => Number(a) - Number(b));
-                const sel = act && vals.includes(act) ? act : "2.0";
-                return vals.map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${v} ${L("л")}</option>`).join("");
-              })()}
+            <select id="lotCalcEngine" data-calc-input class="calcSelectV2" data-ekind="${kind === "atv" ? "atv" : "std"}">
+              ${engineOptionsHtml(kind, engL)}
             </select>
           </label>
           <label class="calcOptColV1">
@@ -3000,6 +2991,20 @@
     return {days:`${d1}–${d2}`, label:`${f(base + d1 * 864e5)} – ${f(base + d2 * 864e5)}`};
   }
 
+  // Список объёмов двигателя: авто/мото 1.0–5.0 л, квадроциклы (ATV) 0.5–2.0 л.
+  // Реальный объём лота вне диапазона (kei <1.0, крупные V8 >5.0) добавляем, чтобы значение не терялось.
+  function engineOptionsHtml(kind, engL, current){
+    const atv = kind === "atv";
+    const vals = atv ? Array.from({length:16}, (_, i) => ((5 + i) / 10).toFixed(1))
+                     : Array.from({length:41}, (_, i) => ((10 + i) / 10).toFixed(1));
+    const act = engL > 0 ? (Math.round(engL * 10) / 10).toFixed(1) : "";
+    if(act && !vals.includes(act)) vals.push(act);
+    vals.sort((a, b) => Number(a) - Number(b));
+    const cur = current && vals.includes(current) ? current : "";
+    const sel = cur || (act && vals.includes(act) ? act : (atv ? "1.0" : "2.0"));
+    return vals.map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${v} ${L("л")}</option>`).join("");
+  }
+
   function updateLotCalculator(){
     if(!state.selectedLot || !$("#lotBidInput")) return;
     const veh = $("#lotCalcVehType")?.value || vehicleKind(state.selectedLot);
@@ -3007,6 +3012,16 @@
     // Электро: объём не участвует в расчёте — в поле «—», поле заблокировано; смена топлива возвращает прежний объём
     const engSel = $("#lotCalcEngine");
     if(engSel){
+      // Смена типа техники на/с квадроцикла — пересобираем список объёмов (ATV: 0.5–2.0 л)
+      const ek = veh === "atv" ? "atv" : "std";
+      if(engSel.dataset.ekind !== ek){
+        const wasDisabled = engSel.disabled;
+        const prev = engSel.dataset.prev || (engSel.value !== "0" ? engSel.value : "");
+        engSel.innerHTML = engineOptionsHtml(ek, numberFromEngine(state.selectedLot.engine), prev);
+        engSel.dataset.ekind = ek;
+        engSel.disabled = wasDisabled;
+        delete engSel.dataset.prev;
+      }
       let dash = engSel.querySelector('option[value="0"]');
       if(fuel === "electric"){
         if(!dash){ if(engSel.value && engSel.value !== "0") engSel.dataset.prev = engSel.value; dash = document.createElement("option"); dash.value = "0"; dash.textContent = "—"; engSel.insertBefore(dash, engSel.firstChild); }
