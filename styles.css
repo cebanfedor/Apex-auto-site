@@ -659,7 +659,7 @@ details > summary::-webkit-details-marker { display: none; }
 
 /* hide duplicate calc fields (shown in result panel) + hidden bid advisor */
 .formRow:has(#auctionFeeView) { display: none !important; }
-.grid:has(#lotPrice) { grid-template-columns: 1fr !important; }
+.grid:has(#lotPrice) { grid-template-columns: 1fr 1fr !important; align-items: end; }
 .grid:has(#portView) { display: none !important; }
 .bidAdvisorV138, .bidAdvisorWideV156, .smartLotAdviceV129 { display: none !important; }
 
@@ -2612,8 +2612,9 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 
 /* Переключатель «Таможня по правилам 2026 / 2027» */
 .rulesRowV1 { display:flex; flex-direction:column; gap:6px; }
-.rulesToggleV1 { display:inline-flex; align-self:flex-start; background:var(--soft, #eef0f4); border-radius:12px; padding:3px; gap:2px; }
-.rulesToggleV1 button { appearance:none; border:0; background:transparent; font:inherit; font-size:14px; font-weight:700; color:var(--muted, #667080); min-width:72px; height:34px; padding:0 14px; border-radius:10px; cursor:pointer; }
+.rulesToggleV1 { display:flex; width:100%; box-sizing:border-box; background:var(--soft, #eef0f4); border:1px solid var(--line, #e3e6ec); border-radius:12px; padding:3px; gap:2px; }
+.rulesToggleV1 button { appearance:none; border:0; background:transparent; font:inherit; font-size:14px; font-weight:700; color:var(--muted, #667080); flex:1 1 0; min-width:0; height:38px; padding:0 8px; border-radius:9px; cursor:pointer; }
 .rulesToggleV1 button.isOnV1 { background:var(--red, #ed0012); color:#fff; box-shadow:0 2px 8px rgba(237,0,18,.25); }
 .rulesToggleV1 button:focus-visible { outline:2px solid var(--red, #ed0012); outline-offset:2px; }
 #customsRulesNote[hidden] { display:none !important; }
+#customsRulesNote { margin:-4px 0 0; }
