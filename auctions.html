@@ -42,8 +42,9 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+  <script src="auc-early.js?v=1"></script>
   <link rel="stylesheet" href="/styles.css?v=v562">
-  <link rel="stylesheet" href="/auctions.css?v=v631">
+  <link rel="stylesheet" href="/auctions.css?v=v632">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -202,7 +203,7 @@
         </div>
       </div>
 
-      <div class="auctionInfoV3" id="auctionInfoBanner" hidden>
+      <div class="auctionInfoV3" id="auctionInfoBanner">
         <span class="infoIcoV3">i</span>
         <p>Полный каталог аукционов США и Канады: тысячи автомобилей Copart и IAAI с фотографиями, описанием повреждений и историей VIN. Выберите автомобиль — привезём его под ключ в Кишинёв.</p>
         <button type="button" id="infoCloseBtn" aria-label="Скрыть">×</button>
@@ -558,8 +559,8 @@
   <!-- i18n перед auctions.js: auctions.js рендерит лот сразу при загрузке
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
-  <script src="/i18n.js?v=multilang-v600" defer></script>
-  <script src="/auctions.js?v=auctions-v475" defer></script>
+  <script src="/i18n.js?v=multilang-v601" defer></script>
+  <script src="/auctions.js?v=auctions-v476" defer></script>
   <script src="/site-content.js?v=admin-v168" defer></script>
 
 <!-- Exit-intent popup -->
@@ -612,6 +613,6 @@
 <script src="/site-nav.js?v=v7" defer></script>
 <script src="/mobile-bar.js?v=v1" defer></script>
 <script src="/site-bg.js?v=v5" defer></script>
-<script src="/auction-facts.js?v=v7" defer></script>
+<script src="/auction-facts.js?v=v8" defer></script>
 </body>
 </html>

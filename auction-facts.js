@@ -215,6 +215,8 @@
   }
 
   window._factsRerender = function(){ renderCard(); renderPulse(); renderTickers(); };
+  // словарь RO/EN догрузился позже, чем собрались подписи («ч. назад», «машин 2024+ года») — пересобираем
+  document.addEventListener("apex-dict-ready", function(){ try{ window._factsRerender(); }catch(e){} });
 
   // Карточка видна только на широком экране, строка в каталогах — только на узком: без видимых виджетов не тратим запрос.
   function wide(){ return !!(window.matchMedia && matchMedia("(min-width: 1180px)").matches); }

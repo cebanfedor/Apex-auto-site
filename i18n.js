@@ -77,7 +77,11 @@
     [/^Открыть лот (\d+) на (\S+)$/, {en: m => `Open lot ${m[1]} on ${m[2]}`, ro: m => `Deschide lotul ${m[1]} pe ${m[2]}`}],
     [/^([\d\s.,]+?)\s*км$/, {en: m => `${m[1]} km`, ro: m => `${m[1]} km`}],
     [/^([\d\s.,]+?)\s*миль$/, {en: m => `${m[1]} mi`, ro: m => `${m[1]} mile`}],
-    [/^(\d+)\s+фото$/, {en: m => `${m[1]} photos`, ro: m => `${m[1]} foto`}]
+    [/^(\d+)\s+фото$/, {en: m => `${m[1]} photos`, ro: m => `${m[1]} foto`}],
+    [/^(\d+)\s+мин\.\s+назад$/, {en: m => `${m[1]} min ago`, ro: m => `${m[1]} min. în urmă`}],
+    [/^(\d+)\s+ч\.\s+назад$/, {en: m => `${m[1]} h ago`, ro: m => `${m[1]} ore în urmă`}],
+    [/^(\d+)\s+дн\.\s+назад$/, {en: m => `${m[1]} d ago`, ro: m => `${m[1]} zile în urmă`}],
+    [/^машин (\d{4})\+ года$/, {en: m => `${m[1]}+ model-year cars`, ro: m => `mașini din ${m[1]}+`}]
   ];
 
   function translateNodeText(node, lang){
@@ -113,25 +117,27 @@
     nodes.forEach(node => translateNodeText(node, lang));
   }
 
-  function translateAttrs(lang){
+  function translateAttrs(lang, root){
+    const scope = root || document;
+    const qa = sel => { const l = Array.from(scope.querySelectorAll(sel)); if(root && root.matches && root.matches(sel)) l.unshift(root); return l; };
     // Атрибуты ищем сначала в attrDict, затем в основном словаре —
     // placeholder'ы вроде «Поиск: VIN…» лежат именно там
     const map = attrDict[lang] || {};
     const main = dict[lang] || {};
-    document.querySelectorAll("[placeholder]").forEach(el => {
+    qa("[placeholder]").forEach(el => {
       let src = el.__i18nPh;
       if(src === undefined){ src = el.getAttribute("placeholder") || ""; el.__i18nPh = src; }
       const val = lang === "ru" ? src : (map[src] || main[src] || translateText(src, lang));
       if(el.getAttribute("placeholder") !== val) el.setAttribute("placeholder", val);
     });
-    document.querySelectorAll("[aria-label]").forEach(el => {
+    qa("[aria-label]").forEach(el => {
       if(el.closest("[data-no-i18n]")) return;
       let src = el.__i18nAria;
       if(src === undefined){ src = el.getAttribute("aria-label") || ""; el.__i18nAria = src; }
       const val = lang === "ru" ? src : (map[src] || main[src] || translateText(src, lang));
       if(el.getAttribute("aria-label") !== val) el.setAttribute("aria-label", val);
     });
-    document.querySelectorAll("img[alt]").forEach(el => {
+    qa("img[alt]").forEach(el => {
       if(el.closest("[data-no-i18n]")) return;
       let src = el.__i18nAlt;
       if(src === undefined){ src = el.getAttribute("alt") || ""; el.__i18nAlt = src; }
@@ -139,7 +145,7 @@
       const val = lang === "ru" ? src : translateText(src, lang);
       if(el.getAttribute("alt") !== val) el.setAttribute("alt", val);
     });
-    document.querySelectorAll("[title]").forEach(el => {
+    qa("[title]").forEach(el => {
       if(el.closest("[data-no-i18n]") || el.tagName === "TITLE") return;
       let src = el.__i18nTitle;
       if(src === undefined){ src = el.getAttribute("title") || ""; el.__i18nTitle = src; }
@@ -148,6 +154,7 @@
       if(!val) val = lang === "ru" ? src : translateText(src, lang);
       if(el.getAttribute("title") !== val) el.setAttribute("title", val);
     });
+    if(root) return;   // заголовок вкладки и переключатель — только при полном проходе
     const titleMap = {
       ro:{
         "APEX AUTO — просчет под ключ":"APEX AUTO — calcul la cheie",
@@ -260,8 +267,27 @@
     const boot = () => { apply(currentLang); document.documentElement.classList.remove("i18n-pending"); };
     if(currentLang === "ru") boot(); else ensureDict(boot);
     let timer = 0;
-    const observer = new MutationObserver(() => {
+    // Новые узлы переводим СИНХРОННО в колбэке наблюдателя: он выполняется микрозадачей до отрисовки кадра,
+    // поэтому русский текст динамических блоков (карточки, счётчики, факты) не мелькает на RO/EN.
+    // Раньше был дебаунс 60 мс — русская строка успевала нарисоваться (и мигала при каждом ререндере).
+    // Полный проход (атрибуты, всё остальное) остаётся запасным, с задержкой.
+    const observer = new MutationObserver(records => {
       if(currentLang === "ru") return;
+      if(dictState === 2){
+        try{
+          records.forEach(rec => {
+            rec.addedNodes.forEach(n => {
+              if(n.nodeType === 3){
+                const par = n.parentElement;
+                if(par && !/^(SCRIPT|STYLE|NOSCRIPT)$/.test(par.tagName) && n.nodeValue && n.nodeValue.trim() && !par.closest("[data-no-i18n]")) translateNodeText(n, currentLang);
+              } else if(n.nodeType === 1 && !n.closest("[data-no-i18n]")){
+                walkText(n, currentLang);
+                translateAttrs(currentLang, n);
+              }
+            });
+          });
+        }catch(e){}
+      }
       clearTimeout(timer);
       timer = setTimeout(() => applyTranslations(currentLang), 60);
     });

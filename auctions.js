@@ -5499,7 +5499,7 @@
     (function(){
       const banner = $("#auctionInfoBanner");
       if(!banner) return;
-      try{ if(!localStorage.getItem("apexAucInfoHidden")) banner.hidden = false; }catch(_){ banner.hidden = false; }
+      try{ if(localStorage.getItem("apexAucInfoHidden")) banner.hidden = true; }catch(_){}
       $("#infoCloseBtn")?.addEventListener("click", () => {
         banner.hidden = true;
         try{ localStorage.setItem("apexAucInfoHidden", "1"); }catch(_){}

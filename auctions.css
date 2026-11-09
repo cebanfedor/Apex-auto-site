@@ -1916,3 +1916,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 .calcRulesV1 .rulesToggleV1 { display:inline-flex; background:var(--aSoft, #eef0f4); border-radius:10px; padding:2px; gap:2px; }
 .calcRulesV1 .rulesToggleV1 button { appearance:none; border:0; background:transparent; font:inherit; font-size:13px; font-weight:700; color:var(--aMuted, #667080); min-width:56px; height:30px; padding:0 10px; border-radius:8px; cursor:pointer; }
 .calcRulesV1 .rulesToggleV1 button.isOnV1 { background:var(--red, #ed0012); color:#fff; }
+
+/* Без скачков вёрстки при загрузке (09.11.2026): баннер виден сразу (скрывает auc-early.js, если закрыт), под бегущую строку места зарезервировано */
+html.aucInfoOffV1 #auctionInfoBanner { display: none; }
+.auctionsCatalogV1 > .tkHostV1[hidden] { display: block; height: 46px; visibility: hidden; }
+@media (max-width: 640px) { .auctionsCatalogV1 > .tkHostV1[hidden] { height: 42px; } }
