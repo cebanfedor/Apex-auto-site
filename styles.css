@@ -2601,7 +2601,19 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   textarea { font-size: 16px !important; }
 }
 
-/* Калькулятор на главной: после единой ширины сайта (1624px) растянулся — на компьютере держим компактный блок по центру (форма и расчёт по ~570px) */
-@media (min-width: 1101px) {
-  section.layout#calculator { max-width: 1200px; margin-left: auto; margin-right: auto; }
+/* Калькулятор на главной (09.11.2026): полная ширина сайта, но внутри — форма в сетке из 6 колонок (поля не растягиваются на всю ширину),
+   справа расчёт фиксированной ширины. Так блок совпадает с краями остальной страницы и получается короче. */
+@media (min-width: 1300px) {
+  section.layout#calculator { grid-template-columns: minmax(0, 1fr) 520px; }
+  #calcForm.formCard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 14px; row-gap: 12px; align-content: start; }
+  #calcForm.formCard > * { grid-column: 1 / -1; }
+  #calcForm.formCard > .formRow.wide { grid-column: span 2; }
+  #calcForm.formCard > .locationOffsiteRowV314 { grid-column: span 4; }
+  #calcForm.formCard > .grid { display: contents; }
+  #calcForm.formCard > .grid:has(#portView) { display: none; }
+  #calcForm.formCard > .grid:has(#vehicleType) > .formRow,
+  #calcForm.formCard > .grid:has(#lotPrice) > .formRow { grid-column: span 2; }
+  #calcForm.formCard > .grid:has(#engineLiters) > .formRow { grid-column: span 3; }
+  #calcForm.formCard > .grid > .formRow label { min-height: 0; }
+  #calcForm.formCard > button[type="submit"] { margin-top: auto; }
 }
