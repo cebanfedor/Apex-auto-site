@@ -1277,7 +1277,7 @@ function calculate(){
   const payNowRows = [
     ["Стоимость лота", lot, "", "usd"],
     ["Аукционный сбор", auctionFee, afd.detail, "usd"],
-    ["Комиссия на оплату", paymentFee, "1% при оплате в MDL", "usd"]
+    ["Комиссия на оплату", paymentFee, "", "usd", "", "1% от ставки и аукционного сбора (минимум $50) при оплате в MDL"]
   ];
   const payLaterRows = [
     [landName, land, "", "usd", offsiteBadge],
@@ -1883,7 +1883,7 @@ function calculateCanada(){
   payNowRows.push(["Услуги канадской компании", canadaFee, "", "usd", "", "2% от стоимости лота, минимум $300"]);
   payNowRows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
   payNowRows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
-  if(paymentFee > 0) payNowRows.push(["Комиссия на оплату", paymentFee, "1% при оплате в MDL", "usd"]);
+  if(paymentFee > 0) payNowRows.push(["Комиссия на оплату", paymentFee, "", "usd", "", "1% от ставки и аукционного сбора (минимум $50) при оплате в MDL"]);
   const payLaterRows = [
     ["Дорога Клайпеда → Кишинёв",  roadKlaipeda, "",                              "usd"],
     ["Страховка",                   insurance,    "",                              "usd"],
