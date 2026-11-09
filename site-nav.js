@@ -3,6 +3,15 @@
    открытие меню, живые счётчики, куда вести поиск. Классы .navMegaV1 / .hdrSearchV1 — styles.css. */
 (function(){
   "use strict";
+  // Плавная прокрутка (CSS .smoothV1) — только после первого действия пользователя или через 2.5 с: при загрузке/обновлении страница дорастает по высоте,
+  // и с smooth браузер анимировал восстановление позиции (сайт «листался» сам). Якорные клики (pointerdown раньше click) остаются плавными.
+  (function(){
+    var root = document.documentElement, done = false;
+    var evs = ["pointerdown", "keydown", "wheel", "touchstart"];
+    function on(){ if(done) return; done = true; root.classList.add("smoothV1"); evs.forEach(function(e){ window.removeEventListener(e, on, true); }); }
+    evs.forEach(function(e){ window.addEventListener(e, on, {capture:true, passive:true}); });
+    setTimeout(on, 2500);
+  })();
   var LANG = function(){ return String(window.APEX_LANG || document.documentElement.lang || "ru").slice(0, 2); };
   var WORD = {
     ru:{cars:"авто", lots:"лотов", ca:"Канада", caAuc:"Аукционы Канады", caDeal:"Дилерские аукционы", usca:"США и Канада", kr:"Корея", none:"не найдено", found:"найдено", byVin:"история по VIN", byLot:"по номеру лота", noKr:"марка не распознана", where:"Где показать результаты"},
