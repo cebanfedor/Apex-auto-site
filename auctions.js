@@ -2757,11 +2757,11 @@
       return calcSec("ship", "Оплата после покупки лота", payNowSub, `
         ${calcRow("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd} (TD Bank)`)}
         ${calcRow("Аукционный сбор", calc.auctionFee)}
-        ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
+        ${calcRow("Доставка по Канаде", calc.dispatch)}
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
         ${calcRow("Услуги канадской компании", calc.canadaFee, "", "2% от стоимости лота, минимум $300")}
         ${calcRow("Складирование и погрузка", calc.keeper)}
-        ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
+        ${calcRow("Морская перевозка", calc.ocean)}
         ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "", "1% от ставки и аукционного сбора (минимум $50) при оплате в MDL") : ""}`)
         + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}
@@ -2778,8 +2778,8 @@
         ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "", "1% от ставки и аукционного сбора (минимум $50) при оплате в MDL") : ""}`)
       + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
-        ${calcRow("Доставка по США", calc.land, calc.landRoute)}
-        ${calcRow("Доставка морем", calc.sea, calc.seaRoute)}
+        ${calcRow("Доставка по США", calc.land)}
+        ${calcRow("Доставка морем", calc.sea)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "2000 MDL при оплате в MDL") : ""}
         ${calcRow("Страховка (1%)", calc.insurance)}
