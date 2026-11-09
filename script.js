@@ -87,6 +87,8 @@ function syncEvEngine(){
   }
   const mr = $("evMassRow");
   if(mr && mr.hidden !== !ev) mr.hidden = !ev;
+  const mi = $("evMass");
+  if(mi && ev && window.ApexCalc && ApexCalc.defaultCurbKg) mi.placeholder = String(ApexCalc.defaultCurbKg($("vehicleType")?.value || "sedan"));
   if(!changed) return;
   refreshGlassSelect(e);
   const wrap = e.nextElementSibling;
