@@ -294,9 +294,11 @@ function row(name,value,detail,type="usd",badgeHtml=""){
 // покупки лота, всё остальное (доставка, страховка, комиссия, таможня) — при получении
 // авто в Кишинёве (~2 мес. спустя). Простой жирный заголовок с линией сверху/снизу —
 // без карточек (Федор 29.09.2026, вечер: «верни форму как было»).
-function calcSectionHeader(text){
-  return `<div class="breakdownSecV1">${escapeHtml(text)}</div>`;
+function calcSectionHeader(text, usdSum){
+  // 09.11.2026: справа в заголовке — подытог группы в выбранной валюте
+  return `<div class="breakdownSecV1"><span>${escapeHtml(text)}</span>${usdSum > 0 ? `<b>${escapeHtml(displayUsd(usdSum))}</b>` : ""}</div>`;
 }
+function usdRowsSum(rows){ return rows.reduce((s, r) => s + (r[3] === "mdl" ? 0 : (Number(r[1]) || 0)), 0); }
 
 function numberFromText(value){
   const number = String(value || "").replace(/[^\d.]/g, "");
@@ -1299,8 +1301,8 @@ function calculate(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
+    calcSectionHeader("Оплата после покупки лота", usdRowsSum(payNowRows)) + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)", Math.max(0, totalUsd - usdRowsSum(payNowRows))) + payLaterRows.map(r => row(...r)).join("");
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
@@ -1903,8 +1905,8 @@ function calculateCanada(){
 
   const rows = [...payNowRows, ...payLaterRows];
   $("breakdown").innerHTML =
-    calcSectionHeader("Оплата после покупки лота") + payNowRows.map(r => row(...r)).join("") +
-    calcSectionHeader("Оплата при получении (~2 мес.)") + payLaterRows.map(r => row(...r)).join("");
+    calcSectionHeader("Оплата после покупки лота", usdRowsSum(payNowRows)) + payNowRows.map(r => row(...r)).join("") +
+    calcSectionHeader("Оплата при получении (~2 мес.)", Math.max(0, totalUsd - usdRowsSum(payNowRows))) + payLaterRows.map(r => row(...r)).join("");
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
   updateShare();
 }
