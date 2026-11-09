@@ -2727,8 +2727,9 @@
     return plural(n, "запись", "записи", "записей");
   }
 
-  function calcRow(label, value, sub){
-    return `<div class="calcRowV2"><span>${escapeHtml(L(label))}${sub ? `<small>${escapeHtml(L(sub))}</small>` : ""}</span><b>${money(value)}</b></div>`;
+  function calcRow(label, value, sub, tip){
+    const tipHtml = tip ? ` <span class="infoTipV65 rowTipV1" tabindex="0" aria-label="${escapeHtml(L(tip))}">i</span>` : "";
+    return `<div class="calcRowV2"><span>${escapeHtml(L(label))}${tipHtml}${sub ? `<small>${escapeHtml(L(sub))}</small>` : ""}</span><b>${money(value)}</b></div>`;
   }
 
   // Свёрнутые секции калькулятора переживают перерисовку при изменении инпутов
@@ -2758,7 +2759,7 @@
         ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calcRow("Доставка по Канаде", calc.dispatch, calc.dispatchRoute)}
         ${calc.bankFee ? calcRow("Комиссия банка TD", calc.bankFee) : ""}
-        ${calcRow("Услуги канадской компании", calc.canadaFee, calc.bid > 15000 ? "2% от цены лота" : "")}
+        ${calcRow("Услуги канадской компании", calc.canadaFee, "", "2% от стоимости лота, минимум $300")}
         ${calcRow("Складирование и погрузка", calc.keeper)}
         ${calcRow("Морская перевозка", calc.ocean, "Монреаль → Клайпеда")}
         ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "1% при оплате в MDL") : ""}`)

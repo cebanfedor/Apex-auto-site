@@ -285,9 +285,11 @@ function companyFee(auctionFee = 0){
   return companyFeeFor(num("lotPrice"), auctionFee);
 }
 
-function row(name,value,detail,type="usd",badgeHtml=""){
+function row(name,value,detail,type="usd",badgeHtml="",tip=""){
   let shown = type === "mdl" ? displayMdl(value) : displayUsd(value);
-  return `<div class="row"><span>${escapeHtml(name)}${badgeHtml}${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</span><b>${escapeHtml(shown)}</b></div>`;
+  // tip — пояснение во всплывающей подсказке у значка (i) вместо строки мелким текстом под названием
+  const tipHtml = tip ? ` <span class="infoTipV65 rowTipV1" tabindex="0" aria-label="${escapeHtml(tip)}">i</span>` : "";
+  return `<div class="row"><span>${escapeHtml(name)}${badgeHtml}${tipHtml}${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</span><b>${escapeHtml(shown)}</b></div>`;
 }
 
 // Разбивка по срокам оплаты (Федор 29.09.2026): лот+аукционный сбор — сразу после
@@ -1878,7 +1880,7 @@ function calculateCanada(){
     ["Доставка по Канаде",      dispatch,   dispatchDetail, "usd", offsiteBadge],
   ];
   if(bankFee > 0) payNowRows.push(["Комиссия банка TD", bankFee, "", "usd"]);
-  payNowRows.push(["Услуги канадской компании", canadaFee, lot > 15000 ? "2% от цены лота" : "", "usd"]);
+  payNowRows.push(["Услуги канадской компании", canadaFee, "", "usd", "", "2% от стоимости лота, минимум $300"]);
   payNowRows.push(["Складирование и погрузка", keeperFees, "", "usd"]);
   payNowRows.push(["Морская перевозка", oceanBase + hazardFee, zoneLabel, "usd", hazardBadge]);
   if(paymentFee > 0) payNowRows.push(["Комиссия на оплату", paymentFee, "1% при оплате в MDL", "usd"]);
