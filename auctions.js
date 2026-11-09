@@ -2918,6 +2918,10 @@
               ${engineOptionsHtml(kind, engL)}
             </select>
           </label>
+          <label class="calcOptColV1" id="lotCalcEvMassRow"${fuelVal === "electric" && rulesNow() === "2027" ? "" : " hidden"} title="${L("С 2027 года акциз на электро считается по массе без нагрузки — чем тяжелее, тем дороже.")}">
+            <span>${L("Масса, кг")}</span>
+            <input id="lotCalcEvMass" data-calc-input class="calcSelectV2" type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="${defaultEvKg(kind)}">
+          </label>
           <label class="calcOptColV1">
             <span>Год</span>
             <select id="lotCalcYear" data-calc-input class="calcSelectV2">
@@ -2939,11 +2943,6 @@
             <button type="button" data-lot-rules="2027" class="${rulesNow() === "2027" ? "isOnV1" : ""}">2027</button>
           </div>
         </div>
-        <label class="calcEvMassV1" id="lotCalcEvMassRow"${fuelVal === "electric" && rulesNow() === "2027" ? "" : " hidden"}>
-          <span>${L("Масса электромобиля, кг")}</span>
-          <input id="lotCalcEvMass" data-calc-input type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="${defaultEvKg(kind)}">
-          <small>${L("С 2027 года акциз на электро считается по массе без нагрузки — чем тяжелее, тем дороже.")}</small>
-        </label>
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
@@ -3055,7 +3054,9 @@
     const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
     const evRow = $("#lotCalcEvMassRow");
     if(evRow){
-      evRow.hidden = !(fuel === "electric" && rulesNow() === "2027");
+      const showMass = fuel === "electric" && rulesNow() === "2027";
+      evRow.hidden = !showMass;
+      const engCol = $("#lotCalcEngine")?.closest("label"); if(engCol) engCol.hidden = showMass;
       const evIn = $("#lotCalcEvMass"); if(evIn) evIn.placeholder = String(defaultEvKg(veh));
     }
     const curbKg = (fuel === "electric" && rulesNow() === "2027") ? (Number($("#lotCalcEvMass")?.value) || 0) : 0;
