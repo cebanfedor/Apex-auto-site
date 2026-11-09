@@ -11,9 +11,18 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function(){
   "use strict";
   const YEAR_NOW = new Date().getFullYear();
+  // Растаможка идёт по правилам и возрасту на момент ввоза: с 01.01.2027 новые ставки; возраст = год ввоза − год выпуска.
+  const CUSTOMS_YEAR = Math.max(2027, YEAR_NOW);
 
-  const GASOLINE_RATES={"0-2":[9.56,12.23,18.90,31.14,55.60],"3-4":[10,12.67,19.34,31.68,56.04],"5-6":[10.23,12.90,19.57,31.81,56.27],"7":[11.25,14.19,21.53,34.99,61.90],"8":[12.38,15.61,23.68,38.49,68.09],"9":[13.62,17.17,26.05,42.34,74.90],"10":[16.34,20.60,31.26,50.81,89.87],"11":[21.24,26.79,40.63,66.05,116.84],"12":[26.24,31.79,45.79,71.05,121.84],"13":[31.24,36.79,50.63,76.05,126.84],"14":[36.24,41.79,55.63,81.05,131.84],"15":[41.24,46.79,60.63,86.05,136.84],"16":[46.24,51.79,65.63,91.05,141.84],"17":[51.24,56.79,70.63,96.05,146.84],"18":[56.24,61.79,75.63,101.05,151.84],"19":[61.24,66.79,80.63,106.05,156.84],"20+":[66.24,71.79,85.63,111.05,161.84]};
-  const DIESEL_RATES={"0-2":[12.23,31.14,55.60],"3-4":[12.67,31.58,56.04],"5-6":[12.90,31.81,56.27],"7":[14.19,34.99,61.90],"8":[15.61,38.49,68.90],"9":[17.17,42.34,74.90],"10":[20.60,50.81,89.87],"11":[26.79,66.05,116.84],"12":[31.79,71.05,121.84],"13":[36.79,76.05,126.84],"14":[41.79,81.05,131.84],"15":[46.79,86.05,136.84],"16":[51.79,91.05,141.84],"17":[56.79,96.05,146.84],"18":[61.79,101.05,151.84],"19":[66.79,106.05,156.84],"20+":[71.79,111.05,161.84]};
+  // Ставки акциза на ввоз легковых, лей за см³ — редакция на 2027 год (закон о налоговой политике принят в окт. 2026, +10% к 2026, строки 8703). Колонки: ≤1000/≤1500/≤2000/≤3000/>3000 см³.
+  const GASOLINE_RATES={"0-2":[10.52,13.45,20.79,34.25,61.16],"3-4":[11.00,13.94,21.27,34.74,61.64],"5-6":[11.25,14.19,21.53,34.99,61.90],"7":[12.38,15.61,23.68,38.49,68.09],"8":[13.62,17.17,26.05,42.34,74.90],"9":[14.98,18.89,28.66,46.57,82.39],"10":[17.97,22.66,34.39,55.89,98.86],"11":[23.36,29.47,44.69,72.66,128.52],"12":[28.86,34.97,50.19,78.16,134.02],"13":[34.36,40.47,55.69,83.66,139.52],"14":[39.86,45.97,61.19,89.16,145.02],"15":[45.36,51.47,66.69,94.66,150.52],"16":[50.86,56.97,72.19,100.16,156.02],"17":[56.36,62.47,77.69,105.66,161.52],"18":[61.86,67.97,83.19,111.16,167.02],"19":[67.36,73.47,88.69,116.66,172.52],"20+":[72.86,78.97,94.19,122.16,178.02]};
+  // Дизель: ≤1500/≤2500/>2500 см³ (+10% к 2026).
+  const DIESEL_RATES={"0-2":[13.45,34.25,61.16],"3-4":[13.94,34.74,61.64],"5-6":[14.19,34.99,61.90],"7":[15.61,38.49,68.09],"8":[17.17,42.34,74.90],"9":[18.89,46.57,82.39],"10":[22.66,55.89,98.86],"11":[29.47,72.66,128.52],"12":[34.97,78.16,134.02],"13":[40.47,83.66,139.52],"14":[45.97,89.16,145.02],"15":[51.47,94.66,150.52],"16":[56.97,100.16,156.02],"17":[62.47,105.66,161.52],"18":[67.97,111.16,167.02],"19":[73.47,116.66,172.52],"20+":[78.97,122.16,178.02]};
+  // Электромобили (8703 80) с 2027: впервые акциз, лей за кг массы без нагрузки. Строки: ≤1000/≤1500/≤2000/≤3000/>3000 кг; по возрасту как у ДВС.
+  // Источник: проект МинФина (авг. 2026); для 0–2 лет совпадает с принятой редакцией (22.10.2026). Остальные возрасты проверить по Monitorul Oficial.
+  const EV_RATES={"0-2":[7.89,10.09,15.59,25.69,45.87],"3-4":[8.25,10.46,15.95,26.06,46.23],"5-6":[8.44,10.64,16.15,26.25,46.43],"7":[9.29,11.71,17.76,28.87,51.07],"8":[10.22,12.88,19.54,31.76,56.18],"9":[11.24,14.17,21.50,34.93,61.79],"10":[13.48,17.00,25.79,41.92,74.15],"11":[17.52,22.10,33.52,54.50,96.39],"12":[21.65,26.23,37.64,58.62,100.52],"13":[25.77,30.35,41.77,62.75,104.64],"14":[29.90,34.48,45.89,66.84,108.77],"15":[34.02,38.68,50.02,71.00,112.89],"16":[38.15,42.73,54.14,75.12,117.02],"17":[42.27,46.85,58.27,79.25,121.14],"18":[46.40,50.98,62.39,83.30,125.27],"19":[50.52,55.10,66.52,87.00,129.39],"20+":[54.65,59.23,70.64,91.62,133.52]};
+  const EV_BANDS=[1000,1500,2000,3000];
+  const EV_DEFAULT_KG={sedan:1700,crossover:1950,suv:2200,suvLarge:2500};
   const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
   const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
   const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
@@ -182,10 +191,12 @@
     return price;
   }
 
-  function ageKey(year){let age=Math.max(0,YEAR_NOW-Number(year||YEAR_NOW));if(age<=2)return"0-2";if(age<=4)return"3-4";if(age<=6)return"5-6";if(age>=20)return"20+";return String(age)}
+  function ageKey(year){let age=Math.max(0,CUSTOMS_YEAR-Number(year||CUSTOMS_YEAR));if(age<=2)return"0-2";if(age<=4)return"3-4";if(age<=6)return"5-6";if(age>=20)return"20+";return String(age)}
   function gasolineColumn(cc){if(cc<=1000)return 0;if(cc<=1500)return 1;if(cc<=2000)return 2;if(cc<=3000)return 3;return 4}
   function dieselColumn(cc){if(cc<=1500)return 0;if(cc<=2500)return 1;return 2}
-  function fuelDiscount(fuel){if(fuel==="phev")return .5;if(fuel==="hybrid")return .75;return 1}
+  function fuelDiscount(fuel){if(fuel==="phev")return .75;return 1}   // 2027: plug-in -25% (было -50%); обычный гибрид — скидка отменена (100%)
+  function evBandIndex(kg){for(let i=0;i<EV_BANDS.length;i++) if(kg<=EV_BANDS[i]) return i; return EV_BANDS.length}
+  function defaultCurbKg(type){return EV_DEFAULT_KG[type]||1950}
   function luxuryPct(mdl){let r=LUXURY_RATES.find(x=>mdl>=x.min&&mdl<=x.max);return r?r.pct:0}
   function insuranceFor(lotPrice, auctionFee){return Math.max(INSURANCE_MIN,(Number(lotPrice||0)+Number(auctionFee||0))*0.01)}
   function companyFeeFor(lotPrice, auctionFee){const base=Number(lotPrice||0)+Number(auctionFee||0);return base>40000?base*0.01:300}
@@ -215,7 +226,11 @@
     const pct = luxuryPct(luxuryBase);
     const luxury = luxuryBase >= 600000 ? luxuryBase * pct / 100 : 0;
     if(fuel === "electric"){
-      return {total:luxury, baseExcise:0, luxury, luxuryPct:pct, luxuryBase};
+      // С 2027 электро облагается акцизом по массе (лей/кг), ставка зависит от веса и возраста.
+      const kg = Number(opts.curbKg) > 0 ? Number(opts.curbKg) : defaultCurbKg(type);
+      const evRate = EV_RATES[ageKey(opts.year)][evBandIndex(kg)];
+      const evExcise = kg * evRate;
+      return {total:evExcise + luxury, baseExcise:evExcise, luxury, luxuryPct:pct, luxuryBase, ev:true, kg, rate:evRate};
     }
     const cc = Math.round(Number(opts.engineLiters || 2) * 1000);
     const key = ageKey(opts.year);
@@ -259,7 +274,7 @@
     // Суша по США и страховка в базу не входят. У мото — НДС отдельно от (лот + сбор + СУША), см. customsMdl.
     const baseMdl = (lot + auctionFee + sea) * usdMdl;
     const landBaseMdl = (lot + auctionFee + land) * usdMdl;
-    const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year, landBaseMdl});
+    const customs = customsMdl(baseMdl, baseMdl, {vehicleType:type, fuel, engineLiters:input.engineLiters, year:input.year, landBaseMdl, curbKg:input.curbKg});
 
     const totalUsdPart = lot + auctionFee + land + sea + exportDocs + insurance + company + paymentFee;
     const totalMdl = totalUsdPart * usdMdl + customs.total + brokerUtilMdl;
@@ -278,6 +293,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, powerSportKind, isPluginHybrid, SEA, VERSION: "core-v18"
+    landShippingFor, seaShippingFor, bodyClassForModel, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, VERSION: "core-v19"
   };
 });

@@ -1901,3 +1901,10 @@ body.leadModalOpenV1 { overflow:hidden; }
   .lotStickyTotalV1 b { font-size:16px; }
   #auctionDetail { padding-bottom:58px; }
 }
+
+/* Масса электромобиля в калькуляторе лота (акциз 2027 по кг) */
+.calcEvMassV1 { display:grid; gap:4px; padding:2px 0 8px; }
+.calcEvMassV1[hidden] { display:none; }
+.calcEvMassV1 > span { font-size:12px; font-weight:600; color:var(--aMuted, #667080); }
+.calcEvMassV1 input { height:36px; border:1px solid var(--aLine, #e3e6ec); border-radius:10px; padding:0 10px; font:inherit; font-size:14px; }
+.calcEvMassV1 small { font-size:11.5px; line-height:1.35; color:var(--aMuted, #667080); }

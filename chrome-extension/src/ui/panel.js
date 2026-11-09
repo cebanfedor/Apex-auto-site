@@ -523,6 +523,7 @@
       customsMdlValue: b.customsMdl,
       customs: {
         cc: data.customs.cc,
+        kg: data.customs.kg,
         rate: data.customs.rate,
         luxury: data.customs.luxuryMdl,
         luxuryPct: data.customs.luxuryPct,
@@ -621,9 +622,9 @@
       return `НДС ${pct}% от таможенной стоимости — ${mdl(customs.baseExcise)} MDL`;
     }
     const parts = [];
-    if (fuel === "electric") parts.push("электромобиль — акциза нет");
+    if (fuel === "electric") parts.push(customs.kg ? `акциз электро ${customs.kg} кг × ${customs.rate} MDL = ${mdl(customs.baseExcise)} MDL` : "электромобиль — акциз по массе (с 2027)");
     else if (customs.cc && customs.rate) {
-      const discount = fuel === "phev" ? " × 0.5 (plug-in)" : fuel === "hybrid" ? " × 0.75 (гибрид)" : "";
+      const discount = fuel === "phev" ? " × 0.75 (plug-in)" : "";
       parts.push(`акциз ${customs.cc} см³ × ${customs.rate} MDL${discount} = ${mdl(customs.baseExcise)} MDL`);
     }
     if (customs.luxury) parts.push(`налог на роскошь ${customs.luxuryPct}% = ${mdl(customs.luxury)} MDL`);

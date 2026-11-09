@@ -2648,3 +2648,7 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .resultCard .actions { grid-area: act; margin-top: 18px; }
   .resultCard .actions #copyBtn, .resultCard .actions a { height: 50px; }
 }
+
+/* Масса электромобиля (акциз 2027 считается по кг) */
+#evMassRow[hidden], .calcEvMassV1[hidden] { display:none !important; }
+.evMassHintV1 { display:block; margin-top:6px; font-size:12px; line-height:1.4; color:var(--muted, #667080); }

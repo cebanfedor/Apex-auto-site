@@ -1030,7 +1030,7 @@
     // в Монреале/BC), аналог «land» в США (05.10.2026, Федор, синхронно с calc-core.js/script.js).
     const landBaseMdl = (bid + auctionFee + dispatch) * usdMdl;
     const year = options.year != null ? Number(options.year) : (Number(lot.year) || new Date().getFullYear());
-    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year, landBaseMdl}) : {total:0};
+    const c = window.ApexCalc ? window.ApexCalc.customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel, engineLiters, year, landBaseMdl, curbKg:options.curbKg}) : {total:0};
     const customsUsd = Math.round(c.total / usdMdl);
     const usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs + paymentFee;
     const totalMdl = usdPart * usdMdl + c.total + brokerUtilMdl;
@@ -1063,6 +1063,7 @@
       year,
       insurance:options.insurance !== false, exportDocs:!!options.exportDocs, offsite:!!options.offsite,
       paymentFee:options.paymentFee !== false,
+      curbKg:options.curbKg,
       location:loc, usdMdl, eurMdl
     }) : null;
     if(!r){
@@ -2931,6 +2932,11 @@
             </select>
           </label>
         </div>
+        <label class="calcEvMassV1" id="lotCalcEvMassRow"${fuelVal === "electric" ? "" : " hidden"}>
+          <span>${L("Масса электромобиля, кг")}</span>
+          <input id="lotCalcEvMass" data-calc-input type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="${defaultEvKg(kind)}">
+          <small>${L("С 2027 года акциз на электро считается по массе без нагрузки — чем тяжелее, тем дороже.")}</small>
+        </label>
         <div class="calcPairRowV1">
           <label class="calcOptV2"><input type="checkbox" id="lotCalcExportDocs" data-calc-input><span>Экспорт-документы</span></label>
           <label class="calcOptV2" title="Машина не на основной локации аукциона · +$100"><input type="checkbox" id="lotCalcOffsite" data-calc-input><span>Offsite / Sublot</span></label>
@@ -2993,6 +2999,8 @@
 
   // Список объёмов двигателя: авто/мото 1.0–5.0 л, квадроциклы (ATV) 0.5–2.0 л.
   // Реальный объём лота вне диапазона (kei <1.0, крупные V8 >5.0) добавляем, чтобы значение не терялось.
+  function defaultEvKg(kind){ return window.ApexCalc && window.ApexCalc.defaultCurbKg ? window.ApexCalc.defaultCurbKg(kind) : 1950; }
+
   function engineOptionsHtml(kind, engL, current){
     const atv = kind === "atv";
     const vals = atv ? Array.from({length:16}, (_, i) => ((5 + i) / 10).toFixed(1))
@@ -3030,6 +3038,12 @@
       else engSel.disabled = false;
     }
     const engineLiters = Number($("#lotCalcEngine")?.value) || numberFromEngine(state.selectedLot.engine);
+    const evRow = $("#lotCalcEvMassRow");
+    if(evRow){
+      evRow.hidden = fuel !== "electric";
+      const evIn = $("#lotCalcEvMass"); if(evIn) evIn.placeholder = String(defaultEvKg(veh));
+    }
+    const curbKg = fuel === "electric" ? (Number($("#lotCalcEvMass")?.value) || 0) : 0;
     const year = Number($("#lotCalcYear")?.value) || Number(state.selectedLot.year) || new Date().getFullYear();
     const usdMdl = Number($("#lotCalcUsdMdl")?.value) || liveRates.usdMdl;
     const eurMdl = Number($("#lotCalcEurMdl")?.value) || liveRates.eurMdl;
@@ -3039,7 +3053,7 @@
       exportDocs:$("#lotCalcExportDocs")?.checked,
       offsite:$("#lotCalcOffsite")?.checked,
       paymentFee:$("#lotCalcPaymentFee") ? $("#lotCalcPaymentFee").checked : true,
-      vehicleType:veh, fuel, engineLiters, year, usdMdl, eurMdl
+      vehicleType:veh, fuel, engineLiters, year, usdMdl, eurMdl, curbKg
     });
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);

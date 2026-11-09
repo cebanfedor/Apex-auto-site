@@ -43,7 +43,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v542">
+  <link rel="stylesheet" href="styles.css?v=v543">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -313,6 +313,12 @@
           </div>
         </div>
 
+        <div class="formRow" id="evMassRow" hidden>
+          <label for="evMass">Масса электромобиля, кг</label>
+          <input id="evMass" type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="1950">
+          <small class="evMassHintV1">С 2027 года акциз на электро считается по массе без нагрузки (из техпаспорта) — чем тяжелее, тем дороже. Не указана — берём типичную для кузова.</small>
+        </div>
+
         <div class="grid">
           <div class="formRow">
             <label for="portView" id="portViewLabelV400">Порт отправки</label>
@@ -528,10 +534,10 @@
 </section>
 </main>
   <script src="locations.js?v=calc-v401" defer></script>
-  <script src="calc-core.js?v=core-v18" defer></script>
-  <script src="script.js?v=calc-v459" defer></script>
+  <script src="calc-core.js?v=core-v19" defer></script>
+  <script src="script.js?v=calc-v460" defer></script>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v593" defer></script>
+  <script src="i18n.js?v=multilang-v594" defer></script>
   <script src="home-transit.js?v=ht-v13" defer></script>
   <script src="home-lots.js?v=home-v17" defer></script>
   <script src="home-korea.js?v=hk-v2" defer></script>

@@ -85,6 +85,8 @@ function syncEvEngine(){
     if(dash){ const cur = e.value; dash.remove(); e.value = (cur && cur !== "0") ? cur : (evPrevLiters || "2.0"); if(!e.value) e.value = "2.0"; changed = true; }
     if(e.disabled){ e.disabled = false; changed = true; }
   }
+  const mr = $("evMassRow");
+  if(mr && mr.hidden !== !ev) mr.hidden = !ev;
   if(!changed) return;
   refreshGlassSelect(e);
   const wrap = e.nextElementSibling;
@@ -217,18 +219,20 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl, landBaseMdl){
     fuel,
     engineLiters: num("engineLiters"),
     year: num("year"),
-    landBaseMdl
+    landBaseMdl,
+    curbKg: num("evMass")
   });
 
   // 05.10.2026: у мото НДС 27% (не 20%, как у пикап/van large) — процент берём из ответа calc-core.js.
   const vatPct = result.vatPct || 20;
   const L = {
     vat: lang === "ro" ? `TVA ${vatPct}% din valoarea vamală` : lang === "en" ? `VAT ${vatPct}% of the customs value` : `НДС ${vatPct}% от таможенной стоимости`,
-    electric: lang === "ro" ? "electric: acciză 0" : lang === "en" ? "electric: excise 0" : "электро: акциз 0",
+    electric: lang === "ro" ? "electric: acciză pe masă" : lang === "en" ? "electric: excise by weight" : "электро: акциз по массе",
     lux: lang === "ro" ? "taxa de lux" : lang === "en" ? "luxury" : "люкс",
     cc: lang === "ru" ? "см³" : "cm³",
     from: lang === "ro" ? "din" : lang === "en" ? "of" : "от",
-    hybrid: lang === "ro" ? "hibrid -25%" : lang === "en" ? "hybrid -25%" : "гибрид -25%"
+    kg: lang === "ru" ? "кг" : "kg",
+    plug: lang === "ro" ? "plug-in -25%" : lang === "en" ? "plug-in -25%" : "plug-in -25%"
   };
 
   // Люкс-акциз в подпись не включаем: он показывается отдельной строкой
@@ -237,9 +241,9 @@ function customsMdl(customsBaseMdl, luxuryBaseMdl, landBaseMdl){
     return Object.assign({}, result, { text: L.vat });
   }
   if(fuel === "electric"){
-    return Object.assign({}, result, { text: L.electric });
+    return Object.assign({}, result, { text: result.ev ? `${result.kg} ${L.kg} × ${result.rate} MDL/${L.kg}` : L.electric });
   }
-  const discount = fuel === "hybrid" ? ` · ${L.hybrid}` : fuel === "phev" ? " · plug-in -50%" : "";
+  const discount = fuel === "phev" ? ` · ${L.plug}` : "";
   return Object.assign({}, result, {
     text: `${result.cc} ${L.cc} × ${result.rate} MDL/${L.cc}${discount}`
   });
@@ -1342,7 +1346,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("calcForm").addEventListener("submit",e=>{e.preventDefault();calculate()});
   // Prevent mouse wheel from changing number inputs while they're focused
   $("calcForm").addEventListener("wheel",()=>{if(document.activeElement?.type==="number")document.activeElement.blur();},{passive:true});
-  ["location","vehicleType","fuel","lotPrice","engineLiters","year","insurance","exportDocs","paymentFee","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()})}});
+  ["location","vehicleType","fuel","lotPrice","engineLiters","evMass","year","insurance","exportDocs","paymentFee","offsite","usdMdl","eurMdl","marketMin","marketMax","repairMin","repairMax","targetSavings"].forEach(id=>{if($(id)){$(id).addEventListener("input",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()});$(id).addEventListener("change",()=>{if(id==="fuel")updateHybridGuard();markCalcTouchedV1();calculate()})}});
   document.querySelectorAll("[data-fuel-choice]").forEach(button=>button.addEventListener("click",()=>{if($("fuel")){$("fuel").value=button.dataset.fuelChoice;refreshGlassSelect($("fuel"))}updateHybridGuard();markCalcTouchedV1();calculate()}));
   if($("auction"))$("auction").addEventListener("change",()=>{if(calcMode==="canada"){initCanadaLocations();}else{initLocations();}calculate();});
   if($("parseLotBtn"))$("parseLotBtn").addEventListener("click",applyAuctionImport);

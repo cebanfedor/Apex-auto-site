@@ -207,6 +207,7 @@ function buildInput(params, rates) {
     vehicleType: params.vehicleType || "sedan",
     fuel: params.fuel || "gasoline",
     engineLiters: num(params.engineLiters, 2),
+    curbKg: num(params.curbKg, 0),
     year: num(params.year, new Date().getFullYear() - 5),
     insurance: bool(params.insurance, true),
     exportDocs: bool(params.exportDocs, false),
@@ -280,6 +281,7 @@ module.exports = async function handler(request, response) {
       },
       customs: {
         cc: result.customs.cc || null,
+        kg: result.customs.kg || null,
         rate: result.customs.rate || null,
         discount: result.customs.discount || 1,
         luxuryPct: result.customs.luxuryPct || 0,
