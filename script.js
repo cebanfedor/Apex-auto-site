@@ -88,6 +88,8 @@ function syncEvEngine(){
   const mr = $("evMassRow");
   const showMass = ev && (window.ApexCalc && ApexCalc.getCustomsRules() === "2027");
   if(mr && mr.hidden !== !showMass) mr.hidden = !showMass;
+  const er = e.closest(".formRow");
+  if(er && er.hidden !== showMass) er.hidden = showMass;
   const mi = $("evMass");
   if(mi && showMass && window.ApexCalc && ApexCalc.defaultCurbKg) mi.placeholder = String(ApexCalc.defaultCurbKg($("vehicleType")?.value || "sedan"));
   if(!changed) return;

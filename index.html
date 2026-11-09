@@ -43,7 +43,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v551">
+  <link rel="stylesheet" href="styles.css?v=v552">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -296,6 +296,10 @@
             <label for="engineLiters">Объем двигателя, л</label>
             <select id="engineLiters"><option value="2.0" selected>2.0 л</option></select>
           </div>
+          <div class="formRow" id="evMassRow" hidden>
+            <label for="evMass">Масса авто, кг</label>
+            <input id="evMass" type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="1950" title="С 2027 года акциз на электро считается по массе без нагрузки (из техпаспорта). Не указана — берём типичную для кузова.">
+          </div>
           <div class="formRow">
             <label for="year">Год производства</label>
             <select id="year"><option value="2026" selected>2026</option></select>
@@ -320,12 +324,6 @@
           </div>
         </div>
         <small id="customsRulesNote" class="evMassHintV1" hidden>С 1 января 2027: акциз +10%, у электро — по массе, у обычных гибридов нет скидки, у plug-in скидка 25%.</small>
-
-        <div class="formRow" id="evMassRow" hidden>
-          <label for="evMass">Масса электромобиля, кг</label>
-          <input id="evMass" type="number" inputmode="numeric" min="700" max="5000" step="10" placeholder="1950">
-          <small class="evMassHintV1">С 2027 года акциз на электро считается по массе без нагрузки (из техпаспорта) — чем тяжелее, тем дороже. Не указана — берём типичную для кузова.</small>
-        </div>
 
         <div class="grid">
           <div class="formRow">
@@ -543,7 +541,7 @@
 </main>
   <script src="locations.js?v=calc-v401" defer></script>
   <script src="calc-core.js?v=core-v20" defer></script>
-  <script src="script.js?v=calc-v463" defer></script>
+  <script src="script.js?v=calc-v464" defer></script>
   <script src="site-content.js?v=admin-v168" defer></script>
   <script src="i18n.js?v=multilang-v595" defer></script>
   <script src="home-transit.js?v=ht-v13" defer></script>
