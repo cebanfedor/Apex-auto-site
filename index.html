@@ -293,6 +293,17 @@
 
         <div class="grid">
           <div class="formRow">
+            <label for="engineLiters">Объем двигателя, л</label>
+            <select id="engineLiters"><option value="2.0" selected>2.0 л</option></select>
+          </div>
+          <div class="formRow">
+            <label for="year">Год производства</label>
+            <select id="year"><option value="2026" selected>2026</option></select>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div class="formRow">
             <label for="lotPrice">Стоимость лота, $</label>
             <input id="lotPrice" type="number" min="0" value="12000">
           </div>
@@ -309,18 +320,6 @@
           </div>
         </div>
         <small id="customsRulesNote" class="evMassHintV1" hidden>С 1 января 2027: акциз +10%, у электро — по массе, у обычных гибридов нет скидки, у plug-in скидка 25%.</small>
-
-        <div class="grid">
-          <div class="formRow">
-            <label for="engineLiters">Объем двигателя, л</label>
-            <select id="engineLiters"><option value="2.0" selected>2.0 л</option></select>
-          </div>
-          <div class="formRow">
-            <label for="year">Год производства</label>
-            <select id="year"><option value="2026" selected>2026</option></select>
-          </div>
-        </div>
-
 
         <div class="formRow" id="evMassRow" hidden>
           <label for="evMass">Масса электромобиля, кг</label>
