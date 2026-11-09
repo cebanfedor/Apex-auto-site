@@ -2666,3 +2666,31 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 .calcRowV2 .calcLblV1 { display: inline; }
 .calcRowV2 small { display: inline; margin-left: 6px; }
 .breakdown .row small, .calcRowV2 small { white-space: nowrap; }
+
+/* Боковые блоки у калькулятора на главной — только на очень широких экранах, где по краям пусто (09.11.2026) */
+.calcSideV1 { display: none; }
+@media (min-width: 1700px) {
+  section.layout#calculator { position: relative; }
+  .calcSideV1 { display: flex; flex-direction: column; gap: 10px; position: absolute; top: 96px; width: 210px; }
+  .calcSideLV1 { right: calc(100% + 22px); }
+  .calcSideRV1 { left: calc(100% + 22px); }
+  .calcSideTtlV1 { margin: 0 0 2px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted, #667080); }
+  .calcSideItemV1 { display: block; padding: 14px 16px; background: #fff; border: 1px solid var(--line, #e4e7ec); border-radius: 16px; text-decoration: none; color: inherit; box-shadow: 0 6px 18px rgba(16,24,40,.05); transition: transform .2s, box-shadow .2s, border-color .2s; }
+  a.calcSideItemV1:hover, .calcSideItemV1:hover { transform: translateY(-2px); border-color: var(--red, #ed0012); box-shadow: 0 10px 24px rgba(16,24,40,.09); }
+  .calcSideBigV1 { display: block; font-size: 24px; line-height: 1.1; font-weight: 800; color: var(--red, #ed0012); }
+  .calcSideTxtV1 { display: block; margin-top: 4px; font-size: 14px; font-weight: 700; color: var(--ink, #101828); }
+  .calcSideSubV1 { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.4; color: var(--muted, #667080); }
+  .calcSideRV1 { padding: 14px 16px; background: #fff; border: 1px solid var(--line, #e4e7ec); border-radius: 16px; box-shadow: 0 6px 18px rgba(16,24,40,.05); gap: 8px; }
+  .calcRouteSvgV1 { width: 100%; height: auto; }
+  .calcRouteLineV1 { fill: none; stroke: var(--red, #ed0012); stroke-width: 2; stroke-dasharray: 5 5; animation: calcRouteDash 1.6s linear infinite; }
+  .calcRouteDotV1 { fill: #fff; stroke: var(--red, #ed0012); stroke-width: 2.5; }
+  .calcRouteDotV1.isEndV1 { fill: var(--red, #ed0012); }
+  .calcRouteCarV1 { fill: #101828; }
+  .calcRouteEndsV1 { display: flex; justify-content: space-between; gap: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; color: var(--ink, #101828); }
+  .calcRouteListV1 { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 0; }
+  .calcRouteListV1 li { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line, #e4e7ec); font-size: 13px; color: var(--ink2, #344054); }
+  .calcRouteListV1 li:first-child { border-top: 0; }
+  .calcRouteListV1 b { white-space: nowrap; font-weight: 800; color: var(--ink, #101828); }
+}
+@keyframes calcRouteDash { to { stroke-dashoffset: -20; } }
+@media (prefers-reduced-motion: reduce) { .calcRouteLineV1 { animation: none; } .calcRouteCarV1 { display: none; } }
