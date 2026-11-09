@@ -134,6 +134,24 @@
     return false;
   }
 
+  /** Мото / квадро по данным лота (09.11.2026). Тип техники фида (vehicle_type: 2 мото, 5 квадро) — главный признак;
+   *  без него — кузов (sport_bike, enduro_bike, bike, motorcycle, moto) и название. Раньше «sport_bike» (Kawasaki Ex500,
+   *  Zx636 — почти половина мотоциклов в каталоге) не находился и лот считался седаном: доставка/растаможка как у авто. */
+  function powerSportKind(lot){
+    lot = lot || {};
+    const body = String(lot.body || lot.bodyStyle || "").toLowerCase();
+    const text = (body + " " + String(lot.make || "") + " " + String(lot.model || "") + " " + String(lot.title || "")).toLowerCase();
+    if(/\batv\b|quad|\butv\b|side.?by.?side|snowmobil|utility vehicle/.test(text)) return "atv";
+    const vt = Number(lot.vehicleTypeId || 0);
+    // Тип фида иногда ошибается на обычных машинах (в «квадроциклах» нашлись Mazda 6, Civic, BMW i3, Pacifica) — при явном кузове авто его не слушаем
+    const carBody = /sedan|hatch|coupe|wagon|suv|crossover|van|pickup|truck|convertible|liftback|minivan|cuv|utility(?! vehicle)/.test(body) && !/bike/.test(body);
+    if(!carBody && vt === 5) return "atv";
+    if(!carBody && vt === 2) return "moto";
+    if(body === "roadster_bike") return "atv";       // Copart кладёт квадроциклы (Can-Am Outlander, Polaris Sportsman) в roadster_bike
+    if(/(^|[_\s])bike$|motorcycle|^moto$|\bmoto\b|scooter|moped/.test(body) || /motorcycle|\bscooter\b|\bmoped\b|\bdirt bike\b/.test(text)) return "moto";
+    return "";
+  }
+
   function landMultiplier(type){
     if(type==="pickup"||type==="pickupLarge"||type==="vanLarge"||type==="pickupOversized")return 1.5;
     return 1;
@@ -260,6 +278,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isPluginHybrid, SEA, VERSION: "core-v17"
+    landShippingFor, seaShippingFor, bodyClassForModel, powerSportKind, isPluginHybrid, SEA, VERSION: "core-v18"
   };
 });

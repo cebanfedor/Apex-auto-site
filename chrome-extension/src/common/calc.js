@@ -211,8 +211,8 @@
     const body = String(lot.bodyStyle || "").toLowerCase();
     const text = [lot.bodyStyle, lot.model, lot.titleRaw, lot.trim].filter(Boolean).join(" ").toLowerCase();
 
-    if(/motorcycle|moped|scooter/.test(text)) return "moto";
-    if(/\batv\b|quad|\butv\b/.test(text)) return "atv";
+    if(/\batv\b|quad|\butv\b/.test(text) || body === "roadster_bike") return "atv";
+    if(/motorcycle|moped|scooter/.test(text) || /(^|[_\s])bike$|^moto$/.test(body)) return "moto";
     if(/sedan|coupe|hatchback|liftback|fastback|convertible|roadster|wagon|estate/.test(body)) return "sedan";
     if(/pickup|\btruck\b|crew cab|quad cab|reg cab/.test(body)) return "pickup";
     if(/cargo van|passenger van|\bvan\b/.test(body)) return "vanLarge";

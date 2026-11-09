@@ -818,6 +818,8 @@
     // Мото/ATV — сырой тип кузова фида уже даёт точный ответ (видно в блоке «Описание»),
     // но до этого правила vehicleKind() его не проверял вовсе и такие лоты молча
     // попадали в "sedan" (неверная доставка/растаможка). Проверяем раньше пикапа/буса.
+    const ps = window.ApexCalc && window.ApexCalc.powerSportKind ? window.ApexCalc.powerSportKind(lot) : "";   // мото/квадро: тип фида + кузов (sport_bike…) + название
+    if(ps) return ps;
     const bt = b + " " + t; // пробел между b и t — иначе "moto"+"vz..." склеивается в "motovz" и \b-границы не находят совпадение
     if(/atv|quad|utv|side.?by.?side|snowmobil/.test(bt)) return "atv";
     if(/moto(rcycle)?\b|\bbike\b|scooter|moped/.test(bt)) return "moto";

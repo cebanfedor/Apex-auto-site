@@ -1030,6 +1030,8 @@ const VIN_FUEL_KIND = {1:"diesel", 2:"electric", 3:"hybrid", 4:"gasoline", 5:"ph
 function vinVehicleType(lot){
   const body = String(lot.body || "").toLowerCase();
   const text = body + " " + String(lot.make || "").toLowerCase() + " " + String(lot.model || "").toLowerCase();
+  const ps = window.ApexCalc && window.ApexCalc.powerSportKind ? window.ApexCalc.powerSportKind(lot) : "";
+  if(ps) return ps;
   if(/motorcycle|moto\b/.test(text)) return "moto";
   if(/\batv\b|quad/.test(text)) return "atv";
   if(/pickup|truck|silverado|sierra|\bram\b|f-150|f150|tundra|tacoma/.test(text)) return "pickup";

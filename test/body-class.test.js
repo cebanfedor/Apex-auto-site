@@ -72,3 +72,20 @@ test("crossover дешевле по морю, чем suv (ядро)", () => {
   const suv = ApexCalc.seaShippingFor("suv", "gasoline", "nj");
   assert.ok(suv > cross, `suv ${suv} должно быть дороже crossover ${cross}`);
 });
+
+// Мото/квадро (09.11.2026): sport_bike раньше не находился → мотоцикл считался седаном
+test("powerSportKind: мотоциклы, квадро, ошибки типа фида на обычных авто", () => {
+  const k = (body, title, vt) => ApexCalc.powerSportKind({body, title, vehicleTypeId:vt || 0});
+  assert.equal(k("sport_bike", "2019 Kawasaki Zx636 K"), "moto");
+  assert.equal(k("sport_bike", "2026 Kawasaki Ex500"), "moto");
+  assert.equal(k("bike", "2005 Suzuki An400 K3"), "moto");
+  assert.equal(k("moto", "2019 Harley-Davidson Xl883 N"), "moto");
+  assert.equal(k("atv", "2023 Polaris Ranger Xp 1000 Utility Vehicle"), "atv");
+  assert.equal(k("roadster_bike", "2022 Can-Am Outlander Max"), "atv");
+  assert.equal(k("", "unknown", 2), "moto");
+  assert.equal(k("", "unknown", 5), "atv");
+  assert.equal(k("sedan", "2012 Mazda 6", 5), "");      // в «квадроциклах» фида бывают обычные авто
+  assert.equal(k("hatchback", "BMW I3", 5), "");
+  assert.equal(k("suv", "2021 Mazda CX-5"), "");
+  assert.equal(k("pickup", "2021 Ram 3500"), "");
+});

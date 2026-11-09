@@ -906,6 +906,7 @@ function normalizeLot(source, fallbackAuction = "copart"){
     transmission:safeName(item?.transmission || lot?.transmission),
     drive:driveLabel(item?.drive_wheel || lot?.drive_wheel || item?.drive || item?.drive_type || lot?.drive),
     body:safeName(item?.body_type || item?.vehicle_type || lot?.body_type),
+    vehicleTypeId:enumIdOf(item?.vehicle_type) || 0,   // 2 мото, 5 квадро (09.11.2026: для типа техники в калькуляторе лота)
     cylinders:safeName(item?.cylinders || lot?.cylinders),
     color:safeName(item?.color || lot?.color),
     keys:keysLabel(lot, item),
