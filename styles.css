@@ -1880,12 +1880,11 @@ details > summary::-webkit-details-marker { display: none; }
   .heroAucV1 { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0 22px; }
   /* короткие пары полей калькулятора — в два столбца: форма заметно короче */
   .formCard .grid:has(#vehicleType), .formCard .grid:has(#engineLiters) { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .formCard .grid:has(#vehicleType) label, .formCard .grid:has(#engineLiters) label { font-size: 12.5px; min-height: 2.4em; display: flex; align-items: flex-end; }
+  .formCard .grid:has(#vehicleType) label, .formCard .grid:has(#engineLiters) label { font-size: 13px !important; min-height: 0; display: flex; align-items: flex-end; }  /* 11.11.2026: подписи теперь в одну строку («Тип транспорта») — запас высоты под вторую строку убран, он давал пустоту над полями */
   /* 30.09.2026 (Федор со скриншота: «блоки кривые») — «Тип транспортного средства» переносится на 2 строки
      (реально ~3.1em при 12.5px), а общий min-height:2.4em рассчитан на 1 строку — «Тип топлива» рядом
      оставался короче, и селекты «Седан»/«Бензин» стартовали на разной высоте. Только эта пара — у
      «Объём двигателя»/«Год производства» оба лейбла и так в одну строку, их не трогаем. */
-  .formCard .grid:has(#vehicleType) label { min-height: 3.1em; }
 }
 
 /* ===== Лайтбокс фото «Авто в пути» (27.09.2026) — фото на странице объявления не увеличивались ===== */
@@ -2679,3 +2678,10 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 .calcRowV2 .calcLblV1 { display: inline; }
 .calcRowV2 small { display: inline; margin-left: 6px; }
 .breakdown .row small, .calcRowV2 small { white-space: nowrap; }
+
+/* Поля калькулятора на одном уровне (11.11.2026, Федор: «они на разной высоте»): переключатель «2026 / 2027» той же высоты, что поля (44px, на телефоне 40px),
+   тот же зазор подпись → поле (4px), строка «Стоимость лота | Правила таможни» — по верху, а не по низу. */
+.rulesRowV1 { gap: 4px; }
+.rulesToggleV1 button { height: 36px; }
+.grid:has(#lotPrice) { align-items: start; }
+@media (max-width: 820px) { .rulesToggleV1 button { height: 32px; } }
