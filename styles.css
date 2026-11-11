@@ -2631,8 +2631,13 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 #calcForm input[type="number"], #calcForm input[type="text"], #auctionUrl { font-size: 14.5px; font-weight: 500; }
 .lotImportV118 > label, .formRow > label, .rateFieldV374 label { font-size: 13px; font-weight: 600; }
 @media (max-width: 820px) {
-  .glassSelectButtonV152,
-  #calcForm input[type="number"], #calcForm input[type="text"], #auctionUrl { font-size: 16px !important; font-weight: 500 !important; }
+  #calcForm input[type="number"], #calcForm input[type="text"], #auctionUrl { font-size: 16px !important; font-weight: 400 !important; }
+  /* Калькулятор на телефоне (11.11.2026, Федор: «тут тоже всё слишком крупно»): выпадающие списки (кнопки, не поля ввода — iOS их не приближает)
+     13.5px / 400, пункты списка 13.5px / 500, переключатели «США / Канада» и «2026 / 2027» 13px / 600. Текстовые поля остаются 16px (iOS), но вес 400. */
+  .glassSelectButtonV152 { font-size: 13.5px !important; font-weight: 400 !important; }
+  .glassSelectButtonV152 span { font-size: 13.5px !important; font-weight: 400 !important; }
+  .glassSelectMenuV152 button { font-size: 13.5px !important; font-weight: 500 !important; }
+  .countryBtn, .rulesToggleV1 button { font-size: 13px !important; font-weight: 600 !important; }
   /* Карточка «Быстрый поиск авто» (11.11.2026, Федор: «размер текста большой, хочу тоньше и меньше как раньше»):
      значения в полях — 13px / 400 (выбранное — 500). Поле ввода остаётся 16px (иначе iOS приближает страницу при фокусе),
      но подсказка в нём 13px, как в остальных полях. */
