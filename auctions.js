@@ -4108,7 +4108,7 @@
               ${(() => {
                 if(!lot.auctionDate) return dPlain("Дата аукциона", L("Не назначена"));
                 const ago = lotSaleState(lot).isSold ? timeAgoRu(lot.auctionDate) : "";
-                return dPlain("Дата аукциона", `${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` <span class="dAgoV1">(${escapeHtml(ago)})</span>` : ""}`);
+                return dPlain("Дата аукциона", `${escapeHtml(dbDate(lot.auctionDate, true))}${ago ? ` <span class="dAgoV1">(${escapeHtml(ago)})</span>` : ""}${lot.auctionDateInferred ? ` <span class="dAgoV1" title="${escapeHtml(L("Фид аукциона ещё не отдал точное время — берём по остальным лотам этой линии"))}">· ${escapeHtml(L("по расписанию линии"))}</span>` : ""}`);
               })()}
               ${lotSaleState(lot).isSold && lot.buyerCountry ? dPlain("Страна покупателя", buyerCountryHtml(lot.buyerCountry)) : ""}
               ${dPlain("Локация", (findCanadaLocation(lot) ? CA_FLAG_SVG + " " : "") + escapeHtml(lotLocationText(lot)))}
