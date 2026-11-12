@@ -94,13 +94,24 @@
   };
 
   // ---- Курс для цен в $ (как у эталона: главная цена в $, под ней — в KRW) ----
-  var rates = {usdKrw:0, usdEur:0, usdCad:0};
+  var rates = {usdKrw:0, usdEur:0, usdCad:0, usdMdl:0, eurMdl:0};
   // Курс отдаёт наш сервер (/api/catalog?action=rates): прямые запросы браузера к сервисам курсов режут CORS/лимиты.
   function fetchRates(){
     return fetch("/api/catalog?action=rates").then(function(r){ return r.json(); })
       .then(function(d){ return d && d.ok && d.usdKrw ? {rates:{KRW:d.usdKrw, EUR:d.usdEur, CAD:d.usdCad || 0}} : null; });
   }
-  function loadRates(){
+  // Курс леев (НБМ) — тот же источник, что у калькуляторов на главной и странице лота; нужен для растаможки и пересчёта евро (Корея).
+  function loadMdlRates(){
+    try{ var s = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "null"); if(s){ if(Number(s.usdMdl) > 0) rates.usdMdl = Number(s.usdMdl); if(Number(s.eurMdl) > 0) rates.eurMdl = Number(s.eurMdl); } }catch(e){}
+    var ctl = typeof AbortController === "function" ? new AbortController() : null, to = ctl ? setTimeout(function(){ ctl.abort(); }, 5000) : 0;
+    return fetch("/api/content?rates=1", ctl ? {signal:ctl.signal} : undefined).then(function(r){ return r.json(); }).then(function(d){
+      if(d && Number(d.usdMdl) > 0) rates.usdMdl = Number(d.usdMdl);
+      if(d && Number(d.eurMdl) > 0) rates.eurMdl = Number(d.eurMdl);
+      try{ var s2 = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "{}") || {}; s2.usdMdl = rates.usdMdl; s2.eurMdl = rates.eurMdl; localStorage.setItem("apexLiveRatesV1", JSON.stringify(s2)); }catch(e){}
+    }).catch(function(){}).then(function(){ if(to) clearTimeout(to); });
+  }
+  function loadRates(){ return Promise.all([loadKrwRates(), CA ? Promise.resolve() : loadMdlRates()]); }
+  function loadKrwRates(){
     try{ var c = JSON.parse(localStorage.getItem("apexKrwRateV4") || "null"); if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; rates.usdCad = c.cad || 0; } }catch(e){}
     return fetchRates().then(function(d){
       if(d && d.rates && d.rates.KRW){ rates.usdKrw = d.rates.KRW; rates.usdEur = d.rates.EUR || 0; rates.usdCad = d.rates.CAD || 0; try{ localStorage.setItem("apexKrwRateV4", JSON.stringify({t:Date.now(), krw:rates.usdKrw, eur:rates.usdEur, cad:rates.usdCad})); }catch(e){} }
@@ -925,6 +936,115 @@
     var up = last > first;
     return '<div class="lot-price__chips"><button type="button" class="lot-trend ' + (up ? "is-up" : "is-down") + '" data-price-history>' + ico(up ? '<path d="M3 17l6-6 4 4 8-8M14 7h7v7"/>' : '<path d="M3 7l6 6 4-4 8 8M14 17h7v-7"/>', "h-3.5 w-3.5") + esc(T("История цены")) + ' <span class="num">' + (pct > 0 ? "+" : pct < 0 ? "−" : "±") + Math.abs(pct) + '%</span></button></div>';
   }
+  // ============ «Из чего состоит цена» — доставка и растаможка из Кореи (12.11.2026, правила Федора; расчёт — korea-calc.js) ============
+  // Первый платёж (вместе с машиной, $): авто + комиссия дилера + расходы по Корее + доставка до порта + доставка до Европы (по классу) [+ осмотр, + электро].
+  // Второй платёж (при получении): доставка из Европы и комиссия Apex в €, растаможка и брокер в MDL. Только Корея (Канада — другой источник и условия).
+  var kc = {inspection:false, evExtra:true, payMdl:true, cls:null, kg:"", open:true};
+  var KC_CLS_NAMES = {sedan:"Седан", crossover:"Кроссовер", suv:"Внедорожник", minivan:"Минивен"};
+  function kcInput(){
+    var car = state.car, listing = state.listing;
+    if(CA || !car || !listing || listing.archived || !window.KoreaCalc || !window.ApexCalc) return null;
+    var pr = listingPrice(listing), usd = pr ? toUsd(pr.amount, pr.cur) : null;
+    if(!(usd > 0)) return null;
+    var tm = listing.title && typeof listing.title === "object" ? (listing.title.en || listing.title.ru || "") : "";
+    return {priceUsd:usd, year:car.year, brand:car.brand && car.brand.name, model:car.model && car.model.name, title:tm, badge:car.badge,
+      bodyId:car.body_type && car.body_type.id, fuelId:car.fuel && car.fuel.id, engineCc:car.engine_volume, cls:kc.cls,
+      inspection:kc.inspection, evExtra:kc.evExtra, payMdl:kc.payMdl, rules:window.ApexCalc.getCustomsRules(), curbKg:Number(kc.kg) > 0 ? Number(kc.kg) : undefined,
+      usdMdl:rates.usdMdl || 0, eurMdl:rates.eurMdl || 0};
+  }
+  function kcUsd(v){ return fmtNum(Math.round(v)) + " $"; }
+  function kcEur(v){ return fmtNum(Math.round(v)) + " €"; }
+  function kcMdl(v){ return fmtNum(Math.round(v)) + " MDL"; }
+  function kcRate(r){ return Number(r).toFixed(2).replace(".", ","); }
+  function kcRow(label, value, hint, off){
+    return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + hint + '</small>' : "") + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+  }
+  function kcCheck(key, on, label, value, hint){
+    return '<li class="kc__row kc__row--opt' + (on ? "" : " is-off") + '"><label class="kc__chk"><input type="checkbox" data-kc="' + key + '"' + (on ? " checked" : "") + '><span class="kc__box" aria-hidden="true"></span>'
+      + '<span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + hint + '</small>' : "") + '</span></label><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+  }
+  function kcCustomsHint(q){
+    var c = q.customs; if(!c) return "";
+    var parts = [];
+    if(c.vat) parts.push(esc(T("НДС")) + " " + c.vatPct + "%");
+    else if(c.ev) parts.push(fmtNum(c.kg) + " " + esc(T("кг")) + " × " + kcRate(c.rate) + " " + esc(T("лей/кг")));
+    else if(c.cc) parts.push(esc(T("акциз")) + " " + fmtNum(c.cc) + " " + esc(T("см³")) + " × " + kcRate(c.rate) + (c.discount && c.discount !== 1 ? " × " + kcRate(c.discount) : "") + " " + esc(T("лей")));
+    else if(q.isEv && c.rules !== "2027") parts.push(esc(T("электромобили в 2026 без акциза")));
+    if(c.luxury > 0) parts.push(esc(T("налог на роскошь")) + " " + kcMdl(c.luxury));
+    return parts.join(" · ");
+  }
+  function kcHtml(q){
+    var f = q.first, s = q.second, rules = window.ApexCalc.getCustomsRules();
+    var pills = window.KoreaCalc.CLASSES.map(function(k){ return '<button type="button" class="kc__pill' + (q.cls === k ? " is-on" : "") + '" data-kc-cls="' + k + '" aria-pressed="' + (q.cls === k) + '">' + esc(T(KC_CLS_NAMES[k])) + '</button>'; }).join("");
+    var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumtot num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
+    h += '<div class="kc__body">';
+    h += '<div class="kc__cls"><span>' + esc(T("Класс авто (влияет на доставку)")) + '</span><div class="kc__pills" role="group">' + pills + '</div></div>';
+    // --- первый платёж ---
+    h += '<section class="kc__grp"><header class="kc__grphead"><span class="kc__grpttl">' + esc(T("1-й платёж")) + '<small>' + esc(T("вместе с машиной")) + '</small></span><b class="num" data-no-i18n="true">' + kcUsd(f.subtotal) + '</b></header><ul class="kc__rows">';
+    h += kcRow("Автомобиль (цена на Encar)", kcUsd(f.car));
+    h += kcRow("Комиссия дилера", kcUsd(f.dealer));
+    h += kcRow("Расходы по Корее", kcUsd(f.korea), esc(T("снятие с учёта, экспорт")));
+    h += kcRow("Доставка до порта", kcUsd(f.port));
+    h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), esc(T(KC_CLS_NAMES[q.cls])) + (q.high ? " · " + esc(T("авто дороже 50 000 $")) : ""));
+    if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
+    h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("по желанию")));
+    h += '</ul></section>';
+    // --- второй платёж ---
+    h += '<section class="kc__grp"><header class="kc__grphead"><span class="kc__grpttl">' + esc(T("2-й платёж")) + '<small>' + esc(T("при получении авто")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(s.subtotalUsd) + '</b></header><ul class="kc__rows">';
+    h += kcRow("Доставка из Европы в Молдову", kcEur(s.deliveryEur), esc(T(KC_CLS_NAMES[q.cls])));
+    h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur));
+    if(q.incomplete.length) h += kcRow("Таможенные платежи", esc(T("уточним")), esc(T(q.incomplete.indexOf("engine") >= 0 ? "нет объёма двигателя" : "нет года выпуска")), true);
+    else h += kcRow("Таможенные платежи", kcMdl(s.customsMdl), kcCustomsHint(q));
+    h += kcCheck("payMdl", q.second.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
+    h += '</ul>';
+    h += '<div class="kc__tools"><div class="kc__rules"><span>' + esc(T("Правила таможни")) + '</span><div class="kc__seg" role="group">'
+      + ["2026", "2027"].map(function(y){ return '<button type="button" class="' + (rules === y ? "is-on" : "") + '" data-kc-rules="' + y + '" aria-pressed="' + (rules === y) + '">' + y + '</button>'; }).join("") + '</div></div>';
+    if(q.isEv && rules === "2027") h += '<label class="kc__mass"><span>' + esc(T("Масса авто, кг")) + '</span><input type="number" inputmode="numeric" min="500" max="6000" step="10" data-kc-kg placeholder="' + (q.customs && q.customs.kg ? q.customs.kg : "") + '" value="' + esc(kc.kg) + '"></label>';
+    h += '</div></section>';
+    // --- итог ---
+    h += '<div class="kc__total"><span>' + esc(T("Итого под ключ в Кишинёве")) + '</span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
+    h += '<p class="kc__sub num" data-no-i18n="true">≈ ' + kcEur(q.totalEur) + " · " + kcMdl(q.totalMdl) + '</p>';
+    var notes = [];
+    if(q.incomplete.length) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
+    if(q.highPending) notes.push(T("Для авто дороже 50 000 $ доставка до Европы дороже — сумму уточнит менеджер, итог указан без доплаты."));
+    notes.push(T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."));
+    h += '<p class="kc__note">' + notes.map(esc).join(" ") + '</p>';
+    h += '<p class="kc__rate num" data-no-i18n="true">1 $ = ' + kcRate(q.usdMdl) + ' MDL · 1 € = ' + kcRate(q.eurMdl) + ' MDL</p>';
+    h += '</div>';
+    return h;
+  }
+  function renderKC(){
+    var el = document.getElementById("kcV1"); if(!el) return;
+    var inp = kcInput();
+    if(!inp){ el.hidden = true; el.innerHTML = ""; return; }
+    var q = window.KoreaCalc.quote(inp);
+    var wasOpen = el.hasAttribute("data-init") ? el.open : kc.open;
+    el.innerHTML = kcHtml(q); el.hidden = false; el.setAttribute("data-init", "1"); el.open = wasOpen;
+    kcFitSticky();
+  }
+  // Липкая колонка цены выше окна — нижняя часть (кнопки) была бы недоступна: тогда отключаем «прилипание»
+  function kcFitSticky(){
+    var col = document.getElementById("lotBuyV1"); if(!col) return;
+    col.classList.remove("is-tall");
+    var top = parseInt(getComputedStyle(col).top, 10) || 0;
+    if(getComputedStyle(col).position === "sticky" && col.offsetHeight + top + 16 > window.innerHeight) col.classList.add("is-tall");
+  }
+  window.addEventListener("resize", function(){ kcFitSticky(); });
+  document.addEventListener("toggle", function(e){ if(e.target && e.target.id === "kcV1"){ kc.open = e.target.open; kcFitSticky(); } }, true);
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("[data-kc-cls]");
+    if(b){ kc.cls = b.getAttribute("data-kc-cls"); renderKC(); return; }
+    var r = e.target.closest && e.target.closest("[data-kc-rules]");
+    if(r && window.ApexCalc){ window.ApexCalc.setCustomsRules(r.getAttribute("data-kc-rules")); try{ localStorage.setItem("apexCustomsRulesV1", r.getAttribute("data-kc-rules")); }catch(_){} renderKC(); }
+  });
+  document.addEventListener("change", function(e){
+    var t = e.target; if(!t || !t.closest) return;
+    var k = t.getAttribute && t.getAttribute("data-kc");
+    if(k){ kc[k] = !!t.checked; renderKC(); return; }
+    if(t.hasAttribute && t.hasAttribute("data-kc-kg")){ kc.kg = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); }
+  });
+  try{ var kcSt = localStorage.getItem("apexCustomsRulesV1"); if((kcSt === "2026" || kcSt === "2027") && window.ApexCalc) window.ApexCalc.setCustomsRules(kcSt); }catch(_){}
+
   function renderBuy(){
     var car = state.car, listing = state.listing;
     var pr = listingPrice(listing), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
@@ -938,6 +1058,7 @@
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
       + trendChipHtml(listing)
+      + (CA ? '' : '<details class="kc" id="kcV1" hidden></details>')
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
         + encarBtnHtml(listing)
@@ -951,6 +1072,7 @@
     if(hist) reports += '<a href="#history" data-go="history" class="lot-report ' + hist.tone + '"><span class="lot-report__icon">' + I.historyBig + '</span><span class="min-w-0 flex-1"><span class="lot-report__kind">' + esc(T("История автомобиля")) + '</span><span class="lot-report__verdict" data-no-i18n="true">' + esc(histShortVerdict(hist)) + '</span></span>' + ico('<path d="M5 12h14M13 6l6 6-6 6"/>', "h-4 w-4 lot-report__go h-4 w-4") + '</a>';
     if(reports) html += '<div class="lot-reports">' + reports + '</div>';
     document.getElementById("lotBuyV1").innerHTML = html;
+    if(!CA) renderKC();
   }
   document.addEventListener("click", function(e){
     if(e.target.closest("[data-lead]")){ e.preventDefault(); openLeadModal(); return; }

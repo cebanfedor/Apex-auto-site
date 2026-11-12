@@ -29,7 +29,7 @@ test("laneSaleDate: две сессии перекрываются по заез
   mockRows([...rows(3, 24, 4031), {sale_date:iso(4), run_no:4025}, {sale_date:iso(4), run_no:4090}, {sale_date:iso(4), run_no:4144}]);   // как в реальных данных: 17:00 UTC — заезды 4031…, 18:00 UTC — 4025…4144
   const d = await laneSaleDate("1005|D", 4066);
   assert.ok(d && d.to, "неоднозначно — отдаём окно");
-  assert.ok(Date.parse(d.to) - Date.parse(d.at) === 3600e3, "окно в 1 час");
+  assert.ok(Math.abs(Date.parse(d.to) - Date.parse(d.at) - 3600e3) < 2000, "окно в 1 час");   // iso(3)/iso(4) считаются в разные миллисекунды
 });
 
 test("laneSaleDate: заезд лота вне диапазонов сессий — не гадаем", async () => {

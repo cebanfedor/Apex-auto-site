@@ -558,3 +558,57 @@
 .apx-korea .catalog-flows { min-height: calc(100vh + 400px); }
 /* Страница машины: пока данные грузятся, подвал не виден и не прыгает при появлении карточки */
 .apx-korea .lot-placeholder { min-height: calc(100vh + 200px); }
+
+/* --- «Из чего состоит цена» — доставка и растаможка из Кореи (12.11.2026, korea-calc.js). Только Корея; цвета — токены эталона + наш красный --- */
+.kc { container-type: inline-size; margin-top: 14px; border-top: 1px solid rgb(var(--c-line)); padding-top: 4px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.kc[hidden] { display: none; }
+.kc__sum { display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; list-style: none; user-select: none; }
+.kc__sum::-webkit-details-marker { display: none; }
+.kc__sumttl { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: rgb(var(--c-ink)); }
+.kc__sumtot { font-size: 14px; font-weight: 700; color: #ed0012; white-space: nowrap; }
+.kc[open] .kc__sumtot { display: none; }
+.kc__chev { flex: none; color: rgb(var(--c-ink-3)); transition: transform .2s; }
+.kc[open] .kc__chev { transform: rotate(180deg); }
+.kc__body { display: flex; flex-direction: column; gap: 12px; padding-bottom: 4px; }
+.kc__cls { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: rgb(var(--c-ink-3)); }
+.kc__pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 3px; border-radius: 12px; background: rgb(var(--c-surface-2, 243 244 246)); }
+.kc__pill { appearance: none; border: 0; background: transparent; font: inherit; font-size: 11.5px; font-weight: 600; color: rgb(var(--c-ink-3)); padding: 7px 2px; border-radius: 9px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .15s, color .15s; }
+.kc__pill:hover { color: rgb(var(--c-ink)); }
+.kc__pill.is-on { background: #fff; color: rgb(var(--c-ink)); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.kc__grp { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid rgb(var(--c-line)); border-radius: 14px; background: rgb(var(--c-surface)); }
+.kc__grphead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px dashed rgb(var(--c-line)); font-size: 12.5px; font-weight: 700; color: rgb(var(--c-ink)); }
+.kc__grphead b { font-size: 15px; white-space: nowrap; }
+.kc__grpttl { display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 13px; }
+.kc__grpttl small { font-size: 11.5px; font-weight: 500; color: rgb(var(--c-ink-3)); }
+.kc__rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.kc__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; line-height: 1.3; }
+.kc__lbl { flex: 1; min-width: 0; color: rgb(var(--c-ink-2, var(--c-ink))); }
+.kc__lbl small { display: block; margin-top: 1px; font-size: 11.5px; line-height: 1.3; color: rgb(var(--c-ink-3)); }
+.kc__val { flex: none; font-weight: 600; color: rgb(var(--c-ink)); white-space: nowrap; text-align: right; }
+.kc__row.is-off .kc__val { color: rgb(var(--c-ink-3)); font-weight: 500; }
+.kc__chk { display: flex; align-items: flex-start; gap: 9px; flex: 1; min-width: 0; cursor: pointer; }
+.kc__chk input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.kc__box { flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 6px; border: 1.5px solid rgb(var(--c-ink-4, 140 149 163)); background: #fff; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+.kc__chk input:checked + .kc__box { background: #ed0012; border-color: #ed0012; }
+.kc__chk input:checked + .kc__box::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.kc__chk input:focus-visible + .kc__box { outline: 2px solid #ed0012; outline-offset: 2px; }
+.kc__tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgb(var(--c-line)); font-size: 12px; color: rgb(var(--c-ink-3)); }
+.kc__rules { display: flex; align-items: center; gap: 8px; }
+.kc__seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 9px; background: rgb(var(--c-surface-2, 243 244 246)); }
+.kc__seg button { appearance: none; border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 700; color: rgb(var(--c-ink-3)); min-width: 48px; height: 28px; border-radius: 7px; cursor: pointer; }
+.kc__seg button.is-on { background: #ed0012; color: #fff; }
+.kc__mass { display: flex; align-items: center; gap: 8px; }
+.kc__mass input { width: 84px; height: 30px; padding: 0 8px; border-radius: 9px; border: 1px solid rgb(var(--c-line)); background: #fff; font: inherit; font-size: 13px; color: rgb(var(--c-ink)); }
+.kc__total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgb(var(--c-ink)); color: #fff; }
+.kc__total span { font-size: 13px; font-weight: 600; opacity: .9; }
+.kc__total b { font-family: Onest, Inter, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
+.kc__sub { margin: -6px 0 0; text-align: right; font-size: 12.5px; color: rgb(var(--c-ink-3)); }
+.kc__note, .kc__rate { margin: 0; font-size: 11.5px; line-height: 1.4; color: rgb(var(--c-ink-3)); }
+.kc__rate { margin-top: -6px; }
+@container (min-width: 372px) { .kc__pills { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* колонка цены шире (была 320px): в ней теперь раскладка платежей */
+@media (min-width: 1280px) { .lot-hero { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr) 350px; } }
+@media (min-width: 1440px) { .lot-hero { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr) 390px; } }
+/* липкая колонка цены, не помещающаяся в окно, — обычная (иначе кнопки внизу недоступны) */
+.apx-korea .lot-buy-col.is-tall { position: static; }
+@media (max-width: 400px) { .kc__pill { font-size: 11px; } .kc__total b { font-size: 20px; } }

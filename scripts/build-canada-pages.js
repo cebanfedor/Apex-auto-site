@@ -40,6 +40,8 @@ build("catalog.html", "canada.html", [
   ['<p class="catalog-intro">Авто из Южной Кореи с пробегом и историей, доставка под ключ.</p>', '<p class="catalog-intro">Дилерские аукционы Канады: машины после лизинга и trade-in, с отчётом о состоянии. Доставка под ключ.</p>'],
 ]);
 build("catalog-car.html", "canada-car.html", [
+  // расчёт доставки и растаможки (korea-calc.js) — только для Кореи; в Канаде блока нет, скрипты не нужны
+  ['  <script src="/calc-core.js?v=core-v21" defer></script>\n  <script src="/korea-calc.js?v=kr-v1" defer></script>\n', ''],
   ['<title id="catCarTitleTagV1">Автомобиль из Кореи | Apex Auto</title>', '<title id="catCarTitleTagV1">Автомобиль из Канады | Apex Auto</title>'],
   MAIN,
   ['class="navQuickV1" href="/canada"', 'class="navQuickV1 active" href="/canada"'],
