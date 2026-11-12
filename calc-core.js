@@ -25,7 +25,7 @@
   // Источник: проект МинФина (авг. 2026); для 0–2 лет совпадает с принятой редакцией (22.10.2026). Остальные возрасты проверить по Monitorul Oficial.
   const EV_RATES={"0-2":[7.89,10.09,15.59,25.69,45.87],"3-4":[8.25,10.46,15.95,26.06,46.23],"5-6":[8.44,10.64,16.15,26.25,46.43],"7":[9.29,11.71,17.76,28.87,51.07],"8":[10.22,12.88,19.54,31.76,56.18],"9":[11.24,14.17,21.50,34.93,61.79],"10":[13.48,17.00,25.79,41.92,74.15],"11":[17.52,22.10,33.52,54.50,96.39],"12":[21.65,26.23,37.64,58.62,100.52],"13":[25.77,30.35,41.77,62.75,104.64],"14":[29.90,34.48,45.89,66.84,108.77],"15":[34.02,38.68,50.02,71.00,112.89],"16":[38.15,42.73,54.14,75.12,117.02],"17":[42.27,46.85,58.27,79.25,121.14],"18":[46.40,50.98,62.39,83.30,125.27],"19":[50.52,55.10,66.52,87.00,129.39],"20+":[54.65,59.23,70.64,91.62,133.52]};
   const EV_BANDS=[1000,1500,2000,3000];
-  const EV_DEFAULT_KG={sedan:1700,crossover:1950,suv:2200,suvLarge:2500};
+  const EV_DEFAULT_KG={sedan:1700,crossover:1950,suv:2200,minivan:2200,suvLarge:2500};
   const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
   const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
   const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
@@ -117,6 +117,29 @@
     return null;
   }
 
+  // Минивэны (Toyota Sienna, Chrysler Pacifica, Kia Carnival, Honda Odyssey, Mercedes Metris / V-Class…): считаются как «Внедорожник»,
+  // но море +$100 (тип "minivan", Федор 12.11.2026). Единый источник для сайта, лота и расширения.
+  var MINIVAN_RULES = {
+    toyota:["sienna","previa"], chrysler:["pacifica","voyager","townandcountry","town&country"], dodge:["grandcaravan","caravan"],
+    honda:["odyssey"], kia:["carnival","karnival","sedona"], nissan:["quest"], mercedes:["metris","vclass","v250","v300","v220"],
+    ford:["windstar"], chevrolet:["uplander","venture"], pontiac:["montana"], mazda:["mpv"], volkswagen:["routan"], hyundai:["entourage"]
+  };
+  function isMinivan(make, model, title, body){
+    var b = String(body || "").toLowerCase();
+    if(/mini[\s-]?van/.test(b)) return true;
+    var mk = String(make || "").toLowerCase().replace(/[\s._-]/g, "");
+    var md = String(model || "").toLowerCase().replace(/[\s._-]/g, "");
+    if(mk && md){
+      for(var key in MINIVAN_RULES){
+        if(mk.indexOf(key) === -1) continue;
+        var list = MINIVAN_RULES[key];
+        for(var i = 0; i < list.length; i++) if(md.indexOf(list[i]) === 0) return true;
+      }
+    }
+    var t = String(title || "").toLowerCase();
+    return /\b(sienna|pacifica|grand caravan|town (?:&|and) country|odyssey|carnival|karnival|sedona|metris|v[\s-]?class|voyager)\b/.test(t);
+  }
+
   // Распознавание плагин-гибрида (PHEV) по названию модели/трима — когда фид
   // аукциона отдаёт просто «hybrid». Важно для таможни: у PHEV скидка акциза 0.5
   // против 0.75 у обычного гибрида (PHEV дешевле). Единый источник для сайта,
@@ -173,7 +196,7 @@
   function landShippingFor(loc, type, offsite){
     if(!loc) return 0;
     const base = Number(loc.landPrice || loc.autoLand || 0) * landMultiplier(type);
-    const suvExtra = (type==="suv"||type==="suvLarge") ? SUV_LAND_EXTRA : 0;
+    const suvExtra = (type==="suv"||type==="suvLarge"||type==="minivan") ? SUV_LAND_EXTRA : 0;
     return Math.ceil(base + suvExtra + APEX_LAND_SURCHARGE + (offsite ? OFFSITE_FEE : 0));
   }
 
@@ -188,6 +211,7 @@
       price = (SEA[port] && SEA[port].price) || 2400;
       if(type==="crossover") price += 100;
       else if(type==="suv"||type==="suvLarge") price += 300;
+      else if(type==="minivan") price += 400;   // как внедорожник (+300) + $100 (Федор 12.11.2026)
       else if(type==="pickup"||type==="pickupLarge"||type==="pickupOversized"||type==="vanLarge") price += 500;
     }
     if(["hybrid","phev","electric"].includes(fuel)) price += 100;  // опасный груз
@@ -309,6 +333,6 @@
 
   return {
     compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, setCustomsRules, getCustomsRules, VERSION: "core-v20"
+    landShippingFor, seaShippingFor, bodyClassForModel, isMinivan, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, setCustomsRules, getCustomsRules, VERSION: "core-v21"
   };
 });

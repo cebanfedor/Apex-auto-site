@@ -1012,7 +1012,7 @@ function fuelLabel(value){
 }
 
 function vehicleTypeLabel(value){
-  const labels = {sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",suvLarge:"SUV Large",pickup:"Пикап",pickupLarge:"Pickup Large",vanLarge:"Van Large",pickupOversized:"Pickup Oversized",moto:"Мото",atv:"Квадро / ATV"};
+  const labels = {sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",minivan:"Минивен / Van",suvLarge:"SUV Large",pickup:"Пикап",pickupLarge:"Pickup Large",vanLarge:"Van Large",pickupOversized:"Pickup Oversized",moto:"Мото",atv:"Квадро / ATV"};
   return labels[value] || value;
 }
 
@@ -1070,6 +1070,7 @@ function vinVehicleType(lot){
   if(/motorcycle|moto\b/.test(text)) return "moto";
   if(/\batv\b|quad/.test(text)) return "atv";
   if(/pickup|truck|silverado|sierra|\bram\b|f-150|f150|tundra|tacoma/.test(text)) return "pickup";
+  if(window.ApexCalc && window.ApexCalc.isMinivan && window.ApexCalc.isMinivan(lot.make, lot.model, lot.title, body)) return "minivan";
   if(/\bvan\b|cargo|sprinter|transit|minivan/.test(text)) return "vanLarge";
   const byModel = window.ApexCalc && window.ApexCalc.bodyClassForModel ? window.ApexCalc.bodyClassForModel(lot.make, lot.model) : null;
   if(byModel === "crossover" || byModel === "suv") return byModel;
@@ -1789,7 +1790,7 @@ function calculateCanada(){
     bankFee = dispatchBase > 0 ? CANADA_BANK_FEE : 0;
   }
   const keeperFees = CANADA_KEEPER_FEE;
-  const oceanBase = ip ? oceanRates.pickup : oceanRates.suv;
+  const oceanBase = (ip ? oceanRates.pickup : oceanRates.suv) + (($("vehicleType")?.value === "minivan") ? 100 : 0);   // минивен: как внедорожник + $100 к морю
   const hazardFee = isGreen ? 150 : 0;
   const roadKlaipeda = getRoadKlaipedaPrice();
   const insurance = Math.max(100, (lot + auctionFee) * 0.01);

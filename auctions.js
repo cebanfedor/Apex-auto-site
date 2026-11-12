@@ -826,6 +826,7 @@
     if(/atv|quad|utv|side.?by.?side|snowmobil/.test(bt)) return "atv";
     if(/moto(rcycle)?\b|\bbike\b|scooter|moped/.test(bt)) return "moto";
     if(/pickup|truck|silverado|sierra|ram|f-150|f150|tundra|tacoma/.test(b + t)) return "pickup";
+    if(window.ApexCalc && window.ApexCalc.isMinivan && window.ApexCalc.isMinivan(lot.make, lot.model, lot.title, b)) return "minivan";   // Sienna/Pacifica/Carnival/Metris… = внедорожник + $100 к морю
     if(/van|cargo|sprinter|transit|minivan/.test(b + t)) return "vanLarge";
     // Правило по конкретным моделям (кроссовер vs внедорожник) — единый источник
     // в calc-core. Приоритетнее общего кузова, т.к. влияет на доставку.
@@ -1019,7 +1020,7 @@
     const dispatch = dispatchBase ? dispatchBase + offsiteFee : 0;
     const bankFee = zone === "bc" || !dispatchBase ? 0 : 100;
     const keeper = 300;
-    const ocean = (ip ? 1170 : 950) + (green ? 150 : 0);
+    const ocean = (ip ? 1170 : 950) + (green ? 150 : 0) + (kind === "minivan" ? 100 : 0);
     const road = kind === "crossover" ? 1750 : (kind === "sedan" || kind === "moto" || kind === "atv") ? 1600 : 1900;
     const insurance = Math.max(100, (bid + auctionFee) * 0.01);
     const service = (window.ApexCalc ? Math.round(window.ApexCalc.companyFeeFor(bid, auctionFee)) : 300);
@@ -2902,7 +2903,7 @@
           <label class="calcOptColV1">
             <span>Тип кузова</span>
             <select id="lotCalcVehType" data-calc-input class="calcSelectV2">
-              ${["sedan","crossover","suv","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",pickup:"Пикап",vanLarge:"Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
+              ${["sedan","crossover","suv","minivan","pickup","vanLarge","moto","atv"].map(v => `<option value="${v}"${kind===v?" selected":""}>${{sedan:"Седан",crossover:"Кроссовер",suv:"Внедорожник",minivan:"Минивен / Van",pickup:"Пикап",vanLarge:"Бус",moto:"Мото",atv:"Квадро / ATV"}[v]}</option>`).join("")}
             </select>
           </label>
           <label class="calcOptColV1">

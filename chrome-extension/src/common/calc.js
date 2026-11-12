@@ -13,7 +13,7 @@
   const DIESEL_RATES_2026={"0-2":[12.23,31.14,55.60],"3-4":[12.67,31.58,56.04],"5-6":[12.90,31.81,56.27],"7":[14.19,34.99,61.90],"8":[15.61,38.49,68.09],"9":[17.17,42.34,74.90],"10":[20.60,50.81,89.87],"11":[26.79,66.05,116.84],"12":[31.79,71.05,121.84],"13":[36.79,76.05,126.84],"14":[41.79,81.05,131.84],"15":[46.79,86.05,136.84],"16":[51.79,91.05,141.84],"17":[56.79,96.05,146.84],"18":[61.79,101.05,151.84],"19":[66.79,106.05,156.84],"20+":[71.79,111.05,161.84]};
   const EV_RATES={"0-2":[7.89,10.09,15.59,25.69,45.87],"3-4":[8.25,10.46,15.95,26.06,46.23],"5-6":[8.44,10.64,16.15,26.25,46.43],"7":[9.29,11.71,17.76,28.87,51.07],"8":[10.22,12.88,19.54,31.76,56.18],"9":[11.24,14.17,21.50,34.93,61.79],"10":[13.48,17.00,25.79,41.92,74.15],"11":[17.52,22.10,33.52,54.50,96.39],"12":[21.65,26.23,37.64,58.62,100.52],"13":[25.77,30.35,41.77,62.75,104.64],"14":[29.90,34.48,45.89,66.84,108.77],"15":[34.02,38.68,50.02,71.00,112.89],"16":[38.15,42.73,54.14,75.12,117.02],"17":[42.27,46.85,58.27,79.25,121.14],"18":[46.40,50.98,62.39,83.30,125.27],"19":[50.52,55.10,66.52,87.00,129.39],"20+":[54.65,59.23,70.64,91.62,133.52]};
   const EV_BANDS=[1000,1500,2000,3000];
-  const EV_DEFAULT_KG={sedan:1700,crossover:1950,suv:2200,suvLarge:2500};
+  const EV_DEFAULT_KG={sedan:1700,crossover:1950,suv:2200,minivan:2200,suvLarge:2500};
   const LUXURY_RATES=[{min:600000,max:700000,pct:2},{min:700001,max:800000,pct:3},{min:800001,max:900000,pct:4},{min:900001,max:1000000,pct:5},{min:1000001,max:1200000,pct:6},{min:1200001,max:1400000,pct:7},{min:1400001,max:1600000,pct:8},{min:1600001,max:1800000,pct:9},{min:1800001,max:Infinity,pct:10}];
   const AUCTION_FEE_POINTS=[[0,300],[1000,450],[3000,700],[5000,925],[10000,1100],[15000,1250],[20000,1550],[30000,2150],[50000,3300],[75000,4700],[100000,6000]];
   const SEA={nj:{label:"Elizabeth, NJ",price:2400},savannah:{label:"Savannah, GA",price:2400},houston:{label:"Houston, TX",price:2600},indianapolis:{label:"Indianapolis, IN",price:2600},la:{label:"Los Angeles, CA",price:3100}};
@@ -34,7 +34,7 @@
   function landShipping(loc, type, offsite){
     if(!loc) return 0;
     const base = Number(loc.landPrice || loc.autoLand || 0) * landMultiplier(type);
-    const suvExtra = (type === "suv" || type === "suvLarge") ? 100 : 0;
+    const suvExtra = (type === "suv" || type === "suvLarge" || type === "minivan") ? 100 : 0;
     const apexSurcharge = 50;
     return Math.ceil(base + suvExtra + apexSurcharge + (offsite ? 100 : 0));
   }
@@ -109,6 +109,7 @@
         sea = (SEA[port] && SEA[port].price) || 2400;
         if(type === "crossover") sea += 100;
         else if(type === "suv" || type === "suvLarge") sea += 300;
+        else if(type === "minivan") sea += 400;   // как внедорожник + $100 (синхронно с calc-core.js, 12.11.2026)
         else if(type === "pickup" || type === "pickupLarge" || type === "pickupOversized" || type === "vanLarge") sea += 500;
       }
       if(["hybrid","phev","electric"].includes(fuel)) sea += 100;
@@ -233,6 +234,7 @@
     if(/motorcycle|moped|scooter/.test(text) || /(^|[_\s])bike$|^moto$/.test(body)) return "moto";
     if(/sedan|coupe|hatchback|liftback|fastback|convertible|roadster|wagon|estate/.test(body)) return "sedan";
     if(/pickup|\btruck\b|crew cab|quad cab|reg cab/.test(body)) return "pickup";
+    if(/minivan|mini van/.test(body) || /\b(sienna|pacifica|grand caravan|town (?:&|and) country|odyssey|carnival|karnival|sedona|metris|v[\s-]?class|voyager)\b/.test(text)) return "minivan";
     if(/cargo van|passenger van|\bvan\b/.test(body)) return "vanLarge";
     if(/pickup|silverado|sierra|\bram\b|f-?150|f-?250|f-?350|tundra|tacoma|ridgeline|colorado|frontier|\btitan\b/.test(text)) return "pickup";
     if(/sprinter|transit|promaster|savana|express/.test(text)) return "vanLarge";

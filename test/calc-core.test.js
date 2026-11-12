@@ -125,3 +125,15 @@ test("compute: у мото landBaseMdl считается сервером из 
   assert.equal(noLand.land, 0, "без локации суши нет");
   assert.notEqual(withLand.customsUsd, noLand.customsUsd, "растаможка мото меняется вместе с сушей (а не остаётся по морю)");
 });
+
+test("минивен: как внедорожник, но море +$100; распознавание Sienna/Pacifica/Carnival/Metris", () => {
+  const base = {lotPrice:16700, auction:"copart", fuel:"gasoline", engineLiters:3.5, year:2022, usdMdl:17.45, eurMdl:20.28, port:"nj"};
+  const suv = ApexCalc.compute({...base, vehicleType:"suv"});
+  const mv = ApexCalc.compute({...base, vehicleType:"minivan"});
+  assert.equal(mv.sea - suv.sea, 100, "море минивена = внедорожник + 100");
+  assert.equal(mv.land, suv.land, "суша как у внедорожника");
+  for(const [mk, md] of [["Toyota","Sienna"],["Chrysler","Pacifica"],["Kia","Carnival"],["Mercedes-Benz","Metris"],["Mercedes-Benz","V-Class"],["Dodge","Grand Caravan"],["Honda","Odyssey"]])
+    assert.ok(ApexCalc.isMinivan(mk, md, "", ""), mk + " " + md);
+  for(const [mk, md] of [["Ford","Transit"],["Mercedes-Benz","Sprinter"],["Toyota","Highlander"],["Honda","Pilot"]])
+    assert.ok(!ApexCalc.isMinivan(mk, md, "", ""), mk + " " + md + " — не минивен");
+});
