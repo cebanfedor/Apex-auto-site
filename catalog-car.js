@@ -148,7 +148,7 @@
     }
     var cur = listing.price && listing.price.currency && listing.price.currency.name;
     if(listing.is_auction && listing.current_bid != null) return {amount:listing.current_bid, cur:cur, label:T("Текущая ставка")};
-    if(listing.price && listing.price.price > 0) return {amount:listing.price.price, cur:cur, label:T("Цена")};
+    if(listing.price && listing.price.price > 0) return {amount:listing.price.price, cur:cur, label:T("Цена в Корее")};
     if(listing.current_bid != null) return {amount:listing.current_bid, cur:cur, label:T("Текущая ставка")};
     return null;
   }
@@ -1067,7 +1067,7 @@
     var ms = ART.messengers || {};
     var tgIc = ms.Telegram ? ms.Telegram.svg : "", waIc = ms.WhatsApp ? ms.WhatsApp.svg : "";
     var html = '<section class="lot-buy">'
-      + '<div class="lot-price__head"><p class="lot-price__label">' + esc(pr ? pr.label : T("Цена")) + '</p><p class="lot-price__value num" data-no-i18n="true">' + esc(mp ? mp.main : T("По запросу")) + '</p></div>'
+      + '<div class="lot-price__head"><p class="lot-price__label">' + esc(pr ? pr.label : T(CA ? "Цена" : "Цена в Корее")) + '</p><p class="lot-price__value num" data-no-i18n="true">' + esc(mp ? mp.main : T("По запросу")) + '</p></div>'
       + (mp && mp.sub ? '<p class="lot-price__sub num" data-no-i18n="true">' + esc(mp.sub) + '</p>' : "")
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")

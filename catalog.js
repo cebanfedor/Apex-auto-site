@@ -970,7 +970,7 @@
     if(car.seats) specs += specLi(I.seats, car.seats + " " + T("мест"), true);
     if(listing && listing.keys_available) specs += specLi(I.key, T("Ключи в наличии"), true);
     var price = listing && listing.price && listing.price.price > 0 ? {amt:listing.price.price, cur:listing.price.currency && listing.price.currency.name} : (listing && listing.current_bid != null ? {amt:listing.current_bid, cur:listing.price && listing.price.currency && listing.price.currency.name} : null);
-    var priceLabel = listing && listing.is_auction && listing.current_bid != null ? T("Текущая ставка") : T("Цена");
+    var priceLabel = listing && listing.is_auction && listing.current_bid != null ? T("Текущая ставка") : T(CA ? "Цена" : "Цена в Корее");
     var aucLine = "";
     if(CA){
       var op = olPrice(listing);
