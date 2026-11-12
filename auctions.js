@@ -2266,7 +2266,6 @@
     const buyNow = Number(lot.buyNow || 0);
     const hpStr = Number(lot.horsePower) > 0 ? `${lot.horsePower} ${L("л.с.")}` : "";
     const spec = [cleanEngine(lot.engine), hpStr, upAbbr(lot.drive)].filter(Boolean).join(" • ");
-    const tl = timeLeftLabel(lot.auctionDate);
     const priceBar = price || buyNow
       ? `<span class="scPriceV1"><span>${buyNow && !price ? L("Купить сейчас") : L("Ставка")}</span><b>${money(price || buyNow)}</b></span>`
       : `<span class="scPriceV1 scPriceEmptyV1"><span>${L("Ставок пока нет")}</span></span>`;
@@ -2275,7 +2274,7 @@
       <span class="scBodyV1">
         <b class="scTitleV1">${escapeHtml(title)}</b>
         <span class="scSpecV1">${spec ? escapeHtml(spec) : "&nbsp;"}</span>
-        <span class="scDateV1">${dbIco("calendar")}<span>${escapeHtml(dbDate(lot.auctionDate))}</span>${tl ? `<i class="scTlV1">${escapeHtml(tl)}</i>` : ""}</span>
+        <span class="scDateV1">${dbIco("calendar")}<span>${escapeHtml(dbDate(lot.auctionDate))}</span></span>
         ${priceBar}
       </span>
     </a>`;
