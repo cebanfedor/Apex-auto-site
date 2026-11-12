@@ -3467,7 +3467,9 @@ window.__APEX_DICT = (function(){
       "Под ключ без растаможки":"La cheie, fără vămuire",
       "1% при оплате в леях, мин. 50 $":"1% la plata în lei, min. 50 $",
       "при оплате в леях · вместе с комиссией на оплату":"la plata în lei · împreună cu comisionul de plată",
-      "* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально.":"* Pentru mașinile de peste 50 000 $ comisionul este de la 1 000 €, stabilit individual."
+      "* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально.":"* Pentru mașinile de peste 50 000 $ comisionul este de la 1 000 €, stabilit individual.",
+      "3-й платёж":"Plata 3",
+      "Электромобиль":"Mașină electrică"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6948,7 +6950,9 @@ window.__APEX_DICT = (function(){
       "Под ключ без растаможки":"Turnkey, without customs",
       "1% при оплате в леях, мин. 50 $":"1% when paying in lei, min. $50",
       "при оплате в леях · вместе с комиссией на оплату":"when paying in lei · together with the payment fee",
-      "* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально.":"* For cars over $50,000 the commission starts at €1,000, agreed individually."
+      "* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально.":"* For cars over $50,000 the commission starts at €1,000, agreed individually.",
+      "3-й платёж":"Payment 3",
+      "Электромобиль":"Electric car"
     }
   };
 

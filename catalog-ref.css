@@ -570,8 +570,9 @@
 .kc__chev { flex: none; color: rgb(var(--c-ink-3)); transition: transform .2s; }
 .kc[open] .kc__chev { transform: rotate(180deg); }
 .kc__body { display: flex; flex-direction: column; gap: 12px; padding-bottom: 4px; }
+.kc__cls > span { flex: none; white-space: nowrap; }
 .kc__cls { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; color: rgb(var(--c-ink)); }
-.kc__sel { appearance: none; -webkit-appearance: none; flex: 0 1 190px; min-width: 0; height: 38px; padding: 0 34px 0 12px; border-radius: 11px; border: 1px solid rgb(var(--c-line)); background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 16px; font: inherit; font-size: 13.5px; font-weight: 600; color: rgb(var(--c-ink)); cursor: pointer; }
+.kc__sel { appearance: none; -webkit-appearance: none; flex: 1 1 0; max-width: 200px; min-width: 112px; height: 38px; padding: 0 34px 0 12px; border-radius: 11px; border: 1px solid rgb(var(--c-line)); background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 16px; font: inherit; font-size: 13.5px; font-weight: 600; color: rgb(var(--c-ink)); cursor: pointer; }
 .kc__sel:focus-visible { outline: 2px solid #ed0012; outline-offset: 2px; }
 .kc__grp { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid rgb(var(--c-line)); border-radius: 14px; background: rgb(var(--c-surface)); }
 .kc__grphead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px dashed rgb(var(--c-line)); font-size: 12.5px; font-weight: 700; color: rgb(var(--c-ink)); }
@@ -625,3 +626,8 @@
 .vcard__tk:empty { visibility: hidden; }
 .vcard__tk[hidden] { display: none; }
 .vcard__tk b { color: #ed0012; font-weight: 700; }
+
+@media (max-width: 820px) { .kc__seg button { height: 34px; min-width: 52px; } .kc__mass input { height: 36px; } }
+@media (max-width: 360px) { .kc__top b { font-size: 19px; } .kc__top { padding: 9px 11px; } .kc__grp { padding: 10px; } }
+/* узкие карточки (2 в ряд на телефоне): подпись и сумма «под ключ» — в две строки, без обрезания */
+@media (max-width: 420px) { .vcard__tk { white-space: normal; min-height: 34px; line-height: 1.25; } .vcard__tk b { display: block; font-size: 13.5px; } }

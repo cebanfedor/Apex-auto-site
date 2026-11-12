@@ -952,15 +952,17 @@
   function kcEur(v){ return fmtNum(Math.round(v)) + " €"; }
   function kcMdl(v){ return fmtNum(Math.round(v)) + " MDL"; }
   function kcRate(r){ return Number(r).toFixed(2).replace(".", ","); }
+  // неразрывный пробел в числах «50 000» — чтобы подсказка не рвалась между строками
+  function kcNb(h){ return String(h == null ? "" : h).replace(/(\d) (?=\d{3}(?!\d))/g, "$1\u00a0"); }
   function kcRow(label, value, hint, off){
-    return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + hint + '</small>' : "") + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+    return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + kcNb(hint) + '</small>' : "") + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
   }
   function kcGrpHead(title, sub, main, approx){
     return '<header class="kc__grphead"><span class="kc__grpttl">' + esc(T(title)) + '<small>' + esc(T(sub)) + '</small></span><span class="kc__grpval"><b class="num" data-no-i18n="true">' + main + '</b>' + (approx ? '<em class="num" data-no-i18n="true">' + approx + '</em>' : "") + '</span></header>';
   }
   function kcCheck(key, on, label, value, hint){
     return '<li class="kc__row kc__row--opt' + (on ? "" : " is-off") + '"><label class="kc__chk"><input type="checkbox" data-kc="' + key + '"' + (on ? " checked" : "") + '><span class="kc__box" aria-hidden="true"></span>'
-      + '<span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + hint + '</small>' : "") + '</span></label><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+      + '<span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + kcNb(hint) + '</small>' : "") + '</span></label><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
   }
   function kcCustomsHint(q){
     var c = q.customs; if(!c) return "";
@@ -1001,7 +1003,7 @@
       h += kcRow("Таможенные платежи", kcMdl(t3.exciseMdl), kcCustomsHint(q));
       if(t3.luxuryMdl > 0) h += kcRow("Налог на роскошь", kcMdl(t3.luxuryMdl), q.customs.luxuryPct + "% " + esc(T("от")) + " " + kcMdl(q.customs.luxuryBase));
     }
-    h += kcCheck("payMdl", t3.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях · вместе с комиссией на оплату")));
+    h += kcCheck("payMdl", t3.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
     h += '</ul>';
     h += '<div class="kc__tools"><div class="kc__rules"><span>' + esc(T("Правила таможни")) + '</span><div class="kc__seg" role="group">'
       + ["2026", "2027"].map(function(y){ return '<button type="button" class="' + (rules === y ? "is-on" : "") + '" data-kc-rules="' + y + '" aria-pressed="' + (rules === y) + '">' + y + '</button>'; }).join("") + '</div></div>';
@@ -1014,7 +1016,7 @@
     if(q.incomplete.length) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
     if(q.second.commissionStar) notes.push(T("* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально."));
     notes.push(T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."));
-    h += '<p class="kc__note">' + notes.map(esc).join(" ") + '</p>';
+    h += '<p class="kc__note">' + kcNb(notes.map(esc).join(" ")) + '</p>';
     h += '<p class="kc__rate num" data-no-i18n="true">1 $ = ' + kcRate(q.usdMdl) + ' MDL · 1 € = ' + kcRate(q.eurMdl) + ' MDL</p>';
     h += '</div>';
     return h;
