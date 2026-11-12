@@ -2037,3 +2037,10 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
   .dHeadActionsV1 .dVinBtn { height:36px; line-height:1; padding:0 15px; border-radius:10px; background:#fff; color:var(--aInk2); font-size:13px; gap:7px; }
   .dHeadActionsV1 .dVinBtn:hover { border-color:var(--aMuted); }
 }
+
+/* Поле «Масса, кг» (электро, правила 2027) — того же размера, что соседние селекты ряда; глобальные стили input (выше, 16px) его раздували */
+.calcPairV1 #lotCalcEvMass { height:30px !important; min-height:0 !important; box-sizing:border-box; font-size:12.5px !important; font-weight:400 !important; padding:0 6px !important; border:1px solid var(--aLine) !important; border-radius:7px !important; background:var(--aSoft) !important; color:var(--aInk); width:100%; box-shadow:none; }
+.calcPairV1 #lotCalcEvMass::placeholder { color:var(--aMuted); opacity:1; }
+.calcPairV1 .calcOptColV1 > span { white-space:nowrap; }
+.calcRulesV1 > span { white-space:nowrap; flex:none; }
+@media (max-width: 640px) { .calcPairV1 #lotCalcEvMass { height:28px !important; font-size:12px !important; } }
