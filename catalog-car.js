@@ -999,14 +999,14 @@
     h += kcRow("Комиссия дилера", kcUsd(f.dealer));
     h += kcRow("Расходы по Корее", kcUsd(f.korea), esc(T("Снятие с учёта, экспортные документы, брокер")));
     h += kcRow("Доставка до порта", kcUsd(f.port));
-    h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), esc(T(KC_CLS_NAMES[q.cls])) + (q.high ? " · " + esc(T("авто дороже 50 000 $")) + " · ×1,5" : ""));
+    h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), q.high ? esc(T("авто дороже 50 000 $")) + " · ×1,5" : "");   // класс авто уже выбран вверху — подсказка только про множитель
     if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
     h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("Осмотр автомобиля — по желанию, можно отключить")));
     h += kcRow("Комиссия на оплату", q.first.payFee > 0 ? kcUsd(q.first.payFee) : "—", esc(T("При оплате в леях — 1%, мин. 50 $")), q.first.payFee === 0);
     h += '</ul></section>';
     // --- второй платёж: EUR, доставка и комиссия ---
     h += '<section class="kc__grp">' + kcGrpHead("2-й платёж", "доставка и комиссия", kcEur(s.subtotalEur), "≈ " + kcUsd(s.subtotalUsd)) + '<ul class="kc__rows">';
-    h += kcRow("Доставка в Молдову", kcEur(s.deliveryEur), esc(T("Доставка из Европы в Молдову")) + " · " + esc(T(KC_CLS_NAMES[q.cls])));
+    h += kcRow("Доставка в Молдову", kcEur(s.deliveryEur));
     h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur) + (s.commissionStar ? "*" : ""));
     h += '</ul></section>';
     // --- третий платёж: MDL, таможня ---
