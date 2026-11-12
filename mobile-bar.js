@@ -23,18 +23,18 @@
     s.textContent =
       ".mBarV1{display:none}" +
       "@media (max-width:820px){" +
-      ".mBarV1{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:var(--z-fab,9000);gap:6px;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid #e6eaf0;box-shadow:0 -6px 22px rgba(17,20,26,.09);transition:transform .18s ease}" +
-      ".mBarV1 a{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:46px;border-radius:12px;font:700 11px/1.1 var(--font-body,Onest,system-ui,sans-serif);color:#11141a;text-decoration:none;background:#f3f5f8;-webkit-tap-highlight-color:transparent}" +
+      ".mBarV1{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:var(--z-fab,9000);gap:5px;padding:5px 8px calc(5px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid #e6eaf0;box-shadow:0 -6px 22px rgba(17,20,26,.09);transition:transform .18s ease}" +
+      ".mBarV1 a{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;height:38px;border-radius:11px;font:700 10px/1.1 var(--font-body,Onest,system-ui,sans-serif);color:#11141a;text-decoration:none;background:#f3f5f8;-webkit-tap-highlight-color:transparent}" +
       ".mBarV1 a:active{transform:scale(.97)}" +
-      ".mBarV1 svg{width:19px;height:19px;flex:none}" +
+      ".mBarV1 svg{width:16px;height:16px;flex:none}" +
       ".mBarV1 .mbCallV1{background:#ed0012;color:#fff}" +
       ".mBarV1 .mbWaV1{background:#e8f8ee;color:#128c4a}" +
       ".mBarV1 .mbTgV1{background:#e6f4fc;color:#1b7fb5}" +
       ".mBarV1 .mbCalcV1{background:#11141a;color:#fff}" +
-      "body.mBarOnV1{padding-bottom:calc(62px + env(safe-area-inset-bottom))}" +
+      "body.mBarOnV1{padding-bottom:calc(50px + env(safe-area-inset-bottom))}" +
       "body.mBarOnV1 .fabContactV341{display:none}" +
       /* Cookie-баннер на телефоне — компактный и НАД панелью связи (раньше закрывал четверть экрана и саму панель) */
-      "body.mBarOnV1 .cookieConsentV1{bottom:calc(62px + env(safe-area-inset-bottom));padding:6px 8px}" +
+      "body.mBarOnV1 .cookieConsentV1{bottom:calc(50px + env(safe-area-inset-bottom));padding:6px 8px}" +
       "body.mBarOnV1 .cookieConsentBoxV1{padding:10px 12px;gap:8px;border-radius:14px}" +
       "body.mBarOnV1 .cookieConsentBoxV1 p{font-size:12px;line-height:1.4}" +
       "body.mBarOnV1 .cookieConsentBtnsV1 button{min-height:38px;padding:8px 14px;font-size:13px}" +

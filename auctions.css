@@ -1894,8 +1894,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 @media (max-width:860px){
   .lotStickyCtaV1 { gap:7px; padding:6px 10px calc(6px + env(safe-area-inset-bottom)); transition:transform .25s ease, opacity .25s ease; }
   .lotStickyCtaV1.isHiddenV1 { transform:translateY(105%); opacity:0; pointer-events:none; }
-  .lotStickyIcoV1 { width:38px; height:38px; border-radius:10px; }
-  .lotStickyIcoV1 svg { width:18px; height:18px; }
+  .lotStickyIcoV1 { width:34px; height:34px; border-radius:9px; }
+  .lotStickyIcoV1 svg { width:16px; height:16px; }
   .lotStickyBtnV1 { padding:9px 14px; font-size:13.5px; border-radius:10px; }
   .lotStickyTotalV1 small { font-size:11px; }
   .lotStickyTotalV1 b { font-size:16px; }
