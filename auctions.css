@@ -2022,3 +2022,12 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 }
 .dBellBtnV1.is-on .dbIco { fill:none; stroke:#1d4ed8; }
 @media (max-width:640px){ #auctionSmartSearch::placeholder { font-size:14px; } }
+
+/* Иллюстрация «следы шин» в пустых состояниях */
+.trackArtV1 { display:block; margin:0 auto 10px; color:#2a2f38; max-width:100%; height:auto; }
+.trackRevV1 { stroke-dasharray:100; stroke-dashoffset:100; animation:trackDrawV1 1.6s cubic-bezier(.4,.1,.2,1) .15s forwards; }
+.trackSplatV1 { opacity:0; animation:trackSplatV1 .5s ease-out .25s forwards; }
+@keyframes trackDrawV1 { to { stroke-dashoffset:0; } }
+@keyframes trackSplatV1 { to { opacity:1; } }
+@media (prefers-reduced-motion: reduce) { .trackRevV1 { animation:none; stroke-dashoffset:0; } .trackSplatV1 { animation:none; opacity:1; } }
+.rcBoxV1 .trackArtV1 { width:220px; }

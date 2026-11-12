@@ -1128,6 +1128,28 @@
     return cur <= max || (bn > 0 && bn <= max);
   }
 
+  // Иллюстрация «следы шин» для пустых состояний (своя, векторная; тот же приём, что у Manheim, но в наших цветах)
+  function trackArt(){
+    const A = "M46 132 C26 108 112 104 92 76 C76 54 150 56 124 24 C116 14 150 10 160 4";
+    const B = "M74 134 C54 112 140 106 118 78 C104 58 176 58 150 28 C142 18 170 12 176 6";
+    return `<svg class="trackArtV1" viewBox="0 0 220 140" width="300" height="191" aria-hidden="true" focusable="false">
+      <defs><mask id="trackMaskV1" maskUnits="userSpaceOnUse" x="0" y="0" width="220" height="140">
+        <path class="trackRevV1" d="${A}" pathLength="100" fill="none" stroke="#fff" stroke-width="40"/>
+        <path class="trackRevV1" d="${B}" pathLength="100" fill="none" stroke="#fff" stroke-width="40"/>
+      </mask></defs>
+      <g mask="url(#trackMaskV1)" fill="none">
+        <path d="${A}" stroke="currentColor" stroke-width="12" stroke-dasharray="3.4 2" opacity=".92"/>
+        <path d="${B}" stroke="currentColor" stroke-width="12" stroke-dasharray="3.4 2" opacity=".92"/>
+        <path d="${A}" stroke="var(--aSurf,#fff)" stroke-width="1.8"/>
+        <path d="${B}" stroke="var(--aSurf,#fff)" stroke-width="1.8"/>
+      </g>
+      <g class="trackSplatV1" fill="#ed0012">
+        <circle cx="46" cy="134" r="3.4"/><circle cx="34" cy="128" r="1.8"/><circle cx="58" cy="138" r="1.3"/><circle cx="26" cy="136" r="1.1"/>
+        <circle cx="84" cy="136" r="2.6"/><circle cx="96" cy="131" r="1.4"/><circle cx="104" cy="137" r="1"/>
+      </g>
+    </svg>`;
+  }
+
   // Пустая выдача: вместо тупика — кнопки «убрать этот фильтр» по каждому активному чипу
   function showRecovery(){
     const box = $("#auctionMessage"); if(!box || state.tab === "favorites") return;
@@ -1135,7 +1157,7 @@
     if(!activeChips.length) return;
     const btns = activeChips.map((c, i) => `<button type="button" class="rcChipV1" data-rc="${i}">${escapeHtml(c.label)} <span aria-hidden="true">×</span></button>`).join("");
     const hint = document.createElement("div"); hint.className = "rcBoxV1";
-    hint.innerHTML = `<div class="rcHeadV1">${escapeHtml(L("Попробуйте убрать условие:"))}</div><div class="rcChipsV1">${btns}<button type="button" class="rcResetV1" data-rc="all">${escapeHtml(L("Сбросить всё"))}</button></div>`;
+    hint.innerHTML = `${trackArt()}<div class="rcHeadV1">${escapeHtml(L("Попробуйте убрать условие:"))}</div><div class="rcChipsV1">${btns}<button type="button" class="rcResetV1" data-rc="all">${escapeHtml(L("Сбросить всё"))}</button></div>`;
     box.appendChild(hint);
   }
   document.addEventListener("click", e => {
@@ -4665,6 +4687,7 @@
     }catch(error){
       $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Назад к каталогу</a>
         <div class="vinEmptyV1">
+          ${trackArt()}
           <h2>По VIN ${escapeHtml(clean)} лот не найден</h2>
           <p>Возможно, машина ещё не выставлена на Copart/IAAI или VIN указан с ошибкой. Проверьте номер или оставьте заявку — найдём и проверим вручную.</p>
           <a class="vinLeadBtnV1" href="/#lead">Оставить заявку</a>
