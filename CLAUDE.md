@@ -2692,3 +2692,4 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 - Канада: расчёт идёт по ставкам внедорожника + $100 к морю (`oceanBase` в script.js, `ocean` в auctions.js `calcCanadaLotTotal`) — применил то же правило, что в США; если для Канады надо иначе — сказать. «Бус» (`vanLarge`, Sprinter/Transit, фиксированные цены) не менялся.
 - Тест — `test/calc-core.test.js` («минивен…»). Версии: calc-core core-v21, script calc-v470, auctions v483, i18n v611.
 - 12.11.2026 (Федор): тип «Бус» (`vanLarge`) — RO «Microbuz / Bus», EN «Microbus / Bus» (ключ «Бус» в `dict.ro/en`; в файле несколько блоков, итоговое значение проверять через eval словаря). i18n v613.
+- 12.11.2026 (Федор): блок «По VIN … лот не найден» (`.vinEmptyV1`) — по центру страницы (`margin:24px auto 40px`), а не слева; «Назад к каталогу» остаётся слева.

@@ -188,7 +188,7 @@
 .auctionTabsV1 button.favTabV2:hover { border-color:#e0a82e; }
 .auctionTabsV1 button.favTabV2.active { background:#e0a82e; color:#fff; border-color:#e0a82e; }
 /* VIN report — not found state */
-.vinEmptyV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:16px; padding:34px; text-align:center; max-width:560px; }
+.vinEmptyV1 { background:var(--aSurf); border:1px solid var(--aLine); border-radius:16px; padding:34px; text-align:center; max-width:560px; margin:24px auto 40px; }
 .vinEmptyV1 h2 { font-size:19px; margin-bottom:8px; }
 .vinEmptyV1 p { color:var(--aInk2); margin-bottom:18px; }
 .vinLeadBtnV1 { display:inline-block; background:var(--aRed); color:#fff; font-weight:700; padding:11px 22px; border-radius:10px; }
