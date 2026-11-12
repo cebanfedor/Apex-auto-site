@@ -653,3 +653,5 @@
   .apx-korea .lot-copy::after { content: ""; position: absolute; inset: -8px; }
   .apx-korea .lot-switch__toggle { min-height: 34px; }
 }
+
+.apx-korea .kc .infoTipV65, .apx-korea .kc .rowTipV1, #kcV1 .infoTipV65 { width: 18px; height: 18px; font-size: 11px; }

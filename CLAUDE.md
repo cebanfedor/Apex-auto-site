@@ -2735,4 +2735,4 @@ Organization sameAs с 6 соцсетями). Закрыл пробелы:
 - Калькулятор лота: селекты 36px/13px (были 30px/12.5), чекбокс-пилюли 40px/12px, дубль блока «Продано/Дата» в калькуляторе скрыт на ≤640px (то же уже есть в `.dMobSumV1.isSoldV1` над фото). Главная: валютные чипы USD/MDL/EUR 30px (были 27px) и по-прежнему в одной строке с «Оплата в MDL».
 - Тап-зоны: невидимые ::after (inset −6/−8px) у `.crumbChevV1/.copyChipV1/.dLinkBtnV1/.lot-copy`, «Смотреть все →» на витрине 36px, закрытие шторки фильтров Кореи 40px, стрелки галереи 36px, «в избранное» 38px.
 - Проверено и НЕ баг: серая ссылка «Политика конфиденциальности» в подвале (`.footerPrivacyV365`) тише остальных контактных кнопок намеренно; разная высота карточек в каруселях главной — это разные карусели.
-- Версии: styles.css v573, auctions.css v652, catalog-ref.css v43, mobile-bar.js v4 (блоки «Мобильная v5» в конце styles.css / auctions.css / catalog-ref.extra.css).
+- Версии: styles.css v573, auctions.css v652, catalog-ref.css v44, mobile-bar.js v4 (блоки «Мобильная v5» в конце styles.css / auctions.css / catalog-ref.extra.css).
