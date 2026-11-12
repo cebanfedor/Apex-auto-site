@@ -430,7 +430,9 @@
       // 04.11.2026 (Федор: «чтоб человек понимал что нажимает») — подписанный колокольчик должен называть
       // ДЕЙСТВИЕ клика (отписаться), а не статус («Слежу за лотом» читалось как нейтральная метка, не кнопка).
       const txt = L(on ? "Перестать следить за лотом" : "Следить за лотом");
-      const lab = b.querySelector("span"); if(lab) lab.textContent = txt;
+      // кнопка на странице лота: подпись короче («Больше не следить») + перечёркнутый колокольчик
+      const lab = b.querySelector("span"); if(lab) lab.textContent = b.classList.contains("dBellBtnV1") ? L(on ? "Больше не следить" : "Следить за лотом") : txt;
+      if(b.classList.contains("dBellBtnV1")){ const ico = b.querySelector("svg"); if(ico) ico.outerHTML = dbIco(on ? "bellOff" : "bell"); }
       if(b.hasAttribute("title")) b.title = txt;     // мелкий колокольчик на карточке — текста нет, только title
     });
   }
@@ -1164,6 +1166,7 @@
     warn:'<path d="M12 4l8.5 15H3.5z"/><path d="M12 10v4M12 16.5v.5"/>',
     q:'<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.4 2.4 0 1 1 3.3 2.2c-.8.4-1 .9-1 1.6M12 16v.5"/>',
     bell:'<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 7.5H4c0-1 2-2.5 2-7.5z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+    bellOff:'<path d="M6 9a6 6 0 0 1 9.4-4.9M18 9c0 5 2 6.5 2 7.5H7M10 20a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>',
     star:'<path d="M12 4l2.3 4.9 5.2.7-3.8 3.7.9 5.2L12 16.7 7.4 18.2l.9-5.2L4.5 9.6l5.2-.7z"/>',
     vin:'<rect x="3" y="7" width="18" height="10" rx="1"/><path d="M6 10v4M9 10v4M12 10v4M15 10v4M18 10v4"/>',
     zoom:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4M11 8v6M8 11h6"/>',
@@ -3998,8 +4001,8 @@
           </div>
           <div class="dHeadActionsV1">
             <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
-            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}">${dbIco("bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}</span></button>` : ""}
-            ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">${dbIco("vin")}<span>Отчёт истории VIN</span></a>` : ""}
+            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}">${dbIco(alertLots().has(String(lot.id)) ? "bellOff" : "bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Больше не следить" : "Следить за лотом"))}</span></button>` : ""}
+            ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">${dbIco("vin")}<span>${L("VIN отчёт")}</span></a>` : ""}
           </div>
         </div>
         ${(() => {

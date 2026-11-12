@@ -2011,3 +2011,13 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
   .calcRulesV1 .rulesToggleV1 { flex:1 1 auto; }
   .calcRulesV1 .rulesToggleV1 button { flex:1; height:32px !important; font-size:13px !important; }
 }
+
+/* Мобильная v4 (лот), доработка 12.11.2026: «вернуться» ближе к шапке, «поделиться» шире и по центру строки заголовка */
+@media (max-width:640px){
+  #auctionDetail .detailTopRowV1 { margin-top:-18px; margin-bottom:2px; }
+  #auctionDetail .detailBackV1 { min-height:32px; }
+  .dTitleRowV1 { align-items:center !important; gap:10px; }
+  .dTitleRowV1 .dShareBtnV1 { width:46px !important; height:36px !important; align-self:center; }
+  .dHeadActionsV1 .dBellBtnV1 { gap:3px; }
+}
+.dBellBtnV1.is-on .dbIco { fill:none; stroke:#1d4ed8; }
