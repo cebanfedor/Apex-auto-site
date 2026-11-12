@@ -1288,7 +1288,7 @@ function calculate(){
     ["Комиссия", company, "", "usd"],
     ["Таможенные платежи", customs.total - (customs.luxury || 0), "", "mdl", "", customs.text]
   ];
-  if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "при оплате в MDL", "mdl"]);
+  if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "", "mdl", "", "Фиксированный сбор 2000 MDL при оплате в MDL"]);
 
   if(customs.luxury > 0){
     const lng = window.APEX_LANG || document.documentElement.lang || "ru";
@@ -1863,7 +1863,7 @@ function calculateCanada(){
     ["Комиссия",                    company,      "",                              "usd"],
     ["Таможенные платежи",          customs.total - (customs.luxury || 0), "", "mdl", "", customs.text]
   ];
-  if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "при оплате в MDL", "mdl"]);
+  if(brokerUtilMdl > 0) payLaterRows.push(["Брокер + утиль сбор", brokerUtilMdl, "", "mdl", "", "Фиксированный сбор 2000 MDL при оплате в MDL"]);
 
   const lng = window.APEX_LANG || "ru";
   if(customs.luxury > 0){

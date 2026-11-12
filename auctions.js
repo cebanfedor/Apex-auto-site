@@ -2791,7 +2791,7 @@
         + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
         ${calcRow("Дорога Клайпеда → Кишинёв", calc.road)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
-        ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "2000 MDL при оплате в MDL") : ""}
+        ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "", "Фиксированный сбор 2000 MDL при оплате в MDL") : ""}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
         ${calcRow("Комиссия", calc.service)}`);
@@ -2806,7 +2806,7 @@
         ${calcRow("Доставка по США", calc.land)}
         ${calcRow("Доставка морем", calc.sea)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
-        ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "2000 MDL при оплате в MDL") : ""}
+        ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "", "Фиксированный сбор 2000 MDL при оплате в MDL") : ""}
         ${calcRow("Страховка (1%)", calc.insurance)}
         ${calcRow("Экспортные документы", calc.exportDocs)}
         ${calcRow("Комиссия", calc.service)}`);
