@@ -2647,27 +2647,44 @@ async function resolveGenRange(modelId, yearQ, genIdQ){
 // из нашей базы (`api_lots.lane` = «филиал|линия», ≥3 лота с одной ближайшей датой в окне −2…+48 ч). Только для показа (в базу НЕ пишем), с пометкой
 // `auctionDateInferred` — на странице подпись «по расписанию линии». Когда фид отдаст настоящую дату, она сразу заменит эту.
 const laneDateCache = new Map();
-async function laneSaleDate(laneKey){
-  if(!laneKey || !/^[0-9]+\|[A-Z0-9]+$/.test(laneKey)) return "";
+// У одной линии филиала за день бывает НЕСКОЛЬКО сессий (Dallas South, линия D, 12.11: 17:00 UTC — 24 лота, заезды 4031–4302, и 18:00 UTC — 3 лота, заезды 4025–4144),
+// номера заездов сессий перекрываются, поэтому одну дату выбрать нельзя. Берём сессии (≥3 лота на дате), в диапазон заездов которых попадает номер нашего лота;
+// одна — берём её; несколько — отдаём окно «от самой ранней до самой поздней» (клиент покажет «19:00–20:00»).
+async function laneSaleDate(laneKey, runNo){
+  if(!laneKey || !/^[0-9]+\|[A-Z0-9]+$/.test(laneKey)) return null;
+  let sessions;
   const hit = laneDateCache.get(laneKey);
-  if(hit && Date.now() - hit.at < 5 * 60e3) return hit.v;
-  let v = "";
-  try{
-    const from = new Date(Date.now() - 2 * 3600e3).toISOString();
-    const to = new Date(Date.now() + 48 * 3600e3).toISOString();
-    const rows = await syncSbFetch(`/api_lots?lane=eq.${encodeURIComponent(laneKey)}&archived=eq.false&sale_date=gte.${encodeURIComponent(from)}&sale_date=lte.${encodeURIComponent(to)}&select=sale_date&limit=300`);
-    const byDate = new Map();
-    for(const r of (rows || [])){ const t = Date.parse(r.sale_date || ""); if(Number.isFinite(t)) byDate.set(t, (byDate.get(t) || 0) + 1); }
-    const best = [...byDate.entries()].filter(([, n]) => n >= 3).sort((a, b) => a[0] - b[0])[0];
-    if(best) v = new Date(best[0]).toISOString();
-  }catch(e){ v = ""; }
-  laneDateCache.set(laneKey, {v, at:Date.now()});
-  if(laneDateCache.size > 500) laneDateCache.delete(laneDateCache.keys().next().value);
-  return v;
+  if(hit && Date.now() - hit.at < 5 * 60e3) sessions = hit.v;
+  else{
+    sessions = [];
+    try{
+      const from = new Date(Date.now() - 2 * 3600e3).toISOString();
+      const to = new Date(Date.now() + 48 * 3600e3).toISOString();
+      const rows = await syncSbFetch(`/api_lots?lane=eq.${encodeURIComponent(laneKey)}&archived=eq.false&sale_date=gte.${encodeURIComponent(from)}&sale_date=lte.${encodeURIComponent(to)}&select=sale_date,run_no&limit=400`);
+      const by = new Map();
+      for(const r of (rows || [])){
+        const t = Date.parse(r.sale_date || ""); if(!Number.isFinite(t)) continue;
+        const g = by.get(t) || {t, n:0, min:Infinity, max:-Infinity};
+        g.n++; const rn = Number(r.run_no) || 0; if(rn > 0){ g.min = Math.min(g.min, rn); g.max = Math.max(g.max, rn); }
+        by.set(t, g);
+      }
+      sessions = [...by.values()].filter(g => g.n >= 3).sort((a, b) => a.t - b.t);
+    }catch(e){ sessions = []; }
+    laneDateCache.set(laneKey, {v:sessions, at:Date.now()});
+    if(laneDateCache.size > 500) laneDateCache.delete(laneDateCache.keys().next().value);
+  }
+  if(!sessions.length) return null;
+  const rn = Number(runNo) || 0;
+  // Номер заезда известен — оставляем только сессии, в диапазон которых он попадает (с запасом 10); не попал ни в одну — не гадаем
+  const fit = rn > 0 ? sessions.filter(g => g.min !== Infinity && rn >= g.min - 10 && rn <= g.max + 10) : sessions;
+  if(!fit.length) return null;
+  const at = new Date(fit[0].t).toISOString();
+  const last = fit[fit.length - 1];
+  return {at, to:last.t !== fit[0].t ? new Date(last.t).toISOString() : ""};
 }
 async function inferLaneDate(lot){
-  if(!lot || lot.auctionDate || !lot.laneKey || Number(lot.statusId) === 6 || /sold/i.test(String(lot.lotStatus || ""))) return "";
-  return laneSaleDate(lot.laneKey);
+  if(!lot || lot.auctionDate || !lot.laneKey || Number(lot.statusId) === 6 || /sold/i.test(String(lot.lotStatus || ""))) return null;
+  return laneSaleDate(lot.laneKey, lot.runNo);
 }
 
 async function attachGenRange(lot){
@@ -6411,7 +6428,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g52" : "";   // бамп при смене таблицы поколений и формы detail (g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g53" : "";   // бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -6574,7 +6591,7 @@ module.exports = async function handler(request, response){
       await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);
       await attachGenRange(lot);
       upsertClosedLot(lot);
-      { const inferred = await inferLaneDate(lot); if(inferred){ lot.auctionDate = inferred; lot.auctionDateInferred = true; } }   // после upsert: выведенную дату в базу не пишем
+      { const inferred = await inferLaneDate(lot); if(inferred){ lot.auctionDate = inferred.at; lot.auctionDateInferred = true; if(inferred.to) lot.auctionDateInferredTo = inferred.to; } }   // после upsert: выведенную дату в базу не пишем
       const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};
       // История по VIN не загрузилась (таймаут фида) — НЕ кэшируем: иначе «Единственная продажа» висит до получаса.
       if(lot.vinChecked !== false){
@@ -6754,7 +6771,7 @@ module.exports = async function handler(request, response){
           // уже сверяем с живым фидом (fetchDetail выше) — пишем дату (и остальное) в базу сразу, не только
           // при «продан», как раньше. Та же функция, что самолечит detail&fresh=1 — сама решает, что писать.
           if(r.sold || ndSet.has(id)) upsertClosedLot(lot).catch(() => {});
-          if(!r.auctionDate){ const inferred = await inferLaneDate(lot); if(inferred){ r.auctionDate = inferred; r.dateInferred = true; } }   // 12.11.2026: фид без даты, но с линией — дата по соседям линии
+          if(!r.auctionDate){ const inferred = await inferLaneDate(lot); if(inferred){ r.auctionDate = inferred.at; r.dateInferred = true; if(inferred.to) r.dateInferredTo = inferred.to; } }   // 12.11.2026: фид без даты, но с линией — дата по соседям линии
           setCached(ck, r, 2 * 60e3); out[id] = r;
         }catch(e){ out[id] = null; }
       };

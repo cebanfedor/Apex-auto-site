@@ -15,29 +15,43 @@ function mockRows(rows){
 }
 const iso = h => new Date(Date.now() + h * 3600e3).toISOString();
 
-test("laneSaleDate: берёт ближайшую дату, на которой у линии ≥3 лота", async () => {
-  const calls = mockRows([...Array(5).fill({sale_date:iso(3)}), ...Array(9).fill({sale_date:iso(30)}), {sale_date:iso(1)}]);
-  const d = await laneSaleDate("1001|D");
-  assert.ok(d, "дата найдена");
-  assert.ok(Math.abs(Date.parse(d) - Date.now() - 3 * 3600e3) < 5000, "выбрана дата +3ч (одиночный лот на +1ч и дальняя дата не подходят)");
+const rows = (h, n, from) => Array.from({length:n}, (_, k) => ({sale_date:iso(h), run_no:from + k * 5}));
+
+test("laneSaleDate: одна сессия, в диапазон заездов которой попадает лот — берём её дату", async () => {
+  const calls = mockRows([...rows(3, 6, 4030), ...rows(30, 9, 100), {sale_date:iso(1), run_no:4066}]);
+  const d = await laneSaleDate("1001|D", 4060);
+  assert.ok(d && !d.to, "одна дата без окна");
+  assert.ok(Math.abs(Date.parse(d.at) - Date.now() - 3 * 3600e3) < 5000, "выбрана сессия +3ч (по заезду 4060), не дальняя и не одиночный лот");
   assert.ok(/lane=eq\.1001%7CD/.test(calls[0]) && /archived=eq\.false/.test(calls[0]), "запрос по линии филиала и только живым лотам");
 });
 
-test("laneSaleDate: меньше 3 лотов на дате — не угадываем", async () => {
-  mockRows([{sale_date:iso(2)}, {sale_date:iso(2)}]);
-  assert.equal(await laneSaleDate("1002|A"), "");
+test("laneSaleDate: две сессии перекрываются по заездам (как Dallas South линия D) — окно от ранней до поздней", async () => {
+  mockRows([...rows(3, 24, 4031), {sale_date:iso(4), run_no:4025}, {sale_date:iso(4), run_no:4090}, {sale_date:iso(4), run_no:4144}]);   // как в реальных данных: 17:00 UTC — заезды 4031…, 18:00 UTC — 4025…4144
+  const d = await laneSaleDate("1005|D", 4066);
+  assert.ok(d && d.to, "неоднозначно — отдаём окно");
+  assert.ok(Date.parse(d.to) - Date.parse(d.at) === 3600e3, "окно в 1 час");
 });
 
-test("laneSaleDate: левый ключ и сбой базы → пусто, без исключения", async () => {
-  assert.equal(await laneSaleDate("x; drop"), "");
+test("laneSaleDate: заезд лота вне диапазонов сессий — не гадаем", async () => {
+  mockRows(rows(3, 6, 100));
+  assert.equal(await laneSaleDate("1006|A", 4066), null);
+});
+
+test("laneSaleDate: меньше 3 лотов на дате — не угадываем", async () => {
+  mockRows([{sale_date:iso(2), run_no:10}, {sale_date:iso(2), run_no:11}]);
+  assert.equal(await laneSaleDate("1002|A", 10), null);
+});
+
+test("laneSaleDate: левый ключ и сбой базы → null, без исключения", async () => {
+  assert.equal(await laneSaleDate("x; drop", 1), null);
   global.fetch = async () => { throw new Error("db down"); };
-  assert.equal(await laneSaleDate("1003|B"), "");
+  assert.equal(await laneSaleDate("1003|B", 1), null);
 });
 
 test("inferLaneDate: только лот без даты с линией, не проданный", async () => {
-  mockRows(Array(4).fill({sale_date:iso(5)}));
-  assert.ok(await inferLaneDate({auctionDate:"", laneKey:"1004|C", lotStatus:"sale"}));
-  assert.equal(await inferLaneDate({auctionDate:iso(1), laneKey:"1004|C", lotStatus:"sale"}), "", "дата есть — не трогаем");
-  assert.equal(await inferLaneDate({auctionDate:"", laneKey:"", lotStatus:"sale"}), "", "нет линии");
-  assert.equal(await inferLaneDate({auctionDate:"", laneKey:"1004|C", statusId:6}), "", "продан");
+  mockRows(rows(5, 4, 4060));
+  assert.ok(await inferLaneDate({auctionDate:"", laneKey:"1004|C", runNo:4066, lotStatus:"sale"}));
+  assert.equal(await inferLaneDate({auctionDate:iso(1), laneKey:"1004|C", runNo:4066, lotStatus:"sale"}), null, "дата есть — не трогаем");
+  assert.equal(await inferLaneDate({auctionDate:"", laneKey:"", lotStatus:"sale"}), null, "нет линии");
+  assert.equal(await inferLaneDate({auctionDate:"", laneKey:"1004|C", statusId:6}), null, "продан");
 });
