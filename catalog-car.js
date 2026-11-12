@@ -956,7 +956,9 @@
   // неразрывный пробел в числах «50 000» — чтобы подсказка не рвалась между строками
   function kcNb(h){ return String(h == null ? "" : h).replace(/(\d) (?=\d{3}(?!\d))/g, "$1\u00a0"); }
   // Пояснение — не мелким текстом под строкой, а подсказкой у значка (i), как в калькуляторе США/Канады (Федор 12.11.2026)
-  function kcTip(text){ return text ? ' <span class="infoTipV65 rowTipV1" tabindex="0" role="note" aria-label="' + kcNb(text) + '">i</span>' : ""; }
+  // Текст подсказки всегда с заглавной буквы («При оплате в леях», «Акциз …»)
+  function kcCap(t){ t = String(t == null ? "" : t); return t && t.charAt(0) !== "&" ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
+  function kcTip(text){ return text ? ' <span class="infoTipV65 rowTipV1" tabindex="0" role="note" aria-label="' + kcNb(kcCap(text)) + '">i</span>' : ""; }
   function kcRow(label, value, tip, off){
     return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + kcTip(tip) + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
   }
@@ -987,12 +989,12 @@
     h += '<section class="kc__grp">' + kcGrpHead("1-й платёж", "вместе с машиной", kcUsd(f.subtotal), "") + '<ul class="kc__rows">';
     h += kcRow("Автомобиль (цена на Encar)", kcUsd(f.car));
     h += kcRow("Комиссия дилера", kcUsd(f.dealer));
-    h += kcRow("Расходы по Корее", kcUsd(f.korea), esc(T("снятие с учёта, экспорт")));
+    h += kcRow("Расходы по Корее", kcUsd(f.korea), esc(T("Снятие с учёта, экспортные документы, брокер")));
     h += kcRow("Доставка до порта", kcUsd(f.port));
     h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), esc(T(KC_CLS_NAMES[q.cls])) + (q.high ? " · " + esc(T("авто дороже 50 000 $")) + " · ×1,5" : ""));
     if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
     h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("Осмотр автомобиля — по желанию, можно отключить")));
-    h += kcRow("Комиссия на оплату", q.first.payFee > 0 ? kcUsd(q.first.payFee) : "—", esc(T("1% при оплате в леях, мин. 50 $")), q.first.payFee === 0);
+    h += kcRow("Комиссия на оплату", q.first.payFee > 0 ? kcUsd(q.first.payFee) : "—", esc(T("При оплате в леях — 1%, мин. 50 $")), q.first.payFee === 0);
     h += '</ul></section>';
     // --- второй платёж: EUR, доставка и комиссия ---
     h += '<section class="kc__grp">' + kcGrpHead("2-й платёж", "доставка и комиссия", kcEur(s.subtotalEur), "≈ " + kcUsd(s.subtotalUsd)) + '<ul class="kc__rows">';

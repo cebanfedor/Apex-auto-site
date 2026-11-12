@@ -3473,7 +3473,9 @@ window.__APEX_DICT = (function(){
       "доставка и комиссия":"livrare și comision",
       "таможня и сборы":"vamă și taxe",
       "Осмотр автомобиля — по желанию, можно отключить":"Inspecția mașinii — opțional, poate fi dezactivată",
-      "Доставка в Молдову":"Livrare în Moldova"
+      "Доставка в Молдову":"Livrare în Moldova",
+      "Снятие с учёта, экспортные документы, брокер":"Radiere din evidență, documente de export, broker",
+      "При оплате в леях — 1%, мин. 50 $":"La plata în lei — 1%, min. 50 $"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6960,7 +6962,9 @@ window.__APEX_DICT = (function(){
       "доставка и комиссия":"delivery and commission",
       "таможня и сборы":"customs and fees",
       "Осмотр автомобиля — по желанию, можно отключить":"Car inspection — optional, can be turned off",
-      "Доставка в Молдову":"Delivery to Moldova"
+      "Доставка в Молдову":"Delivery to Moldova",
+      "Снятие с учёта, экспортные документы, брокер":"Deregistration, export documents, broker",
+      "При оплате в леях — 1%, мин. 50 $":"When paying in lei — 1%, min. $50"
     }
   };
 
