@@ -3469,7 +3469,11 @@ window.__APEX_DICT = (function(){
       "при оплате в леях · вместе с комиссией на оплату":"la plata în lei · împreună cu comisionul de plată",
       "* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально.":"* Pentru mașinile de peste 50 000 $ comisionul este de la 1 000 €, stabilit individual.",
       "3-й платёж":"Plata 3",
-      "Электромобиль":"Mașină electrică"
+      "Электромобиль":"Mașină electrică",
+      "доставка и комиссия":"livrare și comision",
+      "таможня и сборы":"vamă și taxe",
+      "Осмотр автомобиля — по желанию, можно отключить":"Inspecția mașinii — opțional, poate fi dezactivată",
+      "Доставка в Молдову":"Livrare în Moldova"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6952,7 +6956,11 @@ window.__APEX_DICT = (function(){
       "при оплате в леях · вместе с комиссией на оплату":"when paying in lei · together with the payment fee",
       "* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально.":"* For cars over $50,000 the commission starts at €1,000, agreed individually.",
       "3-й платёж":"Payment 3",
-      "Электромобиль":"Electric car"
+      "Электромобиль":"Electric car",
+      "доставка и комиссия":"delivery and commission",
+      "таможня и сборы":"customs and fees",
+      "Осмотр автомобиля — по желанию, можно отключить":"Car inspection — optional, can be turned off",
+      "Доставка в Молдову":"Delivery to Moldova"
     }
   };
 

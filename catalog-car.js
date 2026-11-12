@@ -955,15 +955,18 @@
   function kcRate(r){ return Number(r).toFixed(2).replace(".", ","); }
   // неразрывный пробел в числах «50 000» — чтобы подсказка не рвалась между строками
   function kcNb(h){ return String(h == null ? "" : h).replace(/(\d) (?=\d{3}(?!\d))/g, "$1\u00a0"); }
-  function kcRow(label, value, hint, off){
-    return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + kcNb(hint) + '</small>' : "") + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+  // Пояснение — не мелким текстом под строкой, а подсказкой у значка (i), как в калькуляторе США/Канады (Федор 12.11.2026)
+  function kcTip(text){ return text ? ' <span class="infoTipV65 rowTipV1" tabindex="0" role="note" aria-label="' + kcNb(text) + '">i</span>' : ""; }
+  function kcRow(label, value, tip, off){
+    return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + kcTip(tip) + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
   }
   function kcGrpHead(title, sub, main, approx){
     return '<header class="kc__grphead"><span class="kc__grpttl">' + esc(T(title)) + '<small>' + esc(T(sub)) + '</small></span><span class="kc__grpval"><b class="num" data-no-i18n="true">' + main + '</b>' + (approx ? '<em class="num" data-no-i18n="true">' + approx + '</em>' : "") + '</span></header>';
   }
-  function kcCheck(key, on, label, value, hint){
-    return '<li class="kc__row kc__row--opt' + (on ? "" : " is-off") + '"><label class="kc__chk"><input type="checkbox" data-kc="' + key + '"' + (on ? " checked" : "") + '><span class="kc__box" aria-hidden="true"></span>'
-      + '<span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + kcNb(hint) + '</small>' : "") + '</span></label><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+  function kcCheck(key, on, label, value, tip){
+    // значок (i) — вне <label>, иначе нажатие на него переключало бы галочку
+    return '<li class="kc__row kc__row--opt' + (on ? "" : " is-off") + '"><span class="kc__lblwrap"><label class="kc__chk"><input type="checkbox" data-kc="' + key + '"' + (on ? " checked" : "") + '><span class="kc__box" aria-hidden="true"></span>'
+      + '<span class="kc__lbl">' + esc(T(label)) + '</span></label>' + kcTip(tip) + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
   }
   function kcCustomsHint(q){
     var c = q.customs; if(!c) return "";
@@ -988,17 +991,17 @@
     h += kcRow("Доставка до порта", kcUsd(f.port));
     h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), esc(T(KC_CLS_NAMES[q.cls])) + (q.high ? " · " + esc(T("авто дороже 50 000 $")) + " · ×1,5" : ""));
     if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
-    h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("по желанию")));
+    h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("Осмотр автомобиля — по желанию, можно отключить")));
     h += kcRow("Комиссия на оплату", q.first.payFee > 0 ? kcUsd(q.first.payFee) : "—", esc(T("1% при оплате в леях, мин. 50 $")), q.first.payFee === 0);
     h += '</ul></section>';
     // --- второй платёж: EUR, доставка и комиссия ---
-    h += '<section class="kc__grp">' + kcGrpHead("2-й платёж", "доставка до Кишинёва и комиссия, в евро", kcEur(s.subtotalEur), "≈ " + kcUsd(s.subtotalUsd)) + '<ul class="kc__rows">';
-    h += kcRow("Доставка из Европы в Молдову", kcEur(s.deliveryEur), esc(T(KC_CLS_NAMES[q.cls])));
+    h += '<section class="kc__grp">' + kcGrpHead("2-й платёж", "доставка и комиссия", kcEur(s.subtotalEur), "≈ " + kcUsd(s.subtotalUsd)) + '<ul class="kc__rows">';
+    h += kcRow("Доставка в Молдову", kcEur(s.deliveryEur), esc(T("Доставка из Европы в Молдову")) + " · " + esc(T(KC_CLS_NAMES[q.cls])));
     h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur) + (s.commissionStar ? "*" : ""));
     h += '</ul></section>';
     // --- третий платёж: MDL, таможня ---
     var t3 = q.third;
-    h += '<section class="kc__grp">' + kcGrpHead("3-й платёж", "таможня и сборы, в леях", q.incomplete.length ? esc(T("уточним")) : kcMdl(t3.subtotalMdl), q.incomplete.length ? "" : "≈ " + kcUsd(t3.subtotalUsd)) + '<ul class="kc__rows">';
+    h += '<section class="kc__grp">' + kcGrpHead("3-й платёж", "таможня и сборы", q.incomplete.length ? esc(T("уточним")) : kcMdl(t3.subtotalMdl), q.incomplete.length ? "" : "≈ " + kcUsd(t3.subtotalUsd)) + '<ul class="kc__rows">';
     if(q.incomplete.length) h += kcRow("Таможенные платежи", esc(T("уточним")), esc(T(q.incomplete.indexOf("engine") >= 0 ? "нет объёма двигателя" : "нет года выпуска")), true);
     else{
       h += kcRow("Таможенные платежи", kcMdl(t3.exciseMdl), kcCustomsHint(q));
@@ -1011,12 +1014,11 @@
     if(q.isEv && rules === "2027") h += '<label class="kc__mass"><span>' + esc(T("Масса авто, кг")) + '</span><input type="number" inputmode="numeric" min="500" max="6000" step="10" data-kc-kg placeholder="' + (q.customs && q.customs.kg ? q.customs.kg : "") + '" value="' + esc(kc.kg) + '"></label>';
     h += '</div></section>';
     // --- итог ---
-    h += '<div class="kc__total"><span>' + esc(T("Итого под ключ в Кишинёве")) + '<small>' + esc(T("с таможней, все 3 платежа")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
+    h += '<div class="kc__total"><span>' + esc(T("Итого под ключ")) + kcTip(esc(T("Итого под ключ в Кишинёве") + ", " + T("с таможней, все 3 платежа") + ". " + T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."))) + '</span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
     h += '<p class="kc__sub num" data-no-i18n="true">≈ ' + kcEur(q.totalEur) + " · " + kcMdl(q.totalMdl) + '</p>';
     var notes = [];
     if(q.incomplete.length) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
     if(q.second.commissionStar) notes.push(T("* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально."));
-    notes.push(T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."));
     h += '<p class="kc__note">' + kcNb(notes.map(esc).join(" ")) + '</p>';
     h += '<p class="kc__rate num" data-no-i18n="true">1 $ = ' + kcRate(q.usdMdl) + ' MDL · 1 € = ' + kcRate(q.eurMdl) + ' MDL</p>';
     h += '</div>';

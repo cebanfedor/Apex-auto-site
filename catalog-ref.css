@@ -585,10 +585,10 @@
 .kc__rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .kc__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; line-height: 1.3; }
 .kc__lbl { flex: 1; min-width: 0; color: rgb(var(--c-ink-2, var(--c-ink))); }
-.kc__lbl small { display: block; margin-top: 1px; font-size: 11.5px; line-height: 1.3; color: rgb(var(--c-ink-3)); }
 .kc__val { flex: none; font-weight: 600; color: rgb(var(--c-ink)); white-space: nowrap; text-align: right; }
 .kc__row.is-off .kc__val { color: rgb(var(--c-ink-3)); font-weight: 500; }
-.kc__chk { display: flex; align-items: flex-start; gap: 9px; flex: 1; min-width: 0; cursor: pointer; }
+.kc__chk { display: flex; align-items: flex-start; gap: 9px; flex: 0 1 auto; min-width: 0; cursor: pointer; }
+.kc__lblwrap { display: flex; align-items: flex-start; gap: 4px; flex: 1; min-width: 0; }
 .kc__chk input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 .kc__box { flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 6px; border: 1.5px solid rgb(var(--c-ink-4, 140 149 163)); background: #fff; display: grid; place-items: center; transition: background .15s, border-color .15s; }
 .kc__chk input:checked + .kc__box { background: #ed0012; border-color: #ed0012; }
@@ -632,3 +632,13 @@
 @media (max-width: 360px) { .kc__top b { font-size: 19px; } .kc__top { padding: 9px 11px; } .kc__grp { padding: 10px; } }
 /* узкие карточки (2 в ряд на телефоне): подпись и сумма «под ключ» — в две строки, без обрезания */
 @media (max-width: 420px) { .vcard__tk { white-space: normal; min-height: 34px; line-height: 1.25; } .vcard__tk b { display: block; font-size: 13.5px; } }
+
+/* Подсказки (i) — как в калькуляторе США: значок у названия строки, текст всплывает над строкой по её ширине (карточка цены режет всё, что выходит за край) */
+.kc__row { position: relative; }
+.kc .infoTipV65 { position: static; flex: none; width: 16px; height: 16px; margin-left: 4px; font-size: 10px; vertical-align: 1px; }
+.kc .rowTipV1.rowTipV1:hover::after, .kc .rowTipV1.rowTipV1:focus::after { top: auto; bottom: calc(100% + 4px); left: 0; right: auto; transform: none; width: max-content; max-width: 100%; box-sizing: border-box; text-align: left; z-index: 30; }
+.kc__lblwrap .infoTipV65 { margin-top: 2px; }
+.kc__total { position: relative; }
+.kc__total .rowTipV1 { background: rgb(255 255 255 / .16); border-color: transparent; color: rgb(255 255 255 / .85); }
+.kc__total .rowTipV1:hover, .kc__total .rowTipV1:focus { background: #fff; color: #111; }
+.kc__total .rowTipV1.rowTipV1:hover::after, .kc__total .rowTipV1.rowTipV1:focus::after { bottom: calc(100% + 8px); background: #000; border: 1px solid rgb(255 255 255 / .2); }
