@@ -1967,3 +1967,8 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
   .scAucV1 { font-size:10.5px; }
   .scSpecV1 { font-size:12px; }
 }
+
+/* Убран лишний пробел между каталогом и подвалом: было 60–80px паддинга + 80px отступа подвала (12.11.2026) */
+.auctionsShellV1 { padding-bottom:28px; }
+.auctionsShellV1 ~ .siteFooter { margin-top:24px; }
+@media (max-width:640px){ .auctionsShellV1 { padding-bottom:20px; } .auctionsShellV1 ~ .siteFooter { margin-top:16px; } }
