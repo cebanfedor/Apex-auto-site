@@ -1921,3 +1921,8 @@ body.leadModalOpenV1 { overflow:hidden; }
 html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 .auctionsCatalogV1 > .tkHostV1[hidden] { display: block !important; height: 46px; visibility: hidden; }
 @media (max-width: 640px) { .auctionsCatalogV1 > .tkHostV1[hidden] { height: 42px; } }
+
+/* Витрина: дата и «осталось» — два ряда, без переноса (12.11.2026) */
+.scDateV1 { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px 6px; }
+.scDateV1 > span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.scDateV1 .scTlV1 { grid-column:2; justify-self:start; margin-left:0; white-space:nowrap; line-height:1.2; }
