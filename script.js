@@ -107,7 +107,7 @@ function initCustomsRules(){
   const paint = () => {
     const cur = ApexCalc.getCustomsRules();
     row.querySelectorAll("[data-rules]").forEach(b => { const on = b.dataset.rules === cur; b.classList.toggle("isOnV1", on); b.setAttribute("aria-pressed", on ? "true" : "false"); });
-    const note = $("customsRulesNote"); if(note) note.hidden = cur !== "2027";
+    document.querySelectorAll("#customsRulesNote [data-rules-note]").forEach(n => { n.hidden = n.dataset.rulesNote !== cur; });
   };
   try{ const st = localStorage.getItem("apexCustomsRulesV1"); if(st === "2026" || st === "2027") ApexCalc.setCustomsRules(st); }catch(_){}
   paint();
