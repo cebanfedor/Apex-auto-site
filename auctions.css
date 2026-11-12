@@ -2021,3 +2021,4 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
   .dHeadActionsV1 .dBellBtnV1 { gap:3px; }
 }
 .dBellBtnV1.is-on .dbIco { fill:none; stroke:#1d4ed8; }
+@media (max-width:640px){ #auctionSmartSearch::placeholder { font-size:14px; } }
