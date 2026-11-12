@@ -1926,3 +1926,6 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 .scDateV1 { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:3px 6px; }
 .scDateV1 > span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
 .scDateV1 .scTlV1 { grid-column:2; justify-self:start; margin-left:0; white-space:nowrap; line-height:1.2; }
+
+/* Телефон: переключатель площадки (Все / Copart / IAAI) убран — короче верх страницы (12.11.2026) */
+@media (max-width:640px){ .auctionSwitchV1 { display:none !important; } }
