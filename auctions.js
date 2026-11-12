@@ -2937,7 +2937,7 @@
           </label>
         </div>
         <div class="calcRulesV1" id="lotCalcRulesRow">
-          <span>${L("Таможня по правилам")}</span>
+          <span>${L("Правила таможни")}</span>
           <div class="rulesToggleV1" role="group" aria-label="${L("Правила растаможки")}">
             <button type="button" data-lot-rules="2026" class="${rulesNow() === "2026" ? "isOnV1" : ""}">2026</button>
             <button type="button" data-lot-rules="2027" class="${rulesNow() === "2027" ? "isOnV1" : ""}">2027</button>

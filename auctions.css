@@ -1972,3 +1972,42 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 .auctionsShellV1 { padding-bottom:28px; }
 .auctionsShellV1 ~ .siteFooter { margin-top:24px; }
 @media (max-width:640px){ .auctionsShellV1 { padding-bottom:20px; } .auctionsShellV1 ~ .siteFooter { margin-top:16px; } }
+
+/* ===== Мобильная v4: страница лота — единый ритм (12.11.2026, Федор: «компактнее, красивее, всё на уровне») =====
+   Шапка: заголовок 22px; характеристики/VIN/локация — строки с иконкой 16px по одной вертикали; три кнопки одной высоты 44px;
+   миниатюры фото — одной лентой (экономит ~200px); таблица «Главное» — метка слева (muted) / значение справа. */
+@media (max-width:640px){
+  .auctionDetailPanelV1 .dTitleRowV1 h1 { font-size:22px; line-height:1.18; }
+  .dSpecLine { display:flex !important; flex-wrap:wrap; align-items:center; gap:6px 14px; font-size:13.5px; line-height:1.3; margin:8px 0 10px; }
+  .dSpecLine > svg { flex:none; width:16px; height:16px; }
+  .dSpecLine > svg + span { flex:1 1 calc(100% - 30px); min-width:0; margin-left:-8px; }
+  .dSpecLine .dSpecVin.copyChipV1, .dSpecLine .dMobLocV1 { display:inline-flex; align-items:center; gap:6px; padding:0; height:auto; min-height:0; background:none; border:0; font-size:13.5px; }
+  .dSpecLine .dSpecVin svg, .dSpecLine .dMobLocV1 svg { flex:none; width:16px; height:16px; }
+  .dHeadActionsV1 { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { height:44px !important; min-height:44px !important; padding:4px 6px !important; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12px !important; line-height:1.15 !important; white-space:normal !important; text-align:center; width:auto; }
+  .dHeadActionsV1 svg { width:15px; height:15px; }
+  .detailThumbsV1 { display:flex !important; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; scrollbar-width:none; padding:2px 1px 4px; margin-top:8px; }
+  .detailThumbsV1::-webkit-scrollbar { display:none; }
+  .detailThumbsV1 .dThumbV2 { flex:none; width:64px; height:48px; aspect-ratio:auto; scroll-snap-align:start; border-radius:8px; }
+  .dNoteV1 { margin-top:6px; padding:9px 12px; border-radius:12px; }
+  .dNoteV1 label { margin-bottom:5px; }
+  .dSec { grid-template-columns:minmax(0,40%) minmax(0,1fr) !important; column-gap:12px !important; padding:6px 14px !important; }
+  .dRowLbl, .dRowVal { padding:8px 0 !important; line-height:1.3 !important; }
+  .dRowLbl { justify-content:flex-start !important; text-align:left !important; font-size:12.5px !important; color:var(--aMuted); }
+  .dRowVal { font-size:13.5px !important; }
+  .dRowVal:not(:has(.dValUnit)) { padding-left:0 !important; }
+}
+@media (max-width:640px){
+  .detailHeaderV1 { gap:8px !important; }
+  .lotDetailGridV1 { margin-top:12px !important; gap:12px !important; }
+  .dSec { grid-template-columns:minmax(0,36%) minmax(0,1fr) !important; }
+  .calcBidLabelV2 { line-height:1.15; }
+  .calcBidLabelV2 b { line-height:1.1; }
+  .calcTopV2 { gap:4px; }
+}
+@media (max-width:640px){
+  .calcRulesV1 { gap:10px; padding:2px 0 6px; }
+  .calcRulesV1 > span { flex:none; white-space:nowrap; font-size:12.5px !important; font-weight:600 !important; line-height:1.2; }
+  .calcRulesV1 .rulesToggleV1 { flex:1 1 auto; }
+  .calcRulesV1 .rulesToggleV1 button { flex:1; height:32px !important; font-size:13px !important; }
+}
