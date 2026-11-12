@@ -3476,7 +3476,11 @@ window.__APEX_DICT = (function(){
       "Доставка в Молдову":"Livrare în Moldova",
       "Снятие с учёта, экспортные документы, брокер":"Radiere din evidență, documente de export, broker",
       "При оплате в леях — 1%, мин. 50 $":"La plata în lei — 1%, min. 50 $",
-      "Цена в Корее":"Prețul în Coreea"
+      "Цена в Корее":"Prețul în Coreea",
+      "Расчёт таможни по правилам 2027":"Calculul vămii conform regulilor din 2027",
+      "Срок доставки":"Termen de livrare",
+      "2–3 месяца":"2–3 luni",
+      "Корея → Европа → Кишинёв":"Coreea → Europa → Chișinău"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6966,7 +6970,11 @@ window.__APEX_DICT = (function(){
       "Доставка в Молдову":"Delivery to Moldova",
       "Снятие с учёта, экспортные документы, брокер":"Deregistration, export documents, broker",
       "При оплате в леях — 1%, мин. 50 $":"When paying in lei — 1%, min. $50",
-      "Цена в Корее":"Price in Korea"
+      "Цена в Корее":"Price in Korea",
+      "Расчёт таможни по правилам 2027":"Customs calculated under the 2027 rules",
+      "Срок доставки":"Delivery time",
+      "2–3 месяца":"2–3 months",
+      "Корея → Европа → Кишинёв":"Korea → Europe → Chișinău"
     }
   };
 

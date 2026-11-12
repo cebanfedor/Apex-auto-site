@@ -949,6 +949,14 @@
     if(!(usd > 0)) return null;
     return window.KoreaCalc.fromCar(car, listing, usd, {cls:kc.cls, inspection:kc.inspection, evExtra:kc.evExtra, payMdl:kc.payMdl, kg:kc.kg, usdMdl:rates.usdMdl, eurMdl:rates.eurMdl});
   }
+  // Срок доставки (Федор 13.11.2026): 2–3 месяца, Корея → Европа → Кишинёв — карточка под плашкой «Под ключ», видна и при свёрнутом расчёте
+  function etaHtml(){
+    return '<div class="kc__eta">'
+      + '<span class="kc__etaico" aria-hidden="true">' + ico('<path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/>', "h-5 w-5") + '</span>'
+      + '<span class="kc__etatxt"><small>' + esc(T("Срок доставки")) + '</small><b>' + esc(T("2–3 месяца")) + '</b></span>'
+      + '<span class="kc__route" aria-label="' + esc(T("Корея → Европа → Кишинёв")) + '"><i>' + esc(T("Корея")) + '</i><u aria-hidden="true"></u><i>' + esc(T("Европа")) + '</i><u aria-hidden="true"></u><i>' + esc(T("Кишинёв")) + '</i></span>'
+    + '</div>';
+  }
   function kcUsd(v){ return fmtNum(Math.round(v)) + " $"; }
   function kcEur(v){ return fmtNum(Math.round(v)) + " €"; }
   function kcMdl(v){ return fmtNum(Math.round(v)) + " MDL"; }
@@ -980,7 +988,7 @@
     return parts.join(" · ");
   }
   function kcHtml(q){
-    var f = q.first, s = q.second, rules = window.ApexCalc.getCustomsRules();
+    var f = q.first, s = q.second, rules = window.KoreaCalc.CFG.customsRules;
     var opts = window.KoreaCalc.CLASSES.map(function(k){ return '<option value="' + k + '"' + (q.cls === k ? " selected" : "") + '>' + esc(T(KC_CLS_NAMES[k])) + '</option>'; }).join("");
     var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumhint"><span class="kc__show">' + esc(T("Показать")) + '</span><span class="kc__hide">' + esc(T("Скрыть")) + '</span></span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
     h += '<div class="kc__body">';
@@ -1011,9 +1019,9 @@
     }
     h += kcCheck("payMdl", t3.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
     h += '</ul>';
-    h += '<div class="kc__tools"><div class="kc__rules"><span>' + esc(T("Правила таможни")) + '</span><div class="kc__seg" role="group">'
-      + ["2026", "2027"].map(function(y){ return '<button type="button" class="' + (rules === y ? "is-on" : "") + '" data-kc-rules="' + y + '" aria-pressed="' + (rules === y) + '">' + y + '</button>'; }).join("") + '</div></div>';
-    if(q.isEv && rules === "2027") h += '<label class="kc__mass"><span>' + esc(T("Масса авто, кг")) + '</span><input type="number" inputmode="numeric" min="500" max="6000" step="10" data-kc-kg placeholder="' + (q.customs && q.customs.kg ? q.customs.kg : "") + '" value="' + esc(kc.kg) + '"></label>';
+    // Растаможка всегда по правилам 2027 (авто приедут уже в 2027) — переключателя 2026/2027 здесь нет, только пометка
+    h += '<div class="kc__tools"><p class="kc__rulesnote">' + ico('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>', "h-4 w-4") + '<span>' + esc(T("Расчёт таможни по правилам 2027")) + '</span></p>';
+    if(q.isEv) h += '<label class="kc__mass"><span>' + esc(T("Масса авто, кг")) + '</span><input type="number" inputmode="numeric" min="500" max="6000" step="10" data-kc-kg placeholder="' + (q.customs && q.customs.kg ? q.customs.kg : "") + '" value="' + esc(kc.kg) + '"></label>';
     h += '</div></section>';
     // --- итог ---
     h += '<div class="kc__total"><span>' + esc(T("Итого под ключ")) + kcTip(esc(T("Итого под ключ в Кишинёве") + ", " + T("с таможней, все 3 платежа") + ". " + T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."))) + '</span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
@@ -1046,10 +1054,6 @@
   }
   window.addEventListener("resize", function(){ kcFitSticky(); });
   document.addEventListener("toggle", function(e){ if(e.target && e.target.id === "kcV1"){ kc.open = e.target.open; kcFitSticky(); } }, true);
-  document.addEventListener("click", function(e){
-    var r = e.target.closest && e.target.closest("[data-kc-rules]");
-    if(r && window.ApexCalc){ window.ApexCalc.setCustomsRules(r.getAttribute("data-kc-rules")); try{ localStorage.setItem("apexCustomsRulesV1", r.getAttribute("data-kc-rules")); }catch(_){} renderKC(); }
-  });
   document.addEventListener("change", function(e){
     var t = e.target; if(!t || !t.closest) return;
     if(t.hasAttribute && t.hasAttribute("data-kc-cls-sel")){ kc.cls = t.value; renderKC(); return; }
@@ -1057,7 +1061,6 @@
     if(k){ kc[k] = !!t.checked; renderKC(); return; }
     if(t.hasAttribute && t.hasAttribute("data-kc-kg")){ kc.kg = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); }
   });
-  try{ var kcSt = localStorage.getItem("apexCustomsRulesV1"); if((kcSt === "2026" || kcSt === "2027") && window.ApexCalc) window.ApexCalc.setCustomsRules(kcSt); }catch(_){}
 
   function renderBuy(){
     var car = state.car, listing = state.listing;
@@ -1072,7 +1075,7 @@
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
       + trendChipHtml(listing)
-      + (CA ? '' : '<p class="kc__top" id="kcTopV1" hidden></p><details class="kc" id="kcV1" hidden></details>')
+      + (CA ? '' : '<p class="kc__top" id="kcTopV1" hidden></p>' + etaHtml() + '<details class="kc" id="kcV1" hidden></details>')
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
         + encarBtnHtml(listing)

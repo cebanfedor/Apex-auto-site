@@ -33,6 +33,7 @@
     // Комиссия Apex Auto, EUR: [верхняя граница цены авто в USD (не включая), комиссия]. «45+ — 1000, и так далее по нарастающей»:
     // выше 50 тыс. — 1000 со звёздочкой (индивидуально, от 1000).
     commissionEur: [[10000,300],[15000,400],[20000,500],[25000,600],[35000,700],[45000,850],[Infinity,1000]],
+    customsRules: "2027",         // авто из Кореи приедут уже в 2027 году — растаможка всегда по правилам 2027 (Федор 13.11.2026)
     brokerUtilMdl: 2000           // брокер + утиль сбор, только при оплате в леях
   };
 
@@ -244,7 +245,7 @@
       var baseUsd = first.car + first.dealer + first.korea + first.port + first.euDelivery + first.evExtra;
       var baseMdl = baseUsd * usdMdl;
       var ctype = pickup ? "pickup" : (cls === "suv" || cls === "minivan") ? "suv" : cls;   // тип для массы электромобиля по умолчанию
-      customs = c.customsMdl(baseMdl, baseMdl, {vehicleType:ctype, fuel:fuel, engineLiters:cc / 1000, year:year, curbKg:input.curbKg, rules:input.rules});
+      customs = c.customsMdl(baseMdl, baseMdl, {vehicleType:ctype, fuel:fuel, engineLiters:cc / 1000, year:year, curbKg:input.curbKg, rules:input.rules || CFG.customsRules});
       brokerMdl = payMdl ? CFG.brokerUtilMdl : 0;
     }
     // Акциз/НДС и налог на роскошь — отдельными суммами (на сайте налог на роскошь — отдельная строка)
@@ -279,9 +280,9 @@
     return {priceUsd: priceUsd, year: car.year, brand: car.brand && car.brand.name, model: car.model && car.model.name, title: tm, badge: car.badge,
       bodyId: car.body_type && car.body_type.id, fuelId: car.fuel && car.fuel.id, engineCc: car.engine_volume, cls: opts.cls || null,
       inspection: opts.inspection !== false, seats: car.seats, evExtra: opts.evExtra !== false, payMdl: opts.payMdl !== false,
-      rules: opts.rules || (c && c.getCustomsRules ? c.getCustomsRules() : undefined), curbKg: Number(opts.kg) > 0 ? Number(opts.kg) : undefined,
+      rules: opts.rules || CFG.customsRules, curbKg: Number(opts.kg) > 0 ? Number(opts.kg) : undefined,
       usdMdl: opts.usdMdl || 0, eurMdl: opts.eurMdl || 0};
   }
 
-  return {quote: quote, fromCar: fromCar, sizeClass: sizeClass, fuelKind: fuelKind, commissionEurFor: commissionEurFor, CFG: CFG, CLASSES: CLASSES, VERSION: "kr-v4"};
+  return {quote: quote, fromCar: fromCar, sizeClass: sizeClass, fuelKind: fuelKind, commissionEurFor: commissionEurFor, CFG: CFG, CLASSES: CLASSES, VERSION: "kr-v5"};
 });

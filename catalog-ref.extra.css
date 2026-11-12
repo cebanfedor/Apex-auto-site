@@ -381,3 +381,20 @@
 }
 
 .apx-korea .kc .infoTipV65, .apx-korea .kc .rowTipV1, #kcV1 .infoTipV65 { width: 18px; height: 18px; font-size: 11px; }
+
+/* Срок доставки — карточка под плашкой «Под ключ» (13.11.2026) */
+.kc__eta { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 12px; margin-top: 10px; padding: 11px 13px; border-radius: 14px; border: 1px solid rgb(var(--c-line)); background: rgb(var(--c-surface)); }
+.kc__etaico { grid-row: 1 / span 2; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: rgb(237 0 18 / .09); color: #ed0012; }
+.kc__etatxt { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-width: 0; }
+.kc__etatxt small { font-size: 12px; font-weight: 500; color: rgb(var(--c-ink-3)); }
+.kc__etatxt b { font-family: Onest, Inter, sans-serif; font-size: 17px; font-weight: 700; letter-spacing: -.01em; color: rgb(var(--c-ink)); }
+.kc__route { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600; color: rgb(var(--c-ink-2, var(--c-ink))); }
+.kc__route i { font-style: normal; white-space: nowrap; }
+.kc__route u { flex: 1 1 14px; min-width: 10px; max-width: 34px; height: 0; border-top: 1.5px dashed rgb(var(--c-ink-4, 140 149 163)); position: relative; text-decoration: none; }
+.kc__route u::after { content: ""; position: absolute; right: -1px; top: -4px; width: 6px; height: 6px; border: solid rgb(var(--c-ink-4, 140 149 163)); border-width: 1.5px 1.5px 0 0; transform: rotate(45deg); }
+.kc__route i:last-child { color: #ed0012; }
+/* Пометка про правила таможни (вместо переключателя 2026/2027) */
+.kc__rulesnote { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 12.5px; font-weight: 600; color: rgb(var(--c-ink-3)); }
+.kc__rulesnote svg { flex: none; color: #ed0012; }
+/* узкие экраны: маршрут — отдельной строкой во всю ширину карточки, не вылезает за край */
+@media (max-width: 380px) { .kc__etaico { grid-row: 1; } .kc__route { grid-column: 1 / -1; margin-top: 4px; } .kc__route u { max-width: none; } }

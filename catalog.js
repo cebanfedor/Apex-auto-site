@@ -283,7 +283,6 @@
   }
   // «Под ключ в Кишинёве» на карточке: цена авто + доставка + комиссия + растаможка (korea-calc.js, галочки по умолчанию: без осмотра, оплата в леях)
   var cardData = [];
-  try{ var rs = localStorage.getItem("apexCustomsRulesV1"); if((rs === "2026" || rs === "2027") && window.ApexCalc) window.ApexCalc.setCustomsRules(rs); }catch(e){}
   function applyTurnkey(){
     if(CA || !window.KoreaCalc || !window.ApexCalc) return;
     document.querySelectorAll("[data-tk]").forEach(function(el){

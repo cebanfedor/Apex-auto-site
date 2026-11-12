@@ -188,3 +188,13 @@ test("налог на роскошь — отдельной суммой, в и�
   const cheap = K.quote({...base, priceUsd:10000});
   assert.strictEqual(cheap.third.luxuryMdl, 0);
 });
+
+test("Корея: растаможка всегда по правилам 2027, выбор 2026/2027 для США её не меняет", () => {
+  C.setCustomsRules("2026");
+  const noRules = {...base}; delete noRules.rules;
+  const q = K.quote(noRules);
+  assert.strictEqual(q.customs.rules, "2027");
+  assert.strictEqual(q.third.customsMdl, Math.round(2000 * 23.68));
+  assert.strictEqual(K.fromCar({year:2022, brand:{name:"Kia"}, model:{name:"Sportage"}, body_type:{id:5}, fuel:{id:4}, engine_volume:1999}, null, 20000, {}).rules, "2027");
+  C.setCustomsRules("2027");
+});
