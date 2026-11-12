@@ -403,3 +403,11 @@
 .apx-korea .cf-search, .apx-korea input[type="search"].cf-search { padding-left: 36px; padding-right: 36px; height: 40px; }
 
 .kc__rate b { font-weight: 600; color: rgb(var(--c-ink-2, var(--c-ink))); }
+
+/* 12.11.2026: проверка страницы авто — иконка плитки «Комплектация» сжималась до 7px; «Похожие» — подпись рядом с заголовком, а не в 50px под ним */
+.apx-korea .lot-tcard__name svg { flex-shrink: 0; }
+@media (min-width: 640px) {
+  .apx-korea .similar .market-bar { margin-top: -34px; border-bottom: 0; align-items: flex-start; }
+  .apx-korea .similar .market-bar > p { margin-top: 38px; }
+  .apx-korea .similar .market-bar__side { padding-bottom: 0; }
+}
