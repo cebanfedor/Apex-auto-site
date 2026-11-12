@@ -2276,7 +2276,7 @@
       <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
         <b class="scTitleV1">${escapeHtml(title)}</b>
-        <span class="scSpecV1">${spec ? escapeHtml(spec) : "&nbsp;"}</span>
+        ${spec ? `<span class="scSpecV1">${escapeHtml(spec)}</span>` : ""}
         <span class="scDateV1">${dbIco("calendar")}<span>${escapeHtml(dbDate(lot.auctionDate))}</span></span>
         ${priceBar}
       </span>

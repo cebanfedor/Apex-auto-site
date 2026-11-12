@@ -977,7 +977,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 .crumbCurV1 { color:var(--aMuted); }
 
 /* Витрина по типам техники на дефолтной странице (как BidCars) */
-.showcaseSecV1 { margin-bottom:30px; padding:0 16px; }
+.showcaseSecV1 { margin-bottom:20px; padding:0 16px; }
 .showcaseHeadV1 { display:flex; align-items:center; gap:14px; margin-bottom:14px; padding:14px 0 0; }
 .showcaseHeadV1 h2 { margin:0; font-size:18px; letter-spacing:-.02em; color:var(--aInk); }
 .showcaseHeadV1 h2 b { margin-left:8px; font-size:13px; font-weight:600; color:var(--aMuted); }
@@ -1004,13 +1004,13 @@ body.leadModalOpenV1 { overflow:hidden; }
 .scAucV1 { position:absolute; left:8px; bottom:8px; font-style:normal; font-size:9px; font-weight:800; letter-spacing:.05em; padding:3px 7px; border-radius:6px; color:#fff; }
 .scAucCopartV1 { background:#1462d8; }
 .scAucIaaiV1 { background:#d9232e; }
-.scBodyV1 { display:flex; flex-direction:column; flex:1; gap:5px; padding:11px 12px 12px; }
-.scTitleV1 { font-size:13px; font-weight:700; line-height:1.3; letter-spacing:-.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.6em; }
-.scSpecV1 { font-size:11px; color:var(--aMuted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:1.2em; }
-.scDateV1 { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--aMuted); margin-top:auto; padding-top:6px; }
+.scBodyV1 { display:flex; flex-direction:column; flex:1; gap:4px; padding:10px 12px 11px; }
+.scTitleV1 { font-size:13px; font-weight:700; line-height:1.3; letter-spacing:-.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.scSpecV1 { font-size:11px; color:var(--aMuted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.scDateV1 { display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--aMuted); margin-top:auto; padding-top:2px; }
 .scDateV1 .dbIco { width:12px; height:12px; flex:none; }
 .scTlV1 { font-style:normal; margin-left:auto; font-weight:700; font-size:10px; color:#b45309; background:#fef3c7; border-radius:6px; padding:2px 6px; }
-.scPriceV1 { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:7px; background:var(--aBg, #f4f6f9); border-radius:9px; padding:8px 11px; box-sizing:border-box; min-height:36px; }
+.scPriceV1 { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:5px; background:var(--aBg, #f4f6f9); border-radius:9px; padding:6px 11px; box-sizing:border-box; min-height:32px; }
 .scPriceV1 span { font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; font-weight:700; color:var(--aMuted); }
 .scPriceV1 b { font-size:15px; line-height:1.2; letter-spacing:-.01em; }
 .scPriceEmptyV1 { justify-content:center; }
