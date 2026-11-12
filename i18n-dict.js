@@ -3011,7 +3011,7 @@ window.__APEX_DICT = (function(){
       "Подробнее":"Mai mult",
       "Гибриды и электрокары не найдены. Попробуйте позже.":"Hibrizi și electrice negăsite. Încercați mai târziu.",
       "Бус":"Microbuz / Van",
-      "Минивен / Van":"Monovolum / Van",
+      "Минивен / Van":"Minivan / Van",
       "С чего всё началось":"De unde a început totul",
       "Первые авто из США":"Primele mașini din SUA",
       "Прямая работа с аукционами":"Lucrul direct cu licitațiile",
