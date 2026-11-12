@@ -398,3 +398,6 @@
 .kc__rulesnote svg { flex: none; color: #ed0012; }
 /* узкие экраны: маршрут — отдельной строкой во всю ширину карточки, не вылезает за край */
 @media (max-width: 380px) { .kc__etaico { grid-row: 1; } .kc__route { grid-column: 1 / -1; margin-top: 4px; } .kc__route u { max-width: none; } }
+
+/* Поиск в фильтрах: иконка слева не должна наезжать на текст (глобальное правило полей из styles.css сбивало padding) */
+.apx-korea .cf-search, .apx-korea input[type="search"].cf-search { padding-left: 36px; padding-right: 36px; height: 40px; }
