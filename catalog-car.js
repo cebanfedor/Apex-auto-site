@@ -939,7 +939,7 @@
   // ============ «Из чего состоит цена» — доставка и растаможка из Кореи (12.11.2026, правила Федора; расчёт — korea-calc.js) ============
   // Первый платёж (вместе с машиной, $): авто + комиссия дилера + расходы по Корее + доставка до порта + доставка до Европы (по классу) [+ осмотр, + электро].
   // Второй платёж (при получении): доставка из Европы и комиссия Apex в €, растаможка и брокер в MDL. Только Корея (Канада — другой источник и условия).
-  var kc = {inspection:false, evExtra:true, payMdl:true, cls:null, kg:"", open:true};
+  var kc = {inspection:true, evExtra:true, payMdl:true, cls:null, kg:"", open:true};
   var KC_CLS_NAMES = {sedan:"Седан", crossover:"Кроссовер", suv:"Внедорожник", minivan:"Минивен"};
   function kcInput(){
     var car = state.car, listing = state.listing;
@@ -983,14 +983,15 @@
     h += kcRow("Комиссия дилера", kcUsd(f.dealer));
     h += kcRow("Расходы по Корее", kcUsd(f.korea), esc(T("снятие с учёта, экспорт")));
     h += kcRow("Доставка до порта", kcUsd(f.port));
-    h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), esc(T(KC_CLS_NAMES[q.cls])) + (q.high ? " · " + esc(T("авто дороже 50 000 $")) : ""));
+    h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), esc(T(KC_CLS_NAMES[q.cls])) + (q.high ? " · " + esc(T("авто дороже 50 000 $")) + " · ×1,5" : ""));
     if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
     h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("по желанию")));
+    h += kcRow("Комиссия на оплату", q.first.payFee > 0 ? kcUsd(q.first.payFee) : "—", esc(T("1% при оплате в леях, мин. 50 $")), q.first.payFee === 0);
     h += '</ul></section>';
     // --- второй платёж: EUR, доставка и комиссия ---
     h += '<section class="kc__grp">' + kcGrpHead("2-й платёж", "доставка до Кишинёва и комиссия, в евро", kcEur(s.subtotalEur), "≈ " + kcUsd(s.subtotalUsd)) + '<ul class="kc__rows">';
     h += kcRow("Доставка из Европы в Молдову", kcEur(s.deliveryEur), esc(T(KC_CLS_NAMES[q.cls])));
-    h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur));
+    h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur) + (s.commissionStar ? "*" : ""));
     h += '</ul></section>';
     // --- третий платёж: MDL, таможня ---
     var t3 = q.third;
@@ -1000,7 +1001,7 @@
       h += kcRow("Таможенные платежи", kcMdl(t3.exciseMdl), kcCustomsHint(q));
       if(t3.luxuryMdl > 0) h += kcRow("Налог на роскошь", kcMdl(t3.luxuryMdl), q.customs.luxuryPct + "% " + esc(T("от")) + " " + kcMdl(q.customs.luxuryBase));
     }
-    h += kcCheck("payMdl", t3.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
+    h += kcCheck("payMdl", t3.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях · вместе с комиссией на оплату")));
     h += '</ul>';
     h += '<div class="kc__tools"><div class="kc__rules"><span>' + esc(T("Правила таможни")) + '</span><div class="kc__seg" role="group">'
       + ["2026", "2027"].map(function(y){ return '<button type="button" class="' + (rules === y ? "is-on" : "") + '" data-kc-rules="' + y + '" aria-pressed="' + (rules === y) + '">' + y + '</button>'; }).join("") + '</div></div>';
@@ -1011,7 +1012,7 @@
     h += '<p class="kc__sub num" data-no-i18n="true">≈ ' + kcEur(q.totalEur) + " · " + kcMdl(q.totalMdl) + '</p>';
     var notes = [];
     if(q.incomplete.length) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
-    if(q.highPending) notes.push(T("Для авто дороже 50 000 $ доставка до Европы дороже — сумму уточнит менеджер, итог указан без доплаты."));
+    if(q.second.commissionStar) notes.push(T("* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально."));
     notes.push(T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."));
     h += '<p class="kc__note">' + notes.map(esc).join(" ") + '</p>';
     h += '<p class="kc__rate num" data-no-i18n="true">1 $ = ' + kcRate(q.usdMdl) + ' MDL · 1 € = ' + kcRate(q.eurMdl) + ' MDL</p>';

@@ -30,7 +30,8 @@ test("кроссовер, бензин 2.0 л: первый платёж по с
   assert.strictEqual(q.first.euDelivery, 2100);
   assert.strictEqual(q.first.inspection, 0);
   assert.strictEqual(q.first.evExtra, 0);
-  assert.strictEqual(q.first.subtotal, 15000 + 350 + 300 + 100 + 2100);
+  assert.strictEqual(q.first.payFee, Math.round((15000 + 350) * 0.01));   // 1% «комиссия на оплату» — вместе с брокером
+  assert.strictEqual(q.first.subtotal, 15000 + 350 + 300 + 100 + 2100 + q.first.payFee);
   assert.strictEqual(q.second.deliveryEur, 1100);
   assert.strictEqual(q.second.commissionEur, 500);
   // возраст 7 лет, бензин 1.5–2.0 л → 23,68 лей/см³ (правила 2027)
@@ -81,12 +82,42 @@ test("электромобиль: +300 к доставке (можно снят�
   assert.strictEqual(K.quote({...ev, rules:"2026"}).third.customsMdl, 0);
 });
 
-test("дороже $50 000: доставка до Европы дороже — сумма пока не названа, об этом флаг", () => {
+test("дороже $50 000: доставка до Европы ×1,5, комиссия «1000 со звёздочкой»", () => {
   const q = K.quote({...base, priceUsd:60000});
   assert.strictEqual(q.high, true);
-  assert.strictEqual(q.highPending, true);
-  assert.strictEqual(K.quote({...base, priceUsd:50000}).high, false);
+  assert.strictEqual(q.first.euDelivery, 2100 * 1.5);          // кроссовер
   assert.strictEqual(q.second.commissionEur, 1000);
+  assert.strictEqual(q.second.commissionStar, true);
+  const at50 = K.quote({...base, priceUsd:50000});
+  assert.strictEqual(at50.high, false);                          // ровно $50 000 — ещё обычная цена
+  assert.strictEqual(at50.first.euDelivery, 2100);
+  assert.strictEqual(at50.second.commissionStar, false);
+  assert.strictEqual(K.quote({...base, priceUsd:60000, cls:"suv"}).first.euDelivery, 3300);
+});
+
+test("1% комиссия на оплату — вместе с брокером: мин. $50, снимается той же галочкой", () => {
+  assert.strictEqual(K.quote({...base, priceUsd:2000}).first.payFee, 50);                 // 1% = 23,5 → минимум
+  assert.strictEqual(K.quote({...base, priceUsd:30000}).first.payFee, Math.round(30350 * 0.01));
+  const off = K.quote({...base, payMdl:false});
+  assert.strictEqual(off.first.payFee, 0);
+  assert.strictEqual(off.third.brokerMdl, 0);
+});
+
+test("fromCar: осмотр по умолчанию включён, можно снять", () => {
+  const car = {year:2022, brand:{name:"Kia"}, model:{name:"Sportage"}, body_type:{id:5}, fuel:{id:4}, engine_volume:1999, seats:5};
+  assert.strictEqual(K.quote(K.fromCar(car, null, 20000, {})).first.inspection, 150);
+  assert.strictEqual(K.quote(K.fromCar(car, null, 20000, {inspection:false})).first.inspection, 0);
+});
+
+test("грузовой транспорт: фургон на 1–3 места и пикап — НДС 20%, пассажирский минивэн — акциз", () => {
+  const cargo = K.quote({...base, brand:"Chevrolet", model:"Damas", bodyId:7, seats:2});
+  assert.strictEqual(cargo.pickup, true);
+  assert.strictEqual(cargo.customs.vat, true);
+  const pass = K.quote({...base, brand:"Kia", model:"Carnival", bodyId:7, seats:9});
+  assert.strictEqual(pass.pickup, false);
+  assert.ok(!pass.customs.vat);
+  assert.strictEqual(K.quote({...base, brand:"Kia", model:"Bongo", bodyId:4}).pickup, true);
+  assert.strictEqual(K.quote({...base, brand:"Hyundai", model:"Porter", bodyId:4}).customs.vat, true);
 });
 
 test("топливо Encar → тип для таможни: plug-in по названию, mild-hybrid = бензин", () => {

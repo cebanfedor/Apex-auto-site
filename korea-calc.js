@@ -3,10 +3,11 @@
 
    ПЕРВЫЙ ПЛАТЁЖ (вместе с машиной, USD): цена авто + комиссия дилера 350 + расходы по Корее (снятие с учёта, экспорт) 300 +
      доставка до порта 100 + осмотр 150 (по галочке) + доставка до Европы по классу (седан 2000 / кроссовер 2100 / внедорожник 2200 /
-     минивэн 2600) + для электромобиля ещё 300. Для авто дороже $50 000 доставка до Европы дороже — сумма ещё не названа (HIGH_PRICE_EXTRA_USD).
+     минивэн 2600) + для электромобиля ещё 300 + при оплате в леях 1% «комиссия на оплату» (мин. $50, вместе с брокером).
+     Для авто дороже $50 000 доставка до Европы ×1,5 (Федор 12.11.2026).
    ВТОРОЙ ПЛАТЁЖ (EUR, при получении): доставка из Европы (седан 1000 / кроссовер 1100 / внедорожник 1200 / минивэн 1300) +
-     комиссия Apex Auto по цене авто (до 10 тыс. — 300, 10–15 — 400, 15–20 — 500, 20–25 — 600, 25–35 — 700, 35–45 — 850, 45+ — 1000).
-   ТРЕТИЙ ПЛАТЁЖ (MDL, таможня): акциз по возрасту/объёму/топливу (пикап — НДС), налог на роскошь, при оплате в леях «брокер + утиль сбор» 2000 MDL. */
+     комиссия Apex Auto по цене авто (до 10 тыс. — 300, 10–15 — 400, 15–20 — 500, 20–25 — 600, 25–35 — 700, 35–45 — 850, 45+ — 1000; для авто дороже 50 000 — «1000*», от 1000 индивидуально).
+   ТРЕТИЙ ПЛАТЁЖ (MDL, таможня): акциз по возрасту/объёму/топливу (пикап и грузовой транспорт — НДС 20%), налог на роскошь, при оплате в леях «брокер + утиль сбор» 2000 MDL. */
 (function(root, factory){
   var api = factory(function(){
     if(root && root.ApexCalc) return root.ApexCalc;
@@ -25,10 +26,12 @@
     evExtraUsd: 300,              // электромобиль: доплата к доставке до Европы
     euDeliveryUsd: {sedan:2000, crossover:2100, suv:2200, minivan:2600},
     highPriceUsd: 50000,          // дороже — доставка до Европы дороже
-    highPriceExtraUsd: 0,         // ⚠️ сумма ещё не названа (Федор: «пока не знаю какая») — когда назовёт, поставить сюда
+    highPriceMultiplier: 1.5,     // дороже $50 000 доставка до Европы в 1,5 раза дороже (Федор 12.11.2026)
+    commissionStarUsd: 50000,     // дороже — комиссия «1000 со звёздочкой» (от 1000 €, индивидуально)
+    paymentFeePct: 0.01, paymentFeeMinUsd: 50,   // комиссия на оплату в леях: 1% (авто + комиссия дилера), мин. $50 — вместе с брокером
     receiveDeliveryEur: {sedan:1000, crossover:1100, suv:1200, minivan:1300},   // доставка при получении, EUR
     // Комиссия Apex Auto, EUR: [верхняя граница цены авто в USD (не включая), комиссия]. «45+ — 1000, и так далее по нарастающей»:
-    // выше 45 тыс. следующие ступени Федор ещё не назвал — пока 1000.
+    // выше 50 тыс. — 1000 со звёздочкой (индивидуально, от 1000).
     commissionEur: [[10000,300],[15000,400],[20000,500],[25000,600],[35000,700],[45000,850],[Infinity,1000]],
     brokerUtilMdl: 2000           // брокер + утиль сбор, только при оплате в леях
   };
@@ -45,13 +48,15 @@
       sedan:["sonata","grandeur","azera","elantra","avante","accent","verna","i30","i40","ioniq6","ioniq","veloster","genesis","equus","centennial","aslan","dynasty","tiburon","excel","stellar"],
       crossover:["kona","venue","tucson","casper","nexo","ioniq5","creta","bayon","ix35","ix25"],
       suv:["santafe","palisade","maxcruz","veracruz","ix55","ioniq9","terracan","galloper"],
-      minivan:["staria","grandstarex","starex","h1","trajet","santamo","h200"]
+      minivan:["staria","grandstarex","starex","h1","trajet","santamo","h200"],
+      pickup:["porter","h100"]
     },
     kia: {
       sedan:["morning","picanto","ray","pride","rio","k3","k5","k7","k8","k9","optima","cerato","forte","spectra","stinger","cadenza","quoris","ev4","opirus","sephia"],
       crossover:["seltos","stonic","soul","niro","sportage","ev3","ev5","ev6","sonet","xceed"],
       suv:["sorento","mohave","borrego","telluride","ev9"],
-      minivan:["carnival","sedona","carens","rondo","pregio","grandcarnival"]
+      minivan:["carnival","sedona","carens","rondo","pregio","grandcarnival"],
+      pickup:["bongo"]
     },
     genesis: { sedan:["g70","g80","g90","eq900","electrifiedg80","dh"], crossover:["gv60","gv70"], suv:["gv80","gv90"] },
     ssangyong: {
@@ -135,7 +140,7 @@
     if(b && t.toLowerCase().indexOf(b.toLowerCase()) === 0) t = t.slice(b.length).trim();
     return t;
   }
-  function sizeClass(car){
+  function sizeClassBase(car){
     car = car || {};
     var model = modelOf(car);
     var t = krTableClass(car.brand, model);
@@ -151,6 +156,13 @@
     if(b === 7) return {cls:"minivan", pickup:false, src:"body"};     // фургон/минивэн
     if(b === 5) return {cls:"suv", pickup:false, src:"body"};         // как в США: неизвестный SUV — внедорожник
     return {cls:"sedan", pickup:false, src:"body"};
+  }
+
+  // Грузовой транспорт (фургон с 1–3 местами: Damas, Porter, Bongo, Master-фургон) и пикап — растаможка НДС 20%, как у пикапов/грузовых в США.
+  function sizeClass(car){
+    var r = sizeClassBase(car), seats = Number(car && car.seats) || 0;
+    if(r.cls === "minivan" && seats > 0 && seats <= 3) r.pickup = true;
+    return r;
   }
 
   // ---------- Топливо: Encar fuel.id → тип для таможни ----------
@@ -207,11 +219,13 @@
       dealer: CFG.dealerFeeUsd,
       korea: CFG.koreaExpensesUsd,
       port: CFG.portDeliveryUsd,
-      euDelivery: CFG.euDeliveryUsd[cls] + (high ? CFG.highPriceExtraUsd : 0),
+      euDelivery: Math.round(CFG.euDeliveryUsd[cls] * (high ? CFG.highPriceMultiplier : 1)),
       evExtra: evOn ? CFG.evExtraUsd : 0,
-      inspection: inspOn ? CFG.inspectionUsd : 0
+      inspection: inspOn ? CFG.inspectionUsd : 0,
+      // 1% «комиссия на оплату» — вместе с брокером при оплате в леях (как у США: 1% от цены + сбор, мин. $50; здесь — авто + комиссия дилера)
+      payFee: payMdl ? Math.max(CFG.paymentFeeMinUsd, Math.round((price + CFG.dealerFeeUsd) * CFG.paymentFeePct)) : 0
     };
-    first.subtotal = first.car + first.dealer + first.korea + first.port + first.euDelivery + first.evExtra + first.inspection;
+    first.subtotal = first.car + first.dealer + first.korea + first.port + first.euDelivery + first.evExtra + first.inspection + first.payFee;
 
     // --- второй платёж: EUR + MDL ---
     var deliveryEur = CFG.receiveDeliveryEur[cls];
@@ -239,7 +253,7 @@
     var customsMdl = exciseMdl + luxuryMdl;
 
     // 2-й платёж (EUR): доставка из Европы в Молдову + комиссия Apex
-    var second = {deliveryEur: deliveryEur, commissionEur: commissionEur};
+    var second = {deliveryEur: deliveryEur, commissionEur: commissionEur, commissionStar: price > CFG.commissionStarUsd};
     second.subtotalEur = deliveryEur + commissionEur;
     second.subtotalUsd = second.subtotalEur * eurUsd;
     // 3-й платёж (MDL): растаможка (акциз/НДС), налог на роскошь, брокер и утиль сбор
@@ -249,7 +263,7 @@
 
     var totalUsd = first.subtotal + second.subtotalUsd + third.subtotalUsd;
     return {
-      cls: cls, pickup: pickup, sizeSrc: sc.src, fuel: fuel, isEv: isEv, high: high, highPending: high && !CFG.highPriceExtraUsd,
+      cls: cls, pickup: pickup, sizeSrc: sc.src, fuel: fuel, isEv: isEv, high: high,
       first: first, second: second, third: third, customs: customs,
       totalUsd: totalUsd, totalEur: totalUsd / eurUsd, totalMdl: totalUsd * usdMdl,
       incomplete: incomplete, usdMdl: usdMdl, eurMdl: eurMdl
@@ -264,10 +278,10 @@
     var c = core();
     return {priceUsd: priceUsd, year: car.year, brand: car.brand && car.brand.name, model: car.model && car.model.name, title: tm, badge: car.badge,
       bodyId: car.body_type && car.body_type.id, fuelId: car.fuel && car.fuel.id, engineCc: car.engine_volume, cls: opts.cls || null,
-      inspection: !!opts.inspection, evExtra: opts.evExtra !== false, payMdl: opts.payMdl !== false,
+      inspection: opts.inspection !== false, seats: car.seats, evExtra: opts.evExtra !== false, payMdl: opts.payMdl !== false,
       rules: opts.rules || (c && c.getCustomsRules ? c.getCustomsRules() : undefined), curbKg: Number(opts.kg) > 0 ? Number(opts.kg) : undefined,
       usdMdl: opts.usdMdl || 0, eurMdl: opts.eurMdl || 0};
   }
 
-  return {quote: quote, fromCar: fromCar, sizeClass: sizeClass, fuelKind: fuelKind, commissionEurFor: commissionEurFor, CFG: CFG, CLASSES: CLASSES, VERSION: "kr-v3"};
+  return {quote: quote, fromCar: fromCar, sizeClass: sizeClass, fuelKind: fuelKind, commissionEurFor: commissionEurFor, CFG: CFG, CLASSES: CLASSES, VERSION: "kr-v4"};
 });
