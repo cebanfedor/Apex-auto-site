@@ -296,11 +296,9 @@
 .kc__chev { flex: none; color: rgb(var(--c-ink-3)); transition: transform .2s; }
 .kc[open] .kc__chev { transform: rotate(180deg); }
 .kc__body { display: flex; flex-direction: column; gap: 12px; padding-bottom: 4px; }
-.kc__cls { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: rgb(var(--c-ink-3)); }
-.kc__pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 3px; border-radius: 12px; background: rgb(var(--c-surface-2, 243 244 246)); }
-.kc__pill { appearance: none; border: 0; background: transparent; font: inherit; font-size: 11.5px; font-weight: 600; color: rgb(var(--c-ink-3)); padding: 7px 2px; border-radius: 9px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .15s, color .15s; }
-.kc__pill:hover { color: rgb(var(--c-ink)); }
-.kc__pill.is-on { background: #fff; color: rgb(var(--c-ink)); box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.kc__cls { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; color: rgb(var(--c-ink)); }
+.kc__sel { appearance: none; -webkit-appearance: none; flex: 0 1 190px; min-width: 0; height: 38px; padding: 0 34px 0 12px; border-radius: 11px; border: 1px solid rgb(var(--c-line)); background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23667080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 16px; font: inherit; font-size: 13.5px; font-weight: 600; color: rgb(var(--c-ink)); cursor: pointer; }
+.kc__sel:focus-visible { outline: 2px solid #ed0012; outline-offset: 2px; }
 .kc__grp { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid rgb(var(--c-line)); border-radius: 14px; background: rgb(var(--c-surface)); }
 .kc__grphead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 6px; margin-bottom: 2px; border-bottom: 1px dashed rgb(var(--c-line)); font-size: 12.5px; font-weight: 700; color: rgb(var(--c-ink)); }
 .kc__grphead b { font-size: 15px; white-space: nowrap; }
@@ -331,10 +329,9 @@
 .kc__sub { margin: -6px 0 0; text-align: right; font-size: 12.5px; color: rgb(var(--c-ink-3)); }
 .kc__note, .kc__rate { margin: 0; font-size: 11.5px; line-height: 1.4; color: rgb(var(--c-ink-3)); }
 .kc__rate { margin-top: -6px; }
-@container (min-width: 372px) { .kc__pills { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 /* колонка цены шире (была 320px): в ней теперь раскладка платежей */
 @media (min-width: 1280px) { .lot-hero { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr) 350px; } }
 @media (min-width: 1440px) { .lot-hero { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr) 390px; } }
 /* липкая колонка цены, не помещающаяся в окно, — обычная (иначе кнопки внизу недоступны) */
 .apx-korea .lot-buy-col.is-tall { position: static; }
-@media (max-width: 400px) { .kc__pill { font-size: 11px; } .kc__total b { font-size: 20px; } }
+@media (max-width: 400px) { .kc__total b { font-size: 20px; } }

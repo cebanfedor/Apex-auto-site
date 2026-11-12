@@ -974,10 +974,10 @@
   }
   function kcHtml(q){
     var f = q.first, s = q.second, rules = window.ApexCalc.getCustomsRules();
-    var pills = window.KoreaCalc.CLASSES.map(function(k){ return '<button type="button" class="kc__pill' + (q.cls === k ? " is-on" : "") + '" data-kc-cls="' + k + '" aria-pressed="' + (q.cls === k) + '">' + esc(T(KC_CLS_NAMES[k])) + '</button>'; }).join("");
+    var opts = window.KoreaCalc.CLASSES.map(function(k){ return '<option value="' + k + '"' + (q.cls === k ? " selected" : "") + '>' + esc(T(KC_CLS_NAMES[k])) + '</option>'; }).join("");
     var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumtot num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
     h += '<div class="kc__body">';
-    h += '<div class="kc__cls"><span>' + esc(T("Класс авто (влияет на доставку)")) + '</span><div class="kc__pills" role="group">' + pills + '</div></div>';
+    h += '<label class="kc__cls"><span>' + esc(T("Класс авто")) + '</span><select class="kc__sel" data-kc-cls-sel aria-label="' + esc(T("Класс авто (влияет на доставку)")) + '" title="' + esc(T("Класс авто (влияет на доставку)")) + '">' + opts + '</select></label>';
     // --- первый платёж ---
     h += '<section class="kc__grp"><header class="kc__grphead"><span class="kc__grpttl">' + esc(T("1-й платёж")) + '<small>' + esc(T("вместе с машиной")) + '</small></span><b class="num" data-no-i18n="true">' + kcUsd(f.subtotal) + '</b></header><ul class="kc__rows">';
     h += kcRow("Автомобиль (цена на Encar)", kcUsd(f.car));
@@ -1034,13 +1034,12 @@
   window.addEventListener("resize", function(){ kcFitSticky(); });
   document.addEventListener("toggle", function(e){ if(e.target && e.target.id === "kcV1"){ kc.open = e.target.open; kcFitSticky(); } }, true);
   document.addEventListener("click", function(e){
-    var b = e.target.closest && e.target.closest("[data-kc-cls]");
-    if(b){ kc.cls = b.getAttribute("data-kc-cls"); renderKC(); return; }
     var r = e.target.closest && e.target.closest("[data-kc-rules]");
     if(r && window.ApexCalc){ window.ApexCalc.setCustomsRules(r.getAttribute("data-kc-rules")); try{ localStorage.setItem("apexCustomsRulesV1", r.getAttribute("data-kc-rules")); }catch(_){} renderKC(); }
   });
   document.addEventListener("change", function(e){
     var t = e.target; if(!t || !t.closest) return;
+    if(t.hasAttribute && t.hasAttribute("data-kc-cls-sel")){ kc.cls = t.value; renderKC(); return; }
     var k = t.getAttribute && t.getAttribute("data-kc");
     if(k){ kc[k] = !!t.checked; renderKC(); return; }
     if(t.hasAttribute && t.hasAttribute("data-kc-kg")){ kc.kg = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); }
