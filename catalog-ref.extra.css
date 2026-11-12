@@ -368,3 +368,14 @@
 .kc__total .rowTipV1 { background: rgb(255 255 255 / .16); border-color: transparent; color: rgb(255 255 255 / .85); }
 .kc__total .rowTipV1:hover, .kc__total .rowTipV1:focus { background: #fff; color: #111; }
 .kc__total .rowTipV1.rowTipV1:hover::after, .kc__total .rowTipV1.rowTipV1:focus::after { bottom: calc(100% + 8px); background: #000; border: 1px solid rgb(255 255 255 / .2); }
+
+/* ===== Мобильная v5 (12.11.2026): шрифты ≥11px, тап-зоны кнопок ≥36px ===== */
+@media (max-width: 1023px) {
+  .apx-korea .lot-head__vin-label, .apx-korea .lot-site__here { font-size: 11px; }
+  .apx-korea .sheet-close { width: 40px; height: 40px; }
+  .apx-korea .car-gallery__arrow { width: 36px; height: 36px; }
+  .apx-korea .fav-btn { width: 38px; height: 38px; }
+  .apx-korea .lot-copy { position: relative; }
+  .apx-korea .lot-copy::after { content: ""; position: absolute; inset: -8px; }
+  .apx-korea .lot-switch__toggle { min-height: 34px; }
+}

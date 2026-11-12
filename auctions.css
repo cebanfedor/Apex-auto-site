@@ -2044,3 +2044,18 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 .calcPairV1 .calcOptColV1 > span { white-space:nowrap; }
 .calcRulesV1 > span { white-space:nowrap; flex:none; }
 @media (max-width: 640px) { .calcPairV1 #lotCalcEvMass { height:28px !important; font-size:12px !important; } }
+
+/* ===== Мобильная v5 (12.11.2026): единая шкала — текст не мельче 11px, поля и кнопки одной высоты, тап-зоны ≥32px ===== */
+@media (max-width: 640px) {
+  .calcOptColV1 > span, .calcBidLabelV2 span, .calcRatesV2 span, .dMobSumV1 small, .dmsPriceV1, .dmsDateV1, .soldDateV1,
+  .scAucV1, .aucWordV1, .dGalChipV2, .histStatusV1, .dAuc { font-size: 11px; }
+  .lotCalcV2 .calcSelectV2 { height: 36px; font-size: 13px; border-radius: 9px; }
+  .lotCalcV2 .calcPairRowV1 .calcOptV2 { font-size: 12px; min-height: 40px; padding: 6px 8px; }
+  .lotCalcV2 .calcPairRowV1 .calcOptV2 input { width: 16px; height: 16px; }
+  .calcSoldCardV1 { display: none; }
+  .dGalTagV2 { min-height: 30px; font-size: 12px; }
+  .showcaseAllV1 { display: inline-flex; align-items: center; min-height: 36px; padding: 0 2px; }
+  .crumbChevV1, .copyChipV1, .dLinkBtnV1, .dCopyValV1 { position: relative; }
+  .crumbChevV1::after, .copyChipV1::after, .dLinkBtnV1::after { content: ""; position: absolute; inset: -6px; }
+}
+@media (max-width: 640px) { .dGalMainV2 .dAuc, .dGalChipV2.dAuc { font-size: 11px; } }

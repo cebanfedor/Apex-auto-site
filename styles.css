@@ -2691,3 +2691,11 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
 .resultCard .customsNoteV1 { min-height:48px; box-sizing:border-box; }
 .resultCard .customsNoteV1 > span[hidden] { display:none !important; }
 @media (max-width:820px) { .resultCard .customsNoteV1 { min-height:64px; } }
+
+/* ===== Мобильная v5 (12.11.2026): единая шкала — текст не мельче 11px, кнопки и чипы одной высоты ===== */
+@media (max-width: 820px) {
+  .homeLotAucV1, .homeLotPriceV1 small, .scAucV1 { font-size: 11px; }
+  .infoTipV65, .exportCurrencyRowV374 .infoTipV65, .rowTipV1 { width: 18px; height: 18px; font-size: 11px; line-height: 1; }
+  .currencyMiniV374 .currency, .currencyBox .currency { height: 30px; min-width: 0; padding: 0 8px; font-size: 12px; border-radius: 9px; }
+  .rulesToggleV1 button { font-size: 13px; }
+}
