@@ -233,12 +233,17 @@
       customs = c.customsMdl(baseMdl, baseMdl, {vehicleType:ctype, fuel:fuel, engineLiters:cc / 1000, year:year, curbKg:input.curbKg, rules:input.rules});
       brokerMdl = payMdl ? CFG.brokerUtilMdl : 0;
     }
-    var customsMdl = customs ? r0(customs.total) : 0;
+    // Акциз/НДС и налог на роскошь — отдельными суммами (на сайте налог на роскошь — отдельная строка)
+    var exciseMdl = customs ? r0(customs.baseExcise) : 0;
+    var luxuryMdl = customs ? r0(customs.luxury) : 0;
+    var customsMdl = exciseMdl + luxuryMdl;
 
     var second = {
       deliveryEur: deliveryEur,
       commissionEur: commissionEur,
-      customsMdl: customsMdl,
+      customsMdl: customsMdl,      // всего: акциз + налог на роскошь
+      exciseMdl: exciseMdl,
+      luxuryMdl: luxuryMdl,
       brokerMdl: brokerMdl
     };
     second.subtotalUsd = (deliveryEur + commissionEur) * eurUsd + (customsMdl + brokerMdl) / usdMdl;

@@ -145,3 +145,12 @@ test("размер: кузов Encar часто врёт — таблица мо
   assert.strictEqual(sc("Genesis", null, 1, "G80 Electrified"), "sedan");
   assert.strictEqual(sc("Mercedes-Benz", null, 5, "GLC 300 4Matic"), "crossover");
 });
+
+test("налог на роскошь — отдельной суммой, в итоге растаможки сумма акциза и налога", () => {
+  const q = K.quote({...base, priceUsd:40000, engineCc:2000});
+  assert.ok(q.second.luxuryMdl > 0);
+  assert.strictEqual(q.second.customsMdl, q.second.exciseMdl + q.second.luxuryMdl);
+  assert.strictEqual(q.second.exciseMdl, Math.round(2000 * 23.68));
+  const cheap = K.quote({...base, priceUsd:10000});
+  assert.strictEqual(cheap.second.luxuryMdl, 0);
+});

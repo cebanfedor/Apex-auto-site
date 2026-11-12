@@ -970,7 +970,6 @@
     else if(c.ev) parts.push(fmtNum(c.kg) + " " + esc(T("кг")) + " × " + kcRate(c.rate) + " " + esc(T("лей/кг")));
     else if(c.cc) parts.push(esc(T("акциз")) + " " + fmtNum(c.cc) + " " + esc(T("см³")) + " × " + kcRate(c.rate) + (c.discount && c.discount !== 1 ? " × " + kcRate(c.discount) : "") + " " + esc(T("лей")));
     else if(q.isEv && c.rules !== "2027") parts.push(esc(T("электромобили в 2026 без акциза")));
-    if(c.luxury > 0) parts.push(esc(T("налог на роскошь")) + " " + kcMdl(c.luxury));
     return parts.join(" · ");
   }
   function kcHtml(q){
@@ -994,7 +993,10 @@
     h += kcRow("Доставка из Европы в Молдову", kcEur(s.deliveryEur), esc(T(KC_CLS_NAMES[q.cls])));
     h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur));
     if(q.incomplete.length) h += kcRow("Таможенные платежи", esc(T("уточним")), esc(T(q.incomplete.indexOf("engine") >= 0 ? "нет объёма двигателя" : "нет года выпуска")), true);
-    else h += kcRow("Таможенные платежи", kcMdl(s.customsMdl), kcCustomsHint(q));
+    else{
+      h += kcRow("Таможенные платежи", kcMdl(s.exciseMdl), kcCustomsHint(q));
+      if(s.luxuryMdl > 0) h += kcRow("Налог на роскошь", kcMdl(s.luxuryMdl), q.customs.luxuryPct + "% " + esc(T("от")) + " " + kcMdl(q.customs.luxuryBase));
+    }
     h += kcCheck("payMdl", q.second.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
     h += '</ul>';
     h += '<div class="kc__tools"><div class="kc__rules"><span>' + esc(T("Правила таможни")) + '</span><div class="kc__seg" role="group">'

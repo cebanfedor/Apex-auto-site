@@ -3456,7 +3456,8 @@ window.__APEX_DICT = (function(){
       "вместе с машиной":"împreună cu mașina",
       "2-й платёж":"Plata 2",
       "при получении авто":"la primirea mașinii",
-      "Минивен":"Minivan"
+      "Минивен":"Minivan",
+      "Налог на роскошь":"Taxa pe lux"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6926,7 +6927,8 @@ window.__APEX_DICT = (function(){
       "вместе с машиной":"together with the car",
       "2-й платёж":"Payment 2",
       "при получении авто":"on receiving the car",
-      "Минивен":"Minivan"
+      "Минивен":"Minivan",
+      "Налог на роскошь":"Luxury tax"
     }
   };
 
