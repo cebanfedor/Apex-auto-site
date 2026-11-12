@@ -3458,7 +3458,13 @@ window.__APEX_DICT = (function(){
       "при получении авто":"la primirea mașinii",
       "Минивен":"Minivan",
       "Налог на роскошь":"Taxa pe lux",
-      "Класс авто":"Clasa mașinii"
+      "Класс авто":"Clasa mașinii",
+      "доставка до Кишинёва и комиссия, в евро":"livrare până la Chișinău și comision, în euro",
+      "таможня и сборы, в леях":"vamă și taxe, în lei",
+      "с таможней, все 3 платежа":"cu vamă, toate cele 3 plăți",
+      "без растаможки":"fără vămuire",
+      "с таможней":"cu vamă",
+      "Под ключ без растаможки":"La cheie, fără vămuire"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6930,7 +6936,13 @@ window.__APEX_DICT = (function(){
       "при получении авто":"on receiving the car",
       "Минивен":"Minivan",
       "Налог на роскошь":"Luxury tax",
-      "Класс авто":"Vehicle class"
+      "Класс авто":"Vehicle class",
+      "доставка до Кишинёва и комиссия, в евро":"delivery to Chișinău and commission, in euros",
+      "таможня и сборы, в леях":"customs and fees, in lei",
+      "с таможней, все 3 платежа":"with customs, all 3 payments",
+      "без растаможки":"without customs",
+      "с таможней":"with customs",
+      "Под ключ без растаможки":"Turnkey, without customs"
     }
   };
 

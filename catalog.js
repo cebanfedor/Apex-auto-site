@@ -233,7 +233,7 @@
   }
 
   // ---- Курс USD→KRW для показа цен в $ (эталон показывает цену в долларах; Encar отдаёт KRW) ----
-  var rates = {usdKrw:0, usdEur:0, usdCad:0};
+  var rates = {usdKrw:0, usdEur:0, usdCad:0, usdMdl:0, eurMdl:0};
   // Курс отдаёт наш сервер (/api/catalog?action=rates): прямые запросы браузера к сервисам курсов режут CORS/лимиты.
   function fetchRates(){
     return fetch("/api/catalog?action=rates").then(function(r){ return r.json(); })
@@ -268,6 +268,31 @@
   function applyRates(){
     document.querySelectorAll("[data-price-amt]").forEach(function(el){
       el.textContent = priceText(Number(el.getAttribute("data-price-amt")), el.getAttribute("data-price-cur"));
+    });
+    applyTurnkey();
+  }
+  // Курс леев (банк МАИБ через /api/content?rates=1) — для итоговой цены «под ключ» с таможней (Корея)
+  function loadMdlRates(){
+    try{ var c = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "null"); if(c){ if(Number(c.usdMdl) > 0) rates.usdMdl = Number(c.usdMdl); if(Number(c.eurMdl) > 0) rates.eurMdl = Number(c.eurMdl); } }catch(e){}
+    fetch("/api/content?rates=1").then(function(r){ return r.json(); }).then(function(d){
+      if(d && Number(d.usdMdl) > 0) rates.usdMdl = Number(d.usdMdl);
+      if(d && Number(d.eurMdl) > 0) rates.eurMdl = Number(d.eurMdl);
+      try{ var c2 = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "{}") || {}; c2.usdMdl = rates.usdMdl; c2.eurMdl = rates.eurMdl; localStorage.setItem("apexLiveRatesV1", JSON.stringify(c2)); }catch(e){}
+      applyTurnkey();
+    }).catch(function(){});
+  }
+  // «Под ключ в Кишинёве» на карточке: цена авто + доставка + комиссия + растаможка (korea-calc.js, галочки по умолчанию: без осмотра, оплата в леях)
+  var cardData = [];
+  try{ var rs = localStorage.getItem("apexCustomsRulesV1"); if((rs === "2026" || rs === "2027") && window.ApexCalc) window.ApexCalc.setCustomsRules(rs); }catch(e){}
+  function applyTurnkey(){
+    if(CA || !window.KoreaCalc || !window.ApexCalc) return;
+    document.querySelectorAll("[data-tk]").forEach(function(el){
+      var d = cardData[Number(el.getAttribute("data-tk"))];
+      var usd = d && d.price && !(d.listing && d.listing.archived) ? toUsd(d.price.amt, d.price.cur) : null;
+      if(!(usd > 0)){ el.hidden = true; return; }
+      var q = window.KoreaCalc.quote(window.KoreaCalc.fromCar(d.car, d.listing, usd, {usdMdl:rates.usdMdl, eurMdl:rates.eurMdl}));
+      el.innerHTML = '<span>' + esc(T(q.incomplete.length ? "Под ключ без растаможки" : "Под ключ")) + '</span> <b class="num" data-no-i18n="true">≈ ' + fmtNum(Math.round(q.totalUsd)) + ' $</b>';
+      el.hidden = false;
     });
   }
 
@@ -913,6 +938,7 @@
     var imgs = listing && Array.isArray(listing.images) ? listing.images.map(imageUrl).filter(Boolean) : [];
     var rawImgs = listing && Array.isArray(listing.images) ? listing.images.filter(function(im){ return imageUrl(im); }) : [];
     cardPhotos[idx] = {full: rawImgs.map(imageFull), thumbs: imgs};
+    cardData[idx] = null;
     var shown = imgs.slice(0, 6), more = imgs.length - shown.length;
     var href = carHref(car, listing), title = titleOf(car);
     // Грузим заранее только ПЕРВОЕ фото; остальные (data-src) — по требованию: наведение, стрелка, свайп (loadAround).
@@ -951,6 +977,7 @@
       price = op ? {amt:op.amt, cur:op.cur} : null; priceLabel = op ? op.label : "";
       aucLine = olAuctionText(listing);
     }
+    cardData[idx] = {car:car, listing:listing, price:price};
     var src = CA ? "" : (listing && listing.external && listing.external.domain && listing.external.domain.name || "");
     var sold = listing && listing.archived;
     return '<article class="vcard vcard--api group' + (sold ? " is-sold" : "") + '">'
@@ -976,6 +1003,7 @@
           + '<div class="vcard__pricebox flex min-w-0 items-end gap-5"><div class="min-w-0">'
             + '<p class="truncate text-[11.5px] text-ink-4">' + esc(priceLabel) + '</p>'
             + '<div class="vcard__price-row flex items-center gap-2"><p class="vcard__price num whitespace-nowrap font-display text-[18px] font-semibold leading-tight tracking-tight text-ink" data-no-i18n="true"' + (price ? ' data-price-amt="' + price.amt + '" data-price-cur="' + esc(price.cur || "") + '"' : "") + '>' + (price ? esc(priceText(price.amt, price.cur)) : '<span class="vcard__noprice">' + esc(T("Цена по запросу")) + '</span>') + '</p></div>'
+          + (CA ? "" : '<p class="vcard__tk" data-tk="' + idx + '"></p>')
           + (aucLine ? '<p class="vcard__auc text-[11.5px] leading-snug text-ink-4" data-no-i18n="true">' + esc(aucLine) + '</p>' : "")
           + '</div></div>'
         + '</div>'
@@ -987,8 +1015,9 @@
     var items = Array.isArray(data.items) ? data.items : [];
     setHeading(data.total || 0);
     if(!items.length){ renderEmpty(); renderPager(data); return; }
-    cardPhotos = [];
+    cardPhotos = []; cardData = [];
     grid.innerHTML = items.map(cardHtml).join("");
+    applyTurnkey();
     renderPager(data);
   }
 
@@ -1243,6 +1272,7 @@
     stateFromParams(new URLSearchParams(location.search));
     renderSortMenu(); renderHeadControls(); renderSections(); updateCrumbs(); updateHeroHeading();
     loadRates();
+    if(!CA) loadMdlRates();
     search();
     ensureBrands().then(function(){
       renderSections(); renderHeadControls(); updateCrumbs(); updateHeroHeading();

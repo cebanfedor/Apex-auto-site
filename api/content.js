@@ -21,10 +21,40 @@ const DEFAULT_CONTENT = {
   ]
 };
 
-const RATES_CACHE_KEY = "mdl_sell_rates_v3";
+const RATES_CACHE_KEY = "mdl_sell_rates_v4";   // v4 (12.11.2026): курс продажи МАИБ, резерв — НБМ + 1,2%
 const RATES_TTL = 3600;
 // Типовая маржа молдавских банков: курс продажи ≈ курс НБМ + 1.2%
 const BANK_SELL_MARGIN = 1.012;
+
+// Курс продажи валюты МАИБ (то, по чему клиент реально покупает доллары/евро) — Федор 12.11.2026: «курс взять правильный, может от МАИБ».
+// Страница maib.md/ro/curs-valutar отдаёт таблицу «Schimb valutar în numerar din sucursale» в обычном HTML: валюта · покупка · продажа · курс БНМ.
+async function fetchMaibRates() {
+  const r = await fetchT("https://www.maib.md/ro/curs-valutar", { headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)", "Accept-Language": "ro" } }, 6000);
+  if (!r.ok) throw new Error(`MAIB fetch ${r.status}`);
+  const html = await r.text();
+  const row = (cur) => {
+    const m = html.match(new RegExp(`<td data-label="valuta">${cur}</td>\\s*<td data-label="cump[^"]*">([\\d.]+)</td>\\s*<td data-label="v[^"]*">([\\d.]+)</td>(?:\\s*<td data-label="curs BNM">([\\d.]+)</td>)?`));
+    return m ? { buy: parseFloat(m[1]), sell: parseFloat(m[2]), bnm: m[3] ? parseFloat(m[3]) : 0 } : null;
+  };
+  const usd = row("USD"), eur = row("EUR");
+  if (!usd || !eur) throw new Error("MAIB parse failed");
+  // Здравый смысл: продажа выше покупки, курс в разумных пределах
+  for (const x of [usd, eur]) if (!(x.sell > 5 && x.sell < 60 && x.sell >= x.buy)) throw new Error("MAIB values out of range");
+  return { usdMdl: usd.sell, eurMdl: eur.sell, usdBnm: usd.bnm || 0, eurBnm: eur.bnm || 0, source: "maib", date: new Date().toISOString() };
+}
+
+// Основной источник — МАИБ; если страница недоступна или курс сильно расходится с БНМ (>4%, сбой разбора) — БНМ + типовая маржа банка.
+async function fetchBankRates() {
+  const [maib, bnm] = await Promise.allSettled([fetchMaibRates(), fetchBnmRates()]);
+  const m = maib.status === "fulfilled" ? maib.value : null, b = bnm.status === "fulfilled" ? bnm.value : null;
+  if (m && b) {
+    const bu = b.usdMdl / BANK_SELL_MARGIN, be = b.eurMdl / BANK_SELL_MARGIN;
+    if (Math.abs(m.usdMdl / bu - 1) > 0.04 || Math.abs(m.eurMdl / be - 1) > 0.04) return b;
+  }
+  if (m) return m;
+  if (b) return b;
+  throw new Error("no bank rates");
+}
 
 async function fetchBnmRates() {
   const r = await fetchT("https://bnm.md/ro", { headers: { "User-Agent": "Mozilla/5.0 (compatible; ApexAuto/1.0)" } }, 6000);
@@ -91,7 +121,7 @@ async function fetchRates() {
   let payload;
   const cadUsdPromise = fetchCadUsdRate();
   try {
-    payload = await fetchBnmRates();
+    payload = await fetchBankRates();
   } catch {
     payload = await fetchFallbackRates();
   }

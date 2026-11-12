@@ -4,9 +4,9 @@
    ПЕРВЫЙ ПЛАТЁЖ (вместе с машиной, USD): цена авто + комиссия дилера 350 + расходы по Корее (снятие с учёта, экспорт) 300 +
      доставка до порта 100 + осмотр 150 (по галочке) + доставка до Европы по классу (седан 2000 / кроссовер 2100 / внедорожник 2200 /
      минивэн 2600) + для электромобиля ещё 300. Для авто дороже $50 000 доставка до Европы дороже — сумма ещё не названа (HIGH_PRICE_EXTRA_USD).
-   ВТОРОЙ ПЛАТЁЖ (при получении в Молдове): доставка из Европы в EUR (седан 1000 / кроссовер 1100 / внедорожник 1200 / минивэн 1300) +
-     комиссия Apex Auto в EUR по цене авто (до 10 тыс. — 300, 10–15 — 400, 15–20 — 500, 20–25 — 600, 25–35 — 700, 35–45 — 850, 45+ — 1000) +
-     растаможка (как обычно: акциз по возрасту/объёму/топливу, пикап — НДС) + при оплате в леях «брокер + утиль сбор» 2000 MDL. */
+   ВТОРОЙ ПЛАТЁЖ (EUR, при получении): доставка из Европы (седан 1000 / кроссовер 1100 / внедорожник 1200 / минивэн 1300) +
+     комиссия Apex Auto по цене авто (до 10 тыс. — 300, 10–15 — 400, 15–20 — 500, 20–25 — 600, 25–35 — 700, 35–45 — 850, 45+ — 1000).
+   ТРЕТИЙ ПЛАТЁЖ (MDL, таможня): акциз по возрасту/объёму/топливу (пикап — НДС), налог на роскошь, при оплате в леях «брокер + утиль сбор» 2000 MDL. */
 (function(root, factory){
   var api = factory(function(){
     if(root && root.ApexCalc) return root.ApexCalc;
@@ -238,25 +238,36 @@
     var luxuryMdl = customs ? r0(customs.luxury) : 0;
     var customsMdl = exciseMdl + luxuryMdl;
 
-    var second = {
-      deliveryEur: deliveryEur,
-      commissionEur: commissionEur,
-      customsMdl: customsMdl,      // всего: акциз + налог на роскошь
-      exciseMdl: exciseMdl,
-      luxuryMdl: luxuryMdl,
-      brokerMdl: brokerMdl
-    };
-    second.subtotalUsd = (deliveryEur + commissionEur) * eurUsd + (customsMdl + brokerMdl) / usdMdl;
-    second.subtotalEur = (deliveryEur + commissionEur) + (customsMdl + brokerMdl) / eurMdl;
+    // 2-й платёж (EUR): доставка из Европы в Молдову + комиссия Apex
+    var second = {deliveryEur: deliveryEur, commissionEur: commissionEur};
+    second.subtotalEur = deliveryEur + commissionEur;
+    second.subtotalUsd = second.subtotalEur * eurUsd;
+    // 3-й платёж (MDL): растаможка (акциз/НДС), налог на роскошь, брокер и утиль сбор
+    var third = {exciseMdl: exciseMdl, luxuryMdl: luxuryMdl, customsMdl: customsMdl, brokerMdl: brokerMdl};
+    third.subtotalMdl = customsMdl + brokerMdl;
+    third.subtotalUsd = third.subtotalMdl / usdMdl;
 
-    var totalUsd = first.subtotal + second.subtotalUsd;
+    var totalUsd = first.subtotal + second.subtotalUsd + third.subtotalUsd;
     return {
       cls: cls, pickup: pickup, sizeSrc: sc.src, fuel: fuel, isEv: isEv, high: high, highPending: high && !CFG.highPriceExtraUsd,
-      first: first, second: second, customs: customs,
+      first: first, second: second, third: third, customs: customs,
       totalUsd: totalUsd, totalEur: totalUsd / eurUsd, totalMdl: totalUsd * usdMdl,
       incomplete: incomplete, usdMdl: usdMdl, eurMdl: eurMdl
     };
   }
 
-  return {quote: quote, sizeClass: sizeClass, fuelKind: fuelKind, commissionEurFor: commissionEurFor, CFG: CFG, CLASSES: CLASSES, VERSION: "kr-v1"};
+  /** Данные машины Encar → вход для quote(). car — запись каталога, listing — объявление, priceUsd — цена в $. opts — состояние галочек. */
+  function fromCar(car, listing, priceUsd, opts){
+    opts = opts || {};
+    car = car || {};
+    var tm = listing && listing.title && typeof listing.title === "object" ? (listing.title.en || listing.title.ru || "") : "";
+    var c = core();
+    return {priceUsd: priceUsd, year: car.year, brand: car.brand && car.brand.name, model: car.model && car.model.name, title: tm, badge: car.badge,
+      bodyId: car.body_type && car.body_type.id, fuelId: car.fuel && car.fuel.id, engineCc: car.engine_volume, cls: opts.cls || null,
+      inspection: !!opts.inspection, evExtra: opts.evExtra !== false, payMdl: opts.payMdl !== false,
+      rules: opts.rules || (c && c.getCustomsRules ? c.getCustomsRules() : undefined), curbKg: Number(opts.kg) > 0 ? Number(opts.kg) : undefined,
+      usdMdl: opts.usdMdl || 0, eurMdl: opts.eurMdl || 0};
+  }
+
+  return {quote: quote, fromCar: fromCar, sizeClass: sizeClass, fuelKind: fuelKind, commissionEurFor: commissionEurFor, CFG: CFG, CLASSES: CLASSES, VERSION: "kr-v3"};
 });

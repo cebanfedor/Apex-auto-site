@@ -946,11 +946,7 @@
     if(CA || !car || !listing || listing.archived || !window.KoreaCalc || !window.ApexCalc) return null;
     var pr = listingPrice(listing), usd = pr ? toUsd(pr.amount, pr.cur) : null;
     if(!(usd > 0)) return null;
-    var tm = listing.title && typeof listing.title === "object" ? (listing.title.en || listing.title.ru || "") : "";
-    return {priceUsd:usd, year:car.year, brand:car.brand && car.brand.name, model:car.model && car.model.name, title:tm, badge:car.badge,
-      bodyId:car.body_type && car.body_type.id, fuelId:car.fuel && car.fuel.id, engineCc:car.engine_volume, cls:kc.cls,
-      inspection:kc.inspection, evExtra:kc.evExtra, payMdl:kc.payMdl, rules:window.ApexCalc.getCustomsRules(), curbKg:Number(kc.kg) > 0 ? Number(kc.kg) : undefined,
-      usdMdl:rates.usdMdl || 0, eurMdl:rates.eurMdl || 0};
+    return window.KoreaCalc.fromCar(car, listing, usd, {cls:kc.cls, inspection:kc.inspection, evExtra:kc.evExtra, payMdl:kc.payMdl, kg:kc.kg, usdMdl:rates.usdMdl, eurMdl:rates.eurMdl});
   }
   function kcUsd(v){ return fmtNum(Math.round(v)) + " $"; }
   function kcEur(v){ return fmtNum(Math.round(v)) + " €"; }
@@ -958,6 +954,9 @@
   function kcRate(r){ return Number(r).toFixed(2).replace(".", ","); }
   function kcRow(label, value, hint, off){
     return '<li class="kc__row' + (off ? " is-off" : "") + '"><span class="kc__lbl">' + esc(T(label)) + (hint ? '<small data-no-i18n="true">' + hint + '</small>' : "") + '</span><b class="kc__val num" data-no-i18n="true">' + value + '</b></li>';
+  }
+  function kcGrpHead(title, sub, main, approx){
+    return '<header class="kc__grphead"><span class="kc__grpttl">' + esc(T(title)) + '<small>' + esc(T(sub)) + '</small></span><span class="kc__grpval"><b class="num" data-no-i18n="true">' + main + '</b>' + (approx ? '<em class="num" data-no-i18n="true">' + approx + '</em>' : "") + '</span></header>';
   }
   function kcCheck(key, on, label, value, hint){
     return '<li class="kc__row kc__row--opt' + (on ? "" : " is-off") + '"><label class="kc__chk"><input type="checkbox" data-kc="' + key + '"' + (on ? " checked" : "") + '><span class="kc__box" aria-hidden="true"></span>'
@@ -978,8 +977,8 @@
     var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumtot num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
     h += '<div class="kc__body">';
     h += '<label class="kc__cls"><span>' + esc(T("Класс авто")) + '</span><select class="kc__sel" data-kc-cls-sel aria-label="' + esc(T("Класс авто (влияет на доставку)")) + '" title="' + esc(T("Класс авто (влияет на доставку)")) + '">' + opts + '</select></label>';
-    // --- первый платёж ---
-    h += '<section class="kc__grp"><header class="kc__grphead"><span class="kc__grpttl">' + esc(T("1-й платёж")) + '<small>' + esc(T("вместе с машиной")) + '</small></span><b class="num" data-no-i18n="true">' + kcUsd(f.subtotal) + '</b></header><ul class="kc__rows">';
+    // --- первый платёж: USD, вместе с машиной ---
+    h += '<section class="kc__grp">' + kcGrpHead("1-й платёж", "вместе с машиной", kcUsd(f.subtotal), "") + '<ul class="kc__rows">';
     h += kcRow("Автомобиль (цена на Encar)", kcUsd(f.car));
     h += kcRow("Комиссия дилера", kcUsd(f.dealer));
     h += kcRow("Расходы по Корее", kcUsd(f.korea), esc(T("снятие с учёта, экспорт")));
@@ -988,23 +987,27 @@
     if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
     h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("по желанию")));
     h += '</ul></section>';
-    // --- второй платёж ---
-    h += '<section class="kc__grp"><header class="kc__grphead"><span class="kc__grpttl">' + esc(T("2-й платёж")) + '<small>' + esc(T("при получении авто")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(s.subtotalUsd) + '</b></header><ul class="kc__rows">';
+    // --- второй платёж: EUR, доставка и комиссия ---
+    h += '<section class="kc__grp">' + kcGrpHead("2-й платёж", "доставка до Кишинёва и комиссия, в евро", kcEur(s.subtotalEur), "≈ " + kcUsd(s.subtotalUsd)) + '<ul class="kc__rows">';
     h += kcRow("Доставка из Европы в Молдову", kcEur(s.deliveryEur), esc(T(KC_CLS_NAMES[q.cls])));
     h += kcRow("Комиссия Apex Auto", kcEur(s.commissionEur));
+    h += '</ul></section>';
+    // --- третий платёж: MDL, таможня ---
+    var t3 = q.third;
+    h += '<section class="kc__grp">' + kcGrpHead("3-й платёж", "таможня и сборы, в леях", q.incomplete.length ? esc(T("уточним")) : kcMdl(t3.subtotalMdl), q.incomplete.length ? "" : "≈ " + kcUsd(t3.subtotalUsd)) + '<ul class="kc__rows">';
     if(q.incomplete.length) h += kcRow("Таможенные платежи", esc(T("уточним")), esc(T(q.incomplete.indexOf("engine") >= 0 ? "нет объёма двигателя" : "нет года выпуска")), true);
     else{
-      h += kcRow("Таможенные платежи", kcMdl(s.exciseMdl), kcCustomsHint(q));
-      if(s.luxuryMdl > 0) h += kcRow("Налог на роскошь", kcMdl(s.luxuryMdl), q.customs.luxuryPct + "% " + esc(T("от")) + " " + kcMdl(q.customs.luxuryBase));
+      h += kcRow("Таможенные платежи", kcMdl(t3.exciseMdl), kcCustomsHint(q));
+      if(t3.luxuryMdl > 0) h += kcRow("Налог на роскошь", kcMdl(t3.luxuryMdl), q.customs.luxuryPct + "% " + esc(T("от")) + " " + kcMdl(q.customs.luxuryBase));
     }
-    h += kcCheck("payMdl", q.second.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
+    h += kcCheck("payMdl", t3.brokerMdl > 0, "Брокер и утиль сбор", kcMdl(window.KoreaCalc.CFG.brokerUtilMdl), esc(T("при оплате в леях")));
     h += '</ul>';
     h += '<div class="kc__tools"><div class="kc__rules"><span>' + esc(T("Правила таможни")) + '</span><div class="kc__seg" role="group">'
       + ["2026", "2027"].map(function(y){ return '<button type="button" class="' + (rules === y ? "is-on" : "") + '" data-kc-rules="' + y + '" aria-pressed="' + (rules === y) + '">' + y + '</button>'; }).join("") + '</div></div>';
     if(q.isEv && rules === "2027") h += '<label class="kc__mass"><span>' + esc(T("Масса авто, кг")) + '</span><input type="number" inputmode="numeric" min="500" max="6000" step="10" data-kc-kg placeholder="' + (q.customs && q.customs.kg ? q.customs.kg : "") + '" value="' + esc(kc.kg) + '"></label>';
     h += '</div></section>';
     // --- итог ---
-    h += '<div class="kc__total"><span>' + esc(T("Итого под ключ в Кишинёве")) + '</span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
+    h += '<div class="kc__total"><span>' + esc(T("Итого под ключ в Кишинёве")) + '<small>' + esc(T("с таможней, все 3 платежа")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
     h += '<p class="kc__sub num" data-no-i18n="true">≈ ' + kcEur(q.totalEur) + " · " + kcMdl(q.totalMdl) + '</p>';
     var notes = [];
     if(q.incomplete.length) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
@@ -1018,8 +1021,10 @@
   function renderKC(){
     var el = document.getElementById("kcV1"); if(!el) return;
     var inp = kcInput();
-    if(!inp){ el.hidden = true; el.innerHTML = ""; return; }
+    var top = document.getElementById("kcTopV1");
+    if(!inp){ el.hidden = true; el.innerHTML = ""; if(top) top.hidden = true; return; }
     var q = window.KoreaCalc.quote(inp);
+    if(top){ top.innerHTML = '<span>' + esc(T("Под ключ в Кишинёве")) + '<small>' + esc(T(q.incomplete.length ? "без растаможки" : "с таможней")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b>'; top.hidden = false; }
     var wasOpen = el.hasAttribute("data-init") ? el.open : kc.open;
     el.innerHTML = kcHtml(q); el.hidden = false; el.setAttribute("data-init", "1"); el.open = wasOpen;
     kcFitSticky();
@@ -1059,7 +1064,7 @@
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
       + trendChipHtml(listing)
-      + (CA ? '' : '<details class="kc" id="kcV1" hidden></details>')
+      + (CA ? '' : '<p class="kc__top" id="kcTopV1" hidden></p><details class="kc" id="kcV1" hidden></details>')
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
         + encarBtnHtml(listing)

@@ -34,11 +34,14 @@ test("кроссовер, бензин 2.0 л: первый платёж по с
   assert.strictEqual(q.second.deliveryEur, 1100);
   assert.strictEqual(q.second.commissionEur, 500);
   // возраст 7 лет, бензин 1.5–2.0 л → 23,68 лей/см³ (правила 2027)
-  assert.strictEqual(q.second.customsMdl, Math.round(2000 * 23.68));
-  assert.strictEqual(q.second.brokerMdl, 2000);
-  const sec = (1100 + 500) * (20 / 18) + (Math.round(2000 * 23.68) + 2000) / 18;
-  assert.ok(Math.abs(q.second.subtotalUsd - sec) < 1e-6);
-  assert.ok(Math.abs(q.totalUsd - (q.first.subtotal + sec)) < 1e-6);
+  assert.strictEqual(q.third.customsMdl, Math.round(2000 * 23.68));
+  assert.strictEqual(q.third.brokerMdl, 2000);
+  // 2-й платёж — доставка и комиссия в EUR, 3-й — таможня и брокер в MDL; итог — сумма трёх
+  assert.strictEqual(q.second.subtotalEur, 1100 + 500);
+  assert.ok(Math.abs(q.second.subtotalUsd - 1600 * (20 / 18)) < 1e-6);
+  assert.strictEqual(q.third.subtotalMdl, Math.round(2000 * 23.68) + 2000);
+  assert.ok(Math.abs(q.third.subtotalUsd - (Math.round(2000 * 23.68) + 2000) / 18) < 1e-6);
+  assert.ok(Math.abs(q.totalUsd - (q.first.subtotal + q.second.subtotalUsd + q.third.subtotalUsd)) < 1e-6);
 });
 
 test("доставка до Европы и при получении по классу: седан / кроссовер / внедорожник / минивэн", () => {
@@ -55,8 +58,8 @@ test("осмотр +150 только по галочке; без галочки 
   assert.strictEqual(K.quote({...base, inspection:true}).first.inspection, 150);
   assert.strictEqual(K.quote(base).first.inspection, 0);
   const noMdl = K.quote({...base, payMdl:false});
-  assert.strictEqual(noMdl.second.brokerMdl, 0);
-  assert.strictEqual(K.quote(base).second.brokerMdl, 2000);
+  assert.strictEqual(noMdl.third.brokerMdl, 0);
+  assert.strictEqual(K.quote(base).third.brokerMdl, 2000);
 });
 
 test("электромобиль: +300 к доставке (можно снять галочкой); engine_volume у EV не нужен", () => {
@@ -73,9 +76,9 @@ test("электромобиль: +300 к доставке (можно снят�
   const y = C.CUSTOMS_YEAR - 1;
   const q27 = K.quote({...ev, year:y, curbKg:1900, rules:"2027"});
   assert.strictEqual(q27.customs.ev, true);
-  assert.strictEqual(q27.second.customsMdl, Math.round(1900 * 15.59));
+  assert.strictEqual(q27.third.customsMdl, Math.round(1900 * 15.59));
   // 2026: акциз на электро нулевой
-  assert.strictEqual(K.quote({...ev, rules:"2026"}).second.customsMdl, 0);
+  assert.strictEqual(K.quote({...ev, rules:"2026"}).third.customsMdl, 0);
 });
 
 test("дороже $50 000: доставка до Европы дороже — сумма пока не названа, об этом флаг", () => {
@@ -105,12 +108,12 @@ test("пикап: цена как у внедорожника, растамож�
   assert.strictEqual(q.first.euDelivery, 2200);
   assert.strictEqual(q.customs.vat, true);
   const baseMdl = (q.first.car + q.first.dealer + q.first.korea + q.first.port + q.first.euDelivery) * 18;
-  assert.strictEqual(q.second.customsMdl, Math.round(baseMdl * 0.2));
+  assert.strictEqual(q.third.customsMdl, Math.round(baseMdl * 0.2));
 });
 
 test("нет объёма двигателя (не электро) или года — растаможку не угадываем, расчёт помечен неполным", () => {
   assert.deepStrictEqual(K.quote({...base, engineCc:0}).incomplete, ["engine"]);
-  assert.strictEqual(K.quote({...base, engineCc:0}).second.customsMdl, 0);
+  assert.strictEqual(K.quote({...base, engineCc:0}).third.customsMdl, 0);
   assert.deepStrictEqual(K.quote({...base, year:0}).incomplete, ["year"]);
 });
 
@@ -148,9 +151,9 @@ test("размер: кузов Encar часто врёт — таблица мо
 
 test("налог на роскошь — отдельной суммой, в итоге растаможки сумма акциза и налога", () => {
   const q = K.quote({...base, priceUsd:40000, engineCc:2000});
-  assert.ok(q.second.luxuryMdl > 0);
-  assert.strictEqual(q.second.customsMdl, q.second.exciseMdl + q.second.luxuryMdl);
-  assert.strictEqual(q.second.exciseMdl, Math.round(2000 * 23.68));
+  assert.ok(q.third.luxuryMdl > 0);
+  assert.strictEqual(q.third.customsMdl, q.third.exciseMdl + q.third.luxuryMdl);
+  assert.strictEqual(q.third.exciseMdl, Math.round(2000 * 23.68));
   const cheap = K.quote({...base, priceUsd:10000});
-  assert.strictEqual(cheap.second.luxuryMdl, 0);
+  assert.strictEqual(cheap.third.luxuryMdl, 0);
 });
