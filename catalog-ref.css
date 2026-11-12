@@ -566,7 +566,8 @@
 .kc__sum::-webkit-details-marker { display: none; }
 .kc__sumttl { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: rgb(var(--c-ink)); }
 .kc__sumtot { font-size: 14px; font-weight: 700; color: #ed0012; white-space: nowrap; }
-.kc[open] .kc__sumtot { display: none; }
+.kc__sumhint { font-size: 12.5px; font-weight: 600; color: #ed0012; white-space: nowrap; }
+.kc[open] .kc__show, .kc:not([open]) .kc__hide { display: none; }
 .kc__chev { flex: none; color: rgb(var(--c-ink-3)); transition: transform .2s; }
 .kc[open] .kc__chev { transform: rotate(180deg); }
 .kc__body { display: flex; flex-direction: column; gap: 12px; padding-bottom: 4px; }

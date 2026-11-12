@@ -939,7 +939,8 @@
   // ============ «Из чего состоит цена» — доставка и растаможка из Кореи (12.11.2026, правила Федора; расчёт — korea-calc.js) ============
   // Первый платёж (вместе с машиной, $): авто + комиссия дилера + расходы по Корее + доставка до порта + доставка до Европы (по классу) [+ осмотр, + электро].
   // Второй платёж (при получении): доставка из Европы и комиссия Apex в €, растаможка и брокер в MDL. Только Корея (Канада — другой источник и условия).
-  var kc = {inspection:true, evExtra:true, payMdl:true, cls:null, kg:"", open:true};
+  // Блок раскрыт на ПК (от 1024px), на телефоне и планшете свёрнут — сверху остаётся плашка «Под ключ ≈ …» (Федор 12.11.2026)
+  var kc = {inspection:true, evExtra:true, payMdl:true, cls:null, kg:"", open:!!(window.matchMedia && window.matchMedia("(min-width: 1024px)").matches)};
   var KC_CLS_NAMES = {sedan:"Седан", crossover:"Кроссовер", suv:"Внедорожник", minivan:"Минивен"};
   function kcInput(){
     var car = state.car, listing = state.listing;
@@ -976,7 +977,7 @@
   function kcHtml(q){
     var f = q.first, s = q.second, rules = window.ApexCalc.getCustomsRules();
     var opts = window.KoreaCalc.CLASSES.map(function(k){ return '<option value="' + k + '"' + (q.cls === k ? " selected" : "") + '>' + esc(T(KC_CLS_NAMES[k])) + '</option>'; }).join("");
-    var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumtot num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
+    var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumhint"><span class="kc__show">' + esc(T("Показать")) + '</span><span class="kc__hide">' + esc(T("Скрыть")) + '</span></span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
     h += '<div class="kc__body">';
     h += '<label class="kc__cls"><span>' + esc(T("Класс авто")) + '</span><select class="kc__sel" data-kc-cls-sel aria-label="' + esc(T("Класс авто (влияет на доставку)")) + '" title="' + esc(T("Класс авто (влияет на доставку)")) + '">' + opts + '</select></label>';
     // --- первый платёж: USD, вместе с машиной ---
