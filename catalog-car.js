@@ -94,7 +94,7 @@
   };
 
   // ---- Курс для цен в $ (как у эталона: главная цена в $, под ней — в KRW) ----
-  var rates = {usdKrw:0, usdEur:0, usdCad:0, usdMdl:0, eurMdl:0};
+  var rates = {usdKrw:0, usdEur:0, usdCad:0, usdMdl:0, eurMdl:0, mdlSrc:""};   // mdlSrc — источник курса леев (maib | bnm | fxrates)
   // Курс отдаёт наш сервер (/api/catalog?action=rates): прямые запросы браузера к сервисам курсов режут CORS/лимиты.
   function fetchRates(){
     return fetch("/api/catalog?action=rates").then(function(r){ return r.json(); })
@@ -102,12 +102,13 @@
   }
   // Курс леев (НБМ) — тот же источник, что у калькуляторов на главной и странице лота; нужен для растаможки и пересчёта евро (Корея).
   function loadMdlRates(){
-    try{ var s = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "null"); if(s){ if(Number(s.usdMdl) > 0) rates.usdMdl = Number(s.usdMdl); if(Number(s.eurMdl) > 0) rates.eurMdl = Number(s.eurMdl); } }catch(e){}
+    try{ var s = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "null"); if(s){ if(Number(s.usdMdl) > 0) rates.usdMdl = Number(s.usdMdl); if(Number(s.eurMdl) > 0) rates.eurMdl = Number(s.eurMdl); if(s.src) rates.mdlSrc = String(s.src); } }catch(e){}
     var ctl = typeof AbortController === "function" ? new AbortController() : null, to = ctl ? setTimeout(function(){ ctl.abort(); }, 5000) : 0;
     return fetch("/api/content?rates=1", ctl ? {signal:ctl.signal} : undefined).then(function(r){ return r.json(); }).then(function(d){
       if(d && Number(d.usdMdl) > 0) rates.usdMdl = Number(d.usdMdl);
       if(d && Number(d.eurMdl) > 0) rates.eurMdl = Number(d.eurMdl);
-      try{ var s2 = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "{}") || {}; s2.usdMdl = rates.usdMdl; s2.eurMdl = rates.eurMdl; localStorage.setItem("apexLiveRatesV1", JSON.stringify(s2)); }catch(e){}
+      if(d && d.source) rates.mdlSrc = String(d.source);
+      try{ var s2 = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "{}") || {}; s2.usdMdl = rates.usdMdl; s2.eurMdl = rates.eurMdl; if(rates.mdlSrc) s2.src = rates.mdlSrc; localStorage.setItem("apexLiveRatesV1", JSON.stringify(s2)); }catch(e){}
     }).catch(function(){}).then(function(){ if(to) clearTimeout(to); });
   }
   function loadRates(){ return Promise.all([loadKrwRates(), CA ? Promise.resolve() : loadMdlRates()]); }
@@ -1030,7 +1031,9 @@
     if(q.incomplete.length) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
     if(q.second.commissionStar) notes.push(T("* Для авто дороже 50 000 $ комиссия от 1 000 €, уточняется индивидуально."));
     h += '<p class="kc__note">' + kcNb(notes.map(esc).join(" ")) + '</p>';
-    h += '<p class="kc__rate num" data-no-i18n="true">1 $ = ' + kcRate(q.usdMdl) + ' MDL · 1 € = ' + kcRate(q.eurMdl) + ' MDL</p>';
+    // Курс, по которому считаются леи и евро: банк МАИБ (резерв — НБМ + 1,2%, подпись отражает реальный источник)
+    var rateLbl = rates.mdlSrc === "maib" ? "Курс банка MAIB" : rates.mdlSrc === "bnm" ? "Курс НБМ + 1,2%" : "Курс";
+    h += '<p class="kc__rate"><span>' + esc(T(rateLbl)) + ':</span> <b class="num" data-no-i18n="true">1 $ = ' + kcRate(q.usdMdl) + ' MDL · 1 € = ' + kcRate(q.eurMdl) + ' MDL</b></p>';
     h += '</div>';
     return h;
   }

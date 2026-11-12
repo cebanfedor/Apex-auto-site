@@ -3481,7 +3481,10 @@ window.__APEX_DICT = (function(){
       "Срок доставки":"Termen de livrare",
       "2–3 месяца":"2–3 luni",
       "Корея → Европа → Кишинёв":"Coreea → Europa → Chișinău",
-      "Выездной осмотр, фото, видео":"Inspecție la fața locului, foto, video"
+      "Выездной осмотр, фото, видео":"Inspecție la fața locului, foto, video",
+      "Курс банка MAIB":"Cursul băncii MAIB",
+      "Курс НБМ + 1,2%":"Cursul BNM + 1,2%",
+      "Курс":"Curs"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6976,7 +6979,10 @@ window.__APEX_DICT = (function(){
       "Срок доставки":"Delivery time",
       "2–3 месяца":"2–3 months",
       "Корея → Европа → Кишинёв":"Korea → Europe → Chișinău",
-      "Выездной осмотр, фото, видео":"On-site inspection, photos, video"
+      "Выездной осмотр, фото, видео":"On-site inspection, photos, video",
+      "Курс банка MAIB":"MAIB bank rate",
+      "Курс НБМ + 1,2%":"BNM rate + 1.2%",
+      "Курс":"Rate"
     }
   };
 

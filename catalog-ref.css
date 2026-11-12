@@ -675,3 +675,5 @@
 
 /* Поиск в фильтрах: иконка слева не должна наезжать на текст (глобальное правило полей из styles.css сбивало padding) */
 .apx-korea .cf-search, .apx-korea input[type="search"].cf-search { padding-left: 36px; padding-right: 36px; height: 40px; }
+
+.kc__rate b { font-weight: 600; color: rgb(var(--c-ink-2, var(--c-ink))); }
