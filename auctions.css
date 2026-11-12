@@ -1929,3 +1929,41 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 
 /* Телефон: переключатель площадки (Все / Copart / IAAI) убран — короче верх страницы (12.11.2026) */
 @media (max-width:640px){ .auctionSwitchV1 { display:none !important; } }
+
+/* ===== Мобильная v4: верх каталога — единая сетка (12.11.2026, Федор: «всё на куче, на разных уровнях») =====
+   Шапка: [бейдж · · · колокольчик, поделиться] / заголовок+число / подсказка. Дальше поиск → быстрые чипы → вкладки → сортировка+фильтры:
+   чипы и вкладки одной высоты 34px, зазор между рядами 8px, контролы сортировки/фильтров 40px. */
+@media (max-width:640px){
+  .auctionsCatalogV1 { --mGap:8px; }
+  .auctionsHeadV2 { display:grid !important; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px 10px; margin:0 0 10px !important; }
+  .auctionsHeadLeftV2, .auctionsHeadV2 .kindRowV1 { display:contents !important; }
+  .auctionsHeadV2 .kindBadgeV1 { grid-column:1; grid-row:1; justify-self:start; height:26px; padding:0 11px; font-size:11.5px; margin:0; }
+  .auctionsHeadV2 .kindNoteV1 { display:none !important; }
+  .auctionsHeadV2 .headActionsV1 { grid-column:2; grid-row:1; display:flex; align-items:center; gap:8px; }
+  .auctionsHeadV2 .shareChipV3 { width:34px; height:34px; min-width:34px; min-height:34px; border-radius:10px; }
+  .auctionsHeadV2 .auctionsH1V3 { grid-column:1 / -1; grid-row:2; margin:0; font-size:24px; line-height:1.15; }
+  .auctionsHeadV2 .auctionsH1V3 .h1CountV3 { font-size:16px; }
+  .auctionsHeadV2 .kindHintV1 { grid-column:1 / -1; grid-row:3; margin:0; font-size:13px; line-height:1.3; flex-basis:auto; }
+  .auctionsHeadV2 .kindHintV1::before { content:none !important; }
+  /* поиск */
+  .auctionSearchRowV2.searchTopV1 { height:50px; margin:0 0 var(--mGap); border-radius:14px; }
+  /* быстрые чипы и вкладки — один размер и один ритм */
+  .quickChipsV1 { gap:var(--mGap); margin:0 -10px var(--mGap); padding:0 10px; }
+  .qChipV1 { min-height:34px; height:34px; padding:0 13px; font-size:13px; line-height:32px; }
+  .auctionToolbarV2 { gap:var(--mGap); margin-bottom:var(--mGap); }
+  .auctionTabsV1 { gap:var(--mGap); padding:0 10px; margin:0 -10px; }
+  .auctionTabsV1 button, .auctionTabsV1 > button { height:34px; min-height:34px; padding:0 13px; font-size:13px; }
+  .auctionTabsV1 button.favTabV2 { padding:0 12px; }
+  .auctionToolRightV2 { gap:var(--mGap); }
+  .sortDropTrigV1, .filterDrawerBtnV1 { height:40px; font-size:13px; }
+  .sortDropTrigV1 { padding:0 12px; }
+}
+
+/* Мобильная v4: минимальные размеры в карточке витрины (12.11.2026) — было 9–10.5px */
+@media (max-width:640px){
+  .scDateV1 { font-size:12px; }
+  .scDateV1 .dbIco { width:13px; height:13px; }
+  .scPriceV1 > span, .scPriceV1 span { font-size:11.5px; }
+  .scAucV1 { font-size:10.5px; }
+  .scSpecV1 { font-size:12px; }
+}
