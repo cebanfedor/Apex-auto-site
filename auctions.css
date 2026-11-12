@@ -2031,3 +2031,9 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 @keyframes trackSplatV1 { to { opacity:1; } }
 @media (prefers-reduced-motion: reduce) { .trackRevV1 { animation:none; stroke-dashoffset:0; } .trackSplatV1 { animation:none; opacity:1; } }
 .rcBoxV1 .trackArtV1 { width:220px; }
+
+/* Кнопка «VIN отчёт» — того же размера и стиля, что «В избранное» / «Следить» (ПК) */
+@media (min-width: 641px) {
+  .dHeadActionsV1 .dVinBtn { height:36px; line-height:1; padding:0 15px; border-radius:10px; background:#fff; color:var(--aInk2); font-size:13px; gap:7px; }
+  .dHeadActionsV1 .dVinBtn:hover { border-color:var(--aMuted); }
+}
