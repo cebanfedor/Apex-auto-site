@@ -3480,7 +3480,8 @@ window.__APEX_DICT = (function(){
       "Расчёт таможни по правилам 2027":"Calculul vămii conform regulilor din 2027",
       "Срок доставки":"Termen de livrare",
       "2–3 месяца":"2–3 luni",
-      "Корея → Европа → Кишинёв":"Coreea → Europa → Chișinău"
+      "Корея → Европа → Кишинёв":"Coreea → Europa → Chișinău",
+      "Выездной осмотр, фото, видео":"Inspecție la fața locului, foto, video"
     },
     en:{
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
@@ -6974,7 +6975,8 @@ window.__APEX_DICT = (function(){
       "Расчёт таможни по правилам 2027":"Customs calculated under the 2027 rules",
       "Срок доставки":"Delivery time",
       "2–3 месяца":"2–3 months",
-      "Корея → Европа → Кишинёв":"Korea → Europe → Chișinău"
+      "Корея → Европа → Кишинёв":"Korea → Europe → Chișinău",
+      "Выездной осмотр, фото, видео":"On-site inspection, photos, video"
     }
   };
 

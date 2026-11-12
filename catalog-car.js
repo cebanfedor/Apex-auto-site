@@ -1001,7 +1001,7 @@
     h += kcRow("Доставка до порта", kcUsd(f.port));
     h += kcRow("Доставка до Европы", kcUsd(f.euDelivery), q.high ? esc(T("авто дороже 50 000 $")) + " · ×1,5" : "");   // класс авто уже выбран вверху — подсказка только про множитель
     if(q.isEv) h += kcCheck("evExtra", q.first.evExtra > 0, "Электромобиль", "+" + kcUsd(window.KoreaCalc.CFG.evExtraUsd), esc(T("доплата за доставку")));
-    h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("Осмотр автомобиля — по желанию, можно отключить")));
+    h += kcCheck("inspection", q.first.inspection > 0, "Осмотр автомобиля", "+" + kcUsd(window.KoreaCalc.CFG.inspectionUsd), esc(T("Выездной осмотр, фото, видео")));
     h += kcRow("Комиссия на оплату", q.first.payFee > 0 ? kcUsd(q.first.payFee) : "—", esc(T("При оплате в леях — 1%, мин. 50 $")), q.first.payFee === 0);
     h += '</ul></section>';
     // --- второй платёж: EUR, доставка и комиссия ---
