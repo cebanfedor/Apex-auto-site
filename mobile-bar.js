@@ -28,8 +28,8 @@
       ".mBarV1 a:active{transform:scale(.97)}" +
       ".mBarV1 svg{width:16px;height:16px;flex:none}" +
       ".mBarV1 .mbCallV1{background:#ed0012;color:#fff}" +
-      ".mBarV1 .mbWaV1{background:#e8f8ee;color:#128c4a}" +
-      ".mBarV1 .mbTgV1{background:#e6f4fc;color:#1b7fb5}" +
+      ".mBarV1 .mbWaV1{background:#e8f8ee;color:#0b6b38}" +
+      ".mBarV1 .mbTgV1{background:#e6f4fc;color:#14658f}" +
       ".mBarV1 .mbCalcV1{background:#11141a;color:#fff}" +
       "body.mBarOnV1{padding-bottom:calc(50px + env(safe-area-inset-bottom))}" +
       "body.mBarOnV1 .fabContactV341{display:none}" +

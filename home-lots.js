@@ -53,7 +53,10 @@
   }
   function specLine(it) {
     var parts = [];
-    if (it.engine) parts.push(String(it.engine).replace(/\s+/g, " ").trim());
+    // Объём из строки фида («2.5l 4» → «2.5 л»); у электро в фиде мусор («u u ux») — без объёма не показываем.
+    var em = String(it.engine || "").match(/(\d+\.\d+)/);
+    if (em) parts.push(em[1] + "\u00a0" + T("л") + (/\bturbo\b/i.test(it.engine) ? " Turbo" : ""));
+    else if (/electric|электр/i.test(String(it.fuel || ""))) parts.push(T("Электро"));
     if (it.drive) parts.push(String(it.drive).toUpperCase());
     if (it.transmission) parts.push(String(it.transmission).replace(/automatic/i, "AT").replace(/manual/i, "MT"));
     return parts.filter(Boolean).slice(0, 3).join(" • ");

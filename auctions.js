@@ -2286,7 +2286,7 @@
   // полноценную выдачу.
   const SHOWCASE_TYPES = [[1, "Автомобили"], [2, "Мотоциклы"], [5, "Квадроциклы (ATV)"], [7, "Спецтехника"]]; // «Грузовики» убраны из витрины 14.09.2026 — лишний раздел
   // Компактная карточка витрины: фото сверху, несколько в ряд (как BidCars)
-  function renderShowcaseCard(lot){
+  function renderShowcaseCard(lot, eager){
     const title = lotTitle(lot);
     const price = Number(lot.currentBid || 0);
     const buyNow = Number(lot.buyNow || 0);
@@ -2296,7 +2296,7 @@
       ? `<span class="scPriceV1"><span>${buyNow && !price ? L("Купить сейчас") : L("Ставка")}</span><b>${money(price || buyNow)}</b></span>`
       : `<span class="scPriceV1 scPriceEmptyV1"><span>${L("Ставок пока нет")}</span></span>`;
     return `<a class="scCardV1" href="${detailHref(lot)}">
-      <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" loading="lazy" decoding="async">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
+      <span class="scImgV1">${lot.image ? `<img src="${escapeHtml(cardImg(lot.image))}" data-full="${escapeHtml(lot.image)}" alt="${escapeHtml(title)}" ${eager ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async">` : ""}<i class="scAucV1 ${lot.auction === "iaai" ? "scAucIaaiV1" : "scAucCopartV1"}">${escapeHtml(String(lot.auction || "").toUpperCase())}</i></span>
       <span class="scBodyV1">
         <b class="scTitleV1">${escapeHtml(title)}</b>
         ${spec ? `<span class="scSpecV1">${escapeHtml(spec)}</span>` : ""}
@@ -2330,7 +2330,7 @@
         shown.push(...cards);
         html += `<section class="showcaseSecV1">
           <div class="showcaseHeadV1"><h2>${escapeHtml(label)}<b class="scTypeNumV1" data-type-num="${id}"></b></h2><button type="button" class="showcaseAllV1" data-showcase-type="${id}">Смотреть все <span aria-hidden="true">→</span></button></div>
-          <div class="showcaseGridV1">${cards.map(renderShowcaseCard).join("")}</div>
+          <div class="showcaseGridV1">${cards.map((c, k) => renderShowcaseCard(c, i === 0 && k < 2)).join("")}</div>
         </section>`;
       });
       if(!html){ discoveryMode = false; loadLots(); return; }
@@ -4741,7 +4741,7 @@
     if(distinct.length > 1){
       $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">${L("← Вернуться к каталогу")}</a>
         <div class="auctionMessageV1">${L("Номер лота")} ${escapeHtml(lotNo)} ${L("есть на обеих площадках — это разные машины. Выберите нужную:")}</div>
-        <div class="lotPickV1">${distinct.map(renderShowcaseCard).join("")}</div>`;
+        <div class="lotPickV1">${distinct.map(c => renderShowcaseCard(c, false)).join("")}</div>`;
       return;
     }
     $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a><div class="auctionMessageV1">Лот ${escapeHtml(lotNo)} не найден на Copart и IAAI.</div>`;

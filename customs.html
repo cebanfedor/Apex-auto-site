@@ -42,7 +42,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v573">
+  <link rel="stylesheet" href="styles.css?v=v575">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -459,17 +459,7 @@
     </nav>
   </header>
   <div id="customsRoBannerV1" style="display:none;background:#fff3cd;border-bottom:2px solid #ffc107;padding:12px 20px;text-align:center;font-size:14px;"></div>
-  <script>
-  (function(){
-    var lng = localStorage.getItem("apex_lang") || (navigator.languages && navigator.languages[0] || navigator.language || "ru");
-    var l = (lng+"").toLowerCase();
-    var b = document.getElementById("customsRoBannerV1");
-    if(b && (l.startsWith("ro") || l.startsWith("mo"))){
-      b.style.display = "block";
-      b.innerHTML = "Această pagină este disponibilă și în limba română: <a href=\"/ro/vamuirea-auto\" style=\"color:#c00;font-weight:700\">deschideți versiunea în română →</a>";
-    }
-  })();
-  </script>
+  <script src="/lang-banner.js?v=1" defer></script>
 
   <main>
     <div class="customsPageV420">
@@ -874,7 +864,7 @@
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
 <script src="/site-nav.js?v=v7" defer></script>
-<script src="/mobile-bar.js?v=v4" defer></script>
+<script src="/mobile-bar.js?v=v5" defer></script>
 <script src="/site-bg.js?v=v5" defer></script>
 </body>
 </html>

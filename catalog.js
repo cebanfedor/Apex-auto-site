@@ -942,7 +942,7 @@
     var href = carHref(car, listing), title = titleOf(car);
     // Грузим заранее только ПЕРВОЕ фото; остальные (data-src) — по требованию: наведение, стрелка, свайп (loadAround).
     var slides = shown.map(function(u, i){
-      return '<a href="' + esc(href) + '" class="vcard__slide" tabindex="-1" rel="nofollow"><img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="' + esc(title) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer" draggable="false"></a>';
+      return '<a href="' + esc(href) + '" class="vcard__slide" tabindex="-1" rel="nofollow"><img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="' + esc(title) + '" ' + (i === 0 && idx < 2 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"') + ' decoding="async" referrerpolicy="no-referrer" draggable="false"></a>';
     }).join("");
     var stage = shown.map(function(u, i){ return '<img ' + (i === 0 ? 'src="' + esc(u) + '"' : 'data-src="' + esc(u) + '"') + ' alt="" class="vcard__stage-img' + (i === 0 ? " is-active" : "") + '"' + (i === 0 && idx < 2 ? ' fetchpriority="high"' : "") + ' loading="' + (i === 0 && idx < 2 ? "eager" : "lazy") + '" decoding="async" referrerpolicy="no-referrer" draggable="false">'; }).join("")
       + (more > 0 ? '<div class="vcard__more-photos" style="display:none" data-more-photos><span>' + I.photos + ' +' + more + '</span></div>' : "");

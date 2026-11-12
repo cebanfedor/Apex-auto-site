@@ -2158,7 +2158,7 @@ async function handleLead(request, response){
 
     // Успех, если заявка дошла ХОТЯ БЫ одним путём (Telegram или CRM).
     if(tgOk || lead){
-      sendJson(response, 200, {ok:true, customer, lead});
+      sendJson(response, 200, {ok:true}); // клиента/заявку из CRM наружу НЕ отдаём (анонимный POST с чужим телефоном возвращал карточку клиента)
     }else{
       sendJson(response, 502, {ok:false, error:"Не удалось отправить заявку. Напишите нам в Telegram или попробуйте позже."});
     }
@@ -2793,6 +2793,8 @@ async function loadCountSnap(){
 }
 const COUNT_SNAP_MAX_AGE = 3 * 3600e3;
 async function tabTotal(tab, auction, vtype, opts = {}){
+  // auction приходит из публичного query: только copart|iaai, иначе «все» (иначе `&`/`=` дописывали произвольные параметры в запрос к PostgREST)
+  auction = /^(copart|iaai)$/i.test(String(auction || "")) ? String(auction).toLowerCase() : "all";
   const ck = `${tab}|${auction || "all"}${vtype ? "|t" + vtype : ""}`;
   if(!opts.fresh){
     const c = tabTotalCache.get(ck);
@@ -4070,8 +4072,16 @@ function computeComps(rows, meta){
 // периодически смотреть, где формула систематически занижает, и точечно править коэффициенты.
 // Fire-and-forget: таблица может быть ещё не создана (миграция не выполнена) — тогда просто молчим,
 // ответ пользователю это никогда не блокирует и не портит.
+const guideMissWindow = {at:0, n:0};
 async function logGuideMiss(q, {src, band, observed, observedSrc}){
   try{
+    // Публичный action=comps пишет сюда: только реальный формат номера лота, правдоподобное «опровержение» (≤4× верха вилки)
+    // и не больше 60 записей за 10 мин на инстанс — иначе таблицу можно засорить и отравить missdiag/acvcalib.
+    if(!/^(copart|iaai)-\d{5,12}$/i.test(String(q.get("lot_id") || ""))) return;
+    if(!(band?.hi > 0) || !(observed > 0) || observed > band.hi * 4) return;
+    const nowMs = Date.now();
+    if(nowMs - guideMissWindow.at > 10 * 60e3){ guideMissWindow.at = nowMs; guideMissWindow.n = 0; }
+    if(++guideMissWindow.n > 60) return;
     const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
     await supabase.upsert("guide_miss", {
       lot_id:String(q.get("lot_id") || "").slice(0, 80) || null,
@@ -5814,6 +5824,11 @@ module.exports = async function handler(request, response){
   const CRON_ACTIONS = new Set(["synclots", "syncclosed", "syncsettle", "alerttick", "resalecheck", "enginefill", "warm", "ptfill", "buynowcheck", "timedsync", "factsrefresh", "countrefresh"]);
   if(CRON_ACTIONS.has(action)){
     const secret = process.env.CRON_SECRET;
+    if(!secret && process.env.VERCEL_ENV === "production" && !require("../server/auth").isAuthenticated(request)){
+      // в production без CRON_SECRET крон-экшены не открываем всем (раньше «не задан → пропускаем»)
+      console.error("[cron] CRON_SECRET не задан — действие " + action + " закрыто");
+      return sendJson(response, 401, {ok:false, error:"unauthorized"});
+    }
     if(secret){
       const auth = String(request.headers["authorization"] || "");
       const m = auth.match(/^Bearer\s+(.+)$/i);

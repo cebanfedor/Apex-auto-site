@@ -26,7 +26,7 @@ function parseCookies(header = ""){
     if(index === -1) return acc;
     const key = part.slice(0, index).trim();
     const value = part.slice(index + 1).trim();
-    if(key) acc[key] = decodeURIComponent(value);
+    if(key){ try{ acc[key] = decodeURIComponent(value); }catch(_){ acc[key] = value; } } // битый %-код в cookie не должен ронять запрос 500
     return acc;
   }, {});
 }
