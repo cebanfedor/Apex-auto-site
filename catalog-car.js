@@ -1168,7 +1168,7 @@
     // --- первый платёж: сразу после покупки ---
     h += '<section class="kc__grp">' + kcGrpHead("Оплата после покупки", "ставка, сборы и доставка до Клайпеды", kcUsd(payNow), "") + '<ul class="kc__rows">';
     h += kcRow(pr.label, kcUsd(r.bid), q.cur !== "USD" ? esc(fmtNum(q.amount) + " " + q.cur + " · " + T("курс TD Bank") + " " + kcRate(rates.usdCad)) : "");
-    h += kcRow("Аукционный сбор", kcUsd(r.auctionFee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")));
+    h += kcRow("Аукционный сбор", kcUsd(r.auctionFee));
     h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("Уточнить")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? caWhere(q.loc) + T("Ближайшая площадка") + ": " + String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + (q.loc.distKm != null && q.loc.pointSrc !== "province" ? " (≈" + fmtNum(q.loc.distKm) + " " + T("км") + ")" : "") + " → " + T("Монреаль") : T("Город авто в объявлении не указан — доставку по Канаде уточним")), unknownLoc);
     if(r.bankFee) h += kcRow("Комиссия банка TD", kcUsd(r.bankFee));
     h += kcRow("Услуги канадской компании", kcUsd(r.canadaFee), esc(T("2% от стоимости лота, минимум $300")));
