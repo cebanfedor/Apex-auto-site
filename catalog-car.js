@@ -136,6 +136,12 @@
   function usdApprox(amount, cur){ var u = toUsd(amount, cur); return u != null ? "≈ " + fmtNum(Math.round(u)) + " $" : fmtNum(amount) + " " + String(cur || "").toUpperCase(); }
   // OpenLane (Канада) — дилерский аукцион: текущая ставка → стартовая (не символическая 50 CAD) → цена → средняя цена продаж на OpenLane.
   function olAuction(listing){ var sd = listing && listing.source_data || {}; return {sd:sd, oa:sd.openlane_auction || {}, mv:(sd.openlane_auction || {}).market_value || {}}; }
+  // Канада: нет ни ставки, ни цены — показываем «0 $», а калькулятор работает по введённой ставке (Федор 14.11.2026)
+  function caPriceOrZero(listing){
+    var pr = listingPrice(listing);
+    if(!pr && CA && listing && !listing.archived) pr = {amount:0, cur:(listing.price && listing.price.currency && listing.price.currency.name) || "cad", label:T("Цена"), zero:true};
+    return pr;
+  }
   function listingPrice(listing){
     if(!listing) return null;
     if(CA){
@@ -1111,9 +1117,9 @@
   function caQuote(){
     var car = state.car, listing = state.listing;
     if(!CA || !car || !listing || listing.archived || !window.ApexCalc || !window.ApexCalc.computeCanada) return null;
-    var pr = listingPrice(listing); if(!pr) return null;
+    var pr = caPriceOrZero(listing); if(!pr) return null;
     var bd = caBidOf(pr), usd = toUsd(bd.amount, bd.cur);
-    if(!(usd > 0)) return null;
+    if(!(usd >= 0) || (usd === 0 && !pr.zero)) return null;
     var cls = CA_CLASSES.indexOf(kc.cls) !== -1 ? kc.cls : caClassOf(car, listing), fuel = caFuelOf(car, listing), isEv = fuel === "electric";
     var eng = caEngineOf(car, fuel), noEngine = !isEv && !(eng.l > 0);
     var loc = caLocationOf(listing);
@@ -1148,7 +1154,7 @@
     // Это аукцион: цена не фиксированная — по умолчанию текущая/стартовая ставка, можно ввести свою (в валюте объявления)
     var FUEL_NAMES = {gasoline:"Бензин", diesel:"Дизель", hybrid:"Гибрид", phev:"Plug-in гибрид", electric:"Электро"};
     h += '<label class="kc__cls kc__bid"><span>' + esc(T("Ваша ставка") + ", " + q.cur) + '</span><input type="text" inputmode="numeric" data-kc-bid autocomplete="off" placeholder="' + esc(fmtNum(Math.round(q.pr.amount))) + '" value="' + esc(kc.bid ? fmtNum(Number(String(kc.bid).replace(/[^\d]/g, ""))) : "") + '" aria-label="' + esc(T("Ваша ставка") + ", " + q.cur) + '"></label>';
-    h += '<p class="kc__note kc__auc">' + esc(T("Это аукцион: итоговая цена зависит от торгов. Расчёт — при ставке") + " " + fmtNum(Math.round(q.amount)) + " " + q.cur + (q.bd.typed ? "" : " (" + T(q.pr.label).toLowerCase() + ")") + ". " + T("Введите свою ставку, чтобы пересчитать.")) + '</p>';
+    h += '<p class="kc__note kc__auc">' + esc(q.pr.zero && !q.bd.typed ? T("Ставка пока не указана — введите свою ставку, чтобы просчитать цену под ключ.") : T("Это аукцион: итоговая цена зависит от торгов. Расчёт — при ставке") + " " + fmtNum(Math.round(q.amount)) + " " + q.cur + (q.bd.typed ? "" : " (" + T(q.pr.label).toLowerCase() + ")") + ". " + T("Введите свою ставку, чтобы пересчитать.")) + '</p>';
     h += '<p class="kc__note kc__spec">' + esc(T(FUEL_NAMES[q.fuel] || "Бензин") + (q.eng.l > 0 ? " · " + q.eng.l.toFixed(1).replace(".", ",") + " " + T("л") + (q.eng.src === "vin" ? " (" + T("по VIN") + ")" : "") : (q.isEv ? "" : " · " + T("объём двигателя неизвестен")))) + '</p>';
     // --- первый платёж: сразу после покупки ---
     h += '<section class="kc__grp">' + kcGrpHead("Оплата после покупки", "ставка, сборы и доставка до Клайпеды", kcUsd(payNow), "") + '<ul class="kc__rows">';
@@ -1212,7 +1218,8 @@
 
   function renderBuy(){
     var car = state.car, listing = state.listing;
-    var pr = listingPrice(listing), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
+    var pr = caPriceOrZero(listing), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
+    if(pr && pr.zero && mp) mp.sub = "";
     var title = titleOf(car, listing) + (car.badge ? " " + car.badge : "");
     var msg = T("Здравствуйте! Интересует автомобиль.") + "\n" + T("Авто") + ": " + title + (car.vin ? "\nVIN: " + String(car.vin).toUpperCase() : "") + "\n" + pageUrl();
     var ms = ART.messengers || {};
