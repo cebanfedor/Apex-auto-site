@@ -1103,14 +1103,14 @@
   }
   // Площадка в Канаде для тарифа доставки: БЛИЖАЙШАЯ по прямой к авто (координаты объявления → город из названия → центр провинции); не вышло — по городу/провинции как у Copart/IAAI
   function caLocationOf(listing){
+    // Федор 14.11.2026: «если не видишь правильную локацию — пиши «Уточнить»». Площадку берём ТОЛЬКО по названию города (из названия аукциона/района);
+    // координаты объявления и центр провинции НЕ используем — на реальных лотах (S-klasse в Оттаве, X5) они давали двор в BC/Chetwynd.
     var o = olAuction(listing), nm = String(o.oa.location_name || "").replace(/open\s*lane/ig, "").trim();
     var text = [nm, placeOf(listing)].filter(Boolean).join(", "), ac = window.ApexCalc, locs = window.CANADA_LOCATIONS || [];
-    var ps = listing && listing.location && listing.location.position, pos = ps && (ps.lat != null || ps.latitude != null) ? {lat:Number(ps.lat != null ? ps.lat : ps.latitude), lon:Number(ps.lon != null ? ps.lon : (ps.lng != null ? ps.lng : ps.longitude))} : null;
-    var near = ac.nearestCanadaLocation ? ac.nearestCanadaLocation(text, pos, locs) : null;
-    if(near){ near.pos = pos; near.text = text; return near; }
-    var fb = ac.findCanadaLocation(text, "", locs, "copart");
-    if(fb){ fb.pointSrc = "text"; fb.text = text; }
-    return fb;
+    var near = ac.nearestCanadaLocation ? ac.nearestCanadaLocation(text, null, locs) : null;
+    if(!near || near.pointSrc !== "city") return null;
+    near.text = text;
+    return near;
   }
   // Ставка для расчёта: введённая пользователем (в валюте объявления) или текущая/стартовая из объявления
   function caBidOf(pr){
@@ -1169,7 +1169,7 @@
     h += '<section class="kc__grp">' + kcGrpHead("Оплата после покупки", "ставка, сборы и доставка до Клайпеды", kcUsd(payNow), "") + '<ul class="kc__rows">';
     h += kcRow(pr.label, kcUsd(r.bid), q.cur !== "USD" ? esc(fmtNum(q.amount) + " " + q.cur + " · " + T("курс TD Bank") + " " + kcRate(rates.usdCad)) : "");
     h += kcRow("Аукционный сбор", kcUsd(r.auctionFee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")));
-    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("уточним")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? caWhere(q.loc) + T("Ближайшая площадка") + ": " + String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + (q.loc.distKm != null && q.loc.pointSrc !== "province" ? " (≈" + fmtNum(q.loc.distKm) + " " + T("км") + ")" : "") + " → " + T("Монреаль") : ""), unknownLoc);
+    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("Уточнить")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? caWhere(q.loc) + T("Ближайшая площадка") + ": " + String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + (q.loc.distKm != null && q.loc.pointSrc !== "province" ? " (≈" + fmtNum(q.loc.distKm) + " " + T("км") + ")" : "") + " → " + T("Монреаль") : T("Город авто в объявлении не указан — доставку по Канаде уточним")), unknownLoc);
     if(r.bankFee) h += kcRow("Комиссия банка TD", kcUsd(r.bankFee));
     h += kcRow("Услуги канадской компании", kcUsd(r.canadaFee), esc(T("2% от стоимости лота, минимум $300")));
     h += kcRow("Складирование и погрузка", kcUsd(r.keeper));
