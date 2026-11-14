@@ -695,3 +695,7 @@
 .kc__auc { margin: 2px 0 0; }
 .kc__spec { margin: 0; font-weight: 600; }
 @media (max-width: 820px) { .kc__bid input { height: 38px; font-size: 16px; } }
+
+/* Канада: итоговая плашка под калькулятором; когда расчёт раскрыт, итог уже внутри («Итого под ключ») — плашку прячем */
+.kc__top--bottom { margin: 10px 0 0; }
+.kc[open] + .kc__top--bottom { display: none; }

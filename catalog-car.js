@@ -1223,7 +1223,8 @@
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
       + trendChipHtml(listing)
-      + '<p class="kc__top" id="kcTopV1" hidden></p>' + (CA ? caEtaHtml() : etaHtml()) + '<details class="kc" id="kcV1" hidden></details>'
+      + (CA ? caEtaHtml() + '<details class="kc" id="kcV1" hidden></details><p class="kc__top kc__top--bottom" id="kcTopV1" hidden></p>'   // Канада: итог «под ключ» внизу калькулятора, не в шапке цены (Федор 14.11.2026)
+             : '<p class="kc__top" id="kcTopV1" hidden></p>' + etaHtml() + '<details class="kc" id="kcV1" hidden></details>')
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
         + encarBtnHtml(listing)
