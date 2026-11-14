@@ -137,3 +137,13 @@ test("минивен: как внедорожник, но море +$100; рас
   for(const [mk, md] of [["Ford","Transit"],["Mercedes-Benz","Sprinter"],["Toyota","Highlander"],["Honda","Pilot"]])
     assert.ok(!ApexCalc.isMinivan(mk, md, "", ""), mk + " " + md + " — не минивен");
 });
+
+test("канада (дилерский аукцион): сбор по таблице Manheim без надбавки США", () => {
+  const C = require("../calc-core.js");
+  assert.equal(C.auctionFeeFor(4000, "manheim", true).total, 820);
+  assert.equal(C.auctionFeeFor(5000, "manheim", true).total, 820);
+  assert.equal(C.auctionFeeFor(12000, "manheim", true).total, 1070);
+  assert.equal(C.auctionFeeFor(28000, "manheim", true).total, 1100);
+  assert.equal(C.auctionFeeFor(60000, "manheim", true).total, 2000);
+  assert.equal(C.auctionFeeFor(4000, "manheim", false).total, 920);
+});

@@ -1065,6 +1065,24 @@
     if(t.hasAttribute && t.hasAttribute("data-kc-kg")){ kc.kg = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); }
   });
 
+  // ---- Канада (дилерские аукционы, целые авто): только аукционный сбор, по таблице Manheim (ApexCalc.auctionFeeFor, без надбавки США) ----
+  function caFeeQuote(){
+    var pr = listingPrice(state.listing); if(!pr || !(pr.amount > 0) || !window.ApexCalc || !ApexCalc.auctionFeeFor) return null;
+    var usd = toUsd(pr.amount, pr.cur); if(usd == null || !(usd > 0)) return null;
+    var fee = ApexCalc.auctionFeeFor(usd, "manheim", true).total;
+    return {label:pr.label, bid:usd, fee:fee, total:usd + fee};
+  }
+  function caFeeHtml(){
+    var q = caFeeQuote(); if(!q) return "";
+    var h = '<div class="kc kc--ca" id="kcCaV1"><section class="kc__grp">'
+      + kcGrpHead("Цена + аукционный сбор", "без доставки и растаможки", kcUsd(q.total), "")
+      + '<ul class="kc__rows">'
+      + kcRow(q.label, kcUsd(q.bid))
+      + kcRow("Аукционный сбор", kcUsd(q.fee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")))
+      + '</ul></section>'
+      + '<p class="kc__note">' + esc(T("Ориентировочно: доставка, растаможка и комиссия Apex Auto не включены.")) + '</p></div>';
+    return h;
+  }
   function renderBuy(){
     var car = state.car, listing = state.listing;
     var pr = listingPrice(listing), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
@@ -1078,7 +1096,7 @@
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
       + trendChipHtml(listing)
-      + (CA ? '' : '<p class="kc__top" id="kcTopV1" hidden></p>' + etaHtml() + '<details class="kc" id="kcV1" hidden></details>')
+      + (CA ? caFeeHtml() : '<p class="kc__top" id="kcTopV1" hidden></p>' + etaHtml() + '<details class="kc" id="kcV1" hidden></details>')
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
         + encarBtnHtml(listing)

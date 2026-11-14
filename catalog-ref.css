@@ -685,3 +685,6 @@
   .apx-korea .similar .market-bar > p { margin-top: 38px; }
   .apx-korea .similar .market-bar__side { padding-bottom: 0; }
 }
+
+/* Канада: блок «цена + аукционный сбор» (13.11.2026) — без свёртки, сразу под ценой */
+.kc.kc--ca { margin-top: 12px; padding-top: 0; border-top: 0; display: flex; flex-direction: column; gap: 8px; }
