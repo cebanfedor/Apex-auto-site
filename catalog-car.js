@@ -1107,12 +1107,21 @@
     var text = [nm, placeOf(listing)].filter(Boolean).join(", "), ac = window.ApexCalc, locs = window.CANADA_LOCATIONS || [];
     var ps = listing && listing.location && listing.location.position, pos = ps && (ps.lat != null || ps.latitude != null) ? {lat:Number(ps.lat != null ? ps.lat : ps.latitude), lon:Number(ps.lon != null ? ps.lon : (ps.lng != null ? ps.lng : ps.longitude))} : null;
     var near = ac.nearestCanadaLocation ? ac.nearestCanadaLocation(text, pos, locs) : null;
-    return near || ac.findCanadaLocation(text, "", locs, "copart");
+    if(near){ near.pos = pos; near.text = text; return near; }
+    var fb = ac.findCanadaLocation(text, "", locs, "copart");
+    if(fb){ fb.pointSrc = "text"; fb.text = text; }
+    return fb;
   }
   // Ставка для расчёта: введённая пользователем (в валюте объявления) или текущая/стартовая из объявления
   function caBidOf(pr){
     var typed = Number(String(kc.bid || "").replace(/[^\d]/g, ""));
     return typed > 0 ? {amount:typed, cur:pr.cur, typed:true} : {amount:pr.amount, cur:pr.cur, typed:false};
+  }
+  // Откуда взята точка авто — чтобы цифру доставки можно было проверить (Федор 14.11.2026: «откуда ты взял локацию?»)
+  function caWhere(loc){
+    var src = loc.pointSrc === "gps" ? T("по координатам объявления") + (loc.pos ? " " + Number(loc.pos.lat).toFixed(2) + ", " + Number(loc.pos.lon).toFixed(2) : "")
+      : loc.pointSrc === "city" ? T("по городу") + ": " + loc.text : loc.pointSrc === "province" ? T("только по провинции — город неизвестен") + ": " + loc.text : T("по тексту") + ": " + loc.text;
+    return src + ". ";
   }
   function caQuote(){
     var car = state.car, listing = state.listing;
@@ -1160,7 +1169,7 @@
     h += '<section class="kc__grp">' + kcGrpHead("Оплата после покупки", "ставка, сборы и доставка до Клайпеды", kcUsd(payNow), "") + '<ul class="kc__rows">';
     h += kcRow(pr.label, kcUsd(r.bid), q.cur !== "USD" ? esc(fmtNum(q.amount) + " " + q.cur + " · " + T("курс TD Bank") + " " + kcRate(rates.usdCad)) : "");
     h += kcRow("Аукционный сбор", kcUsd(r.auctionFee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")));
-    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("уточним")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? T("Ближайшая площадка") + ": " + String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + (q.loc.distKm != null && q.loc.pointSrc !== "province" ? " (≈" + fmtNum(q.loc.distKm) + " " + T("км") + ")" : "") + " → " + T("Монреаль") : ""), unknownLoc);
+    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("уточним")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? caWhere(q.loc) + T("Ближайшая площадка") + ": " + String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + (q.loc.distKm != null && q.loc.pointSrc !== "province" ? " (≈" + fmtNum(q.loc.distKm) + " " + T("км") + ")" : "") + " → " + T("Монреаль") : ""), unknownLoc);
     if(r.bankFee) h += kcRow("Комиссия банка TD", kcUsd(r.bankFee));
     h += kcRow("Услуги канадской компании", kcUsd(r.canadaFee), esc(T("2% от стоимости лота, минимум $300")));
     h += kcRow("Складирование и погрузка", kcUsd(r.keeper));
