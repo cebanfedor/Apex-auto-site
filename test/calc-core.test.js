@@ -147,3 +147,29 @@ test("канада (дилерский аукцион): сбор по табли
   assert.equal(C.auctionFeeFor(60000, "manheim", true).total, 2000);
   assert.equal(C.auctionFeeFor(4000, "manheim", false).total, 920);
 });
+
+test("computeCanada: дилерская площадка Канады — сбор Manheim + канадская логистика (14.11.2026)", () => {
+  const C = require("../calc-core.js");
+  const L = require("../locations.js").CANADA_LOCATIONS;
+  const loc = C.findCanadaLocation("Halifax, Nova Scotia, Canada", "", L, "copart");
+  assert.equal(loc.province, "NS");
+  const r = C.computeCanada({bidUsd:8696, auction:"manheim", vehicleType:"crossover", fuel:"gasoline", engineLiters:1.5, year:2020, location:loc, usdMdl:17.8, eurMdl:20.5, customsRules:"2027"});
+  assert.equal(r.auctionFee, 1070);            // Manheim 5–15 тыс., без надбавки США
+  assert.equal(r.dispatch, 585);               // 650 CAD × 0.90
+  assert.equal(r.bankFee, 100);
+  assert.equal(r.keeper, 300);
+  assert.equal(r.ocean, 950);
+  assert.equal(r.road, 1750);                  // кроссовер
+  assert.equal(r.canadaFee, 300);              // 2%, минимум 300
+  assert.equal(r.paymentFee, 98);              // 1% от (ставка + сбор)
+  assert.equal(r.brokerUsd, Math.round(2000 / 17.8));
+  assert.equal(C.computeCanada({bidUsd:20000, auction:"manheim", location:loc}).canadaFee, 400);
+  // оплата не в MDL: без комиссии на оплату и брокера
+  const noPay = C.computeCanada({bidUsd:8696, auction:"manheim", location:loc, paymentFee:false});
+  assert.equal(noPay.paymentFee, 0); assert.equal(noPay.brokerUsd, 0);
+  // BC: фиксированная доставка 1700, без банка TD
+  const bc = C.computeCanada({bidUsd:8000, auction:"manheim", location:L.find(l => l.zone === "bc")});
+  assert.equal(bc.dispatch, 1700); assert.equal(bc.bankFee, 0);
+  // площадка не определилась — доставка неизвестна
+  assert.equal(C.computeCanada({bidUsd:8000, auction:"manheim", location:null}).dispatchUnknown, true);
+});

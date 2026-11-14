@@ -111,7 +111,7 @@
       try{ var s2 = JSON.parse(localStorage.getItem("apexLiveRatesV1") || "{}") || {}; s2.usdMdl = rates.usdMdl; s2.eurMdl = rates.eurMdl; if(rates.mdlSrc) s2.src = rates.mdlSrc; localStorage.setItem("apexLiveRatesV1", JSON.stringify(s2)); }catch(e){}
     }).catch(function(){}).then(function(){ if(to) clearTimeout(to); });
   }
-  function loadRates(){ return Promise.all([loadKrwRates(), CA ? Promise.resolve() : loadMdlRates()]); }
+  function loadRates(){ return Promise.all([loadKrwRates(), loadMdlRates()]); }
   function loadKrwRates(){
     try{ var c = JSON.parse(localStorage.getItem("apexKrwRateV4") || "null"); if(c && c.t && Date.now() - c.t < 3 * 3600e3 && c.krw){ rates.usdKrw = c.krw; rates.usdEur = c.eur || 0; rates.usdCad = c.cad || 0; } }catch(e){}
     return fetchRates().then(function(d){
@@ -942,7 +942,7 @@
   // Второй платёж (при получении): доставка из Европы и комиссия Apex в €, растаможка и брокер в MDL. Только Корея (Канада — другой источник и условия).
   // Блок раскрыт на ПК (от 1024px), на телефоне и планшете свёрнут — сверху остаётся плашка «Под ключ ≈ …» (Федор 12.11.2026)
   var kc = {inspection:true, evExtra:true, payMdl:true, cls:null, kg:"", open:!!(window.matchMedia && window.matchMedia("(min-width: 1024px)").matches)};
-  var KC_CLS_NAMES = {sedan:"Седан", crossover:"Кроссовер", suv:"Внедорожник", minivan:"Минивен"};
+  var KC_CLS_NAMES = {sedan:"Седан", crossover:"Кроссовер", suv:"Внедорожник", pickup:"Пикап", minivan:"Минивен"};
   function kcInput(){
     var car = state.car, listing = state.listing;
     if(CA || !car || !listing || listing.archived || !window.KoreaCalc || !window.ApexCalc) return null;
@@ -951,11 +951,12 @@
     return window.KoreaCalc.fromCar(car, listing, usd, {cls:kc.cls, inspection:kc.inspection, evExtra:kc.evExtra, payMdl:kc.payMdl, kg:kc.kg, usdMdl:rates.usdMdl, eurMdl:rates.eurMdl});
   }
   // Срок доставки (Федор 13.11.2026): 2–3 месяца, Корея → Европа → Кишинёв — карточка под плашкой «Под ключ», видна и при свёрнутом расчёте
-  function etaHtml(){
+  function etaHtml(time, a, b, c){
+    time = time || "2–3 месяца"; a = a || "Корея"; b = b || "Европа"; c = c || "Кишинёв";
     return '<div class="kc__eta">'
       + '<span class="kc__etaico" aria-hidden="true">' + ico('<path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 10v4"/><path d="M12 2v3"/>', "h-5 w-5") + '</span>'
-      + '<span class="kc__etatxt"><small>' + esc(T("Срок доставки")) + '</small><b>' + esc(T("2–3 месяца")) + '</b></span>'
-      + '<span class="kc__route" aria-label="' + esc(T("Корея → Европа → Кишинёв")) + '"><i>' + esc(T("Корея")) + '</i><u aria-hidden="true"></u><i>' + esc(T("Европа")) + '</i><u aria-hidden="true"></u><i>' + esc(T("Кишинёв")) + '</i></span>'
+      + '<span class="kc__etatxt"><small>' + esc(T("Срок доставки")) + '</small><b>' + esc(T(time)) + '</b></span>'
+      + '<span class="kc__route" aria-label="' + esc(T(a) + " → " + T(b) + " → " + T(c)) + '"><i>' + esc(T(a)) + '</i><u aria-hidden="true"></u><i>' + esc(T(b)) + '</i><u aria-hidden="true"></u><i>' + esc(T(c)) + '</i></span>'
     + '</div>';
   }
   function kcUsd(v){ return fmtNum(Math.round(v)) + " $"; }
@@ -1039,6 +1040,7 @@
   }
   function renderKC(){
     var el = document.getElementById("kcV1"); if(!el) return;
+    if(CA) return renderKcCa(el);
     var inp = kcInput();
     var top = document.getElementById("kcTopV1");
     if(!inp){ el.hidden = true; el.innerHTML = ""; if(top) top.hidden = true; return; }
@@ -1046,6 +1048,110 @@
     if(top){ top.innerHTML = '<span>' + esc(T("Под ключ в Кишинёве")) + '<small>' + esc(T(q.incomplete.length ? "без растаможки" : "с таможней")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b>'; top.hidden = false; }
     var wasOpen = el.hasAttribute("data-init") ? el.open : kc.open;
     el.innerHTML = kcHtml(q); el.hidden = false; el.setAttribute("data-init", "1"); el.open = wasOpen;
+    kcFitSticky();
+  }
+
+  // ============ Канада (целые авто, дилерские аукционы): расчёт под ключ «как у Copart/IAAI Канада» (14.11.2026, Федор) ============
+  // Ставка (CAD → USD по TD) + аукционный сбор по таблице Manheim + доставка по Канаде + банк + канадская компания + склад/погрузка + море (1-й платёж);
+  // дорога от Клайпеды, таможня, брокер, страховка и комиссия Apex (при получении). Формула — ApexCalc.computeCanada (calc-core.js), зеркало auctions.js.
+  var CA_CLASSES = ["sedan", "crossover", "suv", "pickup", "minivan"];
+  function caClassOf(car, listing){
+    var b = Number(car.body_type && car.body_type.id || 0), ac = window.ApexCalc;
+    var brand = car.brand && car.brand.name, model = car.model && car.model.name, title = titleOf(car, listing);
+    if(b === 4) return "pickup";
+    if(ac.isMinivan(brand, model, title, "")) return "minivan";
+    var c = ac.bodyClassForModel(brand, model);
+    if(c === "crossover" || c === "suv") return c;
+    if(b === 7) return "minivan";
+    if(b === 5) return "suv";
+    return "sedan";
+  }
+  // Топливо: 1 дизель · 2/7 электро · 3 гибрид (plug-in — по названию) · остальное бензин
+  function caFuelOf(car, listing){
+    var id = Number(car.fuel && car.fuel.id || 0);
+    if(id === 1) return "diesel";
+    if(id === 2 || id === 7) return "electric";
+    if(id === 3){
+      var text = titleOf(car, listing) + " " + (car.badge || "");
+      if(window.ApexCalc.isPluginHybrid(car.brand && car.brand.name, car.model && car.model.name, text, car.year)) return "phev";
+      return /\bmhev\b|mild|48\s?v/i.test(text) ? "gasoline" : "hybrid";
+    }
+    return "gasoline";
+  }
+  // Площадка в Канаде (для тарифа доставки): город из названия площадки + провинция из региона; сопоставление — как у Copart/IAAI (`findCanadaLocation`)
+  function caLocationOf(listing){
+    var o = olAuction(listing), nm = String(o.oa.location_name || "").replace(/open\s*lane/ig, "").trim();
+    var text = [nm, placeOf(listing)].filter(Boolean).join(", ");
+    return window.ApexCalc.findCanadaLocation(text, "", window.CANADA_LOCATIONS || [], "copart");
+  }
+  function caQuote(){
+    var car = state.car, listing = state.listing;
+    if(!CA || !car || !listing || listing.archived || !window.ApexCalc || !window.ApexCalc.computeCanada) return null;
+    var pr = listingPrice(listing), usd = pr ? toUsd(pr.amount, pr.cur) : null;
+    if(!(usd > 0)) return null;
+    var cls = CA_CLASSES.indexOf(kc.cls) !== -1 ? kc.cls : caClassOf(car, listing), fuel = caFuelOf(car, listing), isEv = fuel === "electric";
+    var cc = Number(car.engine_volume) || 0, noEngine = !isEv && !(cc > 0);
+    var loc = caLocationOf(listing);
+    var r = window.ApexCalc.computeCanada({bidUsd:usd, auction:"manheim", vehicleType:cls, fuel:fuel, engineLiters:cc > 0 ? Math.round(cc / 100) / 10 : 2, year:car.year,
+      location:loc, paymentFee:kc.payMdl, usdMdl:rates.usdMdl, eurMdl:rates.eurMdl, curbKg:Number(kc.kg) > 0 ? Number(kc.kg) : undefined, customsRules:"2027"});
+    // нет объёма двигателя — акциз посчитать нельзя: в итог его не включаем (как у Кореи, «уточним»)
+    var totMdl = noEngine ? r.totalMdl - Math.round(r.customs.total) : r.totalMdl;
+    return {r:r, pr:pr, cls:cls, fuel:fuel, isEv:isEv, noEngine:noEngine, loc:loc, amount:pr.amount, cur:String(pr.cur || "cad").toUpperCase(),
+      totalUsd:Math.round(totMdl / r.usdMdl), totalEur:Math.round(totMdl / r.eurMdl), totalMdl:Math.round(totMdl)};
+  }
+  function caEtaHtml(){
+    var loc = state.listing ? caLocationOf(state.listing) : null, prov = loc && loc.province;
+    var time = loc && loc.zone === "bc" ? "2,5 месяца" : (prov === "AB" || prov === "SK") ? "2 месяца" : "1,5–2 месяца";
+    return etaHtml(time, "Канада", "Клайпеда", "Кишинёв");
+  }
+  function caHtml(q){
+    var r = q.r, pr = q.pr, unknownLoc = r.dispatchUnknown;
+    var opts = CA_CLASSES.map(function(k){ return '<option value="' + k + '"' + (q.cls === k ? " selected" : "") + '>' + esc(T(KC_CLS_NAMES[k])) + '</option>'; }).join("");
+    var payNow = r.bid + r.auctionFee + r.dispatch + r.bankFee + r.canadaFee + r.keeper + r.ocean + r.paymentFee;
+    var payLater = r.road + (q.noEngine ? 0 : r.customsUsd) + r.brokerUsd + r.insurance + r.exportDocs + r.service;
+    var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumhint"><span class="kc__show">' + esc(T("Показать")) + '</span><span class="kc__hide">' + esc(T("Скрыть")) + '</span></span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
+    h += '<div class="kc__body">';
+    h += '<label class="kc__cls"><span>' + esc(T("Класс авто")) + '</span><select class="kc__sel" data-kc-cls-sel aria-label="' + esc(T("Класс авто (влияет на доставку)")) + '" title="' + esc(T("Класс авто (влияет на доставку)")) + '">' + opts + '</select></label>';
+    // --- первый платёж: сразу после покупки ---
+    h += '<section class="kc__grp">' + kcGrpHead("Оплата после покупки", "ставка, сборы и доставка до Клайпеды", kcUsd(payNow), "") + '<ul class="kc__rows">';
+    h += kcRow(pr.label, kcUsd(r.bid), q.cur !== "USD" ? esc(fmtNum(q.amount) + " " + q.cur + " · " + T("курс TD Bank") + " " + kcRate(rates.usdCad)) : "");
+    h += kcRow("Аукционный сбор", kcUsd(r.auctionFee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")));
+    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("уточним")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + " → " + T("Монреаль") : ""), unknownLoc);
+    if(r.bankFee) h += kcRow("Комиссия банка TD", kcUsd(r.bankFee));
+    h += kcRow("Услуги канадской компании", kcUsd(r.canadaFee), esc(T("2% от стоимости лота, минимум $300")));
+    h += kcRow("Складирование и погрузка", kcUsd(r.keeper));
+    h += kcRow("Морская перевозка", kcUsd(r.ocean), esc(T("Монреаль") + " → " + T("Клайпеда") + " → " + T("Кишинёв")));
+    h += kcRow("Комиссия на оплату", r.paymentFee > 0 ? kcUsd(r.paymentFee) : "—", esc(T("1% от ставки и аукционного сбора (минимум $50) при оплате в MDL")), r.paymentFee === 0);
+    h += '</ul></section>';
+    // --- второй платёж: при получении ---
+    h += '<section class="kc__grp">' + kcGrpHead("Оплата при получении", "дорога, таможня и сборы (~2 мес.)", q.noEngine ? esc(T("уточним")) : kcUsd(payLater), "") + '<ul class="kc__rows">';
+    h += kcRow("Дорога Клайпеда → Кишинёв", kcUsd(r.road));
+    if(q.noEngine) h += kcRow("Таможенные платежи", esc(T("уточним")), esc(T("нет объёма двигателя")), true);
+    else h += kcRow("Таможенные платежи", kcUsd(r.customsUsd), kcCustomsHint({customs:r.customs, isEv:q.isEv}));
+    h += kcCheck("payMdl", r.brokerUtilMdl > 0, "Брокер и утиль сбор", kcMdl(2000), esc(T("при оплате в леях")));
+    h += kcRow("Страховка (1%)", kcUsd(r.insurance));
+    h += kcRow("Комиссия Apex Auto", kcUsd(r.service));
+    h += '</ul>';
+    h += '<div class="kc__tools"><p class="kc__rulesnote">' + ico('<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>', "h-4 w-4") + '<span>' + esc(T("Расчёт таможни по правилам 2027")) + '</span></p>';
+    if(q.isEv) h += '<label class="kc__mass"><span>' + esc(T("Масса авто, кг")) + '</span><input type="number" inputmode="numeric" min="500" max="6000" step="10" data-kc-kg placeholder="' + (r.customs && r.customs.kg ? r.customs.kg : "") + '" value="' + esc(kc.kg) + '"></label>';
+    h += '</div></section>';
+    h += '<div class="kc__total"><span>' + esc(T("Итого под ключ")) + kcTip(esc(T("Итого под ключ в Кишинёве") + ", " + T("с таможней") + ". " + T("Расчёт ориентировочный, окончательная сумма — после подтверждения заказа."))) + '</span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b></div>';
+    h += '<p class="kc__sub num" data-no-i18n="true">≈ ' + kcEur(q.totalEur) + " · " + kcMdl(q.totalMdl) + '</p>';
+    var notes = [];
+    if(q.noEngine) notes.push(T("Растаможка в итог не включена — уточним по запросу."));
+    if(unknownLoc) notes.push(T("Доставка по Канаде в итог не включена — уточним по запросу."));
+    if(notes.length) h += '<p class="kc__note">' + kcNb(notes.map(esc).join(" ")) + '</p>';
+    var rateLbl = rates.mdlSrc === "maib" ? "Курс банка MAIB" : rates.mdlSrc === "bnm" ? "Курс НБМ + 1,2%" : "Курс";
+    h += '<p class="kc__rate"><span>' + esc(T(rateLbl)) + ':</span> <b class="num" data-no-i18n="true">1 $ = ' + kcRate(r.usdMdl) + ' MDL · 1 € = ' + kcRate(r.eurMdl) + ' MDL</b></p>';
+    h += '</div>';
+    return h;
+  }
+  function renderKcCa(el){
+    var top = document.getElementById("kcTopV1"), q = caQuote();
+    if(!q){ el.hidden = true; el.innerHTML = ""; if(top) top.hidden = true; return; }
+    if(top){ top.innerHTML = '<span>' + esc(T("Под ключ в Кишинёве")) + '<small>' + esc(T(q.noEngine ? "без растаможки" : "с таможней")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b>'; top.hidden = false; }
+    var wasOpen = el.hasAttribute("data-init") ? el.open : kc.open;
+    el.innerHTML = caHtml(q); el.hidden = false; el.setAttribute("data-init", "1"); el.open = wasOpen;
     kcFitSticky();
   }
   // Липкая колонка цены выше окна — нижняя часть (кнопки) была бы недоступна: тогда отключаем «прилипание»
@@ -1065,24 +1171,6 @@
     if(t.hasAttribute && t.hasAttribute("data-kc-kg")){ kc.kg = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); }
   });
 
-  // ---- Канада (дилерские аукционы, целые авто): только аукционный сбор, по таблице Manheim (ApexCalc.auctionFeeFor, без надбавки США) ----
-  function caFeeQuote(){
-    var pr = listingPrice(state.listing); if(!pr || !(pr.amount > 0) || !window.ApexCalc || !ApexCalc.auctionFeeFor) return null;
-    var usd = toUsd(pr.amount, pr.cur); if(usd == null || !(usd > 0)) return null;
-    var fee = ApexCalc.auctionFeeFor(usd, "manheim", true).total;
-    return {label:pr.label, bid:usd, fee:fee, total:usd + fee};
-  }
-  function caFeeHtml(){
-    var q = caFeeQuote(); if(!q) return "";
-    var h = '<div class="kc kc--ca" id="kcCaV1"><section class="kc__grp">'
-      + kcGrpHead("Цена + аукционный сбор", "без доставки и растаможки", kcUsd(q.total), "")
-      + '<ul class="kc__rows">'
-      + kcRow(q.label, kcUsd(q.bid))
-      + kcRow("Аукционный сбор", kcUsd(q.fee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")))
-      + '</ul></section>'
-      + '<p class="kc__note">' + esc(T("Ориентировочно: доставка, растаможка и комиссия Apex Auto не включены.")) + '</p></div>';
-    return h;
-  }
   function renderBuy(){
     var car = state.car, listing = state.listing;
     var pr = listingPrice(listing), mp = pr ? moneyParts(pr.amount, pr.cur) : null;
@@ -1096,7 +1184,7 @@
       + (listing && listing.archived ? '<p class="lot-price__sub lot-price__sub--sold">' + esc(T("Объявление снято с продажи")) + '</p>' : "")
       + (listing && listing.price && listing.price.negotiable ? '<p class="lot-price__sub">' + esc(T("Возможен торг")) + '</p>' : "")
       + trendChipHtml(listing)
-      + (CA ? caFeeHtml() : '<p class="kc__top" id="kcTopV1" hidden></p>' + etaHtml() + '<details class="kc" id="kcV1" hidden></details>')
+      + '<p class="kc__top" id="kcTopV1" hidden></p>' + (CA ? caEtaHtml() : etaHtml()) + '<details class="kc" id="kcV1" hidden></details>'
       + '<div class="lot-price__actions">'
         + '<button type="button" class="btn btn-primary btn-lg" data-lead>' + esc(T("Написать менеджеру")) + '<span class="btn-chip">' + I.arrR + '</span></button>'
         + encarBtnHtml(listing)
@@ -1110,7 +1198,7 @@
     if(hist) reports += '<a href="#history" data-go="history" class="lot-report ' + hist.tone + '"><span class="lot-report__icon">' + I.historyBig + '</span><span class="min-w-0 flex-1"><span class="lot-report__kind">' + esc(T("История автомобиля")) + '</span><span class="lot-report__verdict" data-no-i18n="true">' + esc(histShortVerdict(hist)) + '</span></span>' + ico('<path d="M5 12h14M13 6l6 6-6 6"/>', "h-4 w-4 lot-report__go h-4 w-4") + '</a>';
     if(reports) html += '<div class="lot-reports">' + reports + '</div>';
     document.getElementById("lotBuyV1").innerHTML = html;
-    if(!CA) renderKC();
+    renderKC();
   }
   document.addEventListener("click", function(e){
     if(e.target.closest("[data-lead]")){ e.preventDefault(); openLeadModal(); return; }

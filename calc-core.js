@@ -331,8 +331,80 @@
     };
   }
 
+  // ---- Канада: расчёт «как у Copart/IAAI Канада» (зеркало calcCanadaLotTotal в auctions.js и calculateCanada в script.js) ----
+  // ⚠️ Те две копии считают инлайн — менять формулу во ВСЕХ трёх местах. Здесь ставка уже в USD (CAD→USD по TD делает вызывающий).
+  // Для дилерских площадок Канады (страница /canada) аукционный сбор — по таблице Manheim: input.auction = "manheim".
+  var CA_PROV_CODES = ["ON","QC","BC","AB","SK","MB","NS","NB","NF"];
+  var CA_PROV_NAMES = {ontario:"ON", quebec:"QC", "québec":"QC", "british columbia":"BC", alberta:"AB", saskatchewan:"SK", manitoba:"MB", "nova scotia":"NS", "new brunswick":"NB", newfoundland:"NF"};
+  var CA_CITY_ALIASES = {"stoney creek":"hamilton", "laval":"montreal", "saint eustache":"eustache", "north york":"toronto", "innisfil":"toronto", "rocky view county":"calgary", "strathcona county":"edmonton", "surrey":"achbc"};
+  /** Площадка из таблицы CANADA_LOCATIONS (locations.js / canada-locations.js) по городу и провинции. text: «Halifax, Nova Scotia, Canada». */
+  function findCanadaLocation(text, stateCode, locs, auction){
+    locs = locs || (typeof globalThis !== "undefined" && globalThis.CANADA_LOCATIONS) || [];
+    var raw = String(text || "").toLowerCase();
+    if(!raw) return null;
+    var prov = "", k;
+    for(k in CA_PROV_NAMES){ if(raw.indexOf(k) !== -1){ prov = CA_PROV_NAMES[k]; break; } }
+    if(!prov){
+      var m = raw.match(/,\s*([a-z]{2})\b\s*$/);
+      if(m && CA_PROV_CODES.indexOf(m[1].toUpperCase()) !== -1) prov = m[1].toUpperCase();
+    }
+    if(!prov && stateCode && CA_PROV_CODES.indexOf(String(stateCode).toUpperCase()) !== -1) prov = String(stateCode).toUpperCase();
+    var city = (raw.split(",")[0] || "").replace(/[^a-z ]/g, "").trim();
+    city = CA_CITY_ALIASES[city] || city;
+    var auc = String(auction || "").toLowerCase().indexOf("iaai") !== -1 ? "iaai" : "copart";
+    var byA = locs.filter(function(l){ return String(l.auction || "").toLowerCase() === auc; });
+    var hit = byA.find(function(l){ return city && String(l.name).toLowerCase().indexOf(city) !== -1; });
+    if(!hit && city) hit = locs.find(function(l){ return String(l.name).toLowerCase().indexOf(city) !== -1; });
+    if(!hit && prov) hit = byA.filter(function(l){ return l.province === prov; }).sort(function(a, b){ return (a.dispatchSuvCad || 0) - (b.dispatchSuvCad || 0); })[0];
+    if(!hit && prov) hit = locs.find(function(l){ return l.province === prov; });
+    return hit ? Object.assign({}, hit) : null;
+  }
+  /**
+   * input: {bidUsd, auction("manheim" для дилерских площадок), vehicleType, fuel, engineLiters, year, location(запись CANADA_LOCATIONS)|null,
+   *         offsite, insurance(по умолчанию true), exportDocs, paymentFee(по умолчанию true), usdMdl, eurMdl, curbKg, customsRules}
+   */
+  function computeCanada(input){
+    input = input || {};
+    var bid = Math.round(Number(input.bidUsd || 0));
+    var kind = input.vehicleType || "sedan", fuel = input.fuel || "gasoline";
+    var usdMdl = Number(input.usdMdl) > 0 ? Number(input.usdMdl) : 17.45, eurMdl = Number(input.eurMdl) > 0 ? Number(input.eurMdl) : 20.28;
+    var auctionFee = auctionFeeFor(bid, input.auction || "manheim", true).total;   // Канада — без надбавки США
+    var ip = kind === "pickup" || kind === "vanLarge";
+    var green = fuel === "hybrid" || fuel === "phev" || fuel === "electric";
+    var loc = input.location || null, zone = (loc && loc.zone) || "east";
+    var offsiteFee = input.offsite ? 100 : 0;
+    var dispatchBase = zone === "bc" ? 1700 : Math.round((ip ? (loc && loc.dispatchPickupCad) : (loc && loc.dispatchSuvCad)) * 0.90) || 0;
+    var dispatchUnknown = !loc || (!dispatchBase && zone !== "bc");
+    var dispatch = dispatchBase ? dispatchBase + offsiteFee : 0;
+    var bankFee = zone === "bc" || !dispatchBase ? 0 : 100;
+    var keeper = 300;
+    var ocean = (ip ? 1170 : 950) + (green ? 150 : 0) + (kind === "minivan" ? 100 : 0);
+    var road = kind === "crossover" ? 1750 : (kind === "sedan" || kind === "moto" || kind === "atv") ? 1600 : 1900;
+    var insuranceOn = input.insurance === undefined ? true : !!input.insurance;
+    var insurance = insuranceOn ? insuranceFor(bid, auctionFee) : 0;
+    var service = Math.round(companyFeeFor(bid, auctionFee));
+    var paymentFeeOn = input.paymentFee === undefined ? true : !!input.paymentFee;
+    var paymentFee = paymentFeeOn ? Math.round(paymentFeeFor(bid, auctionFee)) : 0;
+    var brokerUtilMdl = paymentFeeOn ? BROKER_UTIL_MDL : 0;
+    var canadaFee = Math.max(300, bid * 0.02);
+    var exportDocs = input.exportDocs ? EXPORT_DOCS_FEE : 0;
+    var customsBaseMdl = (bid + auctionFee + ocean) * usdMdl;
+    var landBaseMdl = (bid + auctionFee + dispatch) * usdMdl;
+    var customs = customsMdl(customsBaseMdl, customsBaseMdl, {vehicleType:kind, fuel:fuel, engineLiters:input.engineLiters, year:input.year, landBaseMdl:landBaseMdl, curbKg:input.curbKg, rules:input.customsRules});
+    var customsUsd = Math.round(customs.total / usdMdl);
+    var usdPart = bid + auctionFee + dispatch + bankFee + keeper + ocean + road + canadaFee + insurance + service + exportDocs + paymentFee;
+    var totalMdl = usdPart * usdMdl + customs.total + brokerUtilMdl;
+    return {
+      canada:true, bid:bid, auctionFee:auctionFee, dispatch:dispatch, dispatchUnknown:dispatchUnknown, bankFee:bankFee, keeper:keeper, ocean:ocean, road:road,
+      canadaFee:Math.round(canadaFee), insurance:Math.round(insurance), service:service, exportDocs:exportDocs, paymentFee:paymentFee,
+      brokerUsd:Math.round(brokerUtilMdl / usdMdl), brokerUtilMdl:brokerUtilMdl, customs:customs, customsUsd:customsUsd,
+      total:Math.round(totalMdl / usdMdl), totalMdl:Math.round(totalMdl), totalEur:Math.round(totalMdl / eurMdl),
+      kind:kind, fuel:fuel, green:green, usdMdl:usdMdl, eurMdl:eurMdl, location:loc
+    };
+  }
+
   return {
-    compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl,
-    landShippingFor, seaShippingFor, bodyClassForModel, isMinivan, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, setCustomsRules, getCustomsRules, VERSION: "core-v21"
+    compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl, computeCanada, findCanadaLocation,
+    landShippingFor, seaShippingFor, bodyClassForModel, isMinivan, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, setCustomsRules, getCustomsRules, VERSION: "core-v22"
   };
 });
