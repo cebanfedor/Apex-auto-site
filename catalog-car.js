@@ -172,7 +172,7 @@
   // Чистая ссылка как у эталона: /catalog/<id>; другое объявление той же машины — ?listing=<номер на площадке>.
   // Старые ссылки ?domain_id=&listing_id= работают и после загрузки переписываются на короткие (replaceState).
   var refShort = qp.get("listing");
-  var state = {car:null, listing:null, photos:[], galIdx:0, options:null};
+  var state = {car:null, listing:null, photos:[], galIdx:0, options:null, vpic:null};
 
   function apiUrl(){
     var l = lang();
@@ -400,6 +400,7 @@
     renderGallery();
     renderInfo();
     renderBuy();
+    if(CA) loadVpic();
     renderBelow();
     renderExtras();
   }
@@ -941,7 +942,7 @@
   // Первый платёж (вместе с машиной, $): авто + комиссия дилера + расходы по Корее + доставка до порта + доставка до Европы (по классу) [+ осмотр, + электро].
   // Второй платёж (при получении): доставка из Европы и комиссия Apex в €, растаможка и брокер в MDL. Только Корея (Канада — другой источник и условия).
   // Блок раскрыт на ПК (от 1024px), на телефоне и планшете свёрнут — сверху остаётся плашка «Под ключ ≈ …» (Федор 12.11.2026)
-  var kc = {inspection:true, evExtra:true, payMdl:true, cls:null, kg:"", open:!!(window.matchMedia && window.matchMedia("(min-width: 1024px)").matches)};
+  var kc = {inspection:true, evExtra:true, payMdl:true, cls:null, kg:"", bid:"", open:!!(window.matchMedia && window.matchMedia("(min-width: 1024px)").matches)};
   var KC_CLS_NAMES = {sedan:"Седан", crossover:"Кроссовер", suv:"Внедорожник", pickup:"Пикап", minivan:"Минивен"};
   function kcInput(){
     var car = state.car, listing = state.listing;
@@ -1066,38 +1067,70 @@
     if(b === 5) return "suv";
     return "sedan";
   }
-  // Топливо: 1 дизель · 2/7 электро · 3 гибрид (plug-in — по названию) · остальное бензин
+  // Топливо (14.11.2026, Федор: «BMW X5 45e — plug-in, а по API может быть как электро»): сначала расшифровка VIN (NHTSA vPIC, `state.vpic`),
+  // затем название модели (xDrive45e, 330e, 4xe, Prime… — `isPluginHybrid`), и только потом код топлива из API: 1 дизель · 2/7 электро · 3 гибрид · остальное бензин.
+  function caTextOf(car, listing){ return titleOf(car, listing) + " " + (car.badge || ""); }
   function caFuelOf(car, listing){
-    var id = Number(car.fuel && car.fuel.id || 0);
+    var vp = state.vpic && state.vpic.kind;
+    if(vp === 1) return "diesel";
+    if(vp === 2) return "electric";
+    if(vp === 5) return "phev";
+    if(vp === 3) return "hybrid";
+    if(vp === 4) return "gasoline";
+    var id = Number(car.fuel && car.fuel.id || 0), text = caTextOf(car, listing);
+    // plug-in по названию — даже если API записал его как электро (id 2) или обычный гибрид (id 3); у настоящих BEV (i4, iX, EQE) такого суффикса нет
+    if(id !== 1 && window.ApexCalc.isPluginHybrid(car.brand && car.brand.name, car.model && car.model.name, text, car.year)) return "phev";
     if(id === 1) return "diesel";
     if(id === 2 || id === 7) return "electric";
-    if(id === 3){
-      var text = titleOf(car, listing) + " " + (car.badge || "");
-      if(window.ApexCalc.isPluginHybrid(car.brand && car.brand.name, car.model && car.model.name, text, car.year)) return "phev";
-      return /\bmhev\b|mild|48\s?v/i.test(text) ? "gasoline" : "hybrid";
-    }
+    if(id === 3) return /\bmhev\b|mild|48\s?v/i.test(text) ? "gasoline" : "hybrid";
     return "gasoline";
   }
-  // Площадка в Канаде (для тарифа доставки): город из названия площадки + провинция из региона; сопоставление — как у Copart/IAAI (`findCanadaLocation`)
+  // Объём двигателя в литрах: VIN (vPIC) → поле API, только если похоже на правду (у электромобилей и «электро»-plug-in там мусор вроде 111/158)
+  function caEngineOf(car, fuel){
+    if(fuel === "electric") return {l:0, src:""};
+    var vl = state.vpic && Number(state.vpic.liters);
+    if(vl > 0) return {l:vl, src:"vin"};
+    var cc = Number(car.engine_volume) || 0, apiFuel = Number(car.fuel && car.fuel.id || 0);
+    var apiSaysEv = apiFuel === 2 || apiFuel === 7;
+    if(cc >= 600 && cc <= 8500 && !apiSaysEv) return {l:Math.round(cc / 100) / 10, src:"api"};
+    return {l:0, src:""};
+  }
+  // Площадка в Канаде для тарифа доставки: БЛИЖАЙШАЯ по прямой к авто (координаты объявления → город из названия → центр провинции); не вышло — по городу/провинции как у Copart/IAAI
   function caLocationOf(listing){
     var o = olAuction(listing), nm = String(o.oa.location_name || "").replace(/open\s*lane/ig, "").trim();
-    var text = [nm, placeOf(listing)].filter(Boolean).join(", ");
-    return window.ApexCalc.findCanadaLocation(text, "", window.CANADA_LOCATIONS || [], "copart");
+    var text = [nm, placeOf(listing)].filter(Boolean).join(", "), ac = window.ApexCalc, locs = window.CANADA_LOCATIONS || [];
+    var ps = listing && listing.location && listing.location.position, pos = ps && (ps.lat != null || ps.latitude != null) ? {lat:Number(ps.lat != null ? ps.lat : ps.latitude), lon:Number(ps.lon != null ? ps.lon : (ps.lng != null ? ps.lng : ps.longitude))} : null;
+    var near = ac.nearestCanadaLocation ? ac.nearestCanadaLocation(text, pos, locs) : null;
+    return near || ac.findCanadaLocation(text, "", locs, "copart");
+  }
+  // Ставка для расчёта: введённая пользователем (в валюте объявления) или текущая/стартовая из объявления
+  function caBidOf(pr){
+    var typed = Number(String(kc.bid || "").replace(/[^\d]/g, ""));
+    return typed > 0 ? {amount:typed, cur:pr.cur, typed:true} : {amount:pr.amount, cur:pr.cur, typed:false};
   }
   function caQuote(){
     var car = state.car, listing = state.listing;
     if(!CA || !car || !listing || listing.archived || !window.ApexCalc || !window.ApexCalc.computeCanada) return null;
-    var pr = listingPrice(listing), usd = pr ? toUsd(pr.amount, pr.cur) : null;
+    var pr = listingPrice(listing); if(!pr) return null;
+    var bd = caBidOf(pr), usd = toUsd(bd.amount, bd.cur);
     if(!(usd > 0)) return null;
     var cls = CA_CLASSES.indexOf(kc.cls) !== -1 ? kc.cls : caClassOf(car, listing), fuel = caFuelOf(car, listing), isEv = fuel === "electric";
-    var cc = Number(car.engine_volume) || 0, noEngine = !isEv && !(cc > 0);
+    var eng = caEngineOf(car, fuel), noEngine = !isEv && !(eng.l > 0);
     var loc = caLocationOf(listing);
-    var r = window.ApexCalc.computeCanada({bidUsd:usd, auction:"manheim", vehicleType:cls, fuel:fuel, engineLiters:cc > 0 ? Math.round(cc / 100) / 10 : 2, year:car.year,
+    var r = window.ApexCalc.computeCanada({bidUsd:usd, auction:"manheim", vehicleType:cls, fuel:fuel, engineLiters:eng.l > 0 ? eng.l : 2, year:car.year,
       location:loc, paymentFee:kc.payMdl, usdMdl:rates.usdMdl, eurMdl:rates.eurMdl, curbKg:Number(kc.kg) > 0 ? Number(kc.kg) : undefined, customsRules:"2027"});
     // нет объёма двигателя — акциз посчитать нельзя: в итог его не включаем (как у Кореи, «уточним»)
     var totMdl = noEngine ? r.totalMdl - Math.round(r.customs.total) : r.totalMdl;
-    return {r:r, pr:pr, cls:cls, fuel:fuel, isEv:isEv, noEngine:noEngine, loc:loc, amount:pr.amount, cur:String(pr.cur || "cad").toUpperCase(),
+    return {r:r, pr:pr, bd:bd, cls:cls, fuel:fuel, isEv:isEv, eng:eng, noEngine:noEngine, loc:loc, amount:bd.amount, cur:String(bd.cur || "cad").toUpperCase(),
       totalUsd:Math.round(totMdl / r.usdMdl), totalEur:Math.round(totMdl / r.eurMdl), totalMdl:Math.round(totMdl)};
+  }
+  // Расшифровка VIN на сервере (NHTSA vPIC): тип силовой установки и объём; после ответа расчёт пересчитывается
+  function loadVpic(){
+    var vin = String(state.car && state.car.vin || "").toUpperCase();
+    if(!CA || !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return;
+    fetch("/api/catalog?action=vpic&vin=" + vin).then(function(r){ return r.json(); }).then(function(d){
+      if(d && d.ok){ state.vpic = {kind:d.kind, liters:d.liters, level:d.level}; renderKC(); }
+    }).catch(function(){});
   }
   function caEtaHtml(){
     var loc = state.listing ? caLocationOf(state.listing) : null, prov = loc && loc.province;
@@ -1112,11 +1145,16 @@
     var h = '<summary class="kc__sum"><span class="kc__sumttl">' + esc(T("Из чего состоит цена")) + '</span><span class="kc__sumhint"><span class="kc__show">' + esc(T("Показать")) + '</span><span class="kc__hide">' + esc(T("Скрыть")) + '</span></span>' + ico('<path d="m6 9 6 6 6-6"/>', "h-4 w-4 kc__chev") + '</summary>';
     h += '<div class="kc__body">';
     h += '<label class="kc__cls"><span>' + esc(T("Класс авто")) + '</span><select class="kc__sel" data-kc-cls-sel aria-label="' + esc(T("Класс авто (влияет на доставку)")) + '" title="' + esc(T("Класс авто (влияет на доставку)")) + '">' + opts + '</select></label>';
+    // Это аукцион: цена не фиксированная — по умолчанию текущая/стартовая ставка, можно ввести свою (в валюте объявления)
+    var FUEL_NAMES = {gasoline:"Бензин", diesel:"Дизель", hybrid:"Гибрид", phev:"Plug-in гибрид", electric:"Электро"};
+    h += '<label class="kc__cls kc__bid"><span>' + esc(T("Ваша ставка") + ", " + q.cur) + '</span><input type="text" inputmode="numeric" data-kc-bid autocomplete="off" placeholder="' + esc(fmtNum(Math.round(q.pr.amount))) + '" value="' + esc(kc.bid ? fmtNum(Number(String(kc.bid).replace(/[^\d]/g, ""))) : "") + '" aria-label="' + esc(T("Ваша ставка") + ", " + q.cur) + '"></label>';
+    h += '<p class="kc__note kc__auc">' + esc(T("Это аукцион: итоговая цена зависит от торгов. Расчёт — при ставке") + " " + fmtNum(Math.round(q.amount)) + " " + q.cur + (q.bd.typed ? "" : " (" + T(q.pr.label).toLowerCase() + ")") + ". " + T("Введите свою ставку, чтобы пересчитать.")) + '</p>';
+    h += '<p class="kc__note kc__spec">' + esc(T(FUEL_NAMES[q.fuel] || "Бензин") + (q.eng.l > 0 ? " · " + q.eng.l.toFixed(1).replace(".", ",") + " " + T("л") + (q.eng.src === "vin" ? " (" + T("по VIN") + ")" : "") : (q.isEv ? "" : " · " + T("объём двигателя неизвестен")))) + '</p>';
     // --- первый платёж: сразу после покупки ---
     h += '<section class="kc__grp">' + kcGrpHead("Оплата после покупки", "ставка, сборы и доставка до Клайпеды", kcUsd(payNow), "") + '<ul class="kc__rows">';
     h += kcRow(pr.label, kcUsd(r.bid), q.cur !== "USD" ? esc(fmtNum(q.amount) + " " + q.cur + " · " + T("курс TD Bank") + " " + kcRate(rates.usdCad)) : "");
     h += kcRow("Аукционный сбор", kcUsd(r.auctionFee), esc(T("Фиксированный сбор дилерского аукциона по цене авто (как на Manheim)")));
-    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("уточним")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + " → " + T("Монреаль") : ""), unknownLoc);
+    h += kcRow("Доставка по Канаде", unknownLoc ? esc(T("уточним")) : kcUsd(r.dispatch), esc(q.loc && q.loc.name ? T("Ближайшая площадка") + ": " + String(q.loc.name).replace(/^(Copart|IAA[AI]?)\s*/i, "") + (q.loc.distKm != null && q.loc.pointSrc !== "province" ? " (≈" + fmtNum(q.loc.distKm) + " " + T("км") + ")" : "") + " → " + T("Монреаль") : ""), unknownLoc);
     if(r.bankFee) h += kcRow("Комиссия банка TD", kcUsd(r.bankFee));
     h += kcRow("Услуги канадской компании", kcUsd(r.canadaFee), esc(T("2% от стоимости лота, минимум $300")));
     h += kcRow("Складирование и погрузка", kcUsd(r.keeper));
@@ -1149,7 +1187,7 @@
   function renderKcCa(el){
     var top = document.getElementById("kcTopV1"), q = caQuote();
     if(!q){ el.hidden = true; el.innerHTML = ""; if(top) top.hidden = true; return; }
-    if(top){ top.innerHTML = '<span>' + esc(T("Под ключ в Кишинёве")) + '<small>' + esc(T(q.noEngine ? "без растаможки" : "с таможней")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b>'; top.hidden = false; }
+    if(top){ top.innerHTML = '<span>' + esc(T("Под ключ в Кишинёве")) + '<small>' + esc(T("при ставке") + " " + kcUsd(q.r.bid) + " · " + T(q.noEngine ? "без растаможки" : "с таможней")) + '</small></span><b class="num" data-no-i18n="true">≈ ' + kcUsd(q.totalUsd) + '</b>'; top.hidden = false; }
     var wasOpen = el.hasAttribute("data-init") ? el.open : kc.open;
     el.innerHTML = caHtml(q); el.hidden = false; el.setAttribute("data-init", "1"); el.open = wasOpen;
     kcFitSticky();
@@ -1168,6 +1206,7 @@
     if(t.hasAttribute && t.hasAttribute("data-kc-cls-sel")){ kc.cls = t.value; renderKC(); return; }
     var k = t.getAttribute && t.getAttribute("data-kc");
     if(k){ kc[k] = !!t.checked; renderKC(); return; }
+    if(t.hasAttribute && t.hasAttribute("data-kc-bid")){ kc.bid = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); return; }
     if(t.hasAttribute && t.hasAttribute("data-kc-kg")){ kc.kg = String(t.value || "").replace(/[^\d]/g, ""); renderKC(); }
   });
 

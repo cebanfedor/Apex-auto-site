@@ -359,6 +359,44 @@
     if(!hit && prov) hit = locs.find(function(l){ return l.province === prov; });
     return hit ? Object.assign({}, hit) : null;
   }
+  function haversineKm(a, b){
+    var R = 6371, rad = Math.PI / 180, dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+    var x = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(x)));
+  }
+  /** Точка лота в Канаде: координаты объявления → город из текста («OPENLANE Halifax», «Toronto, Ontario») → центр провинции. */
+  function canadaPoint(text, pos, cities, centers){
+    if(pos && isFinite(pos.lat) && isFinite(pos.lon) && !(Number(pos.lat) === 0 && Number(pos.lon) === 0)) return {lat:Number(pos.lat), lon:Number(pos.lon), src:"gps"};
+    cities = cities || (typeof globalThis !== "undefined" && globalThis.CANADA_CITIES) || {};
+    centers = centers || (typeof globalThis !== "undefined" && globalThis.CANADA_PROV_CENTERS) || {};
+    var raw0 = String(text || "").toLowerCase(), prov0 = "";
+    for(var n0 in CA_PROV_NAMES){ if(raw0.indexOf(n0) !== -1){ prov0 = CA_PROV_NAMES[n0]; break; } }
+    var parts = raw0.replace(/open\s*lane/g, "").split(",").map(function(x){ return x.replace(/[^a-zа-яё.\- '’]/g, "").trim(); }).filter(Boolean);
+    function ok(c){ return !prov0 || !c[2] || c[2] === prov0 || (prov0 === "NF" && c[2] === "NL"); }
+    for(var i = 0; i < parts.length; i++){
+      var c = cities[parts[i]] ? parts[i] : (CA_CITY_ALIASES[parts[i]] || parts[i]);
+      if(cities[c] && ok(cities[c])) return {lat:cities[c][0], lon:cities[c][1], src:"city"};
+      for(var k in cities){ if(k.length > 4 && ok(cities[k]) && new RegExp("(^|[^a-z])" + k.replace(/[.\-]/g, "\\$&") + "([^a-z]|$)").test(parts[i])) return {lat:cities[k][0], lon:cities[k][1], src:"city"}; }
+    }
+    var raw = String(text || "").toLowerCase(), prov = "";
+    for(var n in CA_PROV_NAMES){ if(raw.indexOf(n) !== -1){ prov = CA_PROV_NAMES[n]; break; } }
+    return prov && centers[prov] ? {lat:centers[prov][0], lon:centers[prov][1], src:"province"} : null;
+  }
+  /** Ближайшая площадка Copart/IAAI по прямой (Федор 14.11.2026: «доставку по Канаде бери с ближайшей локации»).
+   *  Возвращает копию записи + distKm и pointSrc (gps | city | province); null — точку определить нельзя или у площадок нет координат. */
+  function nearestCanadaLocation(text, pos, locs, cities, centers){
+    locs = locs || (typeof globalThis !== "undefined" && globalThis.CANADA_LOCATIONS) || [];
+    var pt = canadaPoint(text, pos, cities, centers);
+    if(!pt) return null;
+    var best = null, bd = Infinity;
+    locs.forEach(function(l){
+      if(!isFinite(l.lat) || !isFinite(l.lon)) return;
+      var d = haversineKm(pt, l);
+      // при равной удалённости (тот же город) берём дешёвый тариф
+      if(d < bd - 1 || (Math.abs(d - bd) <= 1 && best && (l.dispatchSuvCad || 0) < (best.dispatchSuvCad || 0))){ bd = d; best = l; }
+    });
+    return best ? Object.assign({}, best, {distKm:Math.round(bd), pointSrc:pt.src}) : null;
+  }
   /**
    * input: {bidUsd, auction("manheim" для дилерских площадок), vehicleType, fuel, engineLiters, year, location(запись CANADA_LOCATIONS)|null,
    *         offsite, insurance(по умолчанию true), exportDocs, paymentFee(по умолчанию true), usdMdl, eurMdl, curbKg, customsRules}
@@ -404,7 +442,7 @@
   }
 
   return {
-    compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl, computeCanada, findCanadaLocation,
-    landShippingFor, seaShippingFor, bodyClassForModel, isMinivan, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, setCustomsRules, getCustomsRules, VERSION: "core-v22"
+    compute, auctionFeeFor, companyFeeFor, insuranceFor, paymentFeeFor, customsMdl, computeCanada, findCanadaLocation, nearestCanadaLocation, canadaPoint,
+    landShippingFor, seaShippingFor, bodyClassForModel, isMinivan, powerSportKind, isPluginHybrid, SEA, EV_BANDS, defaultCurbKg, CUSTOMS_YEAR, setCustomsRules, getCustomsRules, VERSION: "core-v23"
   };
 });

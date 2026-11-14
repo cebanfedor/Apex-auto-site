@@ -7,6 +7,7 @@ const {sendJson, methodNotAllowed, getQuery} = require("../server/http");
 const cat = require("../server/catalog-api");
 const {fetchCadUsdRate} = require("../server/cad-rate");
 const {fetchT} = require("../server/fetchx");
+const pt = require("../server/powertrain");
 
 const LANGS = new Set(["en", "ru", "uk", "pl", "bg", "sq"]);
 const SORTS = new Set(["newest", "oldest", "cheaper", "expensive", "odometer_asc", "odometer_desc", "year_asc", "year_desc", "auction_nearest"]);
@@ -394,6 +395,20 @@ module.exports = async function handler(req, res){
       const lang = pickLang(q);
       const data = await cat.catalogFetch(`/cars/vin/${encodeURIComponent(vin)}`, `lang=${encodeURIComponent(lang)}`, {src});
       return sendJson(res, 200, {ok:true, car:data?.data || data}, {"cache-control":"no-store, private"});
+    }
+
+    // Тип силовой установки и объём по VIN (NHTSA vPIC, без ключа). Нужен Канаде: API дилерских площадок
+    // иногда отдаёт plug-in гибрид (BMW X5 xDrive45e) как «электро», а engine_volume у такого — мусор.
+    if(action === "vpic"){
+      const vin = String(q.get("vin") || "").trim().toUpperCase();
+      if(!pt.validVin(vin)) return sendJson(res, 400, {ok:false, error:"bad_vin"}, {"cache-control":"no-store"});
+      const m = await pt.vpicBatch([vin], 8000);
+      const d = m && m.get(vin);
+      if(!d) return sendJson(res, 200, {ok:false, error:m ? "not_decoded" : "unavailable"}, {"cache-control":"public, max-age=60"});
+      const k = pt.kindFromVpic(d);
+      const l = Number(d.DisplacementL);
+      return sendJson(res, 200, {ok:true, kind:k ? k.x : null, level:k ? k.level : "", liters:l > 0 ? Math.round(l * 10) / 10 : 0, cyl:Number(d.EngineNumberofCylinders) || 0,
+        make:String(d.Make || ""), model:String(d.Model || ""), trim:String(d.Trim || "")}, {"cache-control":"public, max-age=86400, s-maxage=604800"});
     }
 
     if(action === "listing"){

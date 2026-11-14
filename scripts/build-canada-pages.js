@@ -17,7 +17,7 @@ const DESC = "Авто из Канады с дилерских аукционо�
 const MAIN = ['<main id="main" class="apx-korea relative', '<main id="main" data-cat-src="ca" class="apx-korea relative'];
 build("catalog.html", "canada.html", [
   // расчёт «под ключ» (korea-calc.js) — только для Кореи
-  ['  <script src="/calc-core.js?v=core-v22" defer></script>\n  <script src="/korea-calc.js?v=kr-v5" defer></script>\n', ''],
+  ['  <script src="/calc-core.js?v=core-v23" defer></script>\n  <script src="/korea-calc.js?v=kr-v5" defer></script>\n', ''],
   ["<title>Авто из Кореи — каталог Encar | Apex Auto</title>", "<title>Авто из Канады — дилерские аукционы | Apex Auto</title>"],
   [/<meta name="description" content="[^"]*">/.exec(fs.readFileSync(path.join(root, "catalog.html"), "utf8"))[0], `<meta name="description" content="${DESC}">`],
   ['<link rel="canonical" href="https://apexauto.md/korea">', '<link rel="canonical" href="https://apexauto.md/canada">'],
@@ -43,7 +43,7 @@ build("catalog.html", "canada.html", [
 ]);
 build("catalog-car.html", "canada-car.html", [
   // расчёт доставки и растаможки (korea-calc.js) — только для Кореи; в Канаде нужен лишь calc-core (аукционный сбор по таблице Manheim)
-  ['  <script src="/korea-calc.js?v=kr-v5" defer></script>\n', '  <script src="/canada-locations.js?v=1" defer></script>\n'],
+  ['  <script src="/korea-calc.js?v=kr-v5" defer></script>\n', '  <script src="/canada-locations.js?v=2" defer></script>\n'],
   ['<title id="catCarTitleTagV1">Автомобиль из Кореи | Apex Auto</title>', '<title id="catCarTitleTagV1">Автомобиль из Канады | Apex Auto</title>'],
   MAIN,
   ['class="navQuickV1" href="/canada"', 'class="navQuickV1 active" href="/canada"'],

@@ -173,3 +173,24 @@ test("computeCanada: дилерская площадка Канады — сбо
   // площадка не определилась — доставка неизвестна
   assert.equal(C.computeCanada({bidUsd:8000, auction:"manheim", location:null}).dispatchUnknown, true);
 });
+
+test("канада: ближайшая площадка по координатам/городу (14.11.2026)", () => {
+  require("../canada-locations.js");
+  const A = require("../calc-core.js");
+  const near = (t, p) => A.nearestCanadaLocation(t, p);
+  assert.equal(near("Mississauga, Ontario, Canada").name, "Copart Toronto");            // город из таблицы → ближайший двор
+  assert.equal(near("Mississauga, Ontario, Canada").pointSrc, "city");
+  assert.equal(near("x", {lat:45.5, lon:-73.5}).name, "Copart Montreal");                // координаты объявления важнее текста
+  assert.equal(near("x", {lat:45.5, lon:-73.5}).pointSrc, "gps");
+  assert.equal(near("Richmond Hill, Ontario").pointSrc, "city");                         // Richmond Hill (ON) ≠ Richmond (BC)
+  assert.notEqual(near("Richmond Hill, Ontario").province, "BC");
+  assert.equal(near("Ontario").pointSrc, "province");                                    // города нет → центр провинции
+  assert.equal(near(""), null);
+  assert.ok(near("Halifax, Nova Scotia").distKm <= 5);
+});
+test("канада: plug-in гибрид BMW X5 xDrive45e распознаётся по названию", () => {
+  const A = require("../calc-core.js");
+  assert.equal(A.isPluginHybrid("BMW", "X5", "2022 BMW X5 xDrive45e", 2022), true);
+  assert.equal(A.isPluginHybrid("BMW", "i4", "2023 BMW i4 eDrive40", 2023), false);
+  assert.equal(A.isPluginHybrid("BMW", "iX", "2023 BMW iX xDrive50", 2023), false);
+});
