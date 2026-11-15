@@ -3989,13 +3989,10 @@
     const detail = $("#auctionDetail");
     detail.hidden = false;
     detail.innerHTML = `
-      <div class="detailTopRowV1">
-        <a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a>
-      </div>
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
           <div>
-            <span class="auctionCrumbsV1"><span class="crumbRootV1"><a href="/">Главная</a> / <a href="/auctions">Аукционы</a> / </span>${lot.make ? `<a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <span class="crumbDropV1"><a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>${lot.makeId ? `<button type="button" class="crumbChevV1" data-crumb-drop="model" aria-label="Другие модели"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>` : ""}</span>` : ""}${lot.generationId && lot.generationName && lot.makeId && lot.modelId ? ` / <span class="crumbDropV1"><a href="/auctions?make=${lot.makeId}&model=${lot.modelId}&generation=${lot.generationId}">${escapeHtml(lot.generationName)}</a><button type="button" class="crumbChevV1" data-crumb-drop="gen" aria-label="Другие поколения"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button></span>` : ""}<span class="crumbCurV1"> / ${escapeHtml(lotTitle(lot))}</span></span>
+            <span class="auctionCrumbsV1"><a class="detailBackV1 detailBackIconV1" href="/auctions" title="${escapeHtml(L("Вернуться к каталогу"))}" aria-label="${escapeHtml(L("Вернуться к каталогу"))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></a><span class="crumbRootV1"><a href="/">Главная</a> / <a href="/auctions" data-back-crumb>Аукционы</a> / </span>${lot.make ? `<a href="${lot.makeId ? `/auctions?make=${lot.makeId}` : `/auctions?name=${encodeURIComponent(lot.make)}`}">${escapeHtml(lot.make)}</a>` : ""}${lot.make && lot.model ? ` / <span class="crumbDropV1"><a href="${lot.makeId && lot.modelId ? `/auctions?make=${lot.makeId}&model=${lot.modelId}` : `/auctions?name=${encodeURIComponent(`${lot.make} ${lot.model}`)}`}">${escapeHtml(displayModel(lot.model))}</a>${lot.makeId ? `<button type="button" class="crumbChevV1" data-crumb-drop="model" aria-label="Другие модели"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button>` : ""}</span>` : ""}${lot.generationId && lot.generationName && lot.makeId && lot.modelId ? ` / <span class="crumbDropV1"><a href="/auctions?make=${lot.makeId}&model=${lot.modelId}&generation=${lot.generationId}">${escapeHtml(lot.generationName)}</a><button type="button" class="crumbChevV1" data-crumb-drop="gen" aria-label="Другие поколения"><svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 3.5 5 6.5 8 3.5"/></svg></button></span>` : ""}<span class="crumbCurV1"> / ${escapeHtml(lotTitle(lot))}</span></span>
             <div class="dTitleRowV1">
               <h1>${escapeHtml(title)}</h1>
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
@@ -4709,7 +4706,7 @@
   });
   // Кнопка «Вернуться к каталогу»: на то же место, откуда пришли (фильтры, страница, прокрутка), а не в начало каталога
   document.addEventListener("click", event => {
-    const back = event.target.closest(".detailBackV1");
+    const back = event.target.closest(".detailBackV1, [data-back-crumb]");   // стрелка и крошка «Аукционы» — на то же место каталога, откуда пришли
     if(!back || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
     const d = history.state && history.state.d;
     if(d && state.backSnap && (state.items || []).length){ event.preventDefault(); history.go(-d); return; }
