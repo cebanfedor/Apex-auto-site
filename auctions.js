@@ -3991,10 +3991,6 @@
     detail.innerHTML = `
       <div class="detailTopRowV1">
         <a class="detailBackV1" href="/auctions">← Вернуться к каталогу</a>
-        <form class="detailSearchV1" data-detail-search>
-          <input type="search" placeholder="VIN, номер лота или марка/модель" aria-label="Поиск по аукционам" autocomplete="off">
-          <button type="submit">Найти</button>
-        </form>
       </div>
       <section class="auctionDetailPanelV1">
         <div class="detailHeaderV1">
