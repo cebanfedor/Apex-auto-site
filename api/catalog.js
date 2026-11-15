@@ -56,6 +56,46 @@ function buildBrandsParam(q){
   return brandIds.map(id => ({id, models:(modelMap[id] || []).map(mid => ({id:mid}))}));
 }
 
+
+// ---- Поколения (15.11.2026) ----
+// Справочник провайдера: (1) обрывается на 2022 — у свежего поколения to_year=2022 (Sportage V «2021–2022»,
+// Tesla Model Y «2020–2022»), (2) приходит вперемешку, (3) generation_id у машин в каталоге часто null
+// (Корея ≈50%, Канада/OpenLane 100%) — фильтр по id терял машины. Поэтому: список — новые первыми, верх
+// у самого свежего поколения открыт; фильтр по поколению — по диапазону лет (как на /auctions).
+function normGens(rows){
+  const items = (Array.isArray(rows) ? rows : []).filter(g => g && g.id != null).map(g => ({
+    id:g.id, name:g.name || "", brand_id:g.brand_id, model_id:g.model_id, vehicle_type:g.vehicle_type,
+    from_year:g.from_year || null, to_year:g.to_year || null, ordinal:g.ordinal || null, code:g.code || null
+  }));
+  const dated = items.filter(g => g.from_year);
+  if(dated.length){
+    const newest = dated.reduce((a, b) => (b.from_year > a.from_year ? b : a));
+    if(newest.to_year == null || newest.to_year >= 2021) newest.to_year = null;
+  }
+  return items.sort((a, b) => (b.from_year || 0) - (a.from_year || 0));
+}
+// Выбрано ровно одно «модель + поколения» → убираем generation_id из запроса, возвращаем диапазон лет.
+async function genYearRange(brands, src){
+  if(!Array.isArray(brands)) return null;
+  const picks = [];
+  let withGen = 0;
+  for(const b of brands) for(const m of (b && b.models) || []) if(m && Array.isArray(m.generations) && m.generations.length){ withGen++; picks.push(m); }
+  if(withGen !== 1) return null;
+  const m = picks[0];
+  let rows;
+  try{ rows = normGens(await cat.listGenerations(String(m.id), "en", src)); }catch(e){ return null; }
+  const want = new Set(m.generations.map(g => String(g.id)));
+  const sel = rows.filter(g => want.has(String(g.id)) && g.from_year);
+  if(!sel.length || sel.length !== want.size) return null;
+  const asc = sel.slice().sort((a, b) => a.from_year - b.from_year);
+  let to = asc[0].to_year;
+  for(let i = 1; i < asc.length; i++){
+    if(to != null && asc[i].from_year > to + 1) return null;   // разрыв между выбранными поколениями — оставляем фильтр по id
+    to = (to == null || asc[i].to_year == null) ? null : Math.max(to, asc[i].to_year);
+  }
+  return {model:m, from:asc[0].from_year, to};
+}
+
 // Источник: kr — Encar (Корея, по умолчанию), ca — OpenLane (Канада). 06.11.2026.
 function pickSrc(q){ return cat.srcOf(String(q.get("src") || "").toLowerCase()); }
 
@@ -74,6 +114,14 @@ async function buildSearchQuery(q, {forCount}){
   if(vin) cat.qsPush(parts, "vin", vin.slice(0, 19));
 
   const brands = buildBrandsParam(q);
+  let yFrom = clampInt(q.get("year_from"), 1800, 3000, undefined);
+  let yTo = clampInt(q.get("year_to"), 1800, 3000, undefined);
+  const gr = await genYearRange(brands, pickSrc(q));
+  if(gr){
+    gr.model.generations = [];   // по id не фильтруем — только модель + годы
+    yFrom = yFrom == null ? gr.from : Math.max(yFrom, gr.from);
+    if(gr.to != null) yTo = yTo == null ? gr.to : Math.min(yTo, gr.to);
+  }
   if(brands) cat.qsBrands(parts, brands);
 
   cat.qsPush(parts, "price_from", clampInt(q.get("price_from"), 0, 9_000_000_000_000, undefined));
@@ -81,8 +129,8 @@ async function buildSearchQuery(q, {forCount}){
   const currency = String(q.get("currency") || "").trim().toLowerCase();
   if(/^[a-z]{3}$/.test(currency)) cat.qsPush(parts, "currency", currency);
 
-  cat.qsPush(parts, "year_from", clampInt(q.get("year_from"), 1800, 3000, undefined));
-  cat.qsPush(parts, "year_to", clampInt(q.get("year_to"), 1800, 3000, undefined));
+  cat.qsPush(parts, "year_from", yFrom);
+  cat.qsPush(parts, "year_to", yTo);
   cat.qsPush(parts, "odometer_from", clampInt(q.get("odometer_from"), 0, 999_999_999, undefined));
   cat.qsPush(parts, "odometer_to", clampInt(q.get("odometer_to"), 0, 999_999_999, undefined));
   cat.qsPush(parts, "engine_volume_from", clampInt(q.get("engine_volume_from"), 0, 999_999_999, undefined));
@@ -464,7 +512,7 @@ module.exports = async function handler(req, res){
       const modelId = String(q.get("model_id") || "").trim();
       if(!modelId) return sendJson(res, 400, {ok:false, error:"missing_model_id"});
       const lang = pickLang(q);
-      const rows = await cat.listGenerations(modelId, lang, src);
+      const rows = normGens(await cat.listGenerations(modelId, lang, src));
       return sendJson(res, 200, {ok:true, items:rows}, {"cache-control":"public, max-age=3600"});
     }
 
@@ -493,3 +541,5 @@ module.exports.catalogFacts = catalogFacts;
 module.exports.catalogShowcase = catalogShowcase;
 module.exports.showcaseItem = showcaseItem;
 module.exports.niceModel = niceModel;
+module.exports.normGens = normGens;
+module.exports.genYearRange = genYearRange;

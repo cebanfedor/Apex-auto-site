@@ -6443,7 +6443,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g53" : "";   // бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g54" : "";   // g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
@@ -6524,8 +6524,16 @@ module.exports = async function handler(request, response){
       const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${mid}`);
       const items = (Array.isArray(list?.data) ? list.data : [])
         .filter(m => m && m.name)
-        .map(m => ({id:m.id, name:m.name, qty:m.cars_qty, fromYear:m.from_year || m.year_from || m.start_year || null, toYear:m.to_year || m.year_to || m.end_year || null}))
-        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        .map(m => ({id:m.id, name:m.name, qty:m.cars_qty, fromYear:m.from_year || m.year_from || m.start_year || null, toYear:m.to_year || m.year_to || m.end_year || null}));
+      // 15.11.2026: свежие первыми (раньше — по алфавиту: «I(GMT400)», «II», «III»… вперемешку) и верх у самого
+      // свежего поколения открыт — справочник обрывается на 2022 (Ram 1500 V «2018–2022», Kia K5 III «2021–2022»,
+      // HR-V «2022–2026»); в фильтре лотов верх и так открывался, в подписи — нет.
+      const datedGens = items.filter(g => g.fromYear);
+      if(datedGens.length){
+        const newestGen = datedGens.reduce((a, b) => (b.fromYear > a.fromYear ? b : a));
+        if(newestGen.toYear == null || newestGen.toYear >= 2021) newestGen.toYear = null;
+      }
+      items.sort((a, b) => (b.fromYear || 0) - (a.fromYear || 0) || String(a.name).localeCompare(String(b.name)));
       const payload = {ok:true, items};
       setCached(key, payload);
       sendJson(response, 200, payload);
