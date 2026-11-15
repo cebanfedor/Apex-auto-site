@@ -1877,6 +1877,7 @@
     const snap = state.backSnap || readBackSnap();
     const det = $("#auctionDetail");
     if(det){ det.hidden = true; det.innerHTML = ""; }
+    document.documentElement.classList.remove("aucLotPageV1");
     $("#auctionCatalog").hidden = false;
     document.title = catalogSeo.title;
     const md = document.querySelector('meta[name="description"]'); if(md && catalogSeo.desc) md.setAttribute("content", catalogSeo.desc);

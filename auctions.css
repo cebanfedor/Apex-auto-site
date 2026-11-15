@@ -2063,3 +2063,9 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 #auctionDetail .detailBackIconV1:hover { color:var(--aRed); border-color:var(--aRed); }
 #auctionDetail .detailBackIconV1::after { content:""; position:absolute; inset:-6px; }   /* тап-зона шире значка */
 @media (max-width:640px) { #auctionDetail .detailBackIconV1 { width:32px; height:32px; margin-right:10px; } }
+
+/* Мелькание при загрузке (15.11.2026): «лотов найдено» без числа не показываем; скелетон марок; на странице лота каталог не рисуется вовсе */
+#auctionResultNum:empty + #auctionResultLabel { visibility:hidden; }
+.msLoadingV1 { margin:0; padding:6px 2px; }
+.msLoadingV1 .skLineV1 { height:14px; margin:10px 0; }
+html.aucLotPageV1 #auctionCatalog { display:none; }

@@ -42,9 +42,9 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <script src="auc-early.js?v=1"></script>
+  <script src="auc-early.js?v=2"></script>
   <link rel="stylesheet" href="/styles.css?v=v575">
-  <link rel="stylesheet" href="/auctions.css?v=v656">
+  <link rel="stylesheet" href="/auctions.css?v=v657">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -228,7 +228,7 @@
             <details open class="fSecV2"><summary>Марка</summary>
               <input id="filterMakeV2" class="fInputV2" placeholder="Выбрать марку" autocomplete="off">
               <input type="hidden" name="make" id="filterMakeIdV2">
-              <div class="msListV1" id="makeListV1"><p class="msEmptyV1">Загрузка…</p></div>
+              <div class="msListV1" id="makeListV1"><p class="msEmptyV1 msLoadingV1" aria-label="Загрузка…"><span class="skLineV1 skW80"></span><span class="skLineV1 skW60"></span><span class="skLineV1 skW80"></span><span class="skLineV1 skW40"></span></p></div>
             </details>
             <details open class="fSecV2"><summary>Модель</summary>
               <input id="filterModelV2" class="fInputV2" placeholder="Найти модель" autocomplete="off">
@@ -444,7 +444,8 @@
           </div>
           <div id="savedPanelV1" class="savedPanelV1" hidden></div>
           <div id="auctionMessage" class="auctionMessageV1" hidden></div>
-          <div id="auctionCards" class="auctionCardsV1"></div>
+          <!-- скелетон выдачи прямо в HTML (15.11.2026): до запуска auctions.js на экране не пустота, а те же серые карточки, что рисует skeletonCards(6) -->
+          <div id="auctionCards" class="auctionCardsV1"><article class="dbCard dbSkelV1"><div class="dbPhoto skBoxV1"></div><div class="dbBody"><div class="skLineV1 skW60"></div><div class="skLineV1 skW40"></div><div class="dbCols"><ul class="dbSpecs"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul><ul class="dbChecks"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul></div></div><aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside></article><article class="dbCard dbSkelV1"><div class="dbPhoto skBoxV1"></div><div class="dbBody"><div class="skLineV1 skW60"></div><div class="skLineV1 skW40"></div><div class="dbCols"><ul class="dbSpecs"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul><ul class="dbChecks"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul></div></div><aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside></article><article class="dbCard dbSkelV1"><div class="dbPhoto skBoxV1"></div><div class="dbBody"><div class="skLineV1 skW60"></div><div class="skLineV1 skW40"></div><div class="dbCols"><ul class="dbSpecs"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul><ul class="dbChecks"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul></div></div><aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside></article><article class="dbCard dbSkelV1"><div class="dbPhoto skBoxV1"></div><div class="dbBody"><div class="skLineV1 skW60"></div><div class="skLineV1 skW40"></div><div class="dbCols"><ul class="dbSpecs"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul><ul class="dbChecks"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul></div></div><aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside></article><article class="dbCard dbSkelV1"><div class="dbPhoto skBoxV1"></div><div class="dbBody"><div class="skLineV1 skW60"></div><div class="skLineV1 skW40"></div><div class="dbCols"><ul class="dbSpecs"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul><ul class="dbChecks"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul></div></div><aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside></article><article class="dbCard dbSkelV1"><div class="dbPhoto skBoxV1"></div><div class="dbBody"><div class="skLineV1 skW60"></div><div class="skLineV1 skW40"></div><div class="dbCols"><ul class="dbSpecs"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul><ul class="dbChecks"><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li><li><span class='skLineV1 skW80'></span></li></ul></div></div><aside class="dbAside"><div class="skLineV1 skW80"></div><div class="dbPriceBox skBoxV1" style="height:60px"></div></aside></article></div>
           <div id="paginationV1" class="paginationV1" hidden></div>
         </section>
       </section>
@@ -560,7 +561,7 @@
        (defer, DOM уже готов), и ему нужен window.i18nT/APEX_LANG заранее,
        иначе детали лота рендерятся по-русски до перевода. -->
   <script src="/i18n.js?v=multilang-v636" defer></script>
-  <script src="/auctions.js?v=auctions-v488" defer></script>
+  <script src="/auctions.js?v=auctions-v489" defer></script>
   <script src="/site-content.js?v=admin-v168" defer></script>
 
 <!-- Exit-intent popup -->
