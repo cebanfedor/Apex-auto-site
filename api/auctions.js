@@ -4129,8 +4129,17 @@ async function computeCompsForQ(q){
     // fuel_x (пересчёт по VIN) приоритетнее сырого текста фида — тот путает гибрид/plug-in/mild-hybrid
     // (см. «Тип силовой установки по VIN»). Единая точка разбора — дальше используем везде.
     const fuelText = resolveFuelText(q);
-    const row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:q.get("make_name"), model:q.get("model_name"),
+    let row = hasCond ? priceGuide.matchGuide(await priceGuide.loadGuide(), {make:q.get("make_name"), model:q.get("model_name"),
       title:q.get("title"), gen:q.get("gen"), year:yearG, fuel:fuelText}) : null;
+    // 17.11.2026 (Федор, BMW X5 2027 — новый кузов G65, а ориентир $44.7–48.4к считался по старому G05):
+    // строка таблицы, чей диапазон лет начинается РАНЬШЕ начала поколения лота, описывает прошлый кузов —
+    // для совсем нового кузова (начался в прошлом/этом году) её не применяем, оценка идёт по ACV лота.
+    if(row && yearG){
+      try{
+        const g0 = await resolveGenRange(modelId, yearG, "");
+        if(g0 && g0.genFrom >= new Date().getFullYear() - 1 && (Number(row.year_from) || 0) < g0.genFrom) row = null;
+      }catch(_){ /* без справочника поколений — как раньше */ }
+    }
     const miF = priceGuide.mileageFactor(String(q.get("odometer") || "").replace(/[^0-9]/g, ""));
     // ACV конкретного лота (уже учитывает год/пробег/комплектацию этого VIN) — калиброванная по нашей
     // базе доля от неё (см. server/price-guide.js, ?action=acvcalib). Считаем один раз — используется
@@ -6443,7 +6452,7 @@ module.exports = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g54" : "";   // g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g55" : "";   // g55: BMW X5 G65 с 2027; g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){

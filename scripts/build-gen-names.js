@@ -76,6 +76,7 @@ function toRoman(n){ const m = [[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]]; let
     1052:["I","II","III"],                                 // Mercedes CLS C219/C218/C257
     1904:["","Mk5"],                                       // Ford Fusion 2013–2020 = Mk5 (платформа Mondeo Mk5), Федор 26.09.2026
     71:["I","III","IV","V"],                               // Audi S4 B5, B7, B8, B9 (B6 в таблице нет)
+    1665:["I","II","III","IV","V"],                        // BMW X5 E53/E70/F15/G05/G65 (G65 с MY2027)
     757:["I","III","IV","V","VI","VII","VIII"]             // Porsche 911: 901, 964, 993, 996, 997, 991, 992 (G-серии в таблице нет)
   };
   for(const id in MANUAL) if(out[id] && out[id].length === MANUAL[id].length) out[id] = MANUAL[id];
