@@ -2069,3 +2069,29 @@ html.aucInfoOffV1 #auctionInfoBanner { display: none; }
 .msLoadingV1 { margin:0; padding:6px 2px; }
 .msLoadingV1 .skLineV1 { height:14px; margin:10px 0; }
 html.aucLotPageV1 #auctionCatalog { display:none; }
+
+/* 17.11.2026 (Федор: «дизайн кнопок не очень красивый»): действия лота — полные подписи на ПК, короткие на телефоне */
+.dFavBtnV1 .lS { display:none; }
+.dFavBtnV1 i, .dVinBtn i { font-style:normal; }
+@media (max-width:640px){
+  .dFavBtnV1 .lF { display:none; }
+  .dFavBtnV1 .lS { display:inline; }
+  .dHeadActionsV1 { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn {
+    height:44px !important; min-height:44px !important; padding:0 6px !important; width:auto;
+    display:flex !important; flex-direction:row !important; align-items:center; justify-content:center; gap:6px !important;
+    white-space:nowrap !important; font-size:13px !important; font-weight:650; line-height:1 !important; letter-spacing:-.005em;
+    background:#fff; color:var(--aInk2); border:1px solid var(--aLine); border-radius:12px; box-shadow:0 1px 2px rgba(16,24,40,.04);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .dHeadActionsV1 .dFavBtnV1 > span, .dHeadActionsV1 .dVinBtn > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .dHeadActionsV1 svg, .dHeadActionsV1 .dbIco { width:17px !important; height:17px !important; flex:none; }
+  .dHeadActionsV1 .dFavBtnV1:active, .dHeadActionsV1 .dVinBtn:active { background:var(--aSoft, #f4f5f7); transform:scale(.98); }
+  .dHeadActionsV1 .dFavBtnV1.is-fav { background:#fffaf0; border-color:#e8c46a; color:#a8680c; }
+  .dHeadActionsV1 .dBellBtnV1.is-on { background:#f3f7ff; border-color:#9db8f5; color:#1d4ed8; }
+}
+@media (max-width:360px){
+  .dHeadActionsV1 { gap:6px; }
+  .dHeadActionsV1 .dFavBtnV1, .dHeadActionsV1 .dVinBtn { font-size:11.5px !important; gap:3px !important; padding:0 2px !important; letter-spacing:-.02em; }
+  .dHeadActionsV1 svg, .dHeadActionsV1 .dbIco { width:14px !important; height:14px !important; }
+}

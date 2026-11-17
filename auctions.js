@@ -417,7 +417,9 @@
   function alertLotMark(ids){ try{ const set = alertLots(); ids.forEach(i => set.add(i)); localStorage.setItem(ALERT_LOTS_KEY, JSON.stringify([...set].slice(-300))); }catch(e){} refreshBellMarks(); }
   function alertLotUnmark(id){ try{ const set = alertLots(); set.delete(String(id)); localStorage.setItem(ALERT_LOTS_KEY, JSON.stringify([...set])); }catch(e){} refreshBellMarks(); }
   function alertLang(){ const l = String(document.documentElement.getAttribute("lang") || "ru").slice(0, 2).toLowerCase(); return ["ru", "ro", "en"].includes(l) ? l : "ru"; }
-  function alertable(lot){
+  // Подпись кнопки действия лота: полная (ПК) и короткая (телефон) — CSS показывает нужную (.lF/.lS).
+function dualLbl(full, short){ return `<i class="lF">${escapeHtml(L(full))}</i><i class="lS">${escapeHtml(L(short))}</i>`; }
+function alertable(lot){
     if(!lot || Number(lot.finalBid) > 0 || Number(lot.statusId) === 6) return false;
     const t = Date.parse(lot.auctionDate || "");
     return !Number.isFinite(t) || t > Date.now();      // без даты — тоже можно следить: уведомим, когда назначат
@@ -431,7 +433,7 @@
       // ДЕЙСТВИЕ клика (отписаться), а не статус («Слежу за лотом» читалось как нейтральная метка, не кнопка).
       const txt = L(on ? "Перестать следить за лотом" : "Следить за лотом");
       // кнопка на странице лота: подпись короче («Больше не следить») + перечёркнутый колокольчик
-      const lab = b.querySelector("span"); if(lab) lab.textContent = b.classList.contains("dBellBtnV1") ? L(on ? "Больше не следить" : "Следить за лотом") : txt;
+      const lab = b.querySelector("span"); if(lab){ if(b.classList.contains("dBellBtnV1")) lab.innerHTML = on ? dualLbl("Больше не следить", "Не следить") : dualLbl("Следить за лотом", "Следить"); else lab.textContent = txt; }
       if(b.classList.contains("dBellBtnV1")){ const ico = b.querySelector("svg"); if(ico) ico.outerHTML = dbIco(on ? "bellOff" : "bell"); }
       if(b.hasAttribute("title")) b.title = txt;     // мелкий колокольчик на карточке — текста нет, только title
     });
@@ -4017,8 +4019,8 @@
             })()}
           </div>
           <div class="dHeadActionsV1">
-            <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? "В избранном" : "В избранное"}</span></button>
-            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}">${dbIco(alertLots().has(String(lot.id)) ? "bellOff" : "bell")}<span>${escapeHtml(L(alertLots().has(String(lot.id)) ? "Больше не следить" : "Следить за лотом"))}</span></button>` : ""}
+            <button type="button" class="dFavBtnV1${favHas(lot.id) ? " is-fav" : ""}" data-fav="${escapeHtml(lot.id)}">${dbIco("star")}<span>${favHas(lot.id) ? dualLbl("В избранном", "В избранном") : dualLbl("В избранное", "Избранное")}</span></button>
+            ${alertable(lot) ? `<button type="button" class="dFavBtnV1 dBellBtnV1${alertLots().has(String(lot.id)) ? " is-on" : ""}" data-alert-lot="${escapeHtml(lot.id)}" title="${escapeHtml(L(alertLots().has(String(lot.id)) ? "Перестать следить за лотом" : "Следить за лотом"))}">${dbIco(alertLots().has(String(lot.id)) ? "bellOff" : "bell")}<span>${alertLots().has(String(lot.id)) ? dualLbl("Больше не следить", "Не следить") : dualLbl("Следить за лотом", "Следить")}</span></button>` : ""}
             ${vinReport ? `<a class="dVinBtn" href="${vinReport}" target="_blank" rel="noopener">${dbIco("vin")}<span>${L("VIN отчёт")}</span></a>` : ""}
           </div>
         </div>
@@ -5859,7 +5861,7 @@
           const on = favToggle(lot);
           favBtn.classList.toggle("is-fav", on);
           const label = favBtn.querySelector("span");
-          if(label) label.textContent = on ? "В избранном" : "В избранное";
+          if(label) label.innerHTML = on ? dualLbl("В избранном", "В избранном") : dualLbl("В избранное", "Избранное");
           if(state.tab === "favorites") renderFavorites();
         }
         return;
