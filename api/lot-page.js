@@ -14,7 +14,7 @@ const SSR_FETCH_MS = 4000;
 
 async function fetchOwnDetail(req, auction, lotId){
   const {selfOrigin} = require("../server/origin");
-  const url = `${selfOrigin(req)}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}`;
+  const url = `${selfOrigin(req)}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}&fresh=${Math.floor(Date.now() / 3e5)}`;   // fresh: без устаревшего кэша detail (превью/SEO у проданного лота)
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{
@@ -101,7 +101,7 @@ module.exports = async function(req, res){
         ogTitle = `${plainTitle} — ${match[1].toUpperCase()} ${TXT.lot} ${match[2]} | Apex Auto`;
         ogDesc = ogLot.description(lot, lang);
         // Своя картинка-карточка (фото + название + цена + бренд), а не сырое фото аукциона
-        ogImage = lot.id ? `https://apexauto.md/og/lot/${lot.id}?v=4${lang === "ru" ? "" : "&lang=" + lang}` : (lot.image || ogImage);
+        ogImage = lot.id ? `https://apexauto.md/og/lot/${lot.id}?v=5${lang === "ru" ? "" : "&lang=" + lang}` : (lot.image || ogImage);
         ogHasCard = !!lot.id;
       }
     }catch(e){

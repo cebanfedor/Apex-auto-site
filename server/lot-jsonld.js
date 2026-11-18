@@ -25,7 +25,7 @@ function lotJsonLd(lot, opts = {}){
   const miles = Number(lot.odometer) || 0;
   const ca = isCanada(lot);
   const ts = Date.parse(lot.auctionDate || "");
-  const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now();
+  const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0;
   // Бриф провайдера §16 (SEO): availability SoldOut у завершённого лота, InStock пока открыт; цена = final_bid, иначе buy_now, иначе bid.
   // Завершённый = продан, «ждёт утверждения» (4), не продан (8) или не состоялся (7) с прошедшей датой торгов.
   const ended = sold || ([4, 7, 8].includes(Number(lot.statusId)) && Number.isFinite(ts) && ts < Date.now() - 30 * 60e3);

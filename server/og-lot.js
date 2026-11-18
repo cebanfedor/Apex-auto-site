@@ -21,7 +21,8 @@ function facts(lot, lang = "ru"){
   const trans = /auto/i.test(String(lot.transmission || "")) ? t.auto : /manual|mech/i.test(String(lot.transmission || "")) ? t.man : "";
   const odo = Number(lot.odometer) > 0 ? `${Math.round(Number(lot.odometer)).toLocaleString("en-US").replace(/,/g, " ")} ${t.mi}` : "";
   const ts = Date.parse(lot.auctionDate || "");
-  const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0 && Number.isFinite(ts) && ts < Date.now();
+  // как на странице лота (lotSaleState): статус «продан» авторитетен и при будущей дате (покупка по Buy Now до торгов)
+  const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0;
   let price = "", priceLabel = "";
   if(sold){ price = money(lot.finalBid); priceLabel = t.sold; }
   else if(Number(lot.currentBid) > 0){ price = money(lot.currentBid); priceLabel = t.bid; }
