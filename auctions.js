@@ -1084,6 +1084,7 @@ function alertable(lot){
       customsUsd:Math.round(r.customsUsd), total:Math.round(r.totalUsd),
       totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
       kind, green:["hybrid","phev","electric"].includes(fuel), usdMdl, eurMdl,
+      port: r.port || "",
       landRoute: r.route || landRouteLabel(lot),
       seaRoute: r.port ? `${r.port} → ${L("Кишинёв")}` : seaRouteLabel(lot)
     };
@@ -2806,7 +2807,7 @@ function alertable(lot){
         ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "", "1% от ставки и аукционного сбора (минимум $50) при оплате в MDL") : ""}`)
       + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
-        ${calcRow("Доставка по США", calc.land)}
+        ${calcRow("Доставка по США", calc.land, calc.port ? `${L("в порт")} ${calc.port}` : "")}
         ${calcRow("Доставка морем", calc.sea)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "", "Фиксированный сбор 2000 MDL при оплате в MDL") : ""}
@@ -3146,7 +3147,7 @@ function alertable(lot){
     ] : [
       row("Ставка", calc.bid),
       row("Аукционный сбор", calc.auctionFee),
-      row("Доставка по США", calc.land),
+      row("Доставка по США", calc.land, calc.port ? `${L("в порт")} ${calc.port}` : ""),
       row("Доставка морем", calc.sea),
       row("Таможенные платежи", calc.customsUsd),
       row("Брокер + утиль сбор", calc.brokerUsd),
