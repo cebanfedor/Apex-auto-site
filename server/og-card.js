@@ -75,9 +75,47 @@ async function fetchImage(url, timeoutMs = 6000){
     if(!/^image\/(jpeg|png|webp)$/.test(type)) return null;
     const buf = Buffer.from(await r.arrayBuffer());
     if(buf.length < 2000 || buf.length > 6e6) return null;
+    const fixed = type === "image/jpeg" ? upright(buf) : null;
+    if(fixed) return fixed;
     return `data:${type};base64,${buf.toString("base64")}`;
   }catch(e){ return null; }
   finally{ clearTimeout(timer); }
+}
+
+// EXIF-ориентация JPEG (20.11.2026, превью /canada/<id>: фото лежало на боку). Браузер поворачивает такие снимки сам,
+// а resvg при вставке в SVG игнорирует тег Orientation — рисует как хранится. Читаем тег и, если снимок «не прямой»,
+// переворачиваем через SVG-преобразование и отдаём уже готовый PNG. Нет тега / ориентация 1 → null (берём как есть).
+function jpegInfo(buf){
+  let orient = 1, w = 0, h = 0, i = 2;
+  if(buf[0] !== 0xFF || buf[1] !== 0xD8) return null;
+  while(i + 4 < buf.length){
+    if(buf[i] !== 0xFF){ i++; continue; }
+    const m = buf[i + 1];
+    if(m === 0xFF){ i++; continue; }
+    if(m === 0xD8 || (m >= 0xD0 && m <= 0xD7) || m === 0x01){ i += 2; continue; }
+    const len = buf.readUInt16BE(i + 2);
+    if(m === 0xE1 && buf.toString("latin1", i + 4, i + 8) === "Exif"){
+      const t = i + 10, le = buf.toString("latin1", t, t + 2) === "II";
+      const r16 = o => le ? buf.readUInt16LE(o) : buf.readUInt16BE(o), r32 = o => le ? buf.readUInt32LE(o) : buf.readUInt32BE(o);
+      const ifd = t + r32(t + 4), n = r16(ifd);
+      for(let k = 0; k < n; k++){ const e = ifd + 2 + k * 12; if(e + 12 > buf.length) break; if(r16(e) === 0x0112){ orient = r16(e + 8); break; } }
+    }
+    if(m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC){ h = buf.readUInt16BE(i + 5); w = buf.readUInt16BE(i + 7); break; }
+    i += 2 + len;
+  }
+  return {orient, w, h};
+}
+function upright(buf){
+  let info; try{ info = jpegInfo(buf); }catch(e){ return null; }
+  if(!info || info.orient < 2 || info.orient > 8 || !info.w || !info.h) return null;
+  const {orient, w, h} = info, swap = orient >= 5;
+  const T = {2:`translate(${w} 0) scale(-1 1)`, 3:`translate(${w} ${h}) rotate(180)`, 4:`translate(0 ${h}) scale(1 -1)`,
+    5:"matrix(0 1 1 0 0 0)", 6:`matrix(0 1 -1 0 ${h} 0)`, 7:`matrix(0 -1 -1 0 ${h} ${w})`, 8:`matrix(0 -1 1 0 0 ${w})`}[orient];
+  const dw = swap ? h : w, dh = swap ? w : h;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${dw}" height="${dh}" viewBox="0 0 ${dw} ${dh}"><image href="data:image/jpeg;base64,${buf.toString("base64")}" width="${w}" height="${h}" transform="${T}"/></svg>`;
+  const R = loadResvg();
+  const png = new R(svg, {fitTo:{mode:"original"}}).render().asPng();
+  return `data:image/png;base64,${Buffer.from(png).toString("base64")}`;
 }
 // Лучшая версия фото аукциона для картинки 1200 px
 function bigPhoto(url){
@@ -228,4 +266,4 @@ async function pageCard(p){
   return toPng(svg);
 }
 
-module.exports = {lotCard, trackCard, brandCard, pageCard, money, dateRu, fetchImage, bigPhoto};
+module.exports = {lotCard, trackCard, brandCard, pageCard, money, dateRu, fetchImage, bigPhoto, upright};

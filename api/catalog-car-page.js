@@ -51,7 +51,7 @@ module.exports = async function(req, res){
     if(s){
       const pageUrl = `https://apexauto.md${BASE}/${slug}${lang === "ru" ? "" : `?lang=${lang}`}`;
       const t = `${s.title} — ${s.page} | Apex Auto`;
-      const img = `https://apexauto.md/og/cat/${src}/${encodeURIComponent(car.id)}?v=1${lang === "ru" ? "" : "&lang=" + lang}`;
+      const img = `https://apexauto.md/og/cat/${src}/${encodeURIComponent(car.id)}?v=2${lang === "ru" ? "" : "&lang=" + lang}`;
       const meta = [
         `<meta name="description" content="${escAttr(s.desc)}">`,
         `<link rel="canonical" href="${escAttr(pageUrl)}">`,
