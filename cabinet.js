@@ -55,7 +55,37 @@
     set_out:["Выйти на этом устройстве","Ieși de pe acest dispozitiv","Sign out on this device"], set_out_d:["Данные на сервере останутся, с устройства будут убраны токен и локальные копии.","Datele de pe server rămân; de pe dispozitiv se șterg tokenul și copiile locale.","Server data stays; the token and local copies are removed from this device."],
     set_wipe:["Удалить все мои данные","Șterge toate datele mele","Delete all my data"], set_wipe_d:["Удалит избранное, заметки, список машин и историю просмотров на сервере и на этом устройстве.","Șterge favoritele, notițele, mașinile și istoricul de pe server și de pe acest dispozitiv.","Removes favourites, notes, cars and history from the server and this device."],
     confirm_out:["Выйти из кабинета на этом устройстве?","Ieși din cont pe acest dispozitiv?","Sign out on this device?"], confirm_wipe:["Удалить ВСЕ данные кабинета? Это нельзя отменить.","Ștergi TOATE datele? Nu se poate anula.","Delete ALL account data? This cannot be undone."], done:["Готово","Gata","Done"],
-    mgr:["Менеджер","Manager","Manager"]
+    mgr:["Менеджер","Manager","Manager"],
+    nx_h:["Что дальше","Ce urmează","What’s next"],
+    nx_Car_won:["Оплачиваем лот и организуем вывоз с площадки автовозом до порта.","Plătim lotul și organizăm transportul din parcare până în port.","We pay for the lot and arrange the truck to the port."],
+    nx_Left_auction:["Машина едет на склад в порту, затем её погрузят в контейнер.","Mașina merge la depozitul din port, apoi se încarcă în container.","The car is heading to the port warehouse, then it is loaded into a container."],
+    nx_Delivered_to_loading_place:["Машина на складе: ждёт формирования и погрузки контейнера.","Mașina e la depozit: așteaptă formarea și încărcarea containerului.","The car is at the warehouse waiting for the container to be loaded."],
+    nx_Loading:["Контейнер отправится на судно, дальше — морской переход до Клайпеды.","Containerul pleacă pe navă, urmează traversarea mării până la Klaipeda.","The container sails next — sea crossing to Klaipeda."],
+    nx_Arrival:["Машина в Клайпеде: оформляем документы и везём в Кишинёв (≈ 2 недели).","Mașina e la Klaipeda: pregătim actele și o aducem la Chișinău (≈ 2 săptămâni).","The car is in Klaipeda: paperwork, then transport to Chișinău (≈ 2 weeks)."],
+    nx_Chisinau:["Растаможка и выдача: менеджер свяжется с вами о времени.","Vămuire și predare: managerul te contactează pentru oră.","Customs clearance and handover: the manager will contact you about the time."],
+    exp_csv:["Скачать CSV","Descarcă CSV","Download CSV"], exp_copy:["Копировать список","Copiază lista","Copy list"], exp_ok:["Список скопирован","Lista a fost copiată","List copied"],
+    p_digest:["Утренняя сводка по избранному","Rezumat de dimineață despre favorite","Morning digest of my favourites"],
+    t_deals:["Мои сделки","Tranzacțiile mele","My orders"],
+    dl_h:["Мои сделки","Tranzacțiile mele","My orders"],
+    dl_verify_h:["Подтвердите номер телефона","Confirmă numărul de telefon","Confirm your phone number"],
+    dl_verify_p:["Менеджер заводит вашу сделку по номеру телефона. Нажмите кнопку, затем в Telegram — «Поделиться номером»: Telegram передаёт только ваш собственный номер. После этого здесь появятся этапы, фото и документы по вашей машине.","Managerul creează tranzacția după numărul de telefon. Apasă butonul, apoi în Telegram — „Trimite numărul”: Telegram trimite doar propriul număr. Apoi apar aici etapele, pozele și documentele.","Your manager creates the order by phone number. Tap the button, then “Share my number” in Telegram — Telegram only shares your own number. Stages, photos and documents will then appear here."],
+    dl_verify_b:["Подтвердить номер в Telegram","Confirmă numărul în Telegram","Confirm number in Telegram"],
+    dl_wait:["Ждём подтверждения в Telegram…","Așteptăm confirmarea în Telegram…","Waiting for confirmation in Telegram…"],
+    dl_none_h:["Сделок пока нет","Nu ai tranzacții încă","No orders yet"],
+    dl_none_p:["Как только менеджер оформит вашу покупку, она появится здесь: этапы, фото, документы и платежи. Об изменениях бот напишет вам в Telegram.","De îndată ce managerul înregistrează achiziția, apare aici: etape, poze, documente și plăți. Botul te anunță în Telegram.","As soon as your manager registers your purchase it will appear here: stages, photos, documents and payments. The bot will message you in Telegram."],
+    dl_need_tg:["Подключите Telegram, чтобы увидеть свои сделки.","Conectează Telegram ca să vezi tranzacțiile.","Connect Telegram to see your orders."],
+    dl_stage:["Этап","Etapa","Stage"], dl_eta:["Ожидаемая выдача","Predare estimată","Expected handover"], dl_pay:["Оплата","Plată","Payment"], dl_paid:["Оплачено","Plătit","Paid"], dl_left:["Осталось","Rămas","Left to pay"], dl_total:["Сумма сделки","Total tranzacție","Order total"],
+    dl_photos:["Фото","Poze","Photos"], dl_docs:["Документы","Documente","Documents"], dl_tl:["История событий","Istoric evenimente","Event history"], dl_upd:["Обновлено","Actualizat","Updated"], dl_nodb:["Сделки пока недоступны — база настраивается.","Tranzacțiile nu sunt disponibile încă — baza se configurează.","Orders are not available yet — database is being set up."],
+    dl_s_bought:["Куплен","Cumpărat","Bought"], dl_s_paid:["Оплачен","Plătit","Paid"], dl_s_pickup:["Вывоз","Ridicare","Pickup"], dl_s_port:["Порт","Port","Port"], dl_s_sea:["В море","Pe mare","At sea"], dl_s_klaipeda:["Клайпеда","Klaipeda","Klaipeda"], dl_s_road:["В пути","În drum","On road"], dl_s_customs:["Таможня","Vamă","Customs"], dl_s_ready:["Готова","Gata","Ready"], dl_s_done:["Выдана","Predată","Handed over"],
+    dl_f_bought:["Куплен на аукционе","Cumpărat la licitație","Bought at auction"], dl_f_paid:["Лот оплачен","Lot plătit","Lot paid"], dl_f_pickup:["Вывоз с площадки","Ridicare din parcare","Pickup from the yard"], dl_f_port:["На складе в порту","La depozitul din port","At the port warehouse"], dl_f_sea:["В море","Pe mare","At sea"], dl_f_klaipeda:["В порту Клайпеда","În portul Klaipeda","In Klaipeda port"], dl_f_road:["В пути в Кишинёв","În drum spre Chișinău","On the way to Chișinău"], dl_f_customs:["Растаможка","Vămuire","Customs clearance"], dl_f_ready:["Готова к выдаче","Gata de predare","Ready for handover"], dl_f_done:["Выдана","Predată","Handed over"],
+    p_cars:["Этапы доставки моих машин","Etapele livrării mașinilor mele","Delivery stages of my cars"],
+    hello:["Привет, ","Salut, ","Hi, "],
+    feed_h:["Что нового с прошлого визита","Noutăți de la ultima vizită","What’s new since your last visit"],
+    feed_bid:["ставка выросла","oferta a crescut","bid went up"], feed_sold:["лот продан","lot vândut","lot sold"], feed_date:["назначена дата торгов","data licitației stabilită","auction date set"],
+    feed_moved:["торги перенесены на","licitația mutată pe","auction moved to"], feed_buy:["появился выкуп","a apărut Buy Now","Buy Now appeared"], feed_clear:["Скрыть","Ascunde","Dismiss"],
+    cmp:["Сравнить","Compară","Compare"], cmp_h:["Сравнение лотов","Compararea loturilor","Lot comparison"], cmp_n:["Выбрано","Selectate","Selected"], cmp_go:["Сравнить выбранные","Compară selecția","Compare selected"], cmp_max:["Можно сравнить до 4 лотов.","Poți compara până la 4 loturi.","You can compare up to 4 lots."], cmp_min:["Выберите хотя бы 2 лота.","Alege cel puțin 2 loturi.","Pick at least 2 lots."], cmp_close:["Закрыть","Închide","Close"],
+    cf_year:["Год","An","Year"], cf_odo:["Пробег","Rulaj","Mileage"], cf_bid:["Текущая ставка","Oferta curentă","Current bid"], cf_buy:["Выкуп","Cumpărare","Buy Now"], cf_acv:["Оценка аукциона (ACV)","Evaluare licitație (ACV)","Auction value (ACV)"], cf_rep:["Оценка ремонта","Estimare reparație","Repair estimate"],
+    cf_dmg:["Повреждение","Daune","Damage"], cf_doc:["Документ","Document","Title"], cf_eng:["Двигатель","Motor","Engine"], cf_fuel:["Топливо","Combustibil","Fuel"], cf_drv:["Привод","Tracțiune","Drive"], cf_loc:["Локация","Locație","Location"], cf_date:["Торги","Licitație","Auction"], cf_key:["Ключи","Chei","Keys"], cf_best:["лучшее значение","cea mai bună valoare","best value"]
   };
   function t(k){ var r = TX[k]; return r ? (r[LI] || r[0]) : k; }
   function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
@@ -63,7 +93,7 @@
   function $$(sel, el){ return Array.prototype.slice.call((el || root).querySelectorAll(sel)); }
 
   // ---------- хранилище ----------
-  var K = {tok:"apexAlertTokenV1", fav:"apexFavsV1", note:"apexNotesV1", rec:"apexRecentV1", cars:"apexCabCarsV1", lots:"apexAlertLotsV1"};
+  var K = {name:"apexCabNameV1", snap:"apexCabSnapV1", feed:"apexCabFeedV1", tok:"apexAlertTokenV1", fav:"apexFavsV1", note:"apexNotesV1", rec:"apexRecentV1", cars:"apexCabCarsV1", lots:"apexAlertLotsV1"};
   function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
   function jget(k, d){ try{ var v = JSON.parse(ls(k) || "null"); return v == null ? d : v; }catch(e){ return d; } }
@@ -72,9 +102,10 @@
 
   var S = {
     bound:false, ready:true, connecting:false, url:"", bot:"",
-    favs:[], notes:{}, cars:[], recent:[], subs:[], prefs:{}, live:{}, track:{}, tab:"over", favFilter:"all", favSort:"date", booted:false, subsLoaded:false
+    name:"", deals:null, dealsTries:0, feed:[], cmp:{}, favs:[], notes:{}, cars:[], recent:[], subs:[], prefs:{}, live:{}, track:{}, tab:"over", favFilter:"all", favSort:"date", booted:false, subsLoaded:false
   };
   function loadLocal(){
+    S.name = ls(K.name) || "";
     var fm = jget(K.fav, {});
     S.favs = Object.keys(fm).reverse().map(function(id){ var o = fm[id] || {}; if(!o.id) o.id = id; return o; });
     S.notes = jget(K.note, {});
@@ -174,22 +205,26 @@
     var p = c ? (c.setBound(true, true), c.pull(true)) : Promise.resolve(null);
     return Promise.resolve(p).then(function(r){
       if(r && r.ready === false) S.ready = false;
+      if(r && r.name){ lsSet(K.name, r.name); }
       if(r && r.items && r.items.car){
         var cars = r.items.car.map(function(it){ return {vin:it.key, label:(it.data && it.data.label) || "", addedAt:(it.data && it.data.addedAt) || it.t}; });
         if(cars.length || ls(K.cars) == null) lsSet(K.cars, JSON.stringify(cars));
       }
       loadLocal(); return refreshStatus();
-    }).then(function(){ toast(t("done")); render(); refreshLive(); refreshTracks(); });
+    }).then(function(){ toast(t("done")); render(); refreshLive(); refreshTracks(); loadDeals(); });
   }
 
   // ---------- живые данные по избранному ----------
   function refreshLive(){
     var ids = S.favs.map(function(f){ return f.id; }).filter(function(id){ return /^(copart|iaai)-\d+$/.test(id); });
+    if(!ids.length){ computeFeed(); return; }
+    var pending = 0;
     for(var i = 0; i < ids.length; i += 30){
+      pending++;
       (function(chunk){
         getApi("livebids", "ids=" + chunk.join(",")).then(function(r){
-          if(!r || !r.items) return;
-          Object.keys(r.items).forEach(function(id){ if(r.items[id]) S.live[id] = r.items[id]; });
+          if(r && r.items) Object.keys(r.items).forEach(function(id){ if(r.items[id]) S.live[id] = r.items[id]; });
+          if(--pending === 0){ computeFeed(); }
           if(S.tab === "over" || S.tab === "fav") render(true);
         });
       })(ids.slice(i, i + 30));
@@ -213,6 +248,104 @@
     if(ts > now) return {k:ts - now < 48 * 3600e3 ? "soon" : "future", label:left(ts - now), ts:ts};
     if(now - ts < 3 * 3600e3) return {k:"live", label:t("live_now"), ts:ts};
     return {k:"ended", label:t("ended"), ts:ts};
+  }
+
+
+  // ---------- «Что нового»: сравниваем избранное с прошлым визитом ----------
+  var prevSnap = jget(K.snap, null);
+  function feedLoad(){ var a = jget(K.feed, []); return Array.isArray(a) ? a.filter(function(x){ return x && Date.now() - x.t < 3 * 86400e3; }) : []; }
+  function computeFeed(){
+    var out = feedLoad(), seen = {};
+    out.forEach(function(x){ seen[x.id + "|" + x.k + "|" + (x.b || x.a || "")] = 1; });
+    if(prevSnap){
+      S.favs.forEach(function(f){
+        var o = merged(f), p = prevSnap[f.id]; if(!p) return;
+        var bid = Number(o.currentBid) || 0, add = [];
+        if(o.sold && !p.sold) add.push({k:"sold", a:o.finalBid || bid});
+        else{
+          if(bid > 0 && bid > (p.bid || 0) && (p.bid || 0) > 0) add.push({k:"bid", a:p.bid, b:bid});
+          if(o.auctionDate && !p.date) add.push({k:"date", a:o.auctionDate});
+          else if(o.auctionDate && p.date && isFinite(Date.parse(o.auctionDate)) && Math.abs(Date.parse(o.auctionDate) - Date.parse(p.date)) > 3600e3) add.push({k:"moved", a:o.auctionDate});
+          if(Number(o.buyNow) > 0 && !p.buyNow) add.push({k:"buy", a:o.buyNow});
+        }
+        add.forEach(function(x){
+          var key = f.id + "|" + x.k + "|" + (x.b || x.a || "");
+          if(seen[key]) return; seen[key] = 1;
+          out.unshift({id:f.id, t:Date.now(), title:titleOf(o), ca:isCa(o), k:x.k, a:x.a, b:x.b});
+        });
+      });
+    }
+    S.feed = out.slice(0, 12);
+    lsSet(K.feed, JSON.stringify(S.feed));
+    var m = {};
+    S.favs.forEach(function(f){ var o = merged(f); m[f.id] = {bid:Number(o.currentBid) || 0, date:o.auctionDate || "", sold:!!o.sold, buyNow:Number(o.buyNow) || 0}; });
+    lsSet(K.snap, JSON.stringify(m));
+  }
+  function feedText(x){
+    var ca = x.ca;
+    if(x.k === "bid") return t("feed_bid") + ": " + money(x.a, ca) + " → " + money(x.b, ca);
+    if(x.k === "sold") return t("feed_sold") + (x.a ? " · " + money(x.a, ca) : "");
+    if(x.k === "date") return t("feed_date") + ": " + fmtDate(x.a);
+    if(x.k === "moved") return t("feed_moved") + " " + fmtDate(x.a);
+    return t("feed_buy") + ": " + money(x.a, ca);
+  }
+
+
+  // ---------- «Мои сделки» ----------
+  var DSTAGES = ["bought","paid","pickup","port","sea","klaipeda","road","customs","ready","done"];
+  var dealPoll = null;
+  function loadDeals(){
+    if(!token() || !S.bound) return Promise.resolve();
+    return getApi("cabdeals", "token=" + encodeURIComponent(token())).then(function(r){
+      if(!r || !r.ok) return;
+      S.deals = {verified:!!r.verified, list:r.deals || [], noTable:r.reason === "no_table"};
+      if(S.deals.verified && dealPoll){ clearInterval(dealPoll); dealPoll = null; toast(t("done")); }
+      if(S.tab === "deals" || S.tab === "over") render(true);
+    });
+  }
+  function verifyUrl(){ return String(S.url || "").replace(/\?start=/, "?start=ph_"); }
+  function startDealPoll(){
+    if(dealPoll) return;
+    var tries = 0;
+    dealPoll = setInterval(function(){ if(++tries > 100){ clearInterval(dealPoll); dealPoll = null; return; } loadDeals(); }, 3000);
+  }
+  function money0(n){ return Number(n || 0).toLocaleString("en-US").replace(/,/g, " ") + " $"; }
+  function dealCard(d, compact){
+    var idx = Math.max(0, DSTAGES.indexOf(d.stage));
+    var steps = DSTAGES.map(function(k, i){
+      return '<li class="' + (i < idx ? "done" : i === idx ? "current" : "todo") + '"><i></i><span>' + t("dl_s_" + k) + '</span></li>';
+    }).join("");
+    var pct = Math.round((idx + (d.stage === "done" ? 1 : .5)) / DSTAGES.length * 100);
+    var pay = "";
+    if(d.total > 0){
+      var paid = Math.min(d.paid || 0, d.total), pp = Math.round(paid / d.total * 100);
+      pay = '<div class="cabPayV1"><div class="cabPayHeadV1"><b>' + t("dl_pay") + '</b><span>' + money0(paid) + ' / ' + money0(d.total) + '</span></div><div class="cabBarV1"><i style="width:' + pp + '%"></i></div>' +
+        '<div class="cabPayFootV1"><span>' + t("dl_paid") + ': <b>' + money0(paid) + '</b></span><span>' + t("dl_left") + ': <b>' + money0(Math.max(0, d.total - paid)) + '</b></span></div></div>';
+    }
+    var head = '<header class="cabDealHeadV1"><div><h3>' + esc(d.title) + '</h3>' + (d.vin ? '<small>' + esc(d.vin) + '</small>' : "") + '</div><span class="cabStatusV1' + (d.stage === "done" || d.stage === "ready" ? " isDone" : "") + '">' + t("dl_f_" + d.stage) + '</span></header>';
+    var stepper = '<ol class="cabStepperV1" data-cur="' + idx + '">' + steps + '</ol>';
+    var next = d.next_step ? '<div class="cabNextV1"><b>' + t("nx_h") + '</b><span>' + esc(d.next_step) + '</span></div>' : "";
+    var eta = d.eta && d.stage !== "done" ? '<div class="cabEtaV1">' + t("dl_eta") + ': <b>' + esc(fmtDay(d.eta)) + '</b></div>' : "";
+    if(compact) return '<article class="cabDealV1 isCompact">' + head + '<div class="cabBarV1"><i style="width:' + pct + '%"></i></div>' + next + eta + '<a class="cabLinkV1" href="#deals" data-act="tab" data-v="deals">' + t("det") + ' →</a></article>';
+    var photos = d.photos && d.photos.length ? '<div class="cabDealSecV1"><h4>' + t("dl_photos") + ' <em>' + d.photos.length + '</em></h4><div class="cabPhotosV1">' +
+      d.photos.map(function(p){ return '<a href="' + esc(p.url) + '" target="_blank" rel="noopener"><img src="' + esc(p.url) + '" alt="' + esc(p.caption || "") + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">' + (p.caption ? '<small>' + esc(p.caption) + '</small>' : "") + '</a>'; }).join("") + '</div></div>' : "";
+    var docs = d.docs && d.docs.length ? '<div class="cabDealSecV1"><h4>' + t("dl_docs") + '</h4><div class="cabDocsV1">' +
+      d.docs.map(function(x){ return '<a href="' + esc(x.url) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>' + esc(x.name) + '</span></a>'; }).join("") + '</div></div>' : "";
+    var tl = d.timeline && d.timeline.length ? '<div class="cabDealSecV1"><h4>' + t("dl_tl") + '</h4><ol class="cabTimelineV1">' +
+      d.timeline.slice().sort(function(a, b){ return String(b.at || "").localeCompare(String(a.at || "")); }).map(function(x){ return '<li><i></i><div><small>' + (x.at ? esc(fmtDay(x.at)) : "") + '</small><span>' + esc(x.text) + '</span></div></li>'; }).join("") + '</ol></div>' : "";
+    return '<article class="cabDealV1">' + head + stepper + next + '<div class="cabDealMetaV1">' + eta + pay + '</div>' + photos + docs + tl + '</article>';
+  }
+  function paneDeals(){
+    if(!S.bound) return '<section class="cabBoxV1"><h2>' + t("dl_h") + '</h2><p class="cabMutedV1">' + t("dl_need_tg") + '</p><button type="button" class="cabBtnV1" data-act="connect">' + t("c_btn") + '</button></section>';
+    if(!S.deals) return '<p class="cabMutedV1 cabPadV1">' + t("loading") + '</p>';
+    if(S.deals.noTable) return '<section class="cabBoxV1"><p class="cabMutedV1">' + t("dl_nodb") + '</p></section>';
+    if(!S.deals.verified){
+      var wait = !!dealPoll;
+      return '<section class="cabBoxV1 cabVerifyV1"><div class="cabVerifyIcoV1">' + ico("tg") + '</div><div><h2>' + t("dl_verify_h") + '</h2><p class="cabMutedV1">' + t("dl_verify_p") + '</p>' +
+        '<a class="cabBtnV1" href="' + esc(verifyUrl()) + '" target="_blank" rel="noopener" data-act="dealverify">' + ico("tg") + ' ' + t("dl_verify_b") + '</a>' + (wait ? '<p class="cabMutedV1 cabPadV1"><span class="cabSpinV1 isDark"></span> ' + t("dl_wait") + '</p>' : "") + '</div></section>';
+    }
+    if(!S.deals.list.length) return empty(t("dl_none_h"), t("dl_none_p"), "", "");
+    return '<div class="cabDealsV1">' + S.deals.list.map(function(d){ return dealCard(d); }).join("") + '</div>';
   }
 
   // ---------- трекинг машин ----------
@@ -250,7 +383,7 @@
     if(cur){ if(cur.title === "Chisinau" && cur.status === "completed") label = t("deliv"); else if(cur.title === "Chisinau") label = t("enr"); else label = STAGE_KEY[cur.title] ? t(STAGE_KEY[cur.title]) : (/^[A-Z_]+$/.test(cur.title) ? t("proc") : cur.title); }
     var eta = d.source === "dealer" ? d.expectedDate : (d.etaChisinau || (d.container && d.container.portArrival));
     var total = Math.max(stages.length, 1);
-    return {stages:stages, label:label, eta:eta, pct:Math.round(Math.min(100, (done + (cur && cur.status === "current" ? .5 : 0)) / total * 100)), delivered:!!(cur && cur.title === "Chisinau" && cur.status === "completed")};
+    return {stages:stages, cur:cur ? cur.title : "", label:label, eta:eta, pct:Math.round(Math.min(100, (done + (cur && cur.status === "current" ? .5 : 0)) / total * 100)), delivered:!!(cur && cur.title === "Chisinau" && cur.status === "completed")};
   }
 
   // ---------- рендер ----------
@@ -278,6 +411,7 @@
       '<div class="cabActsV1">' +
         '<button type="button" class="cabIcoBtnV1' + (followed ? " on" : "") + '" data-act="follow" data-id="' + esc(id) + '" title="' + esc(followed ? t("unfollow") : t("follow")) + '">' + ico("bell") + '<span>' + (followed ? t("unfollow") : t("follow")) + '</span></button>' +
         '<button type="button" class="cabIcoBtnV1' + (note ? " on" : "") + '" data-act="notetoggle" data-id="' + esc(id) + '">' + ico("note") + '<span>' + t("note") + '</span></button>' +
+        '<button type="button" class="cabIcoBtnV1' + (S.cmp[id] ? " on" : "") + '" data-act="cmpt" data-id="' + esc(id) + '" aria-pressed="' + (!!S.cmp[id]) + '">' + ico("ok") + '<span>' + t("cmp") + '</span></button>' +
         '<button type="button" class="cabIcoBtnV1 isDanger" data-act="unfav" data-id="' + esc(id) + '" title="' + esc(t("remove")) + '">' + ico("trash") + '</button>' +
       '</div>' +
       '<div class="cabNoteV1"' + (note ? "" : " hidden") + '><textarea data-note="' + esc(id) + '" rows="3" maxlength="2000" placeholder="' + esc(t("note_ph")) + '">' + esc(note) + '</textarea><i class="cabSavedV1">' + t("saved") + '</i></div>' +
@@ -298,7 +432,8 @@
       body = '<div class="cabStatusV1' + (m.delivered ? " isDone" : "") + '">' + esc(m.label) + '</div>' +
         '<div class="cabBarV1"><i style="width:' + m.pct + '%"></i></div>' +
         (compact ? "" : '<ol class="cabStagesV1">' + m.stages.map(function(s){ return '<li class="' + esc(s.status || "todo") + '"><i></i><span>' + esc(STAGE_KEY[s.title] ? t(STAGE_KEY[s.title]) : (/^[A-Z_]+$/.test(s.title) ? "·" : s.title)) + '</span><small>' + (s.date ? esc(fmtDay(s.date)) : "—") + '</small></li>'; }).join("") + '</ol>') +
-        (m.eta && !m.delivered ? '<div class="cabEtaV1">' + t("eta") + ': <b>' + esc(fmtDay(m.eta)) + '</b></div>' : "");
+        (m.eta && !m.delivered ? '<div class="cabEtaV1">' + t("eta") + ': <b>' + esc(fmtDay(m.eta)) + '</b></div>' : "") +
+        (!compact && m.cur && TX["nx_" + m.cur.replace(/ /g, "_")] ? '<div class="cabNextV1"><b>' + t("nx_h") + '</b><span>' + t("nx_" + m.cur.replace(/ /g, "_")) + '</span></div>' : "");
     }
     var name = (d && d.vehicle) || c.label || c.vin;
     return '<article class="cabCarV1"><div class="cabCarHeadV1"><div><b>' + esc(name) + '</b><small>' + esc(c.vin) + '</small></div>' +
@@ -309,6 +444,13 @@
     return '<div class="cabEmptyV1"><div class="cabEmptyIcoV1">' + ico("heart") + '</div><h3>' + h + '</h3><p>' + p + '</p>' + (cta ? '<a class="cabBtnV1" href="' + href + '">' + cta + '</a>' : "") + '</div>';
   }
 
+  function feedBox(){
+    if(!S.feed.length) return "";
+    var rows = S.feed.slice(0, 6).map(function(x){
+      return '<a class="cabFeedRowV1 is-' + esc(x.k) + '" href="' + lotUrl(x.id) + '"><i></i><span><b>' + esc(x.title) + '</b><small>' + esc(feedText(x)) + '</small></span></a>';
+    }).join("");
+    return '<section class="cabBoxV1 cabFeedV1"><div class="cabFeedHeadV1"><h2>' + ico("bell") + t("feed_h") + '</h2><button type="button" class="cabGhostV1" data-act="feedclear">' + t("feed_clear") + '</button></div>' + rows + '</section>';
+  }
   function paneOver(){
     var favs = S.favs.map(merged);
     var upcoming = favs.map(function(o){ return {o:o, s:status(o)}; }).filter(function(x){ return x.s.k === "soon" || x.s.k === "future" || x.s.k === "live"; }).sort(function(a, b){ return (a.s.ts || 0) - (b.s.ts || 0); }).slice(0, 5);
@@ -316,7 +458,8 @@
     var carsHtml = S.cars.length ? S.cars.slice(0, 3).map(function(c){ return carCard(c, true); }).join("") : '<p class="cabMutedV1">' + t("o_cars_e") + '</p>';
     var quick = [["/auctions", "q_us"], ["/korea", "q_kr"], ["/#calculator", "q_calc"], ["/vin-check", "q_vin"], ["/tracking", "q_track"], ["https://t.me/fedukusa", "q_msg"]].map(function(q){ return '<a href="' + q[0] + '"' + (/^https/.test(q[0]) ? ' target="_blank" rel="noopener"' : "") + '>' + t(q[1]) + '</a>'; }).join("");
     var rec = S.recent.slice(0, 6).map(function(r){ return miniRow(r); }).join("");
-    return '<div class="cabGridV1"><div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("clock") + t("o_next") + '</h2>' + nextHtml + '</section>' +
+    var dealTop = S.deals && S.deals.verified && S.deals.list.length ? '<section class="cabBoxV1 cabDealTopV1"><h2>' + ico("car") + t("dl_h") + '</h2>' + S.deals.list.slice(0, 2).map(function(d){ return dealCard(d, true); }).join("") + '</section>' : "";
+    return dealTop + feedBox() + '<div class="cabGridV1"><div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("clock") + t("o_next") + '</h2>' + nextHtml + '</section>' +
       (rec ? '<section class="cabBoxV1"><h2>' + t("o_recent") + '</h2>' + rec + '</section>' : "") + '</div>' +
       '<div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("car") + t("o_cars") + '</h2>' + carsHtml + '</section>' +
       '<section class="cabBoxV1"><h2>' + t("o_quick") + '</h2><div class="cabQuickV1">' + quick + '</div></section></div></div>';
@@ -336,6 +479,7 @@
       return A - B;
     });
     return '<div class="cabToolbarV1"><div class="cabPillsV1">' + filters.map(function(f){ return '<button type="button" class="' + (S.favFilter === f[0] ? "on" : "") + '" data-act="ffilter" data-v="' + f[0] + '">' + t(f[1]) + '</button>'; }).join("") + '</div>' +
+      '<div class="cabExpV1"><button type="button" class="cabGhostV1" data-act="expcopy">' + t("exp_copy") + '</button><button type="button" class="cabGhostV1" data-act="expcsv">' + t("exp_csv") + '</button></div>' +
       '<select data-act="fsort" aria-label="sort"><option value="date"' + (S.favSort === "date" ? " selected" : "") + '>' + t("sort_date") + '</option><option value="add"' + (S.favSort === "add" ? " selected" : "") + '>' + t("sort_add") + '</option></select></div>' +
       '<div class="cabCardsV1">' + shown.map(function(x){ return favCard(x.f); }).join("") + '</div>';
   }
@@ -352,7 +496,7 @@
       return '<div class="cabSubV1"><span class="cabSubKindV1">' + (isLot ? t("sub_lot") : t("sub_search")) + '</span><a href="' + esc(href) + '">' + esc(s.name || s.lot_title || s.lot_id || "") + '</a>' +
         '<button type="button" class="cabIcoBtnV1 isDanger" data-act="delsub" data-id="' + esc(s.id) + '" title="' + esc(t("sub_del")) + '">' + ico("trash") + '</button></div>';
     }).join("") : '<p class="cabMutedV1">' + t("subs_e") + '</p>';
-    var keys = ["date", "timed", "day", "hour", "buynow", "play"];
+    var keys = ["date", "timed", "day", "hour", "buynow", "play", "cars", "digest"];
     var prefs = keys.map(function(k){ var on = S.prefs[k] !== false; return '<label class="cabSwitchV1"><input type="checkbox" data-pref="' + k + '"' + (on ? " checked" : "") + '><i></i><span>' + t("p_" + k) + '</span></label>'; }).join("");
     return '<div class="cabGridV1"><div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("bell") + t("subs_h") + '</h2>' + rows + '</section></div>' +
       '<div class="cabColV1"><section class="cabBoxV1"><h2>' + t("prefs_h") + '</h2><div class="cabPrefsV1">' + prefs + '</div></section></div></div>';
@@ -398,22 +542,88 @@
     var favs = S.favs.map(merged);
     var soonN = favs.filter(function(o){ var s = status(o); return s.k === "soon" || s.k === "live"; }).length;
     var stats = [[ico("heart"), S.favs.length, "s_fav", "fav"], [ico("clock"), soonN, "s_soon", "fav"], [ico("car"), S.cars.length, "s_cars", "cars"], [ico("bell"), S.subs.length, "s_subs", "subs"]];
-    var tabs = [["over", "t_over", ""], ["fav", "t_fav", S.favs.length], ["cars", "t_cars", S.cars.length], ["subs", "t_subs", S.subs.length || ""], ["recent", "t_recent", S.recent.length || ""], ["set", "t_set", ""]];
-    var pane = S.tab === "fav" ? paneFav() : S.tab === "cars" ? paneCars() : S.tab === "subs" ? paneSubs() : S.tab === "recent" ? paneRecent() : S.tab === "set" ? paneSet() : paneOver();
+    var tabs = [["over", "t_over", ""], ["deals", "t_deals", S.deals && S.deals.list.length ? S.deals.list.length : ""], ["fav", "t_fav", S.favs.length], ["cars", "t_cars", S.cars.length], ["subs", "t_subs", S.subs.length || ""], ["recent", "t_recent", S.recent.length || ""], ["set", "t_set", ""]];
+    var pane = S.tab === "deals" ? paneDeals() : S.tab === "fav" ? paneFav() : S.tab === "cars" ? paneCars() : S.tab === "subs" ? paneSubs() : S.tab === "recent" ? paneRecent() : S.tab === "set" ? paneSet() : paneOver();
     root.innerHTML =
-      '<section class="cabHeroV1"><div class="cabHeroTxtV1"><span class="cabKickerV1">' + t("hero_k") + '</span><h1>' + t("hero_h") + '</h1><p>' + t("hero_p") + '</p></div>' + connectCard() + '</section>' +
+      '<section class="cabHeroV1"><div class="cabHeroTxtV1"><span class="cabKickerV1">' + t("hero_k") + '</span><h1>' + (S.bound && S.name ? esc(t("hello") + S.name) + "! " : "") + t("hero_h") + '</h1><p>' + t("hero_p") + '</p></div>' + connectCard() + '</section>' +
       '<div class="cabStatsV1">' + stats.map(function(s){ return '<button type="button" class="cabStatV1" data-act="tab" data-v="' + s[3] + '"><span class="cabStatIcoV1">' + s[0] + '</span><b>' + s[1] + '</b><small>' + t(s[2]) + '</small></button>'; }).join("") + '</div>' +
       '<nav class="cabTabsV1" role="tablist">' + tabs.map(function(x){ return '<button type="button" role="tab" aria-selected="' + (S.tab === x[0]) + '" class="' + (S.tab === x[0] ? "on" : "") + '" data-act="tab" data-v="' + x[0] + '">' + t(x[1]) + (x[2] !== "" && x[2] !== 0 ? ' <em>' + x[2] + '</em>' : "") + '</button>'; }).join("") + '</nav>' +
-      '<div class="cabPaneV1" role="tabpanel">' + pane + '</div><div class="cabToastV1" id="cabToast" role="status" aria-live="polite"></div>';
+      '<div class="cabPaneV1" role="tabpanel">' + pane + '</div>' + (S.tab === "fav" ? cmpBar() : "") + (S.cmpOpen ? cmpModal() : "") + '<div class="cabToastV1" id="cabToast" role="status" aria-live="polite"></div>';
+    scrollSteppers();
   }
+
+
+
+  // ---------- экспорт избранного ----------
+  function favRows(){ return S.favs.map(function(f){ var o = merged(f), ca = isCa(o); return {
+    id:o.id, title:titleOf(o), vin:o.vin || "", auction:aucName(o), date:o.auctionDate || "", bid:Number(o.currentBid) || "", buy:Number(o.buyNow) || "",
+    odo:o.odometerText || "", dmg:o.primaryDamage || "", cur:ca ? "CAD" : "USD", url:location.origin + lotUrl(o.id), note:(S.notes[o.id] && S.notes[o.id].text) || ""
+  }; }); }
+  function expCsv(){
+    var rows = favRows(), cols = ["id","title","vin","auction","date","bid","buy","cur","odo","dmg","note","url"];
+    var q = function(v){ v = String(v == null ? "" : v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    var csv = "\ufeff" + cols.join(",") + "\n" + rows.map(function(r){ return cols.map(function(c){ return q(r[c]); }).join(","); }).join("\n");
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"})); a.download = "apex-auto-favourites.csv";
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function expCopy(){
+    var txt = favRows().map(function(r, i){ return (i + 1) + ". " + r.title + (r.vin ? " · " + r.vin : "") + (r.bid ? " · " + money(r.bid, r.cur === "CAD") : "") + (r.date ? " · " + fmtDate(r.date) : "") + "\n" + r.url; }).join("\n\n");
+    var done = function(){ toast(t("exp_ok")); };
+    if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, done); else done();
+  }
+
+  // ---------- сравнение лотов ----------
+  function cmpIds(){ return Object.keys(S.cmp).filter(function(k){ return S.cmp[k]; }); }
+  function cmpBar(){
+    var n = cmpIds().length; if(!n) return "";
+    return '<div class="cabCmpBarV1"><span>' + t("cmp_n") + ': <b>' + n + '</b></span><button type="button" class="cabBtnV1" data-act="cmpopen">' + t("cmp_go") + '</button><button type="button" class="cabGhostV1" data-act="cmpclear">' + t("cmp_close") + '</button></div>';
+  }
+  function num(v){ var n = parseFloat(String(v == null ? "" : v).replace(/[^0-9.]/g, "")); return isFinite(n) ? n : null; }
+  function cmpModal(){
+    var ids = cmpIds(), lots = ids.map(function(id){ return merged(findFav(id) || {id:id}); });
+    var rowsDef = [
+      ["cf_year", function(o){ return o.year || ""; }, "min-year"],
+      ["cf_odo", function(o){ return o.odometerText || ""; }, "min", function(o){ return num(o.odometerText); }],
+      ["cf_bid", function(o){ return Number(o.currentBid) > 0 ? money(o.currentBid, isCa(o)) : ""; }, "min", function(o){ return Number(o.currentBid) > 0 ? Number(o.currentBid) : null; }],
+      ["cf_buy", function(o){ return Number(o.buyNow) > 0 ? money(o.buyNow, isCa(o)) : ""; }, "min", function(o){ return Number(o.buyNow) > 0 ? Number(o.buyNow) : null; }],
+      ["cf_acv", function(o){ return Number(o.estimatedRetailValue) > 0 ? money(o.estimatedRetailValue, isCa(o)) : ""; }, "max", function(o){ return Number(o.estimatedRetailValue) || null; }],
+      ["cf_rep", function(o){ return Number(o.repairCost) > 0 ? money(o.repairCost, isCa(o)) : ""; }, "min", function(o){ return Number(o.repairCost) > 0 ? Number(o.repairCost) : null; }],
+      ["cf_dmg", function(o){ return [o.primaryDamage, o.secondaryDamage].filter(Boolean).join(" / "); }],
+      ["cf_doc", function(o){ return o.document || ""; }],
+      ["cf_eng", function(o){ return o.engine || ""; }],
+      ["cf_fuel", function(o){ return o.fuel || ""; }],
+      ["cf_drv", function(o){ return o.drive || ""; }],
+      ["cf_key", function(o){ return o.keys || ""; }],
+      ["cf_loc", function(o){ return o.location || ""; }],
+      ["cf_date", function(o){ return o.auctionDate && isFinite(Date.parse(o.auctionDate)) ? fmtDate(o.auctionDate) : t("nodate"); }]
+    ];
+    var head = '<tr><th></th>' + lots.map(function(o){
+      return '<th><a href="' + lotUrl(o.id) + '">' + (img(o) ? '<img src="' + esc(img(o)) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' : "") + '<b>' + esc(titleOf(o)) + '</b></a></th>';
+    }).join("") + '</tr>';
+    var body = rowsDef.map(function(r){
+      var vals = lots.map(r[1]);
+      if(!vals.some(function(v){ return v !== "" && v != null; })) return "";
+      var best = -1;
+      if(r[3] && lots.length > 1){
+        var nums = lots.map(r[3]), pick = null;
+        nums.forEach(function(n, i){ if(n == null) return; if(pick == null || (r[2] === "max" ? n > nums[pick] : n < nums[pick])) pick = i; });
+        if(pick != null && nums.filter(function(n){ return n != null; }).length > 1) best = pick;
+      }
+      return '<tr><td>' + t(r[0]) + '</td>' + vals.map(function(v, i){ return '<td' + (i === best ? ' class="best" title="' + esc(t("cf_best")) + '"' : "") + '>' + (v === "" || v == null ? "—" : esc(v)) + '</td>'; }).join("") + '</tr>';
+    }).join("");
+    return '<div class="cabModalV1" data-act="cmpclose"><div class="cabModalCardV1" role="dialog" aria-modal="true" aria-label="' + esc(t("cmp_h")) + '"><div class="cabModalHeadV1"><h2>' + t("cmp_h") + '</h2><button type="button" class="cabGhostV1" data-act="cmpclose">' + t("cmp_close") + ' ✕</button></div><div class="cabModalScrollV1"><table class="cabCmpTblV1">' + head + body + '</table></div></div></div>';
+  }
+
+  function scrollSteppers(){ $$(".cabStepperV1").forEach(function(el){ var c = el.querySelector("li.current"); if(c) el.scrollLeft = Math.max(0, c.offsetLeft - el.clientWidth / 2 + c.clientWidth / 2); }); }
 
   // ---------- действия ----------
   function setTab(v){
-    if(["over", "fav", "cars", "subs", "recent", "set"].indexOf(v) < 0) v = "over";
+    if(["over", "deals", "fav", "cars", "subs", "recent", "set"].indexOf(v) < 0) v = "over";
     S.tab = v;
     try{ history.replaceState(null, "", "#" + v); }catch(e){}
     render();
     if(v === "cars") refreshTracks();
+    if(v === "deals") loadDeals();
     if(v === "fav") refreshLive();
   }
   function findFav(id){ return S.favs.filter(function(f){ return f.id === id; })[0]; }
@@ -475,8 +685,21 @@
   root.addEventListener("click", function(e){
     var b = e.target.closest("[data-act]"); if(!b || !root.contains(b)) return;
     var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
-    if(act === "tab") return setTab(b.getAttribute("data-v"));
+    if(act === "tab"){ e.preventDefault(); return setTab(b.getAttribute("data-v")); }
     if(act === "connect") return startConnect();
+    if(act === "dealverify"){ startDealPoll(); setTimeout(function(){ render(true); }, 50); return; }
+    if(act === "cmpt"){
+      if(S.cmp[id]) delete S.cmp[id];
+      else if(cmpIds().length >= 4){ toast(t("cmp_max")); return; }
+      else S.cmp[id] = 1;
+      return render();
+    }
+    if(act === "cmpopen"){ if(cmpIds().length < 2){ toast(t("cmp_min")); return; } S.cmpOpen = true; document.body.style.overflow = "hidden"; return render(); }
+    if(act === "cmpclose"){ if(e.target.closest(".cabModalCardV1") && !b.matches("button")) return; S.cmpOpen = false; document.body.style.overflow = ""; return render(); }
+    if(act === "expcsv") return expCsv();
+    if(act === "expcopy") return expCopy();
+    if(act === "cmpclear"){ S.cmp = {}; return render(); }
+    if(act === "feedclear"){ S.feed = []; lsSet(K.feed, "[]"); return render(); }
     if(act === "ffilter"){ S.favFilter = b.getAttribute("data-v"); return render(); }
     if(act === "unfav") return unfav(id);
     if(act === "addfav") return addFav(id);
@@ -510,18 +733,20 @@
     e.preventDefault();
     if(f.getAttribute("data-form") === "car") addCar(f.elements.v.value);
   });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape" && S.cmpOpen){ S.cmpOpen = false; document.body.style.overflow = ""; render(); } });
   window.addEventListener("hashchange", function(){ var h = location.hash.replace("#", ""); if(h && h !== S.tab) setTab(h); });
   document.addEventListener("visibilitychange", function(){ if(!document.hidden && S.booted){ refreshLive(); } });
 
   // ---------- старт ----------
   function boot(){
-    var h = location.hash.replace("#", ""); if(["over", "fav", "cars", "subs", "recent", "set"].indexOf(h) >= 0) S.tab = h;
+    var h = location.hash.replace("#", ""); if(["over", "deals", "fav", "cars", "subs", "recent", "set"].indexOf(h) >= 0) S.tab = h;
     loadLocal(); render();
     var c = cab(), p = Promise.resolve();
     if(token()){
       p = refreshStatus().then(function(){
         if(S.bound && c) return c.pull(true).then(function(r){
           if(r && r.ready === false) S.ready = false;
+          if(r && r.name){ lsSet(K.name, r.name); }
           if(r && r.items && r.items.car){
             var cars = r.items.car.map(function(it){ return {vin:it.key, label:(it.data && it.data.label) || "", addedAt:(it.data && it.data.addedAt) || it.t}; });
             lsSet(K.cars, JSON.stringify(cars));
@@ -529,7 +754,7 @@
         });
       });
     }
-    p.then(function(){ loadLocal(); S.booted = true; render(); refreshLive(); refreshTracks(); });
+    p.then(function(){ loadLocal(); S.booted = true; render(); refreshLive(); refreshTracks(); loadDeals(); });
   }
   boot();
 })();

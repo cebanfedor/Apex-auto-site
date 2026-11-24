@@ -9,6 +9,7 @@ const KINDS = {
 };
 const BULK_MAX = 700;
 
+const dealsLib = require("./deals");
 const okToken = t => typeof t === "string" && /^[A-Za-z0-9_-]{20,64}$/.test(t);
 
 // Ужимаем «сырой» лот до безопасного размера: лишние фото/история не нужны в кабинете (карточка живёт на странице лота)
@@ -57,7 +58,7 @@ function create(deps){
     if(!rows[0].chat_id) return {error:"unbound", lang:rows[0].lang};
     return {chat:rows[0].chat_id, lang:rows[0].lang};
   }
-  const tableMissing = e => /cab_items|relation|PGRST20|42P01|schema cache/i.test(String(e && e.message || e));
+  const tableMissing = e => /cab_items|cab_deals|relation|PGRST20|42P01|schema cache/i.test(String(e && e.message || e));
 
   async function prune(chat, kind){
     const cfg = KINDS[kind];
@@ -75,10 +76,27 @@ function create(deps){
       try{
         const rows = await sb(`/cab_items?chat_id=eq.${who.chat}&select=kind,key,data,updated_at&order=updated_at.desc&limit=1200`);
         const items = {fav:[], note:[], car:[], view:[]};
+        const nm = await sb(`/alert_meta?k=eq.${q("tgname:" + who.chat)}&select=v&limit=1`).catch(() => []);
+        const tgName = nm && nm[0] && nm[0].v && nm[0].v.n || "";
         for(const r of rows || []){ if(items[r.kind]) items[r.kind].push({key:r.key, data:r.data, t:Date.parse(r.updated_at) || 0}); }
-        sendJson(response, 200, {ok:true, bound:true, ready:true, lang:who.lang, items}, NO);
+        sendJson(response, 200, {ok:true, bound:true, ready:true, lang:who.lang, name:tgName, items}, NO);
       }catch(e){
         sendJson(response, 200, {ok:true, bound:true, ready:false, lang:who.lang, reason:tableMissing(e) ? "no_table" : "db_error"}, NO);
+      }
+      return true;
+    }
+
+    if(action === "cabdeals"){
+      const who = await chatOf(query.get("token"));
+      if(who.error){ sendJson(response, 200, {ok:true, bound:false}, NO); return true; }
+      try{
+        const pm = await sb(`/alert_meta?k=eq.${q("phone:" + who.chat)}&select=v&limit=1`).catch(() => []);
+        const key = pm && pm[0] && pm[0].v && pm[0].v.k;
+        if(!key){ sendJson(response, 200, {ok:true, bound:true, verified:false, deals:[]}, NO); return true; }
+        const rows = await sb(`/cab_deals?phone_key=eq.${q(key)}&active=eq.true&select=*&order=updated_at.desc&limit=20`);
+        sendJson(response, 200, {ok:true, bound:true, verified:true, deals:(rows || []).map(dealsLib.publicDeal)}, NO);
+      }catch(e){
+        sendJson(response, 200, {ok:true, bound:true, verified:true, deals:[], ready:!tableMissing(e) ? true : false, reason:tableMissing(e) ? "no_table" : "db_error"}, NO);
       }
       return true;
     }

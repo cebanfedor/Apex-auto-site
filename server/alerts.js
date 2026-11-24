@@ -43,7 +43,13 @@ const TXT = {
     notSold: "🏁 Торги прошли, лот не продан (возможно, перенесён или выставлен снова)",
     moved: d => `📅 Торги перенесены на ${d}`,
     bid: "Ставка",
-    date: "Торги"
+    date: "Торги",
+    openCab: "Личный кабинет",
+    phoneAsk: "📱 Чтобы видеть ваши сделки (этапы, фото, документы), подтвердите номер телефона — нажмите кнопку ниже. Telegram передаёт только ваш собственный номер.",
+    phoneBtn: "📱 Поделиться номером",
+    phoneOk: "✅ Номер подтверждён. Ваши сделки появятся в личном кабинете, а об этапах доставки я буду писать сюда.",
+    phoneOther: "Отправьте, пожалуйста, СВОЙ номер кнопкой «Поделиться номером».",
+    cabText: "Ваш личный кабинет: избранное, заметки, машины в пути и уведомления в одном месте."
   },
   ro: {
     subSearch: n => `🔔 Abonament activ: «${n}»`,
@@ -68,7 +74,13 @@ const TXT = {
     notSold: "🏁 Licitația s-a încheiat, lotul nu s-a vândut (posibil reprogramat sau scos din nou)",
     moved: d => `📅 Licitația a fost mutată pe ${d}`,
     bid: "Ofertă",
-    date: "Licitație"
+    date: "Licitație",
+    openCab: "Contul personal",
+    phoneAsk: "📱 Ca să vezi tranzacțiile tale (etape, poze, documente), confirmă numărul de telefon — apasă butonul de mai jos. Telegram trimite doar propriul tău număr.",
+    phoneBtn: "📱 Trimite numărul",
+    phoneOk: "✅ Numărul a fost confirmat. Tranzacțiile apar în contul personal, iar despre etapele livrării îți scriu aici.",
+    phoneOther: "Trimite, te rog, PROPRIUL număr cu butonul „Trimite numărul”.",
+    cabText: "Contul tău personal: favorite, notițe, mașini în drum și notificări — într-un singur loc."
   },
   en: {
     subSearch: n => `🔔 Subscription on: «${n}»`,
@@ -93,10 +105,65 @@ const TXT = {
     notSold: "🏁 Auction ended, the lot did not sell (it may be rescheduled or relisted)",
     moved: d => `📅 Auction moved to ${d}`,
     bid: "Bid",
-    date: "Auction"
+    date: "Auction",
+    openCab: "My account",
+    phoneAsk: "📱 To see your orders (stages, photos, documents), confirm your phone number with the button below. Telegram only shares your own number.",
+    phoneBtn: "📱 Share my number",
+    phoneOk: "✅ Number confirmed. Your orders now appear in your account and I will message you here about delivery stages.",
+    phoneOther: "Please send YOUR OWN number with the “Share my number” button.",
+    cabText: "Your personal account: favourites, notes, cars in transit and alerts in one place."
   }
 };
 const tx = lang => TXT[lang] || TXT.ru;
+
+// ---- Этапы доставки «моих машин» (кабинет): сообщения бота ----
+const CAR_STAGE = {
+  "Car won":                    ["куплен на аукционе", "cumpărat la licitație", "bought at auction"],
+  "Left auction":               ["выехал с аукциона", "a plecat de la licitație", "left the auction"],
+  "Delivered to loading place": ["прибыл на склад / в порт", "a ajuns la depozit / în port", "arrived at the warehouse / port"],
+  "Loading":                    ["погружен в контейнер", "încărcat în container", "loaded into the container"],
+  "Arrival":                    ["прибыл в порт Клайпеда", "a ajuns în portul Klaipeda", "arrived at Klaipeda port"],
+  "Chisinau":                   ["доставлен в Кишинёв", "livrat la Chișinău", "delivered to Chișinău"]
+};
+const CAR_TXT = {
+  ru: {head: "🚢 Ваша машина", stage: "Этап", eta: "Ожидаем в Кишинёве", generic: "статус обновлён", done: "🎉 Машина доставлена в Кишинёв!", btn: "Мои машины"},
+  ro: {head: "🚢 Mașina ta", stage: "Etapa", eta: "Ajunge la Chișinău", generic: "statusul a fost actualizat", done: "🎉 Mașina a ajuns la Chișinău!", btn: "Mașinile mele"},
+  en: {head: "🚢 Your car", stage: "Stage", eta: "Expected in Chișinău", generic: "status updated", done: "🎉 Your car has arrived in Chișinău!", btn: "My cars"}
+};
+const LI = {ru: 0, ro: 1, en: 2};
+
+// Текущий этап по ответу /api/w8-tracking — та же логика, что в tracking-app.js / cabinet.js (trackModel)
+function trackState(d){
+  if(!d || d.error) return null;
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const stages = (d.stages || []).map(x => Object.assign({}, x));
+  const portDate = d.container && d.container.portArrival ? new Date(d.container.portArrival + "T00:00:00Z") : null;
+  if(portDate && today >= portDate){ const kl = stages.find(x => x.title === "Arrival"); if(kl) kl.status = "completed"; }
+  const chis = d.etaChisinau || null;
+  if(d.source !== "dealer" && (d.source !== "avtoshipping" || d.etaChisinau)){
+    let st = "todo";
+    if(chis){ const ed = new Date(chis + "T00:00:00Z"); if(today >= ed) st = "completed"; else if(portDate && today >= portDate) st = "current"; }
+    stages.push({title: "Chisinau", date: chis, status: st});
+  }
+  const cur = stages.find(x => x.status === "current") || stages.slice().reverse().find(x => x.status === "completed");
+  if(!cur) return {key: "", title: "", delivered: false, eta: chis || (d.container && d.container.portArrival) || "", name: d.vehicle || ""};
+  return {
+    key: `${cur.title}:${cur.status}`,
+    title: cur.title,
+    delivered: cur.title === "Chisinau" && cur.status === "completed",
+    eta: d.source === "dealer" ? (d.expectedDate || "") : (chis || (d.container && d.container.portArrival) || ""),
+    name: d.vehicle || ""
+  };
+}
+function carMessage(st, vin, lang){
+  const T = CAR_TXT[lang] || CAR_TXT.ru, i = LI[lang] || 0;
+  const label = CAR_STAGE[st.title] ? CAR_STAGE[st.title][i] : T.generic;
+  const head = `${T.head}${st.name ? " — <b>" + esc(st.name) + "</b>" : ""}\nVIN <code>${esc(vin)}</code>`;
+  if(st.delivered) return `${T.done}\n${head}`;
+  const eta = st.eta && !Number.isNaN(Date.parse(st.eta)) ? `\n${T.eta}: <b>${esc(fmtDate(st.eta, lang).replace(/,.*$/, ""))}</b>` : "";
+  return `${head}\n${T.stage}: <b>${esc(label)}</b>${eta}`;
+}
+
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const money = n => Number(n || 0).toLocaleString("en-US").replace(/,/g, " ");
 
@@ -195,12 +262,31 @@ function create(deps){
     for(const u of r.result || []){
       last = u.update_id;
       const m = u.message;
+      // Номер телефона для «Моих сделок»: принимаем только СВОЙ контакт (Telegram сверяет user_id)
+      if(m && m.chat && m.chat.type === "private" && m.contact){
+        const cl = await sb(`/alert_links?chat_id=eq.${m.chat.id}&select=lang&limit=1`).catch(() => []);
+        const clang = (cl[0] && cl[0].lang) || "ru";
+        const own = m.from && m.contact.user_id && Number(m.contact.user_id) === Number(m.from.id);
+        const digits = String(m.contact.phone_number || "").replace(/\D/g, "");
+        if(own && digits.length >= 7){
+          const key = digits.slice(-8);
+          await metaSet("phone:" + m.chat.id, {k:key}).catch(() => {});
+          await metaSet("phonekey:" + key, {chat:m.chat.id}).catch(() => {});
+          await tg("sendMessage", {chat_id:m.chat.id, text:tx(clang).phoneOk, reply_markup:{remove_keyboard:true, inline_keyboard:undefined}});
+          await send(m.chat.id, tx(clang).cabText, [{text:tx(clang).openCab, url:SITE + "/cabinet#deals"}]);
+        }else{
+          await send(m.chat.id, tx(clang).phoneOther);
+        }
+        continue;
+      }
       if(!m || !m.chat || m.chat.type !== "private" || typeof m.text !== "string") continue;
       const chatId = m.chat.id;
       const text = m.text.trim();
       const start = text.match(/^\/start(?:@\w+)?(?:\s+(\S+))?/i);
       if(start){
-        const token = start[1];
+        let token = start[1];
+        let wantPhone = false;
+        if(token && /^ph_/.test(token)){ wantPhone = true; token = token.slice(3); }
         if(token && okToken(token)){
           const links = await sb(`/alert_links?token=eq.${q(token)}&select=token,lang,chat_id&limit=1`).catch(() => []);
           const link = links[0];
@@ -210,7 +296,14 @@ function create(deps){
             if(!link.chat_id || Number(link.chat_id) === Number(chatId)){
               bound++;
               const lang = link.lang || "ru";
-              await send(chatId, `${tx(lang).welcome}\n\n${await subsSummary(token, lang)}`);
+              // Имя из Telegram — для приветствия в личном кабинете (в alert_meta, миграция не нужна)
+              const fn = m.from && String(m.from.first_name || "").trim().slice(0, 40);
+              if(fn) await metaSet("tgname:" + chatId, {n:fn}).catch(() => {});
+              if(wantPhone){
+                await tg("sendMessage", {chat_id:chatId, text:tx(lang).phoneAsk, reply_markup:{keyboard:[[{text:tx(lang).phoneBtn, request_contact:true}]], resize_keyboard:true, one_time_keyboard:true}});
+              }else{
+                await send(chatId, `${tx(lang).welcome}\n\n${await subsSummary(token, lang)}`, [{text:tx(lang).openCab, url:SITE + "/cabinet"}]);
+              }
               continue;
             }
           }
@@ -220,6 +313,10 @@ function create(deps){
         const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=token,lang`).catch(() => []);
         for(const l of links) await sb(`/alert_subs?token=eq.${q(l.token)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({active:false})}).catch(() => {});
         await send(chatId, tx((links[0] && links[0].lang) || "ru").stopped);
+      }else if(/^\/cabinet\b/i.test(text)){
+        const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=lang&limit=1`).catch(() => []);
+        const lang = (links[0] && links[0].lang) || "ru";
+        await send(chatId, tx(lang).cabText, [{text:tx(lang).openCab, url:SITE + "/cabinet"}]);
       }else if(/^\/list\b/i.test(text)){
         const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=token,lang&limit=1`).catch(() => []);
         await send(chatId, links[0] ? await subsSummary(links[0].token, links[0].lang || "ru") : tx("ru").none);
@@ -247,7 +344,7 @@ function create(deps){
     return `• <a href="${lotUrl(l.id)}">${esc(title)}</a>${l.vin ? ` · <code>${esc(l.vin)}</code>` : ""}${bid}${when}`;
   }
 
-  const PREF_DEFAULT = {date:true, timed:true, day:true, hour:true, buynow:true, play:true};
+  const PREF_DEFAULT = {date:true, timed:true, day:true, hour:true, buynow:true, play:true, cars:true, digest:true};
   const localYmd = ms => new Date(ms).toLocaleDateString("en-CA", {timeZone:"Europe/Chisinau"});
   const localHour = ms => Number(new Date(ms).toLocaleString("en-GB", {timeZone:"Europe/Chisinau", hour:"2-digit", hour12:false}));
 
@@ -437,6 +534,96 @@ function create(deps){
     }
   }
 
+
+  // ---------- «Мои машины» из кабинета: пишем клиенту в Telegram, когда машина сменила этап ----------
+  const CAR_RECHECK_MS = 3 * 3600e3;
+  async function fetchTrack(vin){
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+    try{
+      const r = await fetch(`${SITE}/api/w8-tracking?vin=${encodeURIComponent(vin)}`, {signal: ctl.signal, headers: {accept: "application/json"}});
+      if(!r.ok) return null;
+      return await r.json();
+    }catch(_){ return null; }
+    finally{ clearTimeout(timer); }
+  }
+  async function processCars(budgetMs, out){
+    out.cars = 0; out.carMsgs = 0;
+    const deadline = Date.now() + budgetMs;
+    const cutoff = new Date(Date.now() - CAR_RECHECK_MS).toISOString();
+    // updated_at двигаем при каждой проверке → очередь идёт по кругу, самые давние — первыми
+    const rows = await sb(`/cab_items?kind=eq.car&updated_at=lt.${q(cutoff)}&select=chat_id,key,data&order=updated_at.asc&limit=12`).catch(() => null);
+    if(!rows || !rows.length) return;
+    for(let i = 0; i < rows.length && Date.now() < deadline - 3000; i += 4){
+      await Promise.all(rows.slice(i, i + 4).map(async row => {
+        const d = await fetchTrack(row.key);
+        const st = trackState(d);
+        const data = Object.assign({}, row.data || {});
+        data.checkedAt = Date.now();
+        if(st && st.key){
+          const prev = data.stage || "";
+          if(prev && prev !== st.key){
+            const lk = await sb(`/alert_links?chat_id=eq.${row.chat_id}&select=lang,prefs&limit=1`).catch(() => []);
+            const link = lk[0] || {};
+            if(((link.prefs || {}).cars) !== false){
+              const lang = link.lang || "ru";
+              const res = await send(row.chat_id, carMessage(st, row.key, lang), [{text: (CAR_TXT[lang] || CAR_TXT.ru).btn, url: SITE + "/cabinet#cars"}]);
+              if(res.ok) out.carMsgs++;
+            }
+          }
+          data.stage = st.key;
+          if(st.name && !data.label) data.label = st.name.slice(0, 80);
+          if(st.eta) data.eta = st.eta;
+        }
+        out.cars++;
+        await sb(`/cab_items?chat_id=eq.${row.chat_id}&kind=eq.car&key=eq.${q(row.key)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({data, updated_at:new Date().toISOString()})}).catch(() => {});
+      }));
+    }
+  }
+
+
+  // Утренняя сводка по избранному: раз в сутки (с 9:00 по Кишинёву), только если есть что сказать —
+  // торги в ближайшие 48 ч или уже сыгравшие. Данные берём из сохранённых в кабинете карточек (cab_items fav).
+  const DIGEST_TXT = {
+    ru:{h:"☀️ Утренняя сводка по избранному", today:"Сегодня", tomorrow:"Завтра", past:"Уже прошли торги", open:"Открыть кабинет"},
+    ro:{h:"☀️ Rezumat de dimineață despre favorite", today:"Astăzi", tomorrow:"Mâine", past:"Licitații încheiate", open:"Deschide contul"},
+    en:{h:"☀️ Morning digest of your favourites", today:"Today", tomorrow:"Tomorrow", past:"Auctions already held", open:"Open account"}
+  };
+  async function processDigest(budgetMs, out){
+    out.digest = 0;
+    const now = Date.now(), h = localHour(now);
+    if(h < 9 || h > 12) return;
+    const day = localYmd(now), deadline = now + budgetMs;
+    const links = await sb(`/alert_links?chat_id=not.is.null&select=token,chat_id,lang,prefs&limit=500`).catch(() => null);
+    if(!links) return;
+    for(const link of links){
+      if(Date.now() > deadline - 3000) break;
+      if(((link.prefs || {}).digest) === false) continue;
+      const mk = `digest:${link.chat_id}`;
+      const m = await sb(`/alert_meta?k=eq.${q(mk)}&select=v&limit=1`).catch(() => null);
+      if(m && m[0] && m[0].v && m[0].v.day === day) continue;
+      const favs = await sb(`/cab_items?chat_id=eq.${link.chat_id}&kind=eq.fav&select=key,data&limit=300`).catch(() => null);
+      if(!favs) continue;
+      const groups = {today:[], tomorrow:[], past:[]};
+      for(const f of favs){
+        const l = f.data || {};
+        const ms = Date.parse(l.auctionDate || "");
+        if(!Number.isFinite(ms)) continue;
+        const dd = localYmd(ms);
+        if(dd === day) groups[ms < now ? "past" : "today"].push(l);
+        else if(dd === localYmd(now + 86400000)) groups.tomorrow.push(l);
+        else if(ms < now && now - ms < 36 * 3600e3) groups.past.push(l);
+      }
+      // отметка «отправлено» ставится всегда — иначе пустая сводка пересчитывалась бы каждые 3 минуты
+      await sb(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({k:mk, v:{day}, updated_at:new Date().toISOString()})}).catch(() => {});
+      if(!groups.today.length && !groups.tomorrow.length && !groups.past.length) continue;
+      const lang = link.lang || "ru", D = DIGEST_TXT[lang] || DIGEST_TXT.ru;
+      const part = (title, arr) => arr.length ? `\n<b>${title}</b>\n` + arr.slice(0, 8).map(l => lotLine(l, lang)).join("\n") : "";
+      const text = `<b>${D.h}</b>` + part(D.today, groups.today) + part(D.tomorrow, groups.tomorrow) + part(D.past, groups.past);
+      await send(link.chat_id, text, [{text:D.open, url:SITE + "/cabinet#fav"}]).catch(() => {});
+      out.digest++;
+    }
+  }
+
   async function tick(){
     const out = {ok:true, soon:0, playing:0, sold:0, notSold:0, moved:0, dateSet:0, timedOn:0, dayOf:0, buyNow:0, newMsgs:0, searchErr:0};
     if(!tgToken()){ out.ok = false; out.reason = "no_token"; return out; }
@@ -445,6 +632,10 @@ function create(deps){
     out.poll = await pollUpdates().catch(e => ({ok:false, reason:String(e.message || e)}));
     await processLots(Date.now(), out).catch(e => { out.lotErr = String(e.message || e).slice(0, 120); });
     await processSearches(Date.now(), out, Math.max(5000, 40000 - (Date.now() - started))).catch(e => { out.searchFail = String(e.message || e).slice(0, 120); });
+    const left = 50000 - (Date.now() - started);
+    if(left > 7000) await processCars(Math.min(left - 2000, 16000), out).catch(e => { out.carErr = String(e.message || e).slice(0, 120); });
+    const left2 = 52000 - (Date.now() - started);
+    if(left2 > 6000) await processDigest(Math.min(left2 - 2000, 10000), out).catch(e => { out.digestErr = String(e.message || e).slice(0, 120); });
     out.ms = Date.now() - started;
     return out;
   }
@@ -614,4 +805,4 @@ function create(deps){
   return {handle, tick, pollUpdates};
 }
 
-module.exports = {create};
+module.exports = {create, trackState, carMessage};

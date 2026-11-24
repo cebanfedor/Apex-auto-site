@@ -36,6 +36,7 @@
           <button class="active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span class="navLabelV1">Dashboard</span></button>
           <button data-view="vehicles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l1.6-5.4A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.6L20 16"/><rect x="3" y="16" width="18" height="4" rx="1.5"/><circle cx="7.5" cy="20.5" r="1.3"/><circle cx="16.5" cy="20.5" r="1.3"/></svg><span class="navLabelV1">Автомобили</span></button>
           <button data-view="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.2c2.7.3 4.8 2.6 4.9 5.3"/></svg><span class="navLabelV1">Клиенты</span></button>
+          <button data-view="deals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 9h8M8 13h8M8 17h4"/></svg><span class="navLabelV1">Сделки</span></button>
           <button data-view="leads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-6 9 6-9 6-9-6Z"/><path d="M7 11.5V17c0 1 2.2 2.5 5 2.5s5-1.5 5-2.5v-5.5"/></svg><span class="navLabelV1">Заявки</span></button>
           <button data-view="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V10M11 19V5M18 19v-7"/></svg><span class="navLabelV1">Аналитика</span></button>
           <button data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="M12 12v9M4.5 7.5 12 12l7.5-4.5"/></svg><span class="navLabelV1">Оценка лотов</span></button>
@@ -119,6 +120,43 @@
               <div class="formActions">
                 <button type="submit">Сохранить</button>
                 <button type="button" class="ghost" data-reset-form="vehicleForm">Очистить</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="dealsView" class="view">
+          <div class="split">
+            <div class="panel">
+              <div class="panelHead">
+                <h2>Сделки клиентов</h2>
+                <div class="filters"><input id="dealSearch" class="search" placeholder="Поиск: телефон, VIN, авто"></div>
+              </div>
+              <p class="hintV1" style="margin:0 0 10px;color:#667080;font-size:13px">Клиент видит сделку в личном кабинете (apexauto.md/cabinet → «Мои сделки») после подтверждения номера в Telegram. При смене этапа ему автоматически приходит сообщение.</p>
+              <div id="dealsList" class="tableLike"></div>
+            </div>
+            <form id="dealForm" class="panel formPanel">
+              <h2 id="dealFormTitle">Новая сделка</h2>
+              <input type="hidden" name="id">
+              <div class="grid2">
+                <label>Телефон клиента *<input name="phone" required placeholder="+373 68 832 032"></label>
+                <label>Имя клиента<input name="client_name"></label>
+                <label>Автомобиль *<input name="title" required placeholder="2021 BMW X5 xDrive40i"></label>
+                <label>VIN<input name="vin" maxlength="17"></label>
+                <label>Этап<select name="stage" id="dealStageSelect"></select></label>
+                <label>Ожидаемая выдача<input name="eta_date" type="date"></label>
+                <label>Сумма сделки, $<input name="total_usd" inputmode="decimal"></label>
+                <label>Оплачено, $<input name="paid_usd" inputmode="decimal"></label>
+              </div>
+              <label>Что дальше (клиент увидит)<input name="next_step" placeholder="Контейнер вышел из порта, ждём прихода в Клайпеду"></label>
+              <label>Лента событий — по строке: дата | текст<textarea name="timeline" rows="4" placeholder="20.11.2026 | Машина погружена в контейнер"></textarea></label>
+              <label>Фото — по строке: https://… | подпись<textarea name="photos" rows="3" placeholder="https://… | Погрузка в порту"></textarea></label>
+              <label>Документы — по строке: название | https://…<textarea name="docs" rows="3" placeholder="Договор | https://…"></textarea></label>
+              <label class="checkV1" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="notify" checked style="width:auto"> Написать клиенту в Telegram при смене этапа</label>
+              <label class="checkV1" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="active" checked style="width:auto"> Показывать клиенту</label>
+              <div class="formActions">
+                <button type="submit">Сохранить</button>
+                <button type="button" class="ghost" data-reset-form="dealForm">Очистить</button>
               </div>
             </form>
           </div>
@@ -321,6 +359,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v181"></script>
+  <script src="/admin/admin.js?v=admin-v182"></script>
 </body>
 </html>

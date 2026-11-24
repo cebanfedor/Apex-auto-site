@@ -12,6 +12,7 @@ const apiRoutes = {
   "/api/vehicles":"./api/vehicles.js",
   "/api/customers":"./api/customers.js",
   "/api/leads":"./api/leads.js",
+  "/api/deals":"./api/deals.js",
   "/api/content":"./api/content.js",
   "/api/calc":"./server/calc-handler.js",
   "/api/locations":"./server/calc-handler.js",

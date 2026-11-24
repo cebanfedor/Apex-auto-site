@@ -4,6 +4,8 @@ const state = {
   customers:[],
   leads:[],
   leadsAll:[],
+  deals:[],
+  dealStages:[],
   leadsView:"list",
   content:null
 };
@@ -110,10 +112,11 @@ function resetForm(id){
   form.reset();
   if(id === "vehicleForm") setTimeout(renderVehiclePhotoThumbs, 0);
   if(id === "leadForm") updateLeadCustomerContact();
+  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; }
   form.querySelector('[name="id"]').value = "";
   const title = document.getElementById(`${id.replace("Form", "FormTitle")}`);
   if(title){
-    title.textContent = id === "vehicleForm" ? "Новый автомобиль" : id === "customerForm" ? "Новый клиент" : "Новая заявка";
+    title.textContent = id === "vehicleForm" ? "Новый автомобиль" : id === "customerForm" ? "Новый клиент" : id === "dealForm" ? "Новая сделка" : "Новая заявка";
   }
 }
 
@@ -166,6 +169,21 @@ function renderRows(container, items, type){
         <div class="rowActions">
           <button data-edit-vehicle="${item.id}">Изм.</button>
           <button class="danger" data-delete-vehicle="${item.id}">Удалить</button>
+        </div>
+      </article>`;
+    }
+    if(type === "deal"){
+      const st = (state.dealStages.find(x => x.key === item.stage) || {}).label || item.stage;
+      const money = (a, b) => (b ? ` · оплачено ${formatMoney(a)} из ${formatMoney(b)}` : "");
+      return `<article class="rowItem">
+        <div>
+          <h3>${escapeHtml(item.title || "Сделка")}</h3>
+          <p>${escapeHtml(item.client_name || "—")} · ${escapeHtml(item.phone || "—")} · <b>${escapeHtml(st)}</b>${item.active === false ? " · скрыта" : ""}</p>
+          <p>VIN: ${escapeHtml(item.vin || "—")}${money(item.paid_usd, item.total_usd)} · ${item.linked ? "✅ клиент подключён в Telegram" : "⏳ клиент ещё не подтвердил номер"}</p>
+        </div>
+        <div class="rowActions">
+          <button data-edit-deal="${item.id}">Изм.</button>
+          <button class="danger" data-delete-deal="${item.id}">Удалить</button>
         </div>
       </article>`;
     }
@@ -237,6 +255,28 @@ async function loadVehicles(){
   state.vehicles = data.items || [];
   renderRows("vehiclesList", state.vehicles, "vehicle");
   fillLeadSelects();
+}
+
+async function loadDeals(){
+  const q = ($("#dealSearch")?.value || "").trim().toLowerCase();
+  const data = await api("/api/deals");
+  state.dealStages = data.stages || state.dealStages;
+  const sel = $("#dealStageSelect");
+  if(sel && !sel.options.length) sel.innerHTML = state.dealStages.map(s => `<option value="${escapeHtml(s.key)}">${escapeHtml(s.label)}</option>`).join("");
+  state.deals = (data.items || []).filter(d => !q || [d.title, d.vin, d.phone, d.client_name].join(" ").toLowerCase().includes(q));
+  renderRows("dealsList", state.deals, "deal");
+}
+function setDealForm(item){
+  const form = $("#dealForm");
+  form.reset();
+  const set = (n, v) => { if(form.elements[n]) form.elements[n].value = v == null ? "" : v; };
+  ["id","phone","client_name","title","vin","stage","eta_date","total_usd","paid_usd","next_step"].forEach(n => set(n, item[n]));
+  set("timeline", (item.timeline || []).map(x => `${x.at ? x.at.split("-").reverse().join(".") : ""} | ${x.text}`.replace(/^ \| /, "")).join("\n"));
+  set("photos", (item.photos || []).map(x => `${x.url}${x.caption ? " | " + x.caption : ""}`).join("\n"));
+  set("docs", (item.docs || []).map(x => `${x.name} | ${x.url}`).join("\n"));
+  form.elements.active.checked = item.active !== false;
+  form.elements.notify.checked = true;
+  $("#dealFormTitle").textContent = "Редактировать сделку";
 }
 
 async function loadCustomers(){
@@ -410,6 +450,7 @@ async function refresh(){
   if(state.view === "guide") await loadGuide();
   if(state.view === "analytics") await loadAnalytics();
   if(state.view === "customers") await loadCustomers();
+  if(state.view === "deals") await loadDeals();
   if(state.view === "leads"){
     await Promise.all([loadCustomers(), loadVehicles()]);
     await loadLeads();
@@ -739,6 +780,26 @@ function bindForms(){
     }
   });
 
+  $("#dealForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = formData(form);
+    data.active = form.elements.active.checked;
+    data.notify = form.elements.notify.checked;
+    const id = data.id; delete data.id;
+    const btn = form.querySelector('[type="submit"]');
+    try{
+      btn.disabled = true;
+      const res = await api(id ? `/api/deals?id=${encodeURIComponent(id)}` : "/api/deals", {method: id ? "PATCH" : "POST", body: data});
+      resetForm("dealForm");
+      await loadDeals();
+      const n = {sent: " Клиенту отправлено сообщение в Telegram.", no_chat: " Клиент ещё не подтвердил номер в боте — сообщение не отправлено.", failed: " Не удалось отправить сообщение в Telegram."}[res.notified] || "";
+      showNotice("Сделка сохранена." + n, res.notified !== "failed");
+    }catch(error){
+      alert("Не сохранилось: " + (error.message || error));
+    }finally{ btn.disabled = false; }
+  });
+
   $("#customerForm").addEventListener("submit", async event => {
     event.preventDefault();
     const data = formData(event.currentTarget);
@@ -803,6 +864,12 @@ function bindLists(){
       }
       return;
     }
+    const dealId = target.dataset.editDeal;
+    if(dealId){
+      const item = state.deals.find(row => String(row.id) === String(dealId));
+      if(item){ setDealForm(item); $("#dealForm").scrollIntoView({behavior:"smooth", block:"start"}); }
+      return;
+    }
     const vehicleId = target.dataset.editVehicle;
     const customerId = target.dataset.editCustomer;
     const leadId = target.dataset.editLead;
@@ -828,7 +895,8 @@ function bindLists(){
     const deleteMap = [
       ["deleteVehicle", "/api/vehicles", loadVehicles],
       ["deleteCustomer", "/api/customers", loadCustomers],
-      ["deleteLead", "/api/leads", loadLeads]
+      ["deleteLead", "/api/leads", loadLeads],
+      ["deleteDeal", "/api/deals", loadDeals]
     ];
     for(const [key, path, reload] of deleteMap){
       if(target.dataset[key]){
@@ -856,6 +924,7 @@ function bindFilters(){
   };
   $("#vehicleSearch").addEventListener("input", () => delayed(loadVehicles));
   $("#customerSearch").addEventListener("input", () => delayed(loadCustomers));
+  $("#dealSearch").addEventListener("input", () => delayed(loadDeals));
   $("#customerStatusFilter").addEventListener("change", () => delayed(loadCustomers));
   $("#leadStatusFilter").addEventListener("change", () => delayed(loadLeads));
 }
