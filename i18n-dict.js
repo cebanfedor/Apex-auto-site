@@ -1,6 +1,7 @@
 window.__APEX_DICT = (function(){
   const dict = {
     ro:{
+      "Все права защищены. Материалы сайта, расчёты и оценки защищены авторским правом — копирование без разрешения запрещено.":"Toate drepturile rezervate. Conținutul site-ului, calculele și estimările sunt protejate de drepturi de autor — copierea fără permisiune este interzisă.",
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Licitații Copart și IAAI — catalog auto din SUA și Canada | Apex Auto",
       "Авто в пути из США — купить до прибытия | Apex Auto":"Mașini în tranzit — din SUA în Moldova | Apex Auto",
       "Как привезти авто из США в Молдову 2026 | Apex Auto":"Cum aduci o mașină din SUA și Canada în Moldova în 2026 — ghid complet",
@@ -3516,6 +3517,7 @@ window.__APEX_DICT = (function(){
       "Вернуться к каталогу":"Înapoi la catalog"
     },
     en:{
+      "Все права защищены. Материалы сайта, расчёты и оценки защищены авторским правом — копирование без разрешения запрещено.":"All rights reserved. Site content, calculations and estimates are protected by copyright — copying without permission is prohibited.",
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
       "Авто в пути из США — купить до прибытия | Apex Auto":"Cars in transit — from the USA to Moldova | Apex Auto",
       "Как привезти авто из США в Молдову 2026 | Apex Auto":"How to bring a car from the USA and Canada to Moldova in 2026 — full guide",
