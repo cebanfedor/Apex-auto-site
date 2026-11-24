@@ -35,7 +35,7 @@
     { "source": "/", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/", "permanent": true },
     { "source": "/:path*", "has": [{ "type": "host", "value": "www.apexauto.md" }], "destination": "https://apexauto.md/:path*", "permanent": true },
     { "source": "/index.html", "destination": "/", "permanent": true },
-    { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check).html", "destination": "/:page", "permanent": true },
+    { "source": "/:page(about|auction-fees|auctions|blog|cases|contacts|customs|damages|guide|in-transit|privacy|ship-my-car|shipping|tesla-model-3|toyota-rav4|tracking|usa-vs-europe|vin-check|cabinet).html", "destination": "/:page", "permanent": true },
     { "source": "/hot", "destination": "/in-transit", "permanent": true },
     { "source": "/hot.html", "destination": "/in-transit", "permanent": true },
     { "source": "/korea.html", "destination": "/korea", "permanent": true },
@@ -116,6 +116,7 @@
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/about", "destination": "/about.html" },
     { "source": "/contacts", "destination": "/contacts.html" },
+    { "source": "/cabinet", "destination": "/cabinet.html" },
     { "source": "/in-transit", "destination": "/in-transit.html" },
     { "source": "/in-transit/:slug(\\d[^/]*)", "destination": "/api/transit-page?slug=:slug" },
     { "source": "/korea", "destination": "/catalog.html" },
@@ -165,7 +166,7 @@
     },
     {
       "source": "/api/auctions",
-      "missing": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived|queue|facets|dbstatus|missdiag|tgdiag|ptstatus|ptaudit|vinhealth|salescoverage|closedprobe|archprobe|explain|rawfields|rawgens|acvcalib|compstest|detail|vin|count|livebids|vinhist)" }],
+      "missing": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived|queue|facets|dbstatus|missdiag|tgdiag|ptstatus|ptaudit|vinhealth|salescoverage|closedprobe|archprobe|explain|rawfields|rawgens|acvcalib|compstest|detail|vin|count|livebids|vinhist|alert[a-z]*|cab[a-z]*)" }],
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=300" }
       ]
@@ -175,6 +176,13 @@
       "has": [{ "type": "query", "key": "action", "value": "(detail|vin|count|livebids|vinhist)" }],
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=30, stale-while-revalidate=120" }
+      ]
+    },
+    {
+      "source": "/api/auctions",
+      "has": [{ "type": "query", "key": "action", "value": "(alert[a-z]*|cab[a-z]*)" }],
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store" }
       ]
     },
     {

@@ -1,6 +1,8 @@
 window.__APEX_DICT = (function(){
   const dict = {
     ro:{
+      "Личный кабинет — избранное, мои машины, уведомления | Apex Auto":"Contul personal — favorite, mașinile mele, notificări | Apex Auto",
+      "Личный кабинет":"Contul personal",
       "Все права защищены. Материалы сайта, расчёты и оценки защищены авторским правом — копирование без разрешения запрещено.":"Toate drepturile rezervate. Conținutul site-ului, calculele și estimările sunt protejate de drepturi de autor — copierea fără permisiune este interzisă.",
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Licitații Copart și IAAI — catalog auto din SUA și Canada | Apex Auto",
       "Авто в пути из США — купить до прибытия | Apex Auto":"Mașini în tranzit — din SUA în Moldova | Apex Auto",
@@ -3517,6 +3519,8 @@ window.__APEX_DICT = (function(){
       "Вернуться к каталогу":"Înapoi la catalog"
     },
     en:{
+      "Личный кабинет — избранное, мои машины, уведомления | Apex Auto":"My account — favourites, my cars, alerts | Apex Auto",
+      "Личный кабинет":"My account",
       "Все права защищены. Материалы сайта, расчёты и оценки защищены авторским правом — копирование без разрешения запрещено.":"All rights reserved. Site content, calculations and estimates are protected by copyright — copying without permission is prohibited.",
       "Каталог авто Copart и IAAI из США и Канады | Apex Auto":"Copart and IAAI auctions — cars from the USA and Canada | Apex Auto",
       "Авто в пути из США — купить до прибытия | Apex Auto":"Cars in transit — from the USA to Moldova | Apex Auto",
@@ -7049,6 +7053,7 @@ window.__APEX_DICT = (function(){
 
   const attrDict = {
     ro:{
+      "Личный кабинет":"Contul personal",
       "Пульс аукционов":"Pulsul licitațiilor",
       "Целые авто из Канады и Кореи — Apex Auto":"Mașini întregi din Canada și Coreea — Apex Auto",
       "Марка, модель, номер лота или VIN": "Marcă, model, lot sau VIN",
@@ -7168,6 +7173,7 @@ window.__APEX_DICT = (function(){
       "Название, VIN или номер лота":"Denumire, VIN sau numărul lotului"
     },
     en:{
+      "Личный кабинет":"My account",
       "Пульс аукционов":"Auction pulse",
       "Целые авто из Канады и Кореи — Apex Auto":"Intact cars from Canada and Korea — Apex Auto",
       "Марка, модель, номер лота или VIN": "Make, model, lot number or VIN",

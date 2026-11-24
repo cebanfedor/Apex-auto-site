@@ -222,6 +222,7 @@
     }
     favSave(map);
     updateFavCount();
+    try{ if(window.apexCab) (map[lot.id] ? window.apexCab.put("fav", String(lot.id), map[lot.id]) : window.apexCab.del("fav", String(lot.id))); }catch(e){}
     if(map[lot.id]) track("fav_add");
     return !!favLoad()[lot.id];
   }
@@ -231,7 +232,10 @@
     const el = document.getElementById("favCount");
     if(el) el.textContent = n ? ` (${n})` : "";
     document.querySelectorAll("[data-fav]").forEach(s => s.classList.toggle("is-fav", favHas(s.dataset.fav)));
+    try{ document.dispatchEvent(new Event("apex-fav-changed")); }catch(e){}
   }
+
+  document.addEventListener("apex-cab-pulled", () => { try{ updateFavCount(); }catch(e){} });
 
   // ---- Личные заметки по лоту (localStorage, тот же принцип, что избранное) ----
   const NOTE_KEY = "apexNotesV1";
@@ -250,6 +254,7 @@
     }
     else delete map[id];
     noteSave(map);
+    try{ if(window.apexCab) (map[id] ? window.apexCab.put("note", String(id), map[id]) : window.apexCab.del("note", String(id))); }catch(e){}
   }
   const noteSaveDebounced = debounce((id, text) => {
     noteSet(id, text);
@@ -3919,6 +3924,11 @@ function alertable(lot){
   }
   function renderDetail(lot, opts){
     scheduleVinRetry(lot, 1);
+    // Личный кабинет: «недавно смотрели» (один раз на лот, когда уже известно название)
+    try{
+      const rk = lot && lot.id && lot.title ? lot.id : "";
+      if(rk && state._recentSeen !== rk && window.apexCab){ state._recentSeen = rk; window.apexCab.recentPush(lot); }
+    }catch(e){}
     state.lotBand = null;   // вилка пересчитается в loadStats для этого лота (для поста в Telegram)
     state.lotBandContradicted = false;
     _caLotFlag = !!findCanadaLocation(lot);

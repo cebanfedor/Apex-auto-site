@@ -1,0 +1,204 @@
+/* Личный кабинет (24.11.2026). Токены — из styles.css (--red, --ink, --line…). Один максимум ширины с остальным сайтом. */
+.cabMainV1 { padding: 21px 0 56px; }
+.cabWrapV1 { max-width: calc(var(--maxw) + 48px); margin: 0 auto; padding: 0 24px; }
+.cabCrumbsV1 { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--muted); margin: 0 0 14px; min-height: 28px; }
+.cabCrumbsV1 a { color: var(--muted); text-decoration: none; }
+.cabCrumbsV1 a:hover { color: var(--red); }
+.cabCrumbsV1 b { color: var(--ink); font-weight: 600; }
+.cabLoadingV1, .cabNoJsV1 { padding: 60px 0; text-align: center; color: var(--muted); }
+
+/* ---- Hero ---- */
+.cabHeroV1 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: stretch; margin-bottom: 18px; }
+.cabHeroTxtV1 { position: relative; overflow: hidden; padding: 34px 36px; border-radius: 24px; background: linear-gradient(135deg, #fff 55%, #fff1f2); border: 1px solid var(--line); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: center; }
+.cabHeroTxtV1::after { content: ""; position: absolute; right: -80px; top: -80px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(237,0,18,.14), transparent 68%); pointer-events: none; }
+.cabKickerV1 { font-size: 12.5px; font-weight: 700; letter-spacing: .08em; color: var(--red); }
+.cabHeroTxtV1 h1 { margin: 10px 0 12px; font: 800 clamp(26px, 3vw, 38px)/1.12 var(--font-display); color: var(--ink); letter-spacing: -.01em; }
+.cabHeroTxtV1 p { margin: 0; max-width: 560px; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+
+.cabConnV1 { padding: 26px 28px; border-radius: 24px; color: #fff; background: linear-gradient(160deg, #232a36, #12151b); box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+.cabConnV1 p { margin: 0; font-size: 14.5px; line-height: 1.5; color: rgba(255,255,255,.78); }
+.cabConnV1 ul { margin: 2px 0 6px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.cabConnV1 li { position: relative; padding-left: 22px; font-size: 14px; color: rgba(255,255,255,.9); }
+.cabConnV1 li::before { content: ""; position: absolute; left: 2px; top: 5px; width: 10px; height: 6px; border-left: 2px solid #4ade80; border-bottom: 2px solid #4ade80; transform: rotate(-45deg); }
+.cabConnV1 small { font-size: 12.5px; color: rgba(255,255,255,.55); }
+.cabConnHeadV1 { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.cabConnHeadV1 svg { color: #fff; width: 22px; height: 22px; }
+.cabDotV1 { width: 11px; height: 11px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 5px rgba(74,222,128,.2); }
+.cabSpinV1 { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.25); border-top-color: #fff; animation: cabSpin .8s linear infinite; }
+@keyframes cabSpin { to { transform: rotate(360deg); } }
+.cabWarnV1 { padding: 8px 12px; border-radius: 10px; background: rgba(250,204,21,.14); color: #fde68a !important; font-size: 13px !important; }
+
+.cabBtnV1 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; align-self: flex-start; min-height: 44px; padding: 0 22px; border: 0; border-radius: 12px; background: var(--red); color: #fff; font: 700 15px var(--font); text-decoration: none; cursor: pointer; box-shadow: var(--shadow-red); transition: background .15s, transform .15s; }
+.cabBtnV1:hover { background: var(--red-600); transform: translateY(-1px); }
+.cabBtnV1.isLight { background: #fff; color: var(--ink); box-shadow: none; }
+.cabBtnV1.isLight:hover { background: #f1f3f6; }
+.cabBtnV1 svg { width: 18px; height: 18px; }
+
+/* ---- Stats ---- */
+.cabStatsV1 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.cabStatV1 { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left; padding: 16px 18px; border: 1px solid var(--line); border-radius: 18px; background: #fff; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform .15s, border-color .15s; font-family: var(--font); }
+.cabStatV1:hover { transform: translateY(-2px); border-color: var(--red-line); }
+.cabStatIcoV1 { grid-row: 1 / 3; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; background: var(--red-soft); color: var(--red); }
+.cabStatV1 b { font: 800 26px/1 var(--font-display); color: var(--ink); }
+.cabStatV1 small { font-size: 13px; color: var(--muted); }
+
+/* ---- Tabs ---- */
+.cabTabsV1 { position: sticky; top: 53px; z-index: 20; display: flex; gap: 6px; padding: 8px; margin: 0 0 18px; overflow-x: auto; scrollbar-width: none; background: rgba(255,255,255,.92); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-sm); }
+.cabTabsV1::-webkit-scrollbar { display: none; }
+.cabTabsV1 button { flex: none; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 11px; background: transparent; color: var(--ink-2); font: 600 14.5px var(--font); cursor: pointer; transition: background .15s, color .15s; }
+.cabTabsV1 button:hover { background: var(--field); }
+.cabTabsV1 button.on { background: var(--ink); color: #fff; }
+.cabTabsV1 em { font-style: normal; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: var(--red-soft); color: var(--red); }
+.cabTabsV1 button.on em { background: rgba(255,255,255,.2); color: #fff; }
+
+/* ---- Panels ---- */
+.cabGridV1 { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.cabColV1 { display: grid; gap: 18px; min-width: 0; }
+.cabBoxV1 { padding: 22px; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: var(--shadow-sm); }
+.cabBoxV1 h2, .cabH2V1 { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; font: 700 18px var(--font-display); color: var(--ink); }
+.cabBoxV1 h2 svg { color: var(--red); }
+.cabMutedV1 { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.cabPadV1 { padding: 22px 4px; }
+.cabErrV1 { margin: 8px 0 0; font-size: 13.5px; color: var(--red); }
+.cabToolbarV1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.cabToolbarV1 select { width: auto; flex: none; min-width: 190px; height: 40px; padding: 0 12px; border: 1px solid var(--field-line); border-radius: 11px; background: #fff; font: 500 14px var(--font); color: var(--ink); }
+.cabPillsV1 { display: flex; gap: 6px; flex-wrap: wrap; }
+.cabPillsV1 button { min-height: 38px; padding: 0 15px; border: 1px solid var(--field-line); border-radius: 99px; background: #fff; color: var(--ink-2); font: 600 14px var(--font); cursor: pointer; }
+.cabPillsV1 button.on { background: var(--red); border-color: var(--red); color: #fff; }
+.cabGhostV1 { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--field-line); border-radius: 11px; background: #fff; color: var(--ink-2); font: 600 14px var(--font); cursor: pointer; }
+.cabGhostV1:hover { background: var(--field); }
+.cabGhostV1.isDanger { color: var(--red); border-color: var(--red-line); }
+
+/* ---- Lot cards ---- */
+.cabCardsV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+.cabCardV1 { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: #fff; box-shadow: var(--shadow-sm); transition: box-shadow .2s, transform .2s; }
+.cabCardV1:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.cabPicV1 { position: relative; display: block; aspect-ratio: 4 / 3; background: linear-gradient(135deg, #e9edf2, #dde2e9); }
+.cabPicV1 img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cabAucV1 { position: absolute; left: 10px; top: 10px; padding: 3px 9px; border-radius: 8px; background: rgba(17,20,26,.82); color: #fff; font: 700 11px var(--font); letter-spacing: .04em; }
+.cabChipV1 { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px; font: 700 12px var(--font); background: #eef0f3; color: var(--ink-2); white-space: nowrap; }
+.cabPicV1 .cabChipV1 { position: absolute; left: 10px; bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.cabChipV1.is-soon, .cabChipV1.is-live { background: #fff3cd; color: #7a5200; }
+.cabChipV1.is-live { background: var(--red); color: #fff; }
+.cabChipV1.is-sold { background: #dcfce7; color: #14532d; }
+.cabChipV1.is-future { background: #e0ecff; color: #1e3a8a; }
+.cabChipV1.is-nodate { background: #f3f4f6; color: var(--muted); }
+.cabBodyV1 { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 16px; flex: 1; }
+.cabTitleV1 { font: 700 16px/1.3 var(--font-display); color: var(--ink); text-decoration: none; }
+.cabTitleV1:hover { color: var(--red); }
+.cabVinV1 { font: 500 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); letter-spacing: .02em; }
+.cabRowsV1 { display: grid; gap: 5px; margin-top: 2px; }
+.cabRowsV1 > div { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.cabRowsV1 span { color: var(--muted); }
+.cabRowsV1 b { font-weight: 700; color: var(--ink); text-align: right; }
+.cabActsV1 { display: flex; gap: 8px; margin-top: auto; padding-top: 6px; }
+.cabIcoBtnV1 { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 12px; border: 1px solid var(--field-line); border-radius: 11px; background: #fff; color: var(--ink-2); font: 600 13px var(--font); cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.cabIcoBtnV1 svg { width: 16px; height: 16px; flex: none; }
+.cabIcoBtnV1:hover { background: var(--field); }
+.cabIcoBtnV1.on { background: var(--red-soft); border-color: var(--red-line); color: var(--red); }
+.cabIcoBtnV1.isDanger { margin-left: auto; padding: 0 11px; }
+.cabIcoBtnV1.isDanger:hover { background: var(--red-soft); color: var(--red); border-color: var(--red-line); }
+.cabNoteV1 { position: relative; }
+.cabNoteV1 textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--field-line); border-radius: 12px; background: var(--field); font: 400 14px/1.45 var(--font); color: var(--ink); resize: vertical; min-height: 74px; }
+.cabNoteV1 textarea:focus { outline: 2px solid var(--red-line); background: #fff; }
+.cabSavedV1 { position: absolute; right: 10px; bottom: 8px; font: 600 12px var(--font); font-style: normal; color: #15803d; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.cabSavedV1.on { opacity: 1; }
+
+/* ---- Mini rows (overview) ---- */
+.cabMiniV1 { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px; margin: 0 -8px; border-radius: 14px; color: inherit; text-decoration: none; transition: background .15s; }
+.cabMiniV1:hover { background: var(--field); }
+.cabMiniPicV1 { width: 64px; height: 48px; border-radius: 10px; overflow: hidden; background: #e3e7ed; }
+.cabMiniPicV1 img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cabMiniTxtV1 { display: flex; flex-direction: column; min-width: 0; }
+.cabMiniTxtV1 b { font-size: 14.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cabMiniTxtV1 small { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cabQuickV1 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cabQuickV1 a { display: flex; align-items: center; min-height: 46px; padding: 0 14px; border-radius: 12px; background: var(--field); color: var(--ink); font: 600 14px var(--font); text-decoration: none; transition: background .15s, color .15s; }
+.cabQuickV1 a:hover { background: var(--red); color: #fff; }
+
+/* ---- Cars (tracking) ---- */
+.cabCarsV1 { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 18px; }
+.cabCarV1 { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+.cabBoxV1 .cabCarV1 { border: 0; padding: 12px 0; border-top: 1px solid var(--line-2); border-radius: 0; }
+.cabBoxV1 .cabCarV1:first-of-type { border-top: 0; padding-top: 0; }
+.cabCarHeadV1 { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.cabCarHeadV1 > div { min-width: 0; display: flex; flex-direction: column; }
+.cabCarHeadV1 b { font: 700 16px/1.3 var(--font-display); }
+.cabCarHeadV1 small { font: 500 12.5px ui-monospace, Menlo, monospace; color: var(--muted); }
+.cabStatusV1 { align-self: flex-start; padding: 4px 11px; border-radius: 99px; background: #e0ecff; color: #1e3a8a; font: 700 13px var(--font); }
+.cabStatusV1.isDone { background: #dcfce7; color: #14532d; }
+.cabBarV1 { height: 8px; border-radius: 99px; background: var(--line-2); overflow: hidden; }
+.cabBarV1 i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff5b66, var(--red)); transition: width .6s var(--ease); }
+.cabStagesV1 { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 9px; }
+.cabStagesV1 li { display: grid; grid-template-columns: 14px 1fr auto; gap: 10px; align-items: center; font-size: 14px; color: var(--muted); }
+.cabStagesV1 li i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--field-line); background: #fff; }
+.cabStagesV1 li.completed { color: var(--ink); }
+.cabStagesV1 li.completed i { background: #16a34a; border-color: #16a34a; }
+.cabStagesV1 li.current { color: var(--ink); font-weight: 700; }
+.cabStagesV1 li.current i { border-color: var(--red); background: var(--red-soft); box-shadow: 0 0 0 4px rgba(237,0,18,.12); }
+.cabStagesV1 small { font-size: 12.5px; }
+.cabEtaV1 { font-size: 14px; color: var(--ink-2); }
+.cabLinkV1 { font: 600 14px var(--font); color: var(--red); text-decoration: none; }
+.cabLinkV1:hover { text-decoration: underline; }
+.cabAddV1 { display: flex; gap: 10px; margin-top: 14px; }
+.cabAddV1 input { flex: 1; min-width: 0; height: 46px; padding: 0 14px; border: 1px solid var(--field-line); border-radius: 12px; background: var(--field); font: 500 15px var(--font); color: var(--ink); }
+.cabAddV1 input:focus { outline: 2px solid var(--red-line); background: #fff; }
+.cabAddV1 .cabBtnV1 { align-self: auto; }
+
+/* ---- Subs / prefs / settings ---- */
+.cabSubV1 { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line-2); }
+.cabSubV1:first-of-type { border-top: 0; }
+.cabSubKindV1 { padding: 3px 9px; border-radius: 8px; background: var(--field); font: 700 11.5px var(--font); color: var(--ink-2); text-transform: uppercase; letter-spacing: .03em; }
+.cabSubV1 a { color: var(--ink); font-weight: 600; font-size: 14.5px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cabSubV1 a:hover { color: var(--red); }
+.cabSubV1 .cabIcoBtnV1.isDanger { margin-left: 0; }
+.cabPrefsV1 { display: grid; gap: 4px; }
+.cabSwitchV1 { display: flex; align-items: center; gap: 12px; padding: 9px 0; cursor: pointer; font-size: 14.5px; color: var(--ink); }
+.cabSwitchV1 input { position: absolute; opacity: 0; pointer-events: none; }
+.cabSwitchV1 i { position: relative; flex: none; width: 42px; height: 24px; border-radius: 99px; background: #cbd2dc; transition: background .2s; }
+.cabSwitchV1 i::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .2s; }
+.cabSwitchV1 input:checked + i { background: var(--red); }
+.cabSwitchV1 input:checked + i::after { transform: translateX(18px); }
+.cabSwitchV1 input:focus-visible + i { outline: 2px solid var(--red); outline-offset: 2px; }
+.cabSetRowV1 { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line-2); }
+.cabSetRowV1:first-of-type { border-top: 0; padding-top: 0; }
+.cabSetRowV1 b { display: block; font-size: 15px; }
+.cabSetRowV1 small { display: block; margin-top: 3px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* ---- Empty / toast ---- */
+.cabEmptyV1 { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 54px 20px; border: 1.5px dashed var(--field-line); border-radius: 22px; background: #fff; }
+.cabEmptyIcoV1 { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--red-soft); color: var(--red); }
+.cabEmptyIcoV1 svg { width: 28px; height: 28px; }
+.cabEmptyV1 h3 { margin: 4px 0 0; font: 700 20px var(--font-display); }
+.cabEmptyV1 p { margin: 0; max-width: 440px; color: var(--muted); line-height: 1.5; }
+.cabEmptyV1 .cabBtnV1 { align-self: center; margin-top: 6px; }
+.cabToastV1 { position: fixed; left: 50%; bottom: 84px; z-index: var(--z-toast); transform: translate(-50%, 20px); padding: 11px 18px; border-radius: 12px; background: var(--ink); color: #fff; font: 600 14px var(--font); opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; max-width: calc(100vw - 32px); }
+.cabToastV1.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---- Responsive ---- */
+@media (max-width: 1100px) {
+  .cabHeroV1 { grid-template-columns: 1fr; }
+  .cabGridV1 { grid-template-columns: 1fr; }
+  .cabStatsV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .cabMainV1 { padding: 13px 0 40px; }
+  .cabWrapV1 { padding: 0 14px; }
+  .cabHeroTxtV1 { padding: 22px 20px; border-radius: 20px; }
+  .cabHeroTxtV1 p { font-size: 15px; }
+  .cabConnV1 { padding: 20px; border-radius: 20px; }
+  .cabBtnV1 { width: 100%; align-self: stretch; }
+  .cabStatsV1 { gap: 10px; }
+  .cabStatV1 { padding: 13px 14px; grid-template-columns: 1fr; border-radius: 16px; }
+  .cabStatIcoV1 { display: none; }
+  .cabStatV1 b { font-size: 24px; }
+  .cabTabsV1 { margin: 0 -14px 16px; border-radius: 0; border-left: 0; border-right: 0; top: 58px; }
+  .cabBoxV1 { padding: 16px; border-radius: 18px; }
+  .cabCardsV1, .cabCarsV1 { grid-template-columns: 1fr; }
+  .cabQuickV1 { grid-template-columns: 1fr; }
+  .cabAddV1 { flex-direction: column; }
+  .cabAddV1 .cabBtnV1 { width: 100%; }
+  .cabSetRowV1 { align-items: flex-start; }
+  .cabToastV1 { bottom: 76px; }
+}
+@media (prefers-reduced-motion: reduce) { .cabCardV1, .cabStatV1, .cabBarV1 i { transition: none; } .cabSpinV1 { animation: none; } }

@@ -6167,6 +6167,10 @@ module.exports = async function handler(request, response){
     });
     if(await alerts.handle(action, request, response, query).catch(e => { sendJson(response, 500, {ok:false, error:String(e.message || e).slice(0, 160)}); return true; })) return;
   }
+  if(action.startsWith("cab")){
+    const cab = require("../server/cabinet").create({sb:syncSbFetch, sendJson, readBody});
+    if(await cab.handle(action, request, response, query).catch(e => { sendJson(response, 500, {ok:false, error:String(e.message || e).slice(0, 160)}); return true; })) return;
+  }
   if(action === "synclots") return handleSyncLots(response);
   // Быстрый синк ЗАКРЫТЫХ торгов (каждые 10 мин из GitHub Actions): только /archived-lots за последние 90 минут.
   // Даёт правило «сыгралась → сразу в архив»: лаг ≤10 мин вместо часа. Полный инкремент остаётся часовым.

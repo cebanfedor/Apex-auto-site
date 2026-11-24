@@ -249,7 +249,18 @@
     if(navT) navT.addEventListener("change", function(){ if(navT.checked) document.querySelectorAll(".hdrSearchToggleV1").forEach(function(t){ t.checked = false; }); });
   }
 
+  // Личный кабинет: число избранных лотов на иконке в шапке
+  function cabBadge(){
+    try{
+      var n = Object.keys(JSON.parse(localStorage.getItem("apexFavsV1") || "{}") || {}).length;
+      document.querySelectorAll(".hdrCabCntV1").forEach(function(b){ b.textContent = n > 99 ? "99+" : String(n); b.hidden = !n; });
+    }catch(e){}
+  }
+  document.addEventListener("apex-cab-pulled", cabBadge);
+  document.addEventListener("apex-fav-changed", cabBadge);
+  window.addEventListener("storage", cabBadge);
   function boot(){
+    cabBadge();
     initMega(); initSearch();
     var idle = window.requestIdleCallback || function(f){ return setTimeout(f, 2500); };
     idle(function(){ paint(); });
