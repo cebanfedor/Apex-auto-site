@@ -78,6 +78,9 @@
     dl_photos:["Фото","Poze","Photos"], dl_docs:["Документы","Documente","Documents"], dl_tl:["История событий","Istoric evenimente","Event history"], dl_upd:["Обновлено","Actualizat","Updated"], dl_nodb:["Сделки пока недоступны — база настраивается.","Tranzacțiile nu sunt disponibile încă — baza se configurează.","Orders are not available yet — database is being set up."],
     dl_s_bought:["Куплен","Cumpărat","Bought"], dl_s_paid:["Оплачен","Plătit","Paid"], dl_s_pickup:["Вывоз","Ridicare","Pickup"], dl_s_port:["Порт","Port","Port"], dl_s_sea:["В море","Pe mare","At sea"], dl_s_klaipeda:["Клайпеда","Klaipeda","Klaipeda"], dl_s_road:["В пути","În drum","On road"], dl_s_customs:["Таможня","Vamă","Customs"], dl_s_ready:["Готова","Gata","Ready"], dl_s_done:["Выдана","Predată","Handed over"],
     dl_f_bought:["Куплен на аукционе","Cumpărat la licitație","Bought at auction"], dl_f_paid:["Лот оплачен","Lot plătit","Lot paid"], dl_f_pickup:["Вывоз с площадки","Ridicare din parcare","Pickup from the yard"], dl_f_port:["На складе в порту","La depozitul din port","At the port warehouse"], dl_f_sea:["В море","Pe mare","At sea"], dl_f_klaipeda:["В порту Клайпеда","În portul Klaipeda","In Klaipeda port"], dl_f_road:["В пути в Кишинёв","În drum spre Chișinău","On the way to Chișinău"], dl_f_customs:["Растаможка","Vămuire","Customs clearance"], dl_f_ready:["Готова к выдаче","Gata de predare","Ready for handover"], dl_f_done:["Выдана","Predată","Handed over"],
+    gd_h:["Ориентир ставки","Reper de ofertă","Bid guide"],
+    gd_low:["Ставка ниже ориентира","Oferta sub reper","Bid below guide"], gd_in:["Ставка в пределах ориентира","Oferta în limita reperului","Bid within guide"], gd_high:["Ставка выше ориентира","Oferta peste reper","Bid above guide"],
+    gd_note:["По продажам похожих лотов. Это ориентир, а не гарантия.","După vânzările unor loturi similare. Este un reper, nu o garanție.","Based on sales of similar lots. A guide, not a guarantee."],
     p_cars:["Этапы доставки моих машин","Etapele livrării mașinilor mele","Delivery stages of my cars"],
     hello:["Привет, ","Salut, ","Hi, "],
     feed_h:["Что нового с прошлого визита","Noutăți de la ultima vizită","What’s new since your last visit"],
@@ -102,7 +105,7 @@
 
   var S = {
     bound:false, ready:true, connecting:false, url:"", bot:"",
-    name:"", deals:null, dealsTries:0, feed:[], cmp:{}, favs:[], notes:{}, cars:[], recent:[], subs:[], prefs:{}, live:{}, track:{}, tab:"over", favFilter:"all", favSort:"date", booted:false, subsLoaded:false
+    name:"", band:{}, deals:null, dealsTries:0, feed:[], cmp:{}, favs:[], notes:{}, cars:[], recent:[], subs:[], prefs:{}, live:{}, track:{}, tab:"over", favFilter:"all", favSort:"date", booted:false, subsLoaded:false
   };
   function loadLocal(){
     S.name = ls(K.name) || "";
@@ -211,7 +214,7 @@
         if(cars.length || ls(K.cars) == null) lsSet(K.cars, JSON.stringify(cars));
       }
       loadLocal(); return refreshStatus();
-    }).then(function(){ toast(t("done")); render(); refreshLive(); refreshTracks(); loadDeals(); });
+    }).then(function(){ toast(t("done")); render(); refreshLive(); refreshTracks(); loadDeals(); loadBands(); });
   }
 
   // ---------- живые данные по избранному ----------
@@ -391,6 +394,49 @@
     var el = $("#cabToast"); if(!el) return;
     el.textContent = msg; el.classList.add("on"); clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.remove("on"); }, 2600);
   }
+
+  // ---------- «Ориентир ставки» в избранном ----------
+  // Облегчённая копия compsParamsFor из auctions.js (кабинет не грузит auctions.js). Меняете формулу параметров там — сверьте здесь.
+  function compsItem(o){
+    var low = function(v){ return String(v || "").toLowerCase(); };
+    var cond = low(o.condition).replace(/[_-]+/g, " ");
+    var runTone = /run and drive|runs and drives|заводится и едет/.test(cond) ? "good" : /dismantl|на разбор/.test(cond) ? "bad" : "";
+    var p1 = low(o.primaryDamage), p2 = low(o.secondaryDamage), dmgTxt = p1 + " " + p2 + " " + low(o.damage);
+    var heavy = /all over|roll ?over|undercarriage|frame|burn|flood|water|strip|biohazard/.test(dmgTxt);
+    var corner = /\bfront end\b/.test(p1) && /\b(left|right) front\b/.test(p2) || /\brear end\b/.test(p1) && /\b(left|right) rear\b/.test(p2);
+    var multi = !corner && (/&|,|\band\b|\+/.test(dmgTxt) || (o.secondaryDamage && o.secondaryDamage !== "-" && !/unknown|none|normal/.test(p2)));
+    var cq = runTone === "good" && !heavy && !multi ? "good" : (runTone === "bad" || heavy) ? "poor" : "mid";
+    var dParts = String(o.damage || "").split(/\s+\/\s+/);
+    var it = {id:o.id, manufacturer_id:o.makeId, model_id:o.modelId, year:o.year, odometer:o.odometer, cq:cq,
+      fuel:o.fuel, fuel_x:o.fuelKind, generation_id:o.generationId, run:runTone === "good" ? "1" : runTone === "bad" ? "0" : undefined,
+      dmg:String(o.primaryDamage || dParts[0] || "").slice(0, 60), dmg2:String(o.secondaryDamage || dParts[1] || "").replace(/^-$/, "").slice(0, 60),
+      cond:o.condition, doc:o.document, make_name:o.make, model_name:o.model, title:o.title, gen:o.generationName,
+      airbags:o.airbags, keys:o.keys, lot_id:o.id, auction:o.auction, state:o.stateCode, loc:o.location};
+    if(Number(o.estimatedRetailValue) > 500) it.acv = Math.round(o.estimatedRetailValue);
+    else if(Number(o.cleanWholesalePrice) > 500 && /copart/i.test(o.auction || "")) it.acv = Math.round(o.cleanWholesalePrice * 0.94);
+    if(Number(o.repairCost) > 0) it.repair = Math.round(o.repairCost);
+    Object.keys(it).forEach(function(k){ if(it[k] === undefined || it[k] === null || it[k] === "") delete it[k]; });
+    return it;
+  }
+  function loadBands(){
+    var items = S.favs.map(merged).filter(function(o){ return !o.sold && !isCa(o) && o.makeId && o.modelId && o.year && !S.band[o.id]; }).slice(0, 40).map(compsItem);
+    if(!items.length) return;
+    fetch("/api/auctions?action=compsbatch", {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({items:items})})
+      .then(function(r){ return r.json(); }).catch(function(){ return null; })
+      .then(function(r){
+        if(!r || !r.items) return;
+        Object.keys(r.items).forEach(function(id){ var c = r.items[id]; if(c && c.p25 > 0 && c.p75 >= c.p25) S.band[id] = {lo:c.p25, hi:c.p75}; });
+        if(S.tab === "fav" || S.tab === "over") render(true);
+      });
+  }
+  function bandRow(o){
+    var b = S.band[o.id];
+    if(!b || o.sold) return "";
+    var bid = Number(o.currentBid) || 0, k = "";
+    if(bid > 0) k = bid < b.lo ? "low" : bid <= b.hi ? "in" : "high";
+    return '<div class="cabGuideV1' + (k ? " is-" + k : "") + '" title="' + esc(t("gd_note")) + '"><span>' + t("gd_h") + '</span><b>' + money(b.lo) + ' – ' + money(b.hi) + '</b>' + (k ? '<em>' + t("gd_" + k) + '</em>' : "") + '</div>';
+  }
+
   function favCard(f, opt){
     opt = opt || {};
     var o = merged(f), st = status(o), ca = isCa(o), pic = img(o), id = o.id;
@@ -407,7 +453,7 @@
       '<span class="cabAucV1">' + esc(aucName(o)) + '</span><span class="cabChipV1 is-' + st.k + '">' + esc(st.label) + '</span></a>' +
       '<div class="cabBodyV1"><a class="cabTitleV1" href="' + lotUrl(id) + '">' + esc(titleOf(o)) + '</a>' +
       (o.vin ? '<div class="cabVinV1">' + esc(o.vin) + '</div>' : "") +
-      '<div class="cabRowsV1">' + rows + '</div>' +
+      '<div class="cabRowsV1">' + rows + '</div>' + bandRow(o) +
       '<div class="cabActsV1">' +
         '<button type="button" class="cabIcoBtnV1' + (followed ? " on" : "") + '" data-act="follow" data-id="' + esc(id) + '" title="' + esc(followed ? t("unfollow") : t("follow")) + '">' + ico("bell") + '<span>' + (followed ? t("unfollow") : t("follow")) + '</span></button>' +
         '<button type="button" class="cabIcoBtnV1' + (note ? " on" : "") + '" data-act="notetoggle" data-id="' + esc(id) + '">' + ico("note") + '<span>' + t("note") + '</span></button>' +
@@ -682,6 +728,7 @@
     render();
   }
 
+  document.addEventListener("apex-cab-pulled", function(){ setTimeout(function(){ loadLocal(); loadBands(); }, 50); });
   root.addEventListener("click", function(e){
     var b = e.target.closest("[data-act]"); if(!b || !root.contains(b)) return;
     var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
@@ -754,7 +801,7 @@
         });
       });
     }
-    p.then(function(){ loadLocal(); S.booted = true; render(); refreshLive(); refreshTracks(); loadDeals(); });
+    p.then(function(){ loadLocal(); S.booted = true; render(); refreshLive(); refreshTracks(); loadDeals(); loadBands(); });
   }
   boot();
 })();

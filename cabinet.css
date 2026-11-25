@@ -304,3 +304,12 @@
   .cabPhotosV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .cabStepperV1 li.current i { animation: none; } }
+
+/* ---- Ориентир ставки в избранном ---- */
+.cabGuideV1 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--field, #f4f6f9); font-size: 13px; color: var(--ink-2); }
+.cabGuideV1 span { color: var(--muted); }
+.cabGuideV1 b { color: var(--ink); font-weight: 700; }
+.cabGuideV1 em { font-style: normal; font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 99px; margin-left: auto; }
+.cabGuideV1.is-low em { background: #dcfce7; color: #14532d; }
+.cabGuideV1.is-in em { background: #e0ecff; color: #1e3a8a; }
+.cabGuideV1.is-high em { background: #fee2e2; color: #991b1b; }
