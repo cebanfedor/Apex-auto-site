@@ -2765,3 +2765,12 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .socialMethodV307::after { top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 8px; background-size: 14px; }
   .contactMethodV110:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
+
+/* Контакты на узких экранах: текст не вылезает из кнопок (25.11.2026) */
+@media (max-width: 640px) {
+  .contactsHeroActionsV110 a { padding: 0 10px; font-size: clamp(13px, 3.9vw, 15px); white-space: normal; line-height: 1.15; text-wrap: balance; }
+  .contactsHeroActionsV110 a.primaryContactV110 { flex: 1.7 1 0; }
+  .contactsHeroActionsV110 a:not(.primaryContactV110) { flex: 1 1 0; }
+  .contactsQuickCardV110 { padding: 20px 18px; }
+  .contactsQuickCardV110 > div a { min-height: 48px; height: auto; padding: 6px 10px; font-size: clamp(13px, 4.2vw, 16px); text-align: center; overflow-wrap: anywhere; min-width: 0; }
+}
