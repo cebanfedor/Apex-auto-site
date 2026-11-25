@@ -112,7 +112,7 @@ function resetForm(id){
   form.reset();
   if(id === "vehicleForm") setTimeout(renderVehiclePhotoThumbs, 0);
   if(id === "leadForm") updateLeadCustomerContact();
-  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; }
+  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; form.dataset.lastVin = ""; const lm = document.getElementById("dealLookupMsg"); if(lm) lm.textContent = ""; }
   form.querySelector('[name="id"]').value = "";
   const title = document.getElementById(`${id.replace("Form", "FormTitle")}`);
   if(title){
@@ -266,6 +266,36 @@ async function loadDeals(){
   state.deals = (data.items || []).filter(d => !q || [d.title, d.vin, d.phone, d.client_name].join(" ").toLowerCase().includes(q));
   renderRows("dealsList", state.deals, "deal");
 }
+
+// Автозаполнение сделки по VIN: машина, этап, ETA, лента и фото — из трекинга («Отследить»).
+// Ничего не затираем: пустое заполняем, этап только двигаем вперёд, ленту/фото дописываем недостающим.
+async function lookupDealVin(manual){
+  const form = $("#dealForm"), msg = $("#dealLookupMsg");
+  const vin = String(form.elements.vin.value || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
+  form.elements.vin.value = vin;
+  if(vin.length !== 17){ if(manual) msg.textContent = "Введите VIN целиком (17 символов)."; return; }
+  if(form.dataset.lastVin === vin && !manual) return;
+  form.dataset.lastVin = vin;
+  msg.textContent = "Ищу в трекинге…";
+  let res;
+  try{ res = await api("/api/deals?lookup=" + encodeURIComponent(vin)); }catch(e){ msg.textContent = "Не удалось запросить трекинг: " + (e.message || e); return; }
+  if(!res || !res.found){ msg.textContent = "Трекинг этот VIN пока не знает — заполните вручную (появится позже: обновится само, когда машина попадёт в трекинг)."; return; }
+  const d = res.data, el = form.elements, got = [];
+  if(d.title && !el.title.value.trim()){ el.title.value = d.title; got.push("авто"); }
+  const order = (state.dealStages || []).map(s => s.key);
+  if(d.stage && order.indexOf(d.stage) > order.indexOf(el.stage.value)){ el.stage.value = d.stage; got.push("этап"); }
+  if(d.eta_date && !el.eta_date.value){ el.eta_date.value = d.eta_date; got.push("дата выдачи"); }
+  const lines = el.timeline.value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const have = new Set(lines.map(x => x.toLowerCase().replace(/^[^|]*\|\s*/, "")));
+  const add = (d.timeline || []).filter(e => !have.has(e.text.toLowerCase())).map(e => `${e.at ? e.at.split("-").reverse().join(".") : ""} | ${e.text}`.replace(/^ \| /, ""));
+  if(add.length){ el.timeline.value = lines.concat(add).join("\n"); got.push("лента"); }
+  const plines = el.photos.value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const urls = new Set(plines.map(x => x.split("|")[0].trim()));
+  const padd = (d.photos || []).filter(p => !urls.has(p.url)).map(p => p.url + (p.caption ? " | " + p.caption : ""));
+  if(padd.length){ el.photos.value = plines.concat(padd).join("\n"); got.push("фото " + padd.length); }
+  const where = [d.auction, d.city].filter(Boolean).join(", ");
+  msg.textContent = "Найдено: " + (d.title || "авто") + (where ? " · " + where : "") + (got.length ? " — подставлено: " + got.join(", ") : " — всё уже заполнено") + ".";
+}
 function setDealForm(item){
   const form = $("#dealForm");
   form.reset();
@@ -277,6 +307,8 @@ function setDealForm(item){
   form.elements.active.checked = item.active !== false;
   form.elements.notify.checked = true;
   $("#dealFormTitle").textContent = "Редактировать сделку";
+  form.dataset.lastVin = String(item.vin || "");
+  const lm = $("#dealLookupMsg"); if(lm) lm.textContent = "";
 }
 
 async function loadCustomers(){
@@ -780,6 +812,8 @@ function bindForms(){
     }
   });
 
+  $("#dealForm").elements.vin.addEventListener("input", () => lookupDealVin(false));
+  $("#dealLookupBtn").addEventListener("click", () => lookupDealVin(true));
   $("#dealForm").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;

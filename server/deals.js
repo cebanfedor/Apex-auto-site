@@ -126,4 +126,123 @@ async function sendTelegram(chatId, text, lang){
   finally{ clearTimeout(timer); }
 }
 
-module.exports = {STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};
+
+// ---------- Заполнение сделки из трекинга (/api/w8-tracking) ----------
+// Название этапа трекинга (W8 / Dealer API / AvtoShipping) → этап сделки. Дальше «в пути в Кишинёв» (road)
+// трекинг не двигает: растаможку, выдачу менеджер отмечает руками.
+const TRACK_TO_STAGE = {
+  "Car won": "bought", "Left auction": "pickup", "Delivered to loading place": "port", "Loading": "sea", "Arrival": "klaipeda",
+  "D_PURCHASED": "bought", "D_TO_ORIGIN": "pickup", "D_AT_ORIGIN": "port", "D_SEA": "sea", "D_TO_DEST": "road", "D_AT_DEST": "klaipeda", "D_ARRIVED": "road",
+  "A_PURCHASED": "paid", "A_DISPATCHED": "pickup", "A_DELIVERED": "port", "A_LOADED": "sea", "A_UNLOADED": "klaipeda", "A_EU_DISPATCHED": "road"
+};
+const TRACK_LABEL = {
+  "Car won": "Куплен на аукционе", "Left auction": "Выехал с аукциона", "Delivered to loading place": "Прибыл на склад / в порт", "Loading": "Погружен в контейнер", "Arrival": "Прибыл в порт Клайпеда",
+  "D_PURCHASED": "Куплен", "D_TO_ORIGIN": "В пути на склад", "D_AT_ORIGIN": "На складе в порту отправки", "D_SEA": "Отправлен морем", "D_TO_DEST": "В пути по Европе", "D_AT_DEST": "На складе в Европе", "D_ARRIVED": "Прибыл",
+  "A_PURCHASED": "Оплачен", "A_DISPATCHED": "В пути на склад", "A_DELIVERED": "Прибыл на склад", "A_LOADED": "Погружен в контейнер", "A_UNLOADED": "Выгружен из контейнера", "A_EU_DISPATCHED": "В пути к месту выдачи"
+};
+const stageIdx = k => STAGE_KEYS.indexOf(k);
+const isoDay = v => { const m = String(v || "").match(/^\d{4}-\d{2}-\d{2}/); return m ? m[0] : ""; };
+
+// Ответ /api/w8-tracking → поля сделки (null, если трекинг машину не знает)
+function fromTracking(d){
+  if(!d || d.error || (!d.vehicle && !(d.stages && d.stages.length))) return null;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const stages = Array.isArray(d.stages) ? d.stages : [];
+  const portArr = d.container && d.container.portArrival ? isoDay(d.container.portArrival) : "";
+  let best = -1, bestKey = "";
+  const timeline = [];
+  for(const s of stages){
+    const key = TRACK_TO_STAGE[s.title]; if(!key) continue;
+    let status = s.status;
+    if(s.title === "Arrival" && status !== "completed" && portArr && todayStr >= portArr) status = "completed";
+    if(status !== "completed" && status !== "current") continue;
+    if(stageIdx(key) > best){ best = stageIdx(key); bestKey = key; }
+    if(status === "completed" && s.date){
+      let text = TRACK_LABEL[s.title] || s.title;
+      if(s.title === "Car won" || s.title === "A_PURCHASED" || s.title === "D_PURCHASED"){
+        const extra = [d.auction, d.city].filter(Boolean).join(", ");
+        if(extra) text += " · " + extra;
+      }
+      if(s.title === "Loading" || s.title === "A_LOADED"){ const n = d.container && d.container.number; if(n) text += " · контейнер " + n; }
+      timeline.push({at: isoDay(s.date), text: text.slice(0, 300)});
+    }
+  }
+  const eta = isoDay(d.etaChisinau) || "";
+  const photos = [];
+  const seen = new Set();
+  for(const c of (Array.isArray(d.photoCategories) ? d.photoCategories : [])){
+    for(const u of (c.photos || [])){
+      const url = httpsUrl(u); if(!url || seen.has(url)) continue;
+      seen.add(url); photos.push({url, caption: String(c.label || "").slice(0, 120)});
+    }
+  }
+  if(!photos.length) for(const u of (d.photos || [])){ const url = httpsUrl(u); if(url && !seen.has(url)){ seen.add(url); photos.push({url, caption: ""}); } }
+  return {
+    title: String(d.vehicle || "").trim().slice(0, 140), vin: String(d.vin || "").toUpperCase().slice(0, 17),
+    stage: bestKey, eta_date: eta, timeline: timeline.slice(0, 60), photos: photos.slice(0, 40),
+    city: d.city || "", auction: d.auction || "", lot: d.lotNumber || "", container: (d.container && d.container.number) || "", source: d.source || ""
+  };
+}
+
+// Что изменить в уже существующей сделке по свежему трекингу. Только вперёд и только добавляем:
+// этап не откатывается и не выше «в пути в Кишинёв», введённое руками (ETA, фразы) не затирается.
+function mergeTracking(row, t){
+  if(!row || !t) return null;
+  const patch = {};
+  if(t.stage && stageIdx(t.stage) > stageIdx(row.stage) && stageIdx(t.stage) <= stageIdx("road")) patch.stage = t.stage;
+  if(t.eta_date && !row.eta_date) patch.eta_date = t.eta_date;
+  const tl = Array.isArray(row.timeline) ? row.timeline.slice() : [];
+  const have = new Set(tl.map(x => String(x.text || "").trim().toLowerCase()));
+  let added = 0;
+  for(const e of (t.timeline || [])){ const k = e.text.trim().toLowerCase(); if(!have.has(k)){ tl.push(e); have.add(k); added++; } }
+  if(added){ tl.sort((a, b) => String(a.at || "").localeCompare(String(b.at || ""))); patch.timeline = tl.slice(-60); }
+  const ph = Array.isArray(row.photos) ? row.photos.slice() : [];
+  const urls = new Set(ph.map(x => x.url));
+  let addedPh = 0;
+  for(const p of (t.photos || [])){ if(!urls.has(p.url) && ph.length < 40){ ph.push(p); urls.add(p.url); addedPh++; } }
+  if(addedPh) patch.photos = ph;
+  return Object.keys(patch).length ? patch : null;
+}
+
+// «Кому писать»: телефон клиента → чат Telegram (после подтверждения номера в боте)
+async function chatForKey(supabase, key){
+  const rows = await supabase.list("alert_meta", {select: "v", k: `eq.phonekey:${key}`, limit: "1"}).catch(() => []);
+  const chat = rows && rows[0] && rows[0].v && rows[0].v.chat;
+  if(!chat) return null;
+  const links = await supabase.list("alert_links", {select: "lang", chat_id: `eq.${chat}`, limit: "1"}).catch(() => []);
+  return {chat, lang: (links && links[0] && links[0].lang) || "ru"};
+}
+
+// Фоновая синхронизация: по кругу берём активные сделки с VIN, подтягиваем трекинг, обновляем и пишем клиенту при смене этапа.
+async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
+  out = out || {}; out.dealsChecked = 0; out.dealsUpdated = 0; out.dealMsgs = 0;
+  const deadline = Date.now() + (budgetMs || 15000);
+  const cur = await supabase.list("alert_meta", {select: "v", k: "eq.dealsync_cursor", limit: "1"}).catch(() => []);
+  const after = Number(cur && cur[0] && cur[0].v && cur[0].v.id) || 0;
+  const n = batch || 6;
+  const rows = await supabase.list("cab_deals", {select: "*", active: "eq.true", vin: "not.is.null", stage: "neq.done", id: `gt.${after}`, order: "id.asc", limit: String(n)}).catch(() => null);
+  if(!rows) return out;
+  let lastId = rows.length < n ? 0 : (rows.length ? rows[rows.length - 1].id : 0);
+  for(const row of rows){
+    if(Date.now() > deadline - 3000){ lastId = row.id - 1; break; }
+    out.dealsChecked++;
+    const t = fromTracking(await fetchTrack(row.vin).catch(() => null));
+    const patch = mergeTracking(row, t);
+    if(!patch) continue;
+    patch.updated_at = new Date().toISOString();
+    const saved = await supabase.update("cab_deals", row.id, patch).catch(() => null);
+    if(!saved) continue;
+    out.dealsUpdated++;
+    if(patch.stage && patch.stage !== row.notified_stage){
+      const c = await chatForKey(supabase, row.phone_key);
+      if(c){
+        const merged = Object.assign({}, row, patch);
+        if(await sendTelegram(c.chat, stageMessage(merged, c.lang), c.lang)){ out.dealMsgs++; await supabase.update("cab_deals", row.id, {notified_stage: patch.stage}).catch(() => {}); }
+      }
+    }
+  }
+  await supabase.upsert("alert_meta", {k: "dealsync_cursor", v: {id: lastId}, updated_at: new Date().toISOString()}, "k").catch(() => {});
+  return out;
+}
+
+module.exports = {fromTracking, mergeTracking, chatForKey, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};

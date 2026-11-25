@@ -63,3 +63,34 @@ test("cabdeals: с телефоном — только его сделки и б
   assert.strictEqual(m.out.deals.length, 1);
   assert.ok(!("phone" in m.out.deals[0]));
 });
+
+test("fromTracking: AvtoShipping → этап, лента, ETA, фото", () => {
+  const t = deals.fromTracking({
+    vehicle: "2021 BMW X5 xDrive40i", vin: "5uxcr6c09m9e12345", auction: "Copart", city: "Houston, TX", source: "avtoshipping",
+    etaChisinau: "2026-12-26T00:00:00Z", container: {number: "MSKU123", portArrival: "2026-12-12"},
+    stages: [
+      {title: "A_PURCHASED", date: "2026-11-01", status: "completed"},
+      {title: "A_DISPATCHED", date: "2026-11-04", status: "completed"},
+      {title: "A_DELIVERED", date: "2026-11-08", status: "completed"},
+      {title: "A_LOADED", date: "2026-11-15", status: "current"},
+      {title: "A_UNLOADED_EST", date: "2026-12-12", status: "todo"}
+    ],
+    photoCategories: [{label: "Погрузка", photos: ["https://a.md/1.jpg", "http://bad/2.jpg"]}]
+  });
+  assert.strictEqual(t.title, "2021 BMW X5 xDrive40i");
+  assert.strictEqual(t.stage, "sea");
+  assert.strictEqual(t.eta_date, "2026-12-26");
+  assert.strictEqual(t.photos.length, 1);
+  assert.ok(t.timeline[0].text.includes("Copart, Houston, TX"));
+  assert.strictEqual(deals.fromTracking({error: "x"}), null);
+});
+test("mergeTracking: только вперёд, не выше «в пути», ETA и ленту не затирает", () => {
+  const t = {stage: "road", eta_date: "2026-12-26", timeline: [{at: "2026-11-15", text: "Погружен в контейнер"}], photos: [{url: "https://a.md/1.jpg", caption: ""}]};
+  const row = {stage: "sea", eta_date: "2026-12-30", timeline: [{at: "2026-11-15", text: "погружен в контейнер"}], photos: []};
+  const p = deals.mergeTracking(row, t);
+  assert.strictEqual(p.stage, "road");
+  assert.ok(!("eta_date" in p));
+  assert.ok(!("timeline" in p));
+  assert.strictEqual(p.photos.length, 1);
+  assert.strictEqual(deals.mergeTracking({stage: "customs", eta_date: "x", timeline: [], photos: []}, {stage: "road", timeline: [], photos: []}), null);
+});

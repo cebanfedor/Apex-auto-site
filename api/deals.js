@@ -4,20 +4,33 @@ const {sendJson, methodNotAllowed, readBody, getQuery} = require("../server/http
 const {requireAdmin} = require("../server/auth");
 const supabase = require("../server/supabase");
 const deals = require("../server/deals");
+const {selfOrigin} = require("../server/origin");
 
-async function chatForKey(key){
-  const rows = await supabase.list("alert_meta", {select: "v", k: `eq.phonekey:${key}`, limit: "1"}).catch(() => []);
-  const chat = rows && rows[0] && rows[0].v && rows[0].v.chat;
-  if(!chat) return null;
-  const links = await supabase.list("alert_links", {select: "lang", chat_id: `eq.${chat}`, limit: "1"}).catch(() => []);
-  return {chat, lang: (links && links[0] && links[0].lang) || "ru"};
+async function trackByVin(request, vin){
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
+  try{
+    const r = await fetch(`${selfOrigin(request)}/api/w8-tracking?vin=${encodeURIComponent(vin)}`, {signal: ctl.signal, headers: {accept: "application/json"}});
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(_){ return null; }
+  finally{ clearTimeout(timer); }
 }
+
+const chatForKey = key => deals.chatForKey(supabase, key);
 
 module.exports = async function handler(request, response){
   if(!requireAdmin(request, response)) return;
   response.setHeader("cache-control", "no-store");
   try{
     const id = String(getQuery(request).get("id") || "").replace(/[^0-9]/g, "");
+    if(request.method === "GET" && getQuery(request).get("lookup") != null){
+      // Автозаполнение по VIN: машина, этап, ETA, лента и фото — из тех же данных, что на странице «Отследить»
+      const vin = String(getQuery(request).get("lookup") || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
+      if(vin.length !== 17){ sendJson(response, 200, {ok: true, found: false, reason: "vin"}); return; }
+      const t = deals.fromTracking(await trackByVin(request, vin));
+      sendJson(response, 200, t ? {ok: true, found: true, data: t} : {ok: true, found: false, reason: "not_found"});
+      return;
+    }
     if(request.method === "GET"){
       const items = await supabase.list("cab_deals", {select: "*", order: "updated_at.desc", limit: "300"});
       // у каких клиентов номер уже подтверждён в боте (клиент увидит сделку и получит уведомления)

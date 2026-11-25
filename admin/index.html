@@ -141,13 +141,14 @@
               <div class="grid2">
                 <label>Телефон клиента *<input name="phone" required placeholder="+373 68 832 032"></label>
                 <label>Имя клиента<input name="client_name"></label>
-                <label>Автомобиль *<input name="title" required placeholder="2021 BMW X5 xDrive40i"></label>
-                <label>VIN<input name="vin" maxlength="17"></label>
+                <label>VIN — введите, остальное подтянется из трекинга<input name="vin" maxlength="17" autocomplete="off" placeholder="5UXCR6C09M9E12345" style="text-transform:uppercase"></label>
+                <label>Автомобиль *<input name="title" required placeholder="подставится по VIN, либо впишите вручную"></label>
                 <label>Этап<select name="stage" id="dealStageSelect"></select></label>
                 <label>Ожидаемая выдача<input name="eta_date" type="date"></label>
                 <label>Сумма сделки, $<input name="total_usd" inputmode="decimal"></label>
                 <label>Оплачено, $<input name="paid_usd" inputmode="decimal"></label>
               </div>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 8px"><button type="button" class="ghost" id="dealLookupBtn">Подтянуть из трекинга</button><span id="dealLookupMsg" style="font-size:13px;color:#667080"></span></div>
               <label>Что дальше (клиент увидит)<input name="next_step" placeholder="Контейнер вышел из порта, ждём прихода в Клайпеду"></label>
               <label>Лента событий — по строке: дата | текст<textarea name="timeline" rows="4" placeholder="20.11.2026 | Машина погружена в контейнер"></textarea></label>
               <label>Фото — по строке: https://… | подпись<textarea name="photos" rows="3" placeholder="https://… | Погрузка в порту"></textarea></label>
@@ -359,6 +360,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v182"></script>
+  <script src="/admin/admin.js?v=admin-v183"></script>
 </body>
 </html>
