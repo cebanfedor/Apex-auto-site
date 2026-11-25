@@ -10,6 +10,7 @@ const KINDS = {
 const BULK_MAX = 700;
 
 const dealsLib = require("./deals");
+const cl = require("./clients");
 const okToken = t => typeof t === "string" && /^[A-Za-z0-9_-]{20,64}$/.test(t);
 
 // Ужимаем «сырой» лот до безопасного размера: лишние фото/история не нужны в кабинете (карточка живёт на странице лота)
@@ -58,7 +59,7 @@ function create(deps){
     if(!rows[0].chat_id) return {error:"unbound", lang:rows[0].lang};
     return {chat:rows[0].chat_id, lang:rows[0].lang};
   }
-  const tableMissing = e => /cab_items|cab_deals|relation|PGRST20|42P01|schema cache/i.test(String(e && e.message || e));
+  const tableMissing = e => /cab_items|cab_deals|cab_events|cab_picks|relation|PGRST20|42P01|schema cache/i.test(String(e && e.message || e));
 
   async function prune(chat, kind){
     const cfg = KINDS[kind];
@@ -76,10 +77,13 @@ function create(deps){
       try{
         const rows = await sb(`/cab_items?chat_id=eq.${who.chat}&select=kind,key,data,updated_at&order=updated_at.desc&limit=1200`);
         const items = {fav:[], note:[], car:[], view:[]};
-        const nm = await sb(`/alert_meta?k=eq.${q("tgname:" + who.chat)}&select=v&limit=1`).catch(() => []);
-        const tgName = nm && nm[0] && nm[0].v && nm[0].v.n || "";
+        const metas = await sb(`/alert_meta?k=in.(${["tgname", "profile", "phone"].map(x => q(x + ":" + who.chat)).join(",")})&select=k,v`).catch(() => []);
+        const M = {};
+        for(const r of metas || []) M[String(r.k).split(":")[0]] = r.v || {};
+        const tgName = M.tgname && M.tgname.n || "";
         for(const r of rows || []){ if(items[r.kind]) items[r.kind].push({key:r.key, data:r.data, t:Date.parse(r.updated_at) || 0}); }
-        sendJson(response, 200, {ok:true, bound:true, ready:true, lang:who.lang, name:tgName, items}, NO);
+        const profile = {name:M.profile && M.profile.name || "", city:M.profile && M.profile.city || "", phone:M.profile && M.profile.phone || ""};
+        sendJson(response, 200, {ok:true, bound:true, ready:true, lang:who.lang, name:profile.name || tgName, tgName, profile, phoneVerified:!!(M.phone && M.phone.k), verifiedPhone:M.phone && M.phone.n ? "+" + M.phone.n : "", items}, NO);
       }catch(e){
         sendJson(response, 200, {ok:true, bound:true, ready:false, lang:who.lang, reason:tableMissing(e) ? "no_table" : "db_error"}, NO);
       }
@@ -101,6 +105,100 @@ function create(deps){
       return true;
     }
 
+    // ---- профиль, присутствие, журнал, подборки (кабинет v3) ----
+    if(action === "cabpicks"){
+      const who = await chatOf(query.get("token"));
+      if(who.error){ sendJson(response, 200, {ok:true, bound:false, picks:[]}, NO); return true; }
+      try{
+        const rows = await sb(`/cab_picks?chat_id=eq.${who.chat}&active=eq.true&select=id,lot_id,data,note,created_at,seen_at,reaction,reaction_note,reaction_at&order=created_at.desc&limit=60`);
+        sendJson(response, 200, {ok:true, bound:true, picks:rows || []}, NO);
+      }catch(e){
+        sendJson(response, 200, {ok:true, bound:true, picks:[], reason:tableMissing(e) ? "no_table" : "db_error"}, NO);
+      }
+      return true;
+    }
+    if(action === "cabprofile" || action === "cabping" || action === "cabevent" || action === "cabpickreact"){
+      if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
+      const body = await readBody(request).catch(() => ({}));
+      const who = await chatOf(body.token);
+      if(who.error){ sendJson(response, 200, {ok:false, error:who.error}, NO); return true; }
+      try{
+        if(action === "cabprofile"){
+          const profile = cl.cleanProfile(body.profile);
+          await cl.metaSet(sb, "profile:" + who.chat, profile);
+          sendJson(response, 200, {ok:true, profile:{name:profile.name, city:profile.city, phone:profile.phone}}, NO);
+          return true;
+        }
+        if(action === "cabping"){
+          const now = Date.now();
+          let gap = 0;
+          if(body.first){
+            const old = await sb(`/alert_meta?k=eq.${q("seen:" + who.chat)}&select=v&limit=1`).catch(() => []);
+            gap = old && old[0] && old[0].v && old[0].v.t ? now - Number(old[0].v.t) : Infinity;
+          }
+          await cl.metaSet(sb, "seen:" + who.chat, {t:now, p:cl.clip(body.p, 200), h:cl.clip(body.h, 120)});
+          // менеджеру — когда клиент вернулся после долгого перерыва (или заходит впервые)
+          if(body.first && gap > 6 * 3600e3){
+            const lab = await cl.clientLabel(sb, who.chat);
+            const ago = gap === Infinity ? "впервые" : "не был " + (gap > 48 * 3600e3 ? Math.round(gap / 86400e3) + " дн." : Math.round(gap / 3600e3) + " ч.");
+            await cl.notifyManager(sb, "online", `👤 <b>${lab.text}</b> на сайте\n🕒 ${ago}${body.h ? "\n📍 " + cl.esc(cl.clip(body.h, 100)) : ""}`, [{text:"Открыть клиента", url:`${cl.SITE}/admin/#client=${who.chat}`}]).catch(() => {});
+          }
+          sendJson(response, 200, {ok:true}, NO);
+          return true;
+        }
+        if(action === "cabevent"){
+          const ev = cl.cleanEvent(body.kind, body.key, body.data);
+          if(!ev){ sendJson(response, 200, {ok:false, error:"bad_event"}, NO); return true; }
+          const win = ev.kind === "view" ? 10 * 60e3 : 30 * 60e3;
+          const have = await sb(`/cab_events?chat_id=eq.${who.chat}&kind=eq.${ev.kind}&key=eq.${q(ev.key)}&at=gte.${q(new Date(Date.now() - win).toISOString())}&select=id&limit=1`);
+          if(have && have.length){ sendJson(response, 200, {ok:true, dup:true}, NO); return true; }
+          await sb(`/cab_events`, {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify({chat_id:who.chat, kind:ev.kind, key:ev.key, data:ev.data})});
+          if(Math.random() < 0.02) sb(`/cab_events?at=lt.${q(new Date(Date.now() - 120 * 86400e3).toISOString())}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
+          // горячий лот: третий заход за сутки — один раз пишем менеджеру
+          if(ev.kind === "view"){
+            const day = await sb(`/cab_events?chat_id=eq.${who.chat}&kind=eq.view&key=eq.${q(ev.key)}&at=gte.${q(new Date(Date.now() - 86400e3).toISOString())}&select=id&limit=4`).catch(() => []);
+            if(day && day.length >= 3){
+              const mk = `hot:${who.chat}:${ev.key}`;
+              const seen = await sb(`/alert_meta?k=eq.${q(mk)}&select=k&limit=1`).catch(() => []);
+              if(!(seen && seen.length)){
+                await cl.metaSet(sb, mk, {t:Date.now()});
+                const lab = await cl.clientLabel(sb, who.chat);
+                await cl.notifyManager(sb, "hot", `🔥 <b>${lab.text}</b> уже 3-й раз смотрит лот\n${cl.esc(ev.data.title || ev.key)}`, [{text:"Открыть клиента", url:`${cl.SITE}/admin/#client=${who.chat}`}, {text:"Лот", url:`${cl.SITE}/auctions/${ev.key}`}]).catch(() => {});
+              }
+            }
+          }
+          sendJson(response, 200, {ok:true}, NO);
+          return true;
+        }
+        if(action === "cabpickreact"){
+          const id = Number(body.id) || 0;
+          if(!id){ sendJson(response, 400, {ok:false}, NO); return true; }
+          const rows = await sb(`/cab_picks?id=eq.${id}&chat_id=eq.${who.chat}&select=id,lot_id,data,reaction&limit=1`);
+          const pick = rows && rows[0];
+          if(!pick){ sendJson(response, 404, {ok:false, error:"not_found"}, NO); return true; }
+          const patch = {};
+          if(body.seen) patch.seen_at = new Date().toISOString();
+          const reaction = body.reaction === "" ? null : ["like", "no", "discuss"].includes(body.reaction) ? body.reaction : undefined;
+          if(reaction !== undefined){
+            patch.reaction = reaction; patch.reaction_at = reaction ? new Date().toISOString() : null;
+            patch.reaction_note = reaction ? cl.clip(body.note, 400) || null : null;
+            patch.seen_at = patch.seen_at || new Date().toISOString();
+          }
+          if(Object.keys(patch).length) await sb(`/cab_picks?id=eq.${id}&chat_id=eq.${who.chat}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify(patch)});
+          if(reaction && reaction !== pick.reaction){
+            const lab = await cl.clientLabel(sb, who.chat);
+            const word = reaction === "like" ? "👍 нравится" : reaction === "no" ? "👎 не подходит" : "💬 хочет обсудить";
+            await cl.notifyManager(sb, "react", `${word}\n<b>${lab.text}</b>\n${cl.esc((pick.data && pick.data.title) || pick.lot_id)}${patch.reaction_note ? "\n«" + cl.esc(patch.reaction_note) + "»" : ""}`, [{text:"Открыть клиента", url:`${cl.SITE}/admin/#client=${who.chat}`}, {text:"Лот", url:`${cl.SITE}/auctions/${pick.lot_id}`}]).catch(() => {});
+          }
+          sendJson(response, 200, {ok:true}, NO);
+          return true;
+        }
+      }catch(e){
+        sendJson(response, 200, {ok:false, error:tableMissing(e) ? "no_table" : "db_error"}, NO);
+        return true;
+      }
+    }
+
     if(action === "cabput" || action === "cabdel" || action === "cabbulk" || action === "cabwipe"){
       if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
       const body = await readBody(request).catch(() => ({}));
@@ -109,6 +207,8 @@ function create(deps){
       try{
         if(action === "cabwipe"){
           await sb(`/cab_items?chat_id=eq.${who.chat}`, {method:"DELETE", headers:{prefer:"return=minimal"}});
+          for(const t of ["cab_events", "cab_picks"]) await sb(`/${t}?chat_id=eq.${who.chat}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
+          for(const k of ["profile:", "seen:"]) await sb(`/alert_meta?k=eq.${q(k + who.chat)}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
           sendJson(response, 200, {ok:true}, NO);
           return true;
         }

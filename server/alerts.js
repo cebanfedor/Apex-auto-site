@@ -270,7 +270,7 @@ function create(deps){
         const digits = String(m.contact.phone_number || "").replace(/\D/g, "");
         if(own && digits.length >= 7){
           const key = digits.slice(-8);
-          await metaSet("phone:" + m.chat.id, {k:key}).catch(() => {});
+          await metaSet("phone:" + m.chat.id, {k:key, n:digits.slice(-15)}).catch(() => {});
           await metaSet("phonekey:" + key, {chat:m.chat.id}).catch(() => {});
           await tg("sendMessage", {chat_id:m.chat.id, text:tx(clang).phoneOk, reply_markup:{remove_keyboard:true, inline_keyboard:undefined}});
           await send(m.chat.id, tx(clang).cabText, [{text:tx(clang).openCab, url:SITE + "/cabinet#deals"}]);

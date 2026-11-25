@@ -44,6 +44,15 @@
     return call("cabdel", {kind:kind, key:key}).then(function(r){ noteResult(r); return r; });
   }
 
+  // Журнал действий для менеджера (просмотр лота, поиск в каталоге). Только после подключения Telegram; сервер сам убирает повторы.
+  function event(kind, key, data){
+    if(!canWrite()) return Promise.resolve(null);
+    return call("cabevent", {kind:kind, key:key, data:data || {}}).then(function(r){
+      if(r && (r.error === "unbound" || r.error === "unknown_token")) setBound(false, true);
+      return r;
+    });
+  }
+
   // ---- недавние просмотры ----
   var RECENT_KEEP = ["id","auction","lot","title","year","make","model","vin","image","auctionDate","currentBid","buyNow","finalBid","statusId","saleStatus","primaryDamage","odometerText","location"];
   function recentList(){ var a = jget(REC, []); return Array.isArray(a) ? a : []; }
@@ -57,7 +66,9 @@
     list.unshift(o);
     lsSet(REC, JSON.stringify(list.slice(0, 40)));
     put("view", o.id, o);
+    if(!viewSent[o.id]){ viewSent[o.id] = 1; event("view", o.id, o); }
   }
+  var viewSent = {};
 
   // ---- загрузка с сервера и слияние в localStorage ----
   var pulling = null;
@@ -113,7 +124,7 @@
     [TOKEN, BOUND, SEEDED, PULLED, "apexAlertLotsV1", "apexCabCarsV1"].forEach(lsDel);
   }
 
-  window.apexCab = {token:token, put:put, del:del, pull:pull, recentPush:recentPush, recentList:recentList, call:call, setBound:setBound, boundState:boundState, logout:logout, keys:{TOKEN:TOKEN, SEEDED:SEEDED, PULLED:PULLED}};
+  window.apexCab = {token:token, event:event, put:put, del:del, pull:pull, recentPush:recentPush, recentList:recentList, call:call, setBound:setBound, boundState:boundState, logout:logout, keys:{TOKEN:TOKEN, SEEDED:SEEDED, PULLED:PULLED}};
 
   // фоновая подтяжка на страницах сайта (только если уже есть токен)
   if(token()){

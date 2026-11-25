@@ -359,10 +359,26 @@
     if(d1 || d2) add(`${L("Дата аукциона")}: ${d1 || "…"} – ${d2 || "…"}`, () => { clear(form.elements.auctionDateFrom, form.elements.auctionDateTo); document.querySelectorAll(".dateQuickV2 button.active").forEach(b => b.classList.remove("active")); });
     return chips;
   }
+  // Журнал поиска для личного кабинета: что клиент ищет (только если он подключил Telegram), с паузой, чтобы не писать каждый клик
+  let searchEvT = null, searchEvLast = "";
+  function trackSearchEvent(){
+    clearTimeout(searchEvT);
+    searchEvT = setTimeout(() => {
+      try{
+        if(!window.apexCab || !window.apexCab.event || state.tab === "favorites") return;
+        const typed = String(document.getElementById("auctionSmartSearch")?.value || "").trim();
+        const label = ((activeChips || []).map(c => c.label).join(" · ") + (typed ? ` «${typed}»` : "")).trim().slice(0, 280);
+        if(!label || label === searchEvLast) return;
+        searchEvLast = label;
+        window.apexCab.event("search", label, {label, qs:location.search.replace(/^\?/, "")});
+      }catch(e){}
+    }, 3500);
+  }
   function renderActiveFilters(){
     const box = document.getElementById("activeFiltersV1");
     if(!box) return;
     activeChips = activeFilterChips();
+    trackSearchEvent();
     if(state.tab === "favorites"){
       const n = favList().filter(alertable).length;
       box.hidden = !n;
@@ -3908,6 +3924,72 @@ function alertable(lot){
     if(b){ ev.preventDefault(); openTgCompose(state.selectedLot); }
   });
 
+  // ── Подборка клиенту: админ отправляет лот в личный кабинет выбранного клиента (кнопка «Клиенту») ──
+  let pickAdmin = false, pickChecked = false, pickClients = null;
+  async function checkPickAdmin(){
+    if(pickChecked){ if(pickAdmin) document.querySelectorAll(".pickBtnV1").forEach(b => b.hidden = false); return; }
+    pickChecked = true;
+    try{ const r = await api("/api/clients?ping=1"); if(r && r.ok){ pickAdmin = true; document.querySelectorAll(".pickBtnV1").forEach(b => b.hidden = false); } }catch(_){ /* не админ */ }
+  }
+  function openPickModal(lot){
+    if(!lot) return;
+    let modal = document.getElementById("pickClientV1");
+    if(!modal){
+      modal = document.createElement("div");
+      modal.id = "pickClientV1"; modal.className = "tgComposeV1";
+      modal.innerHTML = `<div class="tgBoxV1">
+        <button type="button" class="tgCloseV1" data-pick-close aria-label="Закрыть">✕</button>
+        <h3>Подборка клиенту</h3>
+        <div class="tgRowLblV1" id="pickLotV1"></div>
+        <input type="search" class="pickSearchV1" id="pickSearchV1" placeholder="Найти клиента: имя, телефон, город" autocomplete="off">
+        <div class="pickListV1" id="pickListV1"></div>
+        <div class="tgRowLblV1">Комментарий клиенту (необязательно)</div>
+        <textarea id="pickNoteV1" class="tgCapV1" rows="3" maxlength="600" placeholder="Например: подходит по бюджету, ставка до 9 000 $"></textarea>
+        <div class="tgActionsV1"><button type="button" class="tgPubV1" id="pickSendV1">Отправить в кабинет</button></div>
+        <div class="tgResV1" id="pickResV1"></div>
+      </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener("click", ev => { if(ev.target === modal || ev.target.closest("[data-pick-close]")) modal.hidden = true; });
+      modal.querySelector("#pickSearchV1").addEventListener("input", () => renderPickList(modal));
+      modal.querySelector("#pickListV1").addEventListener("click", ev => {
+        const row = ev.target.closest("[data-chat]"); if(!row) return;
+        modal._chat = row.dataset.chat; renderPickList(modal);
+      });
+      modal.querySelector("#pickSendV1").addEventListener("click", async () => {
+        const res = modal.querySelector("#pickResV1"), btn = modal.querySelector("#pickSendV1");
+        if(!modal._chat){ res.className = "tgResV1 is-err"; res.textContent = "Выберите клиента"; return; }
+        btn.disabled = true; res.className = "tgResV1"; res.textContent = "Отправляем…";
+        try{
+          const r = await api("/api/clients", {method:"POST", body:{action:"pick", chat:modal._chat, ids:[modal._lot.id], note:modal.querySelector("#pickNoteV1").value}});
+          res.className = "tgResV1 is-ok";
+          res.textContent = r.notified ? "Добавлено в кабинет ✓ Клиенту ушло сообщение в Telegram" : "Добавлено в кабинет ✓ (сообщение в Telegram не доставлено)";
+          modal.querySelector("#pickNoteV1").value = "";
+          setTimeout(() => { modal.hidden = true; }, 2200);
+        }catch(error){
+          res.className = "tgResV1 is-err"; res.textContent = "Не удалось: " + String((error && error.message) || error);
+        }finally{ btn.disabled = false; }
+      });
+    }
+    modal._lot = lot; modal._chat = modal._chat || "";
+    modal.querySelector("#pickLotV1").textContent = [lot.year, lot.make, lot.model].filter(Boolean).join(" ") + " · " + lot.id;
+    modal.querySelector("#pickResV1").textContent = ""; modal.querySelector("#pickResV1").className = "tgResV1";
+    modal.hidden = false;
+    const list = modal.querySelector("#pickListV1");
+    if(pickClients) return renderPickList(modal);
+    list.innerHTML = `<p class="pickEmptyV1">Загрузка клиентов…</p>`;
+    api("/api/clients").then(r => { pickClients = r.items || []; renderPickList(modal); }).catch(e => { list.innerHTML = `<p class="pickEmptyV1">${escapeHtml(String(e.message || e))}</p>`; });
+  }
+  function renderPickList(modal){
+    const list = modal.querySelector("#pickListV1"), qv = modal.querySelector("#pickSearchV1").value.trim().toLowerCase();
+    const items = (pickClients || []).filter(c => !qv || [c.name, c.phone, c.city].join(" ").toLowerCase().includes(qv));
+    list.innerHTML = items.length ? items.slice(0, 60).map(c => `<div class="pickRowV1${modal._chat === c.chat ? " is-on" : ""}" data-chat="${escapeHtml(c.chat)}"><i class="pickDotV1${c.online ? " on" : ""}"></i><b>${escapeHtml(c.name || "Без имени")}</b><span>${escapeHtml([c.phone, c.city].filter(Boolean).join(" · "))}</span></div>`).join("")
+      : `<p class="pickEmptyV1">Клиентов с подключённым Telegram пока нет.</p>`;
+  }
+  document.addEventListener("click", ev => {
+    const b = ev.target.closest("[data-pick-lot]");
+    if(b){ ev.preventDefault(); openPickModal(state.selectedLot); }
+  });
+
   // 28.09.2026: renderDetail собирает составные строки (Продавец/Пробег/Двигатель и привод/Локация —
   // join(" · ") из кусков, переведённых через L() ПРИ СБОРКЕ) — если это самый первый, самый быстрый
   // рендер страницы лота (SSR-лот из #ssrLotV1, синхронно, без сетевого запроса) и словарь RO/EN (250 КБ)
@@ -4011,6 +4093,7 @@ function alertable(lot){
               <h1>${escapeHtml(title)}</h1>
               <button type="button" class="dShareBtnV1" data-share-page>${dbIco("ext")}<span>Поделиться</span></button>
               <button type="button" class="dShareBtnV1 tgPostBtnV1" data-tg-post="${escapeHtml(lot.id)}" hidden title="${escapeHtml(L("Опубликовать в Telegram-канал"))}">📣<span>В Telegram</span></button>
+              <button type="button" class="dShareBtnV1 pickBtnV1" data-pick-lot="${escapeHtml(lot.id)}" hidden title="Отправить лот в личный кабинет клиента">🎯<span>Клиенту</span></button>
             </div>
             <p class="dSpecLine">${dbIco("engine")}<span>${escapeHtml(specLine || "—")}</span>${lot.vin ? copyChip(lot.vin, "Скопировать VIN", "dSpecVin", "vin") : ""}${(() => {
               // Локация — дубль строки «Аукцион → Локация» (та же через lotLocationText), компактной
@@ -4213,6 +4296,7 @@ function alertable(lot){
     loadSimilarArchived(lot);
     loadStats(lot);   // оценка лота под ценой (#lotMarketLineV1)
     checkTgAdmin();   // кнопка «В Telegram» — только для админа
+    checkPickAdmin();   // кнопка «Клиенту» (подборка в кабинет) — только для админа
     fetchLiveRates();
     startLotCountdown(lot);
     startLiveBidWatch(lot);

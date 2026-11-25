@@ -120,7 +120,19 @@ async function remove(table, id){
   return parseSupabaseResponse(response);
 }
 
+// Сырой запрос к REST по пути (`/alert_meta?k=eq.x&select=v`) — тот же вызов, что syncSbFetch в api/auctions.js
+async function rest(path, opts = {}){
+  const {url} = getSupabaseConfig();
+  const response = await sbFetch(`${url}${SUPABASE_REST_PATH}${path}`, {
+    method:opts.method || "GET",
+    headers:headers(opts.headers || {}),
+    body:opts.body
+  });
+  return parseSupabaseResponse(response);
+}
+
 module.exports = {
+  rest,
   list,
   count,
   create,

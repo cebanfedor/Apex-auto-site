@@ -512,6 +512,7 @@ async function refresh(){
   if(state.view === "analytics") await loadAnalytics();
   if(state.view === "customers") await loadCustomers();
   if(state.view === "deals") await loadDeals();
+  if(state.view === "cabclients" && window.loadCabClients) await window.loadCabClients();
   if(state.view === "leads"){
     await Promise.all([loadCustomers(), loadVehicles()]);
     await loadLeads();
@@ -1008,6 +1009,7 @@ async function checkAuth(){
       showNotice(error.message);
     }
     window.scrollTo({top:0, left:0});
+    if(window.cabDeepLink) window.cabDeepLink();
   }
 }
 

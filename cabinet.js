@@ -89,6 +89,27 @@
     feed_moved:["торги перенесены на","licitația mutată pe","auction moved to"], feed_buy:["появился выкуп","a apărut Buy Now","Buy Now appeared"], feed_clear:["Скрыть","Ascunde","Dismiss"],
     cmp:["Сравнить","Compară","Compare"], cmp_h:["Сравнение лотов","Compararea loturilor","Lot comparison"], cmp_n:["Выбрано","Selectate","Selected"], cmp_go:["Сравнить выбранные","Compară selecția","Compare selected"], cmp_max:["Можно сравнить до 4 лотов.","Poți compara până la 4 loturi.","You can compare up to 4 lots."], cmp_min:["Выберите хотя бы 2 лота.","Alege cel puțin 2 loturi.","Pick at least 2 lots."], cmp_close:["Закрыть","Închide","Close"],
     cf_year:["Год","An","Year"], cf_odo:["Пробег","Rulaj","Mileage"], cf_bid:["Текущая ставка","Oferta curentă","Current bid"], cf_buy:["Выкуп","Cumpărare","Buy Now"], cf_acv:["Оценка аукциона (ACV)","Evaluare licitație (ACV)","Auction value (ACV)"], cf_rep:["Оценка ремонта","Estimare reparație","Repair estimate"],
+    t_picks:["Подборки","Selecții","Picks"],
+    pk_h:["Подборки от менеджера","Selecții de la manager","Picks from your manager"],
+    pk_ov:["Менеджер подобрал для вас","Managerul a ales pentru tine","Your manager picked for you"],
+    pk_all:["Все подборки","Toate selecțiile","All picks"],
+    pk_e_h:["Пока нет подборок","Nicio selecție încă","No picks yet"],
+    pk_e_p:["Когда менеджер найдёт для вас интересные лоты, они появятся здесь — и придёт сообщение в Telegram.","Când managerul găsește loturi potrivite pentru tine, apar aici — și primești un mesaj în Telegram.","When your manager finds good lots for you, they appear here — and you get a Telegram message."],
+    pk_need:["Подключите Telegram, чтобы получать подборки от менеджера.","Conectează Telegram ca să primești selecții de la manager.","Connect Telegram to receive picks from your manager."],
+    pk_new:["Новое","Nou","New"], pk_from:["От менеджера","De la manager","From your manager"],
+    pk_like:["Нравится","Îmi place","Like it"], pk_no:["Не подходит","Nu mi se potrivește","Not for me"], pk_disc:["Обсудить","De discutat","Let’s talk"],
+    pk_note_ph:["Комментарий менеджеру (необязательно)…","Comentariu pentru manager (opțional)…","Comment for your manager (optional)…"],
+    pk_sent:["Менеджер получил ваш ответ","Managerul a primit răspunsul","Your manager got your answer"],
+    pk_nodb:["Подборки пока недоступны — база настраивается.","Selecțiile nu sunt disponibile încă — baza se configurează.","Picks are not available yet — database is being set up."],
+    pf_h:["Мои данные","Datele mele","My details"],
+    pf_p:["Эти данные видит менеджер Apex Auto — чтобы связаться с вами и подбирать подходящие машины.","Aceste date le vede managerul Apex Auto — ca să te contacteze și să aleagă mașini potrivite.","Your Apex Auto manager sees these details — to contact you and pick suitable cars."],
+    pf_name:["Имя","Nume","Name"], pf_city:["Город","Oraș","City"], pf_phone:["Телефон","Telefon","Phone"],
+    pf_name_ph:["Как к вам обращаться","Cum să te strigăm","How should we call you"], pf_city_ph:["Например, Кишинёв","De exemplu, Chișinău","For example, Chișinău"], pf_phone_ph:["+373 …","+373 …","+373 …"],
+    pf_save:["Сохранить","Salvează","Save"],
+    pf_ver:["Номер подтверждён в Telegram","Număr confirmat în Telegram","Number confirmed in Telegram"],
+    pf_notver:["Номер для сделок подтверждается во вкладке «Мои сделки».","Numărul pentru tranzacții se confirmă în fila „Tranzacțiile mele”.","The number for orders is confirmed in the “My orders” tab."],
+    pf_need:["Подключите Telegram, чтобы сохранить свои данные.","Conectează Telegram ca să-ți salvezi datele.","Connect Telegram to save your details."],
+    pf_bad_phone:["Проверьте номер телефона.","Verifică numărul de telefon.","Please check the phone number."],
     cf_dmg:["Повреждение","Daune","Damage"], cf_doc:["Документ","Document","Title"], cf_eng:["Двигатель","Motor","Engine"], cf_fuel:["Топливо","Combustibil","Fuel"], cf_drv:["Привод","Tracțiune","Drive"], cf_loc:["Локация","Locație","Location"], cf_date:["Торги","Licitație","Auction"], cf_key:["Ключи","Chei","Keys"], cf_best:["лучшее значение","cea mai bună valoare","best value"]
   };
   function t(k){ var r = TX[k]; return r ? (r[LI] || r[0]) : k; }
@@ -106,7 +127,7 @@
 
   var S = {
     bound:false, ready:true, connecting:false, url:"", bot:"",
-    name:"", band:{}, deals:null, dealsTries:0, feed:[], cmp:{}, favs:[], notes:{}, cars:[], recent:[], subs:[], prefs:{}, live:{}, track:{}, tab:"over", favFilter:"all", favSort:"date", booted:false, subsLoaded:false
+    name:"", profile:{name:"", city:"", phone:""}, tgName:"", phoneVerified:false, verifiedPhone:"", picks:null, band:{}, deals:null, dealsTries:0, feed:[], cmp:{}, favs:[], notes:{}, cars:[], recent:[], subs:[], prefs:{}, live:{}, track:{}, tab:"over", favFilter:"all", favSort:"date", booted:false, subsLoaded:false
   };
   function loadLocal(){
     S.name = ls(K.name) || "";
@@ -209,18 +230,19 @@
     var p = c ? (c.setBound(true, true), c.pull(true)) : Promise.resolve(null);
     return Promise.resolve(p).then(function(r){
       if(r && r.ready === false) S.ready = false;
+      applyLoad(r);
       if(r && r.name){ lsSet(K.name, r.name); }
       if(r && r.items && r.items.car){
         var cars = r.items.car.map(function(it){ return {vin:it.key, label:(it.data && it.data.label) || "", addedAt:(it.data && it.data.addedAt) || it.t}; });
         if(cars.length || ls(K.cars) == null) lsSet(K.cars, JSON.stringify(cars));
       }
       loadLocal(); return refreshStatus();
-    }).then(function(){ toast(t("done")); render(); refreshLive(); refreshTracks(); loadDeals(); loadBands(); });
+    }).then(function(){ toast(t("done")); render(); refreshLive(); refreshTracks(); loadDeals(); loadPicks(); loadBands(); });
   }
 
   // ---------- живые данные по избранному ----------
   function refreshLive(){
-    var ids = S.favs.map(function(f){ return f.id; }).filter(function(id){ return /^(copart|iaai)-\d+$/.test(id); });
+    var ids = S.favs.map(function(f){ return f.id; }).concat(S.picks ? S.picks.list.map(function(p){ return p.lot_id; }) : []).filter(function(id, i, a){ return /^(copart|iaai)-\d+$/.test(id) && a.indexOf(id) === i; });
     if(!ids.length){ computeFeed(); return; }
     var pending = 0;
     for(var i = 0; i < ids.length; i += 30){
@@ -307,6 +329,74 @@
       if(S.tab === "deals" || S.tab === "over") render(true);
     });
   }
+  // Ответ cabload: профиль, подтверждённый телефон, имя из Telegram
+  function applyLoad(r){
+    if(!r) return;
+    if(r.profile) S.profile = {name:r.profile.name || "", city:r.profile.city || "", phone:r.profile.phone || ""};
+    S.tgName = r.tgName || S.tgName; S.phoneVerified = !!r.phoneVerified; S.verifiedPhone = r.verifiedPhone || "";
+  }
+
+  // ---------- Подборки от менеджера ----------
+  function loadPicks(){
+    if(!token() || !S.bound) return Promise.resolve();
+    return getApi("cabpicks", "token=" + encodeURIComponent(token())).then(function(r){
+      if(!r || !r.ok) return;
+      S.picks = {list:r.picks || [], noTable:r.reason === "no_table"};
+      if(S.tab === "picks") markPicksSeen();
+      render(true);
+      refreshLive();
+    });
+  }
+  function unseenPicks(){ return S.picks ? S.picks.list.filter(function(p){ return !p.seen_at; }) : []; }
+  var seenTimer = null;
+  function markPicksSeen(){
+    var list = unseenPicks(); if(!list.length || seenTimer) return;
+    seenTimer = setTimeout(function(){
+      seenTimer = null;
+      list.forEach(function(p){ api("cabpickreact", {token:token(), id:p.id, seen:true}); p.seen_at = new Date().toISOString(); });
+      render(true);
+    }, 2500);
+  }
+  function pickLot(p){ return merged(Object.assign({}, p.data || {}, {id:p.lot_id})); }
+  function pickCard(p){
+    var o = pickLot(p), st = status(o), ca = isCa(o), pic = img(o), id = o.id;
+    var rows = "";
+    if(!o.sold && Number(o.currentBid) > 0) rows += '<div><span>' + t("bid") + '</span><b>' + money(o.currentBid, ca) + '</b></div>';
+    if(!o.sold && Number(o.buyNow) > 0) rows += '<div><span>' + t("buynow") + '</span><b>' + money(o.buyNow, ca) + '</b></div>';
+    if(o.sold && o.finalBid) rows += '<div><span>' + t("final") + '</span><b>' + money(o.finalBid, ca) + '</b></div>';
+    if(o.auctionDate && isFinite(Date.parse(o.auctionDate))) rows += '<div><span>' + t("when") + '</span><b>' + esc(fmtDate(o.auctionDate)) + '</b></div>';
+    if(o.odometerText) rows += '<div><span>' + t("odo") + '</span><b>' + esc(o.odometerText) + '</b></div>';
+    var rx = function(v, k){ return '<button type="button" class="cabIcoBtnV1 cabRx-' + v + (p.reaction === v ? " on" : "") + '" data-act="pkreact" data-id="' + p.id + '" data-v="' + v + '" aria-pressed="' + (p.reaction === v) + '">' + t(k) + '</button>'; };
+    var isFav = !!findFav(id);
+    return '<article class="cabCardV1 cabPickV1' + (p.seen_at ? "" : " isNew") + '" data-id="' + esc(id) + '">' +
+      '<a class="cabPicV1" href="' + lotUrl(id) + '">' + (pic ? '<img src="' + esc(pic) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
+      '<span class="cabAucV1">' + esc(aucName(o)) + '</span><span class="cabChipV1 is-' + st.k + '">' + esc(st.label) + '</span>' + (p.seen_at ? "" : '<span class="cabNewV1">' + t("pk_new") + '</span>') + '</a>' +
+      '<div class="cabBodyV1"><a class="cabTitleV1" href="' + lotUrl(id) + '">' + esc(titleOf(o)) + '</a>' + (o.vin ? '<div class="cabVinV1">' + esc(o.vin) + '</div>' : "") +
+      (p.note ? '<div class="cabPickNoteV1"><b>' + t("pk_from") + '</b><span>' + esc(p.note) + '</span></div>' : "") +
+      '<div class="cabRowsV1">' + rows + '</div>' + bandRow(o) +
+      '<div class="cabRxV1">' + rx("like", "pk_like") + rx("no", "pk_no") + rx("discuss", "pk_disc") + '</div>' +
+      '<textarea class="cabPkNoteV1" data-pknote="' + p.id + '" rows="2" maxlength="400" placeholder="' + esc(t("pk_note_ph")) + '">' + esc(p.reaction_note || "") + '</textarea>' +
+      '<div class="cabActsV1"><a class="cabIcoBtnV1" href="' + lotUrl(id) + '">' + t("open_lot") + '</a><button type="button" class="cabIcoBtnV1' + (isFav ? " on" : "") + '" data-act="pkfav" data-id="' + esc(id) + '" aria-pressed="' + isFav + '">' + ico("heart") + '<span>' + t("add_fav") + '</span></button></div>' +
+      '</div></article>';
+  }
+  function panePicks(){
+    if(!S.bound) return '<section class="cabBoxV1"><h2>' + t("pk_h") + '</h2><p class="cabMutedV1">' + t("pk_need") + '</p><button type="button" class="cabBtnV1" data-act="connect">' + t("c_btn") + '</button></section>';
+    if(!S.picks) return '<p class="cabMutedV1 cabPadV1">' + t("loading") + '</p>';
+    if(S.picks.noTable) return '<section class="cabBoxV1"><p class="cabMutedV1">' + t("pk_nodb") + '</p></section>';
+    if(!S.picks.list.length) return empty(t("pk_e_h"), t("pk_e_p"), "", "");
+    return '<div class="cabCardsV1">' + S.picks.list.map(pickCard).join("") + '</div>';
+  }
+  function reactPick(id, v, b){
+    var pk = S.picks && S.picks.list.filter(function(x){ return x.id === id; })[0]; if(!pk) return;
+    var next = pk.reaction === v ? "" : v;
+    var ta = root.querySelector('[data-pknote="' + id + '"]'), note = ta ? ta.value : "";
+    api("cabpickreact", {token:token(), id:id, reaction:next, note:note}).then(function(r){
+      if(!r || !r.ok) return;
+      pk.reaction = next || null; pk.reaction_note = next ? note : null; pk.seen_at = pk.seen_at || new Date().toISOString();
+      if(next) toast(t("pk_sent")); render();
+    });
+  }
+
   function verifyUrl(){ return String(S.url || "").replace(/\?start=/, "?start=ph_"); }
   function startDealPoll(){
     if(dealPoll) return;
@@ -527,7 +617,10 @@
     var quick = [["/auctions", "q_us"], ["/korea", "q_kr"], ["/#calculator", "q_calc"], ["/vin-check", "q_vin"], ["/tracking", "q_track"], ["https://t.me/fedukusa", "q_msg"]].map(function(q){ return '<a href="' + q[0] + '"' + (/^https/.test(q[0]) ? ' target="_blank" rel="noopener"' : "") + '>' + t(q[1]) + '</a>'; }).join("");
     var rec = S.recent.slice(0, 6).map(function(r){ return miniRow(r); }).join("");
     var dealTop = S.deals && S.deals.verified && S.deals.list.length ? '<section class="cabBoxV1 cabDealTopV1"><h2>' + ico("car") + t("dl_h") + '</h2>' + S.deals.list.slice(0, 2).map(function(d){ return dealCard(d, true); }).join("") + '</section>' : "";
-    return dealTop + feedBox() + '<div class="cabGridV1"><div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("clock") + t("o_next") + '</h2>' + nextHtml + '</section>' +
+    var np = unseenPicks();
+    var picksTop = np.length ? '<section class="cabBoxV1 cabPickTopV1"><h2>🎯 ' + t("pk_ov") + ' <em>' + np.length + '</em></h2>' + np.slice(0, 3).map(function(p){ return miniRow(pickLot(p)); }).join("") +
+      '<a class="cabLinkV1" href="#picks" data-act="tab" data-v="picks">' + t("pk_all") + ' →</a></section>' : "";
+    return picksTop + dealTop + feedBox() + '<div class="cabGridV1"><div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("clock") + t("o_next") + '</h2>' + nextHtml + '</section>' +
       (rec ? '<section class="cabBoxV1"><h2>' + t("o_recent") + '</h2>' + rec + '</section>' : "") + '</div>' +
       '<div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("car") + t("o_cars") + '</h2>' + carsHtml + '</section>' +
       '<section class="cabBoxV1"><h2>' + t("o_quick") + '</h2><div class="cabQuickV1">' + quick + '</div></section></div></div>';
@@ -581,8 +674,30 @@
           '<div class="cabActsV1"><button type="button" class="cabIcoBtnV1' + (favIds[r.id] ? " on" : "") + '" data-act="addfav" data-id="' + esc(r.id) + '">' + ico("heart") + '<span>' + t("add_fav") + '</span></button></div></div></article>';
       }).join("") + '</div>';
   }
+  function profileBox(){
+    var P = S.profile || {}, ph = P.phone || "";
+    var ver = S.phoneVerified ? '<p class="cabPfVerV1 isOk">' + ico("ok") + '<span>' + t("pf_ver") + (S.verifiedPhone ? ' · ' + esc(S.verifiedPhone) : "") + '</span></p>' : '<p class="cabPfVerV1">' + t("pf_notver") + '</p>';
+    if(!S.bound) return '<section class="cabBoxV1"><h2>' + t("pf_h") + '</h2><p class="cabMutedV1">' + t("pf_need") + '</p><button type="button" class="cabBtnV1" data-act="connect">' + t("c_btn") + '</button></section>';
+    return '<section class="cabBoxV1"><h2>' + t("pf_h") + '</h2><p class="cabMutedV1">' + t("pf_p") + '</p>' +
+      '<form class="cabPfV1" data-form="profile">' +
+      '<label><span>' + t("pf_name") + '</span><input name="name" type="text" maxlength="60" autocomplete="name" value="' + esc(P.name || S.tgName || "") + '" placeholder="' + esc(t("pf_name_ph")) + '"></label>' +
+      '<label><span>' + t("pf_city") + '</span><input name="city" type="text" maxlength="60" autocomplete="address-level2" value="' + esc(P.city || "") + '" placeholder="' + esc(t("pf_city_ph")) + '"></label>' +
+      '<label><span>' + t("pf_phone") + '</span><input name="phone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" value="' + esc(ph || S.verifiedPhone || "") + '" placeholder="' + esc(t("pf_phone_ph")) + '"></label>' +
+      '<p class="cabErrV1" id="cabPfErr" hidden></p>' +
+      '<button class="cabBtnV1" type="submit">' + t("pf_save") + '</button></form>' + ver + '</section>';
+  }
+  function saveProfile(f){
+    var err = $("#cabPfErr"); if(err) err.hidden = true;
+    var prof = {name:f.elements.name.value, city:f.elements.city.value, phone:f.elements.phone.value};
+    if(prof.phone && String(prof.phone).replace(/\D/g, "").length < 7){ if(err){ err.textContent = t("pf_bad_phone"); err.hidden = false; } return; }
+    var btn = f.querySelector("button[type=submit]"); if(btn) btn.disabled = true;
+    api("cabprofile", {token:token(), profile:prof}).then(function(r){
+      if(btn) btn.disabled = false;
+      if(r && r.ok){ S.profile = r.profile || prof; S.name = S.profile.name || S.tgName; lsSet(K.name, S.name); toast(t("saved")); render(); }
+    });
+  }
   function paneSet(){
-    return '<div class="cabGridV1"><div class="cabColV1"><section class="cabBoxV1"><h2>' + ico("tg") + t("set_dev_h") + '</h2><p class="cabMutedV1">' + t("set_dev") + '</p></section></div>' +
+    return '<div class="cabGridV1"><div class="cabColV1">' + profileBox() + '<section class="cabBoxV1"><h2>' + ico("tg") + t("set_dev_h") + '</h2><p class="cabMutedV1">' + t("set_dev") + '</p></section></div>' +
       '<div class="cabColV1"><section class="cabBoxV1"><h2>' + t("set_h") + '</h2>' +
       '<div class="cabSetRowV1"><div><b>' + t("set_out") + '</b><small>' + t("set_out_d") + '</small></div><button type="button" class="cabGhostV1" data-act="logout">' + ico("out") + '</button></div>' +
       '<div class="cabSetRowV1"><div><b>' + t("set_wipe") + '</b><small>' + t("set_wipe_d") + '</small></div><button type="button" class="cabGhostV1 isDanger" data-act="wipe">' + ico("trash") + '</button></div></section></div></div>';
@@ -610,8 +725,9 @@
     var favs = S.favs.map(merged);
     var soonN = favs.filter(function(o){ var s = status(o); return s.k === "soon" || s.k === "live"; }).length;
     var stats = [[ico("heart"), S.favs.length, "s_fav", "fav"], [ico("clock"), soonN, "s_soon", "fav"], [ico("car"), S.cars.length, "s_cars", "cars"], [ico("bell"), S.subs.length, "s_subs", "subs"]];
-    var tabs = [["over", "t_over", ""], ["deals", "t_deals", S.deals && S.deals.list.length ? S.deals.list.length : ""], ["fav", "t_fav", S.favs.length], ["cars", "t_cars", S.cars.length], ["subs", "t_subs", S.subs.length || ""], ["recent", "t_recent", S.recent.length || ""], ["set", "t_set", ""]];
-    var pane = S.tab === "deals" ? paneDeals() : S.tab === "fav" ? paneFav() : S.tab === "cars" ? paneCars() : S.tab === "subs" ? paneSubs() : S.tab === "recent" ? paneRecent() : S.tab === "set" ? paneSet() : paneOver();
+    var newPicks = unseenPicks().length;
+    var tabs = [["over", "t_over", ""], ["deals", "t_deals", S.deals && S.deals.list.length ? S.deals.list.length : ""], ["picks", "t_picks", newPicks || (S.picks && S.picks.list.length) || ""], ["fav", "t_fav", S.favs.length], ["cars", "t_cars", S.cars.length], ["subs", "t_subs", S.subs.length || ""], ["recent", "t_recent", S.recent.length || ""], ["set", "t_set", ""]];
+    var pane = S.tab === "picks" ? panePicks() : S.tab === "deals" ? paneDeals() : S.tab === "fav" ? paneFav() : S.tab === "cars" ? paneCars() : S.tab === "subs" ? paneSubs() : S.tab === "recent" ? paneRecent() : S.tab === "set" ? paneSet() : paneOver();
     root.innerHTML =
       '<section class="cabHeroV1"><div class="cabHeroTxtV1"><span class="cabKickerV1">' + t("hero_k") + '</span><h1>' + (S.bound && S.name ? esc(t("hello") + S.name) + "! " : "") + t("hero_h") + '</h1><p>' + t("hero_p") + '</p></div>' + connectCard() + '</section>' +
       '<div class="cabStatsV1">' + stats.map(function(s){ return '<button type="button" class="cabStatV1" data-act="tab" data-v="' + s[3] + '"><span class="cabStatIcoV1">' + s[0] + '</span><b>' + s[1] + '</b><small>' + t(s[2]) + '</small></button>'; }).join("") + '</div>' +
@@ -686,12 +802,13 @@
 
   // ---------- действия ----------
   function setTab(v){
-    if(["over", "deals", "fav", "cars", "subs", "recent", "set"].indexOf(v) < 0) v = "over";
+    if(["over", "deals", "picks", "fav", "cars", "subs", "recent", "set"].indexOf(v) < 0) v = "over";
     S.tab = v;
     try{ history.replaceState(null, "", "#" + v); }catch(e){}
     render();
     if(v === "cars") refreshTracks();
     if(v === "deals") loadDeals();
+    if(v === "picks") loadPicks();
     if(v === "fav") refreshLive();
   }
   function findFav(id){ return S.favs.filter(function(f){ return f.id === id; })[0]; }
@@ -756,6 +873,8 @@
     var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
     if(act === "tab"){ e.preventDefault(); return setTab(b.getAttribute("data-v")); }
     if(act === "connect") return startConnect();
+    if(act === "pkreact") return reactPick(Number(id), b.getAttribute("data-v"), b);
+    if(act === "pkfav"){ var rid = id, fromPick = S.picks && S.picks.list.filter(function(x){ return x.lot_id === rid; })[0]; if(findFav(rid)){ unfav(rid); } else if(fromPick){ var fo = Object.assign({}, fromPick.data, {id:rid}); S.favs.unshift(fo); saveFavs(); if(cab()) cab().put("fav", rid, fo); toast(t("done")); render(); } return; }
     if(act === "dealverify"){ startDealPoll(); setTimeout(function(){ render(true); }, 50); return; }
     if(act === "cmpt"){
       if(S.cmp[id]) delete S.cmp[id];
@@ -801,20 +920,22 @@
     var f = e.target.closest("[data-form]"); if(!f) return;
     e.preventDefault();
     if(f.getAttribute("data-form") === "car") addCar(f.elements.v.value);
+    if(f.getAttribute("data-form") === "profile") saveProfile(f);
   });
   document.addEventListener("keydown", function(e){ if(e.key === "Escape" && S.cmpOpen){ S.cmpOpen = false; document.body.style.overflow = ""; render(); } });
   window.addEventListener("hashchange", function(){ var h = location.hash.replace("#", ""); if(h && h !== S.tab) setTab(h); });
-  document.addEventListener("visibilitychange", function(){ if(!document.hidden && S.booted){ refreshLive(); } });
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden && S.booted){ refreshLive(); loadPicks(); } });
 
   // ---------- старт ----------
   function boot(){
-    var h = location.hash.replace("#", ""); if(["over", "deals", "fav", "cars", "subs", "recent", "set"].indexOf(h) >= 0) S.tab = h;
+    var h = location.hash.replace("#", ""); if(["over", "deals", "picks", "fav", "cars", "subs", "recent", "set"].indexOf(h) >= 0) S.tab = h;
     loadLocal(); render();
     var c = cab(), p = Promise.resolve();
     if(token()){
       p = refreshStatus().then(function(){
         if(S.bound && c) return c.pull(true).then(function(r){
           if(r && r.ready === false) S.ready = false;
+          applyLoad(r);
           if(r && r.name){ lsSet(K.name, r.name); }
           if(r && r.items && r.items.car){
             var cars = r.items.car.map(function(it){ return {vin:it.key, label:(it.data && it.data.label) || "", addedAt:(it.data && it.data.addedAt) || it.t}; });
@@ -823,7 +944,7 @@
         });
       });
     }
-    p.then(function(){ loadLocal(); S.booted = true; render(); refreshLive(); refreshTracks(); loadDeals(); loadBands(); });
+    p.then(function(){ loadLocal(); S.booted = true; render(); refreshLive(); refreshTracks(); loadDeals(); loadPicks(); loadBands(); });
   }
   boot();
 })();

@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/auctions.js": { "maxDuration": 60 },
-    "api/og.js": { "maxDuration": 25 }
+    "api/og.js": { "maxDuration": 25 },
+    "api/clients.js": { "maxDuration": 60 }
   },
   "images": {
     "sizes": [160, 300, 400, 640, 960, 1600],
