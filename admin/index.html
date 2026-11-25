@@ -140,7 +140,10 @@
               <h2 id="dealFormTitle">Новая сделка</h2>
               <input type="hidden" name="id">
               <div class="grid2">
-                <label>Телефон клиента *<input name="phone" required placeholder="+373 68 832 032"></label>
+                <label style="grid-column:1/-1">Клиент из Telegram — выберите, и сообщения о сделке придут ему в чат<select name="client_pick" id="dealClientPick"><option value="">— клиента нет в списке, ввести телефон вручную —</option></select></label>
+                <input type="hidden" name="chat_id">
+                <div id="dealClientHint" class="hintV1" style="grid-column:1/-1;margin:-4px 0 2px;font-size:13px;color:#667080"></div>
+                <label>Телефон клиента <span id="dealPhoneStar">*</span><input name="phone" placeholder="+373 68 832 032"></label>
                 <label>Имя клиента<input name="client_name"></label>
                 <label>VIN — введите, остальное подтянется из трекинга<input name="vin" maxlength="17" autocomplete="off" placeholder="5UXCR6C09M9E12345" style="text-transform:uppercase"></label>
                 <label>Автомобиль *<input name="title" required placeholder="подставится по VIN, либо впишите вручную"></label>
@@ -397,7 +400,7 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v185"></script>
+  <script src="/admin/admin.js?v=admin-v186"></script>
   <script src="/admin/clients.js?v=cc-v2"></script>
 </body>
 </html>

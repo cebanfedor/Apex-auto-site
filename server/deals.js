@@ -70,13 +70,15 @@ function parseDocs(v){
 function cleanDeal(b){
   b = b || {};
   const title = String(b.title || "").trim().slice(0, 140);
-  const key = phoneKey(b.phone);
+  // клиент из Telegram (chat_id из «Клиентов сайта») — телефон тогда не обязателен: пишем прямо в его чат
+  const chat = String(b.chat_id == null ? "" : b.chat_id).replace(/[^0-9-]/g, "").slice(0, 20);
+  const key = phoneKey(b.phone) || (chat ? "tg" + chat.replace(/-/g, "m") : "");
   if(!title || !key) return null;
   const stage = STAGE_KEYS.includes(b.stage) ? b.stage : "bought";
   const vin = String(b.vin || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "").slice(0, 17);
   const eta = /^\d{4}-\d{2}-\d{2}$/.test(String(b.eta_date || "")) ? String(b.eta_date) : null;
   return {
-    phone_key: key, phone: String(b.phone || "").trim().slice(0, 40), client_name: String(b.client_name || "").trim().slice(0, 100) || null,
+    phone_key: key, chat_id: chat || null, phone: String(b.phone || "").trim().slice(0, 40), client_name: String(b.client_name || "").trim().slice(0, 100) || null,
     title, vin: vin || null, stage, next_step: String(b.next_step || "").trim().slice(0, 300) || null, eta_date: eta,
     total_usd: num(b.total_usd), paid_usd: num(b.paid_usd),
     timeline: parseTimeline(b.timeline), photos: parsePhotos(b.photos), docs: parseDocs(b.docs), calc: cleanCalc(b.calc),
@@ -294,6 +296,15 @@ async function chatForKey(supabase, key){
   return {chat, lang: (links && links[0] && links[0].lang) || "ru"};
 }
 
+// Кому писать по сделке: привязанный клиент из Telegram (chat_id) важнее подтверждённого телефона
+async function chatForDeal(supabase, row){
+  if(row && row.chat_id){
+    const links = await supabase.list("alert_links", {select: "lang", chat_id: `eq.${row.chat_id}`, limit: "1"}).catch(() => []);
+    if(links && links[0]) return {chat: row.chat_id, lang: links[0].lang || "ru"};
+  }
+  return chatForKey(supabase, row && row.phone_key);
+}
+
 // Фоновая синхронизация: по кругу берём активные сделки с VIN, подтягиваем трекинг, обновляем и пишем клиенту при смене этапа.
 async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   out = out || {}; out.dealsChecked = 0; out.dealsUpdated = 0; out.dealMsgs = 0;
@@ -315,7 +326,7 @@ async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
     if(!saved) continue;
     out.dealsUpdated++;
     if(patch.stage && patch.stage !== row.notified_stage){
-      const c = await chatForKey(supabase, row.phone_key);
+      const c = await chatForDeal(supabase, row);
       if(c){
         const merged = Object.assign({}, row, patch);
         if(await sendTelegram(c.chat, stageMessage(merged, c.lang), c.lang)){ out.dealMsgs++; await supabase.update("cab_deals", row.id, {notified_stage: patch.stage}).catch(() => {}); }
@@ -326,4 +337,4 @@ async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   return out;
 }
 
-module.exports = {calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};
+module.exports = {calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, chatForDeal, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};

@@ -112,7 +112,7 @@ function resetForm(id){
   form.reset();
   if(id === "vehicleForm") setTimeout(renderVehiclePhotoThumbs, 0);
   if(id === "leadForm") updateLeadCustomerContact();
-  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; form.dataset.lastVin = ""; const lm = document.getElementById("dealLookupMsg"); if(lm) lm.textContent = ""; }
+  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; form.dataset.lastVin = ""; form.elements.chat_id.value = ""; setTimeout(dealClientHint, 0); const lm = document.getElementById("dealLookupMsg"); if(lm) lm.textContent = ""; }
   form.querySelector('[name="id"]').value = "";
   const title = document.getElementById(`${id.replace("Form", "FormTitle")}`);
   if(title){
@@ -179,7 +179,7 @@ function renderRows(container, items, type){
         <div>
           <h3>${escapeHtml(item.title || "Сделка")}</h3>
           <p>${escapeHtml(item.client_name || "—")} · ${escapeHtml(item.phone || "—")} · <b>${escapeHtml(st)}</b>${item.active === false ? " · скрыта" : ""}</p>
-          <p>VIN: ${escapeHtml(item.vin || "—")}${money(item.paid_usd, item.total_usd)} · ${item.linked ? "✅ клиент подключён в Telegram" : "⏳ клиент ещё не подтвердил номер"}</p>
+          <p>VIN: ${escapeHtml(item.vin || "—")}${money(item.paid_usd, item.total_usd)} · ${item.chat_id ? "✅ привязан к клиенту из Telegram" : item.linked ? "✅ клиент подтвердил номер в Telegram" : "⏳ клиент ещё не подтвердил номер"}</p>
         </div>
         <div class="rowActions">
           <button data-edit-deal="${item.id}">Изм.</button>
@@ -257,8 +257,46 @@ async function loadVehicles(){
   fillLeadSelects();
 }
 
+// Клиенты, подключившие Telegram (те же, что во вкладке «Клиенты сайта») — им можно привязать сделку напрямую
+async function loadDealClients(){
+  const sel = $("#dealClientPick");
+  if(!sel) return;
+  try{
+    const data = await api("/api/clients");
+    state.dealClients = data.items || [];
+  }catch(e){ state.dealClients = state.dealClients || []; }
+  const cur = sel.value;
+  const label = c => {
+    const nm = c.name || "без имени";
+    return `${c.online ? "🟢 " : ""}${nm} · ${c.phone || "телефон не указан"}${c.verified ? " ✓" : ""}`;
+  };
+  sel.innerHTML = `<option value="">— клиента нет в списке, ввести телефон вручную —</option>` +
+    state.dealClients.map(c => `<option value="${escapeHtml(c.chat)}">${escapeHtml(label(c))}</option>`).join("");
+  if(cur) sel.value = cur;
+}
+function dealClientHint(){
+  const f = $("#dealForm"); if(!f) return;
+  const chat = f.elements.chat_id.value, hint = $("#dealClientHint"), star = $("#dealPhoneStar");
+  if(star) star.style.display = chat ? "none" : "";
+  if(!hint) return;
+  hint.textContent = chat
+    ? "✅ Клиент подключён в Telegram: сообщения о смене этапа придут ему в чат, сделка появится в его кабинете. Телефон необязателен."
+    : "Номер вручную: клиент увидит сделку и получит сообщения только после того, как подтвердит этот номер в боте (кабинет → «Мои сделки»).";
+}
+function pickDealClient(chat){
+  const f = $("#dealForm"), el = f.elements;
+  el.chat_id.value = chat || "";
+  const c = (state.dealClients || []).find(x => String(x.chat) === String(chat));
+  if(c){
+    if(c.phone) el.phone.value = c.phone;
+    if(c.name && !el.client_name.value.trim()) el.client_name.value = c.name;
+  }
+  dealClientHint();
+}
+
 async function loadDeals(){
   const q = ($("#dealSearch")?.value || "").trim().toLowerCase();
+  loadDealClients();
   const data = await api("/api/deals");
   state.dealStages = data.stages || state.dealStages;
   const sel = $("#dealStageSelect");
@@ -323,7 +361,15 @@ function setDealForm(item){
   const form = $("#dealForm");
   form.reset();
   const set = (n, v) => { if(form.elements[n]) form.elements[n].value = v == null ? "" : v; };
-  ["id","phone","client_name","title","vin","stage","eta_date","total_usd","paid_usd","next_step"].forEach(n => set(n, item[n]));
+  ["id","phone","client_name","title","vin","stage","eta_date","total_usd","paid_usd","next_step","chat_id"].forEach(n => set(n, item[n]));
+  const pick = form.elements.client_pick;
+  if(pick){
+    if(item.chat_id && ![...pick.options].some(o => o.value === String(item.chat_id))){
+      const o = document.createElement("option"); o.value = String(item.chat_id); o.textContent = "Клиент Telegram #" + item.chat_id; pick.appendChild(o);
+    }
+    pick.value = item.chat_id ? String(item.chat_id) : "";
+  }
+  dealClientHint();
   set("timeline", (item.timeline || []).map(x => `${x.at ? x.at.split("-").reverse().join(".") : ""} | ${x.text}`.replace(/^ \| /, "")).join("\n"));
   set("photos", (item.photos || []).map(x => `${x.url}${x.caption ? " | " + x.caption : ""}`).join("\n"));
   set("docs", (item.docs || []).map(x => `${x.name} | ${x.url}`).join("\n"));
@@ -842,6 +888,8 @@ function bindForms(){
     }
   });
 
+  $("#dealClientPick").addEventListener("change", event => pickDealClient(event.target.value));
+  dealClientHint();
   $("#dealForm").elements.vin.addEventListener("input", () => lookupDealVin(false));
   $("#dealLookupBtn").addEventListener("click", () => lookupDealVin(true));
   $("#dealRecalcBtn").addEventListener("click", () => lookupDealVin(true, true));
@@ -855,6 +903,8 @@ function bindForms(){
     data.calc = {land_usd: f.calc_land.value, sea_usd: f.calc_sea.value, customs_mdl: f.calc_customs.value, broker_mdl: f.calc_broker.value,
       usd_mdl: f.calc_rate.value, rules: f.calc_rules.value, discount_on: f.calc_discount_on.checked, discount_usd: f.calc_discount.value, note: f.calc_note.value};
     Object.keys(data).forEach(k => { if(k.indexOf("calc_") === 0) delete data[k]; });
+    delete data.client_pick;
+    if(!data.chat_id && !data.phone){ alert("Выберите клиента из Telegram или укажите его телефон."); return; }
     const id = data.id; delete data.id;
     const btn = form.querySelector('[type="submit"]');
     try{
@@ -862,9 +912,10 @@ function bindForms(){
       const res = await api(id ? `/api/deals?id=${encodeURIComponent(id)}` : "/api/deals", {method: id ? "PATCH" : "POST", body: data});
       resetForm("dealForm");
       await loadDeals();
-      const n = {sent: " Клиенту отправлено сообщение в Telegram.", no_chat: " Клиент ещё не подтвердил номер в боте — сообщение не отправлено.", failed: " Не удалось отправить сообщение в Telegram."}[res.notified] || "";
+      const n = {sent: " Клиенту отправлено сообщение в Telegram.", no_chat: " Клиент ещё не подтвердил номер в боте — сообщение не отправлено (выберите его из списка «Клиент из Telegram», тогда сообщения пойдут сразу).", failed: " Не удалось отправить сообщение в Telegram."}[res.notified] || "";
       const cw = res.calcWarn ? " ⚠️ Расчёт доставки/таможни НЕ сохранён: выполните SQL из supabase/migrations/20261125_cab_deals_calc.sql в Supabase." : "";
-      showNotice("Сделка сохранена." + n + cw, res.notified !== "failed" && !res.calcWarn);
+      const chw = res.chatWarn ? " ⚠️ Привязка к клиенту НЕ сохранена: выполните SQL из supabase/migrations/20261126_cab_deals_chat.sql в Supabase." : "";
+      showNotice("Сделка сохранена." + n + cw + chw, res.notified !== "failed" && !res.calcWarn && !res.chatWarn);
     }catch(error){
       alert("Не сохранилось: " + (error.message || error));
     }finally{ btn.disabled = false; }

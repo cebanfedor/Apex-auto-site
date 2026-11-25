@@ -27,6 +27,7 @@ async function trackByVin(request, vin){
 }
 
 const chatForKey = key => deals.chatForKey(supabase, key);
+const chatForDeal = row => deals.chatForDeal(supabase, row);
 
 module.exports = async function handler(request, response){
   if(!requireAdmin(request, response)) return;
@@ -53,10 +54,11 @@ module.exports = async function handler(request, response){
     if(request.method === "GET"){
       const items = await supabase.list("cab_deals", {select: "*", order: "updated_at.desc", limit: "300"});
       // у каких клиентов номер уже подтверждён в боте (клиент увидит сделку и получит уведомления)
-      const keys = [...new Set((items || []).map(r => r.phone_key))];
+      const keys = [...new Set((items || []).filter(r => !r.chat_id).map(r => r.phone_key))];
       const linked = {};
       for(const k of keys){ const c = await chatForKey(k); if(c) linked[k] = true; }
-      sendJson(response, 200, {ok: true, items: (items || []).map(r => ({...r, linked: !!linked[r.phone_key]})), stages: deals.STAGES.map(s => ({key: s[0], label: s[1][0]}))});
+      // привязанные напрямую (chat_id) — подключены по определению
+      sendJson(response, 200, {ok: true, items: (items || []).map(r => ({...r, linked: !!r.chat_id || !!linked[r.phone_key]})), stages: deals.STAGES.map(s => ({key: s[0], label: s[1][0]}))});
       return;
     }
     if(request.method === "DELETE"){
@@ -68,30 +70,36 @@ module.exports = async function handler(request, response){
     if(request.method === "POST" || request.method === "PATCH"){
       const body = await readBody(request);
       const row = deals.cleanDeal(body);
-      if(!row){ sendJson(response, 400, {ok: false, error: "Укажите телефон клиента (≥7 цифр) и название авто"}); return; }
+      if(!row){ sendJson(response, 400, {ok: false, error: "Выберите клиента из Telegram или укажите телефон (≥7 цифр), и название авто"}); return; }
       const editId = String((body && body.id) || id || "").replace(/[^0-9]/g, "");
       let before = null;
       if(editId){ const r = await supabase.list("cab_deals", {select: "*", id: `eq.${editId}`, limit: "1"}); before = r && r[0]; }
       let saved;
-      let calcWarn = false;
+      let calcWarn = false, chatWarn = false;
       const save = r => editId ? supabase.update("cab_deals", editId, r) : supabase.create("cab_deals", r);
-      try{ saved = await save(row); }
-      catch(e){
-        // Колонки calc ещё нет (миграция 20261125_cab_deals_calc.sql) — сохраняем сделку без расчёта и предупреждаем
-        if(/calc/i.test(String((e && e.message) || e))){ const {calc, ...rest} = row; saved = await save(rest); calcWarn = !!calc; }
-        else throw e;
+      // Колонок calc / chat_id может ещё не быть (миграции 20261125_cab_deals_calc.sql, 20261126_cab_deals_chat.sql) —
+      // сохраняем сделку без них и предупреждаем; не получилось один раз — пробуем дальше без следующей колонки
+      let attempt = {...row};
+      for(let i = 0; i < 3; i++){
+        try{ saved = await save(attempt); break; }
+        catch(e){
+          const m = String((e && e.message) || e);
+          if(/chat_id/i.test(m) && "chat_id" in attempt){ chatWarn = !!attempt.chat_id; delete attempt.chat_id; continue; }
+          if(/calc/i.test(m) && "calc" in attempt){ calcWarn = !!attempt.calc; delete attempt.calc; continue; }
+          throw e;
+        }
       }
       saved = Array.isArray(saved) ? saved[0] : saved;
       // уведомление клиенту: этап изменился (или принудительно) и сделка активна
       let notified = "skip";
       const changed = !before || before.stage !== row.stage;
       if(row.active && (changed || body.notify_now) && body.notify !== false && body.notify !== "false"){
-        const c = await chatForKey(row.phone_key);
+        const c = await chatForDeal(chatWarn ? {...row, chat_id: null} : row);
         if(!c) notified = "no_chat";
         else notified = (await deals.sendTelegram(c.chat, deals.stageMessage(row, c.lang), c.lang)) ? "sent" : "failed";
         if(notified === "sent" && saved && saved.id) await supabase.update("cab_deals", saved.id, {notified_stage: row.stage}).catch(() => {});
       }
-      sendJson(response, 200, {ok: true, item: saved, notified, calcWarn});
+      sendJson(response, 200, {ok: true, item: saved, notified, calcWarn, chatWarn});
       return;
     }
     methodNotAllowed(response, ["GET", "POST", "PATCH", "DELETE"]);

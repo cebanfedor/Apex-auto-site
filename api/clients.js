@@ -94,8 +94,13 @@ async function clientCard(chat){
   // сделки и заявки по телефону (подтверждённый и указанный в профиле)
   const keys = [...new Set([M.phone && M.phone.k, cl.phoneKey(M.profile && M.profile.phone)].filter(Boolean))];
   let dealRows = [], leadRows = [], customerRows = [];
+  // сделки, привязанные к Telegram-клиенту напрямую (chat_id) — даже без телефона
+  const byChat = await safe(sb(`/cab_deals?chat_id=eq.${q(chat)}&select=id,title,vin,stage,eta_date,updated_at,active&order=updated_at.desc&limit=20`), []);
+  dealRows = byChat || [];
   if(keys.length){
-    dealRows = await safe(sb(`/cab_deals?phone_key=in.(${keys.map(q).join(",")})&select=id,title,vin,stage,eta_date,updated_at,active&order=updated_at.desc&limit=20`), []);
+    const byKey = await safe(sb(`/cab_deals?phone_key=in.(${keys.map(q).join(",")})&select=id,title,vin,stage,eta_date,updated_at,active&order=updated_at.desc&limit=20`), []);
+    const have = new Set(dealRows.map(d => d.id));
+    for(const d of byKey || []) if(!have.has(d.id)) dealRows.push(d);
     const custs = await safe(supabase.list("customers", {select: "id,name,phone,status,notes", limit: "3000"}), []);
     customerRows = (custs || []).filter(c => keys.includes(cl.phoneKey(c.phone)));
     if(customerRows.length){

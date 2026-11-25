@@ -96,9 +96,17 @@ function create(deps){
       try{
         const pm = await sb(`/alert_meta?k=eq.${q("phone:" + who.chat)}&select=v&limit=1`).catch(() => []);
         const key = pm && pm[0] && pm[0].v && pm[0].v.k;
-        if(!key){ sendJson(response, 200, {ok:true, bound:true, verified:false, deals:[]}, NO); return true; }
-        const rows = await sb(`/cab_deals?phone_key=eq.${q(key)}&active=eq.true&select=*&order=updated_at.desc&limit=20`);
-        sendJson(response, 200, {ok:true, bound:true, verified:true, deals:(rows || []).map(dealsLib.publicDeal)}, NO);
+        // сделки: привязанные менеджером к этому Telegram-клиенту (chat_id) + по подтверждённому телефону
+        let rows = [];
+        try{ rows = await sb(`/cab_deals?chat_id=eq.${q(who.chat)}&active=eq.true&select=*&order=updated_at.desc&limit=20`) || []; }catch(_){ rows = []; }   // колонки chat_id может не быть — тогда только по телефону
+        if(key){
+          const byKey = await sb(`/cab_deals?phone_key=eq.${q(key)}&active=eq.true&select=*&order=updated_at.desc&limit=20`);
+          const have = new Set(rows.map(r => r.id));
+          for(const r of byKey || []) if(!have.has(r.id)) rows.push(r);
+          rows.sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+        }
+        if(!key && !rows.length){ sendJson(response, 200, {ok:true, bound:true, verified:false, deals:[]}, NO); return true; }
+        sendJson(response, 200, {ok:true, bound:true, verified:true, deals:rows.map(dealsLib.publicDeal)}, NO);
       }catch(e){
         sendJson(response, 200, {ok:true, bound:true, verified:true, deals:[], ready:!tableMissing(e) ? true : false, reason:tableMissing(e) ? "no_table" : "db_error"}, NO);
       }
