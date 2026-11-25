@@ -75,6 +75,7 @@
     dl_none_p:["Как только менеджер оформит вашу покупку, она появится здесь: этапы, фото, документы и платежи. Об изменениях бот напишет вам в Telegram.","De îndată ce managerul înregistrează achiziția, apare aici: etape, poze, documente și plăți. Botul te anunță în Telegram.","As soon as your manager registers your purchase it will appear here: stages, photos, documents and payments. The bot will message you in Telegram."],
     dl_need_tg:["Подключите Telegram, чтобы увидеть свои сделки.","Conectează Telegram ca să vezi tranzacțiile.","Connect Telegram to see your orders."],
     dl_stage:["Этап","Etapa","Stage"], dl_eta:["Ожидаемая выдача","Predare estimată","Expected handover"], dl_pay:["Оплата","Plată","Payment"], dl_paid:["Оплачено","Plătit","Paid"], dl_left:["Осталось","Rămas","Left to pay"], dl_total:["Сумма сделки","Total tranzacție","Order total"],
+    dl_calc_h:["Доставка и таможня","Livrare și vamă","Delivery and customs"], dl_land:["Доставка по США","Livrare în SUA","Delivery in the USA"], dl_sea:["Море и дорога до Кишинёва","Mare și drum până la Chișinău","Sea and road to Chișinău"], dl_disc:["Скидка","Reducere","Discount"], dl_ship_total:["Итого доставка","Total livrare","Delivery total"], dl_customs:["Таможенные платежи","Taxe vamale","Customs duties"], dl_broker:["Брокер и утиль сбор","Broker și taxa de reciclare","Broker and recycling fee"], dl_lei_total:["Итого в леях","Total în lei","Total in lei"], dl_rate:["Курс","Curs","Rate"], dl_calc_p:["Расчёт подготовил менеджер. Точные суммы подтвердит менеджер при оформлении.","Calculul este pregătit de manager. Sumele exacte le confirmă managerul.","Prepared by your manager. Exact amounts are confirmed by the manager."],
     dl_photos:["Фото","Poze","Photos"], dl_docs:["Документы","Documente","Documents"], dl_tl:["История событий","Istoric evenimente","Event history"], dl_upd:["Обновлено","Actualizat","Updated"], dl_nodb:["Сделки пока недоступны — база настраивается.","Tranzacțiile nu sunt disponibile încă — baza se configurează.","Orders are not available yet — database is being set up."],
     dl_s_bought:["Куплен","Cumpărat","Bought"], dl_s_paid:["Оплачен","Plătit","Paid"], dl_s_pickup:["Вывоз","Ridicare","Pickup"], dl_s_port:["Порт","Port","Port"], dl_s_sea:["В море","Pe mare","At sea"], dl_s_klaipeda:["Клайпеда","Klaipeda","Klaipeda"], dl_s_road:["В пути","În drum","On road"], dl_s_customs:["Таможня","Vamă","Customs"], dl_s_ready:["Готова","Gata","Ready"], dl_s_done:["Выдана","Predată","Handed over"],
     dl_f_bought:["Куплен на аукционе","Cumpărat la licitație","Bought at auction"], dl_f_paid:["Лот оплачен","Lot plătit","Lot paid"], dl_f_pickup:["Вывоз с площадки","Ridicare din parcare","Pickup from the yard"], dl_f_port:["На складе в порту","La depozitul din port","At the port warehouse"], dl_f_sea:["В море","Pe mare","At sea"], dl_f_klaipeda:["В порту Клайпеда","În portul Klaipeda","In Klaipeda port"], dl_f_road:["В пути в Кишинёв","În drum spre Chișinău","On the way to Chișinău"], dl_f_customs:["Растаможка","Vămuire","Customs clearance"], dl_f_ready:["Готова к выдаче","Gata de predare","Ready for handover"], dl_f_done:["Выдана","Predată","Handed over"],
@@ -313,6 +314,27 @@
     dealPoll = setInterval(function(){ if(++tries > 100){ clearInterval(dealPoll); dealPoll = null; return; } /* alertstatus заодно опрашивает Telegram (getUpdates) — без него бот отвечает только по крону раз в 3 мин */ getApi("alertstatus", "token=" + encodeURIComponent(token())).catch(function(){}).then(loadDeals); }, 3000);
   }
   function money0(n){ return Number(n || 0).toLocaleString("en-US").replace(/,/g, " ") + " $"; }
+  function lei(n){ return Number(n || 0).toLocaleString("en-US").replace(/,/g, " ") + " " + ({ru:"лей", ro:"lei", en:"MDL"}[LANG] || "MDL"); }
+  function calcBlock(c){
+    if(!c) return "";
+    var land = Number(c.land_usd) || 0, sea = Number(c.sea_usd) || 0, cus = Number(c.customs_mdl) || 0, brk = Number(c.broker_mdl) || 0;
+    var disc = c.discount_on ? Math.min(Number(c.discount_usd) || 0, land + sea) : 0, rate = Number(c.usd_mdl) || 0;
+    if(!(land || sea || cus || brk)) return "";
+    var row = function(k, v, cls){ return '<div class="cabCalcRowV1' + (cls ? " " + cls : "") + '"><span>' + k + '</span><b>' + v + '</b></div>'; };
+    var ship = "";
+    if(land || sea){
+      ship = (land ? row(t("dl_land"), money0(land)) : "") + (sea ? row(t("dl_sea"), money0(sea)) : "") +
+        (disc ? row(t("dl_disc") + (c.note ? " · " + esc(c.note) : ""), "−" + money0(disc), "isDisc") : "") +
+        row(t("dl_ship_total"), money0(land + sea - disc), "isSum");
+    }
+    var lei2 = "";
+    if(cus || brk){
+      var approx = rate && cus ? ' <em>≈ ' + money0(Math.round(cus / rate)) + '</em>' : "";
+      lei2 = (cus ? row(t("dl_customs"), lei(cus) + approx) : "") + (brk ? row(t("dl_broker"), lei(brk)) : "") +
+        (cus && brk ? row(t("dl_lei_total"), lei(cus + brk), "isSum") : "");
+    }
+    return '<div class="cabCalcV1"><div class="cabCalcHeadV1"><b>' + t("dl_calc_h") + '</b>' + (rate ? '<small>' + t("dl_rate") + ' 1 $ = ' + rate + ' ' + ({ru:"лей", ro:"lei", en:"MDL"}[LANG] || "MDL") + '</small>' : "") + '</div>' + ship + lei2 + '<p class="cabMutedV1">' + t("dl_calc_p") + '</p></div>';
+  }
   function dealCard(d, compact){
     var idx = Math.max(0, DSTAGES.indexOf(d.stage));
     var steps = DSTAGES.map(function(k, i){
@@ -336,7 +358,7 @@
       d.docs.map(function(x){ return '<a href="' + esc(x.url) + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg><span>' + esc(x.name) + '</span></a>'; }).join("") + '</div></div>' : "";
     var tl = d.timeline && d.timeline.length ? '<div class="cabDealSecV1"><h4>' + t("dl_tl") + '</h4><ol class="cabTimelineV1">' +
       d.timeline.slice().sort(function(a, b){ return String(b.at || "").localeCompare(String(a.at || "")); }).map(function(x){ return '<li><i></i><div><small>' + (x.at ? esc(fmtDay(x.at)) : "") + '</small><span>' + esc(x.text) + '</span></div></li>'; }).join("") + '</ol></div>' : "";
-    return '<article class="cabDealV1">' + head + stepper + next + '<div class="cabDealMetaV1">' + eta + pay + '</div>' + photos + docs + tl + '</article>';
+    return '<article class="cabDealV1">' + head + stepper + next + '<div class="cabDealMetaV1">' + eta + pay + '</div>' + calcBlock(d.calc) + photos + docs + tl + '</article>';
   }
   function paneDeals(){
     if(!S.bound) return '<section class="cabBoxV1"><h2>' + t("dl_h") + '</h2><p class="cabMutedV1">' + t("dl_need_tg") + '</p><button type="button" class="cabBtnV1" data-act="connect">' + t("c_btn") + '</button></section>';

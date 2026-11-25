@@ -6,6 +6,16 @@ const supabase = require("../server/supabase");
 const deals = require("../server/deals");
 const {selfOrigin} = require("../server/origin");
 
+async function lotByVin(request, vin){
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 15000);
+  try{
+    const r = await fetch(`${selfOrigin(request)}/api/auctions?action=vin&vin=${encodeURIComponent(vin)}`, {signal: ctl.signal, headers: {accept: "application/json"}});
+    if(!r.ok) return null;
+    const j = await r.json();
+    return j && j.ok && j.lot && j.lot.year ? j.lot : null;
+  }catch(_){ return null; }
+  finally{ clearTimeout(timer); }
+}
 async function trackByVin(request, vin){
   const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 12000);
   try{
@@ -27,8 +37,17 @@ module.exports = async function handler(request, response){
       // Автозаполнение по VIN: машина, этап, ETA, лента и фото — из тех же данных, что на странице «Отследить»
       const vin = String(getQuery(request).get("lookup") || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
       if(vin.length !== 17){ sendJson(response, 200, {ok: true, found: false, reason: "vin"}); return; }
-      const t = deals.fromTracking(await trackByVin(request, vin));
-      sendJson(response, 200, t ? {ok: true, found: true, data: t} : {ok: true, found: false, reason: "not_found"});
+      const rules = String(getQuery(request).get("rules") || "");
+      const [trk, lot] = await Promise.all([trackByVin(request, vin), lotByVin(request, vin)]);
+      const t = deals.fromTracking(trk);
+      let calc = null;
+      try{ calc = await deals.calcFromLot(lot, rules); }catch(e){ calc = null; }
+      if(!t && !lot){ sendJson(response, 200, {ok: true, found: false, reason: "not_found"}); return; }
+      const data = t || {title: "", vin, stage: "", eta_date: "", timeline: [], photos: [], city: "", auction: "", lot: "", container: "", source: ""};
+      if(!data.title && lot) data.title = String(lot.title || [lot.year, lot.make, lot.model].filter(Boolean).join(" ")).slice(0, 140);
+      if(!data.city && lot) data.city = lot.location || "";
+      data.calc = calc; data.inLots = !!lot;
+      sendJson(response, 200, {ok: true, found: true, data});
       return;
     }
     if(request.method === "GET"){
@@ -54,8 +73,14 @@ module.exports = async function handler(request, response){
       let before = null;
       if(editId){ const r = await supabase.list("cab_deals", {select: "*", id: `eq.${editId}`, limit: "1"}); before = r && r[0]; }
       let saved;
-      if(editId) saved = await supabase.update("cab_deals", editId, row);
-      else saved = await supabase.create("cab_deals", row);
+      let calcWarn = false;
+      const save = r => editId ? supabase.update("cab_deals", editId, r) : supabase.create("cab_deals", r);
+      try{ saved = await save(row); }
+      catch(e){
+        // Колонки calc ещё нет (миграция 20261125_cab_deals_calc.sql) — сохраняем сделку без расчёта и предупреждаем
+        if(/calc/i.test(String((e && e.message) || e))){ const {calc, ...rest} = row; saved = await save(rest); calcWarn = !!calc; }
+        else throw e;
+      }
       saved = Array.isArray(saved) ? saved[0] : saved;
       // уведомление клиенту: этап изменился (или принудительно) и сделка активна
       let notified = "skip";
@@ -66,7 +91,7 @@ module.exports = async function handler(request, response){
         else notified = (await deals.sendTelegram(c.chat, deals.stageMessage(row, c.lang), c.lang)) ? "sent" : "failed";
         if(notified === "sent" && saved && saved.id) await supabase.update("cab_deals", saved.id, {notified_stage: row.stage}).catch(() => {});
       }
-      sendJson(response, 200, {ok: true, item: saved, notified});
+      sendJson(response, 200, {ok: true, item: saved, notified, calcWarn});
       return;
     }
     methodNotAllowed(response, ["GET", "POST", "PATCH", "DELETE"]);

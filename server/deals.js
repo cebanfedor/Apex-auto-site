@@ -79,7 +79,7 @@ function cleanDeal(b){
     phone_key: key, phone: String(b.phone || "").trim().slice(0, 40), client_name: String(b.client_name || "").trim().slice(0, 100) || null,
     title, vin: vin || null, stage, next_step: String(b.next_step || "").trim().slice(0, 300) || null, eta_date: eta,
     total_usd: num(b.total_usd), paid_usd: num(b.paid_usd),
-    timeline: parseTimeline(b.timeline), photos: parsePhotos(b.photos), docs: parseDocs(b.docs),
+    timeline: parseTimeline(b.timeline), photos: parsePhotos(b.photos), docs: parseDocs(b.docs), calc: cleanCalc(b.calc),
     active: b.active !== false && b.active !== "false" && b.active !== 0, updated_at: new Date().toISOString()
   };
 }
@@ -90,6 +90,7 @@ function publicDeal(r){
     id: r.id, title: r.title, vin: r.vin || "", stage: r.stage, next_step: r.next_step || "", eta: r.eta_date || "",
     total: r.total_usd == null ? null : Number(r.total_usd), paid: r.paid_usd == null ? null : Number(r.paid_usd),
     timeline: Array.isArray(r.timeline) ? r.timeline : [], photos: Array.isArray(r.photos) ? r.photos : [], docs: Array.isArray(r.docs) ? r.docs : [],
+    calc: r.calc && typeof r.calc === "object" ? cleanCalc(r.calc) : null,
     updated: r.updated_at
   };
 }
@@ -126,6 +127,86 @@ async function sendTelegram(chatId, text, lang){
   finally{ clearTimeout(timer); }
 }
 
+
+// ---------- Расчёт доставки и таможни («Мои сделки», кабинет) ----------
+// Считает тем же ядром, что калькулятор сайта (calc-core). Менеджер может поправить любую цифру руками;
+// клиенту в кабинете уходит то, что сохранено в cab_deals.calc.
+const VIN_FUEL = {1: "diesel", 2: "electric", 3: "hybrid", 4: "gasoline", 5: "phev"};
+function fuelOfLot(lot){
+  const k = VIN_FUEL[lot.fuelKind]; if(k) return k;
+  const t = [lot.fuel, lot.title].filter(Boolean).join(" ").toLowerCase();
+  if(/plug-?in|phev/.test(t)) return "phev";
+  if(/electric|\bev\b|электро/.test(t)) return "electric";
+  if(/hybrid|гибрид/.test(t)) return "hybrid";
+  if(/diesel|дизел/.test(t)) return "diesel";
+  return "gasoline";
+}
+function vehicleTypeOfLot(lot, ApexCalc){
+  const body = String(lot.body || "").toLowerCase();
+  const text = body + " " + String(lot.make || "").toLowerCase() + " " + String(lot.model || "").toLowerCase();
+  const ps = ApexCalc.powerSportKind ? ApexCalc.powerSportKind(lot) : ""; if(ps) return ps;
+  if(/motorcycle|moto\b/.test(text)) return "moto";
+  if(/\batv\b|quad/.test(text)) return "atv";
+  if(/pickup|truck|silverado|sierra|\bram\b|f-150|f150|tundra|tacoma/.test(text)) return "pickup";
+  if(ApexCalc.isMinivan && ApexCalc.isMinivan(lot.make, lot.model, lot.title, body)) return "minivan";
+  if(/\bvan\b|cargo|sprinter|transit|minivan/.test(text)) return "vanLarge";
+  const byModel = ApexCalc.bodyClassForModel ? ApexCalc.bodyClassForModel(lot.make, lot.model) : null;
+  if(byModel === "crossover" || byModel === "suv") return byModel;
+  if(/suv|utility|cuv|crossover/.test(body)) return "suv";
+  return "sedan";
+}
+function litersOfLot(lot){
+  const m = String(lot.engine || "").match(/\b([1-9](?:\.\d)?)\s*l/i) || String(lot.title || "").match(/\b([1-9]\.\d)\s*l\b/i);
+  const n = m ? Number(m[1]) : Number(lot.vinEngineL) || 0;
+  return n > 0 && n <= 7 ? n : 0;
+}
+const rnd = n => Math.round(Number(n) || 0);
+
+// lot — ответ /api/auctions?action=vin. rules: "2026" | "2027" | "" (по умолчанию как на сайте)
+async function calcFromLot(lot, rules){
+  if(!lot) return null;
+  const isCa = /,\s*canada\s*$|\b(ontario|quebec|alberta|british columbia|manitoba|saskatchewan|nova scotia|new brunswick|newfoundland)\b/i.test(String(lot.location || ""));
+  if(isCa) return {canada: true};
+  const ApexCalc = require("../calc-core.js");
+  const ch = require("./calc-handler");
+  const rates = await ch.currentRates();
+  const sold = Number(lot.statusId) === 6 && Number(lot.finalBid) > 0;
+  const price = sold ? Number(lot.finalBid) : (Number(lot.currentBid) || Number(lot.buyNow) || 0);
+  const auction = lot.auction === "iaai" ? "iaai" : "copart";
+  const location = ch.findLocation(lot.location, auction);
+  const fuel = fuelOfLot(lot);
+  const input = {
+    lotPrice: price, auction, vehicleType: vehicleTypeOfLot(lot, ApexCalc), fuel,
+    engineLiters: fuel === "electric" ? 0 : (litersOfLot(lot) || 2), curbKg: 0,
+    customsRules: rules === "2027" ? "2027" : rules === "2026" ? "2026" : undefined,
+    year: Number(lot.year) || new Date().getFullYear() - 5,
+    insurance: true, exportDocs: false, offsite: false, paymentFee: true, marginUsd: 0,
+    usdMdl: rates.usdMdl, eurMdl: rates.eurMdl, port: (location && location.autoPort) || "nj", location
+  };
+  const r = ApexCalc.compute(input);
+  return {
+    canada: false, locationFound: !!location, locationLabel: location ? (location.displayName || location.location || "") : "",
+    port: r.port || "", rules: input.customsRules || (ApexCalc.getCustomsRules ? ApexCalc.getCustomsRules() : "2026"),
+    vehicleType: input.vehicleType, fuel, engineLiters: input.engineLiters, year: input.year, lotPrice: price,
+    usd_mdl: Number(r.usdMdl) || rates.usdMdl,
+    land_usd: rnd(r.land), sea_usd: rnd(r.sea), customs_mdl: rnd(r.customsMdlValue), broker_mdl: rnd(r.brokerUtilMdl)
+  };
+}
+
+// Что храним и показываем клиенту: четыре суммы + скидка + курс. Всё правится руками.
+function cleanCalc(c){
+  if(!c || typeof c !== "object") return null;
+  const n = v => { const x = num(v); return x == null ? null : x; };
+  const out = {
+    land_usd: n(c.land_usd), sea_usd: n(c.sea_usd), customs_mdl: n(c.customs_mdl), broker_mdl: n(c.broker_mdl),
+    discount_on: c.discount_on === true || c.discount_on === "true" || c.discount_on === 1 || c.discount_on === "on",
+    discount_usd: n(c.discount_usd), usd_mdl: n(c.usd_mdl),
+    rules: c.rules === "2027" ? "2027" : c.rules === "2026" ? "2026" : "",
+    note: String(c.note || "").trim().slice(0, 200)
+  };
+  const any = [out.land_usd, out.sea_usd, out.customs_mdl, out.broker_mdl].some(v => v != null && v > 0);
+  return any ? out : null;
+}
 
 // ---------- Заполнение сделки из трекинга (/api/w8-tracking) ----------
 // Название этапа трекинга (W8 / Dealer API / AvtoShipping) → этап сделки. Дальше «в пути в Кишинёв» (road)
@@ -245,4 +326,4 @@ async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   return out;
 }
 
-module.exports = {fromTracking, mergeTracking, chatForKey, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};
+module.exports = {calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};

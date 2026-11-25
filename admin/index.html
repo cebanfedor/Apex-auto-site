@@ -148,6 +148,21 @@
                 <label>Сумма сделки, $<input name="total_usd" inputmode="decimal"></label>
                 <label>Оплачено, $<input name="paid_usd" inputmode="decimal"></label>
               </div>
+              <fieldset class="dealCalcV1" style="border:1px solid #e3e6ec;border-radius:12px;padding:12px 14px;margin:6px 0 10px">
+                <legend style="padding:0 6px;font-weight:700">Доставка и таможня — видит клиент в кабинете</legend>
+                <div class="grid2">
+                  <label>Доставка по США, $<input name="calc_land" inputmode="decimal"></label>
+                  <label>Море + дорога до Кишинёва, $<input name="calc_sea" inputmode="decimal"></label>
+                  <label>Таможня, лей<input name="calc_customs" inputmode="decimal"></label>
+                  <label>Брокер и утиль сбор, лей<input name="calc_broker" inputmode="decimal"></label>
+                  <label>Курс USD → MDL<input name="calc_rate" inputmode="decimal" placeholder="17.5"></label>
+                  <label>Правила таможни<select name="calc_rules"><option value="">как на сайте</option><option value="2026">2026</option><option value="2027">2027</option></select></label>
+                  <label class="checkV1" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="calc_discount_on" style="width:auto"> Скидка клиенту</label>
+                  <label>Размер скидки, $<input name="calc_discount" inputmode="decimal" placeholder="напр. 200"></label>
+                </div>
+                <label>Пояснение клиенту (необязательно)<input name="calc_note" maxlength="200" placeholder="Скидка за повторную покупку"></label>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="ghost" id="dealRecalcBtn">Пересчитать по калькулятору</button><span id="dealCalcMsg" style="font-size:13px;color:#667080"></span></div>
+              </fieldset>
               <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 8px"><button type="button" class="ghost" id="dealLookupBtn">Подтянуть из трекинга</button><span id="dealLookupMsg" style="font-size:13px;color:#667080"></span></div>
               <label>Что дальше (клиент увидит)<input name="next_step" placeholder="Контейнер вышел из порта, ждём прихода в Клайпеду"></label>
               <label>Лента событий — по строке: дата | текст<textarea name="timeline" rows="4" placeholder="20.11.2026 | Машина погружена в контейнер"></textarea></label>
@@ -360,6 +375,6 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v183"></script>
+  <script src="/admin/admin.js?v=admin-v184"></script>
 </body>
 </html>

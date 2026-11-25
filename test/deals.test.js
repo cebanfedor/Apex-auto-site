@@ -94,3 +94,30 @@ test("mergeTracking: только вперёд, не выше «в пути», E
   assert.strictEqual(p.photos.length, 1);
   assert.strictEqual(deals.mergeTracking({stage: "customs", eta_date: "x", timeline: [], photos: []}, {stage: "road", timeline: [], photos: []}), null);
 });
+
+test("cleanCalc: суммы, скидка, правила; пустой расчёт → null", () => {
+  assert.strictEqual(deals.cleanCalc({}), null);
+  assert.strictEqual(deals.cleanCalc({land_usd: "0", sea_usd: ""}), null);
+  const c = deals.cleanCalc({land_usd: "950", sea_usd: "2 100", customs_mdl: "38 450", broker_mdl: 2000, discount_on: "on", discount_usd: "200", usd_mdl: "17.5", rules: "2027", note: "x".repeat(300)});
+  assert.strictEqual(c.sea_usd, 2100);
+  assert.strictEqual(c.customs_mdl, 38450);
+  assert.strictEqual(c.discount_on, true);
+  assert.strictEqual(c.rules, "2027");
+  assert.strictEqual(c.note.length, 200);
+  const row = deals.cleanDeal({phone: "068832032", title: "BMW", calc: {land_usd: 500}});
+  assert.strictEqual(row.calc.land_usd, 500);
+  assert.strictEqual(deals.publicDeal({id: 1, title: "T", stage: "sea", calc: {customs_mdl: 1000, discount_on: false}}).calc.customs_mdl, 1000);
+});
+test("calcFromLot: США считает доставку/таможню в леях, Канада — вручную, нет лота — null", async () => {
+  assert.strictEqual(await deals.calcFromLot(null), null);
+  assert.deepStrictEqual(await deals.calcFromLot({location: "Toronto, Ontario"}), {canada: true});
+  const c = await deals.calcFromLot({auction: "copart", location: "TX - DALLAS", year: 2019, make: "Toyota", model: "RAV4", title: "2019 Toyota RAV4 XLE", fuelKind: 4, engine: "2.5L 4", currentBid: 6000, statusId: 3});
+  assert.strictEqual(c.canada, false);
+  assert.ok(c.sea_usd > 0, "море");
+  assert.ok(c.customs_mdl > 0, "таможня в леях");
+  assert.ok(c.land_usd >= 0);
+  assert.ok(c.usd_mdl > 10);
+  const ev = await deals.calcFromLot({auction: "iaai", location: "unknown place", year: 2022, make: "Tesla", model: "Model 3", fuelKind: 2, currentBid: 9000}, "2027");
+  assert.strictEqual(ev.rules, "2027");
+  assert.strictEqual(ev.fuel, "electric");
+});

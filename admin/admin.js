@@ -269,18 +269,22 @@ async function loadDeals(){
 
 // Автозаполнение сделки по VIN: машина, этап, ETA, лента и фото — из трекинга («Отследить»).
 // Ничего не затираем: пустое заполняем, этап только двигаем вперёд, ленту/фото дописываем недостающим.
-async function lookupDealVin(manual){
+async function lookupDealVin(manual, recalc){
   const form = $("#dealForm"), msg = $("#dealLookupMsg");
   const vin = String(form.elements.vin.value || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "");
   form.elements.vin.value = vin;
   if(vin.length !== 17){ if(manual) msg.textContent = "Введите VIN целиком (17 символов)."; return; }
   if(form.dataset.lastVin === vin && !manual) return;
   form.dataset.lastVin = vin;
-  msg.textContent = "Ищу в трекинге…";
+  msg.textContent = "Ищу в трекинге и на аукционах…";
+  const rulesSel = form.elements.calc_rules.value;
   let res;
-  try{ res = await api("/api/deals?lookup=" + encodeURIComponent(vin)); }catch(e){ msg.textContent = "Не удалось запросить трекинг: " + (e.message || e); return; }
-  if(!res || !res.found){ msg.textContent = "Трекинг этот VIN пока не знает — заполните вручную (появится позже: обновится само, когда машина попадёт в трекинг)."; return; }
+  try{ res = await api("/api/deals?lookup=" + encodeURIComponent(vin) + (rulesSel ? "&rules=" + rulesSel : "")); }catch(e){ msg.textContent = "Не удалось запросить данные: " + (e.message || e); return; }
+  if(!res || !res.found){ msg.textContent = "Этот VIN пока не нашёлся ни в трекинге, ни в нашей базе аукционов — заполните вручную (трекинг подтянется сам, когда машина в нём появится)."; return; }
   const d = res.data, el = form.elements, got = [];
+  const calcNote = applyDealCalc(d.calc, !!recalc);
+  if(recalc){ msg.textContent = ""; return; }
+  if(calcNote.filled) got.push("расчёт доставки и таможни");
   if(d.title && !el.title.value.trim()){ el.title.value = d.title; got.push("авто"); }
   const order = (state.dealStages || []).map(s => s.key);
   if(d.stage && order.indexOf(d.stage) > order.indexOf(el.stage.value)){ el.stage.value = d.stage; got.push("этап"); }
@@ -296,6 +300,25 @@ async function lookupDealVin(manual){
   const where = [d.auction, d.city].filter(Boolean).join(", ");
   msg.textContent = "Найдено: " + (d.title || "авто") + (where ? " · " + where : "") + (got.length ? " — подставлено: " + got.join(", ") : " — всё уже заполнено") + ".";
 }
+
+// Расчёт доставки и таможни из калькулятора сайта: подставляем в пустые поля (или перезаписываем по кнопке «Пересчитать»)
+function applyDealCalc(c, overwrite){
+  const form = $("#dealForm"), el = form.elements, out = $("#dealCalcMsg");
+  const say = t => { if(out) out.textContent = t; };
+  if(!c){ say("Машины нет в нашей базе аукционов — впишите цифры вручную."); return {filled: false}; }
+  if(c.canada){ say("Канадский лот — считается по другой формуле, впишите цифры вручную."); return {filled: false}; }
+  const put = (name, v) => { if(v == null || v === "") return false; if(el[name].value !== "" && !overwrite) return false; el[name].value = v; return true; };
+  let n = 0;
+  if(put("calc_land", c.land_usd)) n++;
+  if(put("calc_sea", c.sea_usd)) n++;
+  if(put("calc_customs", c.customs_mdl)) n++;
+  if(put("calc_broker", c.broker_mdl)) n++;
+  if(put("calc_rate", c.usd_mdl)) n++;
+  if(c.rules && !el.calc_rules.value){ el.calc_rules.value = c.rules; }
+  const warn = c.locationFound ? "" : " ⚠️ Площадка аукциона не найдена — доставку по США впишите сами.";
+  say("По калькулятору: доставка по США $" + c.land_usd + ", море+дорога $" + c.sea_usd + ", таможня " + Number(c.customs_mdl).toLocaleString("ru-RU") + " лей (правила " + c.rules + ")." + warn);
+  return {filled: n > 0};
+}
 function setDealForm(item){
   const form = $("#dealForm");
   form.reset();
@@ -309,6 +332,12 @@ function setDealForm(item){
   $("#dealFormTitle").textContent = "Редактировать сделку";
   form.dataset.lastVin = String(item.vin || "");
   const lm = $("#dealLookupMsg"); if(lm) lm.textContent = "";
+  const cm = $("#dealCalcMsg"); if(cm) cm.textContent = "";
+  const c = item.calc || {};
+  const sv = (n, v) => { form.elements[n].value = v == null ? "" : v; };
+  sv("calc_land", c.land_usd); sv("calc_sea", c.sea_usd); sv("calc_customs", c.customs_mdl); sv("calc_broker", c.broker_mdl);
+  sv("calc_rate", c.usd_mdl); sv("calc_rules", c.rules || ""); sv("calc_discount", c.discount_usd); sv("calc_note", c.note || "");
+  form.elements.calc_discount_on.checked = !!c.discount_on;
 }
 
 async function loadCustomers(){
@@ -814,12 +843,17 @@ function bindForms(){
 
   $("#dealForm").elements.vin.addEventListener("input", () => lookupDealVin(false));
   $("#dealLookupBtn").addEventListener("click", () => lookupDealVin(true));
+  $("#dealRecalcBtn").addEventListener("click", () => lookupDealVin(true, true));
   $("#dealForm").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
     const data = formData(form);
     data.active = form.elements.active.checked;
     data.notify = form.elements.notify.checked;
+    const f = form.elements;
+    data.calc = {land_usd: f.calc_land.value, sea_usd: f.calc_sea.value, customs_mdl: f.calc_customs.value, broker_mdl: f.calc_broker.value,
+      usd_mdl: f.calc_rate.value, rules: f.calc_rules.value, discount_on: f.calc_discount_on.checked, discount_usd: f.calc_discount.value, note: f.calc_note.value};
+    Object.keys(data).forEach(k => { if(k.indexOf("calc_") === 0) delete data[k]; });
     const id = data.id; delete data.id;
     const btn = form.querySelector('[type="submit"]');
     try{
@@ -828,7 +862,8 @@ function bindForms(){
       resetForm("dealForm");
       await loadDeals();
       const n = {sent: " Клиенту отправлено сообщение в Telegram.", no_chat: " Клиент ещё не подтвердил номер в боте — сообщение не отправлено.", failed: " Не удалось отправить сообщение в Telegram."}[res.notified] || "";
-      showNotice("Сделка сохранена." + n, res.notified !== "failed");
+      const cw = res.calcWarn ? " ⚠️ Расчёт доставки/таможни НЕ сохранён: выполните SQL из supabase/migrations/20261125_cab_deals_calc.sql в Supabase." : "";
+      showNotice("Сделка сохранена." + n + cw, res.notified !== "failed" && !res.calcWarn);
     }catch(error){
       alert("Не сохранилось: " + (error.message || error));
     }finally{ btn.disabled = false; }

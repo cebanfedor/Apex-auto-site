@@ -313,3 +313,17 @@
 .cabGuideV1.is-low em { background: #dcfce7; color: #14532d; }
 .cabGuideV1.is-in em { background: #e0ecff; color: #1e3a8a; }
 .cabGuideV1.is-high em { background: #fee2e2; color: #991b1b; }
+
+/* Доставка и таможня в сделке (суммы менеджера, лей отдельно) */
+.cabCalcV1 { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: var(--field, #f4f6f9); display: grid; gap: 4px; }
+.cabCalcHeadV1 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.cabCalcHeadV1 small { color: #667080; font-size: 12px; }
+.cabCalcRowV1 { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; border-bottom: 1px dashed rgba(15, 23, 42, .1); }
+.cabCalcRowV1 span { min-width: 0; color: #414b5a; }
+.cabCalcRowV1 b { white-space: nowrap; text-align: right; }
+.cabCalcRowV1 b em { font-style: normal; font-weight: 500; color: #667080; font-size: 12.5px; margin-left: 4px; }
+.cabCalcRowV1.isDisc b { color: #1b9c5b; }
+.cabCalcRowV1.isSum { border-bottom: 0; padding-top: 8px; font-size: 15px; }
+.cabCalcRowV1.isSum b { color: var(--red, #ed0012); }
+.cabCalcV1 .cabMutedV1 { margin: 6px 0 0; font-size: 12px; }
+@media (max-width: 480px) { .cabCalcRowV1 { font-size: 13.5px; } }

@@ -311,3 +311,5 @@ module.exports = async function handler(request, response) {
     response.status(500).json({ ok: false, error: "Не удалось посчитать: " + String((error && error.message) || error) });
   }
 };
+module.exports.findLocation = findLocation;
+module.exports.currentRates = currentRates;
