@@ -2120,3 +2120,14 @@ html.aucLotPageV1 #auctionCatalog { display:none; }
 .pickDotV1{width:9px;height:9px;border-radius:50%;background:#c4c9d2;grid-row:1 / span 2}
 .pickDotV1.on{background:#19a463;box-shadow:0 0 0 3px rgba(25,164,99,.2)}
 .pickEmptyV1{margin:0;padding:14px;color:#667080;font-size:13.5px}
+
+/* Проверка телефона 320px (25.11.2026) */
+/* калькулятор лота: три пилюли («Экспорт-документы / Offsite / Оплата в MDL») растягивали страницу на 6px → колонки сжимаются */
+.calcPairRowV1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.calcPairRowV1 .calcOptV2 span { overflow-wrap: anywhere; }
+@media (max-width: 380px) {
+  .calcPairRowV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .calcPairRowV1 .calcOptV2:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+/* «Смотреть видео» в таблице лота не выходит из ячейки */
+.dLinkBtnV1 { max-width: 100%; text-align: left; white-space: normal; }

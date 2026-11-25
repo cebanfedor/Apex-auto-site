@@ -2774,3 +2774,9 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .contactsQuickCardV110 { padding: 20px 18px; }
   .contactsQuickCardV110 > div a { min-height: 48px; height: auto; padding: 6px 10px; font-size: clamp(13px, 4.2vw, 16px); text-align: center; overflow-wrap: anywhere; min-width: 0; }
 }
+
+/* Проверка телефона 320px (25.11.2026): колонки сетки `1fr` не сжимались ниже ширины текста —
+   строка «Локация аукциона» + Offsite на главной вылезала из карточки калькулятора на ~26px. */
+.locationOffsiteRowV314 { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); min-width: 0; }
+@media (max-width: 640px) { .locationOffsiteRowV314 { grid-template-columns: minmax(0, 1fr); } }
+.glassSelectButtonV152 > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
