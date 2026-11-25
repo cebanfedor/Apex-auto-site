@@ -307,7 +307,7 @@
   function startDealPoll(){
     if(dealPoll) return;
     var tries = 0;
-    dealPoll = setInterval(function(){ if(++tries > 100){ clearInterval(dealPoll); dealPoll = null; return; } loadDeals(); }, 3000);
+    dealPoll = setInterval(function(){ if(++tries > 100){ clearInterval(dealPoll); dealPoll = null; return; } /* alertstatus заодно опрашивает Telegram (getUpdates) — без него бот отвечает только по крону раз в 3 мин */ getApi("alertstatus", "token=" + encodeURIComponent(token())).catch(function(){}).then(loadDeals); }, 3000);
   }
   function money0(n){ return Number(n || 0).toLocaleString("en-US").replace(/,/g, " ") + " $"; }
   function dealCard(d, compact){
