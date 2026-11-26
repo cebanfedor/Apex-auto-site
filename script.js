@@ -1264,6 +1264,7 @@ function calculate(){
 
   $("total").textContent = currency === "mdl" ? moneyMdl(totalMdl) : currency === "eur" ? moneyEur(mdlToEur(totalMdl)) : moneyUsd(totalUsd);
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
+  if(!(Number($("lotPrice")?.value) > 0)){ $("total").textContent = (window.APEX_LANG === "ro" ? "Introduceți prețul lotului" : window.APEX_LANG === "en" ? "Enter the lot price" : "Введите стоимость лота"); $("subTotal").textContent = ""; }
   $("chosenRoute").textContent = route;
   if($("deliveryTimeV366")) $("deliveryTimeV366").textContent = getDeliveryWeeks();
   if($("auctionBadge")) $("auctionBadge").textContent = $("auction").value.toUpperCase();
@@ -1309,6 +1310,7 @@ function calculate(){
   const smartAdvice = renderSmartLotAdvice(totalUsd);
   const bidAdvice = renderBidAdvisor(totalUsd);
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction").value, importedLot: lastImportedLot, smartAdvice, bidAdvice };
+  try{ if(calcTouchedV1 && !window.__calcResultSent && totalUsd > 0){ window.__calcResultSent = 1; if(window.apexTrack) window.apexTrack("calc_result"); } }catch(e){}
   updateShare();
 }
 
@@ -1393,7 +1395,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     applyLotParamImport();
   }
   document.querySelectorAll(".currency").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".currency").forEach(i=>i.classList.remove("active"));b.classList.add("active");currency=b.dataset.currency;markCalcTouchedV1();calculate()}));
-  if($("copyBtn"))$("copyBtn").addEventListener("click",()=>{markCalcActedV1();copyCalc();});
+  if($("copyBtn"))$("copyBtn").addEventListener("click",()=>{markCalcActedV1();try{ if(window.apexTrack) window.apexTrack("calc_share:copy"); }catch(e){} copyCalc();});
   if($("tgBtn"))$("tgBtn").addEventListener("click",markCalcActedV1);
   if($("pngBtn"))$("pngBtn").addEventListener("click",downloadPng);
   if($("aiBidBtn"))$("aiBidBtn").addEventListener("click",requestAiBidAdvice);
@@ -1819,6 +1821,7 @@ function calculateCanada(){
 
   $("total").textContent = currency === "mdl" ? moneyMdl(totalMdl) : currency === "eur" ? moneyEur(mdlToEur(totalMdl)) : moneyUsd(totalUsd);
   $("subTotal").textContent = `${moneyUsd(totalUsd)} / ${moneyMdl(totalMdl)} / ${moneyEur(mdlToEur(totalMdl))}`;
+  if(!(Number($("lotPrice")?.value) > 0)){ $("total").textContent = (window.APEX_LANG === "ro" ? "Introduceți prețul lotului" : window.APEX_LANG === "en" ? "Enter the lot price" : "Введите стоимость лота"); $("subTotal").textContent = ""; }
   $("chosenRoute").textContent = route;
   if($("auctionBadge")) $("auctionBadge").textContent = ($("auction")?.value || "copart").toUpperCase();
   const _lngCA = window.APEX_LANG || "ru";
@@ -1883,6 +1886,7 @@ function calculateCanada(){
     calcSectionHeader("Оплата после покупки лота", usdRowsSum(payNowRows)) + payNowRows.map(r => row(...r)).join("") +
     calcSectionHeader("Оплата при получении (~2 мес.)", Math.max(0, totalUsd - usdRowsSum(payNowRows))) + payLaterRows.map(r => row(...r)).join("");
   lastCalc = { route, totalUsd, totalMdl, rows, lot, auction: $("auction")?.value, importedLot: lastImportedLot, smartAdvice: "", bidAdvice: "", isCanada: true };
+  try{ if(calcTouchedV1 && !window.__calcResultSent && totalUsd > 0){ window.__calcResultSent = 1; if(window.apexTrack) window.apexTrack("calc_result"); } }catch(e){}
   updateShare();
 }
 

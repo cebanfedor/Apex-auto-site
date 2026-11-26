@@ -713,7 +713,9 @@ function bindTabs(){
 
 // ── Аналитика: онлайн сейчас, посещаемость, популярные страницы, статистика уведомлений ──
 let analyticsDays = 7, analyticsTimer = null;
-const EV_NAMES = {fav_add:"Добавили в избранное", save_search:"Сохранили поиск", alert_search:"Нажали «Уведомлять о новых»", alert_lot:"Нажали «Следить за лотом»", alert_connected:"Подключили Telegram", lead_open:"Открыли форму заявки", calc_use:"Пользовались калькулятором"};
+const EV_NAMES = {fav_add:"Добавили в избранное", save_search:"Сохранили поиск", alert_search:"Нажали «Уведомлять о новых»", alert_lot:"Нажали «Следить за лотом»", alert_connected:"Подключили Telegram", lead_open:"Открыли форму заявки", calc_use:"Пользовались калькулятором", calc_result:"Получили расчёт", calc_share:"Поделились расчётом", lead_sent:"Отправили заявку", contact_click:"Нажали на контакт (Telegram/WhatsApp/звонок)", wizard_start:"Открыли «Подбери мне»", wizard_done:"Прошли «Подбери мне»", hero_cta:"Нажали кнопку на первом экране"};
+const EV_SUFFIX = {tg:"Telegram", wa:"WhatsApp", phone:"звонок", email:"e-mail", copy:"копирование", home:"главная", lot:"страница лота", catalog:"каталог", transit:"авто в пути", carcat:"Корея/Канада", contacts:"контакты", vin:"страница VIN", other:"другое", calc:"калькулятор", match:"подбор"};
+const evName = ev => { const [b, sfx] = String(ev).split(":"); return (EV_NAMES[b] || b) + (sfx ? ` — ${EV_SUFFIX[sfx] || sfx}` : ""); };
 const DEV_NAMES = {m:"Телефон", d:"Компьютер", t:"Планшет", "?":"Не определено"};
 const num = n => Number(n || 0).toLocaleString("ru-RU");
 function anTable(rows, cols){
@@ -744,7 +746,7 @@ function renderAnalytics(s){
   const conv = A.links ? Math.round(A.bound / A.links * 100) : 0;
   const per = s.period || {visitors:0, views:0};
   const perV = per.visitors ? (per.views / per.visitors).toFixed(1) : "0";
-  const evRows = (s.events || []).map(e => ({name:EV_NAMES[e.ev] || e.ev, n:e.n, v:e.visitors}));
+  const evRows = (s.events || []).map(e => ({name:evName(e.ev), n:e.n, v:e.visitors}));
   const lotLink = p => `<a href="${escapeHtml(p)}" target="_blank" rel="noopener">${escapeHtml(p.replace("/auctions/", ""))}</a>`;
   return `
   <div class="anGridV1">

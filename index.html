@@ -43,7 +43,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v583">
+  <link rel="stylesheet" href="styles.css?v=v584">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" type="image/png" href="/favicon-96.png" sizes="96x96">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -151,9 +151,10 @@
       <h1>Авто из США, Канады, Кореи и Европы в Кишинёв — цена под ключ до того, как участвовать в торгах</h1>
       <p>Морская перевозка, таможня, растаможка — сопровождаем сделку от ставки до выдачи авто.</p>
       <div class="heroCtasV207">
-        <a class="heroBtnPrimaryV207" href="#calculator">Рассчитать стоимость</a>
-        <a class="heroBtnGhostV207" href="https://t.me/fedukusa" target="_blank" rel="noopener">Написать в Telegram</a>
+        <a class="heroBtnPrimaryV207" href="#calculator" data-hero-cta="calc">Рассчитать стоимость</a>
+        <a class="heroBtnGhostV207" href="https://t.me/fedukusa" target="_blank" rel="noopener" data-hero-cta="tg">Написать в Telegram</a>
       </div>
+      <a class="heroRatingV1" href="#reviews" aria-label="Рейтинг в Google 4,5, 46 отзывов"><span class="heroRatingStarsV1" aria-hidden="true">★★★★★</span><b>4,5</b><span>46 отзывов в Google</span></a>
       <ul class="heroTrustV207">
         <li>Carfax до покупки — бесплатно</li>
         <li>Полная цена и комиссия — до ставки, без скрытых платежей</li>
@@ -200,7 +201,7 @@
           <input id="heroSearchVin" type="text" inputmode="search" placeholder="Название, VIN или номер лота">
           <button id="heroSearchBtn" type="button" class="heroSearchBtnV1">Показать <span id="heroSearchCount">…</span></button>
           <a class="heroSearchHintV1" href="/auctions"><span class="heroSearchHintPreV1">Не знаете, с чего начать?</span> <b>Смотреть каталог →</b></a>
-          <button type="button" class="heroWizBtnV1" data-open-wizard>Подобрать авто за 30 секунд</button>
+          <button type="button" class="heroWizBtnV1" data-open-wizard data-hero-cta="match">Подобрать авто за 30 секунд</button>
         </div>
   </div>
 </section>
@@ -356,11 +357,14 @@
           </div>
         </div>
 
+        <details class="calcAdvV1">
+        <summary>Курсы валют</summary>
         <div class="ratesTopV375">
           <div class="rateFieldV374" id="rateUsdWrapV405"><label for="usdMdl">USD → MDL</label><input id="usdMdl" type="number" step="0.01" value="17.45"></div>
           <div class="rateFieldV374" id="rateEurWrapV405"><label for="eurMdl">EUR → MDL</label><input id="eurMdl" type="number" step="0.01" value="20.28"></div>
           <p class="rateHintV404">Обновляется ежедневно <span id="mdlRateSourceV404"></span></p>
         </div>
+        </details>
 
         <input id="cadUsd" type="hidden" value="0.6923">
 
@@ -545,9 +549,9 @@
 </main>
   <script src="locations.js?v=calc-v401" defer></script>
   <script src="calc-core.js?v=core-v23" defer></script>
-  <script src="script.js?v=calc-v472" defer></script>
+  <script src="script.js?v=calc-v473" defer></script>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v651" defer></script>
+  <script src="i18n.js?v=multilang-v652" defer></script>
   <script src="home-transit.js?v=ht-v13" defer></script>
   <script src="home-lots.js?v=home-v18" defer></script>
   <script src="home-korea.js?v=hk-v2" defer></script>
@@ -857,11 +861,11 @@
     <svg class="fabIconCloseV341" width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
   </button>
 </div>
-<script src="/analytics.js?v=1" defer></script>
+<script src="/analytics.js?v=2" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
 <script src="/site-nav.js?v=v10" defer></script>
 <script src="/cab-ping.js?v=v1" defer></script>
-<script src="/wizard.js?v=v1" defer></script>
+<script src="/wizard.js?v=v2" defer></script>
 <script src="/canada-facts.js?v=v2" defer></script>
 <script src="/mobile-bar.js?v=v10" defer></script>
 <script src="/mobile-ux.js?v=v2" defer></script>
