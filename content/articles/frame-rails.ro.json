@@ -1,0 +1,150 @@
+{
+  "slug": "frame-rails",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Îndreptarea longeroanelor și geometria caroseriei: cum se face | Apex Auto",
+    "description": "Ce sunt longeronul și banca de îndreptat, cum se aliniază caroseria după lovitură, unde e permisă tragerea și unde trebuie înlocuită secțiunea. Cum verifici rezultatul.",
+    "ogTitle": "Îndreptarea longeroanelor: cum se aliniază caroseria după lovitură",
+    "ogDesc": "Bancă de îndreptat, măsurători, tragere și înlocuirea secțiunii: ce se poate repara cu adevărat și cum verifici rezultatul."
+  },
+  "tag": "Reparația caroseriei",
+  "kicker": "Piese și reparații · Geometrie",
+  "h1": "Îndreptarea longeroanelor și geometria caroseriei: ce se poate repara cu adevărat",
+  "lead": "„Frame damage” în fișa lotului sunt cele mai îngrijorătoare cuvinte pentru un cumpărător. Dar autoturismele aproape că nu au șasiu separat: au caroserie autoportantă cu longeroane, iar deformarea unui longeron nu e o condamnare. Atelierele cu bancă de îndreptat scot regulat astfel de avarii. Explicăm cum se face, în ce cazuri e acceptabil și cum verifici rezultatul.",
+  "card": {
+    "tag": "Reparația caroseriei",
+    "title": "Îndreptarea longeroanelor și geometria caroseriei: ce se poate repara cu adevărat",
+    "text": "Bancă de îndreptat, măsurători, tragere și înlocuirea secțiunii. Când poate fi îndreptat longeronul, unde e limita admisibilului și cum verifici rezultatul după documente."
+  },
+  "og": {
+    "k": "REPARAȚIA CAROSERIEI",
+    "h": "Îndreptarea longeroanelor",
+    "s": "Bancă de îndreptat, măsurători și limita admisibilului"
+  },
+  "summary": [
+    "**Majoritatea autoturismelor nu au șasiu separat:** longeroanele fac parte din caroseria autoportantă și sunt calculate special să se strivească la impact.",
+    "**Se poate îndrepta mult:** pe bancă, caroseria este trasă către dimensiunile de fabrică, iar zonele avariate se înlocuiesc cu secțiuni.",
+    "**Rezultatul se verifică prin măsurători:** măsurătorile înainte și după sunt singura metodă sinceră de a afla dacă geometria a revenit.",
+    "**Există limite:** ruperile de metal, avarierea mai multor elemente structurale deodată și oțelurile de înaltă rezistență impun restricții.",
+    "**Nu e întotdeauna scump:** costul depinde de timpul petrecut pe bancă și de necesitatea de a înlocui o secțiune."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Ce este longeronul și ce legătură are cu „șasiul”"
+    },
+    {
+      "t": "p",
+      "x": "SUV-urile cu șasiu și camioanele au un cadru separat, de care se fixează caroseria. La majoritatea autoturismelor și crossoverelor caroseria este autoportantă: rezistența vine de la stâlpi, praguri, podea și longeroane — grinzile structurale longitudinale din față și din spate. În anunțuri, în fișele lotelor și în discuții, tocmai aceste elemente sunt adesea numite „șasiu”."
+    },
+    {
+      "t": "p",
+      "x": "Longeroanele sunt făcute cu zone de deformare controlată: la impact se strivesc și absorb energia, protejând habitaclul. De aceea un longeron strivit este rezultatul normal al unei construcții bune, nu neapărat o mașină fără speranță."
+    },
+    {
+      "t": "h2",
+      "x": "Cum funcționează banca de îndreptat"
+    },
+    {
+      "t": "p",
+      "x": "Banca de îndreptat este o platformă rigidă pe care caroseria se fixează de praguri și de punctele de sprijin. La zonele avariate se conectează dispozitive hidraulice puternice — lanțuri și turnuri de tragere, care trag metalul în direcția dorită. În paralel, sistemul de măsurare compară poziția punctelor de control cu fișa de dimensiuni a producătorului."
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Măsurarea.** Se stabilește care puncte de control sunt deplasate și cât. Rezultă o hartă a avariilor, adesea mai extinsă decât se vede cu ochiul.",
+        "**Fixarea.** Caroseria se fixează pe bancă astfel încât să nu se miște în timpul tragerii.",
+        "**Tragerea.** Zona avariată este trasă treptat în direcția dorită, cu remăsurări periodice. Metalul „își amintește” forma, de aceea tragerea se face în etape.",
+        "**Eliminarea tensiunilor.** Se controlează deformările remanente, ca metalul să nu „revină”.",
+        "**Măsurătoarea de control.** Se confirmă că toate punctele se încadrează în toleranță."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Tragere sau înlocuirea secțiunii"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Tragere.** Potrivită când metalul este strivit, dar fără rupturi și cute ascuțite, iar deplasarea se încadrează în ceea ce se poate reface prin îndreptare la rece.",
+        "**Înlocuirea secțiunii.** Dacă porțiunea longeronului este ruptă, foarte întinsă sau încrețită „în acordeon”, se taie și se montează o parte nouă conform tehnologiei producătorului: în anumite locuri și cu un anumit tip de sudură.",
+        "**Înlocuirea completă.** Este rară și se justifică doar în cazurile grave."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Un aspect important: caroseriile moderne conțin oțeluri de înaltă rezistență. Producătorii indică unde se poate tăia, cu ce fel de sudură se îmbină și ce nu trebuie încălzit, deoarece supraîncălzirea slăbește un astfel de metal. Un meșter bun lucrează după aceste instrucțiuni, nu „cum e obișnuit”."
+    },
+    {
+      "t": "h2",
+      "x": "Cum verifici rezultatul"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Cere protocolul de măsurători înainte și după reparație, cu toleranțele producătorului.",
+        "Uită-te la fotografiile etapelor: banca de îndreptat, tragerea, înlocuirea secțiunii, sudura.",
+        "Verifică rosturile caroseriei: capota, aripile, ușile și portbagajul trebuie să stea drept.",
+        "Asigură-te că unghiurile de montare a roților și suspensia au fost verificate: geometria caroseriei influențează direct reglajul roților (cădere și convergență).",
+        "Atenție la suduri și la protecția anticorozivă: după reparație metalul trebuie protejat împotriva ruginii."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "De ce nu e întotdeauna scump"
+    },
+    {
+      "t": "p",
+      "x": "Principalul factor care determină costul este timpul petrecut pe bancă și necesitatea de a înlocui o secțiune. Dacă deformarea este mică și se află în zona de strivire, iar sunt avariate doar longeronul și bara cu armătura ei, reparația este o lucrare obișnuită. Devine scump atunci când sunt avariate deodată mai multe elemente structurale și sunt necesare măsurători îndelungate și înlocuirea mai multor secțiuni."
+    },
+    {
+      "t": "h2",
+      "x": "Când e mai bine să renunți la lot"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "metalul este rupt în mai multe locuri, iar deplasarea punctelor de control este mare;",
+        "sunt avariate simultan longeroanele, stâlpii, pragul și podeaua;",
+        "după fotografii nu se poate evalua amploarea avariei, iar rezerva pentru avariile ascunse depășește câștigul;",
+        "mașina are structuri complexe din oțeluri de înaltă rezistență și nu există date despre metodele de reparație admise;",
+        "există semne de coroziune ascunsă sau de reparație anterioară de proastă calitate."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Abordarea generală a evaluării costului se găsește în [[ghidul de reparații după licitație|repair-guide]]. Despre înlocuirea panourilor caroseriei prinse prin sudură — în articolul [[Înlocuirea aripii din spate|rear-quarter]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Se poate circula cu mașina după îndreptarea longeroanelor?",
+      "a": "Da, dacă reparația a fost făcută conform tehnologiei, geometria este confirmată prin măsurători, iar suspensia și unghiurile roților au fost verificate. O mașină cu caroseria refăcută corect se comportă ca una obișnuită."
+    },
+    {
+      "q": "Este sigură mașina după repararea longeronului?",
+      "a": "Siguranța depinde de calitatea reparației: se folosesc metodele permise de producător, au fost păstrate zonele de deformare, este confirmată geometria. De aceea contează măsurătorile și documentele. Lipsa protocolului este un motiv de prudență."
+    },
+    {
+      "q": "Ce înseamnă Frame damage în fișa lotului?",
+      "a": "Este o mențiune despre avarierea elementelor structurale. Ea arată că trebuie analizate mai atent măsurătorile și banca de îndreptat, dar în sine nu înseamnă că mașina nu poate fi reparată."
+    },
+    {
+      "q": "Cât costă îndreptarea unui longeron?",
+      "a": "Nu există o sumă universală: costul depinde de timpul pe bancă, de volumul tragerii, de înlocuirea secțiunii și de vopsire. Îl calculăm ca o linie separată pentru lotul concret, după evaluarea fotografiilor și a descrierii avariilor."
+    }
+  ],
+  "cta": {
+    "h": "În lot scrie „Frame” sau „Structural”?",
+    "p": "Trimite-ne linkul de pe Copart sau IAAI — evaluăm amploarea avariei după fotografii și îți spunem dacă se poate repara pe bancă și dacă merită să te angajezi.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ghid de reparații",
+    "b2slug": "repair-guide"
+  },
+  "related": [
+    "repair-guide",
+    "rear-quarter",
+    "body-panels"
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "slug": "repair-guide",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Repararea mașinii după licitație: ce se poate face în realitate și cât costă | Apex Auto",
+    "description": "Ce reparații la o mașină avariată de la licitație sunt simple și ieftine și care sunt complicate: caroserie, vopsire, longeroane, airbaguri, motor, cutie automată.",
+    "ogTitle": "Repararea mașinii după licitație: ce se poate face în realitate și cât costă",
+    "ogDesc": "Din ce se compune costul reparației, ce daune se rezolvă simplu și când e mai bine să renunți la lot."
+  },
+  "tag": "Reparații",
+  "kicker": "Piese și reparații · Ghid",
+  "h1": "Repararea mașinii după licitație: ce se poate face în realitate și de ce nu este mereu scump",
+  "lead": "Cuvintele înfricoșătoare din fișa lotului — „Front End”, „Side”, „Frame” — sperie mai mult decât costă de fapt reparația. Aproape tot ce se întâmplă cu o mașină într-un accident se poate repara. Întrebarea nu este „se poate?”, ci „câte ore, ce piese și merită economia?”. Analizăm din ce se compune costul, ce se face simplu și ce este cu adevărat complicat.",
+  "card": {
+    "tag": "Ghid",
+    "title": "Reparația după licitație: ce se poate face în realitate și cât costă",
+    "text": "Din ce se compune costul reparației, ce daune se rezolvă simplu și când e mai bine să renunți la lot. Linkuri către analize detaliate pentru fiecare tip de lucrare."
+  },
+  "og": {
+    "k": "REPARAȚII",
+    "h": "Reparația după licitație: ce se poate face în realitate",
+    "s": "Din ce se compune costul și când e mai bine să renunți"
+  },
+  "summary": [
+    "**Aproape totul se poate repara:** panourile de caroserie, vopsirea, înlocuirea aripii spate, îndreptarea longeroanelor, airbagurile, motorul și cutia de viteze — toate sunt lucrări obișnuite pentru atelierele de tinichigerie și de mecanică.",
+    "**Costul înseamnă ore și piese:** calculăm manopera, prețul pieselor, vopsirea și o rezervă pentru daunele ascunse. Aceeași mașină „avariată” poate fi ieftină sau neprofitabilă — totul depinde de ce anume este deteriorat.",
+    "**Cel mai scump nu este „reparația mare”, ci incertitudinea:** când din fotografii nu se văd daunele ascunse, includem o rezervă sau renunțăm la lot.",
+    "**Avantajul îl dă diferența:** prețul lotului plus transportul și reparația trebuie să rămână vizibil sub prețul aceleiași mașini întregi."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "De ce reparația după licitație pare înfricoșătoare"
+    },
+    {
+      "t": "p",
+      "x": "Compania de asigurări calculează reparația la prețurile service-urilor din SUA și ale pieselor originale noi. Dacă devizul de reparație se apropie de valoarea mașinii, aceasta este radiată și scoasă la licitație. De aceea, în fișa lotului poate figura ca „avariată” o mașină pe care un atelier bun o restaurează la un preț rezonabil: atelierul are alte tarife de manoperă, alte surse de piese și alte toleranțe."
+    },
+    {
+      "t": "p",
+      "x": "Asta nu înseamnă că orice lot este avantajos. Înseamnă că reparația trebuie evaluată pe fond: ce este deteriorat, ce piese sunt necesare, unde se află partea ascunsă și cât timp durează."
+    },
+    {
+      "t": "h2",
+      "x": "Din ce se compune costul reparației"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Manopera.** Orele maiștrilor: demontare, înlocuire, sudură, vopsire, montaj, reglaje. Cu cât sunt mai multe piese sudate, cu atât sunt mai multe ore.",
+        "**Piesele.** Noi originale, echivalente de calitate sau second-hand de la dezmembrări. Diferența de preț dintre variante poate fi de multe ori, iar alegerea se face pentru fiecare piesă în parte.",
+        "**Vopsirea.** Adesea cea mai mare și mai subestimată linie: pregătirea, potrivirea culorii, vopselele în trei straturi și cele perlate, vopsirea „în îmbinare” cu panourile vecine.",
+        "**Diagnosticare și geometrie.** Măsurarea caroseriei, verificarea suspensiei, scanarea sistemelor electronice, calibrarea senzorilor și a camerelor.",
+        "**Daune ascunse.** Ce se vede abia după demontare. Un deviz bun include întotdeauna o rezervă pentru ele."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce se face simplu și ce este complicat"
+    },
+    {
+      "t": "p",
+      "x": "Este un reper de complexitate, nu o listă de prețuri: sumele concrete depind de marcă, de an și de regiune."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Tipul reparației",
+        "Complexitate",
+        "Ce determină costul"
+      ],
+      "rows": [
+        [
+          "Bare de protecție, faruri, grile, oglinzi",
+          "Scăzută",
+          "Prețul piesei și vopsirea; înlocuirea durează câteva ore"
+        ],
+        [
+          "Panouri montate cu șuruburi: capotă, aripi, uși, capac portbagaj",
+          "Scăzută–medie",
+          "Piesa și vopsirea; nu trebuie sudat nimic"
+        ],
+        [
+          "Vopsire locală, îndreptarea îndoiturilor",
+          "Scăzută–medie",
+          "Suprafața și complexitatea culorii"
+        ],
+        [
+          "Piese sudate: prag, aripa spate, panouri de caroserie",
+          "Medie",
+          "Numărul cordoanelor de sudură, accesul la piesă, vopsirea"
+        ],
+        [
+          "Longeroane și geometria caroseriei",
+          "Medie–ridicată",
+          "Timpul pe banc, necesitatea înlocuirii unei secțiuni"
+        ],
+        [
+          "Airbaguri și centuri de siguranță",
+          "Medie",
+          "Numărul modulelor declanșate, unitatea SRS, bordul"
+        ],
+        [
+          "Motor sau cutie automată",
+          "De la scăzută la ridicată",
+          "Agregat second-hand sau nou, compatibilitatea, complexitatea cutiei"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Analize detaliate pe tipuri de lucrări"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "[[Înlocuirea pieselor de caroserie: aripi, capotă, uși, bare|body-panels]] — ce este simplu și unde sunt necesare vopsirea și calibrarea senzorilor.",
+        "[[Înlocuirea aripii spate|rear-quarter]] — cum se înlocuiește panoul lateral sudat și când se justifică.",
+        "[[Îndreptarea longeroanelor și geometria caroseriei|frame-rails]] — cum funcționează tragerea pe banc și unde este limita acceptabilă.",
+        "[[Înlocuirea motorului sau a cutiei automate|engine-transmission]] — variantele de agregate și la ce să te uiți când alegi.",
+        "[[Cum este construit airbagul|airbag]] — ce se înlocuiește după declanșare și ce nu trebuie făcut."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Cum evaluăm un lot înainte de a licita"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "Ne uităm la toate fotografiile lotului, la evaluarea daunelor și la estimarea reparației făcută de licitație, dar calculăm noi înșine: nu preluăm cifrele de acolo „ca atare”.",
+        "Separăm daunele în cele vizibile și cele probabil ascunse în spatele lor: de exemplu, în spatele unei bare deformate se află adesea armătura și radiatorul.",
+        "Adunăm manopera, piesele și vopsirea și adăugăm o rezervă pentru partea ascunsă.",
+        "Comparăm suma „lot plus transport plus vămuire plus reparație” cu prețul unei mașini întregi similare.",
+        "Dacă avantajul dispare sau rămâne prea multă incertitudine, spunem sincer: mai bine alegeți alt lot."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Când e mai bine să renunți la lot"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "deteriorarea structurii portante în mai multe locuri deodată: longeron, stâlp și prag împreună;",
+        "din fotografii nu se poate înțelege amploarea daunelor, iar rezerva pentru partea ascunsă depășește economia posibilă;",
+        "sunt necesare piese rare și scumpe, care nu se găsesc la vânzare sau la dezmembrări;",
+        "inundație cu apă sărată sau incendiu puternic în habitaclu — electrica și coroziunea provoacă probleme ascunse și de durată;",
+        "suma reparației, împreună cu transportul și vămuirea, se apropie de prețul aceleiași mașini întregi."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Mai multe despre ce daune sunt mai sigure și care nu — în articolul [[Ce daune sunt periculoase și care nu|damages]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Este adevărat că repararea unei mașini avariate costă întotdeauna cât cumpărarea uneia noi?",
+      "a": "Nu. Este valabil doar pentru cazurile grele, de exemplu o deteriorare serioasă a structurii împreună cu sistemul electric. Pentru majoritatea loturilor în care sunt afectate panourile exterioare, barele, suspensia sau una-două părți ale caroseriei, reparația reprezintă o parte vizibil mai mică din valoarea mașinii decât în calculul american."
+    },
+    {
+      "q": "Se poate afla costul reparației înainte de cumpărare?",
+      "a": "Se poate estima după fotografii și descrierea daunelor, dar este tocmai o estimare, cu rezervă pentru partea ascunsă. Devine mai exactă după inspecție și demontare. De aceea, în deviz se include întotdeauna o rezervă, iar în caz de dubii lotul nu se cumpără."
+    },
+    {
+      "q": "Ce costă mai mult: vopsirea sau înlocuirea piesei?",
+      "a": "Depinde de piesă. Pentru panourile montate cu șuruburi, piesa costă adesea mai puțin decât o vopsire de calitate; pentru cele sudate, o parte din cost o reprezintă lucrările de sudură și de protecție anticorozivă. De aceea devizul se calculează separat pentru fiecare linie."
+    },
+    {
+      "q": "Cum verific calitatea reparației după cumpărare?",
+      "a": "Cereți fișa de măsurare a geometriei caroseriei înainte și după reparație, fotografii ale etapelor de lucru, lista pieselor înlocuite și rezultatele scanării sistemelor electronice. Un atelier bun oferă astfel de documente fără probleme."
+    }
+  ],
+  "cta": {
+    "h": "Ați găsit un lot? Arătați-ni-l",
+    "p": "Trimiteți-ne linkul de pe Copart sau IAAI — evaluăm daunele după fotografii, calculăm reparația pe linii separate și vă spunem sincer: cumpărați sau căutați mai departe.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ce daune sunt periculoase",
+    "b2slug": "damages"
+  },
+  "related": [
+    "body-panels",
+    "rear-quarter",
+    "frame-rails",
+    "engine-transmission",
+    "airbag"
+  ]
+}

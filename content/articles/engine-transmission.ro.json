@@ -1,0 +1,90 @@
+{
+  "slug": "engine-transmission",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Înlocuirea motorului sau a cutiei automate: variante, ce verifici, când se merită | Apex Auto",
+    "description": "Cum se înlocuiește motorul și cutia automată: agregat second-hand de dezmembrare, remanufacturat sau nou, compatibilitate după VIN, lucrări conexe și documente.",
+    "ogTitle": "Înlocuirea motorului sau a cutiei automate: variante și ce verifici",
+    "ogDesc": "Agregat second-hand de dezmembrare, remanufacturat sau nou: cum alegi, ce verifici și când înlocuirea se merită mai mult decât reparația."
+  },
+  "tag": "Reparația agregatelor",
+  "kicker": "Piese și reparații · Agregate",
+  "h1": "Înlocuirea motorului sau a cutiei automate: variante, verificări și când se merită",
+  "lead": "Mențiunea „Mechanical” din lot sau zvonul despre o „cutie distrusă” îi sperie adesea pe cumpărători. Totuși, înlocuirea motorului sau a cutiei automate este o lucrare obișnuită de atelier, cu mai multe variante ca preț și termen. Vedem ce tipuri de agregate există, la ce să te uiți când alegi și când înlocuirea iese mai avantajoasă decât reparația.",
+  "card": {
+    "tag": "Reparația agregatelor",
+    "title": "Înlocuirea motorului sau a cutiei automate: variante, verificări și când se merită",
+    "text": "Agregat second-hand de dezmembrare, remanufacturat sau nou, compatibilitate după VIN, lucrări conexe și chestiuni de documente. Nu este întotdeauna scump."
+  },
+  "og": { "k": "REPARAȚIA AGREGATELOR", "h": "Înlocuirea motorului sau a cutiei automate", "s": "Variante, verificări și când se merită" },
+  "summary": [
+    "**Înlocuirea este o lucrare obișnuită:** motorul sau cutia se demontează și se montează în orice atelier de profil, nu este „sfârșitul mașinii”.",
+    "**Există mai multe variante de agregat:** second-hand de dezmembrare, remanufacturat, recondiționat prin reparație capitală și nou. Prețul și garanția diferă.",
+    "**Esențiale sunt compatibilitatea și istoricul:** codul motorului, modelul cutiei, anul și electronica trebuie să corespundă, iar kilometrajul și starea agregatului să fie confirmate.",
+    "**Odată cu înlocuirea se face și mentenanța preventivă:** curele și lanțuri, pompa de apă, simeringurile, uleiul, filtrele — „cât timp totul e demontat”.",
+    "**Documentele și vămuirea cer atenție:** înainte de cumpărare, aflați cum influențează înlocuirea înmatricularea și calculele."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Când este necesară înlocuirea agregatului" },
+    { "t": "p", "x": "Înlocuirea este necesară când repararea motorului sau a cutiei existente nu este oportună sau nu este posibilă: uzură puternică, blocul deteriorat, lipsă de ungere, gripare, supraîncălzire, precum și urmările inundației sau ale incendiului din compartimentul motor. În loturi, acest lucru este uneori marcat ca Mechanical, dar descrierea este adesea mai amplă decât problema reală, iar din fotografii cauza nu se poate stabili." },
+    { "t": "p", "x": "De aceea, înainte de a licita, merită să înțelegi: ce se știe despre defecțiune, dacă descrierea menționează simptome, în ce stadiu se află mașina — pornește sau nu — și ce variante de înlocuire există pentru modelul respectiv." },
+    { "t": "h2", "x": "Ce tipuri de agregate există" },
+    { "t": "table", "head": ["Varianta", "Ce este", "Avantaje", "La ce te uiți"], "rows": [
+      ["Second-hand de dezmembrare", "Agregat de la dezmembrări, scos de pe o mașină similară", "De obicei cel mai accesibil ca preț", "Kilometraj, proveniență, stare, garanția vânzătorului"],
+      ["Remanufacturat", "A fost demontat, i s-au schimbat piesele uzate și a fost testat", "Durată de viață apropiată de cea a unui agregat nou, de obicei cu garanție", "Cine l-a remanufacturat și ce anume a fost înlocuit"],
+      ["Reparație capitală a agregatului existent", "Repararea agregatului original", "Nu trebuie căutat unul compatibil, se păstrează numerele originale", "Volumul lucrărilor și termenele, starea blocului"],
+      ["Nou", "Agregat nou de la producător", "Durată de viață maximă și garanție", "Cel mai mare preț, nu este disponibil pentru toate modelele"]
+    ] },
+    { "t": "p", "x": "Alegerea depinde de model: pentru modelele populare piața agregatelor second-hand este mare, iar pentru cele rare este mai simplu să faci o reparație capitală. Un atelier bun explică diferența și arată documentele agregatului, nu spune doar prețul." },
+    { "t": "h2", "x": "Motorul: la ce te uiți când alegi" },
+    { "t": "ul", "x": [
+      "**Codul și modificarea.** Același cod de motor și o versiune compatibilă: un model poate avea motoare diferite.",
+      "**Compatibilitate după VIN și an.** Calculatorul, accesoriile, senzorii și suporturile trebuie să se potrivească.",
+      "**Kilometrajul și starea.** Se verifică documentele de la dezmembrare, fotografiile și, dacă se poate, compresia, scurgerile și starea uleiului.",
+      "**Accesoriile.** Adesea, odată cu motorul sunt necesare alternatorul, compresorul, pompele, colectoarele; se clarifică ce intră în set.",
+      "**Electronica.** La unele mașini, calculatorul și imobilizatorul sunt asociate motorului, iar după înlocuire este nevoie de asociere sau programare."
+    ] },
+    { "t": "h2", "x": "Cutia automată: ce trebuie luat în calcul" },
+    { "t": "ul", "x": [
+      "**Tipul cutiei.** Automata clasică cu convertizor de cuplu, cutia robotizată cu dublu ambreiaj (DCT) și CVT-ul sunt construcții diferite, cu risc și cost de întreținere diferite.",
+      "**Codul și versiunea.** Același model de mașină poate fi combinat cu mai multe variante de cutie.",
+      "**Mecatronica și electronica.** La cutiile robotizate, unitatea de comandă este adesea separată; starea ei trebuie verificată și, la nevoie, înlocuită sau adaptată.",
+      "**Uleiul și mentenanța.** Se schimbă uleiul, filtrele și garniturile, iar după montaj se face adaptarea, pentru ca cutia să funcționeze lin.",
+      "**Garanția.** Pentru cutiile second-hand și remanufacturate contează garanția pentru agregat și pentru manoperă."
+    ] },
+    { "t": "h2", "x": "Ce se face odată cu înlocuirea" },
+    { "t": "ul", "x": [
+      "se schimbă uleiul, filtrele, lichidul de răcire;",
+      "se înlocuiesc cureaua sau lanțul de distribuție, pompa de apă, rolele — „cât timp totul e demontat”;",
+      "se actualizează simeringurile, garniturile și piesele mici, care ulterior sunt greu de accesat;",
+      "se verifică sistemul de răcire și radiatoarele;",
+      "se citesc erorile, se programează unitățile de comandă și se verifică funcționarea după montaj."
+    ] },
+    { "t": "h2", "x": "Documente și vămuire" },
+    { "t": "p", "x": "Înlocuirea agregatului nu privește doar atelierul. Dacă noul motor diferă de cel anterior ca volum sau tip, acest lucru poate influența înmatricularea automobilului și calculul taxelor vamale, care depind de capacitatea cilindrică. Regulile din Moldova trebuie clarificate din timp, înainte de cumpărarea agregatului, nu după. Merită discutat încă din etapa alegerii lotului și a reparației; calculul taxelor îl găsești în articolul [[Vămuirea auto în Moldova|customs]]." },
+    { "t": "h2", "x": "De ce nu costă întotdeauna „un milion”" },
+    { "t": "p", "x": "Pentru modelele populare, motoarele și cutiile second-hand de dezmembrare sunt disponibile la un preț rezonabil, iar înlocuirea durează de la câteva zile. Este scump doar atunci când este nevoie de un agregat nou pentru un model rar sau când sunt deteriorate simultan motorul, cutia și electronica. Abordarea generală a evaluării o găsești în [[ghidul de reparație după licitație|repair-guide]]." },
+    { "t": "h2", "x": "Când e mai bine să renunți" },
+    { "t": "ul", "x": [
+      "modelul este rar, iar agregatele potrivite lipsesc sau sunt prea scumpe;",
+      "mașina a fost inundată cu apă sărată: electronica și conectorii provoacă probleme ascunse;",
+      "sunt deteriorate simultan motorul, cutia și unitățile de comandă;",
+      "nu există date despre cum va influența înlocuirea documentele și vămuirea."
+    ] }
+  ],
+  "faq": [
+    { "q": "Ce este mai bine: un motor second-hand de dezmembrare sau reparația capitală a celui original?", "a": "Depinde de model și de starea blocului. Motorul second-hand de dezmembrare este adesea mai rapid și mai simplu, dacă pe piață există un agregat verificat, cu garanție. Reparația capitală a celui original se justifică atunci când blocul este întreg, iar piesele necesare sunt disponibile." },
+    { "q": "Trebuie schimbate motorul și cutia în același timp?", "a": "Nu întotdeauna. Dar dacă cauza defecțiunii ține de un ansamblu comun, iar cutia și motorul se demontează împreună, mecanicii verifică și întrețin adesea ambele agregate, ca să nu demonteze mașina de două ori." },
+    { "q": "Se poate monta o cutie robotizată sau un CVT second-hand?", "a": "Se poate, dar la aceste cutii riscul de probleme ascunse este mai mare, iar garanția vânzătorului este deosebit de importantă. Trebuie verificate istoricul agregatului, starea uleiului și a electronicii și prevăzută adaptarea după montaj." },
+    { "q": "Cum influențează înlocuirea vămuirea?", "a": "Dacă volumul sau tipul noului motor diferă de cel anterior, acest lucru poate influența înmatricularea și calculul taxelor. Clarificați neapărat din timp și comparați cu calculul din calculator." }
+  ],
+  "cta": {
+    "h": "În lot scrie „Mechanical”?",
+    "p": "Trimite-ne linkul de pe Copart sau IAAI — îți spunem ce se știe despre defecțiune, ce variante de înlocuire există și dacă merită să te apuci.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ghid de reparație",
+    "b2slug": "repair-guide"
+  },
+  "related": ["repair-guide", "body-panels", "frame-rails"]
+}

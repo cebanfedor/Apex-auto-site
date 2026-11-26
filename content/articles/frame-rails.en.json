@@ -1,0 +1,150 @@
+{
+  "slug": "frame-rails",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Frame Rail Straightening and Body Geometry: How It Is Done | Apex Auto",
+    "description": "What a frame rail and a frame machine are, how a body is aligned after impact, where pulling is acceptable and where a section must be replaced. How to check the result.",
+    "ogTitle": "Frame rail straightening: how a body is aligned after impact",
+    "ogDesc": "Frame machine, measurements, pulling and section replacement: what can really be fixed and how to verify the result."
+  },
+  "tag": "Body repair",
+  "kicker": "Parts and repair · Geometry",
+  "h1": "Frame Rail Straightening and Body Geometry: What Can Really Be Fixed",
+  "lead": "\"Frame damage\" in a lot listing is the scariest phrase for a buyer. But passenger cars have almost no separate frame: they have a unibody with frame rails, and a deformed rail is not a death sentence. Shops with a frame machine pull such damage out regularly. Here is how it is done, when it is acceptable and how to check the result.",
+  "card": {
+    "tag": "Body repair",
+    "title": "Frame Rail Straightening and Body Geometry: What Can Really Be Fixed",
+    "text": "Frame machine, measurements, pulling and section replacement. When a frame rail can be straightened, where the limit of the acceptable lies and how to check the result against documents."
+  },
+  "og": {
+    "k": "BODY REPAIR",
+    "h": "Frame rail straightening",
+    "s": "Frame machine, measurements and the limit of the acceptable"
+  },
+  "summary": [
+    "**Most passenger cars have no separate frame:** the frame rails are part of the unibody and are designed to crumple on impact.",
+    "**A lot can be straightened:** on a frame machine the body is pulled back to factory dimensions, and damaged areas are replaced with sections.",
+    "**The result is checked by measuring:** measurements before and after are the only honest way to know that the geometry has been restored.",
+    "**There are limits:** torn metal, damage to several structural elements at once and high-strength steels impose restrictions.",
+    "**It is not always expensive:** the cost is determined by time on the frame machine and whether a section has to be replaced."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "What a frame rail is and what it has to do with the \"frame\""
+    },
+    {
+      "t": "p",
+      "x": "Body-on-frame SUVs and trucks have a separate frame to which the body is attached. Most passenger cars and crossovers have a unibody: strength comes from the pillars, sills, floor and frame rails — the longitudinal structural beams at the front and rear. In listings, lot cards and conversations about the \"frame\", it is often these elements that are meant."
+    },
+    {
+      "t": "p",
+      "x": "Frame rails are built with controlled crumple zones: on impact they collapse and absorb energy, protecting the cabin. So a crumpled rail is the normal result of good design, not necessarily a hopeless car."
+    },
+    {
+      "t": "h2",
+      "x": "How a frame machine works"
+    },
+    {
+      "t": "p",
+      "x": "A frame machine is a rigid platform on which the body is clamped at the sills and support points. Powerful hydraulic equipment — chains and pulling towers — is attached to the damaged areas and pulls the metal in the required direction. At the same time, a measuring system compares the position of the control points with the factory dimension chart."
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Measuring.** Determine which control points have moved and by how much. This gives a damage map, often wider than what the eye can see.",
+        "**Clamping.** The body is fixed on the machine so that it does not move during pulling.",
+        "**Pulling.** The damaged area is pulled gradually in the required direction, with periodic re-measuring. Metal \"remembers\" its shape, so pulling is done in stages.",
+        "**Stress relief.** Residual deformations are controlled so that the metal does not \"spring back\".",
+        "**Final measurement.** Confirm that all points are within tolerance."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Pulling or section replacement"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Pulling.** Suitable when the metal is crumpled but without tears or sharp kinks, and the displacement is within what can be restored by cold straightening.",
+        "**Section replacement.** If part of a rail is torn, badly stretched or folded like an accordion, it is cut out and a new part is fitted according to the manufacturer's procedure: at specific points and with a specific type of welding.",
+        "**Full replacement.** Rare and justified only in severe cases."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "An important point: modern bodies contain high-strength steels. Manufacturers specify where cutting is allowed, what kind of welding to use and what must not be heated, because overheating weakens such metal. A good technician follows these instructions, not \"the way they are used to\"."
+    },
+    {
+      "t": "h2",
+      "x": "How to check the result"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Ask for the measurement report before and after the repair, with the manufacturer's tolerances.",
+        "Look at photos of the stages: frame machine, pulling, section replacement, welding.",
+        "Check the body gaps: the hood, fenders, doors and trunk should sit evenly.",
+        "Make sure the wheel alignment angles and the suspension have been checked: body geometry directly affects camber and toe.",
+        "Pay attention to the seams and corrosion protection: after the repair the metal must be protected against rust."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Why it is not always expensive"
+    },
+    {
+      "t": "p",
+      "x": "The main factors that determine the cost are time on the frame machine and whether a section has to be replaced. If the deformation is small and lies in the crumple zone, and only the frame rail and the bumper with its reinforcement are damaged, the repair is routine work. It becomes expensive when several structural elements are damaged at once and long measuring and replacement of several sections are needed."
+    },
+    {
+      "t": "h2",
+      "x": "When it is better to skip the lot"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "the metal is torn in several places and the displacement of the control points is large;",
+        "the frame rails, pillars, sill and floor are all damaged at the same time;",
+        "the extent of the damage cannot be assessed from photos, and the reserve for hidden damage exceeds the benefit;",
+        "the car has complex high-strength structures and there is no data on permitted repair methods;",
+        "there are signs of hidden corrosion or of a previous poor repair."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "The general approach to estimating cost is in the [[post-auction repair guide|repair-guide]]. For replacing welded-on body panels, see the article [[Rear quarter panel replacement|rear-quarter]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can you drive a car after frame rail straightening?",
+      "a": "Yes, if the repair was done according to the procedure, the geometry is confirmed by measurements, and the suspension and wheel angles have been checked. A car with a properly restored body drives like a normal one."
+    },
+    {
+      "q": "Is a car safe after a frame rail repair?",
+      "a": "Safety depends on the quality of the repair: whether manufacturer-approved methods are used, whether the crumple zones are preserved, whether the geometry is confirmed. That is why measurements and documents matter. The absence of a report is a reason to be cautious."
+    },
+    {
+      "q": "What does Frame damage mean in a lot listing?",
+      "a": "It is a note about damage to structural elements. It means you need to look more closely at the measurements and the frame machine work, but in itself it does not mean the car cannot be repaired."
+    },
+    {
+      "q": "How much does frame rail straightening cost?",
+      "a": "There is no universal figure: the cost depends on time on the frame machine, the amount of pulling, section replacement and painting. We calculate it as a separate line for the specific lot, after assessing the photos and the damage description."
+    }
+  ],
+  "cta": {
+    "h": "Does the lot say \"Frame\" or \"Structural\"?",
+    "p": "Send a link to Copart or IAAI — we will assess the extent of the damage from the photos and tell you whether it can realistically be fixed on a frame machine and whether it is worth taking on.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Repair guide",
+    "b2slug": "repair-guide"
+  },
+  "related": [
+    "repair-guide",
+    "rear-quarter",
+    "body-panels"
+  ]
+}

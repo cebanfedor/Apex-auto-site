@@ -1,0 +1,178 @@
+{
+  "slug": "body-panels",
+  "date": "2026-11-27",
+  "readMin": 7,
+  "meta": {
+    "title": "Înlocuirea pieselor de caroserie: aripi, capotă, uși, bare de protecție | Apex Auto",
+    "description": "Cum se înlocuiesc piesele de caroserie după accident: panouri cu șuruburi sau sudate, piese noi, aftermarket, second-hand, vopsire, calibrarea senzorilor.",
+    "ogTitle": "Înlocuirea pieselor de caroserie după accident: simplu, rapid și fără „milioane”",
+    "ogDesc": "Aripi, capotă, uși și bare de protecție: de unde se iau piesele, cum se vopsesc și unde este nevoie de calibrarea senzorilor."
+  },
+  "tag": "Reparații caroserie",
+  "kicker": "Piese și reparații · Caroserie",
+  "h1": "Înlocuirea pieselor de caroserie: aripi, capotă, uși, bare de protecție",
+  "lead": "Înlocuirea unei aripi, a capotei, a unei uși sau a unei bare de protecție este cea mai obișnuită și mai clară parte a reparației de caroserie. Majoritatea acestor piese se fixează cu șuruburi și se pot demonta și monta în câteva ore, nu în săptămâni. Costul îl determină, în principal, piesa și vopsirea. Vedem cum se face și la ce trebuie să fiți atenți.",
+  "card": {
+    "tag": "Reparații caroserie",
+    "title": "Înlocuirea pieselor de caroserie: aripi, capotă, uși, bare de protecție",
+    "text": "Panouri cu șuruburi și sudate, piese noi, aftermarket și second-hand, vopsire și calibrarea senzorilor. Ce se face simplu și unde trebuie prudență."
+  },
+  "og": {
+    "k": "REPARAȚII CAROSERIE",
+    "h": "Înlocuirea pieselor de caroserie",
+    "s": "Aripi, capotă, uși și bare de protecție: cum se face și cât costă"
+  },
+  "summary": [
+    "**Multe piese se fixează cu șuruburi:** capota, aripile din față, ușile, capacul portbagajului și barele de protecție se demontează și se montează fără sudură.",
+    "**Piesa se poate alege:** nouă originală, aftermarket de calitate sau second-hand de la dezmembrări — diferența de preț este mare și tocmai aici se face economia.",
+    "**Vopsirea este o lucrare separată:** adesea costă mai mult decât piesa în sine, mai ales la culorile complexe.",
+    "**După bară și oglinzi poate fi nevoie de calibrare:** radarele, camerele și senzorii de parcare trebuie verificați și reglați.",
+    "**Nu trebuie înlocuit totul:** loviturile mici și zgârieturile se elimină adesea prin îndreptare și vopsire locală."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Piese cu șuruburi și piese sudate"
+    },
+    {
+      "t": "p",
+      "x": "Caroseria este alcătuită din piese de două tipuri. Panourile cu șuruburi se fixează prin îmbinări filetate și se demontează fără sudură: capota, aripile din față, ușile, capacul portbagajului, barele de protecție, farurile, grila radiatorului. Panourile sudate — pragul, aripa spate (sfertul din spate), plafonul, stâlpii, podeaua — sunt îmbinate cu caroseria prin sudură și se repară altfel."
+    },
+    {
+      "t": "p",
+      "x": "În cazul majorității loturilor avariate la care au fost afectate părțile exterioare, o parte importantă a lucrării o reprezintă tocmai piesele cu șuruburi. Este cel mai ieftin și mai rapid tip de reparație de caroserie și tocmai el „salvează” cel mai des un lot cu poze înfricoșătoare."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Piesă",
+        "Fixare",
+        "Ce trebuie să știți"
+      ],
+      "rows": [
+        [
+          "Bară de protecție",
+          "Clipsuri și șuruburi",
+          "Sub plastic există adesea un întăritor și senzori, care trebuie verificați"
+        ],
+        [
+          "Capotă",
+          "Șuruburi pe balamale",
+          "Reglarea rosturilor; sub capotă verificăm încuietoarea și radiatorul"
+        ],
+        [
+          "Aripă față",
+          "Șuruburi",
+          "Verificăm pasajul roții, stâlpul și punctul de prindere a farului"
+        ],
+        [
+          "Ușă",
+          "Șuruburi pe balamale",
+          "În interior: macaraua geamului, cablajul, difuzorul; este nevoie de reglarea rosturilor"
+        ],
+        [
+          "Capac portbagaj",
+          "Șuruburi pe balamale",
+          "Cablajul camerei și al încuietorii, rosturile"
+        ],
+        [
+          "Aripă spate (sfert)",
+          "Sudură",
+          "Un tip separat de lucrări, detalii în articolul despre înlocuirea sfertului"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "De unde se iau piesele"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Noi originale.** Se potrivesc exact, dar sunt cele mai scumpe și uneori greu de găsit pentru modelele vechi.",
+        "**Aftermarket de calitate.** Mai ieftine decât originalele; în SUA există certificare independentă a pieselor aftermarket, de exemplu CAPA. Dar calitatea potrivirii la aftermarket poate varia, iar piesele trebuie alese pentru fiecare reper în parte.",
+        "**Second-hand de la dezmembrări.** Adesea în culoarea originală și la un preț vizibil mai mic decât cel al unei piese noi. Trebuie verificate echiparea, numărul piesei și lipsa avariilor ascunse."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Un atelier bun alege sursa pentru fiecare piesă în parte: unde contează potrivirea și siguranța, ia piesă originală sau un aftermarket verificat; unde piesa este secundară, economisește cu second-hand."
+    },
+    {
+      "t": "h2",
+      "x": "Vopsirea: de ce este adesea cel mai mare cost"
+    },
+    {
+      "t": "p",
+      "x": "Piesa nouă vine grunduită sau în culoarea de bază, iar ea trebuie vopsită în culoarea mașinii. Lucrarea include pregătirea, grundul, alegerea nuanței după codul culorii, aplicarea bazei și a lacului, uscarea și lustruirea."
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Culori complexe.** Acoperirile în trei straturi și cele perlate se vopsesc mai mult timp și mai scump.",
+        "**Tranzițiile.** Pentru ca culoarea să nu difere de panourile vecine, se vopsește adesea „în îmbinare” sau parțial piesa vecină.",
+        "**Avantajul pieselor second-hand.** Dacă piesa este în culoarea potrivită și fără defecte, vopsirea poate fi redusă sau simplificată."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce se verifică după înlocuire"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "Rosturile și uniformitatea liniilor de îmbinare: capota, aripa și ușa nu trebuie să „joace”.",
+        "Fixările și suporturile: după lovitură ele pot fi îndoite, iar piesa „nu se așază”.",
+        "Senzorii și camerele: radarele, senzorii de parcare, camerele de 360°, senzorii de unghi mort. După înlocuirea barei sau a oglinzii, adesea trebuie calibrați cu echipament specializat.",
+        "Instalația electrică: faruri, iluminare, încuietori, macarale de geam, erori pe bord.",
+        "Pasajele roților și protecția: tocmai ele rămân adesea avariate și apoi fac zgomot sau lasă apa să pătrundă."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Când înlocuirea nu este necesară"
+    },
+    {
+      "t": "p",
+      "x": "Nu orice lovitură cere o piesă nouă. Loviturile mici fără deteriorarea vopselei sunt uneori îndreptate fără vopsire, iar zgârieturile și așchierile se elimină prin vopsire locală. Grindina este un caz aparte: sunt multe lovituri mici, iar abordarea depinde de dacă pot fi îndreptate fără revopsire. Mai multe despre grindină și alte avarii — în articolul [[Ce avarii sunt periculoase și care nu|damages]]."
+    },
+    {
+      "t": "h2",
+      "x": "De ce nu este întotdeauna scump"
+    },
+    {
+      "t": "p",
+      "x": "Înlocuirea pieselor cu șuruburi nu necesită stand de îndreptat și sudură, durează ore, iar piesa se poate alege în funcție de preț. Principalele cheltuieli sunt vopsirea și procurarea pieselor. De aceea un lot cu poze „înfricoșătoare”, la care a suferit doar partea din față prinsă cu șuruburi, se dovedește adesea unul dintre cele mai avantajoase. O privire de ansamblu asupra modului în care se calculează costul — în [[ghidul de reparație după licitație|repair-guide]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Ce este mai bine: aripă nouă sau second-hand?",
+      "a": "Depinde de scop. Piesa nouă originală oferă o potrivire previzibilă, dar costă mai mult. Cea second-hand, în culoarea originală, poate economisi mult la piesă și la vopsire, dacă este fără defecte și se potrivește după număr."
+    },
+    {
+      "q": "Este nevoie de calibrare după înlocuirea barei de protecție?",
+      "a": "Dacă în bară sau lângă ea sunt montate radare, camere sau senzori de parcare, funcționarea lor trebuie verificată și, adesea, calibrată cu echipament specializat. Acest lucru este deosebit de important pentru sistemele de asistență a șoferului."
+    },
+    {
+      "q": "Se poate economisi cumpărând singur toate piesele?",
+      "a": "Uneori da, dar alegerea după număr și echipare cere experiență, iar o greșeală costă timp. Alegerea după VIN și după numărul piesei reduce riscul de eroare."
+    },
+    {
+      "q": "Cât durează înlocuirea unei aripi sau a capotei?",
+      "a": "Înlocuirea în sine a unei piese cu șuruburi durează ore. Cea mai mare parte a timpului se duce pe vopsire și uscare, de aceea întregul proces durează de obicei câteva zile."
+    }
+  ],
+  "cta": {
+    "h": "Aveți îndoieli că avaria este simplă?",
+    "p": "Trimiteți linkul de pe Copart sau IAAI — analizăm avariile după poze și vă spunem ce piese vor trebui înlocuite și unde este nevoie de vopsire.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ghid de reparație",
+    "b2slug": "repair-guide"
+  },
+  "related": [
+    "repair-guide",
+    "rear-quarter",
+    "frame-rails"
+  ]
+}

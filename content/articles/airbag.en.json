@@ -1,0 +1,247 @@
+{
+  "slug": "airbag",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "How an Airbag Works and What to Replace After Deployment | Apex Auto",
+    "description": "What a driver airbag is made of, what happens in the 40 milliseconds after impact and which parts are replaced after deployment. A guide for anyone choosing a lot.",
+    "ogTitle": "How an airbag works: what happens in 40 milliseconds",
+    "ogDesc": "What the steering wheel module is made of, what happens after impact and which parts are replaced after deployment."
+  },
+  "tag": "How it works",
+  "kicker": "Parts and repair · How it works",
+  "h1": "How an airbag works: what happens in 40 milliseconds",
+  "lead": "The airbag in the steering wheel is not a “firecracker” but a chain of a sensor, a control unit, an igniter, an inflator and fabric that fires faster than you can blink. We go through what the module is made of, what happens in the first 40 milliseconds and which parts are replaced after deployment — this matters if a lot listing says the airbags deployed.",
+  "card": {
+    "tag": "How it works",
+    "title": "How an airbag works: what happens in 40 milliseconds",
+    "text": "What the steering wheel module is made of, what happens in the first 40 milliseconds after impact, which parts are replaced after deployment and what not to do during repair."
+  },
+  "og": {
+    "k": "PARTS AND REPAIR",
+    "h": "How an airbag works",
+    "s": "What happens in 40 milliseconds and what to replace after deployment"
+  },
+  "summary": [
+    "**The SRS control unit decides, not the airbag:** it calculates the change in speed from the crash sensor signal and sends current to the igniter — usually within the first 10–30 milliseconds after impact.",
+    "**The inflator makes the gas:** solid propellant tablets burn in a few tens of milliseconds; by 30–50 ms the airbag is inflated, and by 100–150 ms it is already deflating through the vent holes.",
+    "**The airbag works together with the seat belt:** the belt carries the main load and limits the force, while the airbag spreads the rest over the area of the chest and head.",
+    "**After deployment, more than the airbags are replaced:** the SRS control unit, seat belt pretensioners, often the dashboard and the steering wheel; the clock spring and sensors are checked.",
+    "**The most dangerous thing is “dummies”:** emulators instead of airbags and counterfeit modules make the car look fine but do not protect."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "What the driver module is made of"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Component",
+        "What it does",
+        "What it is made of"
+      ],
+      "rows": [
+        [
+          "Crash sensor",
+          "Measures the deceleration of the body — in the SRS unit and in remote sensors at the front or the side",
+          "Microelectromechanical accelerometer (MEMS)"
+        ],
+        [
+          "SRS control unit",
+          "Integrates the signal, compares it with thresholds and makes the decision; records crash data",
+          "Circuit board with a processor in an aluminum housing"
+        ],
+        [
+          "Clock spring (spiral cable)",
+          "Carries current to the rotating wheel: airbag, buttons, heating",
+          "Flat copper ribbon in a plastic housing"
+        ],
+        [
+          "Igniter",
+          "Heats a thin wire and ignites the booster charge",
+          "Brass body with a pyrotechnic compound"
+        ],
+        [
+          "Inflator",
+          "Burns the gas-generating material and delivers cool, filtered gas",
+          "Steel housing, propellant tablets, mesh filter"
+        ],
+        [
+          "Airbag",
+          "Catches the head and chest, releases gas through vent holes",
+          "Nylon fabric, folded accordion-style"
+        ],
+        [
+          "Cover",
+          "Opens along a weakened seam without obstructing the airbag",
+          "Plastic with trim, two flaps"
+        ],
+        [
+          "Seat belt",
+          "Carries the main load, the pretensioner removes slack, the limiter keeps the force from rising above its limit",
+          "Webbing, pyrotechnic cartridge, torsion bar"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What happens, millisecond by millisecond"
+    },
+    {
+      "t": "p",
+      "x": "Below is the typical sequence in a frontal crash when the driver is belted. Exact values depend on the make, the control unit algorithm and the specific module, so we give orders of magnitude, not data-sheet figures."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Time after impact",
+        "What happens"
+      ],
+      "rows": [
+        [
+          "0 ms",
+          "Impact. The body starts to decelerate sharply, the sensors register the acceleration"
+        ],
+        [
+          "≈10–15 ms",
+          "The SRS unit has accumulated enough change in speed and deceleration above the threshold — the decision is made"
+        ],
+        [
+          "≈15–30 ms",
+          "Current flows to the igniter, the pyro charge ignites the inflator tablets, the cover opens along the seam"
+        ],
+        [
+          "≈30–50 ms",
+          "The airbag is inflated; the driver’s chest and head are just reaching it"
+        ],
+        [
+          "≈50–90 ms",
+          "The driver enters the airbag: gas escapes through the vent holes, the belt absorbs energy with force limiting"
+        ],
+        [
+          "≈100–150 ms",
+          "The airbag deflates, the driver returns to the seat back"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Why distance from the steering wheel matters"
+    },
+    {
+      "t": "p",
+      "x": "The airbag has to finish inflating before the driver’s chest reaches the cover. If you sit too close, it opens straight into the chest, and the load, instead of a soft deceleration, becomes a blow. That is why manufacturers recommend leaving at least 25 cm between the chest and the airbag cover, and tilting the steering wheel toward the chest rather than the face."
+    },
+    {
+      "t": "h2",
+      "x": "Parts and repair: what to replace after deployment"
+    },
+    {
+      "t": "p",
+      "x": "Airbags are single-use parts. If a Copart or IAAI lot says the airbags deployed, it is not a death sentence but a separate line in the estimate. Here is what a repair usually includes."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Part",
+        "Replace?",
+        "Comment"
+      ],
+      "rows": [
+        [
+          "Airbag module (driver, passenger, curtains)",
+          "Yes",
+          "Single-use. Every deployed module must be replaced, not “recharged”"
+        ],
+        [
+          "Seat belt pretensioners",
+          "Yes",
+          "They fire together with the airbag, usually the whole belt assembly is replaced"
+        ],
+        [
+          "SRS control unit",
+          "Often",
+          "Stores the crash record; at many manufacturers it must be replaced or programmed at a dealer"
+        ],
+        [
+          "Dashboard",
+          "Often",
+          "The passenger airbag opens through the dashboard and tears it"
+        ],
+        [
+          "Steering wheel",
+          "Depends on condition",
+          "Checked for deformation and damage to the module mounting"
+        ],
+        [
+          "Clock spring (spiral cable)",
+          "Check",
+          "The ribbon can tear during impact or deployment, the SRS light stays on constantly"
+        ],
+        [
+          "Crash sensors",
+          "Depends on impact zone",
+          "Replaced if they are in the deformation zone; without them the system does not work"
+        ],
+        [
+          "Seat occupancy sensor",
+          "Check",
+          "A sensor error disables the passenger airbag"
+        ],
+        [
+          "Windshield",
+          "Often",
+          "The passenger airbag strikes the glass, leaving cracks"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "The cost depends on the make, the number of deployed modules and whether the dashboard has to be replaced. That is why repair is calculated as a separate line for each specific lot — just like on the lot page, which has a repair estimate and a note on the condition of the airbags. There are no universal figures “for all cars”. The general approach to estimating is in the [[guide to repair after auction|repair-guide]]."
+    },
+    {
+      "t": "h2",
+      "x": "What not to do"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Do not fit “dummies” and emulators.** A resistor instead of a module turns off the SRS light, but there is no airbag. Check the car with a scanner, not by the light on the dashboard.",
+        "**Do not buy counterfeit modules.** US regulators warn about fake airbags that may fail to deploy or fly apart in fragments. Buy only new parts from the manufacturer or a trusted supplier.",
+        "**Do not fit a used airbag from an unknown car.** An airbag is a safety part: it has an age, storage conditions and a history.",
+        "**Check recall campaigns.** Inflators from several manufacturers have been subject to mass recalls; [[check the VIN|vin-check]] against the manufacturer’s recall database."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Does the airbag deploy in every crash?",
+      "a": "No. Frontal airbags are designed for a head-on impact of roughly 15–25 km/h into a rigid barrier or harder; in a rear-end collision, a light contact or a careful bump against a curb they are not needed. For side impacts and rollovers, side airbags and curtains with their own sensors do the work."
+    },
+    {
+      "q": "Why does the airbag deploy so fast?",
+      "a": "There is very little time: there are 25–30 cm between the chest and the wheel, and braking takes fractions of a second. The airbag has to fill in 30–40 ms, while the driver has not yet reached the wheel. That is why burning a solid propellant is used rather than a cylinder of compressed gas."
+    },
+    {
+      "q": "Is it an explosion?",
+      "a": "It is a very fast but controlled burn: the charge in the inflator burns in tens of milliseconds, the hot gas is cooled in the filter and enters the airbag. A loud bang and smoke are normal companions of deployment."
+    },
+    {
+      "q": "Can you drive the car after deployment?",
+      "a": "Not without replacing the modules and belts and checking the SRS unit: the protection does not work after a crash. If you are choosing a lot marked “Airbags: Deployed”, treat the replacement as a separate line in the estimate and plan for a scanner check after the repair."
+    }
+  ],
+  "cta": {
+    "h": "Choosing a lot with deployed airbags?",
+    "p": "Send us a Copart or IAAI link — we will calculate the repair as separate lines (airbags, belts, SRS unit, dashboard) and tell you honestly whether the car is worth buying.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Which damage is dangerous",
+    "b2slug": "damages"
+  },
+  "related": [
+    "repair-guide",
+    "engine-transmission",
+    "frame-rails"
+  ]
+}

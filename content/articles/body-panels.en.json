@@ -1,0 +1,178 @@
+{
+  "slug": "body-panels",
+  "date": "2026-11-27",
+  "readMin": 7,
+  "meta": {
+    "title": "Replacing Body Panels: Fenders, Hood, Doors, Bumpers | Apex Auto",
+    "description": "How body parts are replaced after a crash: bolt-on and welded panels, new, aftermarket and used parts, painting, sensor calibration. What's simple, what needs care.",
+    "ogTitle": "Replacing body parts after a crash: simple, fast and without breaking the bank",
+    "ogDesc": "Fenders, hood, doors and bumpers: where the parts come from, how they are painted and where sensor calibration is needed."
+  },
+  "tag": "Body repair",
+  "kicker": "Parts and repair · Body",
+  "h1": "Replacing body panels: fenders, hood, doors, bumpers",
+  "lead": "Replacing a fender, hood, door or bumper is the most common and most straightforward part of body repair. Most of these parts are bolted on and can be removed and fitted in hours, not weeks. What mainly determines the cost is the part itself and the paint. Here is how it is done and what to look at.",
+  "card": {
+    "tag": "Body repair",
+    "title": "Replacing body panels: fenders, hood, doors, bumpers",
+    "text": "Bolt-on and welded panels, new, aftermarket and used parts, painting and sensor calibration. What is simple and where care is needed."
+  },
+  "og": {
+    "k": "BODY REPAIR",
+    "h": "Replacing body panels",
+    "s": "Fenders, hood, doors and bumpers: how it is done and what it costs"
+  },
+  "summary": [
+    "**Many parts are bolted on:** the hood, front fenders, doors, trunk lid and bumpers are removed and fitted without welding.",
+    "**You can choose the part:** new original, quality aftermarket, or used from a dismantler — the price difference is large, and this is where the savings are.",
+    "**Painting is a separate job:** it often costs more than the part itself, especially for complex colors.",
+    "**Calibration may be needed after bumpers and mirrors:** radars, cameras and parking sensors must be checked and adjusted.",
+    "**Not everything needs replacing:** small dents and scratches can often be fixed by straightening and spot painting."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Bolt-on and welded parts"
+    },
+    {
+      "t": "p",
+      "x": "A body consists of two types of parts. Bolt-on panels are attached with threaded fasteners and come off without welding: the hood, front fenders, doors, trunk lid, bumpers, headlights, radiator grille. Welded panels — the rocker panel, rear quarter panel, roof, pillars, floor — are joined to the body by welding and are repaired differently."
+    },
+    {
+      "t": "p",
+      "x": "For most damaged lots where the exterior parts took the hit, a significant part of the work is exactly these bolt-on parts. It is the cheapest and fastest kind of body repair, and it is the one that most often “saves” a lot with terrifying photos."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Part",
+        "Attachment",
+        "What to know"
+      ],
+      "rows": [
+        [
+          "Bumper",
+          "Clips and bolts",
+          "There is often a reinforcement and sensors under the plastic; they must be checked"
+        ],
+        [
+          "Hood",
+          "Bolts on hinges",
+          "Gap adjustment; under the hood we check the latch and the radiator"
+        ],
+        [
+          "Front fender",
+          "Bolts",
+          "We check the inner liner, the pillar and the headlight mount"
+        ],
+        [
+          "Door",
+          "Bolts on hinges",
+          "Inside: window regulator, wiring, speaker; gap adjustment is needed"
+        ],
+        [
+          "Trunk lid",
+          "Bolts on hinges",
+          "Camera and latch wiring, gaps"
+        ],
+        [
+          "Rear quarter panel",
+          "Welding",
+          "A separate type of work, details in the article on quarter panel replacement"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Where the parts come from"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**New original.** They fit exactly, but cost the most and are sometimes hard to find for older models.",
+        "**Quality aftermarket.** Cheaper than original; in the US there is independent certification of aftermarket parts, for example CAPA. But fit quality can vary among aftermarket parts, so they must be chosen for each specific part.",
+        "**Used from a dismantler.** Often in the original color and noticeably cheaper than new. You need to check the trim level, the part number and the absence of hidden damage."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "A good shop chooses the source for each part: where fit and safety matter, it takes an original or a proven aftermarket part; where the part is secondary, it saves with a used one."
+    },
+    {
+      "t": "h2",
+      "x": "Painting: why it is often the biggest cost"
+    },
+    {
+      "t": "p",
+      "x": "A new part arrives primed or in a base color, and it has to be painted to match the car. The work includes prep, primer, matching the shade by the paint code, applying base coat and clear coat, drying and polishing."
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Complex colors.** Three-layer finishes and pearls take longer and cost more to paint.",
+        "**Blending.** So that the color does not differ from the neighboring panels, the shop often paints “into the seam” or partly paints the neighboring part.",
+        "**The benefit of used parts.** If the part is in the right color and has no defects, painting can be reduced or simplified."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What is checked after replacement"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "Gaps and evenness of the seam lines: the hood, fender and door must not “wobble”.",
+        "Mounts and brackets: after an impact they can be bent, and the part “does not sit”.",
+        "Sensors and cameras: radars, parking sensors, surround-view cameras, blind-spot sensors. After a bumper or mirror replacement they often need to be calibrated on dedicated equipment.",
+        "Electrics: headlights, lighting, locks, window regulators, errors on the dashboard.",
+        "Inner liners and underbody protection: these are often left damaged and later make noise or let water in."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "When replacement is not needed"
+    },
+    {
+      "t": "p",
+      "x": "Not every dent requires a new part. Small dents without paint damage are sometimes straightened without painting, and scratches and chips are removed by spot painting. Hail is a special case: there are many small dents, and the approach depends on whether they can be fixed without repainting. More about hail and other damage — in the article [[Which damage is dangerous and which is not|damages]]."
+    },
+    {
+      "t": "h2",
+      "x": "Why it is not always expensive"
+    },
+    {
+      "t": "p",
+      "x": "Replacing bolt-on parts does not require a frame machine or welding, takes hours, and the part can be chosen by price. The main costs are painting and sourcing parts. That is why a lot with “terrifying” photos where only a bolt-on front end was damaged often turns out to be one of the best deals. A general view of how the cost is calculated — in the [[repair guide after the auction|repair-guide]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "What is better: a new fender or a used one?",
+      "a": "It depends on the goal. A new original gives a predictable fit but costs more. A used one in the original color can save a lot on both the part and the paint, if it has no defects and matches by part number."
+    },
+    {
+      "q": "Is calibration needed after replacing a bumper?",
+      "a": "If radars, cameras or parking sensors are installed in or near the bumper, their operation must be checked and often calibrated on dedicated equipment. This is especially important for driver-assistance systems."
+    },
+    {
+      "q": "Can I save money by buying all the parts myself?",
+      "a": "Sometimes, but selecting by part number and trim level takes experience, and a mistake costs time. Matching by VIN and part number reduces the risk of error."
+    },
+    {
+      "q": "How long does it take to replace a fender or hood?",
+      "a": "Replacing a bolt-on part itself takes hours. Most of the time goes to painting and drying, so the whole process usually takes a few days."
+    }
+  ],
+  "cta": {
+    "h": "Not sure the damage is simple?",
+    "p": "Send a link to Copart or IAAI — we will go over the damage from the photos and tell you which parts will need replacing and where painting is needed.",
+    "b1": "Send the lot to Telegram",
+    "b2": "Repair guide",
+    "b2slug": "repair-guide"
+  },
+  "related": [
+    "repair-guide",
+    "rear-quarter",
+    "frame-rails"
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "slug": "repair-guide",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Repairing a Car After Auction: What Is Realistic and What It Costs | Apex Auto",
+    "description": "Which repairs on a salvage auction car are simple and cheap and which are hard: body panels, paint, frame rails, airbags, engine, automatic transmission.",
+    "ogTitle": "Repairing a car after auction: what is realistic and what it costs",
+    "ogDesc": "What the repair cost is made of, which damage is easy to fix, and when it is better to walk away from a lot."
+  },
+  "tag": "Repair",
+  "kicker": "Parts and repair · Guide",
+  "h1": "Repairing a car after auction: what is realistic and why it is not always expensive",
+  "lead": "The scary words on a lot page — “Front End”, “Side”, “Frame” — frighten people more than the repair actually costs. Almost everything that happens to a car in a crash can be fixed. The question is not “can it be done” but “how many hours, which parts, and is the saving worth it”. Here we break down what the cost is made of, what is easy, and what is genuinely hard.",
+  "card": {
+    "tag": "Guide",
+    "title": "Repair after auction: what is realistic and what it costs",
+    "text": "What the repair cost is made of, which damage is easy to fix, and when it is better to walk away from a lot. Links to detailed breakdowns of each type of work."
+  },
+  "og": {
+    "k": "REPAIR",
+    "h": "Repair after auction: what is realistic",
+    "s": "What the cost is made of and when to walk away"
+  },
+  "summary": [
+    "**Almost everything can be fixed:** body panels, paint, quarter panel replacement, frame rail straightening, airbags, engine and transmission — all of this is routine work for body shops and engine shops.",
+    "**Cost is hours and parts:** we count labor, parts prices, paint and a reserve for hidden damage. The same “damaged” car can be cheap or not worth it — it all depends on what exactly is damaged.",
+    "**The most expensive thing is not “major repair” but uncertainty:** when hidden damage cannot be seen in the photos, we build in a reserve or pass on the lot.",
+    "**The profit is the difference:** the lot price plus shipping and repair must stay noticeably below the price of the same car in good condition."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Why repair after auction seems scary"
+    },
+    {
+      "t": "p",
+      "x": "The insurance company calculates repair at US shop prices and with new original parts. If the repair estimate approaches the value of the car, the insurer writes it off and sells it at auction. That is why a car listed as “damaged” on a lot page may be one that a good body shop restores for a reasonable price: the shop has different labor rates, different sources of parts and different tolerances."
+    },
+    {
+      "t": "p",
+      "x": "This does not mean every lot is a good deal. It means the repair has to be assessed on its merits: what is damaged, which parts are needed, where the hidden part is, and how long it takes."
+    },
+    {
+      "t": "h2",
+      "x": "What the repair cost is made of"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Labor.** Technicians’ hours: disassembly, replacement, welding, paint, assembly, adjustments. The more parts are welded on, the more hours.",
+        "**Parts.** New original, quality aftermarket or used from a dismantler. The price difference between the options can be several times over, and each part has to be sourced separately.",
+        "**Paint.** Often the biggest and most underestimated line: preparation, color matching, three-layer and pearlescent finishes, blending into neighboring panels.",
+        "**Diagnostics and geometry.** Measuring the body, checking the suspension, scanning the electronics, calibrating sensors and cameras.",
+        "**Hidden damage.** What only shows up after disassembly. A good estimate always includes a reserve for it."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What is easy and what is hard"
+    },
+    {
+      "t": "p",
+      "x": "This is a guide to difficulty, not a price list: actual amounts depend on make, year and region."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Type of repair",
+        "Difficulty",
+        "What drives the cost"
+      ],
+      "rows": [
+        [
+          "Bumpers, headlights, grilles, mirrors",
+          "Low",
+          "Part price and paint; replacement takes hours"
+        ],
+        [
+          "Bolt-on panels: hood, fenders, doors, trunk lid",
+          "Low–medium",
+          "The part and paint; nothing needs to be welded"
+        ],
+        [
+          "Spot painting, dent removal",
+          "Low–medium",
+          "Area and color complexity"
+        ],
+        [
+          "Welded parts: rocker panel, rear quarter panel, body panels",
+          "Medium",
+          "Number of welds, access to the part, paint"
+        ],
+        [
+          "Frame rails and body geometry",
+          "Medium–high",
+          "Time on the frame machine, whether a section must be replaced"
+        ],
+        [
+          "Airbags and seat belts",
+          "Medium",
+          "Number of deployed modules, SRS unit, dashboard"
+        ],
+        [
+          "Engine or automatic transmission",
+          "Low to high",
+          "Used or new unit, compatibility, complexity of the transmission"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Detailed breakdowns by type of work"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "[[Replacing body parts: fenders, hood, doors, bumpers|body-panels]] — what is easy, and where paint and sensor calibration are needed.",
+        "[[Rear quarter panel replacement|rear-quarter]] — how the welded side panel is replaced and when it makes sense.",
+        "[[Frame rail straightening and body geometry|frame-rails]] — how pulling on the frame machine works and where the acceptable limit lies.",
+        "[[Engine or automatic transmission replacement|engine-transmission]] — unit options and what to look at when choosing.",
+        "[[How an airbag works|airbag]] — what is replaced after deployment and what must never be done."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "How we assess a lot before bidding"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "We look at all the lot photos, the damage assessment and the auction’s repair estimate, but we do our own calculation: we do not take those figures “as is”.",
+        "We separate the damage into what is visible and what is likely hidden behind it: for example, behind a deformed bumper there is often a reinforcement bar and the radiator.",
+        "We add up labor, parts and paint, and add a reserve for the hidden part.",
+        "We compare the total of “lot plus shipping plus customs clearance plus repair” with the price of a comparable car in good condition.",
+        "If the profit disappears or too much uncertainty remains, we say so honestly: it is better to take a different lot."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "When it is better to walk away from a lot"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "damage to the load-bearing structure in several places at once: frame rail, pillar and rocker panel together;",
+        "the photos do not show the extent of the damage, and the reserve for hidden damage exceeds the possible saving;",
+        "rare, expensive parts are needed that are not on sale or at dismantlers;",
+        "salt-water flooding or a severe fire in the cabin — the electrics and corrosion cause hidden, long-term problems;",
+        "the repair cost together with shipping and customs clearance approaches the price of the same car in good condition."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "For more on which damage is safer and which is not, see the article [[Which damage is dangerous and which is not|damages]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Is it true that repairing a damaged car always costs as much as buying a new one?",
+      "a": "No. That is only true in severe cases, for example serious structural damage together with electrical damage. For most lots where the exterior panels, bumpers, suspension or one or two parts of the body are damaged, the repair is a noticeably smaller share of the car’s value than in the US estimate."
+    },
+    {
+      "q": "Can I find out the repair cost before buying?",
+      "a": "You can estimate it from the photos and the damage description, but it is just that — an estimate with a reserve for hidden damage. It becomes more accurate after inspection and disassembly. That is why an estimate always includes a reserve, and when in doubt the lot is not bought."
+    },
+    {
+      "q": "What costs more: paint or replacing the part?",
+      "a": "It depends on the part. For bolt-on panels the part often costs less than good paint; for welded ones, part of the cost is welding and anti-corrosion work. That is why the estimate is calculated line by line."
+    },
+    {
+      "q": "How do I check the quality of the repair after buying?",
+      "a": "Ask for the body geometry measurement report from before and after the repair, photos of the work stages, a list of replaced parts and the electronics scan results. A good shop provides these documents without any questions."
+    }
+  ],
+  "cta": {
+    "h": "Found a lot? Show it to us",
+    "p": "Send us the Copart or IAAI link — we will assess the damage from the photos, calculate the repair line by line and tell you honestly: buy it or keep looking.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Which damage is dangerous",
+    "b2slug": "damages"
+  },
+  "related": [
+    "body-panels",
+    "rear-quarter",
+    "frame-rails",
+    "engine-transmission",
+    "airbag"
+  ]
+}

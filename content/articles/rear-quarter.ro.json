@@ -1,0 +1,149 @@
+{
+  "slug": "rear-quarter",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Înlocuirea panoului lateral spate (quarter panel): cum se face și când se justifică | Apex Auto",
+    "description": "Ce este panoul lateral spate (quarter panel) și cum se înlocuiește: tăiere, sudură, anticoroziv, vopsire. Înlocuire totală și parțială, ce verifici și când nu merită.",
+    "ogTitle": "Înlocuirea panoului lateral spate: cum se face și cât durează",
+    "ogDesc": "Cum se înlocuiește panoul lateral sudat, când e suficientă înlocuirea parțială și unde sunt riscurile ascunse."
+  },
+  "tag": "Reparații caroserie",
+  "kicker": "Piese și reparații · Caroserie",
+  "h1": "Înlocuirea panoului lateral spate (quarter panel): cum se face și când se justifică",
+  "lead": "Panoul lateral spate (quarter panel) — partea laterală a caroseriei dintre ușa din spate și stop — sperie atunci când îl vezi în fișa unui lot. Dar este o lucrare cunoscută și bine pusă la punct: panoul se taie pe punctele de fabrică, se montează unul nou sau o piesă de la donor și se sudează. Vă explicăm cum decurge procesul, de ce depinde rezultatul și când înlocuirea se justifică.",
+  "card": {
+    "tag": "Reparații caroserie",
+    "title": "Înlocuirea panoului lateral spate (quarter panel): cum se face și când se justifică",
+    "text": "Înlocuire totală și parțială, tăiere și sudură, anticoroziv și vopsire. Ce să verifici ca geometria și protecția anticorozivă să rămână ca la fabrică."
+  },
+  "og": {
+    "k": "REPARAȚII CAROSERIE",
+    "h": "Înlocuirea panoului lateral spate",
+    "s": "Cum se face, cât durează și când se justifică"
+  },
+  "summary": [
+    "**Este o reparație consacrată:** panoul se taie pe liniile tehnologice, se montează un panou nou sau o secțiune și se sudează.",
+    "**Există înlocuire totală și parțială:** dacă este deteriorată partea de jos sau cea din spate, deseori se înlocuiește doar aceasta, fără a atinge plafonul și stâlpul.",
+    "**Esențiale sunt geometria și protecția:** după înlocuire caroseria se verifică la dimensiuni, îmbinările se etanșează, iar cavitățile ascunse se tratează cu substanță anticorozivă.",
+    "**Vopsirea este o parte mare, separată:** culoarea trebuie să se potrivească cu panourile vecine, mai ales la culorile complexe.",
+    "**Nu întotdeauna e nevoie de înlocuire:** unele adâncituri și pliuri locale se pot îndrepta, iar înlocuirea e necesară când metalul este întins și există pliuri complicate."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Ce este panoul lateral spate (quarter panel)"
+    },
+    {
+      "t": "p",
+      "x": "Panoul lateral spate (quarter panel) este panoul lateral al caroseriei de deasupra roții din spate, de la ușa din spate până la stop. Este sudat de caroserie și face parte din structura de rezistență: alături trec pasajul roții, stâlpul din spate, podeaua portbagajului și longeronul. Această piesă nu poate fi „deșurubată” — ea se taie."
+    },
+    {
+      "t": "p",
+      "x": "Panoul se deteriorează la lovituri laterale și din spate, la ciocniri la parcare, uneori din cauza coroziunii. Din fotografiile lotului o astfel de reparație pare serioasă: o adâncitură mare cu pliuri ale metalului. În realitate este o reparație de caroserie standard, pe care atelierele o fac regulat."
+    },
+    {
+      "t": "h2",
+      "x": "Înlocuire totală și parțială"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Înlocuire totală.** Se schimbă întregul panou. Este necesară la deteriorări grave pe toată suprafața, când după lovitură metalul este întins și forma e greu de refăcut.",
+        "**Înlocuire parțială (secțiune).** Se schimbă doar partea de jos sau cea din spate deteriorată, iar plafonul și stâlpul rămân cele de fabrică. Lucrarea este mai rapidă și adesea mai ieftină, dar cere îmbinare și ajustare atente.",
+        "**Reparație fără înlocuire.** Adânciturile mici și pliurile de pe o suprafață accesibilă se îndreaptă uneori și se vopsesc. Dar dacă metalul este întins sau există pliuri ascuțite, înlocuirea este mai corectă."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Decizia depinde de gradul de deteriorare, de existența unei piese de la donor și de posibilitatea de a ajunge în partea interioară pentru sudură. Un meșter bun mai întâi măsoară caroseria și abia apoi decide ce să facă."
+    },
+    {
+      "t": "h2",
+      "x": "Cum se înlocuiește panoul: etapele"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Diagnosticare și măsurare.** Se verifică geometria caroseriei și deteriorările părților vecine: pasajul roții, stâlpii, podeaua, longeronul, încuietoarea portbagajului.",
+        "**Demontare.** Se scot bara spate, stopul, tapițeria, gura de alimentare cu combustibil, cablajul și tot ce stă în cale sau poate lua foc la sudură.",
+        "**Tăiere.** Panoul vechi se taie pe punctele de sudură și liniile de fabrică, fără a deteriora piesele vecine. Fixarea se desprinde cu grijă.",
+        "**Pregătirea locului.** Marginile se curăță și se îndreaptă, se verifică podeaua și întăriturile, metalul se tratează cu grund anticoroziv.",
+        "**Ajustarea panoului nou.** Piesa se probează pe caroserie, se verifică rosturile, liniile și poziția față de ușă și stop.",
+        "**Sudură.** Panoul se sudează în locurile punctelor și îmbinărilor de fabrică. Se folosesc metode de sudură potrivite pentru oțelul respectiv, iar încălzirea se controlează.",
+        "**Etanșare și anticoroziv.** Îmbinările se acoperă cu etanșant, iar cavitățile ascunse se umplu cu substanță anticorozivă, ca metalul să nu înceapă să ruginească dinăuntru.",
+        "**Vopsire.** Îmbinările se chituiesc și se șlefuiesc, panoul se vopsește și, la nevoie, se vopsesc și piesele vecine pentru o trecere lină a culorii.",
+        "**Montaj și verificare.** Se montează piesele, se verifică rosturile, funcționarea încuietorilor, instalația electrică, etanșeitatea și geometria caroseriei."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce să verifici și de ce să te ferești"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Geometria.** Dacă caroseria este „trasă”, panoul nu se va potrivi la locul lui. De aceea dimensiunile se verifică înainte de montaj și după.",
+        "**Piesele vecine.** Pasajul roții, podeaua din spate, longeronul și stâlpul sunt adesea deteriorate odată cu panoul lateral. Dacă au suferit mai multe elemente de rezistență, evaluarea se schimbă.",
+        "**Oțelurile de înaltă rezistență.** Caroseriile moderne folosesc oțeluri de rezistențe diferite. Pentru ele producătorul stabilește locurile admise pentru tăiere și metodele de sudură, iar de la acestea nu se poate abate.",
+        "**Coroziunea după reparație.** O protecție anticorozivă slabă a îmbinărilor și a cavităților ascunse duce la rugină peste un an-doi. Este unul dintre principalele semne ale unei lucrări de proastă calitate.",
+        "**Electronica.** În spatele panoului trec cablaje, sunt montați senzori și stopuri, care trebuie păstrate și verificate."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "De ce nu costă întotdeauna „o avere”"
+    },
+    {
+      "t": "p",
+      "x": "Costul este dat de timpul de lucru, prețul panoului și vopsire. Dacă se poate face o înlocuire parțială, se poate lua un panou de calitate de la donor sau se poate găsi un panou în culoarea potrivită, cheltuielile scad vizibil. Iar dacă a suferit doar panoul lateral și elementele vecine sunt intacte, reparația se dovedește adesea o variantă rezonabilă chiar și pentru o mașină cu fotografii spectaculoase. Abordarea generală a calculului — în [[ghidul de reparații după licitație|repair-guide]]."
+    },
+    {
+      "t": "h2",
+      "x": "Când înlocuirea panoului lateral nu se justifică"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "sunt deteriorate simultan panoul lateral, longeronul din spate, podeaua și pasajul roții: e nevoie de lucru pe bancă de îndreptat caroseria, iar costurile cresc;",
+        "din fotografii nu se poate înțelege adâncimea deteriorării, iar rezerva pentru ce e ascuns anulează avantajul;",
+        "panoul este rar sau nu se găsește în vânzare, iar analogi de calitate potrivită nu există;",
+        "coroziunea a afectat deja părțile vecine ale caroseriei."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Despre cum se face îndreptarea elementelor de rezistență — în articolul [[Îndreptarea longeroanelor și geometria caroseriei|frame-rails]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Cât durează înlocuirea panoului lateral spate?",
+      "a": "Lucrarea propriu-zisă durează câteva zile lucrătoare, iar împreună cu vopsirea și uscarea de obicei mai mult. Termenul exact depinde de volumul demontării, de disponibilitatea piesei și de coada la vopsitorie."
+    },
+    {
+      "q": "Se înrăutățește caroseria după înlocuirea panoului?",
+      "a": "Cu tehnologia corectă, nu: geometria se verifică, îmbinările se etanșează, cavitățile se protejează împotriva coroziunii. O reparație prost făcută se vede după rosturi neuniforme, îmbinări neîngrijite și rugina care apare."
+    },
+    {
+      "q": "Se poate monta un panou de la altă mașină?",
+      "a": "Da, o piesă de la donor, de același model și aceeași caroserie, este adesea folosită. Se verifică pentru deteriorări ascunse și se ajustează, iar dacă culoarea se potrivește, vopsirea se poate reduce."
+    },
+    {
+      "q": "Se vede înlocuirea panoului la vânzare?",
+      "a": "O reparație bună abia se observă, dar înlocuirea rămâne în istoric și apare la măsurarea grosimii vopselei. De aceea e important să păstrezi documentele și fotografiile etapelor lucrării și să-i spui cumpărătorului cinstit ce și cum s-a făcut."
+    }
+  ],
+  "cta": {
+    "h": "În lot scrie „Rear End” sau „Side”?",
+    "p": "Trimiteți linkul către Copart sau IAAI — vom vedea dacă este deteriorat doar panoul lateral sau este afectată structura și vă vom spune sincer dacă merită să luați lotul.",
+    "b1": "Trimite lotul în Telegram",
+    "b2": "Ghid de reparații",
+    "b2slug": "repair-guide"
+  },
+  "related": [
+    "repair-guide",
+    "frame-rails",
+    "body-panels"
+  ]
+}

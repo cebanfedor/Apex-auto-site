@@ -1,0 +1,90 @@
+{
+  "slug": "engine-transmission",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Engine or Automatic Transmission Replacement: Options, What to Check, When It Pays Off | Apex Auto",
+    "description": "How engines and automatic transmissions are replaced: used (salvage-yard), remanufactured or new units, VIN compatibility, related work and paperwork.",
+    "ogTitle": "Engine or automatic transmission replacement: options and what to check",
+    "ogDesc": "Used (salvage-yard), remanufactured or new unit: how to choose, what to check and when replacement is cheaper than repair."
+  },
+  "tag": "Drivetrain repair",
+  "kicker": "Parts and repair · Drivetrain units",
+  "h1": "Engine or automatic transmission replacement: options, checks and when it pays off",
+  "lead": "A \"Mechanical\" note in a lot or talk of a \"dead gearbox\" often scares buyers off. Yet replacing an engine or an automatic transmission is routine workshop work, with several options in price and lead time. Here is which units are available, what to look at when choosing, and when replacement works out cheaper than repair.",
+  "card": {
+    "tag": "Drivetrain repair",
+    "title": "Engine or automatic transmission replacement: options, checks and when it pays off",
+    "text": "Used (salvage-yard), remanufactured or new unit, VIN compatibility, related work and paperwork questions. It is not always expensive."
+  },
+  "og": { "k": "DRIVETRAIN REPAIR", "h": "Engine or automatic transmission replacement", "s": "Options, checks and when it pays off" },
+  "summary": [
+    "**Replacement is routine work:** an engine or gearbox is removed and fitted at any suitable workshop; it is not \"the end of the car\".",
+    "**There are several kinds of unit:** used (salvage-yard), remanufactured, overhauled and new. Their price and warranty differ.",
+    "**Compatibility and history are what matter:** the engine code, transmission model, year and electronics must match, and the unit's mileage and condition must be confirmed.",
+    "**Preventive maintenance is done together with the replacement:** belts and chains, water pump, seals, oil, filters — \"while everything is apart\".",
+    "**Paperwork and customs clearance need attention:** before buying, find out how the replacement affects registration and cost calculations."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "When a unit replacement is needed" },
+    { "t": "p", "x": "Replacement is needed when repairing the existing engine or gearbox is impractical or impossible: heavy wear, a damaged block, oil starvation, seizure, overheating, as well as the aftermath of flooding or an engine-bay fire. In lots this is sometimes marked as Mechanical, but the description is often broader than the actual problem, and the cause cannot be judged from photos." },
+    { "t": "p", "x": "So before bidding it helps to understand: what is known about the fault, whether the description mentions symptoms, what condition the car is in — whether it starts or not — and what replacement options exist for that model." },
+    { "t": "h2", "x": "Types of units" },
+    { "t": "table", "head": ["Option", "What it is", "Advantages", "What to check"], "rows": [
+      ["Used (salvage-yard)", "A unit from a dismantler, taken from a similar car", "Usually the most affordable", "Mileage, origin, condition, seller's warranty"],
+      ["Remanufactured", "Disassembled, worn parts replaced and tested", "Service life close to new, usually comes with a warranty", "Who remanufactured it and what exactly was replaced"],
+      ["Overhaul of the existing unit", "Repair of the original unit", "No need to find a compatible one, original numbers are kept", "Scope of work and lead time, condition of the block"],
+      ["New", "A new unit from the manufacturer", "Maximum service life and warranty", "Highest price, not available for every model"]
+    ] },
+    { "t": "p", "x": "The choice depends on the model: for popular models the used-unit market is large, while for rare ones an overhaul is easier. A good workshop explains the difference and shows the documents for the unit, rather than just naming a price." },
+    { "t": "h2", "x": "Engine: what to check when choosing" },
+    { "t": "ul", "x": [
+      "**Code and variant.** The same engine code and a compatible version: one model can come with different engines.",
+      "**VIN and year compatibility.** The control unit, ancillaries, sensors and mounts must fit.",
+      "**Mileage and condition.** Dismantler documents and photos are checked, and where possible compression, leaks and oil condition.",
+      "**Ancillaries.** An alternator, compressor, pumps and manifolds are often needed along with the engine; clarify what is included.",
+      "**Electronics.** On some cars the control unit and immobilizer are tied to the engine, and after replacement pairing or programming is required."
+    ] },
+    { "t": "h2", "x": "Automatic transmission: what to consider" },
+    { "t": "ul", "x": [
+      "**Transmission type.** A classic automatic with a torque converter, a dual-clutch (DCT) and a CVT are different designs with different risk and servicing cost.",
+      "**Code and version.** One car model can be paired with several transmission variants.",
+      "**Mechatronic unit and electronics.** On robotized gearboxes the control unit is often separate; its condition must be checked and, if needed, replaced or adapted.",
+      "**Oil and servicing.** Oil, filters and gaskets are changed, and after installation an adaptation is run so the gearbox shifts smoothly.",
+      "**Warranty.** For used and remanufactured transmissions, a warranty on both the unit and the labor matters."
+    ] },
+    { "t": "h2", "x": "What is done together with the replacement" },
+    { "t": "ul", "x": [
+      "oil, filters and coolant are changed;",
+      "the timing belt or chain, water pump and rollers are replaced — \"while everything is apart\";",
+      "seals, gaskets and small parts that are hard to reach later are renewed;",
+      "the cooling system and radiators are checked;",
+      "fault codes are read, control units are programmed and operation is checked after installation."
+    ] },
+    { "t": "h2", "x": "Paperwork and customs clearance" },
+    { "t": "p", "x": "Replacing a unit concerns more than the workshop. If the new engine differs from the old one in displacement or type, it may affect the car's registration and the calculation of customs duties, which depend on engine displacement. Moldovan rules should be clarified in advance, before buying the unit, not after. This is worth discussing when choosing the lot and the repair; for the calculation of payments see the article [[Customs clearance of cars in Moldova|customs]]." },
+    { "t": "h2", "x": "Why it is not always a \"fortune\"" },
+    { "t": "p", "x": "For popular models, used (salvage-yard) engines and gearboxes are available at a reasonable price, and the replacement takes from a few days. It is expensive only when a new unit is needed for a rare model, or when the engine, gearbox and electronics are all damaged at once. The general approach to assessment is in the [[guide to repair after auction|repair-guide]]." },
+    { "t": "h2", "x": "When it is better to walk away" },
+    { "t": "ul", "x": [
+      "the model is rare and suitable units are unavailable or too expensive;",
+      "the car was flooded with salt water: electronics and connectors cause hidden problems;",
+      "the engine, gearbox and control units are all damaged at the same time;",
+      "there is no information on how the replacement will affect paperwork and customs clearance."
+    ] }
+  ],
+  "faq": [
+    { "q": "Which is better: a used (salvage-yard) engine or an overhaul of the original?", "a": "It depends on the model and the condition of the block. A used engine is often faster and simpler if the market has a verified unit with a warranty. Overhauling the original is justified when the block is intact and the necessary parts are available." },
+    { "q": "Do the engine and gearbox need to be replaced at the same time?", "a": "Not always. But if the cause of the failure involves a shared component, and the gearbox and engine come out together, mechanics often check and service both units so they do not have to take the car apart twice." },
+    { "q": "Can a used dual-clutch or CVT gearbox be installed?", "a": "Yes, but these gearboxes carry a higher risk of hidden problems, and the seller's warranty is especially important. You need to check the unit's history, the condition of the oil and electronics, and allow for adaptation after installation." },
+    { "q": "How does the replacement affect customs clearance?", "a": "If the displacement or type of the new engine differs from the old one, it may affect registration and the calculation of payments. Be sure to clarify this in advance and check it against the calculator." }
+  ],
+  "cta": {
+    "h": "Does the lot say \"Mechanical\"?",
+    "p": "Send us the Copart or IAAI link — we will tell you what is known about the fault, what replacement options exist and whether it is worth taking on.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Repair guide",
+    "b2slug": "repair-guide"
+  },
+  "related": ["repair-guide", "body-panels", "frame-rails"]
+}

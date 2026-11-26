@@ -1,0 +1,149 @@
+{
+  "slug": "rear-quarter",
+  "date": "2026-11-27",
+  "readMin": 8,
+  "meta": {
+    "title": "Rear quarter panel replacement: how it's done and when it makes sense | Apex Auto",
+    "description": "What the rear quarter panel is and how it is replaced: cutting, fitting, welding, rustproofing and paint. Full vs partial replacement, what to check and when to skip it.",
+    "ogTitle": "Rear quarter panel replacement: how it's done and how long it takes",
+    "ogDesc": "How a welded-on side panel is replaced, when a partial replacement is enough and where the hidden risks are."
+  },
+  "tag": "Body repair",
+  "kicker": "Parts and repair · Body",
+  "h1": "Rear quarter panel replacement: how it's done and when it makes sense",
+  "lead": "The rear quarter panel — the body side between the rear door and the taillight — sounds scary in a lot listing. But it is a well-known, established kind of work: the panel is cut out along the factory points, a new or donor part is fitted and welded in. We explain how it goes, what the result depends on and when replacement is justified.",
+  "card": {
+    "tag": "Body repair",
+    "title": "Rear quarter panel replacement: how it's done and when it makes sense",
+    "text": "Full and partial replacement, cutting and welding, rustproofing and paint. What to look at so the geometry and corrosion protection stay as they were from the factory."
+  },
+  "og": {
+    "k": "BODY REPAIR",
+    "h": "Rear quarter panel replacement",
+    "s": "How it's done, how long it takes and when it makes sense"
+  },
+  "summary": [
+    "**This is an established repair:** the quarter panel is cut out along the technological lines, a new panel or section is fitted and welded on.",
+    "**Replacement can be full or partial:** if the lower or rear part is damaged, often only that part is replaced, leaving the roof and pillar untouched.",
+    "**What matters is geometry and protection:** after replacement the body is checked against dimensions, seams are sealed and hidden cavities are treated with a rustproofing compound.",
+    "**Paint is a separate, big part of the job:** the color must match the neighboring panels, especially on complex colors.",
+    "**Replacement is not always needed:** local dents and creases can sometimes be straightened, while replacement is needed when the metal is stretched and there are complex folds."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "What the rear quarter panel is"
+    },
+    {
+      "t": "p",
+      "x": "The rear quarter panel is the side body panel above the rear wheel, from the rear door to the taillight. It is welded to the body and is part of the load-bearing structure: the wheel arch, the rear pillar, the trunk floor and the frame rail run next to it. This part cannot be “unbolted” — it is cut out."
+    },
+    {
+      "t": "p",
+      "x": "The quarter panel gets damaged in side and rear impacts, in parking bumps, sometimes from corrosion. In the lot photos such a repair looks serious: a large dent with creased metal. In reality it is standard body work that shops do regularly."
+    },
+    {
+      "t": "h2",
+      "x": "Full and partial replacement"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Full replacement.** The whole panel is replaced. This is needed with severe damage across the whole surface, when the metal is stretched after the impact and the shape is hard to restore.",
+        "**Partial replacement (section).** Only the damaged lower or rear part is replaced, and the roof and pillar are left as original. The work is faster and often cheaper, but it requires careful joining and fitting.",
+        "**Repair without replacement.** Small dents and creases on an accessible surface are sometimes straightened and painted. But if the metal is stretched or there are sharp creases, replacement is the more honest choice."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "The decision depends on the degree of damage, on whether a donor part is available and on whether the inner side can be reached for welding. A good technician first measures the body and only then decides what to do."
+    },
+    {
+      "t": "h2",
+      "x": "How a quarter panel is replaced: the steps"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Diagnosis and measuring.** The body geometry and the damage to neighboring parts are checked: the arch, pillars, floor, frame rail and the trunk latch.",
+        "**Disassembly.** The rear bumper, taillight, trim, fuel filler neck, wiring and anything that gets in the way or could catch fire during welding are removed.",
+        "**Cutting out.** The old panel is cut out along the factory weld points and lines without damaging the neighboring parts. The attachment is carefully separated.",
+        "**Preparing the area.** The edges are cleaned and straightened, the floor and reinforcements are checked, and the metal is treated with an anticorrosion primer.",
+        "**Fitting the new panel.** The part is test-fitted on the body, and the gaps, lines and position relative to the door and taillight are checked.",
+        "**Welding.** The panel is welded at the factory points and seams. Welding methods suitable for the given steel are used, and heat input is controlled.",
+        "**Sealing and rustproofing.** Seams are covered with sealant, and hidden cavities are filled with a rustproofing compound so the metal does not start rusting from the inside.",
+        "**Paint.** Seams are filled and sanded, the panel is painted and, if necessary, neighboring parts are painted too for a smooth color blend.",
+        "**Reassembly and check.** The parts are installed, and the gaps, locks, electrics, sealing and body geometry are checked."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What to look at and what to fear"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Geometry.** If the body is “pulled”, the panel will not sit in place. That is why dimensions are checked before installation and after it.",
+        "**Neighboring parts.** The wheel arch, rear floor, frame rail and pillar are often damaged together with the quarter panel. If several load-bearing elements are affected, the assessment changes.",
+        "**High-strength steels.** Modern bodies use steels of different strength. The manufacturer specifies permitted cutting locations and welding methods for them, and these must not be departed from.",
+        "**Corrosion after repair.** Poor rustproofing of seams and hidden cavities leads to rust within a year or two. This is one of the main signs of poor workmanship.",
+        "**Electronics.** Wiring harnesses run behind the quarter panel, and sensors and lights are mounted there; they must be preserved and checked."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Why it is not always “a fortune”"
+    },
+    {
+      "t": "p",
+      "x": "The cost is determined by labor time, the price of the panel and paint. If a partial replacement is possible, a quality donor panel can be used or a panel in the right color can be found, the costs drop noticeably. And if only the quarter panel is damaged and the neighboring elements are intact, the repair often turns out to be a reasonable option even for a car with dramatic photos. The general approach to the calculation is in the [[post-auction repair guide|repair-guide]]."
+    },
+    {
+      "t": "h2",
+      "x": "When replacing the quarter panel is not justified"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "the quarter panel, rear frame rail, floor and arch are all damaged at once: work on a frame machine is needed, and the costs grow;",
+        "the photos make it impossible to judge the depth of the damage, and the reserve for hidden damage eats up the benefit;",
+        "the panel is rare or not on sale, and there are no analogs of suitable quality;",
+        "corrosion has already reached neighboring parts of the body."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "For how load-bearing elements are straightened, see the article [[Frame rail straightening and body geometry|frame-rails]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "How long does rear quarter panel replacement take?",
+      "a": "The work itself takes several working days, and together with painting and curing usually more. The exact time depends on the amount of disassembly, part availability and the paint shop queue."
+    },
+    {
+      "q": "Will the body be worse after a quarter panel replacement?",
+      "a": "With the correct technology, no: the geometry is checked, seams are sealed, cavities are protected from corrosion. A poorly done repair shows in uneven gaps, untidy seams and rust appearing."
+    },
+    {
+      "q": "Can a quarter panel from another car be installed?",
+      "a": "Yes, a donor part of the same model and body is often used. It is checked for hidden damage and fitted, and if the color matches, painting can be reduced."
+    },
+    {
+      "q": "Is the quarter panel replacement visible when selling?",
+      "a": "A good repair is barely noticeable, but the replacement is recorded in the history and shows up when paint thickness is measured. That is why it is important to keep documents and photos of the work stages and to tell the buyer honestly what was done and how."
+    }
+  ],
+  "cta": {
+    "h": "Does the lot say “Rear End” or “Side”?",
+    "p": "Send a Copart or IAAI link — we will check whether only the quarter panel is damaged or the structure is affected, and tell you honestly whether the lot is worth taking.",
+    "b1": "Send the lot in Telegram",
+    "b2": "Repair guide",
+    "b2slug": "repair-guide"
+  },
+  "related": [
+    "repair-guide",
+    "frame-rails",
+    "body-panels"
+  ]
+}

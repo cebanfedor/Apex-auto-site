@@ -1,0 +1,247 @@
+{
+  "slug": "airbag",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Cum funcționează airbagul și ce se schimbă după declanșare | Apex Auto",
+    "description": "Din ce este alcătuit airbagul șoferului, ce se întâmplă în 40 de milisecunde după impact și ce piese se schimbă după declanșare. Ghid pentru cei care aleg un lot.",
+    "ogTitle": "Cum funcționează airbagul: ce se întâmplă în 40 de milisecunde",
+    "ogDesc": "Din ce este alcătuit modulul din volan, ce se întâmplă după impact și ce piese se schimbă după declanșare."
+  },
+  "tag": "Cum funcționează",
+  "kicker": "Piese și reparații · Cum funcționează",
+  "h1": "Cum funcționează airbagul: ce se întâmplă în 40 de milisecunde",
+  "lead": "Airbagul din volan nu este o „petardă”, ci un lanț format din senzor, unitate de comandă, inițiator, generator de gaz și țesătură, care se declanșează mai repede decât apuci să clipești. Vedem din ce este alcătuit modulul, ce se întâmplă în primele 40 de milisecunde și ce piese se schimbă după declanșare — lucru important dacă în fișa lotului scrie că airbagurile s-au declanșat.",
+  "card": {
+    "tag": "Cum funcționează",
+    "title": "Cum funcționează airbagul: ce se întâmplă în 40 de milisecunde",
+    "text": "Din ce este alcătuit modulul din volan, ce se întâmplă în primele 40 de milisecunde după impact, ce piese se schimbă după declanșare și ce nu trebuie făcut la reparație."
+  },
+  "og": {
+    "k": "PIESE ȘI REPARAȚII",
+    "h": "Cum funcționează airbagul",
+    "s": "Ce se întâmplă în 40 de milisecunde și ce se schimbă după declanșare"
+  },
+  "summary": [
+    "**Decide unitatea de comandă SRS, nu airbagul:** ea calculează creșterea vitezei după semnalul senzorului de impact și trimite curent la inițiator — de obicei în primele 10–30 de milisecunde după impact.",
+    "**Gazul îl produce generatorul de gaz:** tabletele solide ard în câteva zeci de milisecunde; la 30–50 ms airbagul este umflat, iar la 100–150 ms se dezumflă deja prin orificiile de aerisire.",
+    "**Airbagul lucrează împreună cu centura:** centura preia sarcina principală și limitează forța, iar airbagul distribuie restul pe suprafața pieptului și a capului.",
+    "**După declanșare se schimbă nu doar airbagurile:** unitatea de comandă SRS, pretensionerele centurilor, adesea bordul și volanul; se verifică cablul spiralat și senzorii.",
+    "**Cel mai periculos sunt „dopurile”:** emulatoarele în loc de airbaguri și modulele contrafăcute fac mașina să pară în regulă, dar nu protejează."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Din ce este alcătuit modulul șoferului"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Componentă",
+        "Ce face",
+        "Din ce este făcută"
+      ],
+      "rows": [
+        [
+          "Senzor de impact",
+          "Măsoară decelerarea caroseriei — în unitatea SRS și în senzorii externi din față sau laterali",
+          "Accelerometru microelectromecanic (MEMS)"
+        ],
+        [
+          "Unitate de comandă SRS",
+          "Integrează semnalul, îl compară cu pragurile și ia decizia; înregistrează datele accidentului",
+          "Placă cu procesor într-o carcasă de aluminiu"
+        ],
+        [
+          "Cablu spiralat",
+          "Transmite curentul către volanul rotitor: airbag, butoane, încălzire",
+          "Bandă plată de cupru într-o carcasă de plastic"
+        ],
+        [
+          "Inițiator",
+          "Încălzește un fir subțire și aprinde amplificatorul de încărcătură",
+          "Carcasă de alamă cu compoziție pirotehnică"
+        ],
+        [
+          "Generator de gaz (inflator)",
+          "Arde substanța generatoare de gaz și furnizează gaz rece, filtrat",
+          "Carcasă de oțel, tablete de compoziție, filtru din plasă"
+        ],
+        [
+          "Airbag",
+          "Primește capul și pieptul, evacuează gazul prin orificii",
+          "Țesătură de nailon, pliată „în acordeon”"
+        ],
+        [
+          "Capac",
+          "Se deschide pe linia slăbită, fără să stânjenească airbagul",
+          "Plastic cu îmbrăcăminte, două aripi"
+        ],
+        [
+          "Centura",
+          "Preia sarcina principală, pretensionerul elimină jocul, limitatorul nu lasă forța să depășească pragul",
+          "Bandă, cartuș pirotehnic, bară de torsiune"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce se întâmplă, milisecundă cu milisecundă"
+    },
+    {
+      "t": "p",
+      "x": "Mai jos este succesiunea tipică la un impact frontal, când șoferul poartă centura. Valorile exacte depind de marcă, de algoritmul unității de comandă și de modulul concret, de aceea indicăm ordinul de mărime, nu date din fișa tehnică."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Timp după impact",
+        "Ce se întâmplă"
+      ],
+      "rows": [
+        [
+          "0 ms",
+          "Impactul. Caroseria începe să frâneze brusc, senzorii înregistrează accelerația"
+        ],
+        [
+          "≈10–15 ms",
+          "Unitatea SRS a acumulat o creștere de viteză suficientă și o decelerare peste prag — decizia este luată"
+        ],
+        [
+          "≈15–30 ms",
+          "Curentul ajunge la inițiator, încărcătura pirotehnică aprinde tabletele generatorului de gaz, capacul se deschide pe linia de rupere"
+        ],
+        [
+          "≈30–50 ms",
+          "Airbagul este umflat; pieptul și capul șoferului ajung chiar atunci la el"
+        ],
+        [
+          "≈50–90 ms",
+          "Șoferul intră în airbag: gazul iese prin orificii, centura preia energia cu limitarea forței"
+        ],
+        [
+          "≈100–150 ms",
+          "Airbagul se dezumflă, șoferul revine pe spătarul scaunului"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "De ce contează distanța față de volan"
+    },
+    {
+      "t": "p",
+      "x": "Airbagul trebuie să apuce să se umfle înainte ca pieptul șoferului să ajungă la capac. Dacă stai prea aproape, se deschide direct în piept, iar sarcina, în loc de o decelerare lină, devine o lovitură. De aceea producătorii recomandă să lași între piept și capacul airbagului cel puțin 25 cm, iar volanul să fie înclinat spre piept, nu spre față."
+    },
+    {
+      "t": "h2",
+      "x": "Piese și reparații: ce se schimbă după declanșare"
+    },
+    {
+      "t": "p",
+      "x": "Airbagurile sunt piese de unică folosință. Dacă pe un lot Copart sau IAAI este indicat că airbagurile s-au declanșat, nu este o sentință, ci o linie separată în deviz. Iată ce intră de obicei în reparație."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Piesă",
+        "Se schimbă?",
+        "Comentariu"
+      ],
+      "rows": [
+        [
+          "Modul airbag (șofer, pasager, cortine)",
+          "Da",
+          "De unică folosință. Trebuie înlocuit fiecare modul declanșat, nu „reîncărcat”"
+        ],
+        [
+          "Pretensionerele centurilor",
+          "Da",
+          "Se declanșează odată cu airbagul, de obicei se schimbă centura completă"
+        ],
+        [
+          "Unitate de comandă SRS",
+          "Adesea",
+          "Păstrează înregistrarea accidentului; la mulți producători necesită înlocuire sau programare la dealer"
+        ],
+        [
+          "Bord (panoul din față)",
+          "Adesea",
+          "Airbagul pasagerului se deschide prin bord și îl sparge"
+        ],
+        [
+          "Volan",
+          "După stare",
+          "Se verifică deformarea și deteriorarea fixării modulului"
+        ],
+        [
+          "Cablu spiralat",
+          "Se verifică",
+          "Banda se poate rupe la impact sau la declanșare, iar martorul SRS rămâne aprins continuu"
+        ],
+        [
+          "Senzori de impact",
+          "După zona de impact",
+          "Se schimbă dacă se află în zona deformată; fără ei sistemul nu funcționează"
+        ],
+        [
+          "Senzor de ocupare a scaunului",
+          "Se verifică",
+          "O eroare a senzorului dezactivează airbagul pasagerului"
+        ],
+        [
+          "Parbriz",
+          "Adesea",
+          "Airbagul pasagerului lovește parbrizul și rămân crăpături"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Costul depinde de marcă, de numărul modulelor declanșate și de necesitatea de a schimba bordul. De aceea reparația se calculează separat pentru fiecare lot în parte — ca și pe pagina lotului, unde există o estimare a reparației și o mențiune despre starea airbagurilor. Nu există cifre universale „valabile pentru toate mașinile”. Abordarea generală a estimării este în [[ghidul de reparații după licitație|repair-guide]]."
+    },
+    {
+      "t": "h2",
+      "x": "Ce nu trebuie făcut"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Nu montați „dopuri” și emulatoare.** Un rezistor în locul modulului stinge martorul SRS, dar airbagul lipsește. Mașina trebuie verificată cu scanerul, nu după martorul de pe bord.",
+        "**Nu cumpărați module contrafăcute.** Autoritățile de reglementare din SUA avertizează asupra airbagurilor false, care pot să nu se deschidă sau să arunce așchii. Luați numai piese noi de la producător sau de la un furnizor verificat.",
+        "**Nu montați un airbag second-hand dintr-o mașină necunoscută.** Airbagul este o piesă de siguranță: are vârstă, condiții de depozitare și istoric.",
+        "**Verificați campaniile de rechemare.** Inflatoarele mai multor producători au intrat sub rechemări în masă; [[verificați VIN-ul|vin-check]] în baza de date a campaniilor de rechemare a producătorului."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Se declanșează airbagul la orice accident?",
+      "a": "Nu. Airbagurile frontale sunt calculate pentru un impact frontal de aproximativ 15–25 km/h într-un obstacol rigid sau mai puternic; la un impact din spate, la o atingere ușoară sau la o urcare atentă pe bordură nu sunt necesare. Pentru impacturi laterale și răsturnare lucrează airbagurile laterale și cortinele, cu senzorii lor."
+    },
+    {
+      "q": "De ce se deschide airbagul atât de repede?",
+      "a": "Timpul este foarte scurt: între piept și volan sunt 25–30 cm, iar frânarea durează fracțiuni de secundă. Airbagul trebuie să se umple în 30–40 ms, cât timp șoferul nu a ajuns încă la volan. De aceea se folosește arderea unei compoziții solide, nu o butelie cu gaz comprimat."
+    },
+    {
+      "q": "Este o explozie?",
+      "a": "Este o ardere foarte rapidă, dar controlată: încărcătura din inflator arde în zeci de milisecunde, gazul fierbinte se răcește în filtru și intră în airbag. Pocnetul puternic și fumul sunt însoțitori normali ai declanșării."
+    },
+    {
+      "q": "Se poate circula cu mașina după declanșare?",
+      "a": "Fără înlocuirea modulelor, a centurilor și fără verificarea unității SRS — nu: protecția nu funcționează după accident. Dacă alegeți un lot cu mențiunea „Airbags: Deployed”, considerați înlocuirea un punct separat în deviz și prevedeți verificarea cu scanerul după reparație."
+    }
+  ],
+  "cta": {
+    "h": "Alegeți un lot cu airbaguri declanșate?",
+    "p": "Trimiteți-ne linkul Copart sau IAAI — vom calcula reparația pe linii separate (airbaguri, centuri, unitate SRS, bord) și vă spunem sincer dacă merită să luați mașina.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ce avarii sunt periculoase",
+    "b2slug": "damages"
+  },
+  "related": [
+    "repair-guide",
+    "engine-transmission",
+    "frame-rails"
+  ]
+}
