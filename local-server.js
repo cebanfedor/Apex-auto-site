@@ -215,6 +215,7 @@ http.createServer((req, res) => {
   if(pathname === "/auctions") pathname = "/auctions.html";
   if(pathname === "/tracking") pathname = "/tracking.html";
   if(pathname === "/cabinet") pathname = "/cabinet.html";
+  if(pathname === "/airbag") pathname = "/airbag.html";
   if(pathname === "/in-transit") pathname = "/in-transit.html";
   if(pathname === "/catalog" || pathname === "/korea") pathname = "/catalog.html";
   if(pathname === "/canada") pathname = "/canada.html";

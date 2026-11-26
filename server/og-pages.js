@@ -50,6 +50,11 @@ const PAGES = {
     ru:{k:"БЛОГ", h:"Блог об авто из США и Канады", s:"Гайды и разборы: реальные цифры и опыт"},
     ro:{k:"BLOG", h:"Blog despre mașini din SUA și Canada", s:"Ghiduri și analize: cifre reale și experiență", t:"Blog despre mașini din SUA și Canada — ghiduri și analize | Apex Auto", d:"Cum cumperi la Copart și IAAI, vămuirea în Moldova, taxele licitațiilor, verificarea VIN. Cifre reale și experiență."},
     en:{k:"BLOG", h:"Blog about cars from the USA and Canada", s:"Guides and analysis: real numbers and experience", t:"Blog about cars from the USA and Canada — guides and analysis | Apex Auto", d:"How to buy on Copart and IAAI, customs in Moldova, auction fees and VIN checks. Real numbers and hands-on experience."}},
+  airbag:{path:"airbag",
+    ru:{k:"ЗАПЧАСТИ И РЕМОНТ", h:"Как устроена подушка безопасности", s:"Что происходит за 40 миллисекунд и что менять после срабатывания"},
+    ro:{k:"PIESE ȘI REPARAȚII", h:"Cum funcționează airbagul", s:"Ce se întâmplă în 40 de milisecunde și ce se schimbă după declanșare", t:"Cum funcționează airbagul și ce se schimbă după declanșare", d:"Din ce se compune airbagul șoferului, ce se întâmplă în 40 de milisecunde și ce piese se înlocuiesc."},
+    en:{k:"PARTS & REPAIR", h:"How an airbag works", s:"What happens in 40 milliseconds and what gets replaced after deployment", t:"How an airbag works and what gets replaced after deployment", d:"What a driver airbag is made of, what happens in 40 milliseconds and which parts are replaced."}
+  },
   damages:{path:"damages",
     ru:{k:"ПОВРЕЖДЕНИЯ", h:"Какие повреждения опасны, а какие нет", s:"Как читать Primary Damage и выбирать выгодные лоты"},
     ro:{k:"DAUNE", h:"Ce daune sunt periculoase și care nu", s:"Cum citești Primary Damage și alegi loturi avantajoase", t:"Ce daune auto de la licitație sunt periculoase și care nu", d:"Ce loturi sunt cu adevărat avantajoase, de ce grindina e o capcană și cum citești Primary Damage."},
