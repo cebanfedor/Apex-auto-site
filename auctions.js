@@ -2972,6 +2972,7 @@ function alertable(lot){
         ${!isSold && !lot.auctionDate ? `<div class="calcNoDateNoteV1">${dbIco("calendar")}<span>${L("Дата аукциона не назначена")}</span></div>` : ""}
         ${timedEnded ? `<div class="calcTimedEndedV1">${dbIco("clock")}<span>${L(reserveMet ? "Timed-торги завершены — ставка превысила резерв, уточняем финал у аукциона." : "Timed-торги завершены — уточняем результат у аукциона.")}</span></div>` : ""}
         ${!banned ? `<div id="lotMarketLineV1" class="lotMarketLineV1" hidden></div>` : ""}
+        ${!banned ? `<div id="bidPlanV1" class="bidPlanV1" hidden></div>` : ""}
         ${isLive ? `<p class="calcLiveNoteV1">${L("Аукцион идёт в прямом эфире — ставка растёт в реальном времени. Актуальную цену уточните у нас.")}</p>` : ""}
       </div>`}
       ${!isSold ? `<div id="lotQueueV1" class="lotQueueV1" hidden></div>` : ""}
@@ -3148,6 +3149,84 @@ function alertable(lot){
     return vals.map(v => `<option value="${v}"${v === sel ? " selected" : ""}>${v} ${L("л")}</option>`).join("");
   }
 
+  // ---- «Сколько ставить» (26.11.2026): ползунок ставки → цена под ключ и вердикт относительно «Ориентира ставки» ----
+  function bidPlanBand(lot){
+    const b = state.lotBand;
+    if(!b || !b.hi || !(b.hi > 0)) return null;
+    const ca = !!findCanadaLocation(lot);
+    const k = ca ? 1 / (Number(liveRates.cadUsd) > 0 ? Number(liveRates.cadUsd) : 0.6923) : 1;   // вилка в USD → валюта ставки лота
+    return {lo:Math.round(b.lo * k / 50) * 50, hi:Math.round(b.hi * k / 50) * 50, ca};
+  }
+  function bidPlanZone(v, band){ return v < band.lo ? "low" : v > band.hi ? "high" : "mid"; }
+  function bidPlanRender(lot){
+    const box = document.getElementById("bidPlanV1");
+    if(!box || state.selectedLot !== lot) return;
+    const band = bidPlanBand(lot);
+    if(!band){ box.hidden = true; return; }
+    const cur = Number(document.getElementById("lotBidInput")?.value) || Number(lot.currentBid) || 0;
+    const max = Math.max(2000, Math.ceil(Math.max(band.hi * 1.6, cur * 1.3) / 500) * 500);
+    const mid = Math.round((band.lo + band.hi) / 2 / 50) * 50;
+    const start = Math.min(max, Math.max(0, Math.round((cur || mid) / 50) * 50));
+    const fmt = v => band.ca ? moneyCad(v) : money(v);
+    const pct = v => Math.max(0, Math.min(100, v / max * 100)).toFixed(2);
+    box.innerHTML = `
+      <div class="bpHeadV1"><b>${L("Сколько ставить")}</b><span>${L("Двигайте ползунок — увидите цену под ключ")}</span></div>
+      <div class="bpRowV1">
+        <div><small>${L("Ваша ставка")}</small><b id="bpBidV1">${fmt(start)}</b></div>
+        <div><small>${L("Под ключ ≈")}</small><b id="bpTotalV1">—</b></div>
+      </div>
+      <input id="bpRangeV1" class="bpRangeV1" type="range" min="0" max="${max}" step="50" value="${start}" aria-label="${escapeHtml(L("Ваша ставка"))}" style="--bpLo:${pct(band.lo)}%;--bpHi:${pct(band.hi)}%">
+      <div class="bpScaleV1"><span>${band.ca ? "0 CAD" : "$0"}</span><span>${L("Ориентир")}: ${fmt(band.lo)}–${fmt(band.hi)}</span><span>${fmt(max)}</span></div>
+      <div id="bpVerdictV1" class="bpVerdictV1" role="status"></div>
+      <div class="bpQuickV1">
+        <button type="button" data-bp="${band.lo}"><span>${L("Низ")}</span><b>${fmt(band.lo)}</b></button>
+        <button type="button" data-bp="${mid}"><span>${L("Середина")}</span><b>${fmt(mid)}</b></button>
+        <button type="button" data-bp="${band.hi}"><span>${L("Верх")}</span><b>${fmt(band.hi)}</b></button>
+      </div>`;
+    box.hidden = false;
+    const range = box.querySelector("#bpRangeV1");
+    const apply = (v, push) => {
+      v = Math.max(0, Math.min(max, Math.round(v / 50) * 50));
+      range.value = String(v);
+      const input = document.getElementById("lotBidInput");
+      if(push && input){ input.value = String(v); try{ updateLotCalculator(); }catch(e){} }
+      bidPlanPaint(lot, band, v);
+    };
+    range.addEventListener("input", () => apply(Number(range.value), true));
+    box.addEventListener("click", e => { const b = e.target.closest("[data-bp]"); if(b) apply(Number(b.dataset.bp), true); });
+    bidPlanPaint(lot, band, start);
+  }
+  function bidPlanPaint(lot, band, v){
+    const bidEl = document.getElementById("bpBidV1"), totEl = document.getElementById("bpTotalV1"), ver = document.getElementById("bpVerdictV1");
+    if(!bidEl) return;
+    bidEl.textContent = band.ca ? moneyCad(v) : money(v);
+    let total = 0;
+    try{
+      const form = document.getElementById("lotCalcTotal");
+      total = turnkeyFor(lot, v);
+      // после движения ползунка калькулятор уже пересчитан под те же опции — берём его итог (учитывает галочки/тип/топливо)
+      if(form && document.getElementById("lotBidInput") && Number(document.getElementById("lotBidInput").value) === v){
+        const t = Number(String(form.textContent).replace(/[^\d]/g, ""));
+        if(t > 0) total = t;
+      }
+    }catch(e){}
+    totEl.textContent = total ? money(total) : "—";
+    const z = bidPlanZone(v, band);
+    const txt = z === "low" ? "Ниже ориентира: выгодно, но шанс выиграть невелик" : z === "high" ? "Выше ориентира: есть риск переплатить" : "В пределах ориентира: разумная ставка";
+    ver.className = "bpVerdictV1 is" + z[0].toUpperCase() + z.slice(1) + "V1";
+    ver.textContent = L(txt);
+  }
+  function bidPlanSync(calc){
+    const range = document.getElementById("bpRangeV1");
+    if(!range || document.activeElement === range) return;
+    const lot = state.selectedLot, band = lot && bidPlanBand(lot);
+    if(!band) return;
+    const v = Number(document.getElementById("lotBidInput")?.value) || 0;
+    if(v > Number(range.max)) range.max = String(Math.ceil(v / 500) * 500);
+    range.value = String(Math.round(v / 50) * 50);
+    bidPlanPaint(lot, band, v);
+  }
+
   function updateLotCalculator(){
     if(!state.selectedLot || !$("#lotBidInput")) return;
     const veh = $("#lotCalcVehType")?.value || vehicleKind(state.selectedLot);
@@ -3196,6 +3275,7 @@ function alertable(lot){
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
     syncStickyTotal();
+    try{ bidPlanSync(calc); }catch(e){}
     // ≈USD (карточка «Продано» и текущая ставка) пересчитываем живым курсом TD
     if(calc.canada){
       const soldHint = document.getElementById("soldUsdHintV1");
@@ -4542,6 +4622,7 @@ function alertable(lot){
         const observed = Math.max(bidV, reserveV, maxHistBid);
         const contradicted = observed > Number(c.p75);
         state.lotBandContradicted = contradicted;   // для поста в Telegram — не показывать опровергнутый ориентир
+        bidPlanRender(lot);
         const warnText = !contradicted ? "" : observed === reserveV && reserveV >= bidV && reserveV >= maxHistBid ? "резерв продавца выше ориентира"
           : observed === maxHistBid && maxHistBid >= bidV && maxHistBid >= reserveV ? "прошлая ставка выше ориентира" : "ставка выше ориентира";
         box.innerHTML = `
@@ -4565,6 +4646,7 @@ function alertable(lot){
         if(lo && hi && hi >= lo){
           state.lotBand = {lo:Number(lo), hi:Number(hi)};   // для поста в Telegram
           state.lotBandContradicted = Math.max(bidV, reserveV, maxHistBid) > Number(hi);
+          bidPlanRender(lot);
         }
         const hasRange = lo && hi && hi > lo;
         // Список отдельных проданных лотов убран — ниже показываем реальные лоты

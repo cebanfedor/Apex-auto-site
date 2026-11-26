@@ -2140,3 +2140,32 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 @keyframes vtInR { from { opacity:0; transform:translateX(36px); } }
 @keyframes vtOutR { to { opacity:0; transform:translateX(36px); } }
 @keyframes vtInL { from { opacity:0; transform:translateX(-36px); } }
+
+/* ===== «Сколько ставить» (26.11.2026): ползунок ставки → цена под ключ ===== */
+.bidPlanV1 { margin:12px 0; padding:14px; border:1px solid var(--aLine); border-radius:16px; background:var(--aSurf); }
+.bidPlanV1[hidden] { display:none; }
+.bpHeadV1 { display:grid; gap:2px; margin-bottom:10px; }
+.bpHeadV1 b { font-size:15px; color:var(--aInk); }
+.bpHeadV1 span { font-size:12.5px; color:var(--aMuted); }
+.bpRowV1 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+.bpRowV1 > div { padding:10px 12px; border-radius:12px; background:var(--aSoft); }
+.bpRowV1 small { display:block; font-size:11.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--aMuted); }
+.bpRowV1 b { display:block; margin-top:2px; font-size:22px; font-weight:800; letter-spacing:-.02em; color:var(--aInk); }
+.bpRowV1 > div:last-child b { color:var(--aRed); }
+.bpRangeV1 { -webkit-appearance:none; appearance:none; width:100%; height:12px; margin:6px 0 4px; padding:0; border:0; border-radius:99px; outline:none; cursor:pointer; touch-action:pan-y;
+  background:linear-gradient(to right,#cfeedd 0,#cfeedd var(--bpLo),#1b9c5b var(--bpLo),#1b9c5b var(--bpHi),#f6c6cb var(--bpHi),#ed0012 100%); }
+.bpRangeV1::-webkit-slider-thumb { -webkit-appearance:none; width:28px; height:28px; border-radius:50%; background:#fff; border:3px solid var(--aInk); box-shadow:0 2px 8px rgba(17,20,26,.3); }
+.bpRangeV1::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--aInk); box-shadow:0 2px 8px rgba(17,20,26,.3); }
+.bpRangeV1:focus-visible { box-shadow:0 0 0 3px rgba(237,0,18,.25); }
+.bpScaleV1 { display:flex; justify-content:space-between; gap:8px; font-size:11.5px; color:var(--aMuted); }
+.bpScaleV1 span:nth-child(2) { font-weight:700; color:#12794a; text-align:center; }
+.bpVerdictV1 { margin:10px 0 8px; padding:9px 12px; border-radius:11px; font-size:13px; font-weight:700; line-height:1.35; }
+.bpVerdictV1.isLowV1 { background:#e8f8ee; color:#0b6b38; }
+.bpVerdictV1.isMidV1 { background:#e8f8ee; color:#0b6b38; }
+.bpVerdictV1.isHighV1 { background:#fdecee; color:#b00010; }
+.bpQuickV1 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.bpQuickV1 button { display:grid; gap:2px; justify-items:center; min-height:46px; padding:6px 4px; border:1px solid var(--aLine); border-radius:10px; background:var(--aSurf); font:600 12.5px/1 inherit; font-family:inherit; color:var(--aInk2); cursor:pointer; }
+.bpQuickV1 button span { font-size:11.5px; font-weight:600; color:var(--aMuted); }
+.bpQuickV1 button b { font-size:13.5px; font-weight:800; color:var(--aInk); }
+.bpQuickV1 button:active { background:var(--aSoft); }
+@media (max-width:640px){ .bpRowV1 b { font-size:20px; } }
