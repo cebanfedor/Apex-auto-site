@@ -1,0 +1,88 @@
+{
+  "slug": "car-interior",
+  "date": "2026-11-29",
+  "readMin": 8,
+  "meta": {
+    "title": "Interiorul mașinii după accident, inundație și incendiu: ce se reface | Apex Auto",
+    "description": "Ce se face cu interiorul unei mașini avariate: scaune, tapițerie, bord, centuri, airbaguri, miros și mucegai după apă. Ce se schimbă, ce se curăță, când să renunți.",
+    "ogTitle": "Interiorul mașinii după accident: ce se reface și ce se schimbă",
+    "ogDesc": "Scaune, tapițerie, bord, centuri și mirosuri: ce se curăță, ce se schimbă și la ce te uiți în lot."
+  },
+  "tag": "Interior",
+  "kicker": "Piese și reparații · Interior",
+  "h1": "Interiorul mașinii după accident, inundație și incendiu: ce se reface",
+  "lead": "Interiorul este ceea ce vezi în fiecare zi și ceea ce se privește cel mai des la cumpărare. La licitație, în descrierea lotului apare adesea „Interior Burn” sau „Water/Flood”, iar nu e clar ce să faci cu asta. Vedem ce se face cu scaunele, tapițeria și bordul, cum se elimină mirosurile și în ce cazuri interiorul este un motiv să renunți la lot.",
+  "card": {
+    "tag": "Interior",
+    "title": "Interiorul mașinii după accident, inundație și incendiu: ce se reface",
+    "text": "Scaune, tapițerie, bord, centuri și mirosuri. Ce se curăță, ce se schimbă și când avaria interiorului este un motiv să renunți."
+  },
+  "og": { "k": "INTERIOR", "h": "Interiorul mașinii după accident", "s": "Ce se curăță, ce se schimbă și când e mai bine să renunți" },
+  "summary": [
+    "**Interiorul este un set de piese demontabile:** scaunele, tapițeriile, panourile și mocheta se schimbă și se retapițează separat.",
+    "**Airbagurile și centurile țin de siguranță:** după declanșare se schimbă, nu se reconstituie, și se verifică electronica.",
+    "**Mirosul și umezeala sunt mai complicate decât se vede:** după apă nu ajunge să usuci interiorul, este important să verifici podeaua, izolația și electronica.",
+    "**Incendiul în interior este un motiv frecvent de renunțare:** se topesc plasticul, cablajul și modulele, iar mirosul de ars rămâne mult timp.",
+    "**Retapițarea este o variantă de lucru:** scaunele și panourile se pot retapița dacă scheletul este întreg."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Ce se deteriorează de obicei" },
+    { "t": "table", "head": ["Situație", "Ce suferă mai des", "Ce se face"], "rows": [
+      ["Declanșarea airbagurilor", "Tapițeria stâlpilor și a plafonului, bordul, volanul, scaunele", "Se schimbă airbagurile și panourile avariate, se verifică modulul și senzorii"],
+      ["Impact lateral", "Tapițeria ușii, stâlpul, airbagurile laterale, centurile", "Se schimbă panourile, airbagurile și pretensionerele centurilor"],
+      ["Inundație", "Mocheta, izolația, scaunele, electronica de sub scaune", "Se demontează interiorul, se usucă și se curăță, se schimbă ce a fost afectat"],
+      ["Incendiu", "Plasticul, cablajul, tapițeria, plafonul, modulele", "Adesea se schimbă mare parte din interior; uneori e mai bine să renunți"],
+      ["Uzură și exploatare neglijentă", "Tapițeria scaunelor, ștersături, arsuri, ciobituri de plastic", "Retapițare, curățare chimică, schimbarea ornamentelor"]
+    ] },
+    { "t": "h2", "x": "Scaune și tapițerie" },
+    { "t": "p", "x": "Tapițeria scaunelor se poate retapița: se înlocuiește pielea sau materialul textil cu unul nou sau similar. Este important ca scheletul scaunului, mecanismele de reglare și încălzirea să fie întregi. Dacă în scaun există un airbag lateral sau un senzor de ocupare, la demontare acesta se deconectează conform instrucțiunii, iar după montaj se verifică cu scanerul." },
+    { "t": "ul", "x": [
+      "**Curățare chimică și pete.** Materialul textil și pielea se pot adesea spăla, dar mirosul puternic și petele îmbibate pot cere înlocuirea tapițeriei.",
+      "**Retapițare.** Lucrare manuală, depinde de material și de model; pentru dotări rare, alegerea culorii și a texturii durează mai mult.",
+      "**Scaune de la dezmembrări.** Scaunele originale de dotarea potrivită se pot găsi complete, dar reglajele electrice și încălzirea trebuie verificate."
+    ] },
+    { "t": "h2", "x": "Bord și panouri" },
+    { "t": "p", "x": "După declanșarea airbagului, bordul se deteriorează adesea în locul deschiderii: este zona prevăzută. Panoul se schimbă de obicei integral sau se repară după tehnologie, apoi se verifică fixarea airbagului și senzorii. Ciobiturile mici și zgârieturile de pe plastic se pot elimina prin lustruire și compuși de restaurare." },
+    { "t": "ul", "x": [
+      "**Se schimbă:** panourile crăpate sau desfăcute la îmbinări și cele la care s-a declanșat airbagul.",
+      "**Se repară:** avariile mici ale plasticului, care nu afectează siguranța.",
+      "**Se potrivesc la culoare:** panourile dintr-o altă dotare pot diferi ca nuanță și textură."
+    ] },
+    { "t": "h2", "x": "Centuri și airbaguri" },
+    { "t": "p", "x": "După declanșarea airbagurilor se schimbă nu doar airbagurile, ci și pretensionerele centurilor, adesea și unitatea de comandă și senzorii de impact. Centurile care au fost sub sarcină în accident trebuie schimbate: resursa lor este epuizată, chiar dacă par întregi. Această lucrare este făcută de specialiști, iar defecțiunile sistemului nu pot fi „ascunse” prin stingerea becului. Mai multe — în articolul [[Cum funcționează airbagul|airbag]]." },
+    { "t": "h2", "x": "Inundație și mirosuri" },
+    { "t": "p", "x": "Apa din interior nu înseamnă doar covorașe ude. Umezeala pătrunde în izolație și în podea, sub scaune, unde se află adesea unități de comandă, și în cablaj. Dacă interiorul nu este uscat și curățat complet, apar mucegai, miros și coroziune." },
+    { "t": "ul", "x": [
+      "**Se demontează interiorul:** scaunele, mocheta și izolația, pentru a usca și a curăța podeaua.",
+      "**Se verifică electronica:** modulele de sub scaune, conectorii podelei și cablajele — despre asta în articolul [[Electronica mașinii după accident|car-electronics]].",
+      "**Ozonare și curățare chimică:** elimină mirosul, dar nu înlocuiesc uscarea și schimbarea materialelor afectate.",
+      "**Apă sărată sau nivel ridicat:** riscul de probleme ascunse este mai mare și e mai bine să renunți la lot."
+    ] },
+    { "t": "p", "x": "Mai multe despre când loturile inundate sunt justificate — în articolul [[Ce avarii sunt periculoase și care nu|damages]]." },
+    { "t": "h2", "x": "Incendiu în interior" },
+    { "t": "p", "x": "Incendiul în interior este unul dintre cele mai complicate cazuri. Se topesc panourile de plastic și cablajul, tapițeria și plafonul se impregnează cu funingine și miros de ars, se avariază electronica și cablajele. Adesea trebuie schimbată mare parte din interior împreună cu cablajul, iar costul se apropie de cel al unei mașini întregi. Dacă focul a fost local, de exemplu în zona motorului, iar în interior nu a pătruns, situația este alta — vezi amploarea după poze." },
+    { "t": "h2", "x": "Din ce se compune costul" },
+    { "t": "p", "x": "Factorii principali: numărul de piese avariate, materialele (textil sau piele, textură rară), necesitatea de a demonta interiorul, prezența airbagurilor și a centurilor, precum și avariile ascunse ale cablajului și ale modulelor. Abordarea generală a calculului — în [[ghidul de reparație după licitație|repair-guide]]." },
+    { "t": "h2", "x": "Când este mai bine să renunți" },
+    { "t": "ul", "x": [
+      "incendiu în interior, panouri și cablaj topite;",
+      "inundație cu apă sărată sau peste pragul interiorului;",
+      "s-au declanșat mai multe airbaguri, iar plafonul și bordul sunt avariate simultan;",
+      "interior de dotare rară, unde piesele se găsesc greu, iar retapițarea și înlocuirile depășesc avantajul."
+    ] }
+  ],
+  "faq": [
+    { "q": "Se poate elimina mirosul după inundație?", "a": "Se poate, dacă interiorul este complet demontat, uscat și curățat, iar materialele afectate sunt înlocuite. Ozonarea sau odorizantul singure nu sunt suficiente: mirosul revine dacă umezeala a rămas în izolație." },
+    { "q": "Trebuie schimbate centurile după accident?", "a": "Da, dacă au fost sub sarcină sau s-au declanșat pretensionerele. Astfel de centuri și-au epuizat resursa, chiar dacă par întregi." },
+    { "q": "Cât durează retapițarea scaunelor?", "a": "Depinde de material, de model și de numărul scaunelor. Pentru dotările obișnuite lucrarea durează câteva zile, pentru cele rare — mai mult, din cauza alegerii materialului." },
+    { "q": "Pot lăsa interiorul cum este și să circul?", "a": "Dacă avariile sunt pur cosmetice (ștersături, pete), da. Dar dacă s-au declanșat airbagurile sau centurile, sistemul de siguranță trebuie refăcut complet." }
+  ],
+  "cta": {
+    "h": "În lot scrie „Interior Burn” sau „Water/Flood”?",
+    "p": "Trimiteți linkul de pe Copart sau IAAI — analizăm pozele, evaluăm interiorul și electronica și vă spunem sincer dacă merită să vă apucați.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ce avarii sunt periculoase",
+    "b2slug": "damages"
+  },
+  "related": ["repair-guide", "airbag", "car-electronics"]
+}

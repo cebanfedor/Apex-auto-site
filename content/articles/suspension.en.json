@@ -1,0 +1,196 @@
+{
+  "slug": "suspension",
+  "date": "2026-11-29",
+  "readMin": 8,
+  "meta": {
+    "title": "Suspension and Steering After a Crash: What Gets Replaced and What Can Be Straightened | Apex Auto",
+    "description": "What happens to the suspension of a damaged car: control arms, struts, hubs, tie rods, subframe, alignment. What is replaced, what is straightened, how to check.",
+    "ogTitle": "Suspension and steering after a crash: what is replaced and what is straightened",
+    "ogDesc": "Control arms, struts, hubs, tie rods and subframe: how damage is assessed and the result is checked."
+  },
+  "tag": "Suspension",
+  "kicker": "Parts and repair · Suspension",
+  "h1": "Suspension and steering after a crash: what gets replaced and what can be straightened",
+  "lead": "A hit to the wheel or the corner almost always affects the suspension: the wheel points the wrong way, the car pulls to one side, there is a knocking sound. In a lot description it sounds scary, but the suspension is a set of separate parts that are replaced as units. Here is what usually gets damaged, what can really be straightened, what cannot be repaired cheaply, and how to check the car after repair.",
+  "card": {
+    "tag": "Suspension",
+    "title": "Suspension and steering after a crash: what gets replaced and what can be straightened",
+    "text": "Control arms, struts, hubs, tie rods and subframe. What usually gets damaged after an impact, what is replaced and how to check the result."
+  },
+  "og": {
+    "k": "SUSPENSION",
+    "h": "Suspension and steering after a crash",
+    "s": "What is replaced, what is straightened and how to check the result"
+  },
+  "summary": [
+    "**The suspension is made of separate parts:** control arms, struts, hubs, tie rods and the subframe are replaced individually, not as a whole assembly.",
+    "**Bent load-bearing parts are not straightened:** control arms, hubs and tie rods are replaced after an impact, not straightened — the geometry of the metal after bending cannot be guaranteed.",
+    "**The subframe and the body are a different story:** if the suspension mounting points are shifted, the body geometry has to be checked on a frame machine.",
+    "**Alignment is the mandatory final step:** without adjustment after repair the car pulls to one side and the tires wear out.",
+    "**Then comes the check:** knocks, play, pulling and vibrations on the road show what cannot be seen in the lot photos."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "What usually gets damaged"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Part",
+        "What can happen to it",
+        "What is done"
+      ],
+      "rows": [
+        [
+          "Control arms",
+          "Bending, cracks, torn bushings",
+          "Replaced, not straightened"
+        ],
+        [
+          "Shock absorbers and springs",
+          "Bent rod, crack, leak, broken spring",
+          "Replaced; for even operation — in a pair on the axle"
+        ],
+        [
+          "Steering knuckle and hub",
+          "Crack, bent mounting seats, damaged bearing",
+          "Replaced together with the bearing"
+        ],
+        [
+          "Tie rod and tie rod end",
+          "Bending, play, torn boot",
+          "Replaced"
+        ],
+        [
+          "Steering rack",
+          "Bending, oil leak, play",
+          "Replaced or rebuilt in a workshop"
+        ],
+        [
+          "Subframe",
+          "Deformation, shifted mounting points",
+          "Straightened or replaced, then the geometry is checked"
+        ],
+        [
+          "Wheel and tire",
+          "Crack, bending, sidewall cut",
+          "The wheel is straightened or replaced, the tire is replaced"
+        ],
+        [
+          "ABS sensors and brake hoses",
+          "Breakage, damaged wire, cracks",
+          "Replaced"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "The good news: most of these parts are series-production spares available new, aftermarket and from dismantlers. Problems start when the body is deformed at the suspension mounting points."
+    },
+    {
+      "t": "h2",
+      "x": "What can be straightened and what cannot"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Can be:** a subframe with minor deformation (on a frame machine), some cast alloy wheels after rim bending, brackets without cracks.",
+        "**Cannot be:** control arms, steering knuckles, hubs and tie rods. After bending, metal loses strength, and cracks inside are not visible; the safe practice is replacement.",
+        "**Debatable:** the sway bar and sway bar links — cheap parts that are easier to replace than to inspect."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "If the suspension is damaged together with the frame rails or the floor pan, this is already a matter of body geometry — see the article [[Frame rail straightening and body geometry|frame-rails]]."
+    },
+    {
+      "t": "h2",
+      "x": "Alignment and geometry"
+    },
+    {
+      "t": "p",
+      "x": "After replacing suspension or steering parts, the wheel alignment angles have to be adjusted on a stand: toe, camber and caster. Without it the car pulls to one side, the steering wheel sits crooked and the tires wear unevenly. If the stand cannot bring the angles within tolerance, it is a sign of body or subframe deformation."
+    },
+    {
+      "t": "ul",
+      "x": [
+        "the stand printout “before” and “after” shows that the adjustment was actually done;",
+        "angles that cannot be brought within tolerance are a reason to check the body geometry;",
+        "after replacing some suspension parts, driver-assistance systems also need to be recalibrated."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Modern systems and air suspension"
+    },
+    {
+      "t": "p",
+      "x": "On many cars the suspension is tied to electronics: adaptive dampers, air springs, body height sensors, electric power steering. After replacement, such systems have to be initialized and calibrated with a scan tool. Air suspension and adaptive struts are more expensive than regular ones, but are most often available from dismantlers too. More about electronics — in the article [[Car electronics after an accident|car-electronics]]."
+    },
+    {
+      "t": "h2",
+      "x": "How to check the car after repair"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Test drive on a flat road:** the car must not pull to one side with the steering wheel released, and the steering wheel must not vibrate.",
+        "**Knocks and squeaks:** nothing should knock over bumps and in turns; a knock usually points to the hub, ball joint or strut.",
+        "**Lift inspection:** play in the joints, the condition of the boots, oil leaks from the shock absorbers and the rack.",
+        "**Tires:** uneven wear or wear on the edge shows disturbed geometry.",
+        "**Diagnostics:** there should be no ABS, steering sensor or stability system errors after repair."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What the cost is made of"
+    },
+    {
+      "t": "p",
+      "x": "The cost is determined by the number of damaged parts, the class of the car and the type of parts (new, aftermarket, from dismantlers), the need for a frame machine and alignment, the presence of adaptive suspension and hidden damage that only shows after disassembly. The general approach to the calculation is in the [[post-auction repair guide|repair-guide]]. If the damage has reached the body, also see [[replacing body panels|body-panels]]."
+    },
+    {
+      "t": "h2",
+      "x": "When it is better to walk away"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "the lot is marked “Frame” or “Undercarriage” and has an impact to the wheel — body deformation is likely, and it cannot be assessed from photos;",
+        "several suspension units are damaged at once, and the subframe on both sides;",
+        "the car has expensive adaptive or air suspension, where the sum of parts approaches the cost of an intact car."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can you drive a car with a bent control arm?",
+      "a": "No. The part can break while driving, and the geometry is off, so the car pulls and the tires wear out quickly. A bent control arm is replaced."
+    },
+    {
+      "q": "How can you tell the body has shifted after a hit to the wheel?",
+      "a": "If the alignment cannot bring the angles within tolerance, the gaps between panels are uneven or the car keeps pulling to one side, the body geometry has to be checked on a frame machine."
+    },
+    {
+      "q": "Do shock absorbers need to be replaced in pairs?",
+      "a": "Usually yes: on one axle they are replaced together so the suspension works the same on both sides. The same applies to springs."
+    },
+    {
+      "q": "Does suspension damage affect the driver-assistance system?",
+      "a": "Yes. After replacing parts or changing the geometry, radars and cameras have to be calibrated, otherwise the system may work inaccurately."
+    }
+  ],
+  "cta": {
+    "h": "Does the lot have an impact to the wheel or “Undercarriage”?",
+    "p": "Send the Copart or IAAI link — we will go through the photos, assess the suspension and body risk and tell you honestly whether it is worth taking on.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Frame rail straightening",
+    "b2slug": "frame-rails"
+  },
+  "related": [
+    "repair-guide",
+    "frame-rails",
+    "car-electronics"
+  ]
+}

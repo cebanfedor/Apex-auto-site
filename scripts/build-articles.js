@@ -18,6 +18,8 @@ const PAGES = {
   airbag:                { ru: "/airbag", ro: "/ro/airbag", en: "/en/airbag" },
   painting:              { ru: "/painting", ro: "/ro/vopsire-auto", en: "/en/car-painting" },
   "car-electronics":     { ru: "/car-electronics", ro: "/ro/electronica-auto", en: "/en/car-electronics" },
+  suspension:            { ru: "/suspension", ro: "/ro/suspensie-auto", en: "/en/car-suspension" },
+  "car-interior":        { ru: "/car-interior", ro: "/ro/interior-auto", en: "/en/car-interior" },
   "repair-guide":        { ru: "/repair-guide", ro: "/ro/ghid-reparatii", en: "/en/repair-guide" },
   "body-panels":         { ru: "/body-panels", ro: "/ro/inlocuire-elemente-caroserie", en: "/en/body-panel-replacement" },
   "rear-quarter":        { ru: "/rear-quarter", ro: "/ro/inlocuire-aripa-spate", en: "/en/rear-quarter-replacement" },
@@ -28,7 +30,7 @@ const PAGES = {
   "vin-check":           { ru: "/vin-check", ro: "/ro/verificare-vin", en: "/vin-check?lang=en", old: true },
   blog:                  { ru: "/blog", ro: "/ro/blog", en: "/blog?lang=en", old: true }
 };
-const ORDER = ["repair-guide", "body-panels", "rear-quarter", "frame-rails", "engine-transmission", "airbag", "painting", "car-electronics"];
+const ORDER = ["repair-guide", "body-panels", "rear-quarter", "frame-rails", "engine-transmission", "airbag", "painting", "car-electronics", "suspension", "car-interior"];
 const fileOf = (slug, lang) => lang === "ru" ? `${slug}.html` : `${lang}-${PAGES[slug][lang].split("/").pop()}.html`;
 const urlOf = (slug, lang) => SITE + PAGES[slug][lang];
 const hrefOf = (slug, lang) => PAGES[slug][lang];

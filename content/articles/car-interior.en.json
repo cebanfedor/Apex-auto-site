@@ -1,0 +1,88 @@
+{
+  "slug": "car-interior",
+  "date": "2026-11-29",
+  "readMin": 8,
+  "meta": {
+    "title": "Car interior after a crash, flood or fire: what gets restored | Apex Auto",
+    "description": "What is done with the interior of a damaged car: seats, trim, dashboard, belts, airbags, odor and mold after water. What is replaced, cleaned, and when to walk away.",
+    "ogTitle": "Car interior after a crash: what is restored and what is replaced",
+    "ogDesc": "Seats, trim, dashboard, belts and odors: what can be cleaned, what is replaced and what to look for in the lot."
+  },
+  "tag": "Interior",
+  "kicker": "Parts and repair · Interior",
+  "h1": "Car interior after a crash, flood or fire: what gets restored",
+  "lead": "The interior is what you see every day and what buyers most often look at. At auction, the lot description often says “Interior Burn” or “Water/Flood”, and it is unclear what to do with that. We look at what is done with seats, trim and the dashboard, how odors are removed, and in which cases the interior is a reason to walk away from a lot.",
+  "card": {
+    "tag": "Interior",
+    "title": "Car interior after a crash, flood or fire: what gets restored",
+    "text": "Seats, trim, dashboard, belts and odors. What is cleaned, what is replaced and when interior damage is a reason to walk away."
+  },
+  "og": { "k": "INTERIOR", "h": "Car interior after a crash", "s": "What is cleaned, what is replaced and when to walk away" },
+  "summary": [
+    "**The interior is a set of removable parts:** seats, trim, panels and carpeting are replaced and reupholstered separately.",
+    "**Airbags and belts are a safety matter:** after deployment they are replaced, not restored, and the electronics are checked.",
+    "**Odor and moisture are more complicated than they look:** after water it is not enough to dry the interior; it is important to check the floor, insulation and electronics.",
+    "**Fire in the interior is a common reason to walk away:** plastic, wiring and modules burn, and the smell of smoke stays for a long time.",
+    "**Reupholstery is a workable option:** seats and panels can be reupholstered if the frame is intact."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "What is usually damaged" },
+    { "t": "table", "head": ["Situation", "What suffers most often", "What is done"], "rows": [
+      ["Airbag deployment", "Pillar and headliner trim, dashboard, steering wheel, seats", "Airbags and damaged panels are replaced, the module and sensors are checked"],
+      ["Side impact", "Door trim, pillar, side airbags, belts", "Panels, airbags and belt pretensioners are replaced"],
+      ["Flooding", "Carpeting, insulation, seats, electronics under the seats", "The interior is removed, dried and cleaned, and what was affected is replaced"],
+      ["Fire", "Plastic, wiring, upholstery, headliner, modules", "Most of the interior is often replaced; sometimes it is better to walk away"],
+      ["Wear and careless use", "Seat upholstery, scuffs, burns, chipped plastic", "Reupholstery, dry cleaning, replacing trim pieces"]
+    ] },
+    { "t": "h2", "x": "Seats and upholstery" },
+    { "t": "p", "x": "Seat upholstery can be reupholstered: the leather or fabric is replaced with new or similar material. It is important that the seat frame, adjustment mechanisms and heating are intact. If the seat has a side airbag or an occupancy sensor, it is disconnected during removal according to the instructions and checked with a scanner after assembly." },
+    { "t": "ul", "x": [
+      "**Dry cleaning and stains.** Fabric and leather can often be cleaned, but a strong smell and set-in stains may require replacing the upholstery.",
+      "**Reupholstery.** The work is done by hand and depends on the material and pattern; for rare trim levels, matching the color and texture takes longer.",
+      "**Seats from a dismantler.** Original seats of the right trim level can be found complete, but the power adjustments and heating must be checked."
+    ] },
+    { "t": "h2", "x": "Dashboard and panels" },
+    { "t": "p", "x": "After an airbag deploys, the dashboard is often damaged at the opening point: this is the designed zone. The panel is usually replaced as a whole or repaired using the proper procedure, and then the airbag mounting and the sensors are checked. Small chips and scratches on plastic can be removed with polishing and restoration compounds." },
+    { "t": "ul", "x": [
+      "**Replaced:** panels that are cracked or have come apart at the seams, and those where an airbag deployed.",
+      "**Repaired:** minor plastic damage that does not affect safety.",
+      "**Matched by color:** panels from a different trim level may differ in shade and texture."
+    ] },
+    { "t": "h2", "x": "Belts and airbags" },
+    { "t": "p", "x": "After airbags deploy, it is not only the airbags that are replaced but also the belt pretensioners, and often the control unit and the impact sensors. Belts that were under load in the crash must be replaced: their service life is used up even if they look intact. This work is done by specialists, and system faults cannot be “hidden” by switching off a warning lamp. More in the article [[How an airbag works|airbag]]." },
+    { "t": "h2", "x": "Flooding and odors" },
+    { "t": "p", "x": "Water in the interior is not just wet floor mats. Moisture gets into the insulation and the floor, under the seats, where control modules are often located, and into the wiring. If the interior is not fully dried and cleaned, mold, odor and corrosion appear." },
+    { "t": "ul", "x": [
+      "**The interior is removed:** seats, carpeting and insulation, in order to dry and clean the floor.",
+      "**Electronics are checked:** modules under the seats, floor connectors and harnesses — see the article [[Car electronics after a crash|car-electronics]].",
+      "**Ozone treatment and dry cleaning:** they remove the odor but do not replace drying and replacing the affected materials.",
+      "**Salt water or a high water level:** the risk of hidden problems is higher, and it is better to walk away from the lot."
+    ] },
+    { "t": "p", "x": "More on when flooded lots are justified — in the article [[Which damage is dangerous and which is not|damages]]." },
+    { "t": "h2", "x": "Fire in the interior" },
+    { "t": "p", "x": "Fire in the interior is one of the most difficult cases. Plastic panels and wiring melt, upholstery and the headliner become saturated with soot and the smell of smoke, and electronics and harnesses are damaged. Often most of the interior has to be replaced along with the wiring, and the cost approaches that of an intact car. If the fire was local, for example in the engine bay, and did not reach the interior, the situation is different — judge the extent from the photos." },
+    { "t": "h2", "x": "What the cost consists of" },
+    { "t": "p", "x": "The main factors: the number of damaged parts, the materials (fabric or leather, rare texture), the need to remove the interior, the presence of airbags and belts, and hidden damage to wiring and modules. The general approach to the calculation is in the [[post-auction repair guide|repair-guide]]." },
+    { "t": "h2", "x": "When it is better to walk away" },
+    { "t": "ul", "x": [
+      "fire in the interior, melted panels and wiring;",
+      "flooding with salt water or above the interior threshold;",
+      "several airbags deployed, and the headliner and dashboard are damaged at the same time;",
+      "an interior of a rare trim level, where parts are hard to find and reupholstery and replacements exceed the benefit."
+    ] }
+  ],
+  "faq": [
+    { "q": "Can the smell be removed after flooding?", "a": "It can, if the interior is fully removed, dried and cleaned, and the affected materials are replaced. Ozone treatment or an air freshener alone is not enough: the smell returns if moisture remains in the insulation." },
+    { "q": "Do the belts need to be replaced after a crash?", "a": "Yes, if they were under load or the pretensioners deployed. Such belts have used up their service life even if they look intact." },
+    { "q": "How long does reupholstering seats take?", "a": "It depends on the material, the pattern and the number of seats. For standard trim levels the work takes a few days, for rare ones — longer because of material selection." },
+    { "q": "Can I leave the interior as is and drive?", "a": "If the damage is purely cosmetic (scuffs, stains), yes. But if the airbags or belts deployed, the safety system must be fully restored." }
+  ],
+  "cta": {
+    "h": "Does the lot say “Interior Burn” or “Water/Flood”?",
+    "p": "Send a link from Copart or IAAI — we will review the photos, assess the interior and electronics and tell you honestly whether it is worth taking on.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Which damage is dangerous",
+    "b2slug": "damages"
+  },
+  "related": ["repair-guide", "airbag", "car-electronics"]
+}

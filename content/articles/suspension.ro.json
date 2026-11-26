@@ -1,0 +1,196 @@
+{
+  "slug": "suspension",
+  "date": "2026-11-29",
+  "readMin": 8,
+  "meta": {
+    "title": "Suspensia și direcția după accident: ce se schimbă și ce se poate îndrepta | Apex Auto",
+    "description": "Ce se întâmplă cu suspensia unei mașini avariate: brațe, amortizoare, butuci, bare de direcție, subansamblu, geometrie. Ce se schimbă, ce se îndreaptă, cum verifici.",
+    "ogTitle": "Suspensia și direcția după accident: ce se schimbă și ce se îndreaptă",
+    "ogDesc": "Brațe, amortizoare, butuci, bare de direcție și subansamblu: cum se evaluează avariile și se verifică rezultatul."
+  },
+  "tag": "Suspensie",
+  "kicker": "Piese și reparații · Suspensie",
+  "h1": "Suspensia și direcția după accident: ce se schimbă și ce se poate îndrepta",
+  "lead": "O lovitură în roată sau în colț afectează aproape întotdeauna suspensia: roata privește într-o parte, mașina trage lateral, se aude un zgomot. În descrierea lotului sună înfricoșător, dar suspensia este un set de piese separate, care se schimbă pe subansambluri. Vedem ce se avariază de obicei, ce se poate îndrepta cu adevărat, ce nu se poate repara ieftin și cum verifici mașina după reparație.",
+  "card": {
+    "tag": "Suspensie",
+    "title": "Suspensia și direcția după accident: ce se schimbă și ce se poate îndrepta",
+    "text": "Brațe, amortizoare, butuci, bare de direcție și subansamblu. Ce se avariază de obicei după o lovitură, ce se schimbă și cum verifici rezultatul."
+  },
+  "og": {
+    "k": "SUSPENSIE",
+    "h": "Suspensia și direcția după accident",
+    "s": "Ce se schimbă, ce se îndreaptă și cum verifici rezultatul"
+  },
+  "summary": [
+    "**Suspensia este formată din piese separate:** brațele, amortizoarele, butucii, barele și subansamblul se schimbă individual, nu întregul ansamblu.",
+    "**Piesele de forță îndoite nu se îndreaptă:** brațele, butucii și barele de direcție se schimbă după lovitură, nu se îndreaptă — după îndoire, geometria metalului nu poate fi garantată.",
+    "**Subansamblul și caroseria sunt altă poveste:** dacă punctele de prindere ale suspensiei sunt deplasate, este nevoie de verificarea geometriei caroseriei pe standul de îndreptat.",
+    "**Geometria roților este etapa finală obligatorie:** fără reglaj după reparație, mașina trage lateral, iar anvelopele se uzează.",
+    "**Apoi urmează verificarea:** zgomotele, jocurile, tragerea într-o parte și vibrațiile pe drum arată ceea ce nu se vede în pozele lotului."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Ce se avariază de obicei"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Piesa",
+        "Ce i se poate întâmpla",
+        "Ce se face"
+      ],
+      "rows": [
+        [
+          "Brațe de suspensie",
+          "Îndoire, fisură, bucșe (silentblocuri) rupte",
+          "Se schimbă, nu se îndreaptă"
+        ],
+        [
+          "Amortizoare și arcuri",
+          "Tijă îndoită, fisură, scurgere, arc rupt",
+          "Se schimbă; pentru o funcționare uniformă — în pereche pe ax"
+        ],
+        [
+          "Fuzetă și butuc",
+          "Fisură, îndoirea locașurilor, rulment deteriorat",
+          "Se schimbă împreună cu rulmentul"
+        ],
+        [
+          "Bară de direcție și cap de bară",
+          "Îndoire, joc, burduf rupt",
+          "Se schimbă"
+        ],
+        [
+          "Caseta de direcție",
+          "Îndoire, scurgere de ulei, joc",
+          "Se schimbă sau se recondiționează în atelier"
+        ],
+        [
+          "Subansamblu",
+          "Deformare, deplasarea punctelor de prindere",
+          "Se îndreaptă sau se schimbă, apoi se verifică geometria"
+        ],
+        [
+          "Janta și anvelopa",
+          "Fisură, îndoire, tăietură în flanc",
+          "Janta se îndreaptă sau se schimbă, anvelopa se schimbă"
+        ],
+        [
+          "Senzori ABS și furtunuri de frână",
+          "Rupere, cablu deteriorat, fisuri",
+          "Se schimbă"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Vestea bună: cea mai mare parte a acestor piese sunt piese de serie, disponibile noi, aftermarket și de la dezmembrări. Problemele încep când caroseria este deformată în punctele de prindere ale suspensiei."
+    },
+    {
+      "t": "h2",
+      "x": "Ce se poate îndrepta și ce nu"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Se poate:** subansamblul cu deformare mică (pe stand), unele jante din aliaj turnat după îndoirea obadei, suporturile fără fisuri.",
+        "**Nu se poate:** brațele, fuzetele, butucii și barele de direcție. După îndoire, metalul își pierde rezistența, iar fisurile din interior nu se văd; practica sigură este înlocuirea.",
+        "**Discutabil:** bara stabilizatoare și bieletele ei — piese ieftine, care se înlocuiesc mai ușor decât se verifică."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Dacă suspensia este avariată împreună cu longeroanele sau cu planșeul, vorbim deja despre geometria caroseriei — despre asta în articolul [[Îndreptarea longeroanelor și geometria caroseriei|frame-rails]]."
+    },
+    {
+      "t": "h2",
+      "x": "Geometria roților și reglajul"
+    },
+    {
+      "t": "p",
+      "x": "După înlocuirea pieselor de suspensie sau de direcție este nevoie de reglarea unghiurilor roților pe stand: convergență, cădere și înclinarea longitudinală a axei de pivotare. Fără ea, mașina trage într-o parte, volanul stă strâmb, iar anvelopele se uzează neuniform. Dacă standul nu poate aduce unghiurile în toleranță, este semn de deformare a caroseriei sau a subansamblului."
+    },
+    {
+      "t": "ul",
+      "x": [
+        "fișa standului „înainte” și „după” arată că reglajul chiar a fost făcut;",
+        "unghiurile care nu se pot aduce în toleranță sunt un motiv să verifici geometria caroseriei;",
+        "după înlocuirea unor piese de suspensie este nevoie și de recalibrarea sistemelor de asistență a șoferului."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Sisteme moderne și suspensie pneumatică"
+    },
+    {
+      "t": "p",
+      "x": "La multe mașini suspensia este legată de electronică: amortizoare adaptive, perne pneumatice, senzori de înălțime a caroseriei, servodirecție electrică. După înlocuire, astfel de sisteme trebuie inițializate și calibrate cu un scaner. Suspensia pneumatică și amortizoarele adaptive sunt mai scumpe decât cele obișnuite, dar cel mai adesea se găsesc și de la dezmembrări. Mai multe despre electronică — în articolul [[Electronica mașinii după accident|car-electronics]]."
+    },
+    {
+      "t": "h2",
+      "x": "Cum verifici mașina după reparație"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Test drive pe drum drept:** mașina nu trebuie să tragă într-o parte cu volanul eliberat, iar volanul nu trebuie să vibreze.",
+        "**Zgomote și scârțâituri:** pe denivelări și în viraje nu trebuie să bată nimic; o bătaie indică de obicei butucul, pivotul sau amortizorul.",
+        "**Inspecție pe elevator:** jocuri în articulații, starea burdufurilor, scurgeri de ulei de la amortizoare și de la casetă.",
+        "**Anvelope:** uzura neuniformă sau uzura pe margine arată o geometrie dereglată.",
+        "**Diagnoză:** după reparație nu trebuie să existe erori ale ABS, ale senzorilor de volan și ale sistemelor de stabilizare."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Din ce se compune costul"
+    },
+    {
+      "t": "p",
+      "x": "Costul este determinat de numărul de piese avariate, de clasa mașinii și de tipul pieselor (noi, aftermarket, de la dezmembrări), de necesitatea standului și a reglajelor, de existența unei suspensii adaptive și de avariile ascunse, vizibile abia după demontare. Abordarea generală a calculului — în [[ghidul de reparație după licitație|repair-guide]]. Dacă avaria a ajuns la caroserie, vedeți și [[înlocuirea pieselor de caroserie|body-panels]]."
+    },
+    {
+      "t": "h2",
+      "x": "Când este mai bine să renunți"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "lotul are mențiunea „Frame” sau „Undercarriage” și o lovitură în roată — este probabilă deformarea caroseriei, iar după poze nu se poate evalua;",
+        "sunt avariate mai multe puncte ale suspensiei deodată și subansamblul pe ambele părți;",
+        "mașina are o suspensie adaptivă sau pneumatică scumpă, iar suma pieselor se apropie de costul unei mașini întregi."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Se poate circula cu o mașină cu braț îndoit?",
+      "a": "Nu. Piesa se poate rupe din mers, iar geometria este dereglată, de aceea mașina trage într-o parte, iar anvelopele se uzează repede. Brațul îndoit se schimbă."
+    },
+    {
+      "q": "Cum îmi dau seama că s-a deformat caroseria după o lovitură în roată?",
+      "a": "Dacă reglajul nu aduce unghiurile în toleranță, rosturile dintre panouri sunt neuniforme sau mașina continuă să tragă într-o parte, este nevoie de verificarea geometriei caroseriei pe stand."
+    },
+    {
+      "q": "Trebuie schimbate amortizoarele în pereche?",
+      "a": "De obicei da: pe același ax se schimbă împreună, ca suspensia să lucreze la fel pe ambele părți. Același lucru se aplică și arcurilor."
+    },
+    {
+      "q": "Afectează avariile suspensiei sistemul de asistență a șoferului?",
+      "a": "Da. După înlocuirea pieselor sau modificarea geometriei, radarele și camerele trebuie calibrate, altfel sistemul poate funcționa imprecis."
+    }
+  ],
+  "cta": {
+    "h": "Lotul are o lovitură în roată sau „Undercarriage”?",
+    "p": "Trimiteți linkul de pe Copart sau IAAI — analizăm pozele, evaluăm riscul pentru suspensie și caroserie și vă spunem sincer dacă merită.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Îndreptarea longeroanelor",
+    "b2slug": "frame-rails"
+  },
+  "related": [
+    "repair-guide",
+    "frame-rails",
+    "car-electronics"
+  ]
+}

@@ -3588,6 +3588,12 @@ window.__APEX_DICT = (function(){
       "Электроника": "Electronică",
       "Электроника авто после аварии, затопления и пожара: что ремонтируют": "Electronica auto după accident, inundare și incendiu: ce se repară",
       "Жгуты, блоки управления, датчики, камеры и высоковольтная батарея. Что чинится просто, а где нужны диагностика и программирование.": "Cablaje, unități de control, senzori, camere și bateria de înaltă tensiune. Ce se repară simplu și unde sunt necesare diagnoza și programarea.",
+      "Подвеска": "Suspensie",
+      "Подвеска и рулевое после аварии: что меняют и что можно выправить": "Suspensia și direcția după accident: ce se schimbă și ce se poate îndrepta",
+      "Рычаги, стойки, ступицы, рулевые тяги и подрамник. Что обычно повреждается после удара, что меняют и как проверить результат.": "Brațe, amortizoare, butuci, bare de direcție și subansamblu. Ce se avariază de obicei după o lovitură, ce se schimbă și cum verifici rezultatul.",
+      "Салон": "Interior",
+      "Салон авто после аварии, затопления и пожара: что восстанавливают": "Interiorul mașinii după accident, inundație și incendiu: ce se reface",
+      "Сиденья, обшивка, торпедо, ремни и запахи. Что чистится, что меняется и когда повреждение салона — повод отказаться.": "Scaune, tapițerie, bord, centuri și mirosuri. Ce se curăță, ce se schimbă și când avaria interiorului este un motiv să renunți.",
       "Редакция Apex Auto · ноябрь 2026 · 8 мин чтения": "Redacția Apex Auto · noiembrie 2026 · 8 min de citit",
       "Редакция Apex Auto · ноябрь 2026 · 7 мин чтения": "Redacția Apex Auto · noiembrie 2026 · 7 min de citit"
       /* articles:end */
@@ -7193,6 +7199,12 @@ window.__APEX_DICT = (function(){
       "Электроника": "Electronics",
       "Электроника авто после аварии, затопления и пожара: что ремонтируют": "Car electronics after a crash, flood or fire: what gets repaired",
       "Жгуты, блоки управления, датчики, камеры и высоковольтная батарея. Что чинится просто, а где нужны диагностика и программирование.": "Harnesses, control units, sensors, cameras and the high-voltage battery. What is simple to fix and where diagnostics and programming are needed.",
+      "Подвеска": "Suspension",
+      "Подвеска и рулевое после аварии: что меняют и что можно выправить": "Suspension and steering after a crash: what gets replaced and what can be straightened",
+      "Рычаги, стойки, ступицы, рулевые тяги и подрамник. Что обычно повреждается после удара, что меняют и как проверить результат.": "Control arms, struts, hubs, tie rods and subframe. What usually gets damaged after an impact, what is replaced and how to check the result.",
+      "Салон": "Interior",
+      "Салон авто после аварии, затопления и пожара: что восстанавливают": "Car interior after a crash, flood or fire: what gets restored",
+      "Сиденья, обшивка, торпедо, ремни и запахи. Что чистится, что меняется и когда повреждение салона — повод отказаться.": "Seats, trim, dashboard, belts and odors. What is cleaned, what is replaced and when interior damage is a reason to walk away.",
       "Редакция Apex Auto · ноябрь 2026 · 8 мин чтения": "Apex Auto editorial team · November 2026 · 8 min read",
       "Редакция Apex Auto · ноябрь 2026 · 7 мин чтения": "Apex Auto editorial team · November 2026 · 7 min read"
       /* articles:end */
