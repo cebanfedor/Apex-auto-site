@@ -109,7 +109,7 @@
       '<path d="' + BODY + '" fill="none" stroke="#8b95a4" stroke-width="1.8"/>' +
       '<path d="' + BODY + '" fill="url(#dmgShine)" opacity=".35"/>' +
       '<g font-family="Onest,Inter,system-ui,sans-serif" font-size="10" font-weight="800" letter-spacing="1.4" fill="#8b95a4" text-anchor="middle">' +
-        '<text x="200" y="24">' + esc(labels.front || "ПЕРЕД") + '</text><text x="200" y="468">' + esc(labels.rear || "ЗАД") + '</text>' +
+        '<text x="200" y="24">' + esc(String(labels.front || "ПЕРЕД").toUpperCase()) + '</text><text x="200" y="468">' + esc(String(labels.rear || "ЗАД").toUpperCase()) + '</text>' +
       '</g>' +
       mark +
     '</svg>';
