@@ -49,7 +49,11 @@ const TXT = {
     phoneBtn: "📱 Поделиться номером",
     phoneOk: "✅ Номер подтверждён. Ваши сделки появятся в личном кабинете, а об этапах доставки я буду писать сюда.",
     phoneOther: "Отправьте, пожалуйста, СВОЙ номер кнопкой «Поделиться номером».",
-    cabText: "Ваш личный кабинет: избранное, заметки, машины в пути и уведомления в одном месте."
+    cabText: "Ваш личный кабинет: избранное, заметки, машины в пути и уведомления в одном месте.",
+    onbName: "👋 Как к вам обращаться? Напишите имя — так менеджер сразу будет знать, с кем говорит. Или нажмите кнопку ниже.",
+    onbPhone: n => `Приятно познакомиться, ${n}! 🙌\nОставьте номер телефона — одной кнопкой, чтобы менеджер мог быстро связаться по вашей машине. Можно пропустить.`,
+    onbSkip: "Пропустить",
+    onbDone: "✅ Готово, всё сохранено. Теперь добавляйте лоты в избранное и подписывайтесь на уведомления — я напишу, когда что-то изменится."
   },
   ro: {
     subSearch: n => `🔔 Abonament activ: «${n}»`,
@@ -80,7 +84,11 @@ const TXT = {
     phoneBtn: "📱 Trimite numărul",
     phoneOk: "✅ Numărul a fost confirmat. Tranzacțiile apar în contul personal, iar despre etapele livrării îți scriu aici.",
     phoneOther: "Trimite, te rog, PROPRIUL număr cu butonul „Trimite numărul”.",
-    cabText: "Contul tău personal: favorite, notițe, mașini în drum și notificări — într-un singur loc."
+    cabText: "Contul tău personal: favorite, notițe, mașini în drum și notificări — într-un singur loc.",
+    onbName: "👋 Cum să te strigăm? Scrie numele — așa managerul știe imediat cu cine vorbește. Sau apasă butonul de mai jos.",
+    onbPhone: n => `Încântați de cunoștință, ${n}! 🙌\nLasă numărul de telefon — dintr-un buton, ca managerul să te poată contacta rapid despre mașina ta. Poți sări peste.`,
+    onbSkip: "Sari peste",
+    onbDone: "✅ Gata, totul e salvat. Acum adaugă loturi la favorite și abonează-te la notificări — îți scriu când se schimbă ceva."
   },
   en: {
     subSearch: n => `🔔 Subscription on: «${n}»`,
@@ -111,7 +119,11 @@ const TXT = {
     phoneBtn: "📱 Share my number",
     phoneOk: "✅ Number confirmed. Your orders now appear in your account and I will message you here about delivery stages.",
     phoneOther: "Please send YOUR OWN number with the “Share my number” button.",
-    cabText: "Your personal account: favourites, notes, cars in transit and alerts in one place."
+    cabText: "Your personal account: favourites, notes, cars in transit and alerts in one place.",
+    onbName: "👋 How should we call you? Type your name so the manager knows who they are talking to — or tap the button below.",
+    onbPhone: n => `Nice to meet you, ${n}! 🙌\nShare your phone number with one tap so the manager can reach you quickly about your car. You can skip this.`,
+    onbSkip: "Skip",
+    onbDone: "✅ Done, everything is saved. Now add lots to favourites and subscribe to alerts — I'll message you when something changes."
   }
 };
 const tx = lang => TXT[lang] || TXT.ru;
@@ -282,6 +294,69 @@ function create(deps){
       await send(chatId, ACK[lang] || ACK.ru);
     }
   }
+  // ---------- знакомство: имя и телефон прямо в боте (26.11.2026) ----------
+  // Клиент, пришедший из Telegram, раньше оставался «Клиентом без имени» — профиль заполнялся только в настройках кабинета.
+  // Состояние `onb:<chat>` = {step:"name"|"phone"}; ответы — обычные кнопки-клавиатура (callback_query бот не слушает).
+  const ONB_TTL = 3 * 24 * 3600e3;
+  async function onbGet(chatId){
+    const r = await metaGet("onb:" + chatId);
+    if(!r || !r.v || !r.v.step) return null;
+    if(Date.now() - (Date.parse(r.updated_at) || 0) > ONB_TTL) return null;
+    return r.v;
+  }
+  const onbClear = chatId => metaSet("onb:" + chatId, {}).catch(() => {});
+  async function profileMerge(chatId, patch){
+    const cl = require("./clients");
+    const cur = await metaGet("profile:" + chatId);
+    const base = (cur && cur.v) || {};
+    const next = cl.cleanProfile({name:base.name, city:base.city, phone:base.phone, ...patch});
+    await metaSet("profile:" + chatId, next);
+    return next;
+  }
+  async function onbAskName(chatId, lang, firstName){
+    const cur = await metaGet("profile:" + chatId);
+    if(cur && cur.v && cur.v.name) return false;                       // имя уже есть — не пристаём
+    await metaSet("onb:" + chatId, {step:"name"});
+    const kb = firstName ? [[{text:firstName}]] : [];
+    await tg("sendMessage", {chat_id:chatId, text:tx(lang).onbName, reply_markup: kb.length ? {keyboard:kb, resize_keyboard:true, one_time_keyboard:true} : {remove_keyboard:true}});
+    return true;
+  }
+  async function onbAskPhone(chatId, lang, name){
+    await metaSet("onb:" + chatId, {step:"phone"});
+    await tg("sendMessage", {chat_id:chatId, text:tx(lang).onbPhone(esc(name)), parse_mode:"HTML", reply_markup:{keyboard:[[{text:tx(lang).phoneBtn, request_contact:true}], [{text:tx(lang).onbSkip}]], resize_keyboard:true, one_time_keyboard:true}});
+  }
+  // true — сообщение съедено знакомством и в переписку с менеджером не идёт
+  async function onbHandleText(chatId, text){
+    const st = await onbGet(chatId);
+    if(!st) return false;
+    const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=lang&limit=1`).catch(() => []);
+    if(!links[0]) return false;
+    const lang = links[0].lang || "ru";
+    if(st.step === "name"){
+      const name = String(text).replace(/\s+/g, " ").trim();
+      if(!name || name.length > 60 || /[\n<>@]|https?:|\d{5,}/.test(name)){ await onbClear(chatId); return false; }   // это не имя, а обычное сообщение
+      const prof = await profileMerge(chatId, {name});
+      if(prof.phone){ await onbClear(chatId); await tg("sendMessage", {chat_id:chatId, text:tx(lang).onbDone, reply_markup:{remove_keyboard:true}}); return true; }   // номер уже есть
+      await onbAskPhone(chatId, lang, prof.name || name);
+      return true;
+    }
+    if(st.step === "phone"){
+      const digits = String(text).replace(/\D/g, "");
+      if(text === tx(lang).onbSkip || /^(пропустить|skip|sari peste)$/i.test(text)){
+        await onbClear(chatId);
+        await tg("sendMessage", {chat_id:chatId, text:tx(lang).onbDone, reply_markup:{remove_keyboard:true}});
+        return true;
+      }
+      if(digits.length >= 7 && digits.length <= 15 && /^[+\d()\-\s]+$/.test(text)){
+        await profileMerge(chatId, {phone:text.trim()});
+        await onbClear(chatId);
+        await tg("sendMessage", {chat_id:chatId, text:tx(lang).onbDone, reply_markup:{remove_keyboard:true}});
+        return true;
+      }
+      await onbClear(chatId); return false;
+    }
+    return false;
+  }
   async function pollUpdates(){
     if(!tgToken()) return {ok:false, reason:"no_token"};
     if(!(await takeLock("tg_poll", 4000))) return {ok:true, skipped:true};
@@ -303,8 +378,13 @@ function create(deps){
           const key = digits.slice(-8);
           await metaSet("phone:" + m.chat.id, {k:key, n:digits.slice(-15)}).catch(() => {});
           await metaSet("phonekey:" + key, {chat:m.chat.id}).catch(() => {});
+          // Подтверждённый номер дублируем в профиль (если там пусто) — менеджер видит его в карточке клиента
+          const prof0 = await metaGet("profile:" + m.chat.id);
+          if(!(prof0 && prof0.v && prof0.v.phone)) await profileMerge(m.chat.id, {phone:"+" + digits.slice(-15)}).catch(() => {});
+          await onbClear(m.chat.id);
           await tg("sendMessage", {chat_id:m.chat.id, text:tx(clang).phoneOk, reply_markup:{remove_keyboard:true, inline_keyboard:undefined}});
           await send(m.chat.id, tx(clang).cabText, [{text:tx(clang).openCab, url:SITE + "/cabinet#deals"}]);
+          await onbAskName(m.chat.id, clang, m.from && String(m.from.first_name || "").trim().slice(0, 40)).catch(() => {});   // имени ещё нет — спросим
         }else{
           await send(m.chat.id, tx(clang).phoneOther);
         }
@@ -340,6 +420,7 @@ function create(deps){
                 await tg("sendMessage", {chat_id:chatId, text:tx(lang).phoneAsk, reply_markup:{keyboard:[[{text:tx(lang).phoneBtn, request_contact:true}]], resize_keyboard:true, one_time_keyboard:true}});
               }else{
                 await send(chatId, `${tx(lang).welcome}\n\n${await subsSummary(token, lang)}`, [{text:tx(lang).openCab, url:SITE + "/cabinet"}]);
+                await onbAskName(chatId, lang, fn).catch(() => {});
               }
               continue;
             }
@@ -358,6 +439,7 @@ function create(deps){
         const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=token,lang&limit=1`).catch(() => []);
         await send(chatId, links[0] ? await subsSummary(links[0].token, links[0].lang || "ru") : tx("ru").none);
       }else if(text && text[0] !== "/"){
+        if(await onbHandleText(chatId, text).catch(() => false)) continue;   // ответ на «как к вам обращаться» — не в переписку
         await inboundMsg(chatId, text, m).catch(() => {});   // обычный текст клиента → переписка в админке
       }
     }

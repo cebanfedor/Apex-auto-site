@@ -363,3 +363,8 @@
 .cabRefRowV1 { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .cabRefRowV1 input { flex: 1 1 220px; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--cab-line, #e3e6ec); border-radius: 12px; background: #f6f7fb; font: inherit; font-size: 14px; }
 .cabRefRowV1 a { display: inline-flex; align-items: center; text-decoration: none; }
+
+/* Знакомство (26.11.2026): форма имени/телефона сверху «Обзора», пока профиль пуст */
+.cabOnbV1 { margin-bottom: 18px; border-color: var(--red-line, #f3c2c7); background: linear-gradient(135deg, #fff, var(--red-soft, #fff1f2)); }
+.cabOnbFormV1 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; gap: 12px; align-items: end; }
+@media (max-width: 720px) { .cabOnbFormV1 { grid-template-columns: minmax(0,1fr); } .cabOnbFormV1 .cabBtnV1 { width: 100%; } }

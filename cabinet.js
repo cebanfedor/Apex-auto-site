@@ -122,6 +122,9 @@
     pf_name:["Имя","Nume","Name"], pf_city:["Город","Oraș","City"], pf_phone:["Телефон","Telefon","Phone"],
     pf_name_ph:["Как к вам обращаться","Cum să te strigăm","How should we call you"], pf_city_ph:["Например, Кишинёв","De exemplu, Chișinău","For example, Chișinău"], pf_phone_ph:["+373 …","+373 …","+373 …"],
     pf_save:["Сохранить","Salvează","Save"],
+    onb_h:["Давайте познакомимся","Să ne cunoaștem","Let’s get acquainted"],
+    onb_p:["Укажите, как к вам обращаться, и номер телефона — менеджер сразу будет знать, с кем говорит, и сможет быстро помочь с машиной.","Spune cum să te strigăm și numărul de telefon — managerul va ști imediat cu cine vorbește și te va ajuta rapid cu mașina.","Tell us your name and phone number — the manager will know who they are talking to and can help with your car faster."],
+    onb_go:["Сохранить","Salvează","Save"],
     pf_ver:["Номер подтверждён в Telegram","Număr confirmat în Telegram","Number confirmed in Telegram"],
     pf_notver:["Номер для сделок подтверждается во вкладке «Мои сделки».","Numărul pentru tranzacții se confirmă în fila „Tranzacțiile mele”.","The number for orders is confirmed in the “My orders” tab."],
     pf_need:["Подключите Telegram, чтобы сохранить свои данные.","Conectează Telegram ca să-ți salvezi datele.","Connect Telegram to save your details."],
@@ -187,6 +190,7 @@
   function aucName(l){ if(l.catalog) return t(l.src === "ca" ? "src_ca" : "src_kr"); return String(l.auction || String(l.id || "").split("-")[0] || "").toUpperCase(); }
   function ico(name){
     var P = {
+      user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
       heart:'<path d="M12 21s-7-4.6-9.3-9.1C1.1 8.7 3 5.5 6.2 5.5c2 0 3.4 1.1 4.1 2.2h3.4c.7-1.1 2.1-2.2 4.1-2.2 3.2 0 5.1 3.2 3.5 6.4C19 16.4 12 21 12 21z"/>',
       bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
       car:'<path d="M5 17h14M3 13l2-6h14l2 6v4H3v-4z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>',
@@ -722,6 +726,18 @@
           '<div class="cabActsV1"><button type="button" class="cabIcoBtnV1' + (favIds[r.id] ? " on" : "") + '" data-act="addfav" data-id="' + esc(r.id) + '">' + ico("heart") + '<span>' + t("add_fav") + '</span></button></div></div></article>';
       }).join("") + '</div>';
   }
+  // Знакомство: клиент пришёл из Telegram, а имени/телефона у нас нет — заметная форма сверху «Обзора» (26.11.2026)
+  function onbCard(){
+    var P = S.profile || {};
+    if(!S.bound || P.name || S.onbHide) return "";
+    return '<section class="cabBoxV1 cabOnbV1"><h2>' + ico("user") + t("onb_h") + '</h2><p class="cabMutedV1">' + t("onb_p") + '</p>' +
+      '<form class="cabPfV1 cabOnbFormV1" data-form="profile">' +
+      '<input type="hidden" name="city" value="' + esc(P.city || "") + '">' +
+      '<label><span>' + t("pf_name") + '</span><input name="name" type="text" maxlength="60" autocomplete="name" value="' + esc(S.tgName || "") + '" placeholder="' + esc(t("pf_name_ph")) + '" required></label>' +
+      '<label><span>' + t("pf_phone") + '</span><input name="phone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" value="' + esc(P.phone || S.verifiedPhone || "") + '" placeholder="' + esc(t("pf_phone_ph")) + '"></label>' +
+      '<p class="cabErrV1" id="cabPfErr" hidden></p>' +
+      '<button class="cabBtnV1" type="submit">' + t("onb_go") + '</button></form></section>';
+  }
   function profileBox(){
     var P = S.profile || {}, ph = P.phone || "";
     var ver = S.phoneVerified ? '<p class="cabPfVerV1 isOk">' + ico("ok") + '<span>' + t("pf_ver") + (S.verifiedPhone ? ' · ' + esc(S.verifiedPhone) : "") + '</span></p>' : '<p class="cabPfVerV1">' + t("pf_notver") + '</p>';
@@ -810,6 +826,7 @@
     var pane = S.tab === "picks" ? panePicks() : S.tab === "deals" ? paneDeals() : S.tab === "fav" ? paneFav() : S.tab === "cars" ? paneCars() : S.tab === "subs" ? paneSubs() : S.tab === "recent" ? paneRecent() : S.tab === "set" ? paneSet() : paneOver();
     root.innerHTML =
       '<section class="cabHeroV1"><div class="cabHeroTxtV1"><span class="cabKickerV1">' + t("hero_k") + '</span><h1>' + (S.bound && S.name ? esc(t("hello") + S.name) + "! " : "") + t("hero_h") + '</h1><p>' + t("hero_p") + '</p></div>' + connectCard() + '</section>' +
+      onbCard() +
       '<div class="cabStatsV1">' + stats.map(function(s){ return '<button type="button" class="cabStatV1" data-act="tab" data-v="' + s[3] + '"><span class="cabStatIcoV1">' + s[0] + '</span><b>' + s[1] + '</b><small>' + t(s[2]) + '</small></button>'; }).join("") + '</div>' +
       '<nav class="cabTabsV1" role="tablist">' + tabs.map(function(x){ return '<button type="button" role="tab" aria-selected="' + (S.tab === x[0]) + '" class="' + (S.tab === x[0] ? "on" : "") + '" data-act="tab" data-v="' + x[0] + '">' + t(x[1]) + (x[2] !== "" && x[2] !== 0 ? ' <em>' + x[2] + '</em>' : "") + '</button>'; }).join("") + '</nav>' +
       '<div class="cabPaneV1" role="tabpanel">' + pane + '</div>' + (S.tab === "fav" ? cmpBar() : "") + (S.cmpOpen ? cmpModal() : "") + '<div class="cabToastV1" id="cabToast" role="status" aria-live="polite"></div>';
