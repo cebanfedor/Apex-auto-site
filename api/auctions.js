@@ -6866,10 +6866,19 @@ const handlerInner = async function handler(request, response){
     if(action === "detail"){
       // DB-first (27.11.2026): SSR страницы лота и превью (db=1) берут лот из базы без обращения к провайдеру; при нагрузке ≥1 так же
       // обслуживаем любые запросы без кэша, если лот есть в базе — провайдера не трогаем.
-      if(query.get("db") === "1" || apiLoadLevel() >= 1){
+      if(query.get("light") !== "1" && (query.get("db") === "1" || apiLoadLevel() >= 1)){
         const dbLot = await lotFromDbRow(normalizeAuction(query.get("auction")), query.get("lot"));
         if(dbLot){ sendJson(response, 200, {ok:true, lot:dbLot, fromDb:true, stale:true}, {"cache-control":"public, s-maxage=300, stale-while-revalidate=600"}); return; }
         if(query.get("db") === "1" && apiLoadLevel() >= 1){ sendJson(response, 503, {ok:false, error:"temporarily unavailable"}, {"cache-control":"no-store"}); return; }
+      }
+      // light=1 (27.11.2026): листание фото в карточке каталога — нужен только полный набор снимков: один запрос /search-lot,
+      // без истории по VIN (/search-vin) и расшифровки; ответ кэшируется.
+      if(query.get("light") === "1"){
+        const l = await fetchDetail(query);
+        const payload = {ok:true, light:true, lot:{id:l.id, auction:l.auction, lot:l.lot, images:l.images || [], photoCount:l.photoCount || (l.images || []).length}};
+        setCached(key, payload);
+        sendJson(response, 200, payload, {"cache-control":"public, s-maxage=1800, stale-while-revalidate=3600"});
+        return;
       }
       const lot = await fetchDetail(query);
       await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);

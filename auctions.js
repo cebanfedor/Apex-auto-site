@@ -1886,7 +1886,7 @@ function alertable(lot){
         }else{
           try{ cd.insertAdjacentHTML("afterend", renderCard(lot)); cd.remove(); }catch(e){}
         }
-        api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&fresh=1`).catch(() => {});
+        // 27.11.2026: фоновый detail&fresh=1 убран — livebids уже лечит строку в базе (upsertClosedLot), лишние 2 платных запроса на карточку
         healed = true;
         return;
       }
@@ -2732,7 +2732,7 @@ function alertable(lot){
     if(lot._fullPromise) return lot._fullPromise;
     if(Number(lot.photoCount) <= (lot.images || []).length || (lot.images || []).length >= CARD_PHOTO_MAX){ lot._fullPromise = Promise.resolve(); return lot._fullPromise; }
     lot._fullImgs = lot._fullImgs || "loading";
-    lot._fullPromise = api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
+    lot._fullPromise = api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&light=1`)
       .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done"; })
       .catch(() => { lot._fullImgs = "done"; });
     return lot._fullPromise;
@@ -2763,7 +2763,7 @@ function alertable(lot){
     // при первом листании дотягиваем полный набор со страницы лота, дальше листаем все.
     if(!lot._fullImgs && Number(lot.photoCount) > lot.images.length && lot.images.length < CARD_PHOTO_MAX){
       lot._fullImgs = "loading";
-      api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}`)
+      api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&light=1`)
         .then(p => { const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : []; if(im.length > lot.images.length) lot.images = im; lot._fullImgs = "done";
           const i2 = parseInt(img?.dataset.slide || "0"); if(counter) counter.textContent = `${i2 + 1}/${Math.min(CARD_PHOTO_MAX, lot.images.length)}`; })
         .catch(() => { lot._fullImgs = "done"; });
