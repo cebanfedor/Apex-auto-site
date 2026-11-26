@@ -702,3 +702,11 @@
 
 /* Проверка телефона 320px (25.11.2026): длинные подписи строк («Сертифицированный продавец») переносятся, а не режутся */
 .apx-korea .lot-info__row dt { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+
+/* Сердечко «в избранное» на карточке списка (26.11.2026) — общая стопка с лотами Copart/IAAI */
+.apx-korea .vcard__media .vcardFavV1{position:absolute;top:8px;right:8px;z-index:3;width:34px;height:34px;display:inline-grid;place-items:center;border:0;border-radius:50%;background:rgba(255,255,255,.92);color:#5b6472;box-shadow:0 2px 8px rgba(15,23,42,.18);cursor:pointer;transition:transform .15s,color .15s,background .15s}
+.apx-korea .vcard__media .vcardFavV1 svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.apx-korea .vcard__media .vcardFavV1:hover{transform:scale(1.08);color:#ed0012}
+.apx-korea .vcard__media .vcardFavV1.is-on{color:#ed0012;background:#fff}
+.apx-korea .vcard__media .vcardFavV1.is-on svg{fill:currentColor}
+@media (max-width:640px){.apx-korea .vcard__media .vcardFavV1{width:36px;height:36px}}

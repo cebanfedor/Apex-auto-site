@@ -932,6 +932,13 @@
   }
   function imageFull(img){ return img.original || img.preview || img.downloaded || ""; }
   var cardPhotos = [];   // для просмотра фото без перехода на лот: [{full:[…], thumbs:[…]}] по номеру карточки на странице
+  // Избранное: общая стопка с лотами Copart/IAAI (cat-fav.js → apexFavsV1)
+  var FAVSRC = CA ? "ca" : "kr";
+  function favHeartHtml(car){
+    var on = !!(window.apexCatFav && window.apexCatFav.has(FAVSRC, car.id));
+    return '<button type="button" class="vcardFavV1' + (on ? " is-on" : "") + '" data-fav="' + esc(car.id) + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="' + esc(T(on ? "Убрать из избранного" : "Добавить в избранное")) + '">'
+      + '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 2.7 5 6.2 5c2 0 3.3 1.1 3.8 2 .5-.9 1.8-2 3.8-2 3.5 0 5.2 3.6 3.8 6.8C19.5 16.4 12 21 12 21z"/></svg></button>';
+  }
   function cardHtml(car, idx){
     var listing = pickListing(car);
     var imgs = listing && Array.isArray(listing.images) ? listing.images.map(imageUrl).filter(Boolean) : [];
@@ -985,6 +992,7 @@
         + '<div class="vcard__stage" data-stage aria-hidden="true">' + stage + '</div>'
         + nav + segments
         + '<span class="vcard__scrim" aria-hidden="true"></span>'
+        + favHeartHtml(car)
         + '<div class="vcard__badges pointer-events-none absolute start-2.5 top-2.5 z-[2] flex flex-wrap items-start gap-1.5 end-11">' + badges + mobReports + '</div>'
         + (sold ? '<span class="vcard__sold">' + esc(T("Продано")) + '</span>' : "")
       + '</div>'
@@ -1074,6 +1082,17 @@
     if(mediaIndex(media) !== 0) goTo(media, 0, true);
   });
   grid.addEventListener("click", function(e){
+    var fv = e.target.closest("[data-fav]");
+    if(fv){
+      e.preventDefault(); e.stopPropagation();
+      var media0 = fv.closest(".vcard__media"), ci = media0 ? parseInt(media0.getAttribute("data-ci"), 10) : -1, d = cardData[ci];
+      if(!d || !window.apexCatFav) return;
+      var car0 = d.car, imgs0 = cardPhotos[ci] && cardPhotos[ci].thumbs || [], p0 = d.price, usd0 = p0 && p0.amt ? toUsd(p0.amt, p0.cur) : 0;
+      var on = window.apexCatFav.toggle(FAVSRC, {carId:car0.id, url:BASE + "/" + catSlug(car0), title:titleOf(car0), image:imgs0[0] || "", usd:usd0 || 0,
+        vin:String(car0.vin || "").toUpperCase(), year:car0.year || "", odoKm:d.listing && d.listing.odometer || 0});
+      fv.classList.toggle("is-on", on); fv.setAttribute("aria-pressed", on ? "true" : "false"); fv.setAttribute("aria-label", T(on ? "Убрать из избранного" : "Добавить в избранное"));
+      return;
+    }
     var nav = e.target.closest("[data-nav]");
     if(nav){ e.preventDefault(); e.stopPropagation(); var media = nav.closest(".vcard__media"); goTo(media, mediaIndex(media) + parseInt(nav.getAttribute("data-nav"), 10)); return; }
     var cp = e.target.closest("[data-copy]");

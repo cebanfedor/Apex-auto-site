@@ -36,6 +36,7 @@
     q_us:["Аукционы США и Канады","Licitații SUA și Canada","US & Canada auctions"], q_kr:["Целые авто из Кореи","Mașini întregi din Coreea","Intact cars from Korea"], q_calc:["Калькулятор под ключ","Calculator la cheie","Turnkey calculator"], q_vin:["Проверка VIN","Verificare VIN","VIN check"], q_msg:["Написать менеджеру","Scrie managerului","Message the manager"], q_track:["Отследить авто","Urmărește mașina","Track a car"],
     f_all:["Все","Toate","All"], f_soon:["Скоро торги","Curând","Soon"], f_sold:["Продано","Vândute","Sold"], f_nodate:["Без даты","Fără dată","No date"],
     sort_date:["По дате торгов","După data licitației","By auction date"], sort_add:["Сначала новые","Cele mai noi","Newest first"],
+    src_kr:["Корея","Coreea","Korea"], src_ca:["Канада","Canada","Canada"], cat_chip:["Целая машина","Mașină întreagă","Intact car"], f_cat:["Целые авто","Mașini întregi","Intact cars"], c_price:["Цена","Preț","Price"], c_year:["Год","An","Year"], km_u:["км","km","km"],
     fav_e_h:["В избранном пока пусто","Încă nu ai favorite","No favourites yet"], fav_e_p:["Нажмите ♡ на карточке лота — он появится здесь, со ставкой и обратным отсчётом.","Apasă ♡ pe cardul unui lot — apare aici, cu oferta și numărătoarea inversă.","Tap ♡ on a lot card — it will appear here with the live bid and countdown."], fav_go:["Открыть каталог","Deschide catalogul","Open the catalog"],
     bid:["Ставка","Ofertă","Bid"], buynow:["Выкуп","Cumpărare","Buy Now"], when:["Торги","Licitație","Auction"], odo:["Пробег","Rulaj","Mileage"], sold_for:["Продан","Vândut","Sold"], final:["Финал","Final","Final"],
     nodate:["Дата не назначена","Dată nealocată","No date yet"], live_now:["Идут торги","În desfășurare","Live now"], ended:["Торги прошли","Încheiat","Ended"], in_:["через","peste","in"], d:["д","z","d"], h:["ч","h","h"], m:["мин","min","min"],
@@ -177,10 +178,13 @@
     if(h >= 1) return t("in_") + " " + h + " " + t("h") + " " + (m % 60) + " " + t("m");
     return t("in_") + " " + Math.max(1, m) + " " + t("m");
   }
-  function lotUrl(id){ return "/auctions/" + encodeURIComponent(id); }
+  function lotUrl(id){
+    var f = /^(kr|ca)-/.test(String(id)) ? S.favs.filter(function(x){ return x.id === id; })[0] : null;
+    return f && f.url ? f.url : "/auctions/" + encodeURIComponent(id);
+  }
   function img(l){ return l.image || (l.images && l.images[0]) || ""; }
   function titleOf(l){ return l.title || [l.year, l.make, l.model].filter(Boolean).join(" ") || l.id; }
-  function aucName(l){ return String(l.auction || String(l.id || "").split("-")[0] || "").toUpperCase(); }
+  function aucName(l){ if(l.catalog) return t(l.src === "ca" ? "src_ca" : "src_kr"); return String(l.auction || String(l.id || "").split("-")[0] || "").toUpperCase(); }
   function ico(name){
     var P = {
       heart:'<path d="M12 21s-7-4.6-9.3-9.1C1.1 8.7 3 5.5 6.2 5.5c2 0 3.4 1.1 4.1 2.2h3.4c.7-1.1 2.1-2.2 4.1-2.2 3.2 0 5.1 3.2 3.5 6.4C19 16.4 12 21 12 21z"/>',
@@ -284,6 +288,7 @@
     return o;
   }
   function status(o){
+    if(o.catalog) return {k:"cat", label:t("cat_chip")};
     var now = Date.now(), ts = Date.parse(o.auctionDate || "");
     if(o.sold) return {k:"sold", label:t("sold_for") + (o.finalBid ? " " + money(o.finalBid, isCa(o)) : "")};
     if(!isFinite(ts)) return {k:"nodate", label:t("nodate")};
@@ -590,11 +595,17 @@
     var followed = S.subs.some(function(s){ return s.kind === "lot" && s.lot_id === id; });
     var note = (S.notes[id] && S.notes[id].text) || "";
     var rows = "";
-    if(!o.sold && Number(o.currentBid) > 0) rows += '<div><span>' + t("bid") + '</span><b>' + money(o.currentBid, ca) + '</b></div>';
-    if(!o.sold && Number(o.buyNow) > 0) rows += '<div><span>' + t("buynow") + '</span><b>' + money(o.buyNow, ca) + '</b></div>';
-    if(o.sold && o.finalBid) rows += '<div><span>' + t("final") + '</span><b>' + money(o.finalBid, ca) + '</b></div>';
-    if(o.auctionDate && isFinite(Date.parse(o.auctionDate))) rows += '<div><span>' + t("when") + '</span><b>' + esc(fmtDate(o.auctionDate)) + '</b></div>';
-    if(o.odometerText) rows += '<div><span>' + t("odo") + '</span><b>' + esc(o.odometerText) + '</b></div>';
+    if(o.catalog){
+      if(Number(o.usd) > 0) rows += '<div><span>' + t("c_price") + '</span><b>' + money(o.usd) + '</b></div>';
+      if(o.year) rows += '<div><span>' + t("c_year") + '</span><b>' + esc(o.year) + '</b></div>';
+      if(Number(o.odoKm) > 0) rows += '<div><span>' + t("odo") + '</span><b>' + Number(o.odoKm).toLocaleString("en-US").replace(/,/g, " ") + ' ' + t("km_u") + '</b></div>';
+    }else{
+      if(!o.sold && Number(o.currentBid) > 0) rows += '<div><span>' + t("bid") + '</span><b>' + money(o.currentBid, ca) + '</b></div>';
+      if(!o.sold && Number(o.buyNow) > 0) rows += '<div><span>' + t("buynow") + '</span><b>' + money(o.buyNow, ca) + '</b></div>';
+      if(o.sold && o.finalBid) rows += '<div><span>' + t("final") + '</span><b>' + money(o.finalBid, ca) + '</b></div>';
+      if(o.auctionDate && isFinite(Date.parse(o.auctionDate))) rows += '<div><span>' + t("when") + '</span><b>' + esc(fmtDate(o.auctionDate)) + '</b></div>';
+      if(o.odometerText) rows += '<div><span>' + t("odo") + '</span><b>' + esc(o.odometerText) + '</b></div>';
+    }
     return '<article class="cabCardV1" data-id="' + esc(id) + '">' +
       '<a class="cabPicV1" href="' + lotUrl(id) + '">' + (pic ? '<img src="' + esc(pic) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") +
       '<span class="cabAucV1">' + esc(aucName(o)) + '</span><span class="cabChipV1 is-' + st.k + '">' + esc(st.label) + '</span></a>' +
@@ -602,9 +613,9 @@
       (o.vin ? '<div class="cabVinV1">' + esc(o.vin) + '</div>' : "") +
       '<div class="cabRowsV1">' + rows + '</div>' + bandRow(o) +
       '<div class="cabActsV1">' +
-        '<button type="button" class="cabIcoBtnV1' + (followed ? " on" : "") + '" data-act="follow" data-id="' + esc(id) + '" title="' + esc(followed ? t("unfollow") : t("follow")) + '">' + ico("bell") + '<span>' + (followed ? t("unfollow") : t("follow")) + '</span></button>' +
+        (o.catalog ? '' : '<button type="button" class="cabIcoBtnV1' + (followed ? " on" : "") + '" data-act="follow" data-id="' + esc(id) + '" title="' + esc(followed ? t("unfollow") : t("follow")) + '">' + ico("bell") + '<span>' + (followed ? t("unfollow") : t("follow")) + '</span></button>') +
         '<button type="button" class="cabIcoBtnV1' + (note ? " on" : "") + '" data-act="notetoggle" data-id="' + esc(id) + '">' + ico("note") + '<span>' + t("note") + '</span></button>' +
-        '<button type="button" class="cabIcoBtnV1' + (S.cmp[id] ? " on" : "") + '" data-act="cmpt" data-id="' + esc(id) + '" aria-pressed="' + (!!S.cmp[id]) + '">' + ico("ok") + '<span>' + t("cmp") + '</span></button>' +
+        (o.catalog ? '' : '<button type="button" class="cabIcoBtnV1' + (S.cmp[id] ? " on" : "") + '" data-act="cmpt" data-id="' + esc(id) + '" aria-pressed="' + (!!S.cmp[id]) + '">' + ico("ok") + '<span>' + t("cmp") + '</span></button>') +
         '<button type="button" class="cabIcoBtnV1 isDanger" data-act="unfav" data-id="' + esc(id) + '" title="' + esc(t("remove")) + '">' + ico("trash") + '</button>' +
       '</div>' +
       '<div class="cabNoteV1"' + (note ? "" : " hidden") + '><textarea data-note="' + esc(id) + '" rows="3" maxlength="2000" placeholder="' + esc(t("note_ph")) + '">' + esc(note) + '</textarea><i class="cabSavedV1">' + t("saved") + '</i></div>' +
@@ -664,10 +675,12 @@
     if(!S.favs.length) return empty(t("fav_e_h"), t("fav_e_p"), t("fav_go"), "/auctions");
     var items = S.favs.map(function(f){ var o = merged(f); return {f:f, o:o, s:status(o)}; });
     var filters = [["all", "f_all"], ["soon", "f_soon"], ["sold", "f_sold"], ["nodate", "f_nodate"]];
+    if(items.some(function(x){ return x.o.catalog; })) filters.push(["cat", "f_cat"]);
     var shown = items.filter(function(x){
       if(S.favFilter === "soon") return x.s.k === "soon" || x.s.k === "future" || x.s.k === "live";
       if(S.favFilter === "sold") return x.s.k === "sold";
       if(S.favFilter === "nodate") return x.s.k === "nodate";
+      if(S.favFilter === "cat") return x.s.k === "cat";
       return true;
     });
     if(S.favSort === "date") shown.sort(function(a, b){

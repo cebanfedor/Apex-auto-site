@@ -61,3 +61,13 @@ test("cabput: пишет только по chat_id токена, чужой кл
   await m3.api.handle("cabput", {method:"POST", body:{token:T_FREE, kind:"fav", key:"copart-55555555", data:{id:"x"}}}, {}, new URLSearchParams());
   assert.strictEqual(m3.out.body.error, "unbound");
 });
+
+test("избранное: ключи целых авто kr-/ca- принимаются, чужие префиксы — нет", () => {
+  const {KINDS} = require("../server/cabinet");
+  assert.ok(KINDS.fav.keyRe.test("kr-l_ea4ZUQFp0HheXIfD0j_ZNw"));
+  assert.ok(KINDS.fav.keyRe.test("ca-AbC123-xyz"));
+  assert.ok(KINDS.note.keyRe.test("kr-l_ea4ZUQFp0HheXIfD0j_ZNw"));
+  assert.ok(KINDS.fav.keyRe.test("copart-61420506"));
+  assert.ok(!KINDS.fav.keyRe.test("x-12345"));
+  assert.ok(!KINDS.fav.keyRe.test("kr-ab"));
+});

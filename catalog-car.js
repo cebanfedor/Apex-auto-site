@@ -272,10 +272,9 @@
     return [district, ld.region && ld.region.name, ld.country && ld.country.name].filter(Boolean).join(", ");
   }
 
-  // ---- Избранное (localStorage) ----
-  function favLoad(){ try{ return JSON.parse(localStorage.getItem("apexCatFavV1") || "{}") || {}; }catch(e){ return {}; } }
-  function favHas(id){ return !!favLoad()[id]; }
-  function favToggle(id, info){ var f = favLoad(); if(f[id]) delete f[id]; else f[id] = info; try{ localStorage.setItem("apexCatFavV1", JSON.stringify(f)); }catch(e){} return !!f[id]; }
+  // ---- Избранное: общая стопка с лотами Copart/IAAI (cat-fav.js → apexFavsV1, синхронизация кабинетом) ----
+  var FAVSRC = CA ? "ca" : "kr";
+  function favHas(id){ return !!(window.apexCatFav && window.apexCatFav.has(FAVSRC, id)); }
   function favBtnHtml(cls){
     var on = favHas(state.car.id);
     return '<button type="button" class="fav-btn ' + cls + (on ? " is-on" : "") + '" data-fav aria-pressed="' + (on ? "true" : "false") + '" aria-label="' + esc(on ? T("Убрать из избранного") : T("Добавить в избранное")) + '">' + (ART.fav || I.star) + '<span class="fav-btn__sparks" aria-hidden="true"><i style="--a: 30deg"></i><i style="--a: 90deg"></i><i style="--a: 150deg"></i><i style="--a: 210deg"></i><i style="--a: 270deg"></i><i style="--a: 330deg"></i></span></button>';
@@ -283,8 +282,10 @@
   document.addEventListener("click", function(e){
     var b = e.target.closest("[data-fav]"); if(!b || !state.car) return;
     e.preventDefault(); e.stopPropagation();
-    var photo = state.photos[0] || "";
-    var on = favToggle(state.car.id, {id:state.car.id, url:pageUrl(), title:titleOf(state.car, state.listing), image:photo});
+    if(!window.apexCatFav) return;
+    var car = state.car, pr = listingPrice(state.listing), usd = pr && pr.amount ? toUsd(pr.amount, pr.cur) : 0;
+    var on = window.apexCatFav.toggle(FAVSRC, {carId:car.id, url:BASE + "/" + catSlug(car), title:titleOf(car, state.listing), image:state.photos[0] || "",
+      usd:usd || 0, vin:String(car.vin || "").toUpperCase(), year:car.year || "", odoKm:state.listing && state.listing.odometer || 0});
     document.querySelectorAll("[data-fav]").forEach(function(x){
       x.classList.toggle("is-on", on); x.setAttribute("aria-pressed", on ? "true" : "false"); x.setAttribute("aria-label", on ? T("Убрать из избранного") : T("Добавить в избранное"));
       x.classList.remove("is-burst", "is-unburst"); void x.offsetWidth; x.classList.add(on ? "is-burst" : "is-unburst"); setTimeout(function(){ x.classList.remove("is-burst", "is-unburst"); }, 750);

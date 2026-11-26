@@ -226,7 +226,30 @@
     if(map[lot.id]) track("fav_add");
     return !!favLoad()[lot.id];
   }
-  function favList(){ return Object.values(favLoad()).reverse(); }
+  // Лоты Copart/IAAI — только они идут в карточки аукциона и подписки; целые машины Кореи/Канады (kr-/ca-, catalog:true) — отдельным блоком в той же вкладке
+  function favList(){ return Object.values(favLoad()).reverse().filter(o => o && !o.catalog); }
+  function favCatalogList(){ return Object.values(favLoad()).reverse().filter(o => o && o.catalog); }
+  function favCatalogBlock(){
+    const list = favCatalogList();
+    if(!list.length) return "";
+    const card = o => {
+      const src = L(o.src === "ca" ? "Канада" : "Корея");
+      const meta = [o.year, Number(o.odoKm) > 0 ? Number(o.odoKm).toLocaleString("en-US").replace(/,/g, " ") + " " + L("км") : ""].filter(Boolean).join(" · ");
+      return `<article class="favCatCardV1"><a class="favCatPicV1" href="${escapeHtml(o.url || "#")}">${o.image ? `<img src="${escapeHtml(o.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span class="favCatSrcV1">${escapeHtml(src)}</span></a>
+        <div class="favCatBodyV1"><a class="favCatTitleV1" href="${escapeHtml(o.url || "#")}">${escapeHtml(o.title || "")}</a>
+        ${meta ? `<div class="favCatMetaV1">${escapeHtml(meta)}</div>` : ""}
+        <div class="favCatRowV1"><b>${Number(o.usd) > 0 ? money(o.usd) : ""}</b><button type="button" class="favCatRmV1" data-catfav-rm="${escapeHtml(o.id)}" aria-label="${escapeHtml(L("Убрать из избранного"))}" title="${escapeHtml(L("Убрать из избранного"))}">×</button></div></div></article>`;
+    };
+    return `<section class="favCatV1" id="favCatV1"><h3>${escapeHtml(L("Целые автомобили · Корея и Канада"))} <em>${list.length}</em></h3><div class="favCatGridV1">${list.map(card).join("")}</div></section>`;
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest("[data-catfav-rm]");
+    if(!b) return;
+    e.preventDefault();
+    const k = b.getAttribute("data-catfav-rm"), map = favLoad();
+    if(map[k]){ delete map[k]; favSave(map); updateFavCount(); try{ if(window.apexCab) window.apexCab.del("fav", k); }catch(_){} }
+    if(typeof state !== "undefined" && state.tab === "favorites") renderFavorites(); else { const sec = document.getElementById("favCatV1"); if(sec) sec.remove(); }
+  });
   function updateFavCount(){
     const n = Object.keys(favLoad()).length;
     const el = document.getElementById("favCount");
@@ -2363,11 +2386,13 @@ function alertable(lot){
     state.hasMore = false;
     $("#auctionCards").innerHTML = "";
     const pg = document.getElementById("paginationV1"); if(pg) pg.hidden = true;
-    $("#auctionResultCount").textContent = state.items.length;
-    setResultNum(state.items.length);
+    const catN = favCatalogList().length;
+    $("#auctionResultCount").textContent = state.items.length + catN;
+    setResultNum(state.items.length + catN);
     $("#auctionResultLabel").textContent = "в избранном";
     renderCards(false);
-    setMessage(state.items.length ? "" : "В избранном пусто. Нажмите ★ на карточке лота, чтобы сохранить его сюда.");
+    if(catN) $("#auctionCards").insertAdjacentHTML("afterbegin", favCatalogBlock());
+    setMessage(state.items.length || catN ? "" : "В избранном пусто. Нажмите ★ на карточке лота, чтобы сохранить его сюда.");
     // 02.10.2026 (Федор: «в избранном не обновляется актуальная инфа по продаже авто»): карточки
     // избранного — это СНИМОК лота на момент клика по звезде (favList читает localStorage), а
     // loadLots() (обычные вкладки) после рендера всегда досчитывает историю по VIN/ставку/оценку —

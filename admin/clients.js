@@ -87,12 +87,12 @@
     const wa = digits(phone) ? `https://api.whatsapp.com/send?phone=${digits(phone)}&text=${encodeURIComponent(hello)}` : "";
     const seen = c.seen.online ? `<span class="ccPillV1 on">онлайн${c.seen.title ? " · " + e(c.seen.title) : ""}</span>` : `<span class="ccPillV1">был ${ago(c.seen.at)}</span>`;
     const sec = (title, body, count) => body ? `<section class="ccSecV1"><h3>${title}${count != null ? ` <em>${count}</em>` : ""}</h3>${body}</section>` : "";
-    const lotRow = (id, d, right) => `<a class="ccLotV1" href="${lotUrl(id)}" target="_blank" rel="noopener"><span class="ccThumbV1">${thumb(d)}</span><span class="ccLotTxtV1"><b>${e(titleOf(d) || id)}</b><small>${e(id)}${d && d.year ? "" : ""}${right ? " · " + right : ""}</small></span></a>`;
+    const lotRow = (id, d, right) => `<a class="ccLotV1" href="${d && d.catalog && d.url ? e(d.url) : lotUrl(id)}" target="_blank" rel="noopener"><span class="ccThumbV1">${thumb(d)}</span><span class="ccLotTxtV1"><b>${e(titleOf(d) || id)}</b><small>${e(id)}${d && d.year ? "" : ""}${right ? " · " + right : ""}</small></span></a>`;
 
     const views = c.views.length ? c.views.slice(0, 30).map(v => lotRow(v.key, v.data, `${v.n > 1 ? `<b class="ccHotV1">${times(v.n)}</b> · ` : ""}${ago(v.last)}`)).join("") : "";
     const searches = c.searches.map(sr => `<a class="ccSrV1" href="/auctions?${e(sr.data.qs || "")}" target="_blank" rel="noopener"><b>${e(sr.data.label || sr.key)}</b><small>${sr.n > 1 ? times(sr.n) + " · " : ""}${ago(sr.last)}</small></a>`).join("");
     const dealBtn = id => `<button type="button" class="ghost ccMiniV1" data-cc-mkdeal="${e(id)}" title="Создать сделку по этому лоту для клиента">➕ Сделка</button>`;
-    const favs = c.favs.map(f => `<div class="ccPickV1">${lotRow(f.id, f, [money(f.currentBid), f.note ? "✎ " + e(f.note) : ""].filter(Boolean).join(" · "))}<div class="ccPickMetaV1">${dealBtn(f.id)}</div></div>`).join("");
+    const favs = c.favs.map(f => `<div class="ccPickV1">${lotRow(f.id, f, [f.catalog ? (f.usd ? money(f.usd) : "") + (f.src === "ca" ? " · Канада" : " · Корея") : money(f.currentBid), f.note ? "✎ " + e(f.note) : ""].filter(Boolean).join(" · "))}<div class="ccPickMetaV1">${f.catalog ? "" : dealBtn(f.id)}</div></div>`).join("");
     const picks = c.picks.map(p => {
       const rx = p.reaction ? REACT[p.reaction] : null;
       return `<div class="ccPickV1">${lotRow(p.lot_id, p.data, ago(Date.parse(p.created_at)) + (p.seen_at ? " · просмотрено" : " · не открыто"))}

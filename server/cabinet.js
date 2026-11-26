@@ -2,8 +2,8 @@
 // привязан секретный токен клиента (alert_links, см. server/alerts.js). Таблица cab_items —
 // supabase/migrations/20261124_cabinet.sql. Без таблицы отвечаем ready:false — клиент работает на localStorage.
 const KINDS = {
-  fav:  {max:300, keyRe:/^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/, dataMax:6000},
-  note: {max:300, keyRe:/^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/, dataMax:2600},
+  fav:  {max:300, keyRe:/^(copart|iaai|kr|ca)-[A-Za-z0-9_-]{3,40}$/, dataMax:6000},
+  note: {max:300, keyRe:/^(copart|iaai|kr|ca)-[A-Za-z0-9_-]{3,40}$/, dataMax:2600},
   car:  {max:30,  keyRe:/^[A-HJ-NPR-Z0-9]{17}$/,               dataMax:600},
   view: {max:60,  keyRe:/^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/, dataMax:2500}
 };
