@@ -1038,7 +1038,7 @@ body.leadModalOpenV1 { overflow:hidden; }
 /* Телефон: в свёрнутой карточке сразу видно главное — дата торгов, ставка, прогноз, повреждение */
 .dbMobMetaV1 { display:none; }
 @media (max-width:640px) {
-  .dbCard:not(.dbOpenV1) .dbMobMetaV1 { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin:2px 0 4px; font-size:13.5px; color:var(--aMuted); }
+  .dbCard .dbMobMetaV1 { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin:2px 0 4px; font-size:13.5px; color:var(--aMuted); }
   .dbMobMetaV1 .dbIco { width:14px; height:14px; margin-right:5px; vertical-align:-2px; }
   .dbMobMetaV1 b { color:var(--aInk); font-size:15px; }
   .dbMobMetaV1 .dbMobReserveV1 { color:#9a4d00; font-weight:600; }
@@ -1768,7 +1768,7 @@ body.leadModalOpenV1 { overflow:hidden; }
   .dbCard .dbSpecs, .dbCard .dbChecks, .dbCard .dbLeftCol, .dbCard .dbChecksCol { gap:6px; }
   .dbCard .copyChipV1 .dbIco:last-child { width:13px; height:13px; padding:0; background:none; }
   /* дата — отдельная строка в той же сетке, чуть плотнее остальных */
-  .dbCard:not(.dbOpenV1) .dbMobMetaV1 { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; gap:10px; margin:0; font-size:14px; }
+  .dbCard .dbMobMetaV1 { display:flex; flex-direction:column; align-items:stretch; flex-wrap:nowrap; gap:10px; margin:0; font-size:14px; }
   .dbMobMetaV1 .dbMobDateV1 { display:flex; align-items:center; font-weight:600; color:var(--aInk); }
   .dbMobMetaV1 .dbMobDateV1 .dbIco { margin:0; vertical-align:baseline; }
   .dbMobMetaV1 .dbMobDateV1.dbNoDateV1 { display:inline-flex; align-self:flex-start; padding:3px 10px 3px 4px; font-size:12.5px; }
@@ -2239,3 +2239,15 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 }
 /* «Смотреть видео» в таблице лота не выходит из ячейки */
 .dLinkBtnV1 { max-width: 100%; text-align: left; white-space: normal; }
+
+/* ===== Телефон: «Развернуть» ничего не переставляет (28.11.2026, Федор со скриншота) =====
+   Дата и панель цены остаются сверху в обеих состояниях; при разворачивании ниже, на своих местах, добавляются только
+   скрытые строки (документ, локация, топливо, продавец, ключ) и то, чего сверху нет (таймер, «идут торги», статус продажи). */
+@media (max-width:640px){
+  .dbCard.dbOpenV1 .dbAside { padding-top:0; border-top:0; }
+  .dbCard.dbOpenV1 .dbAside .dbWhen > span:first-child:not(.dbAgoCardV1):not(.dbCountdownV1):not(.dbLive),
+  .dbCard.dbOpenV1 .dbAside .dbPriceBox,
+  .dbCard.dbOpenV1 .dbAside .dbForecastInPriceV1,
+  .dbCard.dbOpenV1 .dbAside .dbReserveV1 { display:none !important; }
+  .dbCard.dbOpenV1 .dbAside:not(:has(.dbCountdownV1, .dbLive, .dbAgoCardV1, .dbSale)) { display:none; }
+}
