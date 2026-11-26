@@ -29,6 +29,16 @@ const LOAD_L1 = 14000, LOAD_L2 = 19000;
 const DAY_L1 = 230000, DAY_L2 = 330000, DAY_L3 = 420000;
 const OPTIONAL_L1 = new Set(["resalecheck", "buynowcheck", "alerttick", "timedsync", "ptfill", "factsrefresh"]);
 const OPTIONAL_L2 = new Set(["vinhist", "livebids", "vinarchive", "comps", "compsbatch", "statistics", "syncsettle"]);
+// 26.11.2026: провайдер на 429 отдал Retry-After 41718 с от 21:31 UTC = сброс в 09:07 UTC — суточный лимит у него по фиксированным суткам
+// (от активации ключа), а не по скользящим 24 ч. Считаем «сутки» от последнего 09:00 UTC (часовая корзина), чтобы после сброса провайдера
+// наш предохранитель сразу отпустил ограничения, а не держал их ещё сутки. Час сброса — env API_QUOTA_RESET_HOUR_UTC.
+const QUOTA_RESET_H = Number.isFinite(Number(process.env.API_QUOTA_RESET_HOUR_UTC)) && process.env.API_QUOTA_RESET_HOUR_UTC !== undefined && process.env.API_QUOTA_RESET_HOUR_UTC !== "" ? Number(process.env.API_QUOTA_RESET_HOUR_UTC) : 9;
+function quotaDayStartKey(now){
+  const d = new Date(now);
+  let b = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), QUOTA_RESET_H);
+  if(b > now) b -= 86400e3;
+  return usageHourKey(b);
+}
 let apiLoad = {level:0, rate:0, day:0, at:0, loading:null};
 function apiLoadLevel(){ return apiLoad.level; }
 async function apiLoadRefresh(){
@@ -40,7 +50,7 @@ async function apiLoadRefresh(){
       const now = Date.now(), hCur = usageHourKey(now), hPrev = usageHourKey(now - 3600e3);
       const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=gte.${encodeURIComponent(new Date(now - 25 * 3600e3).toISOString())}&select=k,v&limit=3000`);
       let sum = 0, day = 0;
-      const dayFrom = usageHourKey(now - 23 * 3600e3);
+      const dayFrom = quotaDayStartKey(now);   // квотные сутки провайдера, а не скользящие 24 ч (см. QUOTA_RESET_H)
       for(const r of rows || []){
         const h = String(r.k).split(":")[1];
         let rowSum = 0;
