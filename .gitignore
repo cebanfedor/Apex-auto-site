@@ -14,8 +14,9 @@ node_modules/
 *.log
 npm-debug.log*
 
-# local tooling
-.claude/
+# local tooling (скиллы проекта .claude/skills — в git)
+.claude/*
+!.claude/skills/
 assets/Claude.dmg
 *.dmg
 .env*
