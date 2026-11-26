@@ -177,7 +177,7 @@
       "source": "/api/auctions",
       "has": [{ "type": "query", "key": "action", "value": "(detail|vin|count|livebids|vinhist)" }],
       "headers": [
-        { "key": "Cache-Control", "value": "public, s-maxage=30, stale-while-revalidate=120" }
+        { "key": "Cache-Control", "value": "public, s-maxage=300, stale-while-revalidate=600" }
       ]
     },
     {

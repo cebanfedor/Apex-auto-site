@@ -24,9 +24,12 @@ function ctxAction(){ const c = callCtx.getStore(); return (c && c.action) || "n
 //  2 (≥ LOAD_L2) — плюс карточки каталога (vinhist/livebids), страницы /vin, отчёты истории; «живые» fresh-запросы отдают кэш.
 // Всегда работают: синк (cars), syncclosed, syncsettle, detail/vin/search клиента (без fresh на уровне 2).
 const LOAD_L1 = 14000, LOAD_L2 = 19000;
+// 27.11.2026 (лимит 500k/сутки исчерпан уже на новом ключе): уровень теперь считается ещё и по СКОЛЬЗЯЩИМ 24 часам —
+// час-в-час порог не ловил равномерный перерасход (20k/ч весь день). DAY_L1/L2/L3 — доли суточного лимита 500k (46% / 66% / 84%).
+const DAY_L1 = 230000, DAY_L2 = 330000, DAY_L3 = 420000;
 const OPTIONAL_L1 = new Set(["resalecheck", "buynowcheck", "alerttick", "timedsync", "ptfill", "factsrefresh"]);
-const OPTIONAL_L2 = new Set(["vinhist", "livebids", "vinarchive", "comps", "compsbatch", "statistics"]);
-let apiLoad = {level:0, rate:0, at:0, loading:null};
+const OPTIONAL_L2 = new Set(["vinhist", "livebids", "vinarchive", "comps", "compsbatch", "statistics", "syncsettle"]);
+let apiLoad = {level:0, rate:0, day:0, at:0, loading:null};
 function apiLoadLevel(){ return apiLoad.level; }
 async function apiLoadRefresh(){
   if(Date.now() - apiLoad.at < 45000) return;
@@ -35,17 +38,23 @@ async function apiLoadRefresh(){
   apiLoad.loading = (async () => {
     try{
       const now = Date.now(), hCur = usageHourKey(now), hPrev = usageHourKey(now - 3600e3);
-      const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=gte.${encodeURIComponent(new Date(now - 2 * 3600e3).toISOString())}&select=k,v&limit=400`);
-      let sum = 0;
+      const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=gte.${encodeURIComponent(new Date(now - 25 * 3600e3).toISOString())}&select=k,v&limit=3000`);
+      let sum = 0, day = 0;
+      const dayFrom = usageHourKey(now - 23 * 3600e3);
       for(const r of rows || []){
         const h = String(r.k).split(":")[1];
-        if(h !== hCur && h !== hPrev) continue;
-        for(const n of Object.values(r.v || {})) sum += Number(n) || 0;
+        let rowSum = 0;
+        for(const n of Object.values(r.v || {})) rowSum += Number(n) || 0;
+        if(h >= dayFrom) day += rowSum;
+        if(h === hCur || h === hPrev) sum += rowSum;
       }
       const elapsed = (now - Date.parse(new Date(now).toISOString().slice(0, 13) + ":00:00Z")) / 3600e3;
       apiLoad.rate = Math.round(sum / (1 + elapsed));
-      const lvl = apiLoad.rate >= LOAD_L2 ? 2 : apiLoad.rate >= LOAD_L1 ? 1 : 0;
-      if(lvl !== apiLoad.level) console.error(`[api-load] уровень ${apiLoad.level} → ${lvl}, ~${apiLoad.rate} запросов/ч`);
+      apiLoad.day = day;
+      const lvlH = apiLoad.rate >= LOAD_L2 ? 2 : apiLoad.rate >= LOAD_L1 ? 1 : 0;
+      const lvlD = day >= DAY_L3 ? 3 : day >= DAY_L2 ? 2 : day >= DAY_L1 ? 1 : 0;
+      const lvl = Math.max(lvlH, lvlD);
+      if(lvl !== apiLoad.level) console.error(`[api-load] уровень ${apiLoad.level} → ${lvl}, ~${apiLoad.rate} запросов/ч, за 24ч ${apiLoad.day}`);
       apiLoad.level = lvl;
     }catch(_){ /* не удалось прочитать — уровень не меняем */ }
     finally{ apiLoad.loading = null; }
@@ -58,6 +67,8 @@ function apiGateDenied(){
   const a = ctxAction();
   if(OPTIONAL_L1.has(a)) return true;
   if(lvl >= 2 && OPTIONAL_L2.has(a)) return true;
+  // уровень 3 (≥420k за сутки): живые запросы клиентов без кэша тоже не идут к провайдеру — остаются только синк /cars и /archived-lots
+  if(lvl >= 3 && (a === "detail" || a === "vin" || a === "queue" || a === "livebids" || a === "vinhist" || a === "vinarchive")) return true;
   return false;
 }
 function noteApiCall(url){
@@ -5374,9 +5385,11 @@ async function bnColReady(){
 // час: самые «горящие» (где Buy Now кто-то мог перехватить прямо сейчас) рисковали устареть на многие
 // часы. Три пояса срочности вместо одного — близкие к торгам лоты освежаются в разы чаще, дальние
 // остаются на прежнем 6-часовом ритме (там торопиться некуда).
-const BN_COOLDOWN_URGENT_MS = 20 * 60e3;    // ≤4ч до торгов — самое интересное, почти на каждом тике (крон раз в 10 мин)
-const BN_COOLDOWN_SOON_MS = 2 * 3600e3;     // 4ч–3дня
-const BN_COOLDOWN_MS = 6 * 3600e3;          // 3–21 день — как было, тут не горит
+// 27.11.2026 (лимит провайдера исчерпан): Buy Now у провайдера обновляется раз в ~15 мин, покупка закрывает лот и приходит в /archived-lots —
+// опрос по одному лоту чаще бессмысленен. Кулдауны ×3, лимит за тик 250 → 80.
+const BN_COOLDOWN_URGENT_MS = 60 * 60e3;    // ≤4ч до торгов
+const BN_COOLDOWN_SOON_MS = 6 * 3600e3;     // 4ч–3дня и пост-аукционные
+const BN_COOLDOWN_MS = 24 * 3600e3;         // 3–21 день
 async function runBuyNowCheck(budgetMs = 44000){
   const t0 = Date.now();
   const out = {ok:true, checked:0, sold:0, fail:0};
@@ -5404,7 +5417,7 @@ async function runBuyNowCheck(budgetMs = 44000){
       `and(sale_date.gt.${nowIso},sale_date.lte.${urgentEdge},bn_checked_at.lt.${cutUrgent}),` +      // ≤4ч до торгов — 20 мин
       `and(sale_date.gt.${urgentEdge},sale_date.lte.${soonEdge},bn_checked_at.lt.${cutSoon}),` +
       `and(sale_date.gt.${soonEdge},bn_checked_at.lt.${cutFar}))`;
-    const url = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${winFrom}&sale_date=lte.${winTo}&${dueExpr}&order=sale_date.asc&limit=250`;
+    const url = `/api_lots?select=id,auction,lot,sale_date&archived=eq.false&buy_now=gt.0&status_id=neq.6&sale_date=gte.${winFrom}&sale_date=lte.${winTo}&${dueExpr}&order=sale_date.asc&limit=80`;
     const rows = await syncSbFetch(url).catch(() => null);
     if(!Array.isArray(rows)) return {ok:false, error:"read failed"};
     out.mode = "cooldown"; out.due = rows.length;
@@ -5872,7 +5885,7 @@ async function runResaleCheck(budgetMs){
   const until = encodeURIComponent(new Date(Date.now() + 36 * 3600e3).toISOString());
   let rows;
   try{
-    rows = await syncSbFetch(`/api_lots?archived=eq.false&or=(resale_at.is.null,resale_at.lt.${RESALE_RULES_AT})&vin=not.is.null&year=gte.2017&sale_date=gte.${since}&sale_date=lte.${until}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue,seller:payload-%3E%3Eseller,sellerType:payload-%3E%3EsellerType&order=sale_date.asc&limit=300`);
+    rows = await syncSbFetch(`/api_lots?archived=eq.false&or=(resale_at.is.null,resale_at.lt.${RESALE_RULES_AT})&vin=not.is.null&year=gte.2017&sale_date=gte.${since}&sale_date=lte.${until}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue,seller:payload-%3E%3Eseller,sellerType:payload-%3E%3EsellerType&order=sale_date.asc&limit=100`);
   }catch(e){ return {ok:false, error:String(e.message || e).slice(0, 160)}; }
   const buckets = {0:[], 1:[], 2:[]};
   const storedMap = {};
@@ -5963,7 +5976,7 @@ const handlerInner = async function handler(request, response){
       const eps = Object.entries(byEp).sort((a, b) => b[1] - a[1]).map(([endpoint, calls]) => ({endpoint, calls, perDayEq: Math.round(calls / hours * 24)}));
       const acts = Object.entries(byAct).sort((a, b) => b[1] - a[1]).map(([action, calls]) => ({action, calls, perHour:Math.round(calls / hours)}));
       const combos = Object.entries(byCombo).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, calls]) => ({k, calls}));
-      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, load:{level:apiLoad.level, perHour:apiLoad.rate}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
         note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
     return;
@@ -6412,7 +6425,7 @@ const handlerInner = async function handler(request, response){
   async function repairLostSales(budgetMs){
     if(apiLoadLevel() >= 1) return {fixed:0, tried:0, skipped:"load"};
     const t0 = Date.now(); let fixed = 0, tried = 0;
-    const rows = await syncSbFetch(`/api_lots?archived=eq.true&status_id=eq.6&final_bid=eq.0&vin=not.is.null&payload-%3E%3ErepairTried=is.null&select=id,vin,auction,lot,payload&order=synced_at.desc&limit=420`).catch(() => null);
+    const rows = await syncSbFetch(`/api_lots?archived=eq.true&status_id=eq.6&final_bid=eq.0&vin=not.is.null&payload-%3E%3ErepairTried=is.null&sale_date=gte.${encodeURIComponent(new Date(Date.now() - 72 * 3600e3).toISOString())}&select=id,vin,auction,lot,payload&order=synced_at.desc&limit=60`).catch(() => null);
     if(!Array.isArray(rows) || !rows.length) return {fixed, tried, empty:true};
     for(let i = 0; i < rows.length; i += 8){
       if(Date.now() - t0 > budgetMs) break;
@@ -6445,7 +6458,22 @@ const handlerInner = async function handler(request, response){
     const started = Date.now(); let checked = 0, closed = 0, settleInfo = null;
     try{
       const to = new Date(Date.now() - 15 * 60e3).toISOString(), from = new Date(Date.now() - 3 * 3600e3).toISOString();
-      const rows = await syncSbFetch(`/api_lots?archived=eq.false&sale_date=gte.${encodeURIComponent(from)}&sale_date=lte.${encodeURIComponent(to)}&select=auction,lot,sale_date&order=sale_date.desc&limit=400`);
+      if(apiLoadLevel() >= 2){ response.statusCode = 200; response.end(JSON.stringify({ok:true, skipped:"load"})); settleInfo = {skipped:"load"}; return; }
+      let rows = await syncSbFetch(`/api_lots?archived=eq.false&sale_date=gte.${encodeURIComponent(from)}&sale_date=lte.${encodeURIComponent(to)}&select=auction,lot,sale_date&order=sale_date.desc&limit=800`);
+      // 27.11.2026 (лимит провайдера исчерпан): раньше одни и те же ~400 лотов опрашивались КАЖДЫЙ тик (каждые 10 мин) все 3 часа окна —
+      // до 18 раз на лот (≈57k /search-lot в сутки + /search-vin на проданных). Теперь каждый лот проверяется максимум 3 раза:
+      // первый — сразу после торгов, второй — не раньше чем через 40 мин, третий — через 60 мин. Учёт — alert_meta settle_seen {id:[n,t]}.
+      const seenRow = await syncSbFetch(`/alert_meta?k=eq.settle_seen&select=v`).catch(() => []);
+      const seen = (seenRow && seenRow[0] && seenRow[0].v && typeof seenRow[0].v === "object") ? seenRow[0].v : {};
+      const nowMs = Date.now();
+      rows = (rows || []).filter(r => {
+        const e = seen[r.auction + "-" + r.lot];
+        if(!e) return true;
+        const n = Number(e[0]) || 0, t = Number(e[1]) || 0;
+        if(n >= 3) return false;
+        return nowMs - t >= (n === 1 ? 40 : 60) * 60e3;
+      }).slice(0, 250);
+      const settleIds = rows.map(r => r.auction + "-" + r.lot);
       for(let i = 0; i < (rows || []).length; i += 8){
         if(Date.now() - started > 40000) break;
         await Promise.all(rows.slice(i, i + 8).map(async r => {
@@ -6465,6 +6493,12 @@ const handlerInner = async function handler(request, response){
           }catch(e){}
         }));
       }
+      // помечаем опрошенные лоты (n+1) и чистим записи старше 5 ч
+      try{
+        for(const id of settleIds){ const e = seen[id]; seen[id] = [e ? (Number(e[0]) || 0) + 1 : 1, nowMs]; }
+        for(const k of Object.keys(seen)) if(nowMs - (Number(seen[k][1]) || 0) > 5 * 3600e3) delete seen[k];
+        await syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify({k:"settle_seen", v:seen, updated_at:new Date().toISOString()})});
+      }catch(_){}
       const repair = await repairLostSales(Math.max(5000, 42000 - (Date.now() - started))).catch(e => ({error:String(e.message || e).slice(0, 80)}));
       response.statusCode = 200; response.end(JSON.stringify({ok:true, candidates:(rows || []).length, checked, closed, repair, ms:Date.now() - started}));
       settleInfo = {candidates:(rows || []).length, checked, closed, repair, ms:Date.now() - started};
@@ -6608,7 +6642,7 @@ const handlerInner = async function handler(request, response){
   if(freshMode) query.delete("fresh");
   // 26.11.2026 (лимит провайдера): fresh обходил ВСЕ кэши — любой (бот, превью, чужой скрипт) мог гонять запросы в провайдера без предела.
   // Теперь «свежий» ответ для одного лота живёт FRESH_MIN_MS и на уровне нагрузки ≥2 fresh не обходит кэш вовсе.
-  const FRESH_MIN_MS = 45000;
+  const FRESH_MIN_MS = 5 * 60e3;   // 27.11.2026: провайдер обновляет Buy Now раз в ~15 мин, данные лота — раз в ~2 ч (docs) — чаще опрашивать нет смысла
   if(freshMode && apiLoadLevel() >= 2) freshMode = false;
 
   // Edge-заголовок для медленных оценок — чтобы CDN кэшировал и hit из памяти/БД.
@@ -6996,7 +7030,7 @@ const handlerInner = async function handler(request, response){
           // при «продан», как раньше. Та же функция, что самолечит detail&fresh=1 — сама решает, что писать.
           if(r.sold || ndSet.has(id)) upsertClosedLot(lot).catch(() => {});
           if(!r.auctionDate){ const inferred = await inferLaneDate(lot); if(inferred){ r.auctionDate = inferred.at; r.dateInferred = true; if(inferred.to) r.dateInferredTo = inferred.to; } }   // 12.11.2026: фид без даты, но с линией — дата по соседям линии
-          setCached(ck, r, 2 * 60e3); out[id] = r;
+          setCached(ck, r, 10 * 60e3); out[id] = r;
         }catch(e){ out[id] = null; }
       };
       // 6 → 10: паучок был лишним ограничением (upstream — платный тариф без задокументированного
