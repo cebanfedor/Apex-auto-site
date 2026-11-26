@@ -1,0 +1,104 @@
+{
+  "slug": "car-electronics",
+  "date": "2026-11-28",
+  "readMin": 8,
+  "meta": {
+    "title": "Car Electronics After a Crash, Flood or Fire: What Gets Repaired | Apex Auto",
+    "description": "What happens to a damaged car's electronics: harnesses, control units, sensors, radars, the high-voltage battery. What is simple to fix and where diagnostics are needed.",
+    "ogTitle": "Car electronics after a crash: what gets repaired and what to look at",
+    "ogDesc": "Harnesses, control units, sensors and calibration: what is solved simply and what needs diagnostics."
+  },
+  "tag": "Electronics",
+  "kicker": "Parts and repair · Electronics",
+  "h1": "Car electronics after a crash, flood or fire: what gets repaired",
+  "lead": "A modern car is dozens of control units, miles of wiring and hundreds of sensors. That is why the words \"electrical\" or \"flood\" in a lot listing sound scary. But most of the electronics are repaired or replaced predictably. Here is what usually suffers, what is simple to fix, and where diagnostics and programming are needed.",
+  "card": {
+    "tag": "Electronics",
+    "title": "Car electronics after a crash, flood or fire: what gets repaired",
+    "text": "Harnesses, control units, sensors, cameras and the high-voltage battery. What is simple to fix and where diagnostics and programming are needed."
+  },
+  "og": { "k": "ELECTRONICS", "h": "Car electronics after a crash", "s": "Harnesses, units, sensors: what is simple to fix and what is not" },
+  "summary": [
+    "**Diagnostics is the first step:** a scanner shows which units respond, which errors are stored and where to look for the fault; without it, an estimate is a guess.",
+    "**A lot is cheap to fix:** fuses, connectors, sensors, bulbs, individual sections of wiring.",
+    "**Control units are harder:** a new unit usually has to be programmed for the specific car, tied to the VIN and the immobilizer.",
+    "**Water is more dangerous than impact:** contacts corrode after a flood not immediately, and salt water does it faster and deeper.",
+    "**The high-voltage battery of electric and hybrid cars is a separate subject:** it is inspected by specialists with special equipment."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "What usually suffers" },
+    { "t": "table", "head": ["Situation", "What is damaged most often", "What to check"], "rows": [
+      ["Front impact", "Headlights, parking sensors and radars, engine bay harnesses, connectors", "Driver-assistance radar and cameras, cooling, the harness by the radiator"],
+      ["Rear impact", "Tail lights, sensors, rear-view camera, trunk wiring", "Trunk wiring, blind-spot sensors, fuel pump"],
+      ["Side impact", "Airbag sensors in doors and pillars, door wiring, window regulators", "Impact sensors, the airbag system, units in the pillars and under the seats"],
+      ["Flood", "Control units low in the cabin, connectors, motors, wiring", "Corrosion on contacts, units under the seats and in the trunk, floor harnesses"],
+      ["Fire", "Wiring and units in the fire zone, melted connectors", "The extent: engine bay, cabin or everything; condition of the harnesses"]
+    ] },
+    { "t": "h2", "x": "Diagnostics: where to start" },
+    { "t": "p", "x": "The first step is to connect a diagnostic scanner and read the errors of all units. This shows which units are \"online\", which faults are stored and in which circuit to look for the cause. A good specialist checks not only the errors but also the sensors' live data, power and ground, and resistance in the circuits." },
+    { "t": "ul", "x": [
+      "**The unit does not respond.** The cause may be in the power supply, the connector or the unit itself; the wiring and contacts are checked first.",
+      "**A sensor error.** Often it is enough to replace the sensor or restore the connector.",
+      "**Many communication errors.** This often means a problem with the data bus, the power supply or a damaged harness."
+    ] },
+    { "t": "h2", "x": "Wiring and connectors" },
+    { "t": "p", "x": "Wires and connectors are repaired more often than it seems. A damaged section is restored, connectors are replaced, and if the harness is badly damaged it is replaced entirely or in sections. Care matters: soldering and crimping done properly, sealed connections, correct routing without chafing." },
+    { "t": "ul", "x": [
+      "a local break or melting — most often fixed on the spot;",
+      "corroded contacts — cleaned or the connectors are replaced;",
+      "a badly damaged harness — a section or the whole harness is replaced, which costs more but is predictable."
+    ] },
+    { "t": "h2", "x": "Control units: repair, replacement and programming" },
+    { "t": "p", "x": "Control units (for the engine, transmission, body, airbags, ABS and other systems) can be damaged by impact, water or overvoltage. Some units are repaired in specialist workshops, some are replaced with used or new ones." },
+    { "t": "ul", "x": [
+      "**Tied to the car.** Many units store data about the vehicle, the immobilizer and the keys, so after replacement they have to be coded or programmed at a dealer or by a specialist with the right equipment.",
+      "**A used unit.** It often has to be \"cleaned\" of the previous car's data or tied to the new one; not all units allow this.",
+      "**Airbags.** The SRS unit stores crash data and often requires replacement or programming after deployment; more in the article [[How an airbag works|airbag]]."
+    ] },
+    { "t": "h2", "x": "Sensors, cameras and radars" },
+    { "t": "p", "x": "Driver-assistance systems (adaptive cruise control, lane keeping, blind-spot monitoring, surround-view cameras) rely on radars and cameras in the bumpers, mirrors and windshield. After replacing or even removing such parts, they must be calibrated on special equipment, otherwise the system works inaccurately or switches off." },
+    { "t": "ul", "x": [
+      "replacing a bumper, mirror or windshield is a reason to check the calibration;",
+      "after an impact, the body geometry affects where the radar \"looks\", so calibration is done after the body has been straightened;",
+      "an uncalibrated system may trigger falsely or fail to work when needed."
+    ] },
+    { "t": "h2", "x": "Flood: why it is a story of its own" },
+    { "t": "p", "x": "Electronics after a flood may work on the day of purchase and fail weeks later: water, and especially salt, starts corrosion of the contacts. That is why they assess how high the water reached, whether it was fresh or salt water, how long the car stood in it and what exactly was underwater — units low in the cabin and floor connectors suffer first." },
+    { "t": "ul", "x": [
+      "**Fresh water, low level.** Sometimes it is enough to dry the car, clean the contacts and replace the affected sensors and connectors.",
+      "**Salt water or a high level.** The risk of hidden, long-term problems is higher; it is often more sensible to walk away from the lot.",
+      "**Everything must be checked,** including units under the seats, the trunk and the floor harnesses."
+    ] },
+    { "t": "p", "x": "More on when flooded lots are worthwhile and when they are not — in the article [[Which damage is dangerous and which is not|damages]]." },
+    { "t": "h2", "x": "Electric and hybrid cars" },
+    { "t": "p", "x": "The high-voltage battery, the inverter and the charging equipment are a separate area. After an impact to the battery area, a flood or a fire, the car must be inspected by specialists with the right qualifications and equipment: they check sealing, insulation and the condition of the cells. You must not work with high voltage on your own." },
+    { "t": "ul", "x": [
+      "with such lots it is especially important to understand whether the battery is affected;",
+      "the battery can be repaired by modules, but this takes equipment and access to parts;",
+      "after a flood, electric cars are assessed more cautiously than ordinary cars."
+    ] },
+    { "t": "h2", "x": "Why it is not always a \"fortune\"" },
+    { "t": "p", "x": "Most electronic damage is sensors, connectors, sections of wiring and bulbs, not units that cost a lot of money. The main expenses are diagnostics and programming if a unit is replaced. If the photos and description show no signs of flood or fire in the cabin, the electronics will not become the main item in the estimate. The general approach to the calculation — in the [[post-auction repair guide|repair-guide]]." },
+    { "t": "h2", "x": "When it is better to walk away" },
+    { "t": "ul", "x": [
+      "flooding with salt water or above the cabin threshold;",
+      "a fire in the cabin, melted harnesses and units;",
+      "the high-voltage battery of an electric or hybrid car is damaged;",
+      "the photos and description do not let you understand the scale of the problem, and the reserve for hidden issues exceeds the benefit."
+    ] }
+  ],
+  "faq": [
+    { "q": "Can a car be diagnosed before purchase?", "a": "For an auction lot — no, diagnostics are not available. So the car is assessed from photos, the description and damage data, and the estimate includes a reserve for hidden faults. After delivery, the car is checked with a scanner." },
+    { "q": "What does an error in the airbag unit mean?", "a": "It means the system has detected a fault or a deployed airbag. Until the cause is fixed, the protection may be inactive, so after repair the unit is checked with a scanner, not only by the warning light on the dashboard." },
+    { "q": "Does a new control unit need to be programmed?", "a": "Often yes. Many units store a link to the car, the VIN and the keys, so after replacement they are coded at a dealer or by a specialist with suitable equipment." },
+    { "q": "Is electronics after a flood dangerous?", "a": "It may work unstably: corrosion of the contacts shows up over time. That is why cleaning the contacts, replacing affected parts and checking all units are important, and with salt water it is often better to walk away from the lot." }
+  ],
+  "cta": {
+    "h": "The lot says \"Water/Flood\" or \"Burn\"?",
+    "p": "Send a link from Copart or IAAI — we will go through the photos, assess the electronics risk and tell you honestly whether it is worth taking on.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Which damage is dangerous",
+    "b2slug": "damages"
+  },
+  "related": ["repair-guide", "airbag", "engine-transmission"]
+}

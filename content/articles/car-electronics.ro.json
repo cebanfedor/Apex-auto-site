@@ -1,0 +1,104 @@
+{
+  "slug": "car-electronics",
+  "date": "2026-11-28",
+  "readMin": 8,
+  "meta": {
+    "title": "Electronica auto după accident, inundare și incendiu: ce se repară | Apex Auto",
+    "description": "Ce se întâmplă cu electronica unei mașini avariate: cablaje, unități de control, senzori, radare, bateria de înaltă tensiune. Ce se repară simplu și unde e nevoie de diagnoză.",
+    "ogTitle": "Electronica auto după accident: ce se repară și la ce să vă uitați",
+    "ogDesc": "Cablaje, unități de control, senzori și calibrare: ce se rezolvă simplu și ce cere diagnoză."
+  },
+  "tag": "Electronică",
+  "kicker": "Piese și reparații · Electronică",
+  "h1": "Electronica auto după accident, inundare și incendiu: ce se repară",
+  "lead": "O mașină modernă înseamnă zeci de unități de control, kilometri de cabluri și sute de senzori. De aceea cuvintele „electrică” sau „inundare” din fișa unui lot sperie. Dar cea mai mare parte a electronicii se repară sau se înlocuiește previzibil. Vedem ce suferă de obicei, ce se repară simplu și unde sunt necesare diagnoza și programarea.",
+  "card": {
+    "tag": "Electronică",
+    "title": "Electronica auto după accident, inundare și incendiu: ce se repară",
+    "text": "Cablaje, unități de control, senzori, camere și bateria de înaltă tensiune. Ce se repară simplu și unde sunt necesare diagnoza și programarea."
+  },
+  "og": { "k": "ELECTRONICĂ", "h": "Electronica auto după accident", "s": "Cablaje, unități, senzori: ce se repară simplu și ce nu" },
+  "summary": [
+    "**Diagnoza este primul pas:** scanerul arată care unități răspund, ce erori sunt înregistrate și unde trebuie căutată defecțiunea; fără ea, devizul este o presupunere.",
+    "**Multe se repară ieftin:** siguranțe, conectori, senzori, becuri, porțiuni izolate de cablaj.",
+    "**Mai complicat este cu unitățile de control:** o unitate nouă trebuie de obicei programată pentru mașina respectivă, fiind legată de VIN și de imobilizator.",
+    "**Apa este mai periculoasă decât lovitura:** contactele se corodează după inundare nu imediat, iar apa sărată face asta mai repede și mai adânc.",
+    "**Bateria de înaltă tensiune a mașinilor electrice și hibride este un subiect aparte:** ea este examinată de specialiști cu echipament special."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Ce suferă de obicei" },
+    { "t": "table", "head": ["Situația", "Ce se avariază mai des", "Ce trebuie verificat"], "rows": [
+      ["Lovitură în față", "Faruri, senzori de parcare și radare, cablaje din compartimentul motor, conectori", "Radarul și camerele sistemelor de asistență, răcirea, cablajul de lângă radiator"],
+      ["Lovitură în spate", "Stopuri, senzori, camera de marșarier, cablajul din portbagaj", "Cablajul portbagajului, senzorii de unghi mort, pompa de combustibil"],
+      ["Lovitură laterală", "Senzorii airbagurilor din uși și stâlpi, cablajul din uși, macaralele de geam", "Senzorii de impact, sistemul de airbaguri, unitățile din stâlpi și de sub scaune"],
+      ["Inundare", "Unitățile de control din partea de jos a habitaclului, conectori, motoare, cablaje", "Coroziunea contactelor, unitățile de sub scaune și din portbagaj, cablajele podelei"],
+      ["Incendiu", "Cablajul și unitățile din zona focului, conectori topiți", "Amploarea: zona de sub capotă, habitaclul sau totul; starea cablajelor"]
+    ] },
+    { "t": "h2", "x": "Diagnoza: de unde se începe" },
+    { "t": "p", "x": "Prima acțiune este conectarea unui scaner de diagnoză și citirea erorilor din toate unitățile. Asta arată care unități „răspund”, ce defecțiuni sunt înregistrate și în ce circuit trebuie căutată cauza. Un specialist bun verifică nu doar erorile, ci și „datele în timp real” ale senzorilor, alimentarea și masa, rezistența din circuite." },
+    { "t": "ul", "x": [
+      "**Unitatea nu răspunde.** Cauza poate fi în alimentare, în conector sau în unitatea însăși; se verifică mai întâi cablajul și contactele.",
+      "**Eroare de senzor.** Adesea este suficient să se înlocuiască senzorul sau să se refacă conectorul.",
+      "**Multe erori de comunicare.** Înseamnă adesea o problemă a magistralei de date, a alimentării sau un cablaj avariat."
+    ] },
+    { "t": "h2", "x": "Cablajul și conectorii" },
+    { "t": "p", "x": "Cablurile și conectorii se repară mai des decât pare. Porțiunea avariată se reface, conectorii se schimbă, iar dacă cablajul a suferit mult, se înlocuiește integral sau pe secțiuni. Contează acuratețea: lipire și sertizare conform tehnologiei, îmbinări etanșe, traseu corect, fără frecări." },
+    { "t": "ul", "x": [
+      "o rupere locală sau o topire — se repară cel mai des pe loc;",
+      "contacte corodate — se curăță sau se schimbă conectorii;",
+      "cablaj foarte avariat — se înlocuiește o secțiune sau întregul cablaj, ceea ce costă mai mult, dar este previzibil."
+    ] },
+    { "t": "h2", "x": "Unitățile de control: reparare, înlocuire și programare" },
+    { "t": "p", "x": "Unitățile de control (ale motorului, cutiei, caroseriei, airbagurilor, ABS și ale altor sisteme) se pot avaria în urma loviturii, a apei sau a supratensiunii. O parte dintre unități se repară în ateliere specializate, o parte se înlocuiesc cu unele second-hand sau noi." },
+    { "t": "ul", "x": [
+      "**Legarea de mașină.** Multe unități păstrează datele automobilului, ale imobilizatorului și ale cheilor, de aceea după înlocuire trebuie codate sau programate la dealer sau la un specialist cu echipamentul necesar.",
+      "**Unitate second-hand.** Adesea trebuie „curățată” de datele mașinii anterioare sau legată de cea nouă; nu toate unitățile permit acest lucru.",
+      "**Airbagurile.** Unitatea SRS păstrează datele accidentului și deseori cere înlocuire sau programare după declanșare; mai multe detalii — în articolul [[Cum funcționează airbagul|airbag]]."
+    ] },
+    { "t": "h2", "x": "Senzori, camere și radare" },
+    { "t": "p", "x": "Sistemele de asistență a șoferului (cruise control adaptiv, menținerea benzii, controlul unghiului mort, camerele de 360°) depind de radarele și camerele din bare, oglinzi și parbriz. După înlocuirea sau chiar demontarea unor astfel de piese, ele trebuie calibrate cu echipament specializat, altfel sistemul funcționează imprecis sau se dezactivează." },
+    { "t": "ul", "x": [
+      "înlocuirea barei, a oglinzii sau a parbrizului este un motiv să verificați calibrarea;",
+      "după o lovitură, geometria caroseriei influențează direcția în care „privește” radarul, de aceea calibrarea se face după îndreptarea caroseriei;",
+      "un sistem necalibrat poate reacționa fals sau poate să nu funcționeze la momentul potrivit."
+    ] },
+    { "t": "h2", "x": "Inundarea: de ce este o poveste aparte" },
+    { "t": "p", "x": "Electronica după inundare poate funcționa în ziua cumpărării și se poate defecta peste câteva săptămâni: apa și mai ales sarea declanșează coroziunea contactelor. De aceea se evaluează ce nivel a atins apa, dacă a fost dulce sau sărată, cât timp a stat mașina și ce anume s-a aflat sub apă — unitățile din partea de jos a habitaclului și conectorii podelei suferă primii." },
+    { "t": "ul", "x": [
+      "**Apă dulce, nivel scăzut.** Uneori este suficient să se usuce, să se curețe contactele și să se înlocuiască senzorii și conectorii afectați.",
+      "**Apă sărată sau nivel ridicat.** Riscul de probleme ascunse și de durată este mai mare; adesea este mai rezonabil să renunțați la lot.",
+      "**Trebuie verificat totul,** inclusiv unitățile de sub scaune, portbagajul și cablajele podelei."
+    ] },
+    { "t": "p", "x": "Mai multe despre când loturile inundate sunt avantajoase și când nu — în articolul [[Ce avarii sunt periculoase și care nu|damages]]." },
+    { "t": "h2", "x": "Mașini electrice și hibride" },
+    { "t": "p", "x": "Bateria de înaltă tensiune, invertorul și echipamentul de încărcare reprezintă un domeniu aparte. În cazul unei lovituri în zona bateriei, al inundării sau al unui incendiu, mașina trebuie examinată de specialiști cu calificarea și echipamentul necesare: se verifică etanșeitatea, izolația și starea celulelor. Nu se lucrează singur cu înaltă tensiune." },
+    { "t": "ul", "x": [
+      "la astfel de loturi este deosebit de important să înțelegeți dacă bateria a fost afectată;",
+      "bateria se poate repara pe module, dar este nevoie de echipament și de acces la piese;",
+      "după inundare, mașinile electrice sunt evaluate mai prudent decât cele obișnuite."
+    ] },
+    { "t": "h2", "x": "De ce nu este întotdeauna un „milion”" },
+    { "t": "p", "x": "Cea mai mare parte a avariilor electronice sunt senzori, conectori, porțiuni de cablaj și becuri, nu unități care costă mulți bani. Cheltuielile principale sunt diagnoza și programarea, dacă se înlocuiește o unitate. Dacă după poze și descriere nu există semne de inundare sau de incendiu în habitaclu, electronica nu va deveni poziția principală din deviz. Abordarea generală a calculului — în [[ghidul de reparație după licitație|repair-guide]]." },
+    { "t": "h2", "x": "Când este mai bine să renunțați" },
+    { "t": "ul", "x": [
+      "inundare cu apă sărată sau peste pragul habitaclului;",
+      "incendiu în habitaclu, cablaje și unități topite;",
+      "bateria de înaltă tensiune a unei mașini electrice sau hibride este avariată;",
+      "după poze și descriere nu se poate înțelege amploarea problemei, iar rezerva pentru avariile ascunse depășește avantajul."
+    ] }
+  ],
+  "faq": [
+    { "q": "Se poate face diagnoza mașinii înainte de cumpărare?", "a": "Pentru un lot de la licitație — nu, diagnoza nu este disponibilă. De aceea evaluarea se face după poze, descriere și datele despre avarii, iar în deviz se prevede o rezervă pentru defecțiunile ascunse. După livrare, mașina se verifică cu scanerul." },
+    { "q": "Ce înseamnă o eroare în unitatea airbagurilor?", "a": "Înseamnă că sistemul a detectat o defecțiune sau un airbag declanșat. Până la remedierea cauzei, protecția poate fi inactivă, de aceea după reparație unitatea se verifică cu scanerul, nu doar după becul de pe bord." },
+    { "q": "Este nevoie să se programeze o unitate de control nouă?", "a": "Adesea da. Multe unități păstrează legătura cu mașina, cu VIN-ul și cu cheile, de aceea după înlocuire se codează la dealer sau la un specialist cu echipament potrivit." },
+    { "q": "Este periculoasă electronica după inundare?", "a": "Poate funcționa instabil: coroziunea contactelor se manifestă în timp. De aceea sunt importante curățarea contactelor, înlocuirea elementelor afectate și verificarea tuturor unităților, iar în cazul apei sărate adesea este mai bine să renunțați la lot." }
+  ],
+  "cta": {
+    "h": "În lot scrie „Water/Flood” sau „Burn”?",
+    "p": "Trimiteți linkul de pe Copart sau IAAI — analizăm pozele, evaluăm riscul legat de electronică și vă spunem sincer dacă merită să vă apucați.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ce avarii sunt periculoase",
+    "b2slug": "damages"
+  },
+  "related": ["repair-guide", "airbag", "engine-transmission"]
+}

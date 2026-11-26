@@ -16,6 +16,8 @@ const LANGS = ["ru", "ro", "en"];
 // slug -> адреса по языкам (path без домена). Для старых страниц EN идёт через ?lang=en (словарь i18n).
 const PAGES = {
   airbag:                { ru: "/airbag", ro: "/ro/airbag", en: "/en/airbag" },
+  painting:              { ru: "/painting", ro: "/ro/vopsire-auto", en: "/en/car-painting" },
+  "car-electronics":     { ru: "/car-electronics", ro: "/ro/electronica-auto", en: "/en/car-electronics" },
   "repair-guide":        { ru: "/repair-guide", ro: "/ro/ghid-reparatii", en: "/en/repair-guide" },
   "body-panels":         { ru: "/body-panels", ro: "/ro/inlocuire-elemente-caroserie", en: "/en/body-panel-replacement" },
   "rear-quarter":        { ru: "/rear-quarter", ro: "/ro/inlocuire-aripa-spate", en: "/en/rear-quarter-replacement" },
@@ -26,7 +28,7 @@ const PAGES = {
   "vin-check":           { ru: "/vin-check", ro: "/ro/verificare-vin", en: "/vin-check?lang=en", old: true },
   blog:                  { ru: "/blog", ro: "/ro/blog", en: "/blog?lang=en", old: true }
 };
-const ORDER = ["repair-guide", "body-panels", "rear-quarter", "frame-rails", "engine-transmission", "airbag"];
+const ORDER = ["repair-guide", "body-panels", "rear-quarter", "frame-rails", "engine-transmission", "airbag", "painting", "car-electronics"];
 const fileOf = (slug, lang) => lang === "ru" ? `${slug}.html` : `${lang}-${PAGES[slug][lang].split("/").pop()}.html`;
 const urlOf = (slug, lang) => SITE + PAGES[slug][lang];
 const hrefOf = (slug, lang) => PAGES[slug][lang];
@@ -347,7 +349,7 @@ patchBlog("ro-blog.html", "ro");
   }
   if (lines.length) s = s.replace('    { "source": "/damages", "destination": "/damages.html" },\n', (m) => m + lines.join("\n") + "\n");
   const ruSlugs = ORDER.filter((x) => x !== "airbag").map((x) => x);
-  for (const x of ruSlugs) if (!new RegExp(`\\|${x}[|)]`).test(s.split("\n").find((l) => l.includes('"/:page(')) || "")) s = s.replace("|cabinet|airbag).html", `|cabinet|airbag|${x}).html`);
+  for (const x of ruSlugs) if (!new RegExp(`\\|${x}[|)]`).test(s.split("\n").find((l) => l.includes('"/:page(')) || "")) s = s.replace(/(\|cabinet\|airbag[^)]*)\)\.html/, `$1|${x}).html`);
   JSON.parse(s);
   wr("vercel.json", s);
 }

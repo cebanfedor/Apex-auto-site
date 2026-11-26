@@ -1,0 +1,97 @@
+{
+  "slug": "painting",
+  "date": "2026-11-28",
+  "readMin": 8,
+  "meta": {
+    "title": "Vopsirea mașinii după accident: cum se face și de ce depinde rezultatul | Apex Auto",
+    "description": "Cum se vopsește caroseria după accident: pregătire, alegerea culorii, baza și lacul, vopsire locală și totală, bună față de proastă și din ce se compune costul.",
+    "ogTitle": "Vopsirea mașinii după accident: etape, alegerea culorii și calitate",
+    "ogDesc": "Pregătire, culoare, lac și lustruire: cum se vopsește o mașină avariată și cum verifici rezultatul."
+  },
+  "tag": "Vopsitorie",
+  "kicker": "Piese și reparații · Vopsitorie",
+  "h1": "Vopsirea mașinii după accident: cum se face și de ce depinde rezultatul",
+  "lead": "Vopsitoria este cea mai „invizibilă” parte a reparației: dacă e făcută bine, nimeni nu o observă, iar dacă e făcută prost, se vede de la zece metri. Tot ea este adesea poziția principală din deviz. Vedem din ce constă lucrarea, de ce culoarea nu se alege „cam la fel”, cum deosebești o vopsire bună de una proastă și când este suficientă o reparație locală.",
+  "card": {
+    "tag": "Vopsitorie",
+    "title": "Vopsirea mașinii după accident: cum se face și de ce depinde rezultatul",
+    "text": "Pregătire, alegerea culorii, baza și lacul, vopsire locală și totală. Cum deosebești o lucrare bună de una proastă și din ce se compune costul."
+  },
+  "og": { "k": "VOPSITORIE", "h": "Vopsirea mașinii după accident", "s": "Etape, alegerea culorii și cum verifici calitatea" },
+  "summary": [
+    "**Calitatea vopsirii înseamnă pregătire:** cea mai mare parte a lucrării este ascunsă sub vopsea — chit, grund, șlefuire. Graba se vede după un an.",
+    "**Culoarea se alege după cod și la fața locului:** codul singur nu ajunge — nuanța se schimbă de la o serie la alta și odată cu decolorarea, de aceea se face o probă de vopsire și o tranziție lină pe panoul vecin.",
+    "**Acoperirile complexe costă mai mult:** culorile perlate, în trei straturi și mate cer mai multe straturi, mai mult timp și experiență.",
+    "**Nu tot trebuie vopsit:** loviturile mici fără deteriorarea vopselei se pot elimina uneori fără vopsire, iar zgârieturile — printr-o reparație locală.",
+    "**Vopsirea se poate verifica:** grosimetrul, examinarea la lumină laterală, rosturile și starea îmbinărilor arată unde și cum s-a vopsit."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Din ce constă vopsirea" },
+    { "t": "p", "x": "Vopsirea unui panou nu înseamnă „am dat cu vopsea”. Este o succesiune de etape, iar cea mai mare parte a timpului se duce nu pe vopseaua propriu-zisă, ci pe pregătirea suportului." },
+    { "t": "ol", "x": [
+      "**Pregătirea.** Piesa se demontează sau se maschează cele vecine, locul avariat se curăță până la metal sau grund, se îndepărtează rugina și vopseaua veche din zona de reparație.",
+      "**Îndreptare și chituire.** Se îndreaptă geometria panoului, la nevoie se aplică un strat subțire de chit și se șlefuiește până la o suprafață netedă. Un strat gros de chit este semn de pregătire proastă.",
+      "**Grundul.** Protejează metalul de coroziune și nivelează suportul pentru vopsea; după uscare se șlefuiește.",
+      "**Alegerea culorii.** Amestecul se prepară după codul vopselei, se face o probă de vopsire și se compară cu caroseria în lumini diferite.",
+      "**Baza (stratul de culoare).** Se aplică în mai multe straturi subțiri, în cabina de vopsit, unde nu există praf și se menține temperatura.",
+      "**Lacul.** Protejează baza și dă luciu; de calitatea lui depinde cum rezistă vopseaua la soare și la spălare.",
+      "**Uscarea.** În cabină, la temperatura potrivită; lacul uscat insuficient devine mai târziu mat sau rămâne moale.",
+      "**Lustruirea.** Elimină particulele de praf și neregularitățile lacului, egalează luciul cu panourile vecine.",
+      "**Montarea și protecția.** Se montează piesele la loc, iar cavitățile ascunse și pragurile se tratează cu o soluție anticorozivă."
+    ] },
+    { "t": "h2", "x": "Cum se alege culoarea" },
+    { "t": "p", "x": "Codul vopselei este indicat pe plăcuța mașinii, dar cu el se obține doar nuanța de fabrică. Vopseaua de pe mașină se decolorează, între serii diferite există deosebiri, iar unele culori au mai multe variante sub același nume. De aceea meșterul face o probă de vopsire, o compară cu caroseria și, la nevoie, corectează amestecul." },
+    { "t": "ul", "x": [
+      "**Tranziția culorii.** Pentru ca limita dintre vopseaua nouă și cea veche să nu se vadă, culoarea se „întinde” pe panoul vecin sau pe o parte din el.",
+      "**Vopsire în îmbinare.** Dacă panourile sunt vecine, se vopsesc împreună — atunci nuanța este aceeași pe toată linia.",
+      "**Culori complexe.** Acoperirile în trei straturi, perlate și metalizate depind de unghiul de aplicare și de numărul de straturi, de aceea alegerea lor este mai grea și mai scumpă.",
+      "**Piesă în culoarea originală.** Dacă o piesă de la dezmembrări are deja culoarea potrivită și nu are defecte, volumul de vopsire poate fi redus."
+    ] },
+    { "t": "h2", "x": "Vopsire locală și totală" },
+    { "t": "table", "head": ["Variantă", "Când se potrivește", "La ce să fiți atenți"], "rows": [
+      ["Reparație locală (avarii mici)", "Zgârieturi, ciobituri, urme de frecare pe o suprafață mică", "Funcționează bine dacă metalul nu este deteriorat; contează o limită de tranziție îngrijită"],
+      ["Vopsirea unui singur panou", "Panoul este avariat în întregime sau piesa a fost înlocuită", "Este nevoie de o tranziție lină a culorii pe panoul vecin"],
+      ["Vopsirea mai multor panouri", "Avarie serioasă pe o parte sau în față", "Este bine să se vopsească dintr-o dată, ca nuanța să se potrivească"],
+      ["Revopsirea completă a caroseriei", "Decolorare totală, schimbarea culorii, daune de grindină pe toată mașina", "Varianta cea mai laborioasă; contează și părțile interioare (deschiderile, pragurile) dacă se schimbă culoarea"]
+    ] },
+    { "t": "p", "x": "Pentru loturile cu avarie pe unul sau două panouri, de cele mai multe ori este suficientă vopsirea acestor panouri cu tranziție de culoare. Revopsirea completă este necesară rar, de exemplu la grindină puternică. Mai multe despre legătura cu grindina și alte avarii — în articolul [[Ce avarii sunt periculoase și care nu|damages]]." },
+    { "t": "h2", "x": "Se poate evita vopsirea" },
+    { "t": "ul", "x": [
+      "**Eliminarea loviturilor fără vopsire** (PDR). Se potrivește dacă vopseaua nu este deteriorată, iar metalul poate fi îndreptat din interior. Se aplică adesea la lovituri mici și la urme de grindină.",
+      "**Lustruirea.** Elimină zgârieturile mici din lac, dacă stratul de culoare nu este deteriorat.",
+      "**Retuș local.** Pentru ciobituri mici, unde protecția metalului contează mai mult decât aspectul perfect."
+    ] },
+    { "t": "p", "x": "Ce variantă se potrivește depinde de adâncimea avariei. Dacă metalul este întins sau vopseaua a crăpat, lovitura va trebui îndreptată și vopsită." },
+    { "t": "h2", "x": "Cum deosebești o vopsire bună de una proastă" },
+    { "t": "ul", "x": [
+      "**Examinarea la lumină laterală.** O vopsire bună este netedă, fără „coajă de portocală”, scurgeri, particule de praf și pete.",
+      "**Aceeași nuanță.** Panourile arată de aceeași culoare în lumini diferite (la soare și la umbră).",
+      "**Îmbinări și margini.** Nu există scurgeri de vopsea pe garnituri, în deschideri și pe piesele vecine, iar marginile panourilor sunt îngrijite.",
+      "**Grosimetrul.** Arată grosimea stratului: vopseaua de fabrică are un interval, iar un panou revopsit are o valoare vizibil mai mare. Este normal după o reparație, dar este important să știi unde s-a vopsit.",
+      "**După un timp.** Lacul uscat insuficient sau pregătirea proastă se manifestă prin exfoliere, pete sau pierderea luciului după câteva luni."
+    ] },
+    { "t": "h2", "x": "Din ce se compune costul" },
+    { "t": "p", "x": "Costul nu depinde doar de suprafață, ci de mai mulți factori: complexitatea culorii (obișnuită, metalizată, perlată, în trei straturi), numărul de panouri și de tranziții, volumul pregătirii (o lovitură mică sau îndreptarea panoului), necesitatea de a demonta piese, calitatea materialelor și timpul în cabină. De aceea aceeași „vopsire de aripă” poate diferi de mai multe ori între o culoare simplă și una complexă. Abordarea generală a calculului — în [[ghidul de reparație după licitație|repair-guide]]." },
+    { "t": "p", "x": "Vopsirea vine adesea după înlocuirea pieselor: despre asta — în articolele [[Înlocuirea pieselor de caroserie|body-panels]] și [[Înlocuirea aripii spate|rear-quarter]]." },
+    { "t": "h2", "x": "Când este mai bine să renunți" },
+    { "t": "ul", "x": [
+      "este nevoie de revopsirea completă a unei culori complexe pe toată mașina, iar avantajul cumpărării nu mai există;",
+      "se presupune coroziune serioasă sau o reparație ascunsă sub vopsea, iar după poze nu se poate evalua;",
+      "sunt avariate multe panouri deodată, iar costul vopsirii împreună cu înlocuirea pieselor se apropie de prețul unei mașini la fel de întregi."
+    ] }
+  ],
+  "faq": [
+    { "q": "Cât durează o vopsire de calitate?", "a": "Cu o pregătire bună, materiale de calitate și uscare corectă, vopseaua rezistă ani de zile, ca cea de fabrică. Durata depinde de condițiile de exploatare: soare, substanțe de pe drum, spălări și ciobituri de la pietre." },
+    { "q": "Se vede un panou revopsit?", "a": "La o lucrare bună, cu ochiul liber aproape că nu se vede, dar grosimetrul va arăta că stratul de vopsea de acolo este mai mare decât cel de fabrică. De aceea este important să păstrați documentele și pozele etapelor de reparație." },
+    { "q": "Este mai bine să vopsești piesa separat sau pe mașină?", "a": "Depinde de piesă. Panourile demontabile se vopsesc mai comod separat, ca să fie tratate marginile și partea interioară; cele sudate se vopsesc pe caroserie, cu mascarea atentă a pieselor vecine." },
+    { "q": "Se poate schimba culoarea mașinii?", "a": "Se poate, dar este o lucrare scumpă și laborioasă: pentru ca rezultatul să arate onest, se vopsesc și deschiderile ușilor, ale capotei și ale portbagajului. Adesea este mai rezonabil să păstrați culoarea originală." }
+  ],
+  "cta": {
+    "h": "Lotul are multe panouri avariate?",
+    "p": "Trimiteți linkul de pe Copart sau IAAI — calculăm ce panouri trebuie înlocuite, pe care le vopsim și vă spunem sincer dacă avantajul se păstrează.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Ghid de reparație",
+    "b2slug": "repair-guide"
+  },
+  "related": ["repair-guide", "body-panels", "rear-quarter"]
+}

@@ -1,0 +1,97 @@
+{
+  "slug": "painting",
+  "date": "2026-11-28",
+  "readMin": 8,
+  "meta": {
+    "title": "Painting a Car After a Crash: How It Is Done and What Decides the Result | Apex Auto",
+    "description": "How a body is painted after a crash: prep, color matching, base and clear coat, spot vs full paint, good vs bad work and what the cost is made of.",
+    "ogTitle": "Painting a car after a crash: stages, color matching and quality",
+    "ogDesc": "Prep, color, clear coat and polishing: how a damaged car is painted and how to check the result."
+  },
+  "tag": "Painting",
+  "kicker": "Parts and repair · Painting",
+  "h1": "Painting a car after a crash: how it is done and what decides the result",
+  "lead": "Paint is the most “invisible” part of a repair: done well, nobody will ever know; done badly, it shows from ten meters away. It is also often the main line in the estimate. Here is what the job consists of, why color is not matched “roughly the same”, how to tell good paint from bad, and when a spot repair is enough.",
+  "card": {
+    "tag": "Painting",
+    "title": "Painting a car after a crash: how it is done and what decides the result",
+    "text": "Prep, color matching, base and clear coat, spot and full paint. How to tell good work from bad and what the cost is made of."
+  },
+  "og": { "k": "PAINTING", "h": "Painting a car after a crash", "s": "Stages, color matching and how to check quality" },
+  "summary": [
+    "**Paint quality is prep quality:** most of the work is hidden under the paint — filler, primer, sanding. Rushing it shows after a year.",
+    "**Color is matched by code and on the spot:** the code alone is not enough — the shade changes between batches and with fading, so a test spray-out and a smooth blend onto the neighboring panel are done.",
+    "**Complex finishes cost more:** pearl, three-layer and matte finishes need more layers, time and experience.",
+    "**Not everything needs paint:** small dents with undamaged paint can sometimes be removed without painting, and scratches with a spot repair.",
+    "**Paint can be checked:** a thickness gauge, inspection under side light, gaps and the condition of joints show where and how it was painted."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "What painting consists of" },
+    { "t": "p", "x": "Painting a panel is not just “applying paint”. It is a sequence of stages, and most of the time goes not into the paint itself but into preparing the surface." },
+    { "t": "ol", "x": [
+      "**Prep.** The part is removed or the neighboring ones are masked, the damaged area is cleaned down to metal or primer, and rust and old paint are removed in the repair zone.",
+      "**Straightening and filler.** The panel geometry is straightened, a thin layer of filler is applied if needed, and it is sanded to a smooth surface. A thick layer of filler is a sign of poor prep.",
+      "**Primer.** It protects the metal from corrosion and levels the surface for paint; after drying it is sanded.",
+      "**Color matching.** The mix is prepared by paint code, a test spray-out is made and compared with the body in different light.",
+      "**Base (color layer).** Applied in several thin coats in a paint booth, where there is no dust and the temperature is controlled.",
+      "**Clear coat.** It protects the base and gives gloss; its quality determines how the paint withstands sun and washing.",
+      "**Curing.** In the booth at the right temperature; an under-cured clear coat later turns cloudy or stays soft.",
+      "**Polishing.** It removes dust specks and clear coat irregularities and evens out the gloss with the neighboring panels.",
+      "**Reassembly and protection.** The parts are refitted, and hidden cavities and rocker panels are treated with an anti-corrosion compound."
+    ] },
+    { "t": "h2", "x": "How color is matched" },
+    { "t": "p", "x": "The paint code is on the car's data plate, but it only gives the factory shade. Paint on a car fades, different batches differ slightly, and some colors have several variants under the same name. That is why the painter makes a test spray-out, compares it with the body and, if necessary, tints the mix." },
+    { "t": "ul", "x": [
+      "**Color blend.** So that the line between new and old paint is not visible, the color is “feathered” onto the neighboring panel or part of it.",
+      "**Painting to the seam.** If the panels are adjacent, they are painted together — then the shade is the same along the whole line.",
+      "**Complex colors.** Three-layer, pearl and metallic finishes depend on the application angle and the number of layers, so matching them is harder and more expensive.",
+      "**Part in the original color.** If a part from a dismantler is already the right color and has no defects, the amount of painting can be reduced."
+    ] },
+    { "t": "h2", "x": "Spot and full paint" },
+    { "t": "table", "head": ["Option", "When it fits", "What to look at"], "rows": [
+      ["Spot repair (minor damage)", "Scratches, chips, scuffs over a small area", "Works well if the metal is not damaged; a neat blend line matters"],
+      ["Painting one panel", "The whole panel is damaged or the part was replaced", "A smooth color blend onto the neighboring panel is needed"],
+      ["Painting several panels", "Serious damage to one side or the front", "Best painted in one go so the shade matches"],
+      ["Full repaint of the body", "Total fading, color change, hail damage all over the car", "The most labor-intensive option; the inner parts (door jambs, rocker panels) matter if the color changes"]
+    ] },
+    { "t": "p", "x": "For lots with damage to one or two panels, painting those panels with a color blend is most often enough. A full repaint is rarely needed, for example after heavy hail. More on how this relates to hail and other damage — in the article [[Which damage is dangerous and which is not|damages]]." },
+    { "t": "h2", "x": "Can you do without painting" },
+    { "t": "ul", "x": [
+      "**Paintless dent removal** (PDR). Suitable if the paint is not damaged and the metal can be worked out from the inside. Often used for small dents and hail marks.",
+      "**Polishing.** It removes fine scratches in the clear coat if the color layer is not damaged.",
+      "**Spot touch-up.** For small chips, where protecting the metal matters more than a perfect look."
+    ] },
+    { "t": "p", "x": "Which option fits depends on how deep the damage is. If the metal is stretched or the paint has cracked, the dent will have to be straightened and painted." },
+    { "t": "h2", "x": "How to tell good paint from bad" },
+    { "t": "ul", "x": [
+      "**Inspection under side light.** Good paint is even, with no “orange peel”, runs, dust specks or stains.",
+      "**Same shade.** The panels look the same color in different light (in sun and in shade).",
+      "**Joints and edges.** There are no paint runs on seals, in openings or on neighboring parts, and the panel edges are neat.",
+      "**Thickness gauge.** It shows the thickness of the layer: factory paint is in one range, a repainted panel is noticeably higher. That is normal after a repair, but it is important to know where it was painted.",
+      "**Over time.** Under-cured clear coat or poor prep shows up as peeling, stains or dulling after a few months."
+    ] },
+    { "t": "h2", "x": "What the cost is made of" },
+    { "t": "p", "x": "The cost is determined not only by area but by several factors: the complexity of the color (plain, metallic, pearl, three-layer), the number of panels and blends, the amount of prep (a small dent or straightening a panel), whether parts have to be removed, the quality of materials and booth time. That is why the same “fender paint job” can differ several times between a simple color and a complex one. The general approach to the calculation is in the [[post-auction repair guide|repair-guide]]." },
+    { "t": "p", "x": "Painting often follows part replacement: see the articles [[Replacing body panels|body-panels]] and [[Replacing the rear quarter panel|rear-quarter]]." },
+    { "t": "h2", "x": "When it is better to walk away" },
+    { "t": "ul", "x": [
+      "a full repaint of a complex color on the whole car is needed, and the benefit of the purchase is already gone;",
+      "serious corrosion or hidden repair is suspected under the paint, and it cannot be assessed from photos;",
+      "many panels are damaged at once, and the cost of painting together with part replacement approaches the price of an equally intact car."
+    ] }
+  ],
+  "faq": [
+    { "q": "How long does quality paint last?", "a": "With good prep, quality materials and proper curing, paint lasts for years, like the factory finish. The lifespan depends on operating conditions: sun, road chemicals, washing and stone chips." },
+    { "q": "Is a repainted panel visible?", "a": "With good work it is almost invisible to the eye, but a thickness gauge will show that the paint layer there is greater than the factory one. That is why it is important to keep documents and photos of the repair stages." },
+    { "q": "Is it better to paint a part separately or on the car?", "a": "It depends on the part. Bolt-on panels are easier to paint separately so the edges and inner side can be treated; welded ones are painted on the body with careful masking of neighboring parts." },
+    { "q": "Can you change the color of a car?", "a": "You can, but it is expensive and labor-intensive work: for the result to look honest, the door, hood and trunk openings are painted too. It is often more sensible to keep the original color." }
+  ],
+  "cta": {
+    "h": "Does the lot have many damaged panels?",
+    "p": "Send the Copart or IAAI link — we will work out which panels to replace, which to paint, and tell you honestly whether the benefit still holds.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Repair guide",
+    "b2slug": "repair-guide"
+  },
+  "related": ["repair-guide", "body-panels", "rear-quarter"]
+}

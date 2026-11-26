@@ -3582,6 +3582,12 @@ window.__APEX_DICT = (function(){
       "Разбор устройства": "Cum funcționează",
       "Как устроена подушка безопасности: что происходит за 40 миллисекунд": "Cum funcționează airbagul: ce se întâmplă în 40 de milisecunde",
       "Из чего состоит модуль в руле, что происходит за первые 40 миллисекунд после удара, какие детали меняют после срабатывания и чего нельзя делать при ремонте.": "Din ce este alcătuit modulul din volan, ce se întâmplă în primele 40 de milisecunde după impact, ce piese se schimbă după declanșare și ce nu trebuie făcut la reparație.",
+      "Покраска": "Vopsitorie",
+      "Покраска авто после аварии: как делают и от чего зависит результат": "Vopsirea mașinii după accident: cum se face și de ce depinde rezultatul",
+      "Подготовка, подбор цвета, база и лак, локальная и полная покраска. Как отличить хорошую работу от плохой и из чего складывается стоимость.": "Pregătire, alegerea culorii, baza și lacul, vopsire locală și totală. Cum deosebești o lucrare bună de una proastă și din ce se compune costul.",
+      "Электроника": "Electronică",
+      "Электроника авто после аварии, затопления и пожара: что ремонтируют": "Electronica auto după accident, inundare și incendiu: ce se repară",
+      "Жгуты, блоки управления, датчики, камеры и высоковольтная батарея. Что чинится просто, а где нужны диагностика и программирование.": "Cablaje, unități de control, senzori, camere și bateria de înaltă tensiune. Ce se repară simplu și unde sunt necesare diagnoza și programarea.",
       "Редакция Apex Auto · ноябрь 2026 · 8 мин чтения": "Redacția Apex Auto · noiembrie 2026 · 8 min de citit",
       "Редакция Apex Auto · ноябрь 2026 · 7 мин чтения": "Redacția Apex Auto · noiembrie 2026 · 7 min de citit"
       /* articles:end */
@@ -7181,6 +7187,12 @@ window.__APEX_DICT = (function(){
       "Разбор устройства": "How it works",
       "Как устроена подушка безопасности: что происходит за 40 миллисекунд": "How an airbag works: what happens in 40 milliseconds",
       "Из чего состоит модуль в руле, что происходит за первые 40 миллисекунд после удара, какие детали меняют после срабатывания и чего нельзя делать при ремонте.": "What the steering wheel module is made of, what happens in the first 40 milliseconds after impact, which parts are replaced after deployment and what not to do during repair.",
+      "Покраска": "Painting",
+      "Покраска авто после аварии: как делают и от чего зависит результат": "Painting a car after a crash: how it is done and what decides the result",
+      "Подготовка, подбор цвета, база и лак, локальная и полная покраска. Как отличить хорошую работу от плохой и из чего складывается стоимость.": "Prep, color matching, base and clear coat, spot and full paint. How to tell good work from bad and what the cost is made of.",
+      "Электроника": "Electronics",
+      "Электроника авто после аварии, затопления и пожара: что ремонтируют": "Car electronics after a crash, flood or fire: what gets repaired",
+      "Жгуты, блоки управления, датчики, камеры и высоковольтная батарея. Что чинится просто, а где нужны диагностика и программирование.": "Harnesses, control units, sensors, cameras and the high-voltage battery. What is simple to fix and where diagnostics and programming are needed.",
       "Редакция Apex Auto · ноябрь 2026 · 8 мин чтения": "Apex Auto editorial team · November 2026 · 8 min read",
       "Редакция Apex Auto · ноябрь 2026 · 7 мин чтения": "Apex Auto editorial team · November 2026 · 7 min read"
       /* articles:end */
