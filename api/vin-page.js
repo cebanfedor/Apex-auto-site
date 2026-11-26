@@ -171,7 +171,7 @@ module.exports = async function(req, res){
   const odoTxt = miles > 0 ? `${miles.toLocaleString("ru-RU").replace(/ /g, " ")} ${L3("миль", "mile", "mi")} (≈ ${Math.round(miles * 1.609).toLocaleString("ru-RU").replace(/ /g, " ")} ${L3("км", "km", "km")})` : "";
   const dmgTxt = lot ? [lot.primaryDamage, lot.secondaryDamage].filter(x => x && !/^unknown$/i.test(String(x))).join(" / ") || String(lot.damage || "") : "";
   const docTxt = lot ? String(lot.document || "") : "";
-  const dateTxt = lot && lot.auctionDate ? dateRu(lot.auctionDate, lang).split(",")[0] : "";
+  const dateTxt = lot && lot.auctionDate ? dateRu(lot.auctionDate, lang).split(",")[0].replace(/\.$/, "") : "";
   const aucTxt = lot ? aucName(lot.auction) : "";
   const lotNo = lot ? String(lot.lot || "") : "";
   const priceTxt = price ? money(price) : "";
