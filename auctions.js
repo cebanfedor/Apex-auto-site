@@ -4539,18 +4539,14 @@ function alertable(lot){
         </svg>`;
     const legend = [d1 && `<li><i class="dmgDot2"></i><span>${escapeHtml(L("Основное повреждение"))}<b>${escapeHtml(ruDamage(d1))}</b></span></li>`, d2 && `<li><i class="dmgDot1"></i><span>${escapeHtml(L("Вторичное повреждение"))}<b>${escapeHtml(ruDamage(d2))}</b></span></li>`].filter(Boolean).join("");
     const chips = Object.keys(zones).sort((a, b) => zones[b] - zones[a]).map(k => `<span class="dmgChipV1 lv${zones[k]}"><i></i>${escapeHtml(names[k] || k)}</span>`).join("");
-    const views = [["front", "Перед"], ["left", "Слева"], ["rear", "Зад"], ["right", "Справа"], ["top", "Сверху"]].map(v => `<button type="button" data-v="${v[0]}">${escapeHtml(L(v[1]))}</button>`).join("");
     const attr = s => escapeHtml(JSON.stringify(s));
+    const art = typeof window.apexDamageArt === "function"
+      ? window.apexDamageArt(zones, main, names, {front:L("Перед"), rear:L("Зад"), aria:L("Вид сверху")})
+      : flat;
     return `<section class="dSec dmgMapV1" aria-label="${escapeHtml(L("Карта повреждений"))}">
-      <div class="dSecHead dmgHeadV1"><span>${L("Карта повреждений")}</span><em class="dmgTag3dV1">3D</em></div>
+      <div class="dSecHead dmgHeadV1"><span>${L("Карта повреждений")}</span></div>
       <div class="dmgMapBodyV1">
-        <div class="dmg3dStageV1" data-zones="${attr(zones)}" data-main="${escapeHtml(main)}" data-names="${attr(names)}">
-          <div class="dmg3dFlatV1">${flat}</div>
-          <div class="dmg3dCanvasV1"></div>
-          <div class="dmg3dMarkV1" hidden><i></i><span>${escapeHtml(main ? (names[main] || "") : "")}</span></div>
-          <div class="dmg3dViewsV1" role="group" aria-label="${escapeHtml(L("Вид"))}">${views}</div>
-          <div class="dmg3dHintV1"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.7-2.3L3.5 15.5a1.6 1.6 0 0 1 2.4-2.1L9 16"/></svg>${escapeHtml(L("Потяните, чтобы повернуть"))}</div>
-        </div>
+        <div class="dmgArtStageV1">${art}</div>
         <div class="dmg3dSideV1">
           <ul class="dmgLegendV1">${legend}</ul>
           <div class="dmgZonesV1"><div class="dmgZonesTtlV1">${escapeHtml(L("Затронутые зоны"))}</div><div class="dmgChipsV1">${chips}</div></div>

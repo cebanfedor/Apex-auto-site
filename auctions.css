@@ -2173,34 +2173,10 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 
 /* ===== Карта повреждений (26.11.2026): 3D-модель (damage3d.js) + панель зон ===== */
 .dmgHeadV1 { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.dmgTag3dV1 { font-style:normal; font:800 10.5px/1 Onest,system-ui,sans-serif; letter-spacing:.08em; padding:4px 8px; border-radius:999px; background:#14181f; color:#fff; }
 .dmgMapBodyV1 { grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,1.5fr) minmax(240px,1fr); gap:24px; align-items:stretch; padding:14px 0 4px; }
-.dmg3dStageV1 { position:relative; width:100%; min-height:0; aspect-ratio:3/2; border-radius:18px; overflow:hidden; border:1px solid var(--aLine2);
-  background:radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f3f6fa 52%, #e6ebf2 100%); isolation:isolate; }
-.dmg3dStageV1::before { content:""; position:absolute; inset:0; z-index:0; opacity:.55; pointer-events:none;
-  background-image:radial-gradient(circle, rgba(20,24,31,.09) 1px, transparent 1.4px); background-size:18px 18px; -webkit-mask-image:radial-gradient(70% 70% at 50% 52%, #000 30%, transparent 100%); mask-image:radial-gradient(70% 70% at 50% 52%, #000 30%, transparent 100%); }
-.dmg3dCanvasV1 { position:absolute; inset:0; z-index:1; }
-.dmg3dGlV1 { display:block; width:100%; height:100%; cursor:grab; outline:none; }
-.dmg3dStageV1.dragV1 .dmg3dGlV1 { cursor:grabbing; }
-.dmg3dFlatV1 { position:absolute; inset:0; z-index:1; display:grid; place-items:center; transition:opacity .35s; }
-.dmg3dFlatV1 svg { width:34%; max-width:150px; height:auto; opacity:.9; }
-.dmg3dStageV1.is3dV1 .dmg3dFlatV1 { opacity:0; pointer-events:none; }
-.dmg3dStageV1.no3dV1 .dmg3dCanvasV1, .dmg3dStageV1.no3dV1 .dmg3dViewsV1, .dmg3dStageV1.no3dV1 .dmg3dHintV1, .dmg3dStageV1.no3dV1 .dmg3dMarkV1 { display:none; }
-.dmg3dStageV1:not(.is3dV1) .dmg3dViewsV1, .dmg3dStageV1:not(.is3dV1) .dmg3dHintV1 { opacity:0; pointer-events:none; }
-.dmg3dViewsV1 { position:absolute; z-index:3; left:50%; bottom:12px; transform:translateX(-50%); display:flex; gap:2px; padding:3px; border-radius:999px; background:rgba(255,255,255,.86); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); box-shadow:0 2px 10px rgba(20,24,31,.12), inset 0 0 0 1px rgba(20,24,31,.06); transition:opacity .3s; }
-.dmg3dViewsV1 button { appearance:none; border:0; background:transparent; font:700 12px/1 Onest,system-ui,sans-serif; color:var(--aInk2); height:30px; padding:0 12px; border-radius:999px; cursor:pointer; transition:background .15s,color .15s; }
-.dmg3dViewsV1 button:hover { background:rgba(20,24,31,.06); }
-.dmg3dViewsV1 button.onV1 { background:#14181f; color:#fff; }
-.dmg3dHintV1 { position:absolute; z-index:3; left:14px; top:12px; display:inline-flex; align-items:center; gap:6px; font:600 11.5px/1 Onest,system-ui,sans-serif; color:#556071; background:rgba(255,255,255,.8); padding:7px 10px; border-radius:999px; transition:opacity .4s; }
-.dmg3dStageV1.usedV1 .dmg3dHintV1 { opacity:0; pointer-events:none; }
-.dmg3dMarkV1 { position:absolute; z-index:2; left:0; top:0; pointer-events:none; will-change:transform; }
-.dmg3dMarkV1[hidden] { display:none; }
-.dmg3dMarkV1 i { position:absolute; left:-7px; top:-7px; width:14px; height:14px; border-radius:50%; background:#e5162b; box-shadow:0 0 0 3px #fff, 0 2px 8px rgba(229,22,43,.6); }
-.dmg3dMarkV1 i::after { content:""; position:absolute; inset:-9px; border-radius:50%; border:2px solid rgba(229,22,43,.55); animation:dmgPulseV1 1.8s ease-out infinite; }
-.dmg3dMarkV1 span { position:absolute; left:16px; top:-30px; white-space:nowrap; font:800 12px/1 Onest,system-ui,sans-serif; color:#fff; background:#14181f; padding:7px 10px; border-radius:9px; box-shadow:0 4px 14px rgba(20,24,31,.28); }
-.dmg3dMarkV1 span:empty { display:none; }
-.dmg3dMarkV1.flipV1 span { left:auto; right:16px; }
-@keyframes dmgPulseV1 { 0% { transform:scale(.5); opacity:.9; } 100% { transform:scale(1.6); opacity:0; } }
+.dmgArtStageV1 { position:relative; width:100%; border-radius:18px; overflow:hidden; border:1px solid var(--aLine2); padding:10px 4px 6px;
+  background:radial-gradient(120% 90% at 50% 38%, #ffffff 0%, #f3f6fa 52%, #e6ebf2 100%); }
+.dmgArtStageV1 .dmgArtV1 { display:block; width:100%; height:auto; max-height:430px; margin:0 auto; }
 .dmg3dSideV1 { display:flex; flex-direction:column; gap:16px; justify-content:center; min-width:0; }
 .dmgMapV1 .dmgBody { fill:none; stroke:#8a94a3; stroke-width:2.2; }
 .dmgMapV1 .dmgWheel { fill:#3a414d; }
@@ -2222,9 +2198,8 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .dmgChipV1.lv2 { background:#fdecee; border-color:#f6c6cc; color:#a10013; } .dmgChipV1.lv2 i { background:#e5162b; }
 .dmgChipV1.lv1 { background:#fff7e6; border-color:#f6dfaa; color:#8a5a00; }
 .dmgMapV1 .dmgNoteV1 { margin:0; font-size:12px; line-height:1.45; color:var(--aMuted); }
-@media (max-width:900px){ .dmgMapBodyV1 { grid-template-columns:1fr; gap:14px; } .dmg3dStageV1 { aspect-ratio:4/3; min-height:300px; } }
-@media (max-width:640px){ .dmg3dStageV1 { aspect-ratio:auto; height:300px; min-height:0; border-radius:16px; } .dmg3dViewsV1 button { padding:0 10px; height:32px; } .dmg3dHintV1 { display:none; } .dmgLegendV1 li { padding:10px 12px; } }
-@media (prefers-reduced-motion:reduce){ .dmg3dMarkV1 i::after { animation:none; } }
+@media (max-width:900px){ .dmgMapBodyV1 { grid-template-columns:1fr; gap:14px; } .dmgArtStageV1 .dmgArtV1 { max-height:380px; } }
+@media (max-width:640px){ .dmgLegendV1 li { padding:10px 12px; } }
 
 /* ===== Режим карточек (26.11.2026): листаем лоты как в Tinder ===== */
 .qDeckV1 { background:#11141a !important; color:#fff !important; border-color:#11141a !important; }
