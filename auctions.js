@@ -4154,6 +4154,68 @@ function alertable(lot){
       window.__apexEnsureDict(() => { if(state.selectedLot === lot) renderDetail(lot, opts); });
     }
   }
+  // ---- Карта повреждений (26.11.2026): вид сверху, зоны подсвечены по полям «основное / вторичное повреждение» ----
+  // Уровни: 2 — само повреждение, 1 — соседняя зона (может быть задета). Карта показывается, только если есть пространственная зона.
+  const DMG_ZONES = [
+    [/left front|front left/, {FL:2, F:1, L:1}],
+    [/right front|front right/, {FR:2, F:1, R:1}],
+    [/left rear|rear left/, {RL:2, B:1, L:1}],
+    [/right rear|rear right/, {RR:2, B:1, R:1}],
+    [/front end|^front$/, {F:2, FL:2, FR:2}],
+    [/rear end|^rear$/, {B:2, RL:2, RR:2}],
+    [/left side|^left$/, {L:2, FL:1, RL:1}],
+    [/right side|^right$/, {R:2, FR:1, RR:1}],
+    [/^side$/, {L:1, R:1}],
+    [/top|roof/, {T:2}],
+    [/hail|град/, {T:2, F:1, B:1}],
+    [/rollover|переворот/, {T:2, L:1, R:1}],
+    [/all over|total burn/, {F:2, FL:2, FR:2, L:2, R:2, T:2, RL:2, RR:2, B:2}],
+    [/vandal/, {F:1, FL:1, FR:1, L:1, R:1, T:1, RL:1, RR:1, B:1}]
+  ];
+
+  function dmgZonesOf(raw, weaken){
+    const out = {};
+    String(raw || "").toLowerCase().split(/\s*[\/,&;]\s*|\s+and\s+/).map(x => x.replace(/[_-]+/g, " ").trim()).filter(Boolean).forEach(part => {
+      for(const [re, zones] of DMG_ZONES){
+        if(!re.test(part)) continue;
+        for(const k in zones){ const lv = weaken ? Math.max(1, zones[k] - 1) : zones[k]; out[k] = Math.max(out[k] || 0, lv); }
+        break;
+      }
+    });
+    return out;
+  }
+  function damageMapHtml(lot){
+    const dmgParts = String(lot.damage || "").split("/").map(x => x.trim()).filter(Boolean);
+    const d1 = lot.primaryDamage || dmgParts[0] || "", d2 = lot.secondaryDamage || dmgParts[1] || "";
+    if(!d1) return "";
+    const z1 = dmgZonesOf(d1, false), z2 = dmgZonesOf(d2, true);
+    const zones = Object.assign({}, z2);
+    for(const k in z1) zones[k] = Math.max(zones[k] || 0, z1[k]);
+    if(!Object.keys(zones).length) return "";
+    const R = {F:[52,8,36,76], FL:[28,8,24,76], FR:[88,8,24,76], L:[28,84,24,106], T:[52,84,36,106], R:[88,84,24,106], RL:[28,190,24,64], B:[52,190,36,64], RR:[88,190,24,64]};
+    const rects = Object.keys(R).map(k => { const r = R[k], lv = zones[k] || 0; return `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" class="dmgZ${lv}"/>`; }).join("");
+    const body = "M46 16 Q70 6 94 16 Q108 28 110 60 L112 200 Q110 238 94 246 Q70 256 46 246 Q30 238 28 200 L30 60 Q32 28 46 16 Z";
+    const wheels = [[20,44],[110,44],[20,176],[110,176]].map(w => `<rect x="${w[0]}" y="${w[1]}" width="10" height="34" rx="4" class="dmgWheel"/>`).join("");
+    const legend = [d1 && `<li><i class="dmgDot2"></i><span>${escapeHtml(L("Основное повреждение"))}: <b>${escapeHtml(ruDamage(d1))}</b></span></li>`, d2 && `<li><i class="dmgDot1"></i><span>${escapeHtml(L("Вторичное повреждение"))}: <b>${escapeHtml(ruDamage(d2))}</b></span></li>`].filter(Boolean).join("");
+    return `<section class="dSec dmgMapV1" aria-label="${escapeHtml(L("Карта повреждений"))}">
+      <div class="dSecHead">${L("Карта повреждений")}</div>
+      <div class="dmgMapBodyV1">
+        <svg viewBox="0 0 140 262" role="img" aria-label="${escapeHtml(L("Вид сверху"))}">
+          <defs><clipPath id="dmgClipV1"><path d="${body}"/></clipPath></defs>
+          ${wheels}
+          <g clip-path="url(#dmgClipV1)">${rects}</g>
+          <path d="${body}" class="dmgBody"/>
+          <path d="M42 80 Q70 70 98 80 L94 104 Q70 98 46 104 Z" class="dmgGlass"/>
+          <path d="M46 168 Q70 174 94 168 L98 190 Q70 198 42 190 Z" class="dmgGlass"/>
+          <text x="70" y="38" class="dmgTxt">${escapeHtml(L("Перед"))}</text>
+          <text x="70" y="236" class="dmgTxt">${escapeHtml(L("Зад"))}</text>
+        </svg>
+        <ul class="dmgLegendV1">${legend}</ul>
+        <p class="dmgNoteV1">${L("Подсветка показывает зоны по данным площадки. Красным — основной удар, жёлтым — вторичный или соседние зоны.")}</p>
+      </div>
+    </section>`;
+  }
+
   function renderDetail(lot, opts){
     scheduleVinRetry(lot, 1);
     // Личный кабинет: «недавно смотрели» (один раз на лот, когда уже известно название)
@@ -4356,6 +4418,7 @@ function alertable(lot){
               ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
+            ${damageMapHtml(lot)}
             ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco(toneIcon("warn"))}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
             ${exportBan(lot) || isResaleLot ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">

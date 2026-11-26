@@ -2169,3 +2169,21 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .bpQuickV1 button b { font-size:13.5px; font-weight:800; color:var(--aInk); }
 .bpQuickV1 button:active { background:var(--aSoft); }
 @media (max-width:640px){ .bpRowV1 b { font-size:20px; } }
+
+/* ===== Карта повреждений (26.11.2026) ===== */
+.dmgMapBodyV1 { display:grid; grid-template-columns:132px 1fr; gap:16px; align-items:center; padding:6px 4px 2px; }
+.dmgMapBodyV1 svg { width:132px; height:auto; display:block; }
+.dmgMapV1 .dmgBody { fill:none; stroke:#8a94a3; stroke-width:2.2; }
+.dmgMapV1 .dmgWheel { fill:#3a414d; }
+.dmgMapV1 .dmgGlass { fill:rgba(255,255,255,.55); stroke:#8a94a3; stroke-width:1; }
+.dmgMapV1 .dmgZ0 { fill:#eef1f5; stroke:#fff; stroke-width:1; }
+.dmgMapV1 .dmgZ1 { fill:#f5b942; stroke:#fff; stroke-width:1; }
+.dmgMapV1 .dmgZ2 { fill:#ed0012; stroke:#fff; stroke-width:1; }
+.dmgMapV1 .dmgTxt { font:700 9px/1 Onest,system-ui,sans-serif; fill:#8a94a3; text-anchor:middle; letter-spacing:.08em; text-transform:uppercase; pointer-events:none; }
+.dmgLegendV1 { list-style:none; margin:0; padding:0; display:grid; gap:9px; font-size:13.5px; color:var(--aInk2); }
+.dmgLegendV1 li { display:flex; gap:9px; align-items:flex-start; line-height:1.35; }
+.dmgLegendV1 b { color:var(--aInk); font-weight:700; }
+.dmgDot1, .dmgDot2 { flex:none; width:12px; height:12px; margin-top:3px; border-radius:4px; }
+.dmgDot2 { background:#ed0012; } .dmgDot1 { background:#f5b942; }
+.dmgMapV1 .dmgNoteV1 { grid-column:1 / -1; margin:2px 0 2px; font-size:12px; line-height:1.4; color:var(--aMuted); }
+@media (max-width:640px){ .dmgMapBodyV1 { grid-template-columns:104px 1fr; gap:12px; } .dmgMapBodyV1 svg { width:104px; } .dmgLegendV1 { font-size:13px; } }
