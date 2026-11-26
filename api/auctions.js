@@ -351,7 +351,7 @@ const STATS_EDGE_CACHE = {"cache-control": "public, s-maxage=3600, stale-while-r
 // DB_TTL in seconds: search=6h, detail=30мин (аукционы переносят даты — 24h кеш
 // показывал устаревшую дату торгов), vin=7d, dict/lists=12h
 // search: 3 мин — иначе лот, сыгравший час назад, до 6 часов не появлялся в архиве (кэш живого ответа).
-const DB_TTL = {search:180, detail:1800, vin:604800, gens:2592000, _default:43200};
+const DB_TTL = {search:180, detail:1800, vin:604800, gens:2592000, showcase:3600, _default:43200};
 
 // Supabase может лечь/тормозить (переполнение, пауза проекта) — его никогда
 // не ждём дольше 1.5с (живая база отвечает <300мс), а после двух подряд
@@ -6801,7 +6801,7 @@ const handlerInner = async function handler(request, response){
   // по auctionsapi.com/DB заново в окне TTL (180с), только по CDN-кэшу (s-maxage=180) промахнуться сложнее.
   // 07.11.2026 (расход egress/IO Supabase): "search" убран из DB-кэша — каждый показ каталога читал из api_cache ~90 КБ JSON, а промах писал
   // их обратно (сотни тысяч upsert/сутки, рост таблицы, нагрузка на диск). Достаточно памяти инстанса + CDN (s-maxage 180–900 + swr).
-  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics"]);
+  const dbCacheActions = new Set(["detail","vin","manufacturers","models","generations","usadict","statistics","showcase"]);
   // Словарь повреждений теперь статический (не тратит квоту API) — Supabase-кэш
   // для него лишний round-trip, пропускаем (memory + edge-кэш достаточно). P3-16.
   const isStaticDamages = action === "usadict" && String(query.get("dict") || "").toLowerCase() === "damages";
@@ -7709,6 +7709,8 @@ const handlerInner = async function handler(request, response){
         const items = bySc(firstTier.concat(secondTier)).concat(bySc(thirdTier)).slice(0, 24);
         const payload = dbg ? {ok:true, items, dbg} : {ok:true, items};
         setCached(key, payload, 15 * 60 * 1000);
+        // 26.11.2026 (экономия лимита: витрина стоила ~740 вызовов/ч — каждый холодный экземпляр пересобирал её сам): общий кэш в базе на час
+        if(!dbg && items.length) setDbCache(key, payload, "showcase").catch(() => {});
         sendJson(response, 200, payload, dbg ? {"cache-control":"no-store"} : SHOWCASE_EDGE);
       }catch(e){
         sendJson(response, 200, {ok:true, items:[], dbgErr: dbg ? String(e && e.message || e).slice(0,200) : undefined}, {"cache-control":"no-store"});
