@@ -108,6 +108,7 @@
     { "source": "/og/catalog", "destination": "/api/og?type=catalog" },
     { "source": "/auctions/:slug", "destination": "/api/lot-page?slug=:slug" },
     { "source": "/vin/:vin", "destination": "/api/vin-page?vin=:vin" },
+    { "source": "/invoice/:token", "destination": "/api/invoice?token=:token" },
     { "source": "/sitemap-vin.xml", "destination": "/api/vin-sitemap" },
     { "source": "/tracking", "destination": "/api/tracking-page" },
     { "source": "/og/lot/:id", "destination": "/api/og?type=lot&id=:id" },

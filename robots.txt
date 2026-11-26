@@ -3,6 +3,7 @@ Allow: /
 Disallow: /admin
 Disallow: /api
 Disallow: /cabinet
+Disallow: /invoice
 
 Sitemap: https://apexauto.md/sitemap.xml
 Sitemap: https://apexauto.md/sitemap-vin.xml

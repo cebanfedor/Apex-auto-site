@@ -112,7 +112,7 @@ function resetForm(id){
   form.reset();
   if(id === "vehicleForm") setTimeout(renderVehiclePhotoThumbs, 0);
   if(id === "leadForm") updateLeadCustomerContact();
-  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; form.dataset.lastVin = ""; form.elements.chat_id.value = ""; setTimeout(dealClientHint, 0); const lm = document.getElementById("dealLookupMsg"); if(lm) lm.textContent = ""; }
+  if(id === "dealForm"){ form.elements.notify.checked = true; form.elements.active.checked = true; form.dataset.lastVin = ""; form.elements.chat_id.value = ""; const il = document.getElementById("invList"); if(il) il.innerHTML = ""; const imsg = document.getElementById("invMsg"); if(imsg) imsg.textContent = ""; setTimeout(dealClientHint, 0); const lm = document.getElementById("dealLookupMsg"); if(lm) lm.textContent = ""; }
   form.querySelector('[name="id"]').value = "";
   const title = document.getElementById(`${id.replace("Form", "FormTitle")}`);
   if(title){
@@ -399,7 +399,71 @@ function setDealForm(item){
   sv("calc_land", c.land_usd); sv("calc_sea", c.sea_usd); sv("calc_customs", c.customs_mdl); sv("calc_broker", c.broker_mdl);
   sv("calc_rate", c.usd_mdl); sv("calc_rules", c.rules || ""); sv("calc_discount", c.discount_usd); sv("calc_note", c.note || "");
   form.elements.calc_discount_on.checked = !!c.discount_on;
+  loadInvoices(item.id);
 }
+
+// ---------- Счета ----------
+function invoiceLinesFromForm(){
+  const f = $("#dealForm").elements, num = v => parseFloat(String(v || "").replace(/\s/g, "").replace(",", ".")) || 0;
+  const rate = num(f.calc_rate.value), out = [];
+  const add = (n, v) => { v = Math.round(v * 100) / 100; if(v) out.push(n + " | " + v); };
+  add("Доставка по США", num(f.calc_land.value));
+  add("Морская доставка и дорога до Кишинёва", num(f.calc_sea.value));
+  if(rate > 0){ add("Таможенные платежи", num(f.calc_customs.value) / rate); add("Брокер и утилизационный сбор", num(f.calc_broker.value) / rate); }
+  if(f.calc_discount_on.checked && num(f.calc_discount.value)) add("Скидка клиенту" + (f.calc_note.value ? " (" + f.calc_note.value + ")" : ""), -Math.abs(num(f.calc_discount.value)));
+  return out.join("\n");
+}
+function renderInvoices(list){
+  const box = $("#invList"); if(!box) return;
+  box.innerHTML = (list || []).map(i => {
+    const sum = (i.lines || []).reduce((a, l) => a + (Number(l.usd) || 0), 0), paid = (i.paid || []).reduce((a, p) => a + (Number(p.usd) || 0), 0);
+    const url = location.origin + "/invoice/" + i.token;
+    return `<div class="rowItem" style="margin-top:8px"><div><h3 style="font-size:15px">${escapeHtml(i.no)} — ${formatMoney(sum)}</h3>
+      <p>${paid >= sum - 0.005 ? "✅ оплачен" : paid > 0 ? "◐ оплачено " + formatMoney(paid) : "⏳ не оплачен"} · ${escapeHtml(fmtWhen(i.created) || "")}</p></div>
+      <div class="rowActions" style="flex-wrap:wrap"><a class="ghost" style="text-decoration:none;padding:8px 12px;border-radius:10px" target="_blank" rel="noopener" href="${escapeHtml(url)}">Открыть</a>
+      <button type="button" class="ghost" data-inv-copy="${escapeHtml(url)}">Ссылка</button>
+      <input type="number" min="0" step="0.01" placeholder="$ платёж" data-inv-sum="${escapeHtml(i.token)}" style="width:100px">
+      <button type="button" data-inv-pay="${escapeHtml(i.token)}">Отметить оплату</button></div></div>`;
+  }).join("");
+}
+async function loadInvoices(dealId){
+  const box = $("#invList"); if(box) box.innerHTML = "";
+  const f = $("#dealForm"); if(!f) return;
+  try{
+    const r = await api("/api/deals?invoices=" + (Number(dealId) || 0));
+    if(r.settings && r.settings.requisites != null && !f.elements.inv_req.value) f.elements.inv_req.value = r.settings.requisites;
+    renderInvoices(r.invoices);
+  }catch(_){ /* без таблицы настроек просто пусто */ }
+}
+document.addEventListener("click", async ev => {
+  const t = ev.target; if(!t.closest) return;
+  const f = $("#dealForm");
+  if(t.closest("#invFillBtn")){ f.elements.inv_lines.value = invoiceLinesFromForm() || f.elements.inv_lines.value; return; }
+  const cp = t.closest("[data-inv-copy]");
+  if(cp){ try{ await navigator.clipboard.writeText(cp.dataset.invCopy); showNotice("Ссылка на счёт скопирована", true); }catch(_){ prompt("Ссылка на счёт:", cp.dataset.invCopy); } return; }
+  if(t.closest("#invMakeBtn")){
+    const msg = $("#invMsg"), id = f.elements.id.value;
+    if(!id){ msg.textContent = "Сначала сохраните сделку, потом формируйте счёт."; return; }
+    msg.textContent = "Формирую…";
+    try{
+      const r = await api("/api/deals", {method: "POST", body: {action: "invoice", deal_id: id, lines: f.elements.inv_lines.value, requisites: f.elements.inv_req.value, rate: f.elements.calc_rate.value, send: $("#invSend").checked}});
+      msg.textContent = "Счёт " + r.invoice.no + " готов." + ({sent: " Клиенту отправлена ссылка в Telegram.", no_chat: " Клиент не подключён в Telegram — отправьте ссылку сами (кнопка «Ссылка»).", failed: " Не удалось отправить в Telegram — отправьте ссылку сами."}[r.sent] || "");
+      f.elements.inv_lines.value = "";
+      loadInvoices(id);
+    }catch(e){ msg.textContent = "Не получилось: " + (e.message || e); }
+    return;
+  }
+  const pay = t.closest("[data-inv-pay]");
+  if(pay){
+    const token = pay.dataset.invPay, inp = document.querySelector(`[data-inv-sum="${token}"]`), usd = parseFloat(inp && inp.value);
+    if(!(usd > 0)){ showNotice("Введите сумму платежа в долларах"); return; }
+    try{
+      const r = await api("/api/deals", {method: "POST", body: {action: "pay", token, usd}});
+      showNotice("Платёж отмечен." + ({sent: " Клиент получил сообщение в Telegram.", no_chat: " Клиент не подключён в Telegram — сообщение не отправлено."}[r.sent] || ""), true);
+      loadInvoices(f.elements.id.value); loadDeals();
+    }catch(e){ showNotice(e.message); }
+  }
+});
 
 document.addEventListener("click", ev => {
   const a = ev.target.closest && ev.target.closest("[data-cab-open]");
@@ -926,7 +990,7 @@ function bindForms(){
     const f = form.elements;
     data.calc = {land_usd: f.calc_land.value, sea_usd: f.calc_sea.value, customs_mdl: f.calc_customs.value, broker_mdl: f.calc_broker.value,
       usd_mdl: f.calc_rate.value, rules: f.calc_rules.value, discount_on: f.calc_discount_on.checked, discount_usd: f.calc_discount.value, note: f.calc_note.value};
-    Object.keys(data).forEach(k => { if(k.indexOf("calc_") === 0) delete data[k]; });
+    Object.keys(data).forEach(k => { if(k.indexOf("calc_") === 0 || k.indexOf("inv_") === 0) delete data[k]; });
     delete data.client_pick;
     if(!data.chat_id && !data.phone){ alert("Выберите клиента из Telegram или укажите его телефон."); return; }
     const id = data.id; delete data.id;

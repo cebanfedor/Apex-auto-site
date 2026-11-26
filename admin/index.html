@@ -167,6 +167,15 @@
                 <label>Пояснение клиенту (необязательно)<input name="calc_note" maxlength="200" placeholder="Скидка за повторную покупку"></label>
                 <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="ghost" id="dealRecalcBtn">Пересчитать по калькулятору</button><span id="dealCalcMsg" style="font-size:13px;color:#667080"></span></div>
               </fieldset>
+              <fieldset class="dealCalcV1" id="dealInvoiceBox" style="border:1px solid #e3e6ec;border-radius:12px;padding:12px 14px;margin:6px 0 10px">
+                <legend style="padding:0 6px;font-weight:700">🧾 Счёт клиенту</legend>
+                <p class="hintV1" style="margin:0 0 8px;font-size:13px;color:#667080">Сначала сохраните сделку. Клиент открывает счёт по ссылке (там кнопка «Печать / PDF»), оплаты вы отмечаете вручную — клиент получает сообщение в Telegram.</p>
+                <label>Строки счёта — по строке: название | сумма $ (скидка — со знаком минус)<textarea name="inv_lines" rows="4" placeholder="Доставка по США | 450&#10;Морская доставка и дорога до Кишинёва | 1900&#10;Скидка клиенту | -200"></textarea></label>
+                <label>Реквизиты для оплаты (общие для всех счетов)<textarea name="inv_req" rows="3" placeholder="Банк, IBAN, получатель, назначение платежа…"></textarea></label>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="ghost" id="invFillBtn">Заполнить из расчёта</button><button type="button" id="invMakeBtn">Сформировать счёт</button><label class="checkV1" style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="invSend" checked style="width:auto"> отправить клиенту в Telegram</label></div>
+                <p id="invMsg" style="font-size:13px;color:#667080;margin:6px 0 0"></p>
+                <div id="invList"></div>
+              </fieldset>
               <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 8px"><button type="button" class="ghost" id="dealLookupBtn">Подтянуть из трекинга</button><span id="dealLookupMsg" style="font-size:13px;color:#667080"></span></div>
               <label>Что дальше (клиент увидит)<input name="next_step" placeholder="Контейнер вышел из порта, ждём прихода в Клайпеду"></label>
               <label>Лента событий — по строке: дата | текст<textarea name="timeline" rows="4" placeholder="20.11.2026 | Машина погружена в контейнер"></textarea></label>
@@ -402,7 +411,7 @@
     </section>
   </main>
 
-  <script src="/admin/admin.js?v=admin-v188"></script>
+  <script src="/admin/admin.js?v=admin-v189"></script>
   <script src="/admin/clients.js?v=cc-v6"></script>
 </body>
 </html>
