@@ -369,6 +369,7 @@ patchBlog("ro-blog.html", "ro");
   const entries = { ro: {}, en: {} };
   const add = (ru, ro, en) => { entries.ro[ru] = ro; entries.en[ru] = en; };
   add("Все статьи", "Toate articolele", "All articles");
+  add("Цены продаж по моделям →", "Prețuri de vânzare pe modele →", "Sale prices by model →");
   add("Запчасти и ремонт", "Piese și reparații", "Parts & repair");
   add(BLOG_SEC.ru.p, BLOG_SEC.ro.p, "How body repair and unit replacement are done and what the cost is made of. No fluff and no invented prices: we show what is actually doable and when it does not cost “a fortune”.");
   add(GUIDE_SEC.ru.h, GUIDE_SEC.ro.h, "Buying & delivery");

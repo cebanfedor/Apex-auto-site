@@ -2297,3 +2297,8 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .vhFaqV1 summary { cursor:pointer; font-weight:700; }
 .vhFaqV1 details p { margin:8px 0 0; color:var(--aInk2); line-height:1.5; }
 @media (max-width:640px){ .vhPhotosV1 { grid-template-columns:repeat(2,minmax(0,1fr)); } .vhPhotosV1 img:first-child { grid-column:span 2; grid-row:auto; aspect-ratio:4/3; } .vhFactsTblV1 th { width:42%; } }
+
+/* 26.11.2026: ссылка на хаб /models в блоке «Популярные модели» */
+.pmLinkV1 { margin:-8px 0 16px; font-size:14px; font-weight:700; }
+.pmLinkV1 a { color:var(--aRed,#ed0012); text-decoration:none; }
+.pmLinkV1 a:hover { text-decoration:underline; }

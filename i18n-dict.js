@@ -3567,6 +3567,7 @@ window.__APEX_DICT = (function(){
       "Вернуться к каталогу":"Înapoi la catalog",
       /* articles:start */
       "Все статьи": "Toate articolele",
+      "Цены продаж по моделям →": "Prețuri de vânzare pe modele →",
       "Запчасти и ремонт": "Piese și reparații",
       "Как делается кузовной ремонт, замена агрегатов и из чего складывается стоимость. Без воды и без выдуманных цен: показываем, что реально сделать и когда это не стоит «миллион».": "Cum se face reparația caroseriei, înlocuirea agregatelor și din ce se compune costul. Fără apă și fără prețuri inventate: arătăm ce se poate face și când nu costă «un milion».",
       "Покупка и доставка": "Cumpărare și livrare",
@@ -7211,6 +7212,7 @@ window.__APEX_DICT = (function(){
       "Вернуться к каталогу":"Back to catalog",
       /* articles:start */
       "Все статьи": "All articles",
+      "Цены продаж по моделям →": "Sale prices by model →",
       "Запчасти и ремонт": "Parts & repair",
       "Как делается кузовной ремонт, замена агрегатов и из чего складывается стоимость. Без воды и без выдуманных цен: показываем, что реально сделать и когда это не стоит «миллион».": "How body repair and unit replacement are done and what the cost is made of. No fluff and no invented prices: we show what is actually doable and when it does not cost “a fortune”.",
       "Покупка и доставка": "Buying & delivery",

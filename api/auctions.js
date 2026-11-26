@@ -3942,6 +3942,7 @@ function isHeavyLot(l){
 // кэша тяжёлая выгрузка архива (~1МБ/страница, ~5–10с) повторялась бы на каждом
 // лоте одной модели и упиралась в 12с-abort → ok:false. Кэшируем пул на 30 мин.
 const soldPoolCache = new Map();
+const modelStatsCache = new Map();
 const SOLD_POOL_TTL = 30 * 60e3;
 // Полная история проданных из НАШЕЙ базы api_lots (архив растёт — на 30.09.2026 уже 250k+ проданных
 // лотов, топливо и повреждения отдельными колонками) — правильный источник comps, как своя БД у
@@ -7293,6 +7294,38 @@ const handlerInner = async function handler(request, response){
       return;
     }
 
+    // 26.11.2026 (SEO): сводка продаж модели для страницы /models/<slug> — ТОЛЬКО из нашей базы (api_lots), без провайдера.
+    // Берём проданные лоты США (без CAD), 2010+, без утиля (JUNK_*), цену молотка — не сборы. Кэш в памяти 6 ч, CDN 6 ч.
+    if(action === "modelstats"){
+      const makeId = String(query.get("make_id") || "").replace(/[^0-9]/g, "");
+      const modelId = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+      if(!makeId || !modelId){ sendJson(response, 400, {ok:false, error:"bad ids"}, {"cache-control":"no-store"}); return; }
+      const ck = `${makeId}:${modelId}`;
+      const hit = modelStatsCache.get(ck);
+      if(hit && Date.now() - hit.at < 6 * 3600e3){
+        sendJson(response, 200, hit.payload, {"cache-control":"public, s-maxage=21600, stale-while-revalidate=86400"});
+        return;
+      }
+      try{
+        const rows = await syncSbFetch(`/api_lots?make_id=eq.${makeId}&model_id=eq.${modelId}&archived=eq.true&status_id=eq.6&final_bid=gt.0&country=eq.us&year=gte.2010&select=final_bid,year,odometer_mi,damage,title,document,auction,sale_date&order=sale_date.desc&limit=1500`);
+        const soldBefore = Date.now() - 12 * 3600e3;
+        const clean = (Array.isArray(rows) ? rows : []).filter(r => {
+          const ts = r.sale_date ? Date.parse(r.sale_date) : NaN;
+          if(Number.isFinite(ts) && ts > soldBefore) return false;
+          if(JUNK_TITLE.test(`${r.title || ""} ${r.document || ""}`)) return false;
+          if(JUNK_DAMAGE.test(String(r.damage || ""))) return false;
+          return true;
+        });
+        const stats = require("../server/model-stats").summarize(clean);
+        const payload = {ok:true, makeId:Number(makeId), modelId:Number(modelId), stats};
+        modelStatsCache.set(ck, {at:Date.now(), payload});
+        if(modelStatsCache.size > 120) modelStatsCache.delete(modelStatsCache.keys().next().value);
+        sendJson(response, 200, payload, {"cache-control":"public, s-maxage=21600, stale-while-revalidate=86400"});
+      }catch(e){
+        sendJson(response, 503, {ok:false, error:"db unavailable"}, {"cache-control":"no-store", "retry-after":"30"});
+      }
+      return;
+    }
     // 05.10.2026 (Федор: «хочу попадать в поиске по VIN, как BidCars») — постоянная страница /vin/<VIN>.
     // Источник: fetchVin (факты о машине) + attachVinHistory (ПОЛНАЯ история по ВСЕМ заходам, не только
     // текущему раунду — её не делает action=vin, чтобы не дублировать fetch и не грузить калькулятор

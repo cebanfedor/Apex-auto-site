@@ -7,3 +7,4 @@ Disallow: /invoice
 
 Sitemap: https://apexauto.md/sitemap.xml
 Sitemap: https://apexauto.md/sitemap-vin.xml
+Sitemap: https://apexauto.md/sitemap-models.xml
