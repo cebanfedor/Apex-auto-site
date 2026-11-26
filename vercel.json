@@ -110,6 +110,7 @@
     { "source": "/vin/:vin", "destination": "/api/vin-page?vin=:vin" },
     { "source": "/invoice/:token", "destination": "/api/invoice?token=:token" },
     { "source": "/sitemap-vin.xml", "destination": "/api/vin-sitemap" },
+    { "source": "/sitemap-vin/:day([0-9a-z-]+).xml", "destination": "/api/vin-sitemap?day=:day" },
     { "source": "/tracking", "destination": "/api/tracking-page" },
     { "source": "/og/lot/:id", "destination": "/api/og?type=lot&id=:id" },
     { "source": "/og/transit/:id", "destination": "/api/og?type=transit&id=:id" },
