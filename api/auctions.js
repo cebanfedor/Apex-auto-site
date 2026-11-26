@@ -19,6 +19,36 @@ function noteApiCall(url){
   const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
   const ep = m ? m[1] : "other";
   apiUsage.byEndpoint[ep] = (apiUsage.byEndpoint[ep] || 0) + 1;
+  usageBump(ep);
+}
+
+// Общий счётчик по ВСЕМ экземплярам (26.11.2026): каждый экземпляр копит часовые корзины
+// {час → {эндпоинт → число}} и раз в 5 мин пишет их накопленными значениями в alert_meta
+// (k = apiuse:<YYYYMMDDHH>:<id экземпляра>, upsert — идемпотентно). ?action=apiusage&hours=24 суммирует.
+const USAGE_INST = Math.random().toString(36).slice(2, 8);
+const usageBuckets = Object.create(null);
+let usageFlushAt = 0, usageDirty = false;
+function usageHourKey(t){ return new Date(t).toISOString().slice(0, 13).replace(/[-T]/g, ""); }
+function usageBump(ep){
+  const h = usageHourKey(Date.now());
+  const b = usageBuckets[h] || (usageBuckets[h] = Object.create(null));
+  b[ep] = (b[ep] || 0) + 1;
+  usageDirty = true;
+  if(Date.now() - usageFlushAt > 5 * 60 * 1000) usageFlush();
+}
+function usageFlush(){
+  usageFlushAt = Date.now();
+  if(!usageDirty) return;
+  usageDirty = false;
+  try{
+    const rows = Object.keys(usageBuckets).map(h => ({k:`apiuse:${h}:${USAGE_INST}`, v:usageBuckets[h], updated_at:new Date().toISOString()}));
+    syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(rows)}).catch(() => {});
+    for(const h of Object.keys(usageBuckets)) if(h < usageHourKey(Date.now() - 3 * 3600e3)) delete usageBuckets[h];
+    if(Math.random() < 0.02){
+      const old = new Date(Date.now() - 4 * 86400e3).toISOString();
+      syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=lt.${encodeURIComponent(old)}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
+    }
+  }catch(e){}
 }
 
 // Rate limiting: max 3 lead submissions per IP per 10 minutes
@@ -5848,6 +5878,27 @@ module.exports = async function handler(request, response){
   }
 
   // Расход запросов к auctionsapi по эндпоинтам (per-instance, с холодного старта).
+  if(action === "apiusage" && query.get("hours")){
+    // Общий расход по всем экземплярам за N часов (из alert_meta apiuse:*), по часам и эндпоинтам.
+    const hours = Math.min(72, Math.max(1, Number(query.get("hours")) || 24));
+    try{
+      const since = usageHourKey(Date.now() - hours * 3600e3);
+      const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&select=k,v&limit=5000`);
+      const perHour = Object.create(null), byEp = Object.create(null); let total = 0;
+      for(const r of rows || []){
+        const h = String(r.k).split(":")[1];
+        if(!h || h < since) continue;
+        for(const [ep, n] of Object.entries(r.v || {})){
+          perHour[h] = (perHour[h] || 0) + n; byEp[ep] = (byEp[ep] || 0) + n; total += n;
+        }
+      }
+      const hoursArr = Object.keys(perHour).sort().map(h => ({hour:h, calls:perHour[h]}));
+      const eps = Object.entries(byEp).sort((a, b) => b[1] - a[1]).map(([endpoint, calls]) => ({endpoint, calls, perDayEq: Math.round(calls / hours * 24)}));
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, byEndpoint:eps, perHour:hoursArr,
+        note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
+    }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
+    return;
+  }
   if(action === "apiusage"){
     const mins = Math.max(1, (Date.now() - apiUsage.since) / 60000);
     const eps = Object.entries(apiUsage.byEndpoint).sort((a, b) => b[1] - a[1])
