@@ -7,7 +7,7 @@
   "use strict";
   var path = location.pathname.replace(/\/+$/, "") || "/";
   if(/^\/admin/.test(path)) return;
-  if(/^\/(auctions|in-transit)\/[^/]+/.test(path)) return;   // страница лота / объявления — свой CTA
+  var LOT_RE = /^\/(auctions|in-transit)\/[^/]+/;
   if(window.__mBarV1) return; window.__mBarV1 = true;
 
   var PHONE = "+37368832032", WA = "37368832032", TG = "fedukusa";
@@ -44,6 +44,7 @@
       "body.mBarOnV1 .cookieConsentBoxV1{padding:10px 12px;gap:8px;border-radius:14px}" +
       "body.mBarOnV1 .cookieConsentBoxV1 p{font-size:12px;line-height:1.4}" +
       "body.mBarOnV1 .cookieConsentBtnsV1 button{min-height:38px;padding:8px 14px;font-size:13px}" +
+      "body.mBarLotV1 .mBarV1{display:none!important}" +
       "body.mBarHideV1 .mBarV1,body.filtersOpenV1 .mBarV1,body:has(.catalog-sidebar.is-open) .mBarV1,body:has(.auctionModalV1:not([hidden])) .mBarV1{transform:translateY(120%);pointer-events:none}" +
       /* шит «Связь» */
       ".mSheetV1{display:block;position:fixed;inset:0;z-index:var(--z-overlay,10001);visibility:hidden;pointer-events:none}" +
@@ -99,7 +100,19 @@
       '<a data-tab="cab" href="/cabinet">' + I.cab + '<span>' + t.cab + '</span></a>' +
       '<button type="button" data-tab="contact" aria-haspopup="dialog">' + I.contact + '<span>' + t.contact + '</span></button>';
     document.body.appendChild(nav);
-    document.body.classList.add("mBarOnV1");
+    // Страница лота / объявления — своя липкая панель с ценой и заявкой; каталог открывает лот без перезагрузки,
+    // поэтому следим за адресом (pushState/popstate), а не только за первым заходом.
+    function lotSync(){
+      var onLot = LOT_RE.test(location.pathname.replace(/\/+$/, ""));
+      document.body.classList.toggle("mBarLotV1", onLot);
+      document.body.classList.toggle("mBarOnV1", !onLot);
+    }
+    ["pushState", "replaceState"].forEach(function(k){
+      var orig = history[k];
+      history[k] = function(){ var r = orig.apply(this, arguments); try{ lotSync(); }catch(e){} return r; };
+    });
+    window.addEventListener("popstate", lotSync);
+    lotSync();
 
     // активная вкладка
     function mark(){

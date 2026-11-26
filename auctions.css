@@ -2120,3 +2120,23 @@ html.aucLotPageV1 #auctionCatalog { display:none; }
 .pickDotV1{width:9px;height:9px;border-radius:50%;background:#c4c9d2;grid-row:1 / span 2}
 .pickDotV1.on{background:#19a463;box-shadow:0 0 0 3px rgba(25,164,99,.2)}
 .pickEmptyV1{margin:0;padding:14px;color:#667080;font-size:13.5px}
+
+/* ===== Лента лотов (26.11.2026): «‹ Предыдущий · 3 из 30 · Следующий ›» над карточкой лота ===== */
+.lotSeqV1 { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 12px; padding:6px; border:1px solid var(--aLine); border-radius:14px; background:var(--aSoft, #f5f7fa); }
+.lotSeqV1 em { font-style:normal; font-weight:700; font-size:13px; color:var(--aMuted, #667080); white-space:nowrap; }
+.lotSeqV1 button { display:inline-flex; align-items:center; gap:6px; min-height:38px; padding:0 14px; border:1px solid var(--aLine); border-radius:10px; background:#fff; color:var(--aInk, #11141a); font:600 13.5px/1 inherit; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.lotSeqV1 button:active:not(:disabled) { transform:scale(.96); }
+.lotSeqV1 button:disabled { opacity:.38; cursor:default; }
+@media (max-width:640px){
+  .lotSeqV1 { margin:0 0 8px; padding:4px; }
+  .lotSeqV1 button { min-height:36px; padding:0 10px; font-size:13px; }
+}
+/* Плавная смена лота внутри страницы (View Transitions): новый въезжает с той стороны, куда листаем */
+html[data-vt-dir="next"]::view-transition-old(root) { animation:vtOutL .22s ease both; }
+html[data-vt-dir="next"]::view-transition-new(root) { animation:vtInR .22s ease both; }
+html[data-vt-dir="prev"]::view-transition-old(root) { animation:vtOutR .22s ease both; }
+html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease both; }
+@keyframes vtOutL { to { opacity:0; transform:translateX(-36px); } }
+@keyframes vtInR { from { opacity:0; transform:translateX(36px); } }
+@keyframes vtOutR { to { opacity:0; transform:translateX(36px); } }
+@keyframes vtInL { from { opacity:0; transform:translateX(-36px); } }

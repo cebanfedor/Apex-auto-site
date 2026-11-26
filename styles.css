@@ -2721,3 +2721,15 @@ main.transitPendingV1 #transitListWrapV1 { min-height: 100vh; }
   .navCabMobV1 { display: block; }
 }
 @media (max-width: 440px) { .hdrCabV1 { display: none; } }   /* на узких экранах кабинет — пунктом меню (.navCabMobV1) */
+
+/* ===== Плавные переходы между страницами (26.11.2026): мягкое появление вместо белой вспышки.
+   Chrome 126+/Safari 18.2+; в остальных браузерах правило игнорируется. Шапка и нижняя панель остаются на месте. */
+@media (prefers-reduced-motion:no-preference){
+  @view-transition { navigation:auto; }
+  ::view-transition-old(root) { animation:vtPageOut .14s ease both; }
+  ::view-transition-new(root) { animation:vtPageIn .22s ease both; }
+  .siteHeader { view-transition-name:apexhdr; }
+  ::view-transition-group(apexhdr), ::view-transition-group(apexbar) { animation-duration:0s; }
+  @keyframes vtPageOut { to { opacity:0; } }
+  @keyframes vtPageIn { from { opacity:0; } }
+}

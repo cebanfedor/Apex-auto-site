@@ -1892,7 +1892,77 @@ function alertable(lot){
     const snap = {href:location.pathname + location.search, y:Math.round(window.scrollY), t:Date.now()};
     state.backSnap = snap;
     try{ sessionStorage.setItem(BACK_KEY, JSON.stringify(snap)); }catch(e){}
+    seqSave();
   }
+  // Лента лотов: те же лоты, что были на экране каталога, — на странице лота «‹ предыдущий · следующий ›» (и свайп).
+  const SEQ_KEY = "apexLotSeqV1";
+  function seqSave(){
+    try{
+      const ids = (state.items || []).filter(l => l && l.lot && l.auction).slice(0, 120).map(l => [l.auction, String(l.lot), lotSlug(l)]);
+      if(ids.length > 1) sessionStorage.setItem(SEQ_KEY, JSON.stringify({t:Date.now(), ids}));
+    }catch(e){}
+  }
+  function seqRead(){
+    try{ const v = JSON.parse(sessionStorage.getItem(SEQ_KEY) || "null"); return v && Date.now() - v.t < 6 * 3600e3 && Array.isArray(v.ids) ? v : null; }catch(e){ return null; }
+  }
+  function seqIndex(seq, lot){
+    return seq && lot ? seq.ids.findIndex(x => x[0] === lot.auction && String(x[1]) === String(lot.lot)) : -1;
+  }
+  function seqMount(lot){
+    document.querySelectorAll(".lotSeqV1").forEach(n => n.remove());
+    const seq = seqRead(), i = seqIndex(seq, lot);
+    if(i < 0) return;
+    const panel = document.querySelector("#auctionDetail .auctionDetailPanelV1");
+    if(!panel) return;
+    const n = seq.ids.length;
+    const arrow = d => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+    const bar = document.createElement("div");
+    bar.className = "lotSeqV1";
+    bar.innerHTML = `<button type="button" data-seq="-1" ${i <= 0 ? "disabled" : ""}>${arrow("M15 18l-6-6 6-6")}<span>${L("Предыдущий")}</span></button>` +
+      `<em>${i + 1} ${L("из")} ${n}</em>` +
+      `<button type="button" data-seq="1" ${i >= n - 1 ? "disabled" : ""}><span>${L("Следующий")}</span>${arrow("M9 18l6-6-6-6")}</button>`;
+    panel.insertBefore(bar, panel.firstChild);
+    bar.addEventListener("click", e => { const b = e.target.closest("[data-seq]"); if(b && !b.disabled) seqGo(Number(b.dataset.seq)); });
+    // Свайп влево/вправо по шапке лота (галерея листает свои фото — её не трогаем)
+    const head = panel.querySelector(".detailHeaderV1");
+    if(head && !head.__seqSwipe){
+      head.__seqSwipe = true;
+      let sx = 0, sy = 0, st = 0;
+      head.addEventListener("touchstart", e => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); }, {passive:true});
+      head.addEventListener("touchend", e => {
+        const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        if(Date.now() - st < 600 && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) seqGo(dx < 0 ? 1 : -1);
+      }, {passive:true});
+    }
+  }
+  function seqGo(dir){
+    const lot = state.selectedLot, seq = seqRead(), i = seqIndex(seq, lot), j = i + dir;
+    if(i < 0 || j < 0 || j >= seq.ids.length) return;
+    const [auction, lotNo, slug] = seq.ids[j];
+    const href = "/auctions/" + encodeURIComponent(slug);
+    const known = (state.items || []).find(l => String(l.lot) === String(lotNo) && l.auction === auction);
+    if(!known){ location.href = withLang(href); return; }
+    const go = () => {
+      try{ history.pushState({apexLot:1, d:((history.state && history.state.d) || 0) + 1}, "", withLang(href)); }catch(_){ location.href = withLang(href); return; }
+      renderDetail(known);
+      forceTop();
+      refreshDetailInBackground({auction, lot:lotNo});
+    };
+    try{
+      if(document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches){
+        document.documentElement.dataset.vtDir = dir > 0 ? "next" : "prev";
+        const vt = document.startViewTransition(go);
+        vt.finished.finally(() => { delete document.documentElement.dataset.vtDir; });
+      }else go();
+    }catch(_){ go(); }
+  }
+  document.addEventListener("keydown", e => {
+    if((e.key !== "ArrowLeft" && e.key !== "ArrowRight") || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "") || (e.target && e.target.isContentEditable)) return;
+    if(document.querySelector(".lbV1:not([hidden]), .lbV1.isOpenV1, #lotLightbox:not([hidden])")) return;
+    if(!document.querySelector(".lotSeqV1")) return;
+    seqGo(e.key === "ArrowRight" ? 1 : -1);
+  });
   function readBackSnap(){
     try{ const v = JSON.parse(sessionStorage.getItem(BACK_KEY) || "null"); return v && Date.now() - v.t < 6 * 3600e3 ? v : null; }catch(e){ return null; }
   }
@@ -4297,6 +4367,7 @@ function alertable(lot){
     loadStats(lot);   // оценка лота под ценой (#lotMarketLineV1)
     checkTgAdmin();   // кнопка «В Telegram» — только для админа
     checkPickAdmin();   // кнопка «Клиенту» (подборка в кабинет) — только для админа
+    seqMount(lot);      // «‹ предыдущий · следующий ›» по ленте каталога
     fetchLiveRates();
     startLotCountdown(lot);
     startLiveBidWatch(lot);
