@@ -56,7 +56,7 @@
           <span>${e(c.phone || "телефон не указан")}</span>
           <span class="ccSeenV1${c.online ? " on" : ""}">${c.online ? "онлайн" + (c.page ? " · " + e(c.page) : "") : "был " + ago(c.seenAt)}</span>
         </div>
-        <div class="ccCountsV1">${c.favs ? `<span title="В избранном">♡ ${c.favs}</span>` : ""}${c.picks ? `<span title="Подборок отправлено">🎯 ${c.picks}${c.reacts ? ` · ${c.reacts} отв.` : ""}</span>` : ""}</div>
+        <div class="ccCountsV1">${c.unread ? `<span class="ccUnreadV1" title="Непрочитанные сообщения">💬 ${c.unread}</span>` : ""}${c.favs ? `<span title="В избранном">♡ ${c.favs}</span>` : ""}${c.picks ? `<span title="Подборок отправлено">🎯 ${c.picks}${c.reacts ? ` · ${c.reacts} отв.` : ""}</span>` : ""}</div>
       </div>`).join("") : `<p class="ccEmptyV1">${CC.items.length ? "Никого не найдено." : "Пока нет клиентов с подключённым Telegram."}</p>`;
   }
 
@@ -103,6 +103,7 @@
     const cars = c.cars.map(x => `<div class="ccSrV1"><b>${e(x.label || x.vin)}</b><small>${e(x.vin)} · <a href="/tracking?vin=${e(x.vin)}" target="_blank" rel="noopener">отследить</a></small></div>`).join("");
     const tl = c.timeline.map(t => `<div class="ccTlV1"><i></i><span>${dt(t.at)}</span><b>${t.kind === "search" ? "🔎 " + e(t.data.label || t.key) : "👁 " + e(titleOf(t.data) || t.key)}</b></div>`).join("");
 
+    const draft = $("#ccSayText") ? $("#ccSayText").value : "";
     $("#ccCard").innerHTML = `
       <button type="button" class="ghost ccBackV1" data-cc-back>← К списку клиентов</button>
       <header class="ccHeadV1">
@@ -112,6 +113,12 @@
         <div class="ccActsV1">${phone ? `<a class="ccBtnV1" href="tel:${e(phone.replace(/[^\d+]/g, ""))}">Позвонить</a>` : ""}${wa ? `<a class="ccBtnV1 isWa" href="${e(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
       </header>
       ${!c.eventsReady ? `<p class="ccWarnV1">${c.eventsNoTable ? "Журнал просмотров и подборки ещё не включены: выполните SQL из supabase/migrations/20261126_cab_clients.sql в Supabase → SQL Editor." : "Журнал просмотров временно недоступен."}</p>` : ""}
+
+      <section class="ccSecV1 ccChatV1"><h3>💬 Переписка <small>(клиент видит ответы в своём Telegram)</small></h3>
+        <div id="ccThread" class="ccThreadV1"><p class="ccEmptyV1">Загрузка…</p></div>
+        <div class="ccSayV1"><textarea id="ccSayText" rows="2" maxlength="3500" placeholder="Ответ клиенту… (Ctrl+Enter — отправить)"></textarea><button type="button" data-cc-say>Отправить</button></div>
+        <p class="ccMsgV1" id="ccSayMsg"></p>
+      </section>
 
       <section class="ccSecV1 ccPickFormV1"><h3>🎯 Подборка клиенту</h3>
         <textarea id="ccPickIds" rows="2" placeholder="Ссылки с сайта или номера лотов: copart-61420506, iaai-45839097 — по одному в строке"></textarea>
@@ -137,7 +144,40 @@
       ${sec("Мои машины (трекинг)", cars, c.cars.length)}
       ${sec("Последние действия", tl, null)}
       ${!(views || searches || favs) ? `<p class="ccEmptyV1">Клиент пока ничего не смотрел и не сохранял.</p>` : ""}`;
+    if(draft) $("#ccSayText").value = draft;
+    loadThread(false);
   }
+  // ---------- переписка ----------
+  const fmtMsgTime = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("ru-RU", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}); };
+  function renderThread(msgs, noTable){
+    const box = $("#ccThread"); if(!box) return;
+    if(noTable){ box.innerHTML = `<p class="ccWarnV1">Переписка ещё не включена: выполните SQL из supabase/migrations/20261127_cab_msgs.sql в Supabase → SQL Editor.</p>`; return; }
+    const near = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    box.innerHTML = msgs.length ? msgs.map(m => `<div class="ccMsgRowV1 ${m.dir === "in" ? "isIn" : "isOut"}"><div class="ccBubbleV1">${e(m.text).replace(/\n/g, "<br>")}<small>${fmtMsgTime(m.at)}${m.dir === "in" && !m.seen ? " · новое" : ""}</small></div></div>`).join("")
+      : `<p class="ccEmptyV1">Пока ничего не писали. Когда клиент напишет боту, сообщение появится здесь, а вам придёт уведомление в Telegram.</p>`;
+    if(near || !box.dataset.once){ box.scrollTop = box.scrollHeight; box.dataset.once = "1"; }
+  }
+  async function loadThread(poll){
+    const chat = CC.chat; if(!chat || !$("#ccThread")) return;
+    try{
+      const r = await api("/api/clients?chat=" + encodeURIComponent(chat) + "&thread=1&seen=1" + (poll ? "&poll=1" : ""));
+      if(chat !== CC.chat) return;
+      renderThread(r.msgs || [], r.noTable);
+    }catch(_){ /* следующая попытка через 10 с */ }
+  }
+  setInterval(() => { if(state.view === "cabclients" && CC.chat && !document.hidden) loadThread(true); }, 10000);
+  async function sendSay(){
+    const ta = $("#ccSayText"), msg = $("#ccSayMsg");
+    const text = ta.value.trim(); if(!text) return;
+    msg.className = "ccMsgV1"; msg.textContent = "Отправляю…";
+    try{
+      const r = await post({action: "say", text});
+      ta.value = "";
+      msg.className = "ccMsgV1 ok"; msg.textContent = r.logged === false ? "Отправлено в Telegram (но в историю не записалось — выполните SQL из 20261127_cab_msgs.sql)" : "Отправлено ✓";
+      await loadThread(false);
+    }catch(error){ msg.className = "ccMsgV1 err"; msg.textContent = error.message; }
+  }
+
   function suggestHtml(){
     const s = CC.suggest;
     if(!s) return "";
@@ -182,6 +222,7 @@
       if(!text.trim()){ $("#ccPickMsg").className = "ccMsgV1 err"; $("#ccPickMsg").textContent = "Вставьте ссылку на лот или номер вида copart-61420506"; return; }
       sendPick([], text); return;
     }
+    if(t.closest("[data-cc-say]")){ sendSay(); return; }
     if(t.closest("[data-cc-suggest]")){ loadSuggest(); return; }
     const sel = t.closest("[data-cc-sel]");
     if(sel){
@@ -202,6 +243,7 @@
     }
   });
   document.addEventListener("input", ev => { if(ev.target && ev.target.id === "ccSearch") renderList(); });
+  document.addEventListener("keydown", ev => { if(ev.target && ev.target.id === "ccSayText" && ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); sendSay(); } });
   document.addEventListener("change", ev => {
     const c = ev.target.closest && ev.target.closest("[data-cc-pref]"); if(!c) return;
     const prefs = {}; $$("[data-cc-pref]").forEach(x => { prefs[x.dataset.ccPref] = x.checked; });

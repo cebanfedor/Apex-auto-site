@@ -10,7 +10,7 @@ const {selfOrigin} = require("../server/origin");
 const sb = supabase.rest;
 const q = s => encodeURIComponent(s);
 const safe = (p, d) => p.catch(() => d);
-const tableMissing = e => /cab_events|cab_picks|relation|PGRST20|42P01|schema cache/i.test(String((e && e.message) || e));
+const tableMissing = e => /cab_events|cab_picks|cab_msgs|relation|PGRST20|42P01|schema cache/i.test(String((e && e.message) || e));
 
 async function metaByPrefix(prefix){
   const rows = await safe(sb(`/alert_meta?k=like.${q(prefix + ":*")}&select=k,v,updated_at&limit=3000`), []);
@@ -42,6 +42,9 @@ async function listClients(){
     const k = String(r.chat_id), a = picks.get(k) || {n: 0, react: 0};
     a.n++; if(r.reaction) a.react++; picks.set(k, a);
   }
+  const unreadRows = await safe(sb(`/cab_msgs?dir=eq.in&seen=eq.false&select=chat_id&limit=2000`), []);
+  const unread = new Map();
+  for(const r of unreadRows || []) unread.set(String(r.chat_id), (unread.get(String(r.chat_id)) || 0) + 1);
   const now = Date.now(), byChat = new Map();
   for(const l of links || []){
     const id = String(l.chat_id);
@@ -60,11 +63,12 @@ async function listClients(){
       online: !!seenAt && now - seenAt < cl.ONLINE_MS,
       page: seen.h || seen.p || "",
       favs: favs.get(id) || 0,
+      unread: unread.get(id) || 0,
       picks: (picks.get(id) || {}).n || 0,
       reacts: (picks.get(id) || {}).react || 0
     });
   }
-  const items = Array.from(byChat.values()).sort((a, b) => (b.online - a.online) || (b.seenAt - a.seenAt) || (Date.parse(b.boundAt) || 0) - (Date.parse(a.boundAt) || 0));
+  const items = Array.from(byChat.values()).sort((a, b) => ((b.unread > 0) - (a.unread > 0)) || (b.online - a.online) || (b.seenAt - a.seenAt) || (Date.parse(b.boundAt) || 0) - (Date.parse(a.boundAt) || 0));
   return items;
 }
 
@@ -183,6 +187,19 @@ module.exports = async function handler(request, response){
       if(query.get("ping") != null){ sendJson(response, 200, {ok: true}); return; }
       const chat = String(query.get("chat") || "").replace(/[^0-9-]/g, "");
       if(chat){
+        if(query.get("thread") != null){
+          // Переписка: poll=1 — перед чтением забрать свежие сообщения у Telegram (cron раз в 3 мин; здесь — сразу)
+          if(query.get("poll") != null){
+            try{ await require("../server/alerts").create({sb, sendJson, readBody, isAdmin: () => true}).pollUpdates(); }catch(_){}
+          }
+          try{
+            const msgs = await cl.msgThread(sb, chat, query.get("seen") != null);
+            sendJson(response, 200, {ok: true, msgs});
+          }catch(e){
+            sendJson(response, 200, {ok: true, msgs: [], noTable: tableMissing(e)});
+          }
+          return;
+        }
         if(query.get("suggest") != null){ sendJson(response, 200, {ok: true, ...(await suggestFor(request, chat))}); return; }
         const card = await clientCard(chat);
         if(!card){ sendJson(response, 404, {ok: false, error: "Клиент не найден"}); return; }
@@ -198,13 +215,23 @@ module.exports = async function handler(request, response){
       const body = await readBody(request);
       const action = String(body.action || "");
       if(action === "prefs"){
-        const prefs = {online: body.online !== false, hot: body.hot !== false, react: body.react !== false};
+        const prefs = {online: body.online !== false, hot: body.hot !== false, react: body.react !== false, msg: body.msg !== false};
         await cl.metaSet(sb, "mgr_prefs", prefs);
         sendJson(response, 200, {ok: true, prefs});
         return;
       }
       const chat = String(body.chat || "").replace(/[^0-9-]/g, "");
       if(!chat){ sendJson(response, 400, {ok: false, error: "chat"}); return; }
+      if(action === "say"){
+        const text = String(body.text || "").trim().slice(0, cl.MSG_MAX);
+        if(!text){ sendJson(response, 400, {ok: false, error: "Введите текст"}); return; }
+        const sent = await cl.tgSend(chat, cl.esc(text));
+        if(!sent){ sendJson(response, 502, {ok: false, error: "Telegram не принял сообщение: клиент мог отключить бота"}); return; }
+        let logged = true;
+        try{ await cl.msgAdd(sb, chat, "out", text); }catch(e){ logged = false; }
+        sendJson(response, 200, {ok: true, logged});
+        return;
+      }
       if(action === "note"){
         const tags = (Array.isArray(body.tags) ? body.tags : []).map(t => cl.clip(t, 24)).filter(Boolean).slice(0, 8);
         await cl.metaSet(sb, "cnote:" + chat, {text: cl.clip(body.text, 3000).slice(0, 3000), tags, t: Date.now()});

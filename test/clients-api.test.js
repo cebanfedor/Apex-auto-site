@@ -100,5 +100,5 @@ test("заметка и настройки менеджера сохраняют
   const n = calls.find(c => c.m === "POST" && /alert_meta/.test(c.p));
   assert.strictEqual(n.b.k, "cnote:5"); assert.deepStrictEqual(n.b.v.tags, ["a", "b"]);
   const p = await run("POST", "/api/clients", {action: "prefs", online: false, hot: true, react: true});
-  assert.deepStrictEqual(p.payload.prefs, {online: false, hot: true, react: true});
+  assert.deepStrictEqual(p.payload.prefs, {online: false, hot: true, react: true, msg: true});
 });

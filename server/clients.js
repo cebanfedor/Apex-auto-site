@@ -150,7 +150,7 @@ async function adminChat(sb){
     return adminCache.chat;
   }catch(_){ return adminCache.chat; }
 }
-const MGR_DEFAULT = {online: true, hot: true, react: true};
+const MGR_DEFAULT = {online: true, hot: true, react: true, msg: true};
 async function mgrPrefs(sb){
   try{
     const r = await sb(`/alert_meta?k=eq.mgr_prefs&select=v&limit=1`);
@@ -163,6 +163,24 @@ async function notifyManager(sb, kind, text, buttons){
   const chat = await adminChat(sb);
   if(!chat) return false;
   return tgSend(chat, text, buttons);
+}
+
+// ---------- переписка с клиентом (таблица cab_msgs) ----------
+const MSG_MAX = 3500;
+async function msgAdd(sb, chat, dir, text){
+  const t = String(text == null ? "" : text).trim().slice(0, MSG_MAX);
+  if(!t || !chat) return false;
+  await sb(`/cab_msgs`, {method: "POST", headers: {prefer: "return=minimal"}, body: JSON.stringify({chat_id: String(chat), dir, text: t, seen: dir === "out"})});
+  return true;
+}
+// Последние сообщения (старые первыми) + пометка «прочитано» для входящих
+async function msgThread(sb, chat, markSeen){
+  const rows = await sb(`/cab_msgs?chat_id=eq.${encodeURIComponent(chat)}&select=id,dir,text,seen,at&order=at.desc&limit=80`);
+  const list = (rows || []).slice().reverse();
+  if(markSeen && list.some(m => m.dir === "in" && !m.seen)){
+    await sb(`/cab_msgs?chat_id=eq.${encodeURIComponent(chat)}&dir=eq.in&seen=eq.false`, {method: "PATCH", headers: {prefer: "return=minimal"}, body: JSON.stringify({seen: true})}).catch(() => {});
+  }
+  return list;
 }
 
 async function metaSet(sb, k, v){
@@ -181,4 +199,4 @@ async function clientLabel(sb, chat){
   }catch(_){ return {name: "Клиент", phone: "", text: "Клиент"}; }
 }
 
-module.exports = {SITE, ONLINE_MS, LOT_RE, KEEP, esc, clip, phoneKey, digitsOnly, cleanProfile, cleanEvent, aggregateEvents, interestProfile, parseLotRef, parseLotRefs, lotSnapshot, pickMessage, tgSend, adminChat, mgrPrefs, notifyManager, clientLabel, metaSet, MGR_DEFAULT};
+module.exports = {msgAdd, msgThread, MSG_MAX, SITE, ONLINE_MS, LOT_RE, KEEP, esc, clip, phoneKey, digitsOnly, cleanProfile, cleanEvent, aggregateEvents, interestProfile, parseLotRef, parseLotRefs, lotSnapshot, pickMessage, tgSend, adminChat, mgrPrefs, notifyManager, clientLabel, metaSet, MGR_DEFAULT};

@@ -251,6 +251,31 @@ function create(deps){
       ? `• 🔨 ${esc(s.name || s.lot_title || "")}${s.state && s.state.v ? ` · <code>${esc(s.state.v)}</code>` : ""}\n${lotUrl(s.lot_id)}`
       : `• 🆕 ${esc(s.name || "")}`).join("\n");
   }
+  // ---------- переписка: сообщение клиента боту → cab_msgs + уведомление менеджеру ----------
+  const ACK = {
+    ru: "Получили ваше сообщение ✅ Ответим в ближайшее время — прямо здесь, в этом чате.",
+    ro: "Am primit mesajul tău ✅ Îți răspundem în curând — chiar aici, în acest chat.",
+    en: "We got your message ✅ We'll reply shortly — right here in this chat."
+  };
+  async function inboundMsg(chatId, text, m){
+    const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=lang&limit=1`).catch(() => []);
+    if(!links || !links[0]) return;                                  // пишет не клиент сайта — не наш разговор
+    const cl = require("./clients");
+    const mgr = await cl.adminChat(sb).catch(() => null);
+    if(mgr && String(mgr) === String(chatId)) return;                // сам менеджер пишет боту — это не переписка с клиентом
+    const lang = links[0].lang || "ru";
+    try{ await cl.msgAdd(sb, chatId, "in", text); }catch(_){ return; }   // таблицы cab_msgs ещё нет — молчим, не ломаем бота
+    const who = await cl.clientLabel(sb, chatId);
+    const fn = m && m.from && String(m.from.first_name || "").trim();
+    if(fn) await metaSet("tgname:" + chatId, {n:fn}).catch(() => {});
+    await cl.notifyManager(sb, "msg", `💬 <b>${who.text}</b> пишет:\n${esc(String(text).slice(0, 500))}`, [{text:"Ответить в админке", url:SITE + "/admin/#client=" + chatId}]).catch(() => {});
+    // автоответ — не чаще раза в 6 часов на клиента
+    const ack = await metaGet("ack:" + chatId);
+    if(!ack || Date.now() - (Date.parse(ack.updated_at) || 0) > 6 * 3600e3){
+      await metaSet("ack:" + chatId, {t:Date.now()}).catch(() => {});
+      await send(chatId, ACK[lang] || ACK.ru);
+    }
+  }
   async function pollUpdates(){
     if(!tgToken()) return {ok:false, reason:"no_token"};
     if(!(await takeLock("tg_poll", 4000))) return {ok:true, skipped:true};
@@ -277,6 +302,12 @@ function create(deps){
         }else{
           await send(m.chat.id, tx(clang).phoneOther);
         }
+        continue;
+      }
+      // Вложение без текста (фото, файл, голосовое) — в переписку попадёт пометкой: само вложение открывается в Telegram
+      if(m && m.chat && m.chat.type === "private" && typeof m.text !== "string" && (m.photo || m.document || m.voice || m.video || m.video_note || m.audio || m.sticker || m.location)){
+        const kind = m.photo ? "🖼 фото" : m.document ? "📎 файл" : m.voice ? "🎤 голосовое" : (m.video || m.video_note) ? "🎬 видео" : m.audio ? "🎵 аудио" : m.location ? "📍 геопозиция" : "🙂 стикер";
+        await inboundMsg(m.chat.id, `${kind}${m.caption ? ": " + m.caption : " (откройте в Telegram)"}`, m).catch(() => {});
         continue;
       }
       if(!m || !m.chat || m.chat.type !== "private" || typeof m.text !== "string") continue;
@@ -320,6 +351,8 @@ function create(deps){
       }else if(/^\/list\b/i.test(text)){
         const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=token,lang&limit=1`).catch(() => []);
         await send(chatId, links[0] ? await subsSummary(links[0].token, links[0].lang || "ru") : tx("ru").none);
+      }else if(text && text[0] !== "/"){
+        await inboundMsg(chatId, text, m).catch(() => {});   // обычный текст клиента → переписка в админке
       }
     }
     if(last != null) await metaSet("tg_offset", {o:last + 1});
