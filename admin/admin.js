@@ -1141,6 +1141,7 @@ function bindFilters(){
 async function checkAuth(){
   const data = await api("/api/admin?action=me");
   setAuthScreen(data.authenticated);
+  try{ if(data.authenticated) localStorage.setItem("apexAdminV1", "1"); else localStorage.removeItem("apexAdminV1"); }catch(_){}
   if(data.authenticated){
     try{
       await refresh();

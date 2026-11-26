@@ -561,3 +561,11 @@ a.ccSrV1:hover b{color:var(--accent)}
 .ccLinkBtnV1{display:inline-flex;align-items:center;text-decoration:none}
 @media (max-width:1100px){.ccKpiTilesV1{grid-template-columns:repeat(3,minmax(0,1fr))}.ccOverGridV1{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.ccKpiV1{grid-template-columns:repeat(2,minmax(0,1fr))}.ccSortV1{margin-left:0;width:100%}.ccCountsV1{max-width:120px}}
+
+/* Счётчик расхода auctionsapi (26.11.2026) */
+.topbar{gap:12px}
+.apiBadgeAdminV1{margin-left:auto;display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;background:#eef1f5;color:#1a1d24;font:600 13px/1 inherit;white-space:nowrap}
+.apiBadgeAdminV1[hidden]{display:none}
+.apiBadgeAdminV1.l1{background:#fef6d6}.apiBadgeAdminV1.l2{background:#ffe6d0}.apiBadgeAdminV1.l3,.apiBadgeAdminV1.blk{background:#fde0e0}
+.apiBadgeV1Dot{width:9px;height:9px;border-radius:50%;background:#22c55e;flex:none}
+.apiBadgeV1Dot.l1{background:#eab308}.apiBadgeV1Dot.l2{background:#f97316}.apiBadgeV1Dot.l3,.apiBadgeV1Dot.blk{background:#ef4444}

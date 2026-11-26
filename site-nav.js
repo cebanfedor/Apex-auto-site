@@ -286,4 +286,10 @@
     idle(function(){ paint(); });
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
+  // Плашка расхода auctionsapi — только в браузере, где был вход админа (флаг ставит админка и страница лота).
+  try{
+    if(localStorage.getItem("apexAdminV1") === "1" && !/^\/admin/.test(location.pathname)){
+      var abs = document.createElement("script"); abs.src = "/admin-badge.js?v=v1"; abs.defer = true; document.head.appendChild(abs);
+    }
+  }catch(_){}
 })();

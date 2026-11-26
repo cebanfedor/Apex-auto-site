@@ -4095,6 +4095,7 @@ function alertable(lot){
       const r = await api("/api/auctions?action=tgdiag");   // 401 у не-админа → api() бросит → кнопка скрыта
       if(r && r.ok){
         tgDiag = r; document.querySelectorAll(".tgPostBtnV1").forEach(b => b.hidden = false);
+        try{ localStorage.setItem("apexAdminV1", "1"); }catch(_){}
         // Ссылка «Лот дня» из Telegram менеджера (?post=1): сразу открываем окно публикации (один раз)
         try{
           if(/[?&]post=1(&|$)/.test(location.search) && state.selectedLot && !state._tgAutoOpened){ state._tgAutoOpened = true; openTgCompose(state.selectedLot); }

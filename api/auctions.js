@@ -6030,13 +6030,23 @@ const handlerInner = async function handler(request, response){
     // ручные maintenance-экшены С ЗАПИСЬЮ (не в кронах и не в GitHub Actions) — только админ
     "teslafix", "syncghosts", "salesbackfill",
     // учёт расхода запросов к auctionsapi
-    "apiusage"
+    "apiusage", "apibadge"
   ]);
   if(ADMIN_ONLY_ACTIONS.has(action)){
     const {isAuthenticated} = require("../server/auth");
     if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false, error:"Нет доступа"}); return; }
   }
 
+  // Лёгкий счётчик для плашки админа (admin-badge.js, шапка админки): сколько запросов к auctionsapi за квотные сутки. Без запросов к БД —
+  // значение держит предохранитель (`apiLoad`, пересчёт раз в 45 с по общим корзинам всех экземпляров).
+  if(action === "apibadge"){
+    const now = Date.now(), d = new Date(now);
+    let reset = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), QUOTA_RESET_H, 7);
+    if(reset <= now) reset += 86400e3;
+    sendJson(response, 200, {ok:true, used:apiLoad.day, limit:500000, level:apiLoad.level, perHour:apiLoad.rate, resetAt:new Date(reset).toISOString(),
+      blockedUntil:apiDownUntil > now ? new Date(apiDownUntil).toISOString() : null, thresholds:[DAY_L1, DAY_L2, DAY_L3]}, {"cache-control":"private, no-store"});
+    return;
+  }
   // Расход запросов к auctionsapi по эндпоинтам (per-instance, с холодного старта).
   if(action === "apiusage" && query.get("hours")){
     // Общий расход по всем экземплярам за N часов (из alert_meta apiuse:*), по часам и эндпоинтам.
