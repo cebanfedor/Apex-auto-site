@@ -11,7 +11,7 @@ const ogCat = require("../server/og-catcar");
 function origin(req){ return selfOrigin(req); }
 async function getJson(url, ms = 7000){
   const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), ms);
-  try{ const r = await fetch(url, {signal:ctrl.signal, headers:{accept:"application/json"}}); return r.ok ? await r.json().catch(() => null) : null; }
+  try{ const r = await fetch(url, {signal:ctrl.signal, headers:{accept:"application/json", ...(process.env.CRON_SECRET ? {"x-internal":process.env.CRON_SECRET} : {})}}); return r.ok ? await r.json().catch(() => null) : null; }
   catch(e){ return null; }
   finally{ clearTimeout(timer); }
 }

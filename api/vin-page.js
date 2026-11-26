@@ -18,7 +18,7 @@ async function fetchArchive(req, vin){
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{
-    const r = await fetch(url, {headers:{accept:"application/json"}, signal:controller.signal});
+    const r = await fetch(url, {headers:{accept:"application/json", ...(process.env.CRON_SECRET ? {"x-internal":process.env.CRON_SECRET} : {})}, signal:controller.signal});
     const payload = await r.json().catch(() => null);
     if(!r.ok || !payload || payload.ok === false) return null;
     return payload;

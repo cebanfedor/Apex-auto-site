@@ -9,17 +9,64 @@ const {lotSlug} = require("../server/slug");
 const AUCTIONS_API_BASE = "https://auctionsapi.com/api";
 const CACHE_TTL = 7 * 60 * 1000;
 const cache = new Map();
+const freshStamp = new Map();   // ключ кэша → когда в последний раз реально обходили кэш (fresh)
 
 // Учёт расхода запросов к auctionsapi (аудит 30.09.2026): счётчик по эндпоинтам,
 // в памяти инстанса (без записи в БД, per-instance, сбрасывается на холодном старте).
 // Читается admin-экшеном ?action=apiusage — «разобраться, куда уходят запросы».
 const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, forbidden: 0, lastForbidden: "", byEndpoint: Object.create(null) };
+const {AsyncLocalStorage} = require("node:async_hooks");
+const callCtx = new AsyncLocalStorage();   // {action} — какой экшен (крон/запрос клиента) сейчас делает вызов к провайдеру
+function ctxAction(){ const c = callCtx.getStore(); return (c && c.action) || "none"; }
+
+// ПРЕДОХРАНИТЕЛЬ ЛИМИТА (26.11.2026, лимит провайдера 500 000/сутки ≈ 20,8k/ч). Уровень считается по общему счётчику (alert_meta apiuse:*):
+//  1 (≥ LOAD_L1 вызовов/ч) — отключаем необязательные фоновые проверки (перекупы, Buy Now, опрос лотов для уведомлений);
+//  2 (≥ LOAD_L2) — плюс карточки каталога (vinhist/livebids), страницы /vin, отчёты истории; «живые» fresh-запросы отдают кэш.
+// Всегда работают: синк (cars), syncclosed, syncsettle, detail/vin/search клиента (без fresh на уровне 2).
+const LOAD_L1 = 14000, LOAD_L2 = 19000;
+const OPTIONAL_L1 = new Set(["resalecheck", "buynowcheck", "alerttick", "timedsync", "ptfill", "factsrefresh"]);
+const OPTIONAL_L2 = new Set(["vinhist", "livebids", "vinarchive", "comps", "compsbatch", "statistics"]);
+let apiLoad = {level:0, rate:0, at:0, loading:null};
+function apiLoadLevel(){ return apiLoad.level; }
+async function apiLoadRefresh(){
+  if(Date.now() - apiLoad.at < 45000) return;
+  if(apiLoad.loading) return apiLoad.loading;
+  apiLoad.at = Date.now();
+  apiLoad.loading = (async () => {
+    try{
+      const now = Date.now(), hCur = usageHourKey(now), hPrev = usageHourKey(now - 3600e3);
+      const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=gte.${encodeURIComponent(new Date(now - 2 * 3600e3).toISOString())}&select=k,v&limit=400`);
+      let sum = 0;
+      for(const r of rows || []){
+        const h = String(r.k).split(":")[1];
+        if(h !== hCur && h !== hPrev) continue;
+        for(const n of Object.values(r.v || {})) sum += Number(n) || 0;
+      }
+      const elapsed = (now - Date.parse(new Date(now).toISOString().slice(0, 13) + ":00:00Z")) / 3600e3;
+      apiLoad.rate = Math.round(sum / (1 + elapsed));
+      const lvl = apiLoad.rate >= LOAD_L2 ? 2 : apiLoad.rate >= LOAD_L1 ? 1 : 0;
+      if(lvl !== apiLoad.level) console.error(`[api-load] уровень ${apiLoad.level} → ${lvl}, ~${apiLoad.rate} запросов/ч`);
+      apiLoad.level = lvl;
+    }catch(_){ /* не удалось прочитать — уровень не меняем */ }
+    finally{ apiLoad.loading = null; }
+  })();
+  return apiLoad.loading;
+}
+function apiGateDenied(){
+  const lvl = apiLoad.level;
+  if(!lvl) return false;
+  const a = ctxAction();
+  if(OPTIONAL_L1.has(a)) return true;
+  if(lvl >= 2 && OPTIONAL_L2.has(a)) return true;
+  return false;
+}
 function noteApiCall(url){
+  if(apiGateDenied()){ const e = apiLimitedError(); e.gate = true; throw e; }
   apiUsage.total++;
   const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
   const ep = m ? m[1] : "other";
   apiUsage.byEndpoint[ep] = (apiUsage.byEndpoint[ep] || 0) + 1;
-  usageBump(ep);
+  usageBump(ep + "@" + ctxAction());
 }
 
 // Общий счётчик по ВСЕМ экземплярам (26.11.2026): каждый экземпляр копит часовые корзины
@@ -51,6 +98,18 @@ function usageFlush(force){
     }
   }catch(e){}
   return p;
+}
+
+// Лимит «живых» запросов (кэш-промах → вызов провайдера) с одного IP: 90 в минуту на инстанс.
+const LIVE_ACTIONS = new Set(["detail", "vin", "vinhist", "livebids", "vinarchive", "queue"]);
+const LIVE_RATE_MAX = 90, liveRateMap = new Map();
+function liveRateOk(ip){
+  const now = Date.now();
+  if(liveRateMap.size > 2000) for(const [k, v] of liveRateMap) if(now - v.start > 60000) liveRateMap.delete(k);
+  const e = liveRateMap.get(ip);
+  if(!e || now - e.start > 60000){ liveRateMap.set(ip, {start:now, n:1}); return true; }
+  e.n++;
+  return e.n <= LIVE_RATE_MAX;
 }
 
 // Rate limiting: max 3 lead submissions per IP per 10 minutes
@@ -5889,17 +5948,22 @@ const handlerInner = async function handler(request, response){
     try{
       const since = usageHourKey(Date.now() - hours * 3600e3);
       const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&select=k,v&limit=5000`);
-      const perHour = Object.create(null), byEp = Object.create(null); let total = 0;
+      const perHour = Object.create(null), byEp = Object.create(null), byAct = Object.create(null), byCombo = Object.create(null); let total = 0;
       for(const r of rows || []){
         const h = String(r.k).split(":")[1];
         if(!h || h < since) continue;
-        for(const [ep, n] of Object.entries(r.v || {})){
+        for(const [key, n] of Object.entries(r.v || {})){
+          const [ep, act] = String(key).split("@");
           perHour[h] = (perHour[h] || 0) + n; byEp[ep] = (byEp[ep] || 0) + n; total += n;
+          const ak = act || "(старый счётчик)"; byAct[ak] = (byAct[ak] || 0) + n;
+          const ck = ak + " → " + ep; byCombo[ck] = (byCombo[ck] || 0) + n;
         }
       }
       const hoursArr = Object.keys(perHour).sort().map(h => ({hour:h, calls:perHour[h]}));
       const eps = Object.entries(byEp).sort((a, b) => b[1] - a[1]).map(([endpoint, calls]) => ({endpoint, calls, perDayEq: Math.round(calls / hours * 24)}));
-      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, byEndpoint:eps, perHour:hoursArr,
+      const acts = Object.entries(byAct).sort((a, b) => b[1] - a[1]).map(([action, calls]) => ({action, calls, perHour:Math.round(calls / hours)}));
+      const combos = Object.entries(byCombo).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, calls]) => ({k, calls}));
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, load:{level:apiLoad.level, perHour:apiLoad.rate}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
         note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
     return;
@@ -6085,6 +6149,10 @@ const handlerInner = async function handler(request, response){
       setCached(ck, out, 300e3);
       sendJson(response, 200, out, {"cache-control":"public, s-maxage=180, stale-while-revalidate=300"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e).slice(0, 120)}, {"cache-control":"no-store"}); }
+    return;
+  }
+  if((action === "buynowcheck" || action === "resalecheck" || action === "timedsync") && apiLoadLevel() >= 1){
+    sendJson(response, 200, {ok:true, skipped:"load", level:apiLoadLevel(), perHour:apiLoad.rate}, {"cache-control":"no-store"});
     return;
   }
   if(action === "buynowcheck"){
@@ -6342,6 +6410,7 @@ const handlerInner = async function handler(request, response){
   // Восстановление затёртых продаж (23.09.2026): archived=true, status 6, final_bid=0 → по VIN (/search-vin) находим
   // запись продажи и возвращаем финал/дату/историю. Не нашли → помечаем payload.repairTried, чтобы не крутить повторно.
   async function repairLostSales(budgetMs){
+    if(apiLoadLevel() >= 1) return {fixed:0, tried:0, skipped:"load"};
     const t0 = Date.now(); let fixed = 0, tried = 0;
     const rows = await syncSbFetch(`/api_lots?archived=eq.true&status_id=eq.6&final_bid=eq.0&vin=not.is.null&payload-%3E%3ErepairTried=is.null&select=id,vin,auction,lot,payload&order=synced_at.desc&limit=420`).catch(() => null);
     if(!Array.isArray(rows) || !rows.length) return {fixed, tried, empty:true};
@@ -6535,8 +6604,12 @@ const handlerInner = async function handler(request, response){
 
   // Live-поллинг ставки: fresh=<ts> обходит чтение кешей (CDN обходится самим
   // уникальным ts в URL), но результат пишется в канонический ключ кеша.
-  const freshMode = !!query.get("fresh");
+  let freshMode = !!query.get("fresh");
   if(freshMode) query.delete("fresh");
+  // 26.11.2026 (лимит провайдера): fresh обходил ВСЕ кэши — любой (бот, превью, чужой скрипт) мог гонять запросы в провайдера без предела.
+  // Теперь «свежий» ответ для одного лота живёт FRESH_MIN_MS и на уровне нагрузки ≥2 fresh не обходит кэш вовсе.
+  const FRESH_MIN_MS = 45000;
+  if(freshMode && apiLoadLevel() >= 2) freshMode = false;
 
   // Edge-заголовок для медленных оценок — чтобы CDN кэшировал и hit из памяти/БД.
   const edgeHdr = action === "comps" ? COMPS_EDGE_CACHE : action === "statistics" ? STATS_EDGE_CACHE : undefined;
@@ -6547,6 +6620,7 @@ const handlerInner = async function handler(request, response){
   const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
   const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g55" : "";   // g55: BMW X5 G65 с 2027; g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
+  if(freshMode && Date.now() - (freshStamp.get(key) || 0) < FRESH_MIN_MS) freshMode = false;
   const cached = getCached(key);
   if(cached && !freshMode && !detailCacheStale(cached)){
     sendJson(response, 200, {...cached, cached:true}, edgeHdr);
@@ -6567,11 +6641,36 @@ const handlerInner = async function handler(request, response){
   // Словарь повреждений теперь статический (не тратит квоту API) — Supabase-кэш
   // для него лишний round-trip, пропускаем (memory + edge-кэш достаточно). P3-16.
   const isStaticDamages = action === "usadict" && String(query.get("dict") || "").toLowerCase() === "damages";
+  if(freshMode && action === "detail"){
+    try{
+      const rows = await sbGuard(supabase.list("api_cache", {cache_key:`eq.${key}`, select:"data,expires_at", limit:1}));
+      const row = rows && rows[0];
+      if(row && row.data){
+        const age = DB_TTL.detail * 1000 - (Date.parse(row.expires_at) - Date.now());
+        if(age >= 0 && age < FRESH_MIN_MS && !detailCacheStale(row.data)){ setCached(key, row.data); sendJson(response, 200, {...row.data, cached:true}, edgeHdr); return; }
+      }
+    }catch(_){}
+  }
+  if(freshMode) freshStamp.set(key, Date.now());
   if(dbCacheActions.has(action) && !freshMode && !isStaticDamages){
     const dbHit = await getDbCache(key);
     if(dbHit && !detailCacheStale(dbHit)){
       setCached(key, dbHit);
       sendJson(response, 200, {...dbHit, cached:true}, edgeHdr);
+      return;
+    }
+  }
+
+  // Предел обращений в провайдера с одного IP на одном инстансе (кэш-промахи): чужой скрипт/бот больше не может
+  // выжигать лимит. Свои вызовы (страницы лота, превью) идут с секретным заголовком, админ — без лимита.
+  if(LIVE_ACTIONS.has(action)){
+    const sec = process.env.CRON_SECRET;
+    const internal = !!sec && request.headers["x-internal"] === sec;
+    let admin = false;
+    if(!internal){ try{ admin = require("../server/auth").isAuthenticated(request); }catch(_){} }
+    if(!internal && !admin && !liveRateOk(getClientIp(request))){
+      response.setHeader("retry-after", "30");
+      sendJson(response, 429, {ok:false, rateLimited:true, error:"Слишком много запросов, попробуйте через минуту"}, {"cache-control":"no-store"});
       return;
     }
   }
@@ -7504,8 +7603,15 @@ const handlerInner = async function handler(request, response){
 // Счётчик расхода: короткие вызовы (крон) замораживаются сразу после ответа — несброшенные корзины терялись
 // (26.11.2026 счётчик показывал 39k при 112k у провайдера). Сбрасываем В КОНЦЕ каждого вызова, пока функция жива.
 module.exports = async function handler(request, response){
-  try{ return await handlerInner(request, response); }
-  finally{ await usageFlush(true).catch(() => {}); }
+  let act = "search";
+  try{ act = new URL(request.url || "/", "http://x").searchParams.get("action") || "search"; }catch(_){}
+  return callCtx.run({action:act}, async () => {
+    try{
+      await Promise.race([apiLoadRefresh(), new Promise(r => setTimeout(r, 1200))]);
+      return await handlerInner(request, response);
+    }
+    finally{ await usageFlush(true).catch(() => {}); }
+  });
 };
 // Для юнит-тестов (test/comps.test.js, test/attach-vin-history.test.js) — сам модуль экспортирует только
 // handler (Vercel зовёт его как функцию), computeComps/attachVinHistory довешены свойствами отдельно,

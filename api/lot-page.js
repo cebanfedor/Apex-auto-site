@@ -18,7 +18,7 @@ async function fetchOwnDetail(req, auction, lotId){
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{
-    const r = await fetch(url, {headers:{accept:"application/json"}, signal:controller.signal});
+    const r = await fetch(url, {headers:{accept:"application/json", ...(process.env.CRON_SECRET ? {"x-internal":process.env.CRON_SECRET} : {})}, signal:controller.signal});
     const payload = await r.json().catch(() => null);
     // 404 от своего API = лота нет ни в фиде, ни в архиве (не таймаут и не сбой).
     if(r.status === 404) return {lot:null, notFound:true};
