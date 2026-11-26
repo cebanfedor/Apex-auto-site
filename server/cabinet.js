@@ -118,6 +118,30 @@ function create(deps){
       return true;
     }
 
+    // Реферальная ссылка клиента: короткий код (alert_meta ref:<chat>, refcode:<код>), счётчик заявок по ссылке — refhits:<код>
+    if(action === "cabref"){
+      const who = await chatOf(query.get("token"));
+      if(who.error){ sendJson(response, 200, {ok:true, bound:false}, NO); return true; }
+      try{
+        const cur = await sb(`/alert_meta?k=eq.${q("ref:" + who.chat)}&select=v&limit=1`).catch(() => []);
+        let code = cur && cur[0] && cur[0].v && cur[0].v.code;
+        if(!code){
+          const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", crypto = require("crypto");
+          for(let i = 0; i < 5 && !code; i++){
+            const c = Array.from(crypto.randomBytes(6)).map(b => ALPHA[b % ALPHA.length]).join("");
+            const taken = await sb(`/alert_meta?k=eq.${q("refcode:" + c)}&select=k&limit=1`).catch(() => []);
+            if(!taken || !taken.length) code = c;
+          }
+          if(!code){ sendJson(response, 200, {ok:false, error:"code"}, NO); return true; }
+          await cl.metaSet(sb, "refcode:" + code, {chat:String(who.chat)});
+          await cl.metaSet(sb, "ref:" + who.chat, {code});
+        }
+        const hits = await sb(`/alert_meta?k=eq.${q("refhits:" + code)}&select=v&limit=1`).catch(() => []);
+        sendJson(response, 200, {ok:true, code, hits:Number(hits && hits[0] && hits[0].v && hits[0].v.n) || 0}, NO);
+      }catch(e){ sendJson(response, 200, {ok:false, error:"db_error"}, NO); }
+      return true;
+    }
+
     if(action === "cabdeals"){
       const who = await chatOf(query.get("token"));
       if(who.error){ sendJson(response, 200, {ok:true, bound:false}, NO); return true; }

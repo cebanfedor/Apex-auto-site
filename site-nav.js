@@ -3,6 +3,26 @@
    открытие меню, живые счётчики, куда вести поиск. Классы .navMegaV1 / .hdrSearchV1 — styles.css. */
 (function(){
   "use strict";
+  // Реферальная ссылка (?ref=КОД, 27.11.2026): запоминаем на 60 дней и добавляем код в любую заявку с сайта
+  // (action=lead) — менеджер видит, какой клиент привёл. Одно место на все формы сайта.
+  (function(){
+    try{
+      var m = /[?&]ref=([A-Za-z0-9]{6})(?:&|$)/.exec(location.search);
+      if(m) localStorage.setItem("apexRefV1", JSON.stringify({c: m[1].toUpperCase(), t: Date.now()}));
+      var r = JSON.parse(localStorage.getItem("apexRefV1") || "null");
+      if(!r || !r.c || Date.now() - r.t > 60 * 864e5) return;
+      var of = window.fetch;
+      window.fetch = function(u, o){
+        try{
+          if(o && typeof o.body === "string" && String(o.method || "").toUpperCase() === "POST" && /action=lead/.test(String(u && u.url || u))){
+            var b = JSON.parse(o.body);
+            if(b && typeof b === "object" && !b.ref){ b.ref = r.c; o = Object.assign({}, o, {body: JSON.stringify(b)}); }
+          }
+        }catch(e){}
+        return of.call(this, u, o);
+      };
+    }catch(e){}
+  })();
   // Плавная прокрутка (CSS .smoothV1) — только после первого действия пользователя или через 2.5 с: при загрузке/обновлении страница дорастает по высоте,
   // и с smooth браузер анимировал восстановление позиции (сайт «листался» сам). Якорные клики (pointerdown раньше click) остаются плавными.
   (function(){

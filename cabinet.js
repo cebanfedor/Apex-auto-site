@@ -52,6 +52,11 @@
     prefs_h:["О чём сообщать","Despre ce să anunțăm","What to notify about"], p_date:["Назначена дата торгов","Data licitației stabilită","Auction date set"], p_timed:["Лот стал Timed","Lotul a devenit Timed","Lot went Timed"], p_day:["В день торгов","În ziua licitației","On auction day"], p_hour:["За час до торгов","Cu o oră înainte","One hour before"], p_buynow:["Появился Buy Now","A apărut Buy Now","Buy Now appeared"], p_play:["Торги идут, итог (продан / нет)","Licitația rulează, rezultatul","Auction live and result"],
     rec_h:["Недавно смотрели","Vizualizate recent","Recently viewed"], rec_e:["Лоты, которые вы открывали, появятся здесь.","Loturile deschise apar aici.","Lots you open will appear here."], rec_clear:["Очистить","Șterge istoricul","Clear"],
     set_h:["Настройки и вход","Setări și autentificare","Settings & sign-in"], set_dev_h:["Как войти с другого устройства","Cum intri de pe alt dispozitiv","Sign in on another device"], set_dev:["Откройте этот кабинет на новом устройстве → «Подключить Telegram» → «Start» в боте. Те же данные появятся автоматически.","Deschide acest cont pe noul dispozitiv → „Conectează Telegram” → „Start” în bot. Aceleași date apar automat.","Open this page on the new device → “Connect Telegram” → “Start” in the bot. The same data appears automatically."],
+    ref_h:["Пригласите друга","Invită un prieten","Invite a friend"],
+    ref_p:["Поделитесь своей ссылкой. Когда друг оставит заявку по ней, менеджер увидит, что он от вас, и учтёт это в условиях для вас обоих.","Distribuie linkul tău. Când un prieten lasă o cerere prin el, managerul vede că vine de la tine și ține cont în condițiile pentru amândoi.","Share your link. When a friend sends a request through it, the manager will see they came from you and take it into account for both of you."],
+    ref_copy:["Скопировать ссылку","Copiază linkul","Copy link"], ref_share:["Поделиться","Distribuie","Share"], ref_ok:["Ссылка скопирована","Link copiat","Link copied"],
+    ref_hits:["Заявок по вашей ссылке","Cereri prin linkul tău","Requests via your link"],
+    ref_msg:["Привезу авто из США, Канады и Кореи под ключ в Молдову — вот ссылка на Apex Auto:","Aduc mașini din SUA, Canada și Coreea la cheie în Moldova — iată linkul Apex Auto:","Cars from the USA, Canada and Korea, turnkey to Moldova — here is the Apex Auto link:"],
     set_out:["Выйти на этом устройстве","Ieși de pe acest dispozitiv","Sign out on this device"], set_out_d:["Данные на сервере останутся, с устройства будут убраны токен и локальные копии.","Datele de pe server rămân; de pe dispozitiv se șterg tokenul și copiile locale.","Server data stays; the token and local copies are removed from this device."],
     set_wipe:["Удалить все мои данные","Șterge toate datele mele","Delete all my data"], set_wipe_d:["Удалит избранное, заметки, список машин и историю просмотров на сервере и на этом устройстве.","Șterge favoritele, notițele, mașinile și istoricul de pe server și de pe acest dispozitiv.","Removes favourites, notes, cars and history from the server and this device."],
     confirm_out:["Выйти из кабинета на этом устройстве?","Ieși din cont pe acest dispozitiv?","Sign out on this device?"], confirm_wipe:["Удалить ВСЕ данные кабинета? Это нельзя отменить.","Ștergi TOATE datele? Nu se poate anula.","Delete ALL account data? This cannot be undone."], done:["Готово","Gata","Done"],
@@ -233,6 +238,7 @@
     return Promise.resolve(p).then(function(r){
       if(r && r.ready === false) S.ready = false;
       applyLoad(r);
+      loadRef();
       if(r && r.name){ lsSet(K.name, r.name); }
       if(r && r.items && r.items.car){
         var cars = r.items.car.map(function(it){ return {vin:it.key, label:(it.data && it.data.label) || "", addedAt:(it.data && it.data.addedAt) || it.t}; });
@@ -705,7 +711,22 @@
       '<label><span>' + t("pf_city") + '</span><input name="city" type="text" maxlength="60" autocomplete="address-level2" value="' + esc(P.city || "") + '" placeholder="' + esc(t("pf_city_ph")) + '"></label>' +
       '<label><span>' + t("pf_phone") + '</span><input name="phone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" value="' + esc(ph || S.verifiedPhone || "") + '" placeholder="' + esc(t("pf_phone_ph")) + '"></label>' +
       '<p class="cabErrV1" id="cabPfErr" hidden></p>' +
-      '<button class="cabBtnV1" type="submit">' + t("pf_save") + '</button></form>' + ver + '</section>';
+      '<button class="cabBtnV1" type="submit">' + t("pf_save") + '</button></form>' + ver + '</section>' + refBox();
+  }
+  // Реферальная ссылка: код создаёт сервер (action=cabref), счётчик — по заявкам с этим кодом
+  function refUrl(){ return S.ref && S.ref.code ? "https://apexauto.md/?ref=" + S.ref.code : ""; }
+  function refBox(){
+    if(!S.ref || !S.ref.code) return "";
+    return '<section class="cabBoxV1 cabRefV1"><h2>' + ico("tg") + ' ' + t("ref_h") + '</h2><p class="cabMutedV1">' + t("ref_p") + '</p>' +
+      '<div class="cabRefRowV1"><input readonly value="' + esc(refUrl()) + '" aria-label="ref"><button type="button" class="cabBtnV1" data-act="refcopy">' + t("ref_copy") + '</button>' +
+      '<a class="cabGhostV1" target="_blank" rel="noopener" href="https://t.me/share/url?url=' + encodeURIComponent(refUrl()) + '&text=' + encodeURIComponent(t("ref_msg")) + '">' + t("ref_share") + '</a></div>' +
+      (S.ref.hits ? '<p class="cabMutedV1">' + t("ref_hits") + ': <b>' + S.ref.hits + '</b></p>' : "") + '</section>';
+  }
+  function loadRef(){
+    if(!token() || !S.bound || S.ref) return Promise.resolve();
+    return getApi("cabref", "token=" + encodeURIComponent(token())).then(function(r){
+      if(r && r.ok && r.code){ S.ref = {code:r.code, hits:r.hits || 0}; if(S.tab === "profile" || S.tab === "set") render(true); }
+    });
   }
   function saveProfile(f){
     var err = $("#cabPfErr"); if(err) err.hidden = true;
@@ -829,6 +850,7 @@
     render();
     if(v === "cars") refreshTracks();
     if(v === "deals") loadDeals();
+    loadRef();
     if(v === "picks") loadPicks();
     if(v === "fav") refreshLive();
   }
@@ -894,6 +916,7 @@
     var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
     if(act === "tab"){ e.preventDefault(); return setTab(b.getAttribute("data-v")); }
     if(act === "connect") return startConnect();
+    if(act === "refcopy"){ var u = refUrl(); try{ navigator.clipboard.writeText(u).then(function(){ toast(t("ref_ok")); }); }catch(e){ window.prompt("", u); } return; }
     if(act === "ics") return downloadIcs(id);
     if(act === "pkreact") return reactPick(Number(id), b.getAttribute("data-v"), b);
     if(act === "pkfav"){ var rid = id, fromPick = S.picks && S.picks.list.filter(function(x){ return x.lot_id === rid; })[0]; if(findFav(rid)){ unfav(rid); } else if(fromPick){ var fo = Object.assign({}, fromPick.data, {id:rid}); S.favs.unshift(fo); saveFavs(); if(cab()) cab().put("fav", rid, fo); toast(t("done")); render(); } return; }
