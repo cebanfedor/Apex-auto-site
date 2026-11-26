@@ -1800,10 +1800,12 @@ async function fetchSearch(query){
 async function lotFromDbRow(auction, lotNo){
   try{
     const id = `${String(auction).toLowerCase()}-${String(lotNo).replace(/[^\w-]/g, "")}`;
-    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=payload,fuel_x,fuel_src,vin_trim&limit=1`);
+    const withPh = await photosColReady();
+    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=payload,fuel_x,fuel_src,vin_trim${withPh ? ",photos" : ""}&limit=1`);
     const r = Array.isArray(rows) ? rows[0] : null;
     if(!r || !r.payload) return null;
     const l = sanitizeStoredLot(r.payload);
+    if(Array.isArray(r.photos) && r.photos.length > (l.images || []).length){ l.images = r.photos; l.photoCount = r.photos.length; }
     l.title = powertrain.cleanTitle(l.title);
     if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; }
     if(r.vin_trim !== undefined && r.vin_trim !== null) l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind});
@@ -4591,6 +4593,36 @@ function slimPayload(lot){
   for(const k of HEAVY_DETAIL_FIELDS) delete o[k];
   return o;
 }
+// Колонка api_lots.photos (jsonb, миграция 20261126_lot_photos.sql): ПОЛНЫЙ набор фото лота. В payload их не кладём (egress поиска),
+// а отдаём страницей лота из базы — без платного /search-lot (лимит провайдера, 26.11.2026). Без колонки всё работает как раньше.
+let photosColState = {ok:false, at:0};
+async function photosColReady(){
+  const ttl = photosColState.ok ? 600e3 : 60e3;
+  if(Date.now() - photosColState.at < ttl) return photosColState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=photos&limit=1`); ok = true; }catch(_){ ok = false; }
+  photosColState = {ok, at:Date.now()};
+  return ok;
+}
+async function photosFromDb(id){
+  try{
+    if(!(await photosColReady())) return null;
+    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=photos&limit=1`);
+    const ph = Array.isArray(rows) && rows[0] && rows[0].photos;
+    return Array.isArray(ph) && ph.length > 4 ? ph : null;
+  }catch(_){ return null; }
+}
+// Живой detail вернул полный набор — запоминаем в базе (один раз на лот), следующие открытия идут из базы.
+function savePhotos(lot){
+  try{
+    const imgs = lot && Array.isArray(lot.images) ? lot.images.filter(u => /^https?:\/\//i.test(String(u || ""))).slice(0, 60) : [];
+    if(!lot || !lot.id || imgs.length <= 4) return;
+    photosColReady().then(ok => {
+      if(!ok) return;
+      syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({photos:imgs})}).catch(() => {});
+    }).catch(() => {});
+  }catch(_){}
+}
 function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
   orderLots(item, {domainId:preferDomain});
   tesla.fixTeslaItem(item);
@@ -4607,6 +4639,7 @@ function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
   const normalized = normalizeLot(item, auction);
   if(!normalized.lot || isFakeLot(normalized)) return null;
   // Обложка + до 4 фото: карточке каталога хватает, детальная всегда live.
+  const allPhotos = Array.isArray(normalized.images) ? normalized.images.filter(u => /^https?:\/\//i.test(String(u || ""))).slice(0, 60) : [];
   if(Array.isArray(normalized.images) && normalized.images.length > 4){
     normalized.images = normalized.images.slice(0, 4);
   }
@@ -4658,6 +4691,7 @@ function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
     archived:isArchived,
     lane:normalized.laneKey || null,
     run_no:normalized.runNo || null,
+    photos:allPhotos.length > 4 ? allPhotos : null,   // удаляется в syncUpsertRows, если колонки ещё нет
     payload:slimPayload(normalized),
     synced_at:new Date().toISOString()
   };
@@ -4766,6 +4800,7 @@ function sameKeyFields(a, b, keyFields = ROW_KEY_FIELDS){
   const pl = a.payload || {};
   if(("tm" in b) && (!!pl.timed) !== (b.tm === "true")) return false;
   if(("sr" in b) && (Number(pl.sellerReserve) || 0) !== (Number(b.sr) || 0)) return false;
+  if(("ph0" in b) && Array.isArray(a.photos) && a.photos.length && !b.ph0) return false;   // у строки ещё нет полного набора фото — дописываем
   for(const f of keyFields){
     let x = a[f], y = b[f];
     if(f === "sale_date" || f === "live_until"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
@@ -4852,11 +4887,13 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   if(!rows.length) return;
   const hasRun = await runColsReady();
   if(!hasRun) rows.forEach(r => { delete r.lane; delete r.run_no; });
+  const hasPhotos = await photosColReady();
+  if(!hasPhotos) rows.forEach(r => { delete r.photos; });
   const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no", "lane"] : ROW_KEY_FIELDS;
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
-    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${keyFields.join(",")},tm:payload->>timed,sr:payload->>sellerReserve`);
+    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${keyFields.join(",")},tm:payload->>timed,sr:payload->>sellerReserve${hasPhotos ? ",ph0:photos->>0" : ""}`);
     if(Array.isArray(ex)){
       const map = new Map(ex.map(r => [r.id, r]));
       // Строку-продажу нельзя ухудшить: входящая без финала и без БУДУЩИХ торгов (sold без даты, not_sold-раунд
@@ -6889,7 +6926,15 @@ const handlerInner = async function handler(request, response){
       // light=1 (27.11.2026): листание фото в карточке каталога — нужен только полный набор снимков: один запрос /search-lot,
       // без истории по VIN (/search-vin) и расшифровки; ответ кэшируется.
       if(query.get("light") === "1"){
+        // Сначала полный набор из НАШЕЙ базы (колонка photos) — без запроса к провайдеру; живой /search-lot — только если там нет.
+        const dbId = `${normalizeAuction(query.get("auction"))}-${String(query.get("lot") || "").replace(/[^\w-]/g, "")}`;
+        const dbPh = await photosFromDb(dbId);
+        if(dbPh){
+          sendJson(response, 200, {ok:true, light:true, fromDb:true, lot:{id:dbId, auction:normalizeAuction(query.get("auction")), lot:String(query.get("lot") || ""), images:dbPh, photoCount:dbPh.length}}, {"cache-control":"public, s-maxage=3600, stale-while-revalidate=86400"});
+          return;
+        }
         const l = await fetchDetail(query);
+        savePhotos(l);
         const payload = {ok:true, light:true, lot:{id:l.id, auction:l.auction, lot:l.lot, images:l.images || [], photoCount:l.photoCount || (l.images || []).length}};
         setCached(key, payload);
         sendJson(response, 200, payload, {"cache-control":"public, s-maxage=1800, stale-while-revalidate=3600"});
@@ -6898,6 +6943,7 @@ const handlerInner = async function handler(request, response){
       const lot = await fetchDetail(query);
       await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);
       await attachGenRange(lot);
+      savePhotos(lot);
       upsertClosedLot(lot);
       { const inferred = await inferLaneDate(lot); if(inferred){ lot.auctionDate = inferred.at; lot.auctionDateInferred = true; if(inferred.to) lot.auctionDateInferredTo = inferred.to; } }   // после upsert: выведенную дату в базу не пишем
       const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};
