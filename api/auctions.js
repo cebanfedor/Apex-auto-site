@@ -37,8 +37,11 @@ function quotaDayStartKey(now){
   const d = new Date(now);
   let b = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), QUOTA_RESET_H);
   if(b > now) b -= 86400e3;
-  return usageHourKey(b);
+  const k = usageHourKey(b);
+  return k > QUOTA_KEY_SWITCH_HOUR ? k : QUOTA_KEY_SWITCH_HOUR;   // не считаем расход по старому ключу
 }
+// 26.11.2026 ~22 UTC: ключ auctionsapi заменён на новый (свой суточный лимит) — расход по старому в сутки не входит.
+const QUOTA_KEY_SWITCH_HOUR = "2026112622";
 let apiLoad = {level:0, rate:0, day:0, at:0, loading:null};
 function apiLoadLevel(){ return apiLoad.level; }
 async function apiLoadRefresh(){
