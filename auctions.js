@@ -1846,7 +1846,10 @@ function alertable(lot){
   async function updateCardLiveBids(){
     const cards = [...document.querySelectorAll("#auctionCards .dbCard")];
     const byId = new Map(state.items.map(l => [String(l.id), l]));
-    const ids = cards.map(cd => cd.querySelector(".dbPhoto")?.dataset.lid).filter(id => byId.has(String(id)) && enrichable(byId.get(String(id))) && !lotSaleState(byId.get(String(id))).isSold);
+    // 26.11.2026 (экономия лимита провайдера): живая сверка нужна лотам, у которых скоро/только что были торги (продан? дата сдвинулась?) и лотам без даты;
+    // торги через сутки база и так знает (синк ближайших торгов) — их не опрашиваем.
+    const nearNow = l => { const t = Date.parse(l.auctionDate || ""); return !Number.isFinite(t) || (t > Date.now() - 6 * 3600e3 && t < Date.now() + 10 * 3600e3); };
+    const ids = cards.map(cd => cd.querySelector(".dbPhoto")?.dataset.lid).filter(id => byId.has(String(id)) && enrichable(byId.get(String(id))) && !lotSaleState(byId.get(String(id))).isSold && nearNow(byId.get(String(id))));
     if(!ids.length) return;
     let live = {};
     const ndIds = ids.slice(0, 30).filter(id => !byId.get(String(id)).auctionDate);   // карточки без даты в списке — серверу нужно сохранить найденную дату

@@ -351,7 +351,7 @@ const STATS_EDGE_CACHE = {"cache-control": "public, s-maxage=3600, stale-while-r
 // DB_TTL in seconds: search=6h, detail=30мин (аукционы переносят даты — 24h кеш
 // показывал устаревшую дату торгов), vin=7d, dict/lists=12h
 // search: 3 мин — иначе лот, сыгравший час назад, до 6 часов не появлялся в архиве (кэш живого ответа).
-const DB_TTL = {search:180, detail:1800, vin:604800, _default:43200};
+const DB_TTL = {search:180, detail:1800, vin:604800, gens:2592000, _default:43200};
 
 // Supabase может лечь/тормозить (переполнение, пауза проекта) — его никогда
 // не ждём дольше 1.5с (живая база отвечает <300мс), а после двух подряд
@@ -435,9 +435,9 @@ async function getDbCacheStale(key){
   return rows && rows[0] ? rows[0].data : null;
 }
 
-async function setDbCache(key, data, action){
+async function setDbCache(key, data, action, ttlSec){
   try{
-    const ttl = DB_TTL[action] || DB_TTL._default;
+    const ttl = ttlSec || DB_TTL[action] || DB_TTL._default;
     const expiresAt = new Date(Date.now() + ttl * 1000).toISOString();
     // Запись — best-effort: медленный upsert большого ответа не должен выбивать базу на 3 мин для всех чтений.
     await Promise.race([
@@ -2496,6 +2496,12 @@ async function generationsFor(modelId){
   const now = Date.now();
   const c = genRangeCache.get(key);
   if(c && now - c.at < 6 * 3600e3) return c.items;
+  // 26.11.2026 (экономия лимита провайдера: `detail → generations` ~1,4 тыс. за 2 ч): справочник поколений почти не меняется —
+  // держим в api_cache 30 суток, а не только в памяти инстанса.
+  try{
+    const dbg = await getDbCache("gens:" + key.replace(/[^0-9]/g, ""));
+    if(dbg && Array.isArray(dbg.items)){ genRangeCache.set(key, {items:dbg.items, at:now}); return dbg.items; }
+  }catch(_){}
   try{
     const list = await fetchJson(`${AUCTIONS_API_BASE}/generations/${key.replace(/[^0-9]/g, "")}`);
     const items = (Array.isArray(list?.data) ? list.data : []).map(m => ({
@@ -2515,6 +2521,7 @@ async function generationsFor(modelId){
     }
     genRangeCache.set(key, {items, at:now});
     if(genRangeCache.size > 2000) genRangeCache.clear();
+    if(items.length) setDbCache("gens:" + key.replace(/[^0-9]/g, ""), {items}, "gens").catch(() => {});
     return items;
   }catch(e){ return c ? c.items : []; }
 }
@@ -7002,7 +7009,9 @@ const handlerInner = async function handler(request, response){
       // История по VIN не загрузилась (таймаут фида) — НЕ кэшируем: иначе «Единственная продажа» висит до получаса.
       if(lot.vinChecked !== false){
         setCached(key, payload);
-        setDbCache(key, payload, "detail");
+        // 26.11.2026 (экономия лимита): торги дальше 8 ч — данные у источника меняются ~раз в 2 ч, живой опрос каждые 30 мин не нужен → 3 ч.
+        const farMs = Date.parse(lot.auctionDate || "") - Date.now();
+        setDbCache(key, payload, "detail", farMs > 8 * 3600e3 ? 3 * 3600 : 0);
         // Clean Select: страницу лота открыли — метку перекупа получаем сразу, не ждём очереди фоновой проверки
         if(lot.vinChecked && lot.id && Number(lot.statusId) !== 6 && Date.parse(lot.auctionDate || "") > Date.now()){
           syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}&archived=eq.false&resale_at=is.null`, {method:"PATCH", headers:{prefer:"return=minimal"},
