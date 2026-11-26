@@ -32,6 +32,14 @@ function clientClass(req){
     return "user";
   }catch(_){ return "user"; }
 }
+// Кто тратит запросы (ip | браузер): копим в памяти, раз в минуту пишем топ-20 в alert_meta `apiwho:<экземпляр>` (перезапись), читает apiusage.
+const whoCalls = new Map(); let whoDirty = false, whoSavedAt = 0;
+function whoFlush(){
+  if(!whoDirty || Date.now() - whoSavedAt < 60e3) return;
+  whoSavedAt = Date.now(); whoDirty = false;
+  const top = [...whoCalls.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
+  syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{k:"apiwho:" + USAGE_INST, v:{top}, updated_at:new Date().toISOString()}])}).catch(() => {});
+}
 function ctxCls(){ const c = callCtx.getStore(); return (c && c.cls) || ""; }
 
 // ПРЕДОХРАНИТЕЛЬ ЛИМИТА (26.11.2026, лимит провайдера 500 000/сутки ≈ 20,8k/ч). Уровень считается по общему счётчику (alert_meta apiuse:*):
@@ -106,6 +114,7 @@ function noteApiCall(url){
   const ep = m ? m[1] : "other";
   apiUsage.byEndpoint[ep] = (apiUsage.byEndpoint[ep] || 0) + 1;
   usageBump(ep + "@" + ctxAction() + (ctxCls() ? "~" + ctxCls() : ""));
+  try{ const c = callCtx.getStore(); if(c && c.who){ whoCalls.set(c.who, (whoCalls.get(c.who) || 0) + 1); if(whoCalls.size > 400) whoCalls.clear(); whoDirty = true; } }catch(_){}
 }
 
 // Общий счётчик по ВСЕМ экземплярам (26.11.2026): каждый экземпляр копит часовые корзины
@@ -6086,8 +6095,11 @@ const handlerInner = async function handler(request, response){
       const acts = Object.entries(byAct).sort((a, b) => b[1] - a[1]).map(([action, calls]) => ({action, calls, perHour:Math.round(calls / hours)}));
       const combos = Object.entries(byCombo).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, calls]) => ({k, calls}));
       const l429 = await syncSbFetch(`/alert_meta?k=eq.api_429&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
+      const whoRows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiwho:*")}&updated_at=gte.${encodeURIComponent(new Date(Date.now() - 20 * 60e3).toISOString())}&select=v&limit=50`).catch(() => []);
+      const whoSum = Object.create(null); for(const r of whoRows || []) for(const [k, n] of (r.v && r.v.top) || []) whoSum[k] = (whoSum[k] || 0) + n;
+      const who = Object.entries(whoSum).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, calls]) => ({who:k, calls}));
       const lsamp = await syncSbFetch(`/alert_meta?k=eq.live_search&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
-      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, last429:l429 || null, liveSearch:lsamp || null, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, last429:l429 || null, liveSearch:lsamp || null, who, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
         note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
     return;
@@ -7698,6 +7710,12 @@ const handlerInner = async function handler(request, response){
         // 27.11.2026 (лимит auctionsapi: `search → cars` 49,5 тыс. запросов за 3 ч): когда база не ответила (таймаут/сбой), каждый запрос каталога
         // шёл в провайдера. Теперь живой запасной вариант — только при низкой нагрузке на лимит и не чаще 20 раз в минуту на инстанс;
         // иначе честный 503 (клиент покажет «повторить»), а не сотни платных запросов.
+        // 26.11.2026: таймаут/ошибка ОДНОГО запроса к базе (dbErr при живой базе) — не повод платить за /cars: база просто занята (догоняющий синк),
+        // повтор клиента через пару секунд обычно проходит. В платный фолбэк идём, только когда базы действительно нет (sbUp() false / lotsDbReady false → dbErr пуст).
+        if(dbErr && sbUp()){
+          sendJson(response, 503, {ok:false, error:"catalog busy, retry", _dbErr:dbErr}, {"cache-control":"no-store", "retry-after":"3"});
+          return;
+        }
         const nowMin = Math.floor(Date.now() / 60000);
         if(searchLiveGate.min !== nowMin){ searchLiveGate.min = nowMin; searchLiveGate.n = 0; }
         if(apiLoadLevel() >= 1 || ++searchLiveGate.n > 8){
@@ -7793,12 +7811,14 @@ const handlerInner = async function handler(request, response){
 module.exports = async function handler(request, response){
   let act = "search";
   try{ act = new URL(request.url || "/", "http://x").searchParams.get("action") || "search"; }catch(_){}
-  return callCtx.run({action:act, cls:clientClass(request)}, async () => {
+  let who = "";
+  try{ who = String(request.headers["x-forwarded-for"] || "").split(",")[0].trim().slice(0, 45) + " | " + String(request.headers["user-agent"] || "—").slice(0, 70); }catch(_){}
+  return callCtx.run({action:act, cls:clientClass(request), who}, async () => {
     try{
       await Promise.race([apiLoadRefresh(), new Promise(r => setTimeout(r, 1200))]);
       return await handlerInner(request, response);
     }
-    finally{ await usageFlush(true).catch(() => {}); }
+    finally{ whoFlush(); await usageFlush(true).catch(() => {}); }
   });
 };
 // Для юнит-тестов (test/comps.test.js, test/attach-vin-history.test.js) — сам модуль экспортирует только
