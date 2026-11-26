@@ -7304,27 +7304,44 @@ const handlerInner = async function handler(request, response){
     if(action === "vinarchive"){
       const vinRaw = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
       if(!isValidVin(vinRaw)){ sendJson(response, 400, {ok:false, error:"bad vin"}, {"cache-control":"no-store"}); return; }
-      let lot = null;
+      // 26.11.2026 (SEO по VIN, Федор: «хочу попадать в Google по VIN»): страница /vin/<VIN> теперь строится ТОЛЬКО из нашей базы
+      // (api_lots + vin_hist) — без запросов к провайдеру. Раньше каждый заход (в т.ч. краулера по тысячам VIN) стоил 2–3 платных вызова.
       try{
-        lot = await fetchVin(new URLSearchParams({vin:vinRaw}));
-        await attachVinHistory(lot);
-        await attachPowertrain(lot);
-        await attachGenRange(lot);
-      }catch(e){ lot = null; }
-      if(lot && lot.vin){
-        sendJson(response, 200, {ok:true, vin:vinRaw, lot, history:lot.priceHistory || [], source:"feed"});
-        return;
-      }
-      // Фид не ответил/не знает VIN — пробуем то, что уже накоплено в vin_hist.
-      try{
-        const rows = await syncSbFetch(`/vin_hist?vin=eq.${encodeURIComponent(vinRaw)}&select=entries,latest,sold_n,rounds_n,checked_at&limit=1`);
-        const r = rows && rows[0];
-        if(r && Array.isArray(r.entries) && r.entries.length){
-          sendJson(response, 200, {ok:true, vin:vinRaw, lot:null, history:r.entries, latest:r.latest || null, soldN:r.sold_n, roundsN:r.rounds_n, checkedAt:r.checked_at, source:"cache"});
+        const rows = await syncSbFetch(`/api_lots?vin=eq.${encodeURIComponent(vinRaw)}&select=id,auction,lot,sale_date,status_id,archived,current_bid,buy_now,final_bid,odometer_mi,damage,document,state_code,country,title,year&order=sale_date.desc.nullslast&limit=30`);
+        let hist = null;
+        try{
+          const hr = await syncSbFetch(`/vin_hist?vin=eq.${encodeURIComponent(vinRaw)}&select=entries,latest,sold_n,rounds_n,checked_at&limit=1`);
+          hist = hr && hr[0] || null;
+        }catch(_){}
+        const list = Array.isArray(rows) ? rows : [];
+        if(!list.length && !(hist && Array.isArray(hist.entries) && hist.entries.length)){
+          sendJson(response, 404, {ok:false, notFound:true}, {"cache-control":"public, s-maxage=600, max-age=60"});
           return;
         }
-      }catch(e){}
-      sendJson(response, 404, {ok:false, notFound:true}, {"cache-control":"public, s-maxage=300, max-age=60"});
+        // Главный заход: ещё не сыгравший/идущий; иначе самый свежий
+        const now = Date.now();
+        const main = list.find(r => !r.archived && (!r.sale_date || Date.parse(r.sale_date) > now - 3 * 3600e3)) || list[0] || null;
+        let lot = null;
+        if(main){
+          lot = await lotFromDbRow(main.auction, main.lot).catch(() => null);
+          if(lot){ await attachPowertrain(lot).catch(() => {}); await attachGenRange(lot).catch(() => {}); }
+        }
+        // История заходов: из vin_hist (там перекуп-правила уже применены), иначе из строк базы
+        let history = hist && Array.isArray(hist.entries) ? hist.entries : [];
+        if(!history.length){
+          history = list.map(r => {
+            const sold = Number(r.status_id) === 6 && Number(r.final_bid) > 0 && r.archived;
+            return {date:r.sale_date || "", lot:r.lot, auction:r.auction, status:sold ? "sold" : "not_sold", bid:sold ? Number(r.final_bid) : (Number(r.current_bid) || 0),
+              current:!r.archived && (!r.sale_date || Date.parse(r.sale_date) > now - 3 * 3600e3)};
+          });
+        }
+        const lots = list.map(r => ({auction:r.auction, lot:r.lot, date:r.sale_date, statusId:r.status_id, archived:!!r.archived, currentBid:Number(r.current_bid) || 0,
+          finalBid:Number(r.final_bid) || 0, odometerMi:Number(r.odometer_mi) || 0, damage:r.damage || "", document:r.document || "", state:r.state_code || "", country:r.country || ""}));
+        sendJson(response, 200, {ok:true, vin:vinRaw, lot, lots, history, latest:hist && hist.latest || null, soldN:hist && hist.sold_n, roundsN:hist && hist.rounds_n, checkedAt:hist && hist.checked_at, source:"db"},
+          {"cache-control":"public, s-maxage=1800, stale-while-revalidate=86400"});
+      }catch(e){
+        sendJson(response, 503, {ok:false, error:"db unavailable"}, {"cache-control":"no-store", "retry-after":"30"});
+      }
       return;
     }
 

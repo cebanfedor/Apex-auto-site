@@ -2281,3 +2281,19 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .favCatRowV1 b{font-size:16px;font-weight:800}
 .favCatRmV1{width:32px;height:32px;border:1px solid #e5e7eb;border-radius:9px;background:#fff;color:#667080;font-size:20px;line-height:1;cursor:pointer}
 .favCatRmV1:hover{color:#ed0012;border-color:#ed0012}
+
+/* ===== Страница /vin/<VIN>: фото, таблица данных, вопросы (26.11.2026) ===== */
+.vhPhotosV1 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:16px 0; }
+.vhPhotosV1 img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:12px; background:var(--aSoft); }
+.vhPhotosV1 img:first-child { grid-column:span 2; grid-row:span 2; aspect-ratio:auto; height:100%; }
+.vhFactsTblV1 { width:100%; border-collapse:collapse; margin:6px 0 18px; font-size:14.5px; background:var(--aSurf); border:1px solid var(--aLine); border-radius:14px; overflow:hidden; }
+.vhFactsTblV1 th, .vhFactsTblV1 td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--aLine2); vertical-align:top; }
+.vhFactsTblV1 th { width:38%; font-weight:600; color:var(--aMuted); }
+.vhFactsTblV1 tr:last-child th, .vhFactsTblV1 tr:last-child td { border-bottom:none; }
+.vhH2V1 { font-size:18px; margin:22px 0 10px; }
+.vhFaqV1 { margin:22px 0 6px; }
+.vhFaqV1 h2 { font-size:18px; margin:0 0 10px; }
+.vhFaqV1 details { border:1px solid var(--aLine); border-radius:12px; padding:12px 14px; margin-bottom:8px; background:var(--aSurf); }
+.vhFaqV1 summary { cursor:pointer; font-weight:700; }
+.vhFaqV1 details p { margin:8px 0 0; color:var(--aInk2); line-height:1.5; }
+@media (max-width:640px){ .vhPhotosV1 { grid-template-columns:repeat(2,minmax(0,1fr)); } .vhPhotosV1 img:first-child { grid-column:span 2; grid-row:auto; aspect-ratio:4/3; } .vhFactsTblV1 th { width:42%; } }
