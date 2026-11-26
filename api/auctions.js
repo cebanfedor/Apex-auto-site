@@ -40,8 +40,8 @@ function quotaDayStartKey(now){
   const k = usageHourKey(b);
   return k > QUOTA_KEY_SWITCH_HOUR ? k : QUOTA_KEY_SWITCH_HOUR;   // не считаем расход по старому ключу
 }
-// 26.11.2026 ~22 UTC: ключ auctionsapi заменён на новый (свой суточный лимит) — расход по старому в сутки не входит.
-const QUOTA_KEY_SWITCH_HOUR = "2026112622";
+// 26.11.2026 21:37 UTC: ключ auctionsapi заменён на новый (свой суточный лимит) — расход по старому в сутки не входит.
+const QUOTA_KEY_SWITCH_HOUR = "2026112621";   // новый ключ с 21:37 UTC (в корзине 21 ч — единицы вызовов старого ключа)
 let apiLoad = {level:0, rate:0, day:0, at:0, loading:null};
 function apiLoadLevel(){ return apiLoad.level; }
 async function apiLoadRefresh(){
