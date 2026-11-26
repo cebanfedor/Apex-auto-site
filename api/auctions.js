@@ -18,6 +18,29 @@ const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, forbidden: 0, la
 const {AsyncLocalStorage} = require("node:async_hooks");
 const callCtx = new AsyncLocalStorage();   // {action} — какой экшен (крон/запрос клиента) сейчас делает вызов к провайдеру
 function ctxAction(){ const c = callCtx.getStore(); return (c && c.action) || "none"; }
+// Кто вызвал (для отчёта расхода: `detail~bot` / `detail~user` …): int — наши SSR/превью, cron — крон/Actions, bot — поисковики/мессенджеры/краулеры,
+// script — curl/питон/пустой UA, user — обычный браузер. Нужен только для диагностики, на логику защит не влияет.
+function clientClass(req){
+  try{
+    const h = req.headers || {};
+    if(h["x-internal"]) return "int";
+    if(/^Bearer\s/i.test(String(h["authorization"] || ""))) return "cron";
+    const ua = String(h["user-agent"] || "");
+    if(!ua) return "script";
+    if(/bot|crawl|spider|slurp|facebookexternalhit|telegram|whatsapp|preview|google-inspection|lighthouse|pagespeed|gptbot|claude|perplexity|bytespider|petalbot|semrush|ahrefs|mj12|yandex|baidu/i.test(ua)) return "bot";
+    if(/curl|python|axios|node-fetch|undici|go-http|java\/|okhttp|scrapy|httpclient|wget|headless|libwww|php/i.test(ua)) return "script";
+    return "user";
+  }catch(_){ return "user"; }
+}
+// Кто тратит запросы (ip | браузер): копим в памяти, раз в минуту пишем топ-20 в alert_meta `apiwho:<экземпляр>` (перезапись), читает apiusage.
+const whoCalls = new Map(); let whoDirty = false, whoSavedAt = 0;
+function whoFlush(){
+  if(!whoDirty || Date.now() - whoSavedAt < 60e3) return;
+  whoSavedAt = Date.now(); whoDirty = false;
+  const top = [...whoCalls.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20);
+  syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{k:"apiwho:" + USAGE_INST, v:{top}, updated_at:new Date().toISOString()}])}).catch(() => {});
+}
+function ctxCls(){ const c = callCtx.getStore(); return (c && c.cls) || ""; }
 
 // ПРЕДОХРАНИТЕЛЬ ЛИМИТА (26.11.2026, лимит провайдера 500 000/сутки ≈ 20,8k/ч). Уровень считается по общему счётчику (alert_meta apiuse:*):
 //  1 (≥ LOAD_L1 вызовов/ч) — отключаем необязательные фоновые проверки (перекупы, Buy Now, опрос лотов для уведомлений);
@@ -29,6 +52,19 @@ const LOAD_L1 = 14000, LOAD_L2 = 19000;
 const DAY_L1 = 230000, DAY_L2 = 330000, DAY_L3 = 420000;
 const OPTIONAL_L1 = new Set(["resalecheck", "buynowcheck", "alerttick", "timedsync", "ptfill", "factsrefresh"]);
 const OPTIONAL_L2 = new Set(["vinhist", "livebids", "vinarchive", "comps", "compsbatch", "statistics", "syncsettle"]);
+// 26.11.2026: провайдер на 429 отдал Retry-After 41718 с от 21:31 UTC = сброс в 09:07 UTC — суточный лимит у него по фиксированным суткам
+// (от активации ключа), а не по скользящим 24 ч. Считаем «сутки» от последнего 09:00 UTC (часовая корзина), чтобы после сброса провайдера
+// наш предохранитель сразу отпустил ограничения, а не держал их ещё сутки. Час сброса — env API_QUOTA_RESET_HOUR_UTC.
+const QUOTA_RESET_H = Number.isFinite(Number(process.env.API_QUOTA_RESET_HOUR_UTC)) && process.env.API_QUOTA_RESET_HOUR_UTC !== undefined && process.env.API_QUOTA_RESET_HOUR_UTC !== "" ? Number(process.env.API_QUOTA_RESET_HOUR_UTC) : 9;
+function quotaDayStartKey(now){
+  const d = new Date(now);
+  let b = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), QUOTA_RESET_H);
+  if(b > now) b -= 86400e3;
+  const k = usageHourKey(b);
+  return k > QUOTA_KEY_SWITCH_HOUR ? k : QUOTA_KEY_SWITCH_HOUR;   // не считаем расход по старому ключу
+}
+// 26.11.2026 21:37 UTC: ключ auctionsapi заменён на новый (свой суточный лимит) — расход по старому в сутки не входит.
+const QUOTA_KEY_SWITCH_HOUR = "2026112621";   // новый ключ с 21:37 UTC (в корзине 21 ч — единицы вызовов старого ключа)
 let apiLoad = {level:0, rate:0, day:0, at:0, loading:null};
 function apiLoadLevel(){ return apiLoad.level; }
 async function apiLoadRefresh(){
@@ -40,7 +76,7 @@ async function apiLoadRefresh(){
       const now = Date.now(), hCur = usageHourKey(now), hPrev = usageHourKey(now - 3600e3);
       const rows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=gte.${encodeURIComponent(new Date(now - 25 * 3600e3).toISOString())}&select=k,v&limit=3000`);
       let sum = 0, day = 0;
-      const dayFrom = usageHourKey(now - 23 * 3600e3);
+      const dayFrom = quotaDayStartKey(now);   // квотные сутки провайдера, а не скользящие 24 ч (см. QUOTA_RESET_H)
       for(const r of rows || []){
         const h = String(r.k).split(":")[1];
         let rowSum = 0;
@@ -77,7 +113,8 @@ function noteApiCall(url){
   const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
   const ep = m ? m[1] : "other";
   apiUsage.byEndpoint[ep] = (apiUsage.byEndpoint[ep] || 0) + 1;
-  usageBump(ep + "@" + ctxAction());
+  usageBump(ep + "@" + ctxAction() + (ctxCls() ? "~" + ctxCls() : ""));
+  try{ const c = callCtx.getStore(); if(c && c.who){ whoCalls.set(c.who, (whoCalls.get(c.who) || 0) + 1); if(whoCalls.size > 400) whoCalls.clear(); whoDirty = true; } }catch(_){}
 }
 
 // Общий счётчик по ВСЕМ экземплярам (26.11.2026): каждый экземпляр копит часовые корзины
@@ -115,6 +152,7 @@ function usageFlush(force){
 const LIVE_ACTIONS = new Set(["detail", "vin", "vinhist", "livebids", "vinarchive", "queue"]);
 const LIVE_RATE_MAX = 30, liveRateMap = new Map();   // 27.11.2026: 90 → 30 в минуту на IP
 const searchLiveGate = {min:0, n:0};
+const liveSearchSamples = []; let liveSearchSaved = 0;
 function liveRateOk(ip){
   const now = Date.now();
   if(liveRateMap.size > 2000) for(const [k, v] of liveRateMap) if(now - v.start > 60000) liveRateMap.delete(k);
@@ -342,7 +380,16 @@ function noteApiRateLimit(retryAfter){
     if(Number.isFinite(sec) && sec > 0) wait = Math.min(Math.max(sec * 1000, 30e3), 60 * 60e3);
   }
   apiDownUntil = Math.max(apiDownUntil, Date.now() + wait); apiUsage.rateLimited++;
+  // 26.11.2026: помним, ЧТО ответил провайдер на 429 (Retry-After сообщает, когда сбросится лимит) — смотреть в ?action=apiusage&hours=N → `last429`.
+  try{
+    if(Date.now() - last429Saved > 60e3){
+      last429Saved = Date.now();
+      const v = {at:new Date().toISOString(), retryAfter:ra || null, waitSec:Math.round(wait / 1000), breakerUntil:new Date(apiDownUntil).toISOString()};
+      syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{k:"api_429", v, updated_at:v.at}])}).catch(() => {});
+    }
+  }catch(_){}
 }
+let last429Saved = 0;
 function noteApiForbidden(msg){
   apiDownUntil = Math.max(apiDownUntil, Date.now() + 15 * 60e3);
   apiUsage.forbidden++; apiUsage.lastForbidden = String(msg || "").slice(0, 160);
@@ -1791,10 +1838,12 @@ async function fetchSearch(query){
 async function lotFromDbRow(auction, lotNo){
   try{
     const id = `${String(auction).toLowerCase()}-${String(lotNo).replace(/[^\w-]/g, "")}`;
-    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=payload,fuel_x,fuel_src,vin_trim&limit=1`);
+    const withPh = await photosColReady();
+    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=payload,fuel_x,fuel_src,vin_trim${withPh ? ",photos" : ""}&limit=1`);
     const r = Array.isArray(rows) ? rows[0] : null;
     if(!r || !r.payload) return null;
     const l = sanitizeStoredLot(r.payload);
+    if(Array.isArray(r.photos) && r.photos.length > (l.images || []).length){ l.images = r.photos; l.photoCount = r.photos.length; }
     l.title = powertrain.cleanTitle(l.title);
     if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; }
     if(r.vin_trim !== undefined && r.vin_trim !== null) l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind});
@@ -4582,6 +4631,36 @@ function slimPayload(lot){
   for(const k of HEAVY_DETAIL_FIELDS) delete o[k];
   return o;
 }
+// Колонка api_lots.photos (jsonb, миграция 20261126_lot_photos.sql): ПОЛНЫЙ набор фото лота. В payload их не кладём (egress поиска),
+// а отдаём страницей лота из базы — без платного /search-lot (лимит провайдера, 26.11.2026). Без колонки всё работает как раньше.
+let photosColState = {ok:false, at:0};
+async function photosColReady(){
+  const ttl = photosColState.ok ? 600e3 : 60e3;
+  if(Date.now() - photosColState.at < ttl) return photosColState.ok;
+  let ok = false;
+  try{ await syncSbFetch(`/api_lots?select=photos&limit=1`); ok = true; }catch(_){ ok = false; }
+  photosColState = {ok, at:Date.now()};
+  return ok;
+}
+async function photosFromDb(id){
+  try{
+    if(!(await photosColReady())) return null;
+    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=photos&limit=1`);
+    const ph = Array.isArray(rows) && rows[0] && rows[0].photos;
+    return Array.isArray(ph) && ph.length > 4 ? ph : null;
+  }catch(_){ return null; }
+}
+// Живой detail вернул полный набор — запоминаем в базе (один раз на лот), следующие открытия идут из базы.
+function savePhotos(lot){
+  try{
+    const imgs = lot && Array.isArray(lot.images) ? lot.images.filter(u => /^https?:\/\//i.test(String(u || ""))).slice(0, 60) : [];
+    if(!lot || !lot.id || imgs.length <= 4) return;
+    photosColReady().then(ok => {
+      if(!ok) return;
+      syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({photos:imgs})}).catch(() => {});
+    }).catch(() => {});
+  }catch(_){}
+}
 function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
   orderLots(item, {domainId:preferDomain});
   tesla.fixTeslaItem(item);
@@ -4598,6 +4677,7 @@ function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
   const normalized = normalizeLot(item, auction);
   if(!normalized.lot || isFakeLot(normalized)) return null;
   // Обложка + до 4 фото: карточке каталога хватает, детальная всегда live.
+  const allPhotos = Array.isArray(normalized.images) ? normalized.images.filter(u => /^https?:\/\//i.test(String(u || ""))).slice(0, 60) : [];
   if(Array.isArray(normalized.images) && normalized.images.length > 4){
     normalized.images = normalized.images.slice(0, 4);
   }
@@ -4649,6 +4729,7 @@ function syncRowFromItem(item, {archived = false, preferDomain = 0} = {}){
     archived:isArchived,
     lane:normalized.laneKey || null,
     run_no:normalized.runNo || null,
+    photos:allPhotos.length > 4 ? allPhotos : null,   // удаляется в syncUpsertRows, если колонки ещё нет
     payload:slimPayload(normalized),
     synced_at:new Date().toISOString()
   };
@@ -4757,6 +4838,7 @@ function sameKeyFields(a, b, keyFields = ROW_KEY_FIELDS){
   const pl = a.payload || {};
   if(("tm" in b) && (!!pl.timed) !== (b.tm === "true")) return false;
   if(("sr" in b) && (Number(pl.sellerReserve) || 0) !== (Number(b.sr) || 0)) return false;
+  if(("ph0" in b) && Array.isArray(a.photos) && a.photos.length && !b.ph0) return false;   // у строки ещё нет полного набора фото — дописываем
   for(const f of keyFields){
     let x = a[f], y = b[f];
     if(f === "sale_date" || f === "live_until"){ x = x ? Date.parse(x) : null; y = y ? Date.parse(y) : null; }
@@ -4843,11 +4925,13 @@ async function syncUpsertRows(rows, deadline, opts = {}){
   if(!rows.length) return;
   const hasRun = await runColsReady();
   if(!hasRun) rows.forEach(r => { delete r.lane; delete r.run_no; });
+  const hasPhotos = await photosColReady();
+  if(!hasPhotos) rows.forEach(r => { delete r.photos; });
   const keyFields = hasRun ? [...ROW_KEY_FIELDS, "run_no", "lane"] : ROW_KEY_FIELDS;
   // Пред-чтение ключевых полей: (а) пропуск неизменившихся, (б) защита записей о продаже от перезаписи.
   try{
     const ids = rows.map(r => `"${String(r.id).replace(/[^a-z0-9_-]/gi, "")}"`).join(",");
-    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${keyFields.join(",")},tm:payload->>timed,sr:payload->>sellerReserve`);
+    const ex = await syncSbFetch(`/api_lots?id=in.(${ids})&select=id,${keyFields.join(",")},tm:payload->>timed,sr:payload->>sellerReserve${hasPhotos ? ",ph0:photos->>0" : ""}`);
     if(Array.isArray(ex)){
       const map = new Map(ex.map(r => [r.id, r]));
       // Строку-продажу нельзя ухудшить: входящая без финала и без БУДУЩИХ торгов (sold без даты, not_sold-раунд
@@ -5971,13 +6055,23 @@ const handlerInner = async function handler(request, response){
     // ручные maintenance-экшены С ЗАПИСЬЮ (не в кронах и не в GitHub Actions) — только админ
     "teslafix", "syncghosts", "salesbackfill",
     // учёт расхода запросов к auctionsapi
-    "apiusage"
+    "apiusage", "apibadge"
   ]);
   if(ADMIN_ONLY_ACTIONS.has(action)){
     const {isAuthenticated} = require("../server/auth");
     if(!isAuthenticated(request)){ sendJson(response, 401, {ok:false, error:"Нет доступа"}); return; }
   }
 
+  // Лёгкий счётчик для плашки админа (admin-badge.js, шапка админки): сколько запросов к auctionsapi за квотные сутки. Без запросов к БД —
+  // значение держит предохранитель (`apiLoad`, пересчёт раз в 45 с по общим корзинам всех экземпляров).
+  if(action === "apibadge"){
+    const now = Date.now(), d = new Date(now);
+    let reset = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), QUOTA_RESET_H, 7);
+    if(reset <= now) reset += 86400e3;
+    sendJson(response, 200, {ok:true, used:apiLoad.day, limit:500000, level:apiLoad.level, perHour:apiLoad.rate, resetAt:new Date(reset).toISOString(),
+      blockedUntil:apiDownUntil > now ? new Date(apiDownUntil).toISOString() : null, thresholds:[DAY_L1, DAY_L2, DAY_L3]}, {"cache-control":"private, no-store"});
+    return;
+  }
   // Расход запросов к auctionsapi по эндпоинтам (per-instance, с холодного старта).
   if(action === "apiusage" && query.get("hours")){
     // Общий расход по всем экземплярам за N часов (из alert_meta apiuse:*), по часам и эндпоинтам.
@@ -6000,7 +6094,12 @@ const handlerInner = async function handler(request, response){
       const eps = Object.entries(byEp).sort((a, b) => b[1] - a[1]).map(([endpoint, calls]) => ({endpoint, calls, perDayEq: Math.round(calls / hours * 24)}));
       const acts = Object.entries(byAct).sort((a, b) => b[1] - a[1]).map(([action, calls]) => ({action, calls, perHour:Math.round(calls / hours)}));
       const combos = Object.entries(byCombo).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, calls]) => ({k, calls}));
-      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
+      const l429 = await syncSbFetch(`/alert_meta?k=eq.api_429&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
+      const whoRows = await syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiwho:*")}&updated_at=gte.${encodeURIComponent(new Date(Date.now() - 20 * 60e3).toISOString())}&select=v&limit=50`).catch(() => []);
+      const whoSum = Object.create(null); for(const r of whoRows || []) for(const [k, n] of (r.v && r.v.top) || []) whoSum[k] = (whoSum[k] || 0) + n;
+      const who = Object.entries(whoSum).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, calls]) => ({who:k, calls}));
+      const lsamp = await syncSbFetch(`/alert_meta?k=eq.live_search&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, last429:l429 || null, liveSearch:lsamp || null, who, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
         note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
     return;
@@ -6879,7 +6978,15 @@ const handlerInner = async function handler(request, response){
       // light=1 (27.11.2026): листание фото в карточке каталога — нужен только полный набор снимков: один запрос /search-lot,
       // без истории по VIN (/search-vin) и расшифровки; ответ кэшируется.
       if(query.get("light") === "1"){
+        // Сначала полный набор из НАШЕЙ базы (колонка photos) — без запроса к провайдеру; живой /search-lot — только если там нет.
+        const dbId = `${normalizeAuction(query.get("auction"))}-${String(query.get("lot") || "").replace(/[^\w-]/g, "")}`;
+        const dbPh = await photosFromDb(dbId);
+        if(dbPh){
+          sendJson(response, 200, {ok:true, light:true, fromDb:true, lot:{id:dbId, auction:normalizeAuction(query.get("auction")), lot:String(query.get("lot") || ""), images:dbPh, photoCount:dbPh.length}}, {"cache-control":"public, s-maxage=3600, stale-while-revalidate=86400"});
+          return;
+        }
         const l = await fetchDetail(query);
+        savePhotos(l);
         const payload = {ok:true, light:true, lot:{id:l.id, auction:l.auction, lot:l.lot, images:l.images || [], photoCount:l.photoCount || (l.images || []).length}};
         setCached(key, payload);
         sendJson(response, 200, payload, {"cache-control":"public, s-maxage=1800, stale-while-revalidate=3600"});
@@ -6888,6 +6995,7 @@ const handlerInner = async function handler(request, response){
       const lot = await fetchDetail(query);
       await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);
       await attachGenRange(lot);
+      savePhotos(lot);
       upsertClosedLot(lot);
       { const inferred = await inferLaneDate(lot); if(inferred){ lot.auctionDate = inferred.at; lot.auctionDateInferred = true; if(inferred.to) lot.auctionDateInferredTo = inferred.to; } }   // после upsert: выведенную дату в базу не пишем
       const payload = {ok:true,lot, ...(query.get("debug") ? {_histKeys:normalizeLot.lastRawHistKeys || null, _vinKeys:attachVinHistory.rawKeys || null, _vinRaw:attachVinHistory.lastRaw || null} : {})};
@@ -7602,12 +7710,27 @@ const handlerInner = async function handler(request, response){
         // 27.11.2026 (лимит auctionsapi: `search → cars` 49,5 тыс. запросов за 3 ч): когда база не ответила (таймаут/сбой), каждый запрос каталога
         // шёл в провайдера. Теперь живой запасной вариант — только при низкой нагрузке на лимит и не чаще 20 раз в минуту на инстанс;
         // иначе честный 503 (клиент покажет «повторить»), а не сотни платных запросов.
+        // 26.11.2026: таймаут/ошибка ОДНОГО запроса к базе (dbErr при живой базе) — не повод платить за /cars: база просто занята (догоняющий синк),
+        // повтор клиента через пару секунд обычно проходит. В платный фолбэк идём, только когда базы действительно нет (sbUp() false / lotsDbReady false → dbErr пуст).
+        if(dbErr && sbUp()){
+          sendJson(response, 503, {ok:false, error:"catalog busy, retry", _dbErr:dbErr}, {"cache-control":"no-store", "retry-after":"3"});
+          return;
+        }
         const nowMin = Math.floor(Date.now() / 60000);
         if(searchLiveGate.min !== nowMin){ searchLiveGate.min = nowMin; searchLiveGate.n = 0; }
-        if(apiLoadLevel() >= 1 || ++searchLiveGate.n > 20){
+        if(apiLoadLevel() >= 1 || ++searchLiveGate.n > 8){
           sendJson(response, 503, {ok:false, error:"catalog temporarily unavailable", _dbErr:dbErr || undefined}, {"cache-control":"no-store", "retry-after":"20"});
           return;
         }
+        // Диагностика (26.11.2026): какие запросы каталога падают в платный /cars — последние образцы в alert_meta `live_search`, видны в apiusage.
+        try{
+          liveSearchSamples.push({at:new Date().toISOString(), q:String(request.url || "").replace(/^.*\?/, "").slice(0, 300), why:dbErr || (sbUp() ? "db returned null" : "db down")});
+          if(liveSearchSamples.length > 25) liveSearchSamples.shift();
+          if(Date.now() - liveSearchSaved > 30e3){
+            liveSearchSaved = Date.now();
+            syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{k:"live_search", v:{samples:liveSearchSamples.slice(-25)}, updated_at:new Date().toISOString()}])}).catch(() => {});
+          }
+        }catch(_){}
         result = await fetchSearch(query);
         // Live-фолбэк без фильтров: total фида — ВСЕ домены (с Кореей, 782k) и «прыгает» относительно базы.
         // Берём последний известный счётчик вкладки из базы (кэш tabTotal), если он есть.
@@ -7688,12 +7811,14 @@ const handlerInner = async function handler(request, response){
 module.exports = async function handler(request, response){
   let act = "search";
   try{ act = new URL(request.url || "/", "http://x").searchParams.get("action") || "search"; }catch(_){}
-  return callCtx.run({action:act}, async () => {
+  let who = "";
+  try{ who = String(request.headers["x-forwarded-for"] || "").split(",")[0].trim().slice(0, 45) + " | " + String(request.headers["user-agent"] || "—").slice(0, 70); }catch(_){}
+  return callCtx.run({action:act, cls:clientClass(request), who}, async () => {
     try{
       await Promise.race([apiLoadRefresh(), new Promise(r => setTimeout(r, 1200))]);
       return await handlerInner(request, response);
     }
-    finally{ await usageFlush(true).catch(() => {}); }
+    finally{ whoFlush(); await usageFlush(true).catch(() => {}); }
   });
 };
 // Для юнит-тестов (test/comps.test.js, test/attach-vin-history.test.js) — сам модуль экспортирует только

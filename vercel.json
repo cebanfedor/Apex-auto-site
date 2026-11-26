@@ -168,7 +168,7 @@
     },
     {
       "source": "/api/auctions",
-      "missing": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived|queue|facets|dbstatus|missdiag|tgdiag|ptstatus|ptaudit|vinhealth|salescoverage|closedprobe|archprobe|explain|rawfields|rawgens|acvcalib|compstest|detail|vin|count|livebids|vinhist|alert[a-z]*|cab[a-z]*)" }],
+      "missing": [{ "type": "query", "key": "action", "value": "(search|showcase|comps|statistics|manufacturers|models|generations|usadict|archived|queue|facets|dbstatus|missdiag|tgdiag|ptstatus|ptaudit|vinhealth|salescoverage|closedprobe|archprobe|explain|rawfields|rawgens|acvcalib|compstest|detail|vin|count|livebids|vinhist|apiusage|apibadge|alert[a-z]*|cab[a-z]*)" }],
       "headers": [
         { "key": "Cache-Control", "value": "public, s-maxage=900, stale-while-revalidate=300" }
       ]
@@ -182,7 +182,7 @@
     },
     {
       "source": "/api/auctions",
-      "has": [{ "type": "query", "key": "action", "value": "(alert[a-z]*|cab[a-z]*)" }],
+      "has": [{ "type": "query", "key": "action", "value": "(alert[a-z]*|cab[a-z]*|apiusage|apibadge)" }],
       "headers": [
         { "key": "Cache-Control", "value": "private, no-store" }
       ]

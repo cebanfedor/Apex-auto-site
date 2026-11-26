@@ -4095,6 +4095,7 @@ function alertable(lot){
       const r = await api("/api/auctions?action=tgdiag");   // 401 у не-админа → api() бросит → кнопка скрыта
       if(r && r.ok){
         tgDiag = r; document.querySelectorAll(".tgPostBtnV1").forEach(b => b.hidden = false);
+        try{ localStorage.setItem("apexAdminV1", "1"); }catch(_){}
         // Ссылка «Лот дня» из Telegram менеджера (?post=1): сразу открываем окно публикации (один раз)
         try{
           if(/[?&]post=1(&|$)/.test(location.search) && state.selectedLot && !state._tgAutoOpened){ state._tgAutoOpened = true; openTgCompose(state.selectedLot); }
@@ -4497,6 +4498,20 @@ function alertable(lot){
     });
     return out;
   }
+  // Главная зона основного повреждения (для камеры и подписи в 3D): первая зона с уровнем 2 из ПЕРВОГО сработавшего правила.
+  function dmgMainZone(raw){
+    const parts = String(raw || "").toLowerCase().split(/\s*[\/,&;]\s*|\s+and\s+/).map(x => x.replace(/[_-]+/g, " ").trim()).filter(Boolean);
+    for(const part of parts){
+      for(const [re, zones] of DMG_ZONES){
+        if(!re.test(part)) continue;
+        const k = Object.keys(zones).find(z => zones[z] >= 2);
+        if(k) return k;
+        break;
+      }
+    }
+    return "";
+  }
+  const DMG_ZONE_NAMES = {F:"Спереди", FL:"Слева спереди", FR:"Справа спереди", L:"Слева", R:"Справа", T:"Крыша", RL:"Слева сзади", B:"Сзади", RR:"Справа сзади"};
   function damageMapHtml(lot){
     const dmgParts = String(lot.damage || "").split("/").map(x => x.trim()).filter(Boolean);
     const d1 = lot.primaryDamage || dmgParts[0] || "", d2 = lot.secondaryDamage || dmgParts[1] || "";
@@ -4505,15 +4520,14 @@ function alertable(lot){
     const zones = Object.assign({}, z2);
     for(const k in z1) zones[k] = Math.max(zones[k] || 0, z1[k]);
     if(!Object.keys(zones).length) return "";
+    const main = dmgMainZone(d1) || Object.keys(z1).find(k => z1[k] >= 2) || "";
+    const names = {}; for(const k in DMG_ZONE_NAMES) names[k] = L(DMG_ZONE_NAMES[k]);
+    // 2D-схема сверху — запасной вариант (нет WebGL/библиотека не загрузилась) и заглушка до первого кадра 3D
     const R = {F:[52,8,36,76], FL:[28,8,24,76], FR:[88,8,24,76], L:[28,84,24,106], T:[52,84,36,106], R:[88,84,24,106], RL:[28,190,24,64], B:[52,190,36,64], RR:[88,190,24,64]};
     const rects = Object.keys(R).map(k => { const r = R[k], lv = zones[k] || 0; return `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" class="dmgZ${lv}"/>`; }).join("");
     const body = "M46 16 Q70 6 94 16 Q108 28 110 60 L112 200 Q110 238 94 246 Q70 256 46 246 Q30 238 28 200 L30 60 Q32 28 46 16 Z";
     const wheels = [[20,44],[110,44],[20,176],[110,176]].map(w => `<rect x="${w[0]}" y="${w[1]}" width="10" height="34" rx="4" class="dmgWheel"/>`).join("");
-    const legend = [d1 && `<li><i class="dmgDot2"></i><span>${escapeHtml(L("Основное повреждение"))}: <b>${escapeHtml(ruDamage(d1))}</b></span></li>`, d2 && `<li><i class="dmgDot1"></i><span>${escapeHtml(L("Вторичное повреждение"))}: <b>${escapeHtml(ruDamage(d2))}</b></span></li>`].filter(Boolean).join("");
-    return `<section class="dSec dmgMapV1" aria-label="${escapeHtml(L("Карта повреждений"))}">
-      <div class="dSecHead">${L("Карта повреждений")}</div>
-      <div class="dmgMapBodyV1">
-        <svg viewBox="0 0 140 262" role="img" aria-label="${escapeHtml(L("Вид сверху"))}">
+    const flat = `<svg viewBox="0 0 140 262" role="img" aria-label="${escapeHtml(L("Вид сверху"))}">
           <defs><clipPath id="dmgClipV1"><path d="${body}"/></clipPath></defs>
           ${wheels}
           <g clip-path="url(#dmgClipV1)">${rects}</g>
@@ -4522,9 +4536,26 @@ function alertable(lot){
           <path d="M46 168 Q70 174 94 168 L98 190 Q70 198 42 190 Z" class="dmgGlass"/>
           <text x="70" y="38" class="dmgTxt">${escapeHtml(L("Перед"))}</text>
           <text x="70" y="236" class="dmgTxt">${escapeHtml(L("Зад"))}</text>
-        </svg>
-        <ul class="dmgLegendV1">${legend}</ul>
-        <p class="dmgNoteV1">${L("Подсветка показывает зоны по данным площадки. Красным — основной удар, жёлтым — вторичный или соседние зоны.")}</p>
+        </svg>`;
+    const legend = [d1 && `<li><i class="dmgDot2"></i><span>${escapeHtml(L("Основное повреждение"))}<b>${escapeHtml(ruDamage(d1))}</b></span></li>`, d2 && `<li><i class="dmgDot1"></i><span>${escapeHtml(L("Вторичное повреждение"))}<b>${escapeHtml(ruDamage(d2))}</b></span></li>`].filter(Boolean).join("");
+    const chips = Object.keys(zones).sort((a, b) => zones[b] - zones[a]).map(k => `<span class="dmgChipV1 lv${zones[k]}"><i></i>${escapeHtml(names[k] || k)}</span>`).join("");
+    const views = [["front", "Перед"], ["left", "Слева"], ["rear", "Зад"], ["right", "Справа"], ["top", "Сверху"]].map(v => `<button type="button" data-v="${v[0]}">${escapeHtml(L(v[1]))}</button>`).join("");
+    const attr = s => escapeHtml(JSON.stringify(s));
+    return `<section class="dSec dmgMapV1" aria-label="${escapeHtml(L("Карта повреждений"))}">
+      <div class="dSecHead dmgHeadV1"><span>${L("Карта повреждений")}</span><em class="dmgTag3dV1">3D</em></div>
+      <div class="dmgMapBodyV1">
+        <div class="dmg3dStageV1" data-zones="${attr(zones)}" data-main="${escapeHtml(main)}" data-names="${attr(names)}">
+          <div class="dmg3dFlatV1">${flat}</div>
+          <div class="dmg3dCanvasV1"></div>
+          <div class="dmg3dMarkV1" hidden><i></i><span>${escapeHtml(main ? (names[main] || "") : "")}</span></div>
+          <div class="dmg3dViewsV1" role="group" aria-label="${escapeHtml(L("Вид"))}">${views}</div>
+          <div class="dmg3dHintV1"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.7-2.3L3.5 15.5a1.6 1.6 0 0 1 2.4-2.1L9 16"/></svg>${escapeHtml(L("Потяните, чтобы повернуть"))}</div>
+        </div>
+        <div class="dmg3dSideV1">
+          <ul class="dmgLegendV1">${legend}</ul>
+          <div class="dmgZonesV1"><div class="dmgZonesTtlV1">${escapeHtml(L("Затронутые зоны"))}</div><div class="dmgChipsV1">${chips}</div></div>
+          <p class="dmgNoteV1">${L("Подсветка показывает зоны по данным площадки. Красным — основной удар, жёлтым — вторичный или соседние зоны.")}</p>
+        </div>
       </div>
     </section>`;
   }
