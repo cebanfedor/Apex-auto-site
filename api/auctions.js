@@ -18,6 +18,21 @@ const apiUsage = { since: Date.now(), total: 0, rateLimited: 0, forbidden: 0, la
 const {AsyncLocalStorage} = require("node:async_hooks");
 const callCtx = new AsyncLocalStorage();   // {action} — какой экшен (крон/запрос клиента) сейчас делает вызов к провайдеру
 function ctxAction(){ const c = callCtx.getStore(); return (c && c.action) || "none"; }
+// Кто вызвал (для отчёта расхода: `detail~bot` / `detail~user` …): int — наши SSR/превью, cron — крон/Actions, bot — поисковики/мессенджеры/краулеры,
+// script — curl/питон/пустой UA, user — обычный браузер. Нужен только для диагностики, на логику защит не влияет.
+function clientClass(req){
+  try{
+    const h = req.headers || {};
+    if(h["x-internal"]) return "int";
+    if(/^Bearer\s/i.test(String(h["authorization"] || ""))) return "cron";
+    const ua = String(h["user-agent"] || "");
+    if(!ua) return "script";
+    if(/bot|crawl|spider|slurp|facebookexternalhit|telegram|whatsapp|preview|google-inspection|lighthouse|pagespeed|gptbot|claude|perplexity|bytespider|petalbot|semrush|ahrefs|mj12|yandex|baidu/i.test(ua)) return "bot";
+    if(/curl|python|axios|node-fetch|undici|go-http|java\/|okhttp|scrapy|httpclient|wget|headless|libwww|php/i.test(ua)) return "script";
+    return "user";
+  }catch(_){ return "user"; }
+}
+function ctxCls(){ const c = callCtx.getStore(); return (c && c.cls) || ""; }
 
 // ПРЕДОХРАНИТЕЛЬ ЛИМИТА (26.11.2026, лимит провайдера 500 000/сутки ≈ 20,8k/ч). Уровень считается по общему счётчику (alert_meta apiuse:*):
 //  1 (≥ LOAD_L1 вызовов/ч) — отключаем необязательные фоновые проверки (перекупы, Buy Now, опрос лотов для уведомлений);
@@ -90,7 +105,7 @@ function noteApiCall(url){
   const m = String(url || "").match(/auctionsapi\.com\/api\/([a-z-]+)/i);
   const ep = m ? m[1] : "other";
   apiUsage.byEndpoint[ep] = (apiUsage.byEndpoint[ep] || 0) + 1;
-  usageBump(ep + "@" + ctxAction());
+  usageBump(ep + "@" + ctxAction() + (ctxCls() ? "~" + ctxCls() : ""));
 }
 
 // Общий счётчик по ВСЕМ экземплярам (26.11.2026): каждый экземпляр копит часовые корзины
@@ -7767,7 +7782,7 @@ const handlerInner = async function handler(request, response){
 module.exports = async function handler(request, response){
   let act = "search";
   try{ act = new URL(request.url || "/", "http://x").searchParams.get("action") || "search"; }catch(_){}
-  return callCtx.run({action:act}, async () => {
+  return callCtx.run({action:act, cls:clientClass(request)}, async () => {
     try{
       await Promise.race([apiLoadRefresh(), new Promise(r => setTimeout(r, 1200))]);
       return await handlerInner(request, response);
