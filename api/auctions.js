@@ -143,6 +143,7 @@ function usageFlush(force){
 const LIVE_ACTIONS = new Set(["detail", "vin", "vinhist", "livebids", "vinarchive", "queue"]);
 const LIVE_RATE_MAX = 30, liveRateMap = new Map();   // 27.11.2026: 90 → 30 в минуту на IP
 const searchLiveGate = {min:0, n:0};
+const liveSearchSamples = []; let liveSearchSaved = 0;
 function liveRateOk(ip){
   const now = Date.now();
   if(liveRateMap.size > 2000) for(const [k, v] of liveRateMap) if(now - v.start > 60000) liveRateMap.delete(k);
@@ -6085,7 +6086,8 @@ const handlerInner = async function handler(request, response){
       const acts = Object.entries(byAct).sort((a, b) => b[1] - a[1]).map(([action, calls]) => ({action, calls, perHour:Math.round(calls / hours)}));
       const combos = Object.entries(byCombo).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, calls]) => ({k, calls}));
       const l429 = await syncSbFetch(`/alert_meta?k=eq.api_429&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
-      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, last429:l429 || null, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
+      const lsamp = await syncSbFetch(`/alert_meta?k=eq.live_search&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, last429:l429 || null, liveSearch:lsamp || null, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
         note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
     return;
@@ -7698,10 +7700,19 @@ const handlerInner = async function handler(request, response){
         // иначе честный 503 (клиент покажет «повторить»), а не сотни платных запросов.
         const nowMin = Math.floor(Date.now() / 60000);
         if(searchLiveGate.min !== nowMin){ searchLiveGate.min = nowMin; searchLiveGate.n = 0; }
-        if(apiLoadLevel() >= 1 || ++searchLiveGate.n > 20){
+        if(apiLoadLevel() >= 1 || ++searchLiveGate.n > 8){
           sendJson(response, 503, {ok:false, error:"catalog temporarily unavailable", _dbErr:dbErr || undefined}, {"cache-control":"no-store", "retry-after":"20"});
           return;
         }
+        // Диагностика (26.11.2026): какие запросы каталога падают в платный /cars — последние образцы в alert_meta `live_search`, видны в apiusage.
+        try{
+          liveSearchSamples.push({at:new Date().toISOString(), q:String(request.url || "").replace(/^.*\?/, "").slice(0, 300), why:dbErr || (sbUp() ? "db returned null" : "db down")});
+          if(liveSearchSamples.length > 25) liveSearchSamples.shift();
+          if(Date.now() - liveSearchSaved > 30e3){
+            liveSearchSaved = Date.now();
+            syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{k:"live_search", v:{samples:liveSearchSamples.slice(-25)}, updated_at:new Date().toISOString()}])}).catch(() => {});
+          }
+        }catch(_){}
         result = await fetchSearch(query);
         // Live-фолбэк без фильтров: total фида — ВСЕ домены (с Кореей, 782k) и «прыгает» относительно базы.
         // Берём последний известный счётчик вкладки из базы (кэш tabTotal), если он есть.
