@@ -117,7 +117,8 @@ module.exports = async function(req, res){
     const pretty = lotSlug(lot);
     if(pretty && slug !== pretty && req.query.debug !== "1"){
       res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=300");
-      res.setHeader("Location", `/auctions/${pretty}${lang === "ru" ? "" : `?lang=${lang}`}`);
+      const qs = [lang === "ru" ? "" : `lang=${lang}`, req.query.post === "1" ? "post=1" : ""].filter(Boolean).join("&");   // post=1 — «Лот дня» из Telegram менеджера
+      res.setHeader("Location", `/auctions/${pretty}${qs ? "?" + qs : ""}`);
       res.status(301).end();
       return;
     }

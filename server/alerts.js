@@ -657,6 +657,35 @@ function create(deps){
     }
   }
 
+  // «Лот дня» (27.11.2026): раз в сутки в 10–12 по Кишинёву берём лучший лот витрины (минимум ремонта,
+  // см. action=showcase) и шлём менеджеру ЧЕРНОВИК со ссылкой — страница лота с ?post=1 сразу открывает окно
+  // публикации в канал. Сам в канал НИЧЕГО не публикуем: решает Федор. Уже предлагавшиеся лоты не повторяем.
+  async function processLotOfDay(budgetMs, out){
+    out.lotday = 0;
+    const now = Date.now(), h = localHour(now);
+    if(h < 10 || h > 12) return;
+    const day = localYmd(now);
+    const m = await sb(`/alert_meta?k=eq.lotday&select=v&limit=1`).catch(() => null);
+    const st = (m && m[0] && m[0].v) || {};
+    if(st.day === day) return;
+    const cl = require("./clients");
+    const r = await Promise.race([
+      fetch(cl.SITE + "/api/auctions?action=showcase").then(x => x.ok ? x.json() : null),
+      new Promise(res => setTimeout(() => res(null), Math.max(2000, budgetMs)))
+    ]).catch(() => null);
+    const items = (r && r.items) || [];
+    const seen = Array.isArray(st.seen) ? st.seen : [];
+    const pick = items.find(it => it && it.id && seen.indexOf(String(it.id)) < 0);
+    if(!pick){ await cl.metaSet(sb, "lotday", {day, seen}).catch(() => {}); return; }
+    const slug = require("./slug").lotSlug({auction: pick.auction, lot: pick.lot, title: pick.title, vin: pick.vin});
+    const url = cl.SITE + "/auctions/" + slug + "?post=1";
+    const bid = Number(pick.currentBid || 0);
+    const text = "📣 <b>Лот дня — черновик для канала</b>\n" + cl.esc(String(pick.title || pick.id)) +
+      (pick.year ? " · " + pick.year : "") + (bid ? " · ставка $" + bid.toLocaleString("en-US") : "") +
+      "\nОткройте страницу лота, проверьте текст и нажмите «Опубликовать». Без вашего клика ничего не уйдёт в канал.";
+    const ok = await cl.notifyManager(sb, "lotday", text, [{text: "Открыть и опубликовать", url}]).catch(() => false);
+    if(ok){ out.lotday = 1; await cl.metaSet(sb, "lotday", {day, seen: seen.concat(String(pick.id)).slice(-60)}).catch(() => {}); }
+  }
   async function tick(){
     const out = {ok:true, soon:0, playing:0, sold:0, notSold:0, moved:0, dateSet:0, timedOn:0, dayOf:0, buyNow:0, newMsgs:0, searchErr:0};
     if(!tgToken()){ out.ok = false; out.reason = "no_token"; return out; }
@@ -673,6 +702,8 @@ function create(deps){
     if(left3 > 6000) await require("./deals").syncDeals({supabase: require("./supabase"), fetchTrack, budgetMs: Math.min(left3 - 2000, 12000)}, out).catch(e => { out.dealErr = String(e.message || e).slice(0, 120); });
     const left4 = 56000 - (Date.now() - started);
     if(left4 > 4000) await require("./deals").processReviews({supabase: require("./supabase"), budgetMs: Math.min(left4 - 1500, 6000)}, out).catch(e => { out.reviewErr = String(e.message || e).slice(0, 120); });
+    const left5 = 57000 - (Date.now() - started);
+    if(left5 > 4000) await processLotOfDay(Math.min(left5 - 1500, 5000), out).catch(e => { out.lotdayErr = String(e.message || e).slice(0, 120); });
     out.ms = Date.now() - started;
     return out;
   }

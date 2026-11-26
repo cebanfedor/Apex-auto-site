@@ -3636,7 +3636,13 @@ function alertable(lot){
     tgChecked = true;
     try{
       const r = await api("/api/auctions?action=tgdiag");   // 401 у не-админа → api() бросит → кнопка скрыта
-      if(r && r.ok){ tgDiag = r; document.querySelectorAll(".tgPostBtnV1").forEach(b => b.hidden = false); }
+      if(r && r.ok){
+        tgDiag = r; document.querySelectorAll(".tgPostBtnV1").forEach(b => b.hidden = false);
+        // Ссылка «Лот дня» из Telegram менеджера (?post=1): сразу открываем окно публикации (один раз)
+        try{
+          if(/[?&]post=1(&|$)/.test(location.search) && state.selectedLot && !state._tgAutoOpened){ state._tgAutoOpened = true; openTgCompose(state.selectedLot); }
+        }catch(_){}
+      }
     }catch(_){ /* не админ — кнопки остаются скрытыми */ }
   }
   const TG_FUEL = {1:"Дизель", 2:"Электро", 3:"Гибрид", 4:"Бензин", 5:"Plug-in гибрид"};

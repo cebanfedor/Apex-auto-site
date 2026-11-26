@@ -151,7 +151,7 @@ async function adminChat(sb){
     return adminCache.chat;
   }catch(_){ return adminCache.chat; }
 }
-const MGR_DEFAULT = {online: true, hot: true, react: true, msg: true};
+const MGR_DEFAULT = {online: true, hot: true, react: true, msg: true, lotday: true};
 async function mgrPrefs(sb){
   try{
     const r = await sb(`/alert_meta?k=eq.mgr_prefs&select=v&limit=1`);
