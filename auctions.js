@@ -3085,6 +3085,7 @@ function alertable(lot){
       <div class="calcCtasV2">
         <button class="dbBtnPrimary" type="button" data-lead="${escapeHtml(lot.id)}">${L("Оставить заявку")}</button>
         <button class="dbBtnGhost" type="button" data-copy-calc>${L("Скопировать расчёт")}</button>
+        <button class="dbBtnGhost" type="button" data-share-calc>${L("Поделиться картинкой")}</button>
         <a class="dbBtnGhost" href="${calcHref(lot)}">${L("Открыть в полном калькуляторе")}</a>
       </div>
       <p class="calcNoteV2">${L("Расчёт предварительный, для ориентира. Итоговую сумму подтверждаем перед покупкой. Курсы валют — по данным НБМ (bnm.md).")}</p>
@@ -3292,6 +3293,124 @@ function alertable(lot){
     return calc;
   }
 
+  // Строки разбивки для текста и картинки: [подпись, сумма USD, пояснение]
+  function calcRowsData(calc){
+    return calc.canada ? [
+      ["Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd}`],
+      ["Аукционный сбор", calc.auctionFee],
+      ["Доставка по Канаде", calc.dispatch],
+      ["Комиссия банка TD", calc.bankFee],
+      ["Услуги канадской компании", calc.canadaFee],
+      ["Складирование и погрузка", calc.keeper],
+      ["Морская перевозка", calc.ocean],
+      ["Дорога Клайпеда → Кишинёв", calc.road],
+      ["Таможенные платежи", calc.customsUsd],
+      ["Брокер + утиль сбор", calc.brokerUsd],
+      ["Страховка (1%)", calc.insurance],
+      ["Экспортные документы", calc.exportDocs],
+      ["Комиссия", calc.service],
+      ["Комиссия на оплату", calc.paymentFee]
+    ] : [
+      ["Ставка", calc.bid],
+      ["Аукционный сбор", calc.auctionFee],
+      ["Доставка по США", calc.land, calc.port || ""],
+      ["Доставка морем", calc.sea],
+      ["Таможенные платежи", calc.customsUsd],
+      ["Брокер + утиль сбор", calc.brokerUsd],
+      ["Страховка (1%)", calc.insurance],
+      ["Экспортные документы", calc.exportDocs],
+      ["Комиссия", calc.service],
+      ["Комиссия на оплату", calc.paymentFee]
+    ];
+  }
+  // «Поделиться расчётом» (26.11.2026): картинка 1080 px для WhatsApp/Telegram — фото лота, разбивка и итог под ключ.
+  function loadImg(src){
+    return new Promise(res => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = () => res(null); im.src = src; setTimeout(() => res(null), 6000); });
+  }
+  function rrect(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  async function buildCalcImage(){
+    const lot = state.selectedLot;
+    const calc = updateLotCalculator();
+    if(!calc || !lot) return null;
+    const rows = calcRowsData(calc).filter(r => r[1] > 0);
+    const photo = await loadImg((lot.images && lot.images[0]) || lot.image || "");
+    const W = 1080, PAD = 56, FONT = "Onest, Inter, system-ui, -apple-system, Segoe UI, sans-serif";
+    const photoH = photo ? 520 : 0, rowH = 64;
+    const H = 130 + photoH + 150 + rows.length * rowH + 250 + 90;
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#f4f6f9"; ctx.fillRect(0, 0, W, H);
+    // шапка
+    ctx.fillStyle = "#ed0012"; ctx.fillRect(0, 0, W, 110);
+    ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
+    ctx.font = `800 44px ${FONT}`; ctx.fillText("APEX AUTO", PAD, 56);
+    ctx.font = `600 28px ${FONT}`; ctx.textAlign = "right"; ctx.fillText(L("Расчёт под ключ"), W - PAD, 56); ctx.textAlign = "left";
+    let y = 130;
+    if(photo){
+      ctx.save(); rrect(ctx, PAD, y, W - PAD * 2, photoH - 20, 28); ctx.clip();
+      const bw = W - PAD * 2, bh = photoH - 20, k = Math.max(bw / photo.width, bh / photo.height);
+      ctx.drawImage(photo, PAD + (bw - photo.width * k) / 2, y + (bh - photo.height * k) / 2, photo.width * k, photo.height * k);
+      ctx.restore();
+      y += photoH;
+    }
+    // название и ссылка
+    ctx.fillStyle = "#11141a"; ctx.font = `800 44px ${FONT}`;
+    const title = lotTitle(lot);
+    let t = title; while(ctx.measureText(t).width > W - PAD * 2 && t.length > 8) t = t.slice(0, -2);
+    ctx.fillText(t === title ? t : t + "…", PAD, y + 36);
+    ctx.fillStyle = "#667080"; ctx.font = `500 28px ${FONT}`;
+    ctx.fillText(`${String(lot.auction || "").toUpperCase()} · ${L("Лот")} ${lot.lot}${lot.vin ? " · VIN " + lot.vin : ""}`, PAD, y + 86);
+    y += 130;
+    // карточка разбивки
+    const cardH = rows.length * rowH + 30;
+    ctx.fillStyle = "#fff"; rrect(ctx, PAD, y, W - PAD * 2, cardH, 24); ctx.fill();
+    ctx.strokeStyle = "#e6eaf0"; ctx.lineWidth = 2; ctx.stroke();
+    rows.forEach((r, i) => {
+      const ry = y + 15 + i * rowH + rowH / 2;
+      ctx.fillStyle = "#44505f"; ctx.font = `500 30px ${FONT}`; ctx.textAlign = "left";
+      ctx.fillText(L(r[0]) + (r[2] && !calc.canada ? ` (${r[2]})` : ""), PAD + 28, ry);
+      ctx.fillStyle = "#11141a"; ctx.font = `700 31px ${FONT}`; ctx.textAlign = "right";
+      ctx.fillText(money(r[1]), W - PAD - 28, ry);
+      if(i < rows.length - 1){ ctx.fillStyle = "#eef0f3"; ctx.fillRect(PAD + 28, y + 15 + (i + 1) * rowH, W - PAD * 2 - 56, 2); }
+    });
+    ctx.textAlign = "left";
+    y += cardH + 28;
+    // итог
+    ctx.fillStyle = "#11141a"; rrect(ctx, PAD, y, W - PAD * 2, 190, 28); ctx.fill();
+    ctx.fillStyle = "#c8ced8"; ctx.font = `600 28px ${FONT}`; ctx.fillText(L("Итого под ключ"), PAD + 36, y + 52);
+    ctx.fillStyle = "#fff"; ctx.font = `800 84px ${FONT}`; ctx.fillText(money(calc.total), PAD + 36, y + 126);
+    ctx.fillStyle = "#c8ced8"; ctx.font = `500 26px ${FONT}`; ctx.textAlign = "right"; ctx.fillText(altCurrency(calc).replace(/\s+/g, " "), W - PAD - 36, y + 126); ctx.textAlign = "left";
+    y += 190 + 44;
+    // подвал
+    ctx.fillStyle = "#11141a"; ctx.font = `700 30px ${FONT}`; ctx.fillText("apexauto.md  ·  +373 68 832 032", PAD, y);
+    ctx.fillStyle = "#8a94a3"; ctx.font = `500 24px ${FONT}`; ctx.fillText(L("Расчёт предварительный. Итоговую сумму подтверждаем перед покупкой."), PAD, y + 44);
+    return new Promise(res => { try{ cv.toBlob(b => res(b), "image/png"); }catch(e){ res(null); } });
+  }
+  async function shareCalcImage(){
+    const btn = document.querySelector("[data-share-calc]");
+    const orig = btn ? btn.textContent : "";
+    if(btn){ btn.disabled = true; btn.textContent = L("Готовим картинку…"); }
+    try{
+      let blob = await buildCalcImage();
+      if(!blob){
+        // фото площадки не отдалось с CORS и «испортило» холст — строим без фото
+        const lot = state.selectedLot, saved = lot.images, savedImg = lot.image;
+        lot.images = []; lot.image = "";
+        try{ blob = await buildCalcImage(); }finally{ lot.images = saved; lot.image = savedImg; }
+      }
+      if(!blob) throw new Error("no blob");
+      const lot = state.selectedLot;
+      const file = new File([blob], `apex-auto-${lot.auction}-${lot.lot}.png`, {type:"image/png"});
+      const text = `${lotTitle(lot)} — ${L("Расчёт под ключ")}\n${location.origin}${detailHref(lot)}`;
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({files:[file], title:lotTitle(lot), text}); }catch(e){ if(e && e.name === "AbortError") return; throw e; }
+      }else{
+        const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      }
+    }catch(e){ window.alert(L("Не удалось подготовить картинку")); }
+    finally{ if(btn){ btn.disabled = false; btn.textContent = orig; } }
+  }
   // Текст расчёта для буфера — тот же полный формат, что «Скопировать расчёт» на
   // главной: аукцион, локация с маршрутом (как на экране), ссылки на лот (наш сайт +
   // площадка), номер лота, VIN, вся разбивка платежей, итог USD + MDL/EUR.
@@ -3300,33 +3419,7 @@ function alertable(lot){
     const calc = updateLotCalculator();
     if(!calc || !lot) return "";
     const row = (label, v, sub) => v > 0 ? `• ${L(label)}${sub ? ` (${sub})` : ""} — ${money(v)}` : "";
-    const rows = calc.canada ? [
-      row("Ставка", calc.bid, `${Math.round(calc.bidCad).toLocaleString("en-US")} CAD × ${calc.cadUsd}`),
-      row("Аукционный сбор", calc.auctionFee),
-      row("Доставка по Канаде", calc.dispatch),
-      row("Комиссия банка TD", calc.bankFee),
-      row("Услуги канадской компании", calc.canadaFee),
-      row("Складирование и погрузка", calc.keeper),
-      row("Морская перевозка", calc.ocean),
-      row("Дорога Клайпеда → Кишинёв", calc.road),
-      row("Таможенные платежи", calc.customsUsd),
-      row("Брокер + утиль сбор", calc.brokerUsd),
-      row("Страховка (1%)", calc.insurance),
-      row("Экспортные документы", calc.exportDocs),
-      row("Комиссия", calc.service),
-      row("Комиссия на оплату", calc.paymentFee)
-    ] : [
-      row("Ставка", calc.bid),
-      row("Аукционный сбор", calc.auctionFee),
-      row("Доставка по США", calc.land, calc.port || ""),
-      row("Доставка морем", calc.sea),
-      row("Таможенные платежи", calc.customsUsd),
-      row("Брокер + утиль сбор", calc.brokerUsd),
-      row("Страховка (1%)", calc.insurance),
-      row("Экспортные документы", calc.exportDocs),
-      row("Комиссия", calc.service),
-      row("Комиссия на оплату", calc.paymentFee)
-    ];
+    const rows = calcRowsData(calc).map(r => row(r[0], r[1], r[2]));
     // Локация: где стоит машина + маршрут до порта и морем — то же, что показано в калькуляторе.
     // Фид отдаёт место строчными («hillsborough, new jersey») — приводим к Title Case.
     const place = titleCaseLoc(lot.location);
@@ -6235,6 +6328,7 @@ function alertable(lot){
         updateLotCalculator();
       }
       if(event.target.closest("[data-copy-calc]")) copyCalculation();
+      if(event.target.closest("[data-share-calc]")) shareCalcImage();
       const calcToggle = event.target.closest("[data-calc-toggle]");
       if(calcToggle){
         const key = calcToggle.dataset.calcToggle;
