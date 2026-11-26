@@ -115,8 +115,8 @@ const RO_EN = [
   ["Caută", "Search"], ["Căutare", "Search"], ["Sunați 068-832-032", "Call 068-832-032"], ["Meniu", "Menu"], ["Limba", "Language"],
   ["Avariate", "Damaged"], ["Întregi", "Intact"], ["întregi", "intact"], ["avariate", "damaged"], [">Util <", ">Useful <"],
   ["Mă puteți cunoaște ca", "You may know me as"], ["Din 2016", "Since 2016"], ["în domeniul auto", "in the car business"],
-  ["APEX AUTO — din 2026", "APEX AUTO — since 2026"], ["brandul echipei care activează din 2016", "the brand of a team working since 2016"],
-  ["2000+ mașini", "2000+ cars"], ["livrate de echipă din 2016", "delivered by the team since 2016"], ["La cheie", "Turnkey"],
+  ["APEX AUTO — din 2026", "APEX AUTO — since 2026"], ["în spatele brandului — 10 ani de experiență, din 2016", "10 years of experience behind the brand, since 2016"],
+  ["2000+ mașini", "2000+ cars"], ["importate din 2016", "imported since 2016"], ["La cheie", "Turnkey"],
   ["selecție, licitații, acte și logistică", "selection, auctions, paperwork and logistics"], ["Telefon:", "Phone:"], ["Suntem în legătură:", "Stay in touch:"], ["Canal Telegram", "Telegram channel"]
 ];
 function toEN(html) { let s = html; for (const [a, b] of RO_EN) s = s.split(a).join(b); return s; }

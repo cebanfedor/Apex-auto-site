@@ -114,9 +114,11 @@
     q.push("tab=all", "sort=soon");
     if(lang !== "ru") q.push("lang=" + lang);
     try{ localStorage.setItem("apexWizardV1", JSON.stringify({ans: ans, extra: extra, t: Date.now()})); }catch(e){}
+    try{ if(window.apexTrack) window.apexTrack("wizard_done"); }catch(_){}
     location.href = "/auctions?" + q.join("&");
   }
   function open(){
+    try{ if(window.apexTrack) window.apexTrack("wizard_start"); }catch(_){}
     css();
     if(!root){
       root = document.createElement("div"); root.className = "wizV1"; root.setAttribute("role", "dialog"); root.setAttribute("aria-modal", "true"); root.setAttribute("aria-label", t.title);

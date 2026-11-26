@@ -5,7 +5,15 @@ const {sendJson, getQuery, readBody} = require("../server/http");
 const {isAuthenticated} = require("../server/auth");
 
 const BOT_RE = /bot|crawl|spider|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|uptime|monitor|curl\/|wget|python|axios|node-fetch|go-http|vercel|GTmetrix|Chrome-Lighthouse/i;
-const EVENTS = new Set(["fav_add", "save_search", "alert_search", "alert_lot", "alert_connected", "lead_open", "calc_use"]);
+const EVENTS = new Set(["fav_add", "save_search", "alert_search", "alert_lot", "alert_connected", "lead_open", "calc_use",
+  // 27.11.2026 (воронка заявок): lead_sent:<откуда> · calc_result · contact_click:<tg|wa|phone|email> · calc_share:<tg|copy> · wizard_start · wizard_done · hero_cta:<calc|catalog|transit|match>
+  "lead_sent", "calc_result", "contact_click", "calc_share", "wizard_start", "wizard_done", "hero_cta"]);
+// событие = база из белого списка + необязательный суффикс (латиница/цифры/_ до 20 знаков)
+function cleanEvent(e){
+  if(typeof e !== "string") return null;
+  const m = /^([a-z_]{2,20})(?::([a-z0-9_]{1,20}))?$/.exec(e);
+  return m && EVENTS.has(m[1]) ? e : null;
+}
 const SELF_HOSTS = new Set(["apexauto.md", "www.apexauto.md"]);
 const rate = new Map();
 
@@ -85,7 +93,7 @@ module.exports = async function handler(request, response){
     else if(++bucket.n > 40){ response.status(204).end(); return; }
     if(rate.size > 5000) rate.clear();
 
-    const ev = typeof body.e === "string" && EVENTS.has(body.e) ? body.e : null;
+    const ev = cleanEvent(body.e);
     const hb = body.hb ? true : false;
     const dev = /iPad|Tablet/i.test(ua) ? "t" : /Mobi|Android|iPhone/i.test(ua) ? "m" : "d";
     const ctry = String(request.headers["x-vercel-ip-country"] || "").slice(0, 2).toUpperCase() || null;
