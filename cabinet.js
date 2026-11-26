@@ -179,7 +179,7 @@
     return t("in_") + " " + Math.max(1, m) + " " + t("m");
   }
   function lotUrl(id){
-    var f = /^(kr|ca)-/.test(String(id)) ? S.favs.filter(function(x){ return x.id === id; })[0] : null;
+    var f = /^(kr|ca)-/.test(String(id)) ? (S.favs.filter(function(x){ return x.id === id; })[0] || S.recent.filter(function(x){ return x.id === id; })[0]) : null;
     return f && f.url ? f.url : "/auctions/" + encodeURIComponent(id);
   }
   function img(l){ return l.image || (l.images && l.images[0]) || ""; }
@@ -718,7 +718,7 @@
         var st = status(merged(r));
         return '<article class="cabCardV1"><a class="cabPicV1" href="' + lotUrl(r.id) + '">' + (img(r) ? '<img src="' + esc(img(r)) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : "") + '<span class="cabAucV1">' + esc(aucName(r)) + '</span></a>' +
           '<div class="cabBodyV1"><a class="cabTitleV1" href="' + lotUrl(r.id) + '">' + esc(titleOf(r)) + '</a><div class="cabVinV1">' + esc(r.vin || "") + '</div>' +
-          '<div class="cabRowsV1"><div><span>' + t("when") + '</span><b>' + (r.auctionDate && isFinite(Date.parse(r.auctionDate)) ? esc(fmtDate(r.auctionDate)) : esc(t("nodate"))) + '</b></div></div>' +
+          '<div class="cabRowsV1">' + (r.catalog ? (Number(r.usd) > 0 ? '<div><span>' + t("c_price") + '</span><b>' + money(r.usd) + '</b></div>' : "") + (r.year ? '<div><span>' + t("c_year") + '</span><b>' + esc(r.year) + '</b></div>' : "") : '<div><span>' + t("when") + '</span><b>' + (r.auctionDate && isFinite(Date.parse(r.auctionDate)) ? esc(fmtDate(r.auctionDate)) : esc(t("nodate"))) + '</b></div>') + '</div>' +
           '<div class="cabActsV1"><button type="button" class="cabIcoBtnV1' + (favIds[r.id] ? " on" : "") + '" data-act="addfav" data-id="' + esc(r.id) + '">' + ico("heart") + '<span>' + t("add_fav") + '</span></button></div></div></article>';
       }).join("") + '</div>';
   }
@@ -820,7 +820,7 @@
 
   // ---------- экспорт избранного ----------
   function favRows(){ return S.favs.map(function(f){ var o = merged(f), ca = isCa(o); return {
-    id:o.id, title:titleOf(o), vin:o.vin || "", auction:aucName(o), date:o.auctionDate || "", bid:Number(o.currentBid) || "", buy:Number(o.buyNow) || "",
+    id:o.id, title:titleOf(o), vin:o.vin || "", auction:aucName(o), date:o.auctionDate || "", bid:Number(o.catalog ? o.usd : o.currentBid) || "", buy:Number(o.buyNow) || "",
     odo:o.odometerText || "", dmg:o.primaryDamage || "", cur:ca ? "CAD" : "USD", url:location.origin + lotUrl(o.id), note:(S.notes[o.id] && S.notes[o.id].text) || ""
   }; }); }
   function expCsv(){

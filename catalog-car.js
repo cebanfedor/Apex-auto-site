@@ -274,6 +274,19 @@
 
   // ---- Избранное: общая стопка с лотами Copart/IAAI (cat-fav.js → apexFavsV1, синхронизация кабинетом) ----
   var FAVSRC = CA ? "ca" : "kr";
+  function catSnapshot(){
+    var car = state.car, pr = listingPrice(state.listing), usd = pr && pr.amount ? toUsd(pr.amount, pr.cur) : 0;
+    return {carId:car.id, url:BASE + "/" + catSlug(car), title:titleOf(car, state.listing), image:state.photos[0] || "",
+      usd:usd || 0, vin:String(car.vin || "").toUpperCase(), year:car.year || "", odoKm:state.listing && state.listing.odometer || 0};
+  }
+  // Просмотр машины — в «Недавние» кабинета и журнал для менеджера (как у лотов аукционов)
+  function recordView(){
+    try{
+      var c = window.apexCab; if(!c || !c.recentPush || !state.car || !state.car.id) return;
+      var sn = catSnapshot();
+      c.recentPush({id:(FAVSRC + "-" + sn.carId), catalog:true, src:FAVSRC, carId:sn.carId, url:sn.url, title:sn.title, image:sn.image, usd:Math.round(sn.usd) || 0, vin:sn.vin, year:sn.year, odoKm:sn.odoKm});
+    }catch(e){}
+  }
   function favHas(id){ return !!(window.apexCatFav && window.apexCatFav.has(FAVSRC, id)); }
   function favBtnHtml(cls){
     var on = favHas(state.car.id);
@@ -283,9 +296,7 @@
     var b = e.target.closest("[data-fav]"); if(!b || !state.car) return;
     e.preventDefault(); e.stopPropagation();
     if(!window.apexCatFav) return;
-    var car = state.car, pr = listingPrice(state.listing), usd = pr && pr.amount ? toUsd(pr.amount, pr.cur) : 0;
-    var on = window.apexCatFav.toggle(FAVSRC, {carId:car.id, url:BASE + "/" + catSlug(car), title:titleOf(car, state.listing), image:state.photos[0] || "",
-      usd:usd || 0, vin:String(car.vin || "").toUpperCase(), year:car.year || "", odoKm:state.listing && state.listing.odometer || 0});
+    var on = window.apexCatFav.toggle(FAVSRC, catSnapshot());
     document.querySelectorAll("[data-fav]").forEach(function(x){
       x.classList.toggle("is-on", on); x.setAttribute("aria-pressed", on ? "true" : "false"); x.setAttribute("aria-label", on ? T("Убрать из избранного") : T("Добавить в избранное"));
       x.classList.remove("is-burst", "is-unburst"); void x.offsetWidth; x.classList.add(on ? "is-burst" : "is-unburst"); setTimeout(function(){ x.classList.remove("is-burst", "is-unburst"); }, 750);
@@ -387,6 +398,7 @@
       state.photos = imgs.map(imageUrl);
       state.photosFull = imgs.map(imageFull);
       render();
+      recordView();
     }).catch(function(){ showNotFound(); });
   }
   function showNotFound(){

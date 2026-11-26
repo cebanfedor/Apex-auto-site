@@ -54,10 +54,10 @@
   }
 
   // ---- недавние просмотры ----
-  var RECENT_KEEP = ["id","auction","lot","title","year","make","model","vin","image","auctionDate","currentBid","buyNow","finalBid","statusId","saleStatus","primaryDamage","odometerText","location"];
+  var RECENT_KEEP = ["id","auction","lot","title","year","make","model","vin","image","auctionDate","currentBid","buyNow","finalBid","statusId","saleStatus","primaryDamage","odometerText","location","catalog","src","carId","url","usd","odoKm"];
   function recentList(){ var a = jget(REC, []); return Array.isArray(a) ? a : []; }
   function recentPush(lot){
-    if(!lot || !lot.id || !/^(copart|iaai)-/.test(lot.id)) return;
+    if(!lot || !lot.id || !/^(copart|iaai|kr|ca)-/.test(lot.id)) return;
     var o = {};
     RECENT_KEEP.forEach(function(k){ if(lot[k] !== undefined && lot[k] !== null) o[k] = lot[k]; });
     if(!o.image && lot.images && lot.images[0]) o.image = lot.images[0];

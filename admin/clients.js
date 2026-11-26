@@ -89,7 +89,7 @@
     const sec = (title, body, count) => body ? `<section class="ccSecV1"><h3>${title}${count != null ? ` <em>${count}</em>` : ""}</h3>${body}</section>` : "";
     const lotRow = (id, d, right) => `<a class="ccLotV1" href="${d && d.catalog && d.url ? e(d.url) : lotUrl(id)}" target="_blank" rel="noopener"><span class="ccThumbV1">${thumb(d)}</span><span class="ccLotTxtV1"><b>${e(titleOf(d) || id)}</b><small>${e(id)}${d && d.year ? "" : ""}${right ? " · " + right : ""}</small></span></a>`;
 
-    const views = c.views.length ? c.views.slice(0, 30).map(v => lotRow(v.key, v.data, `${v.n > 1 ? `<b class="ccHotV1">${times(v.n)}</b> · ` : ""}${ago(v.last)}`)).join("") : "";
+    const views = c.views.length ? c.views.slice(0, 30).map(v => lotRow(v.key, v.data, `${v.data && v.data.catalog && v.data.usd ? money(v.data.usd) + " · " : ""}${v.n > 1 ? `<b class="ccHotV1">${times(v.n)}</b> · ` : ""}${ago(v.last)}`)).join("") : "";
     const searches = c.searches.map(sr => `<a class="ccSrV1" href="/auctions?${e(sr.data.qs || "")}" target="_blank" rel="noopener"><b>${e(sr.data.label || sr.key)}</b><small>${sr.n > 1 ? times(sr.n) + " · " : ""}${ago(sr.last)}</small></a>`).join("");
     const dealBtn = id => `<button type="button" class="ghost ccMiniV1" data-cc-mkdeal="${e(id)}" title="Создать сделку по этому лоту для клиента">➕ Сделка</button>`;
     const favs = c.favs.map(f => `<div class="ccPickV1">${lotRow(f.id, f, [f.catalog ? (f.usd ? money(f.usd) : "") + (f.src === "ca" ? " · Канада" : " · Корея") : money(f.currentBid), f.note ? "✎ " + e(f.note) : ""].filter(Boolean).join(" · "))}<div class="ccPickMetaV1">${f.catalog ? "" : dealBtn(f.id)}</div></div>`).join("");

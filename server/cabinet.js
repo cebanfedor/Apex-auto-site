@@ -5,7 +5,7 @@ const KINDS = {
   fav:  {max:300, keyRe:/^(copart|iaai|kr|ca)-[A-Za-z0-9_-]{3,40}$/, dataMax:6000},
   note: {max:300, keyRe:/^(copart|iaai|kr|ca)-[A-Za-z0-9_-]{3,40}$/, dataMax:2600},
   car:  {max:30,  keyRe:/^[A-HJ-NPR-Z0-9]{17}$/,               dataMax:600},
-  view: {max:60,  keyRe:/^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/, dataMax:2500}
+  view: {max:60,  keyRe:/^(copart|iaai|kr|ca)-[A-Za-z0-9_-]{3,40}$/, dataMax:2500}
 };
 const BULK_MAX = 700;
 
@@ -223,7 +223,7 @@ function create(deps){
               if(!(seen && seen.length)){
                 await cl.metaSet(sb, mk, {t:Date.now()});
                 const lab = await cl.clientLabel(sb, who.chat);
-                await cl.notifyManager(sb, "hot", `🔥 <b>${lab.text}</b> уже 3-й раз смотрит лот\n${cl.esc(ev.data.title || ev.key)}`, [{text:"Открыть клиента", url:`${cl.SITE}/admin/#client=${who.chat}`}, {text:"Лот", url:`${cl.SITE}/auctions/${ev.key}`}]).catch(() => {});
+                await cl.notifyManager(sb, "hot", `🔥 <b>${lab.text}</b> уже 3-й раз смотрит лот\n${cl.esc(ev.data.title || ev.key)}`, [{text:"Открыть клиента", url:`${cl.SITE}/admin/#client=${who.chat}`}, {text:"Лот", url:ev.data.url ? `${cl.SITE}${ev.data.url}` : `${cl.SITE}/auctions/${ev.key}`}]).catch(() => {});
               }
             }
           }

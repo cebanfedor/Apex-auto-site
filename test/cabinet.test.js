@@ -71,3 +71,17 @@ test("избранное: ключи целых авто kr-/ca- принима�
   assert.ok(!KINDS.fav.keyRe.test("x-12345"));
   assert.ok(!KINDS.fav.keyRe.test("kr-ab"));
 });
+
+test("журнал просмотров: целые машины kr-/ca- принимаются, url только относительный", () => {
+  const cl = require("../server/clients");
+  const ok = cl.cleanEvent("view", "kr-l_abc123", {title:"2021 Kia K5", url:"/korea/2021-Kia-K5-X-l_abc123", usd:15038.4, image:"https://x/y.jpg"});
+  assert.ok(ok);
+  assert.strictEqual(ok.data.catalog, true);
+  assert.strictEqual(ok.data.src, "kr");
+  assert.strictEqual(ok.data.url, "/korea/2021-Kia-K5-X-l_abc123");
+  assert.strictEqual(ok.data.usd, 15038);
+  const bad = cl.cleanEvent("view", "ca-abc123", {title:"x", url:"https://evil.example/x"});
+  assert.strictEqual(bad.data.url, undefined);
+  assert.strictEqual(cl.cleanEvent("view", "zz-12345", {}), null);
+  assert.ok(cl.cleanEvent("view", "copart-61420506", {title:"Honda"}));
+});

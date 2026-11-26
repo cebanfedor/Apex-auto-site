@@ -131,6 +131,7 @@
     mark();
     window.addEventListener("hashchange", mark);
     window.addEventListener("storage", mark);
+    document.addEventListener("apex-fav-changed", mark);
     document.addEventListener("apex-cab-pulled", mark);
     document.addEventListener("visibilitychange", function(){ if(!document.hidden) mark(); });
     // На странице кабинета «Избранное» переключает вкладку без перехода

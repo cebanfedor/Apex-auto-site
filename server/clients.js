@@ -4,6 +4,8 @@
 const SITE = "https://apexauto.md";
 const ONLINE_MS = 3 * 60e3;                       // «онлайн сейчас» — пинг не старше 3 минут
 const LOT_RE = /^(copart|iaai)-[A-Za-z0-9_-]{3,30}$/;
+// просмотры: лоты аукционов и целые машины Кореи/Канады (kr-/ca-)
+const VIEW_RE = /^(copart|iaai|kr|ca)-[A-Za-z0-9_-]{3,40}$/;
 const KEEP = ["id","auction","lot","title","year","make","model","vin","image","auctionDate","currentBid","buyNow","finalBid","statusId","saleStatus","primaryDamage","odometerText","location","fuel","engine","drive","keys","document","estimatedRetailValue","repairCost","sellerName"];
 
 const esc = v => String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -23,9 +25,10 @@ function cleanProfile(b){
 function cleanEvent(kind, key, data){
   data = data && typeof data === "object" && !Array.isArray(data) ? data : {};
   if(kind === "view"){
-    if(!LOT_RE.test(String(key || ""))) return null;
+    if(!VIEW_RE.test(String(key || ""))) return null;
     const out = {};
     for(const k of ["title","make","model","vin","image","auctionDate"]) if(data[k]) out[k] = clip(data[k], k === "image" ? 300 : 160);
+    if(/^(kr|ca)-/.test(String(key))){ out.catalog = true; out.src = String(key).slice(0, 2); if(typeof data.url === "string" && data.url[0] === "/") out.url = clip(data.url, 300); if(Number(data.usd) > 0) out.usd = Math.round(Number(data.usd)); }
     if(Number(data.year) > 1950 && Number(data.year) < 2100) out.year = Number(data.year);
     if(Number(data.currentBid) > 0) out.currentBid = Math.round(Number(data.currentBid));
     return {kind, key: String(key), data: out};
