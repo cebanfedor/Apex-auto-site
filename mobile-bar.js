@@ -98,11 +98,11 @@
     var nav = document.createElement("nav");
     nav.className = "mBarV1"; nav.setAttribute("aria-label", t.aria);
     nav.innerHTML =
-      '<a data-tab="cat" href="/auctions">' + I.cat + '<span>' + t.cat + '</span></a>' +
-      '<a data-tab="fav" href="/cabinet#fav">' + I.fav + '<span>' + t.fav + '</span><b hidden></b></a>' +
-      '<a class="mbCalcV1" data-tab="calc" href="' + calcHref + '"><i>' + I.calc + '</i><span>' + t.calc + '</span></a>' +
-      '<a data-tab="cab" href="/cabinet">' + I.cab + '<span>' + t.cab + '</span></a>' +
-      '<button type="button" data-tab="contact" aria-haspopup="dialog">' + I.contact + '<span>' + t.contact + '</span></button>';
+      '<a data-mtab="cat" href="/auctions">' + I.cat + '<span>' + t.cat + '</span></a>' +
+      '<a data-mtab="fav" href="/auctions?tab=favorites">' + I.fav + '<span>' + t.fav + '</span><b hidden></b></a>' +
+      '<a class="mbCalcV1" data-mtab="calc" href="' + calcHref + '"><i>' + I.calc + '</i><span>' + t.calc + '</span></a>' +
+      '<a data-mtab="cab" href="/cabinet">' + I.cab + '<span>' + t.cab + '</span></a>' +
+      '<button type="button" data-mtab="contact" aria-haspopup="dialog">' + I.contact + '<span>' + t.contact + '</span></button>';
     document.body.appendChild(nav);
     // Страница лота / объявления — своя липкая панель с ценой и заявкой; каталог открывает лот без перезагрузки,
     // поэтому следим за адресом (pushState/popstate), а не только за первым заходом.
@@ -121,10 +121,11 @@
     // активная вкладка
     function mark(){
       var h = location.hash, on = "";
-      if(/^\/(auctions|korea|canada)$/.test(path)) on = "cat";
-      else if(path === "/cabinet") on = h === "#fav" ? "fav" : "cab";
-      Array.prototype.forEach.call(nav.querySelectorAll("[data-tab]"), function(el){ el.classList.toggle("isOnV1", el.getAttribute("data-tab") === on); });
-      var n = favCount(), b = nav.querySelector('[data-tab="fav"] b');
+      if(path === "/auctions" && /[?&]tab=favorites\b/.test(location.search)) on = "fav";
+      else if(/^\/(auctions|korea|canada)$/.test(path)) on = "cat";
+      else if(path === "/cabinet") on = "cab";
+      Array.prototype.forEach.call(nav.querySelectorAll("[data-mtab]"), function(el){ el.classList.toggle("isOnV1", el.getAttribute("data-mtab") === on); });
+      var n = favCount(), b = nav.querySelector('[data-mtab="fav"] b');
       if(b){ b.textContent = n > 99 ? "99+" : String(n); b.hidden = !n; }
     }
     mark();
@@ -134,8 +135,14 @@
     document.addEventListener("visibilitychange", function(){ if(!document.hidden) mark(); });
     // На странице кабинета «Избранное» переключает вкладку без перехода
     if(path === "/cabinet"){
-      nav.querySelector('[data-tab="fav"]').addEventListener("click", function(e){ e.preventDefault(); location.hash = "#fav"; });
-      nav.querySelector('[data-tab="cab"]').addEventListener("click", function(e){ e.preventDefault(); location.hash = "#over"; });
+      nav.querySelector('[data-mtab="cab"]').addEventListener("click", function(e){ e.preventDefault(); location.hash = "#over"; });
+    }
+    // На /auctions «Избранное» открывает вкладку каталога на месте
+    if(path === "/auctions"){
+      nav.querySelector('[data-mtab="fav"]').addEventListener("click", function(e){
+        var b = document.querySelector('.auctionTabsV1 [data-tab="favorites"]');
+        if(b && !document.querySelector("#auctionCatalog[hidden]")){ e.preventDefault(); b.click(); setTimeout(mark, 50); }
+      });
     }
     // «Расчёт» на главной — плавный скролл к калькулятору
     if(path === "/"){
@@ -168,7 +175,7 @@
       if(installEv){ var ev = installEv; installEv = null; ev.prompt(); (ev.userChoice || Promise.resolve()).then(function(){ syncInstall(); close(); }); }
       else if(isIOS){ inst.querySelector("small").textContent = t.iosHint; }
     });
-    nav.querySelector('[data-tab="contact"]').addEventListener("click", open);
+    nav.querySelector('[data-mtab="contact"]').addEventListener("click", open);
     sheet.addEventListener("click", function(e){ if(e.target === sheet || e.target.closest(".mSheetCloseV1") || e.target.closest("a")) close(); });
     document.addEventListener("keydown", function(e){ if(e.key === "Escape") close(); });
     window.apexSheetClose = close;
