@@ -4530,6 +4530,21 @@ function alertable(lot){
 
   function renderDetail(lot, opts){
     scheduleVinRetry(lot, 1);
+    // 27.11.2026: лот из базы (SSR/при нагрузке на API) хранит только 4 фото — дотягиваем полный набор ОДНИМ лёгким запросом
+    // (light=1: один /search-lot, кэш 30 мин) и перерисовываем страницу один раз.
+    try{
+      if(lot && lot.auction && lot.lot && !lot._photosTopped && (lot.images || []).length <= 6){
+        lot._photosTopped = true;
+        api(`/api/auctions?action=detail&auction=${encodeURIComponent(lot.auction)}&lot=${encodeURIComponent(lot.lot)}&light=1`).then(p => {
+          const im = p && p.lot && Array.isArray(p.lot.images) ? p.lot.images.filter(Boolean) : [];
+          const cur = state.selectedLot;
+          if(im.length > (lot.images || []).length && cur && String(cur.lot) === String(lot.lot)){
+            lot.images = im; if(p.lot.photoCount) lot.photoCount = p.lot.photoCount;
+            const y = window.scrollY; renderDetail(lot, opts); window.scrollTo(0, y);
+          }
+        }).catch(() => {});
+      }
+    }catch(e){}
     // Личный кабинет: «недавно смотрели» (один раз на лот, когда уже известно название)
     try{
       const rk = lot && lot.id && lot.title ? lot.id : "";
