@@ -2513,6 +2513,189 @@ function alertable(lot){
       if(prefetchStore.size > 4) prefetchStore.delete(prefetchStore.keys().next().value);
     }catch(e){}
   }
+  // ---- Режим карточек (26.11.2026): листаем лоты как в Tinder — вправо в избранное, влево пропустить, вверх открыть ----
+  const DECK_SEEN_KEY = "apexDeckSeenV1";
+  const deck = {list:[], idx:0, hist:[], busy:false, more:false, page:1, root:null};
+  function deckSeen(){ try{ return new Set(JSON.parse(sessionStorage.getItem(DECK_SEEN_KEY) || "[]")); }catch(e){ return new Set(); } }
+  function deckMarkSeen(id){ try{ const a = JSON.parse(sessionStorage.getItem(DECK_SEEN_KEY) || "[]"); a.push(id); sessionStorage.setItem(DECK_SEEN_KEY, JSON.stringify(a.slice(-600))); }catch(e){} }
+  function deckUnmarkSeen(id){ try{ const a = JSON.parse(sessionStorage.getItem(DECK_SEEN_KEY) || "[]").filter(x => x !== id); sessionStorage.setItem(DECK_SEEN_KEY, JSON.stringify(a)); }catch(e){} }
+  function deckUsable(lot, seen){
+    if(!lot || !lot.id || seen.has(lot.id)) return false;
+    try{ const st = lotSaleState(lot); if(st.isSold || st.notSold) return false; }catch(e){}
+    return !!(lot.image || (lot.images && lot.images.length));
+  }
+  function deckCardHtml(lot, top){
+    const imgs = (lot.images && lot.images.length ? lot.images : [lot.image]).filter(Boolean);
+    const ca = !!findCanadaLocation(lot);
+    const bid = Number(lot.currentBid) || 0, buy = Number(lot.buyNow) || 0;
+    const price = bid || buy;
+    const priceTxt = price ? (ca ? moneyCad(price) : money(price)) : "—";
+    const tk = price ? turnkeyFor(lot, price) : 0;
+    const dmg = lot.primaryDamage || String(lot.damage || "").split("/")[0].trim();
+    const when = lot.auctionDate ? dbDate(lot.auctionDate, false) : L("Дата аукциона не назначена");
+    return `<div class="deckCardV1 ${top ? "isTopV1" : "isBackV1"}" data-lot="${escapeHtml(lot.id)}" data-img="0">
+      <img class="deckImgV1" src="${escapeHtml(cardImg(imgs[0] || ""))}" alt="" draggable="false">
+      <div class="deckStampV1 isLikeV1">${L("В избранное")}</div><div class="deckStampV1 isSkipV1">${L("Пропустить")}</div>
+      ${imgs.length > 1 ? `<div class="deckDotsV1">${imgs.slice(0, 8).map((_, i) => `<i class="${i === 0 ? "on" : ""}"></i>`).join("")}</div>` : ""}
+      <div class="deckInfoV1">
+        <b class="deckTitleV1">${escapeHtml(lotTitle(lot))}</b>
+        <div class="deckRowV1"><span>${escapeHtml(dbOdo(lot.odometerText))}</span>${dmg ? `<span>${escapeHtml(ruDamage(dmg))}</span>` : ""}<span>${escapeHtml(titleCaseLoc(lot.location) || "")}</span></div>
+        <div class="deckRowV1"><span>${escapeHtml(when)}</span></div>
+        <div class="deckPriceV1"><div><small>${L(bid ? "Ставка" : buy ? "Выкуп" : "Цена")}</small><b>${escapeHtml(priceTxt)}</b></div>${tk ? `<div><small>${L("Под ключ ≈")}</small><b class="isRedV1">${money(tk)}</b></div>` : ""}</div>
+      </div>
+    </div>`;
+  }
+  function deckRender(){
+    const root = deck.root; if(!root) return;
+    const seen = deckSeen();
+    while(deck.idx < deck.list.length && !deckUsable(deck.list[deck.idx], seen)) deck.idx++;
+    const stage = root.querySelector(".deckStageV1");
+    const cur = deck.list[deck.idx];
+    const nxt = deck.list.slice(deck.idx + 1).find(l => deckUsable(l, seen));
+    const left = deck.list.slice(deck.idx).filter(l => deckUsable(l, seen)).length;
+    root.querySelector("#deckCntV1").textContent = cur ? `${left}${deck.more ? "+" : ""}` : "";
+    if(!cur){
+      if(deck.more && !deck.fetching) deckLoadMore();
+      if(deck.more || deck.fetching){ stage.innerHTML = `<div class="deckEmptyV1"><b>${L("Загружаем…")}</b></div>`; root.querySelector(".deckBtnsV1").hidden = true; return; }
+      stage.innerHTML = `<div class="deckEmptyV1"><b>${L("Карточки закончились")}</b><p>${L("Измените фильтры или вернитесь позже — лоты обновляются постоянно.")}</p><button type="button" class="dbBtnPrimary" data-deck-close>${L("Закрыть")}</button></div>`;
+      root.querySelector(".deckBtnsV1").hidden = true; return;
+    }
+    root.querySelector(".deckBtnsV1").hidden = false;
+    stage.innerHTML = (nxt ? deckCardHtml(nxt, false) : "") + deckCardHtml(cur, true);
+    const likeBtn = root.querySelector('[data-deck="like"]');
+    if(likeBtn) likeBtn.classList.toggle("isFavV1", !!favLoad()[cur.id]);
+    root.querySelector('[data-deck="undo"]').disabled = !deck.hist.length;
+    deckWire(stage.querySelector(".isTopV1"), cur);
+    ensureFullImages(cur);
+    if(left <= 4) deckLoadMore();
+  }
+  async function deckLoadMore(){
+    if(deck.fetching || !isServerPaging()) return;
+    const perPage = state.perPage || SERVER_PAGE_SIZE;
+    const pages = Math.min(MAX_SERVER_PAGES, Math.ceil((state.total || 0) / perPage));
+    if(deck.page >= pages){ deck.more = false; return; }
+    deck.fetching = true;
+    try{
+      const p = formParams(); p.set("page", String(deck.page + 1));
+      const r = await api(`/api/auctions?action=search&${p}`);
+      deck.page++;
+      const have = new Set(deck.list.map(l => l.id));
+      const fresh = (r.items || []).filter(l => l && !have.has(l.id));
+      deck.list.push(...fresh);
+      deck.more = deck.page < pages;
+      if(!deck.list[deck.idx] || !deckUsable(deck.list[deck.idx], deckSeen())) deckRender();
+      else root_updateCount();
+    }catch(e){ deck.more = false; }
+    finally{ deck.fetching = false; }
+    function root_updateCount(){ const seen = deckSeen(); const c = deck.root && deck.root.querySelector("#deckCntV1"); if(c) c.textContent = deck.list.slice(deck.idx).filter(l => deckUsable(l, seen)).length + (deck.more ? "+" : ""); }
+  }
+  function deckAct(kind, silent){
+    if(deck.busy) return;
+    const lot = deck.list[deck.idx]; if(!lot) return;
+    const card = deck.root.querySelector(".isTopV1");
+    if(kind === "open"){ deckOpen(lot); return; }
+    deck.busy = true;
+    const dx = kind === "like" ? 1 : -1;
+    let liked = false;
+    if(kind === "like" && !favLoad()[lot.id]){ favToggle(lot); liked = true; try{ updateFavCount(); }catch(e){} }
+    deck.hist.push({id:lot.id, liked, idx:deck.idx});
+    deckMarkSeen(lot.id);
+    if(card && !silent){
+      card.style.transition = "transform .28s ease, opacity .28s ease";
+      card.style.transform = `translate(${dx * 520}px, -40px) rotate(${dx * 22}deg)`; card.style.opacity = "0";
+    }
+    setTimeout(() => { deck.idx++; deck.busy = false; deckRender(); }, silent ? 0 : 260);
+  }
+  function deckUndo(){
+    if(deck.busy || !deck.hist.length) return;
+    const h = deck.hist.pop();
+    deckUnmarkSeen(h.id);
+    const lot = deck.list.find(l => l.id === h.id);
+    if(h.liked && lot && favLoad()[lot.id]){ favToggle(lot); try{ updateFavCount(); }catch(e){} }
+    deck.idx = Math.min(deck.idx, h.idx);
+    deckRender();
+  }
+  function deckOpen(lot){
+    deckClose();
+    if(!(state.items || []).some(l => String(l.id) === String(lot.id))) state.items.push(lot);
+    const a = document.createElement("a"); a.href = detailHref(lot); a.style.display = "none"; document.body.appendChild(a);
+    a.click(); a.remove();
+  }
+  function deckWire(card, lot){
+    if(!card) return;
+    let sx = 0, sy = 0, dx = 0, dy = 0, drag = false, moved = false;
+    const like = card.querySelector(".isLikeV1"), skip = card.querySelector(".isSkipV1");
+    const imgs = (lot.images && lot.images.length ? lot.images : [lot.image]).filter(Boolean);
+    card.addEventListener("pointerdown", e => { if(deck.busy) return; drag = true; moved = false; sx = e.clientX; sy = e.clientY; dx = dy = 0; card.setPointerCapture(e.pointerId); card.style.transition = "none"; });
+    card.addEventListener("pointermove", e => {
+      if(!drag) return;
+      dx = e.clientX - sx; dy = e.clientY - sy;
+      if(Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+      card.style.transform = `translate(${dx}px, ${Math.min(0, dy) * .6}px) rotate(${dx / 18}deg)`;
+      like.style.opacity = String(Math.max(0, Math.min(1, dx / 110)));
+      skip.style.opacity = String(Math.max(0, Math.min(1, -dx / 110)));
+    });
+    const end = e => {
+      if(!drag) return; drag = false;
+      if(!moved){   // тап по фото: правая половина — следующее фото, левая — предыдущее
+        const r = card.getBoundingClientRect(), right = e.clientX - r.left > r.width / 2;
+        const all = (lot.images && lot.images.length ? lot.images : imgs).filter(Boolean);
+        if(all.length > 1){
+          let i = Number(card.dataset.img) || 0; i = (i + (right ? 1 : -1) + all.length) % all.length; card.dataset.img = String(i);
+          const im = card.querySelector(".deckImgV1"); if(im) im.src = cardImg(all[i]);
+          card.querySelectorAll(".deckDotsV1 i").forEach((d, k) => d.classList.toggle("on", k === i));
+        }
+        return;
+      }
+      if(dx > 110) deckAct("like");
+      else if(dx < -110) deckAct("skip");
+      else if(dy < -120 && Math.abs(dx) < 90) deckAct("open");
+      else{ card.style.transition = "transform .22s ease"; card.style.transform = ""; like.style.opacity = skip.style.opacity = "0"; }
+    };
+    card.addEventListener("pointerup", end);
+    card.addEventListener("pointercancel", end);
+  }
+  function deckClose(){
+    if(!deck.root) return;
+    deck.root.classList.remove("isOpenV1");
+    document.documentElement.style.overflow = "";
+    document.removeEventListener("keydown", deckKey);
+    try{ window.syncQuickChips && window.syncQuickChips(); updateFavCount(); }catch(e){}
+  }
+  function deckKey(e){
+    if(e.key === "Escape") deckClose();
+    else if(e.key === "ArrowRight") deckAct("like");
+    else if(e.key === "ArrowLeft") deckAct("skip");
+    else if(e.key === "ArrowUp") deckAct("open");
+  }
+  function deckOpenUI(){
+    if(!deck.root){
+      const r = document.createElement("div");
+      r.id = "deckV1"; r.className = "deckV1"; r.setAttribute("role", "dialog"); r.setAttribute("aria-modal", "true"); r.setAttribute("aria-label", L("Режим карточек"));
+      r.innerHTML = `<div class="deckTopV1"><button type="button" data-deck-close aria-label="${escapeHtml(L("Закрыть"))}">×</button><b>${L("Режим карточек")}</b><span id="deckCntV1"></span></div>
+        <div class="deckStageV1"></div>
+        <div class="deckBtnsV1">
+          <button type="button" class="isSkipBtnV1" data-deck="skip" aria-label="${escapeHtml(L("Пропустить"))}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <button type="button" class="isUndoBtnV1" data-deck="undo" aria-label="${escapeHtml(L("Вернуть"))}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
+          <button type="button" class="isLikeBtnV1" data-deck="like" aria-label="${escapeHtml(L("В избранное"))}"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 21s-7-4.6-9.3-9.1C1.1 8.7 3 5.5 6.2 5.5c2 0 3.4 1.1 4.1 2.2h3.4c.7-1.1 2.1-2.2 4.1-2.2 3.2 0 5.1 3.2 3.5 6.4C19 16.4 12 21 12 21z"/></svg></button>
+          <button type="button" class="isOpenBtnV1" data-deck="open" aria-label="${escapeHtml(L("Открыть лот"))}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+        </div>
+        <p class="deckHintV1">${L("Вправо — в избранное · влево — пропустить · вверх — открыть")}</p>`;
+      document.body.appendChild(r);
+      r.addEventListener("click", e => {
+        if(e.target.closest("[data-deck-close]")) { deckClose(); return; }
+        const b = e.target.closest("[data-deck]"); if(!b) return;
+        if(b.dataset.deck === "undo") deckUndo(); else deckAct(b.dataset.deck);
+      });
+      deck.root = r;
+    }
+    const seen = deckSeen();
+    deck.list = (state.items || []).slice(); deck.idx = 0; deck.hist = []; deck.page = state.page || 1; deck.more = isServerPaging() && (state.total || 0) > deck.list.length;
+    deck.root.classList.add("isOpenV1");
+    document.documentElement.style.overflow = "hidden";
+    document.addEventListener("keydown", deckKey);
+    deckRender();
+  }
   // Карточка каталога (компьютер): фото листается движением мыши влево-вправо (полоска позиции внизу), клик по фото — большое фото, а не страница лота.
   const CARD_PHOTO_MAX = 10;   // Федор 25.09.2026: в карусели карточки каталога не больше 10 фото (остальные — на странице лота)
   const finePointer = () => { try{ return window.matchMedia("(hover:hover) and (pointer:fine)").matches; }catch(e){ return false; } };
@@ -5995,11 +6178,12 @@ function alertable(lot){
       ];
       const bar = document.createElement("div");
       bar.className = "quickChipsV1"; bar.id = "quickChipsV1"; bar.setAttribute("role", "group"); bar.setAttribute("aria-label", L("Быстрые фильтры"));
-      bar.innerHTML = CHIPS.map(c => `<button type="button" class="qChipV1" data-qchip="${c.key}" aria-pressed="false">${escapeHtml(L(c.label))}</button>`).join("");
+      bar.innerHTML = `<button type="button" class="qChipV1 qDeckV1" data-deck-mode>${escapeHtml(L("Режим карточек"))}</button>` + CHIPS.map(c => `<button type="button" class="qChipV1" data-qchip="${c.key}" aria-pressed="false">${escapeHtml(L(c.label))}</button>`).join("");
       const tb = document.querySelector(".auctionToolbarV2");
       if(tb && tb.parentNode) tb.parentNode.insertBefore(bar, tb);
       window.syncQuickChips = function(){ bar.querySelectorAll("[data-qchip]").forEach(b => { const c = CHIPS.find(x => x.key === b.dataset.qchip); const on = c && c.on(); b.classList.toggle("active", !!on); b.setAttribute("aria-pressed", on ? "true" : "false"); }); };
       bar.addEventListener("click", e => {
+        if(e.target.closest("[data-deck-mode]")){ deckOpenUI(); return; }
         const b = e.target.closest("[data-qchip]"); if(!b) return;
         const c = CHIPS.find(x => x.key === b.dataset.qchip); if(!c) return;
         if(["archived", "favorites"].includes(state.tab) && c.key !== "ban"){ state.tab = "all"; document.querySelectorAll("[data-tab]").forEach(item => item.classList.toggle("active", item.dataset.tab === "all")); }
