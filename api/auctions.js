@@ -342,7 +342,16 @@ function noteApiRateLimit(retryAfter){
     if(Number.isFinite(sec) && sec > 0) wait = Math.min(Math.max(sec * 1000, 30e3), 60 * 60e3);
   }
   apiDownUntil = Math.max(apiDownUntil, Date.now() + wait); apiUsage.rateLimited++;
+  // 26.11.2026: помним, ЧТО ответил провайдер на 429 (Retry-After сообщает, когда сбросится лимит) — смотреть в ?action=apiusage&hours=N → `last429`.
+  try{
+    if(Date.now() - last429Saved > 60e3){
+      last429Saved = Date.now();
+      const v = {at:new Date().toISOString(), retryAfter:ra || null, waitSec:Math.round(wait / 1000), breakerUntil:new Date(apiDownUntil).toISOString()};
+      syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{k:"api_429", v, updated_at:v.at}])}).catch(() => {});
+    }
+  }catch(_){}
 }
+let last429Saved = 0;
 function noteApiForbidden(msg){
   apiDownUntil = Math.max(apiDownUntil, Date.now() + 15 * 60e3);
   apiUsage.forbidden++; apiUsage.lastForbidden = String(msg || "").slice(0, 160);
@@ -6000,7 +6009,8 @@ const handlerInner = async function handler(request, response){
       const eps = Object.entries(byEp).sort((a, b) => b[1] - a[1]).map(([endpoint, calls]) => ({endpoint, calls, perDayEq: Math.round(calls / hours * 24)}));
       const acts = Object.entries(byAct).sort((a, b) => b[1] - a[1]).map(([action, calls]) => ({action, calls, perHour:Math.round(calls / hours)}));
       const combos = Object.entries(byCombo).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, calls]) => ({k, calls}));
-      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
+      const l429 = await syncSbFetch(`/alert_meta?k=eq.api_429&select=v&limit=1`).then(r => r && r[0] && r[0].v).catch(() => null);
+      sendJson(response, 200, {ok:true, hours, total, perDayEq:Math.round(total / hours * 24), limitPerDay:500000, last429:l429 || null, load:{level:apiLoad.level, perHour:apiLoad.rate, last24h:apiLoad.day, levels:{day:[DAY_L1, DAY_L2, DAY_L3], hour:[LOAD_L1, LOAD_L2]}}, byAction:acts, top:combos, byEndpoint:eps, perHour:hoursArr,
         note:"сумма по всем экземплярам; счётчик включён с момента деплоя, часы до него пусты; hot-lots.js/lot.js не входят"}, {"cache-control":"no-store"});
     }catch(e){ sendJson(response, 200, {ok:false, error:String(e.message || e)}, {"cache-control":"no-store"}); }
     return;
