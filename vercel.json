@@ -21,7 +21,7 @@
     { "path": "/api/cron/closed", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/settle", "schedule": "6-59/10 * * * *" },
     { "path": "/api/cron/alerts", "schedule": "2-59/3 * * * *" },
-    { "path": "/api/cron/resale", "schedule": "*/2 * * * *" },
+    { "path": "/api/cron/resale", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/engine", "schedule": "1-59/3 * * * *" },
     { "path": "/api/cron/warm", "schedule": "*/3 * * * *" },
     { "path": "/api/cron/powertrain", "schedule": "1-59/4 * * * *" },

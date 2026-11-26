@@ -5808,9 +5808,12 @@ async function runResaleCheck(budgetMs){
     }
   }catch(_){}
   const since = encodeURIComponent(new Date(Date.now() - 2 * 3600e3).toISOString());
+  // 26.11.2026 (экономия лимита провайдера): метку ставим только лотам с торгами в ближайшие 36 ч — дальние получат её позже
+  // (или сразу при открытии лота: detail/vinhist пишут resale сами).
+  const until = encodeURIComponent(new Date(Date.now() + 36 * 3600e3).toISOString());
   let rows;
   try{
-    rows = await syncSbFetch(`/api_lots?archived=eq.false&or=(resale_at.is.null,resale_at.lt.${RESALE_RULES_AT})&vin=not.is.null&year=gte.2017&sale_date=gte.${since}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue,seller:payload-%3E%3Eseller,sellerType:payload-%3E%3EsellerType&order=sale_date.asc&limit=300`);
+    rows = await syncSbFetch(`/api_lots?archived=eq.false&or=(resale_at.is.null,resale_at.lt.${RESALE_RULES_AT})&vin=not.is.null&year=gte.2017&sale_date=gte.${since}&sale_date=lte.${until}&select=id,vin,lot,sale_date,buy_now,erv:payload-%3E%3EestimatedRetailValue,seller:payload-%3E%3Eseller,sellerType:payload-%3E%3EsellerType&order=sale_date.asc&limit=300`);
   }catch(e){ return {ok:false, error:String(e.message || e).slice(0, 160)}; }
   const buckets = {0:[], 1:[], 2:[]};
   const storedMap = {};
