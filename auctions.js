@@ -2806,7 +2806,9 @@ function alertable(lot){
     const card = e.target.closest && e.target.closest("#auctionCards .dbCard"); const ph = card && card.querySelector(".dbPhoto"); if(!ph || ph.dataset.hovInit) return;
     const lot = lotOfPhoto(ph); if(!lot || saveData()) return;
     ph.dataset.hovInit = "1";
-    ensureFullImages(lot).then(() => { (lot.images || []).slice(1, 3).forEach(u => { const im = new Image(); im.decoding = "async"; im.src = cardImg(u); }); if(ph.dataset.hov != null && ph.dataset.hov !== "") showCardPhoto(ph, lot, Number(ph.dataset.hov)); });
+    // 27.11.2026 (лимит auctionsapi): раньше наведение на любое фото карточки тянуло action=detail (2 платных запроса к провайдеру: search-lot + search-vin).
+    // Теперь по наведению только предзагружаем уже имеющиеся фото; полный набор — при открытии просмотра фото/лота.
+    (lot.images || []).slice(1, 3).forEach(u => { const im = new Image(); im.decoding = "async"; im.src = cardImg(u); }); if(ph.dataset.hov != null && ph.dataset.hov !== "") showCardPhoto(ph, lot, Number(ph.dataset.hov));
   }, {passive:true});
   document.addEventListener("mousemove", e => {
     if(!finePointer()) return;
@@ -2854,8 +2856,7 @@ function alertable(lot){
       fetch(`/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotNo)}`, {credentials:"same-origin", priority:"low"}).catch(() => {});
     }, 120);
   }
-  document.addEventListener("mouseover", prefetchLotOnHover, {passive:true});
-  document.addEventListener("touchstart", prefetchLotOnHover, {passive:true});
+  // 27.11.2026: прогрев detail по наведению/касанию отключён (каждый показ каталога давал десятки платных запросов к провайдеру).
   const SNAP_KEY = "apexCatSnapV1";
   function snapRead(key){
     try{ const a = JSON.parse(sessionStorage.getItem(SNAP_KEY) || "[]"); return a.find(x => x.k === key && Date.now() - x.t < 20 * 60e3) || null; }catch(e){ return null; }

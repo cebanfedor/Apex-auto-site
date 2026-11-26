@@ -113,7 +113,8 @@ function usageFlush(force){
 
 // Лимит «живых» запросов (кэш-промах → вызов провайдера) с одного IP: 90 в минуту на инстанс.
 const LIVE_ACTIONS = new Set(["detail", "vin", "vinhist", "livebids", "vinarchive", "queue"]);
-const LIVE_RATE_MAX = 90, liveRateMap = new Map();
+const LIVE_RATE_MAX = 30, liveRateMap = new Map();   // 27.11.2026: 90 → 30 в минуту на IP
+const searchLiveGate = {min:0, n:0};
 function liveRateOk(ip){
   const now = Date.now();
   if(liveRateMap.size > 2000) for(const [k, v] of liveRateMap) if(now - v.start > 60000) liveRateMap.delete(k);
@@ -1778,6 +1779,24 @@ async function fetchSearch(query){
   }
 
   return result;
+}
+
+
+// 27.11.2026 (лимит auctionsapi исчерпан: `detail → search-lot/search-vin` по 22,9 тыс. за 3 ч — краулер открывал тысячи страниц лотов, каждая
+// = 2 запроса): запись лота из НАШЕЙ базы (id = <площадка>-<номер>) без обращения к провайдеру. Для SSR страниц лота и превью, а также как
+// запасной вариант, когда лимит поджимает. Возвращает лот или null.
+async function lotFromDbRow(auction, lotNo){
+  try{
+    const id = `${String(auction).toLowerCase()}-${String(lotNo).replace(/[^\w-]/g, "")}`;
+    const rows = await syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(id)}&select=payload,fuel_x,fuel_src,vin_trim&limit=1`);
+    const r = Array.isArray(rows) ? rows[0] : null;
+    if(!r || !r.payload) return null;
+    const l = sanitizeStoredLot(r.payload);
+    l.title = powertrain.cleanTitle(l.title);
+    if(r.fuel_x){ l.fuelKind = r.fuel_x; l.fuelSrc = r.fuel_src || 0; }
+    if(r.vin_trim !== undefined && r.vin_trim !== null) l.title = powertrain.fullTitle(l.title, {trim:r.vin_trim, kind:l.fuelKind === 3 && l.fuelSrc !== 4 ? 3 : l.fuelKind});
+    return l;
+  }catch(_){ return null; }
 }
 
 async function fetchDetail(query){
@@ -6845,6 +6864,13 @@ const handlerInner = async function handler(request, response){
     }
 
     if(action === "detail"){
+      // DB-first (27.11.2026): SSR страницы лота и превью (db=1) берут лот из базы без обращения к провайдеру; при нагрузке ≥1 так же
+      // обслуживаем любые запросы без кэша, если лот есть в базе — провайдера не трогаем.
+      if(query.get("db") === "1" || apiLoadLevel() >= 1){
+        const dbLot = await lotFromDbRow(normalizeAuction(query.get("auction")), query.get("lot"));
+        if(dbLot){ sendJson(response, 200, {ok:true, lot:dbLot, fromDb:true, stale:true}, {"cache-control":"public, s-maxage=300, stale-while-revalidate=600"}); return; }
+        if(query.get("db") === "1" && apiLoadLevel() >= 1){ sendJson(response, 503, {ok:false, error:"temporarily unavailable"}, {"cache-control":"no-store"}); return; }
+      }
       const lot = await fetchDetail(query);
       await Promise.all([attachVinHistory(lot), attachPowertrain(lot)]);
       await attachGenRange(lot);
@@ -7559,6 +7585,15 @@ const handlerInner = async function handler(request, response){
         try{ result = await searchFromDb(query); }catch(e){ dbErr = String(e && e.message || e).slice(0, 200); result = null; }
       }
       if(!result){
+        // 27.11.2026 (лимит auctionsapi: `search → cars` 49,5 тыс. запросов за 3 ч): когда база не ответила (таймаут/сбой), каждый запрос каталога
+        // шёл в провайдера. Теперь живой запасной вариант — только при низкой нагрузке на лимит и не чаще 20 раз в минуту на инстанс;
+        // иначе честный 503 (клиент покажет «повторить»), а не сотни платных запросов.
+        const nowMin = Math.floor(Date.now() / 60000);
+        if(searchLiveGate.min !== nowMin){ searchLiveGate.min = nowMin; searchLiveGate.n = 0; }
+        if(apiLoadLevel() >= 1 || ++searchLiveGate.n > 20){
+          sendJson(response, 503, {ok:false, error:"catalog temporarily unavailable", _dbErr:dbErr || undefined}, {"cache-control":"no-store", "retry-after":"20"});
+          return;
+        }
         result = await fetchSearch(query);
         // Live-фолбэк без фильтров: total фида — ВСЕ домены (с Кореей, 782k) и «прыгает» относительно базы.
         // Берём последний известный счётчик вкладки из базы (кэш tabTotal), если он есть.

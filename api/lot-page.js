@@ -14,7 +14,7 @@ const SSR_FETCH_MS = 4000;
 
 async function fetchOwnDetail(req, auction, lotId){
   const {selfOrigin} = require("../server/origin");
-  const url = `${selfOrigin(req)}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}&fresh=${Math.floor(Date.now() / 3e5)}`;   // fresh: без устаревшего кэша detail (превью/SEO у проданного лота)
+  const url = `${selfOrigin(req)}/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lotId)}&db=1`;   // fresh: без устаревшего кэша detail (превью/SEO у проданного лота)
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SSR_FETCH_MS);
   try{

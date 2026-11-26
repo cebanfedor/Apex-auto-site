@@ -18,7 +18,7 @@ async function getJson(url, ms = 7000){
 const langOf = req => /^ro/i.test(String(req.query.lang || "")) ? "ro" : /^en/i.test(String(req.query.lang || "")) ? "en" : "ru";
 async function buildLot(req, id){
   const m = String(id).match(/^(copart|iaai)-(\d{5,12})/i); if(!m) return null;
-  const j = await getJson(`${origin(req)}/api/auctions?action=detail&auction=${m[1].toLowerCase()}&lot=${m[2]}&fresh=${Math.floor(Date.now() / 3e5)}`);   // fresh: обходим кэш detail (до 30 мин) — превью не должно показывать «текущая ставка» у уже проданного лота
+  const j = await getJson(`${origin(req)}/api/auctions?action=detail&auction=${m[1].toLowerCase()}&lot=${m[2]}&db=1`);   // fresh: обходим кэш detail (до 30 мин) — превью не должно показывать «текущая ставка» у уже проданного лота
   const lot = j && j.ok !== false && j.lot; if(!lot) return null;
   return og.lotCard(ogLot.cardData(lot, langOf(req)));
 }
