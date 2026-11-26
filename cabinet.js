@@ -51,6 +51,14 @@
     sub_lot:["Лот","Lot","Lot"], sub_search:["Поиск","Căutare","Search"], sub_del:["Удалить","Șterge","Delete"], subs_need:["Подключите Telegram, чтобы получать уведомления о торгах и новых лотах.","Conectează Telegram ca să primești notificări despre licitații și loturi noi.","Connect Telegram to get alerts about auctions and new lots."],
     prefs_h:["О чём сообщать","Despre ce să anunțăm","What to notify about"], p_date:["Назначена дата торгов","Data licitației stabilită","Auction date set"], p_timed:["Лот стал Timed","Lotul a devenit Timed","Lot went Timed"], p_day:["В день торгов","În ziua licitației","On auction day"], p_hour:["За час до торгов","Cu o oră înainte","One hour before"], p_buynow:["Появился Buy Now","A apărut Buy Now","Buy Now appeared"], p_play:["Торги идут, итог (продан / нет)","Licitația rulează, rezultatul","Auction live and result"],
     rec_h:["Недавно смотрели","Vizualizate recent","Recently viewed"], rec_e:["Лоты, которые вы открывали, появятся здесь.","Loturile deschise apar aici.","Lots you open will appear here."], rec_clear:["Очистить","Șterge istoricul","Clear"],
+    push_h:["Уведомления на устройстве","Notificări pe dispozitiv","Notifications on this device"], push_d:["Торги, статусы доставки и подборки менеджера — сообщением на телефон или компьютер, даже без Telegram.","Licitații, statusuri de livrare și selecții de la manager — direct pe telefon sau computer, chiar și fără Telegram.","Auctions, delivery statuses and manager picks — straight to your phone or computer, even without Telegram."],
+    push_on:["Включить","Activează","Turn on"], push_off:["Выключить","Dezactivează","Turn off"], push_test:["Проверить","Testează","Send a test"],
+    push_st_on:["Включены на этом устройстве","Activate pe acest dispozitiv","On for this device"], push_st_off:["Выключены","Dezactivate","Off"],
+    push_denied:["Уведомления запрещены в настройках браузера — разрешите их для apexauto.md.","Notificările sunt blocate în setările browserului — permite-le pentru apexauto.md.","Notifications are blocked in your browser settings — allow them for apexauto.md."],
+    push_ios:["На iPhone сначала добавьте сайт на экран «Домой»: Поделиться → «На экран Домой», потом откройте его оттуда.","Pe iPhone adaugă mai întâi site-ul pe ecranul principal: Partajare → „Adaugă pe ecranul principal”, apoi deschide-l de acolo.","On iPhone, first add the site to your Home Screen: Share → “Add to Home Screen”, then open it from there."],
+    push_unsup:["Этот браузер не поддерживает push-уведомления.","Acest browser nu suportă notificări push.","This browser doesn't support push notifications."],
+    push_need:["Сначала подключите Telegram — это ваш вход в кабинет.","Mai întâi conectează Telegram — este accesul în cont.","Connect Telegram first — it's your sign-in."],
+    push_err:["Не получилось включить. Попробуйте ещё раз.","Nu a reușit. Încearcă din nou.","Couldn't turn on. Try again."], push_sent:["Отправили проверочное уведомление","Am trimis o notificare de test","Test notification sent"],
     set_h:["Настройки и вход","Setări și autentificare","Settings & sign-in"], set_dev_h:["Как войти с другого устройства","Cum intri de pe alt dispozitiv","Sign in on another device"], set_dev:["Откройте этот кабинет на новом устройстве → «Подключить Telegram» → «Start» в боте. Те же данные появятся автоматически.","Deschide acest cont pe noul dispozitiv → „Conectează Telegram” → „Start” în bot. Aceleași date apar automat.","Open this page on the new device → “Connect Telegram” → “Start” in the bot. The same data appears automatically."],
     set_out:["Выйти на этом устройстве","Ieși de pe acest dispozitiv","Sign out on this device"], set_out_d:["Данные на сервере останутся, с устройства будут убраны токен и локальные копии.","Datele de pe server rămân; de pe dispozitiv se șterg tokenul și copiile locale.","Server data stays; the token and local copies are removed from this device."],
     set_wipe:["Удалить все мои данные","Șterge toate datele mele","Delete all my data"], set_wipe_d:["Удалит избранное, заметки, список машин и историю просмотров на сервере и на этом устройстве.","Șterge favoritele, notițele, mașinile și istoricul de pe server și de pe acest dispozitiv.","Removes favourites, notes, cars and history from the server and this device."],
@@ -696,9 +704,26 @@
       if(r && r.ok){ S.profile = r.profile || prof; S.name = S.profile.name || S.tgName; lsSet(K.name, S.name); toast(t("saved")); render(); }
     });
   }
+  // ---- Push-уведомления на устройстве (26.11.2026) ----
+  var pushSt = null;   // unsupported | needinstall | denied | off | on (null — ещё не проверили)
+  function pushRefresh(){
+    if(!window.apexPush){ pushSt = "unsupported"; return; }
+    window.apexPush.state().then(function(st){ if(st !== pushSt){ pushSt = st; if(S.tab === "set") render(); } });
+  }
+  function pushBox(){
+    if(pushSt === null) pushRefresh();
+    var body;
+    if(!S.bound) body = '<p class="cabMutedV1">' + t("push_need") + '</p>';
+    else if(pushSt === "unsupported") body = '<p class="cabMutedV1">' + t("push_unsup") + '</p>';
+    else if(pushSt === "needinstall") body = '<p class="cabWarnV1">' + t("push_ios") + '</p>';
+    else if(pushSt === "denied") body = '<p class="cabWarnV1">' + t("push_denied") + '</p>';
+    else if(pushSt === "on") body = '<div class="cabSetRowV1"><div><b>' + t("push_st_on") + '</b></div><div class="cabActsV1"><button type="button" class="cabGhostV1" data-act="pushtest">' + t("push_test") + '</button><button type="button" class="cabGhostV1" data-act="pushoff">' + t("push_off") + '</button></div></div>';
+    else body = '<div class="cabSetRowV1"><div><b>' + t("push_st_off") + '</b></div><button type="button" class="cabBtnV1" data-act="pushon">' + t("push_on") + '</button></div>';
+    return '<section class="cabBoxV1"><h2>' + ico("bell") + t("push_h") + '</h2><p class="cabMutedV1">' + t("push_d") + '</p>' + body + '<p class="cabErrV1" id="cabPushErr" hidden></p></section>';
+  }
   function paneSet(){
     return '<div class="cabGridV1"><div class="cabColV1">' + profileBox() + '<section class="cabBoxV1"><h2>' + ico("tg") + t("set_dev_h") + '</h2><p class="cabMutedV1">' + t("set_dev") + '</p></section></div>' +
-      '<div class="cabColV1"><section class="cabBoxV1"><h2>' + t("set_h") + '</h2>' +
+      '<div class="cabColV1">' + pushBox() + '<section class="cabBoxV1"><h2>' + t("set_h") + '</h2>' +
       '<div class="cabSetRowV1"><div><b>' + t("set_out") + '</b><small>' + t("set_out_d") + '</small></div><button type="button" class="cabGhostV1" data-act="logout">' + ico("out") + '</button></div>' +
       '<div class="cabSetRowV1"><div><b>' + t("set_wipe") + '</b><small>' + t("set_wipe_d") + '</small></div><button type="button" class="cabGhostV1 isDanger" data-act="wipe">' + ico("trash") + '</button></div></section></div></div>';
   }
@@ -900,6 +925,18 @@
       if(cab()) ids.slice(0, 60).forEach(function(i){ cab().del("view", i); });
       return render();
     }
+    if(act === "pushon"){
+      b.disabled = true;
+      window.apexPush.enable().then(function(r){
+        b.disabled = false;
+        if(r && r.ok){ pushSt = "on"; toast(t("push_st_on")); window.apexPush.test(); render(); }
+        else if(r && r.error === "denied"){ pushSt = "denied"; render(); }
+        else{ var e = $("#cabPushErr"); if(e){ e.textContent = t("push_err"); e.hidden = false; } }
+      });
+      return;
+    }
+    if(act === "pushoff"){ window.apexPush.disable().then(function(){ pushSt = "off"; render(); }); return; }
+    if(act === "pushtest"){ window.apexPush.test().then(function(){ toast(t("push_sent")); }); return; }
     if(act === "logout"){ if(!confirm(t("confirm_out"))) return; if(cab()) cab().logout(); ["apexFavsV1", "apexNotesV1", "apexRecentV1"].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} }); location.reload(); return; }
     if(act === "wipe"){
       if(!confirm(t("confirm_wipe"))) return;

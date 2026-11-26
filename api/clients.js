@@ -165,7 +165,11 @@ async function sendPicks(request, chat, refs, note){
   if(!rows.length) return {ok: false, error: "Не удалось получить лоты: " + (missing.join(", ") || "список пуст")};
   await sb(`/cab_picks?on_conflict=chat_id,lot_id`, {method: "POST", headers: {prefer: "resolution=merge-duplicates,return=minimal"}, body: JSON.stringify(rows)});
   const T = {ru: "Открыть подборку", ro: "Deschide selecția", en: "Open the selection"}[lang] || "Открыть подборку";
-  const sent = await cl.tgSend(chat, cl.pickMessage(lang, rows, note), [{text: T, url: cl.SITE + "/cabinet#picks"}]);
+  const pickText = cl.pickMessage(lang, rows, note);
+  const sentTg = cl.tgSend(chat, pickText, [{text: T, url: cl.SITE + "/cabinet#picks"}]);
+  // + web push на устройства клиента (если подключил уведомления в кабинете)
+  const sentPush = require("../server/push").create(sb).sendToChat(chat, pickText, "/cabinet#picks").catch(() => 0);
+  const sent = (await sentTg) || (await sentPush) > 0;
   return {ok: true, added: rows.length, missing, notified: sent};
 }
 

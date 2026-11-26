@@ -211,13 +211,19 @@ function create(deps){
     if(r && r.ok && r.result && r.result.username){ botName = r.result.username; botNameAt = Date.now(); }
     return botName;
   }
-  async function send(chatId, text, buttons){
+  // Web push (26.11.2026): события дублируются на устройства клиента, подключившие уведомления в кабинете.
+  const push = require("./push").create(sb);
+  async function send(chatId, text, buttons, opts){
     const body = {chat_id:chatId, text, parse_mode:"HTML", disable_web_page_preview:true};
     if(buttons && buttons.length) body.reply_markup = {inline_keyboard:[buttons.map(b => ({text:b.text, url:b.url}))]};
+    const wantPush = opts && opts.push;
+    // push и Telegram — параллельно; сбой push не влияет на ответ бота
+    const pushP = wantPush ? Promise.race([push.sendToChat(chatId, text, buttons && buttons[0] && buttons[0].url).catch(() => 0), new Promise(r => setTimeout(() => r(0), 7000))]) : Promise.resolve(0);
     const r = await tg("sendMessage", body);
-    // Пользователь заблокировал бота → отключаем его подписки, чтобы не долбить впустую
-    if(r && r.ok === false && /blocked|deactivated|chat not found/i.test(String(r.description || ""))) return {ok:false, dead:true};
-    return {ok:!!(r && r.ok)};
+    const pushed = await pushP;
+    // Пользователь заблокировал бота → отключаем его подписки, чтобы не долбить впустую (если push дошёл — клиент ещё с нами)
+    if(r && r.ok === false && /blocked|deactivated|chat not found/i.test(String(r.description || "")) && !pushed) return {ok:false, dead:true};
+    return {ok:!!(r && r.ok) || pushed > 0};
   }
 
   const q = s => encodeURIComponent(s);
@@ -399,7 +405,7 @@ function create(deps){
       const patch = {};
       let dead = false;
       const say = async (text, extra) => {
-        const r = await send(link.chat_id, `${head}${text}`, btn);
+        const r = await send(link.chat_id, `${head}${text}`, btn, {push:true});
         if(r.dead) dead = true;
         patch.last_sent = new Date().toISOString();
         if(extra) Object.assign(patch, extra);
@@ -525,7 +531,7 @@ function create(deps){
       const back = new URLSearchParams(s.qs || ""); ["page", "per_page", "firstSeenFrom", "lang"].forEach(k => back.delete(k));
       const openUrl = `${SITE}/auctions${back.toString() ? "?" + back.toString() : ""}`;
       const text = `${T.newHead(total, esc(s.name || ""))}\n\n${shown.map(l => lotLine(l, lang)).join("\n")}${total > shown.length ? `\n${T.more(total - shown.length)}` : ""}`;
-      const r = await send(link.chat_id, text, [{text:T.openAll, url:openUrl}]);
+      const r = await send(link.chat_id, text, [{text:T.openAll, url:openUrl}], {push:true});
       // 27.10.2026 (QA-аудит): временный сбой Telegram (не блокировка) раньше всё равно двигал
       // last_check вперёд — новые лоты, попавшие в это окно, больше никогда не попадали бы в выдачу.
       if(!r.ok && !r.dead){ out.searchErr++; continue; }
@@ -566,7 +572,7 @@ function create(deps){
             const link = lk[0] || {};
             if(((link.prefs || {}).cars) !== false){
               const lang = link.lang || "ru";
-              const res = await send(row.chat_id, carMessage(st, row.key, lang), [{text: (CAR_TXT[lang] || CAR_TXT.ru).btn, url: SITE + "/cabinet#cars"}]);
+              const res = await send(row.chat_id, carMessage(st, row.key, lang), [{text: (CAR_TXT[lang] || CAR_TXT.ru).btn, url: SITE + "/cabinet#cars"}], {push:true});
               if(res.ok) out.carMsgs++;
             }
           }
@@ -619,7 +625,7 @@ function create(deps){
       const lang = link.lang || "ru", D = DIGEST_TXT[lang] || DIGEST_TXT.ru;
       const part = (title, arr) => arr.length ? `\n<b>${title}</b>\n` + arr.slice(0, 8).map(l => lotLine(l, lang)).join("\n") : "";
       const text = `<b>${D.h}</b>` + part(D.today, groups.today) + part(D.tomorrow, groups.tomorrow) + part(D.past, groups.past);
-      await send(link.chat_id, text, [{text:D.open, url:SITE + "/cabinet#fav"}]).catch(() => {});
+      await send(link.chat_id, text, [{text:D.open, url:SITE + "/cabinet#fav"}], {push:true}).catch(() => {});
       out.digest++;
     }
   }
@@ -717,6 +723,39 @@ function create(deps){
       const subs = await sb(`/alert_subs?token=eq.${q(token)}&active=eq.true&select=id,kind,name,lot_id,lot_title,sale_date,stage&order=created_at.desc&limit=60`).catch(() => []);
       const name = await botUsername();
       sendJson(response, 200, {ok:true, exists:true, bound:!!(links[0] && links[0].chat_id), prefs:{...PREF_DEFAULT, ...((links[0] && links[0].prefs) || {})}, url:name ? `https://t.me/${name}?start=${token}` : "", subs}, NO);
+      return true;
+    }
+
+    if(action === "alertpushkey"){
+      try{ sendJson(response, 200, {ok:true, key: await push.publicKey()}, NO); }
+      catch(e){ sendJson(response, 200, {ok:false, error:"push_unavailable"}, NO); }
+      return true;
+    }
+    if(action === "alertpushstatus"){
+      const token = query.get("token");
+      if(!okToken(token)){ sendJson(response, 400, {ok:false}, NO); return true; }
+      const st = await push.status(token).catch(() => ({devices:0}));
+      const links = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id&limit=1`).catch(() => null);
+      sendJson(response, 200, {ok:true, devices:st.devices, bound:!!(links && links[0] && links[0].chat_id)}, NO);
+      return true;
+    }
+    if(action === "alertpushsub" || action === "alertpushunsub" || action === "alertpushtest"){
+      if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
+      const body = await readBody(request).catch(() => ({}));
+      if(!okToken(body.token)){ sendJson(response, 400, {ok:false}, NO); return true; }
+      // защита от засорения: подписки заводим только на существующий токен
+      const links = await sb(`/alert_links?token=eq.${q(body.token)}&select=chat_id&limit=1`).catch(() => null);
+      if(!links || !links[0]){ sendJson(response, 200, {ok:false, error:"no_token"}, NO); return true; }
+      if(action === "alertpushsub"){
+        const ok = await push.saveSub(body.token, body.sub).catch(() => false);
+        sendJson(response, ok ? 200 : 400, {ok}, NO); return true;
+      }
+      if(action === "alertpushunsub"){
+        await push.delSub(body.token, body.endpoint).catch(() => {});
+        sendJson(response, 200, {ok:true}, NO); return true;
+      }
+      const n = await push.sendToToken(body.token, JSON.stringify({title:"Apex Auto", body:"Уведомления включены — сюда будут приходить торги и статусы доставки.", url:"/cabinet", tag:"apex-test"})).catch(() => 0);
+      sendJson(response, 200, {ok:true, sent:n}, NO);
       return true;
     }
 

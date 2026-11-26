@@ -13,11 +13,15 @@
   var PHONE = "+37368832032", WA = "37368832032", TG = "fedukusa";
   var lang = (window.APEX_LANG || document.documentElement.lang || "ru").slice(0, 2);
   var T = {
-    ru: {cat:"Каталог", fav:"Избранное", calc:"Расчёт", cab:"Кабинет", contact:"Связь", call:"Позвонить", wa:"WhatsApp", tg:"Telegram", aria:"Навигация", msg:"Здравствуйте! Пишу с сайта apexauto.md", close:"Закрыть", head:"Связаться с менеджером", install:"Установить приложение", installD:"Иконка на главном экране и уведомления"},
-    ro: {cat:"Catalog", fav:"Favorite", calc:"Calcul", cab:"Cont", contact:"Contact", call:"Sună", wa:"WhatsApp", tg:"Telegram", aria:"Navigare", msg:"Bună ziua! Vă scriu de pe site-ul apexauto.md", close:"Închide", head:"Contactează managerul", install:"Instalează aplicația", installD:"Pictogramă pe ecranul principal și notificări"},
-    en: {cat:"Catalog", fav:"Favourites", calc:"Calculate", cab:"Account", contact:"Contact", call:"Call", wa:"WhatsApp", tg:"Telegram", aria:"Navigation", msg:"Hello! I'm writing from apexauto.md", close:"Close", head:"Contact your manager", install:"Install the app", installD:"Home-screen icon and notifications"}
+    ru: {cat:"Каталог", fav:"Избранное", calc:"Расчёт", cab:"Кабинет", contact:"Связь", call:"Позвонить", wa:"WhatsApp", tg:"Telegram", aria:"Навигация", msg:"Здравствуйте! Пишу с сайта apexauto.md", close:"Закрыть", head:"Связаться с менеджером", install:"Установить приложение", installD:"Иконка на главном экране и уведомления", iosHint:"Нажмите «Поделиться» в Safari → «На экран Домой»"},
+    ro: {cat:"Catalog", fav:"Favorite", calc:"Calcul", cab:"Cont", contact:"Contact", call:"Sună", wa:"WhatsApp", tg:"Telegram", aria:"Navigare", msg:"Bună ziua! Vă scriu de pe site-ul apexauto.md", close:"Închide", head:"Contactează managerul", install:"Instalează aplicația", installD:"Pictogramă pe ecranul principal și notificări", iosHint:"Apasă „Partajare” în Safari → „Adaugă pe ecranul principal”"},
+    en: {cat:"Catalog", fav:"Favourites", calc:"Calculate", cab:"Account", contact:"Contact", call:"Call", wa:"WhatsApp", tg:"Telegram", aria:"Navigation", msg:"Hello! I'm writing from apexauto.md", close:"Close", head:"Contact your manager", install:"Install the app", installD:"Home-screen icon and notifications", iosHint:"Tap “Share” in Safari → “Add to Home Screen”"}
   };
   var t = T[lang] || T.ru;
+  // Установка на экран «Домой»: Chrome/Android присылает событие (ловим сразу — оно может прийти до сборки панели)
+  var installEv = null, onInstallReady = null;
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); installEv = e; if(onInstallReady) onInstallReady(); });
+  window.addEventListener("appinstalled", function(){ installEv = null; if(onInstallReady) onInstallReady(); });
 
   function css(){
     var s = document.createElement("style");
@@ -154,6 +158,16 @@
     document.body.appendChild(sheet);
     function open(){ sheet.querySelector(".mWaV1").href = "https://api.whatsapp.com/send?phone=" + WA + "&text=" + encodeURIComponent(msg()); sheet.classList.add("isOpenV1"); document.documentElement.style.overflow = "hidden"; try{ document.dispatchEvent(new CustomEvent("apex-sheet-open", {detail:{sheet:sheet}})); }catch(e){} }
     function close(){ sheet.classList.remove("isOpenV1"); document.documentElement.style.overflow = ""; }
+    var inst = sheet.querySelector("[data-install]");
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var isStandalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+    function syncInstall(){ inst.hidden = isStandalone || !(installEv || isIOS); }
+    onInstallReady = syncInstall; syncInstall();
+    inst.addEventListener("click", function(e){
+      e.stopPropagation();
+      if(installEv){ var ev = installEv; installEv = null; ev.prompt(); (ev.userChoice || Promise.resolve()).then(function(){ syncInstall(); close(); }); }
+      else if(isIOS){ inst.querySelector("small").textContent = t.iosHint; }
+    });
     nav.querySelector('[data-tab="contact"]').addEventListener("click", open);
     sheet.addEventListener("click", function(e){ if(e.target === sheet || e.target.closest(".mSheetCloseV1") || e.target.closest("a")) close(); });
     document.addEventListener("keydown", function(e){ if(e.key === "Escape") close(); });
