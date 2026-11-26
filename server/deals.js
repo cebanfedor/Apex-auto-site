@@ -305,6 +305,39 @@ async function chatForDeal(supabase, row){
   return chatForKey(supabase, row && row.phone_key);
 }
 
+// ---------- Просьба об отзыве (27.11.2026): через сутки после «Выдана» ----------
+const REVIEW_URL = "https://search.google.com/local/writereview?placeid=ChIJ10gGyT59yUARKjcF5NyJ-LY";
+const REVIEW_MSG = {
+  ru: {t: "Спасибо, что выбрали Apex Auto! 🙌\nЕсли всё понравилось — оставьте, пожалуйста, короткий отзыв в Google (минута). Для нас это очень важно.", b: "Оставить отзыв"},
+  ro: {t: "Mulțumim că ai ales Apex Auto! 🙌\nDacă ți-a plăcut totul, lasă te rog o recenzie scurtă pe Google (un minut). Este foarte important pentru noi.", b: "Lasă o recenzie"},
+  en: {t: "Thank you for choosing Apex Auto! 🙌\nIf you're happy with everything, please leave a short Google review (one minute). It means a lot to us.", b: "Leave a review"}
+};
+function reviewMessage(lang){ const m = REVIEW_MSG[lang] || REVIEW_MSG.ru; return {text: m.t, button: {text: m.b, url: REVIEW_URL}}; }
+// Один раз на сделку: «выдана» > 24 часов назад (но не старше 30 дней), клиент подключён в Telegram
+async function processReviews({supabase, budgetMs}, out){
+  out = out || {}; out.reviewMsgs = 0;
+  const deadline = Date.now() + (budgetMs || 8000);
+  const now = Date.now();
+  const rows = await supabase.list("cab_deals", {select: "*", active: "eq.true", stage: "eq.done",
+    and: `(updated_at.lt.${new Date(now - 24 * 3600e3).toISOString()},updated_at.gt.${new Date(now - 30 * 86400e3).toISOString()})`, limit: "30"}).catch(() => null);
+  if(!rows || !rows.length) return out;
+  const keys = rows.map(r => `review:${r.id}`);
+  const sent = await supabase.list("alert_meta", {select: "k", k: `in.(${keys.join(",")})`}).catch(() => []);
+  const done = new Set((sent || []).map(x => x.k));
+  const cl = require("./clients");
+  for(const row of rows){
+    if(Date.now() > deadline - 2500) break;
+    if(done.has(`review:${row.id}`)) continue;
+    const c = await chatForDeal(supabase, row);
+    // метку ставим всегда: нет чата — не повторяем попытки каждые 3 минуты (если клиент подключится позже, просьбу уже не шлём)
+    await supabase.upsert("alert_meta", {k: `review:${row.id}`, v: {chat: c ? c.chat : null, t: now}, updated_at: new Date().toISOString()}, "k").catch(() => {});
+    if(!c) continue;
+    const m = reviewMessage(c.lang);
+    if(await cl.tgSend(c.chat, m.text, [m.button])) out.reviewMsgs++;
+  }
+  return out;
+}
+
 // Фоновая синхронизация: по кругу берём активные сделки с VIN, подтягиваем трекинг, обновляем и пишем клиенту при смене этапа.
 async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   out = out || {}; out.dealsChecked = 0; out.dealsUpdated = 0; out.dealMsgs = 0;
@@ -337,4 +370,4 @@ async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   return out;
 }
 
-module.exports = {calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, chatForDeal, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};
+module.exports = {processReviews, reviewMessage, calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, chatForDeal, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};

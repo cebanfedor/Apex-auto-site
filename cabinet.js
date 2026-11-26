@@ -67,6 +67,8 @@
     p_digest:["Утренняя сводка по избранному","Rezumat de dimineață despre favorite","Morning digest of my favourites"],
     t_deals:["Мои сделки","Tranzacțiile mele","My orders"],
     dl_h:["Мои сделки","Tranzacțiile mele","My orders"],
+    dl_ics:["📅 Добавить выдачу в календарь","📅 Adaugă predarea în calendar","📅 Add handover to calendar"],
+    dl_ics_ev:["Выдача авто","Predarea mașinii","Car handover"],
     dl_verify_h:["Подтвердите номер телефона","Confirmă numărul de telefon","Confirm your phone number"],
     dl_verify_p:["Менеджер заводит вашу сделку по номеру телефона. Нажмите кнопку, затем в Telegram — «Поделиться номером»: Telegram передаёт только ваш собственный номер. После этого здесь появятся этапы, фото и документы по вашей машине.","Managerul creează tranzacția după numărul de telefon. Apasă butonul, apoi în Telegram — „Trimite numărul”: Telegram trimite doar propriul număr. Apoi apar aici etapele, pozele și documentele.","Your manager creates the order by phone number. Tap the button, then “Share my number” in Telegram — Telegram only shares your own number. Stages, photos and documents will then appear here."],
     dl_verify_b:["Подтвердить номер в Telegram","Confirmă numărul în Telegram","Confirm number in Telegram"],
@@ -425,6 +427,25 @@
     }
     return '<div class="cabCalcV1"><div class="cabCalcHeadV1"><b>' + t("dl_calc_h") + '</b>' + (rate ? '<small>' + t("dl_rate") + ' 1 $ = ' + rate + ' ' + ({ru:"лей", ro:"lei", en:"MDL"}[LANG] || "MDL") + '</small>' : "") + '</div>' + ship + lei2 + '<p class="cabMutedV1">' + t("dl_calc_p") + '</p></div>';
   }
+  // .ics на дату выдачи (целый день + напоминание за сутки), собирается в браузере
+  function downloadIcs(id){
+    var d = (S.deals && S.deals.list || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!d || !d.eta) return;
+    var day = String(d.eta).replace(/-/g, "");
+    var nxt = new Date(String(d.eta) + "T00:00:00Z"); nxt.setUTCDate(nxt.getUTCDate() + 1);
+    var end = nxt.toISOString().slice(0, 10).replace(/-/g, "");
+    var esc2 = function(s){ return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); };
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Apex Auto//Cabinet//RU", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+      "UID:deal-" + d.id + "-" + day + "@apexauto.md", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+      "DTSTART;VALUE=DATE:" + day, "DTEND;VALUE=DATE:" + end,
+      "SUMMARY:" + esc2(t("dl_ics_ev") + ": " + d.title),
+      "DESCRIPTION:" + esc2((d.next_step ? d.next_step + "\n" : "") + "https://apexauto.md/cabinet#deals"),
+      "LOCATION:" + esc2("Strada Bucovinei 9F, Chișinău"),
+      "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:" + esc2(t("dl_ics_ev") + ": " + d.title), "END:VALARM", "END:VEVENT", "END:VCALENDAR"];
+    var blob = new Blob([lines.join("\r\n")], {type: "text/calendar;charset=utf-8"});
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "apex-auto-" + d.id + ".ics";
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
   function dealCard(d, compact){
     var idx = Math.max(0, DSTAGES.indexOf(d.stage));
     var steps = DSTAGES.map(function(k, i){
@@ -440,7 +461,7 @@
     var head = '<header class="cabDealHeadV1"><div><h3>' + esc(d.title) + '</h3>' + (d.vin ? '<small>' + esc(d.vin) + '</small>' : "") + '</div><span class="cabStatusV1' + (d.stage === "done" || d.stage === "ready" ? " isDone" : "") + '">' + t("dl_f_" + d.stage) + '</span></header>';
     var stepper = '<ol class="cabStepperV1" data-cur="' + idx + '">' + steps + '</ol>';
     var next = d.next_step ? '<div class="cabNextV1"><b>' + t("nx_h") + '</b><span>' + esc(d.next_step) + '</span></div>' : "";
-    var eta = d.eta && d.stage !== "done" ? '<div class="cabEtaV1">' + t("dl_eta") + ': <b>' + esc(fmtDay(d.eta)) + '</b></div>' : "";
+    var eta = d.eta && d.stage !== "done" ? '<div class="cabEtaV1">' + t("dl_eta") + ': <b>' + esc(fmtDay(d.eta)) + '</b> <button type="button" class="cabLinkV1" data-act="ics" data-id="' + esc(String(d.id)) + '">' + t("dl_ics") + '</button></div>' : "";
     if(compact) return '<article class="cabDealV1 isCompact">' + head + '<div class="cabBarV1"><i style="width:' + pct + '%"></i></div>' + next + eta + '<a class="cabLinkV1" href="#deals" data-act="tab" data-v="deals">' + t("det") + ' →</a></article>';
     var photos = d.photos && d.photos.length ? '<div class="cabDealSecV1"><h4>' + t("dl_photos") + ' <em>' + d.photos.length + '</em></h4><div class="cabPhotosV1">' +
       d.photos.map(function(p){ return '<a href="' + esc(p.url) + '" target="_blank" rel="noopener"><img src="' + esc(p.url) + '" alt="' + esc(p.caption || "") + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">' + (p.caption ? '<small>' + esc(p.caption) + '</small>' : "") + '</a>'; }).join("") + '</div></div>' : "";
@@ -873,6 +894,7 @@
     var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
     if(act === "tab"){ e.preventDefault(); return setTab(b.getAttribute("data-v")); }
     if(act === "connect") return startConnect();
+    if(act === "ics") return downloadIcs(id);
     if(act === "pkreact") return reactPick(Number(id), b.getAttribute("data-v"), b);
     if(act === "pkfav"){ var rid = id, fromPick = S.picks && S.picks.list.filter(function(x){ return x.lot_id === rid; })[0]; if(findFav(rid)){ unfav(rid); } else if(fromPick){ var fo = Object.assign({}, fromPick.data, {id:rid}); S.favs.unshift(fo); saveFavs(); if(cab()) cab().put("fav", rid, fo); toast(t("done")); render(); } return; }
     if(act === "dealverify"){ startDealPoll(); setTimeout(function(){ render(true); }, 50); return; }

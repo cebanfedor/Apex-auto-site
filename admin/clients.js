@@ -83,7 +83,8 @@
     const c = CC.card; if(!c) return;
     const name = c.profile.name || c.tgName || "Без имени";
     const phone = c.profile.phone || c.phone.number;
-    const wa = digits(phone) ? `https://api.whatsapp.com/send?phone=${digits(phone)}` : "";
+    const hello = `Здравствуйте${name && name !== "Без имени" ? ", " + name : ""}! Это Apex Auto (Федор). `;
+    const wa = digits(phone) ? `https://api.whatsapp.com/send?phone=${digits(phone)}&text=${encodeURIComponent(hello)}` : "";
     const seen = c.seen.online ? `<span class="ccPillV1 on">онлайн${c.seen.title ? " · " + e(c.seen.title) : ""}</span>` : `<span class="ccPillV1">был ${ago(c.seen.at)}</span>`;
     const sec = (title, body, count) => body ? `<section class="ccSecV1"><h3>${title}${count != null ? ` <em>${count}</em>` : ""}</h3>${body}</section>` : "";
     const lotRow = (id, d, right) => `<a class="ccLotV1" href="${lotUrl(id)}" target="_blank" rel="noopener"><span class="ccThumbV1">${thumb(d)}</span><span class="ccLotTxtV1"><b>${e(titleOf(d) || id)}</b><small>${e(id)}${d && d.year ? "" : ""}${right ? " · " + right : ""}</small></span></a>`;

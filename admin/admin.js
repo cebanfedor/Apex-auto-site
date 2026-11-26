@@ -182,6 +182,7 @@ function renderRows(container, items, type){
           <p>VIN: ${escapeHtml(item.vin || "—")}${money(item.paid_usd, item.total_usd)} · ${item.chat_id ? "✅ привязан к клиенту из Telegram" : item.linked ? "✅ клиент подтвердил номер в Telegram" : "⏳ клиент ещё не подтвердил номер"}</p>
         </div>
         <div class="rowActions">
+          ${digits(item.phone) ? `<a class="ghost" style="text-decoration:none;padding:8px 12px;border-radius:10px" target="_blank" rel="noopener" href="https://api.whatsapp.com/send?phone=${digits(item.phone)}&text=${encodeURIComponent(dealWaText(item, st))}">WhatsApp</a>` : ""}
           <button data-edit-deal="${item.id}">Изм.</button>
           <button class="danger" data-delete-deal="${item.id}">Удалить</button>
         </div>
@@ -292,6 +293,13 @@ function pickDealClient(chat){
     if(c.name && !el.client_name.value.trim()) el.client_name.value = c.name;
   }
   dealClientHint();
+}
+
+const digits = p => String(p || "").replace(/\D/g, "");
+// Готовый текст клиенту о сделке (для WhatsApp/Viber, если клиент не в Telegram)
+function dealWaText(d, stageLabel){
+  const eta = d.eta_date ? ` Ожидаемая выдача: ${String(d.eta_date).split("-").reverse().join(".")}.` : "";
+  return `Здравствуйте${d.client_name ? ", " + d.client_name : ""}! Apex Auto: ${d.title}. Этап: ${stageLabel}.${d.next_step ? " Дальше: " + d.next_step + "." : ""}${eta}`;
 }
 
 async function loadDeals(){

@@ -185,3 +185,29 @@ test("chatForDeal: привязанный chat_id важнее телефона;
   assert.strictEqual(fb.chat, 777);
   assert.strictEqual(await deals.chatForDeal(sb, {chat_id: null, phone_key: "11111111"}), null);
 });
+
+test("processReviews: просьба об отзыве один раз, только подключённым клиентам; метка ставится всегда", async () => {
+  const sent = [], upserts = [];
+  const rows = [{id: 1, chat_id: "555", phone_key: "tg555", stage: "done"}, {id: 2, chat_id: null, phone_key: "11111111", stage: "done"}, {id: 3, chat_id: "555", phone_key: "tg555", stage: "done"}];
+  const supabase = {
+    list: async (table, q) => {
+      if(table === "cab_deals") return rows;
+      if(table === "alert_meta" && q.k && q.k.startsWith("in.(")) return [{k: "review:3"}];     // по сделке 3 уже просили
+      if(table === "alert_meta") return [];
+      if(table === "alert_links") return q.chat_id === "eq.555" ? [{lang: "ro"}] : [];
+      return [];
+    },
+    upsert: async (table, row) => { upserts.push(row.k); }
+  };
+  const realFetch = global.fetch;
+  process.env.ALERTS_BOT_TOKEN = "t";
+  global.fetch = async (url, opt) => { sent.push(JSON.parse(opt.body)); return {json: async () => ({ok: true})}; };
+  try{
+    const out = await deals.processReviews({supabase, budgetMs: 20000}, {});
+    assert.strictEqual(out.reviewMsgs, 1);
+    assert.deepStrictEqual(upserts.sort(), ["review:1", "review:2"]);   // 3 пропущена; у 2 нет чата — метка есть, сообщения нет
+    assert.strictEqual(sent.length, 1);
+    assert.ok(/recenzie/i.test(sent[0].text));
+    assert.ok(/writereview/.test(sent[0].reply_markup.inline_keyboard[0][0].url));
+  }finally{ global.fetch = realFetch; }
+});

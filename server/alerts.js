@@ -671,6 +671,8 @@ function create(deps){
     if(left2 > 6000) await processDigest(Math.min(left2 - 2000, 10000), out).catch(e => { out.digestErr = String(e.message || e).slice(0, 120); });
     const left3 = 54000 - (Date.now() - started);
     if(left3 > 6000) await require("./deals").syncDeals({supabase: require("./supabase"), fetchTrack, budgetMs: Math.min(left3 - 2000, 12000)}, out).catch(e => { out.dealErr = String(e.message || e).slice(0, 120); });
+    const left4 = 56000 - (Date.now() - started);
+    if(left4 > 4000) await require("./deals").processReviews({supabase: require("./supabase"), budgetMs: Math.min(left4 - 1500, 6000)}, out).catch(e => { out.reviewErr = String(e.message || e).slice(0, 120); });
     out.ms = Date.now() - started;
     return out;
   }
