@@ -1,0 +1,79 @@
+{
+  "slug": "canada-cars",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Cars from Canada to Moldova: Auctions, Turnkey Price and Timing | Apex Auto",
+    "description": "How to bring a car from Canada to Moldova: Copart and IAAI Canada insurance lots, intact cars from dealer auctions, CAD pricing, mileage in km and delivery times.",
+    "ogTitle": "Cars from Canada to Moldova: turnkey price and timing",
+    "ogDesc": "Damaged and intact cars from Canada: two ways to buy, CAD pricing and delivery times."
+  },
+  "tag": "Canada",
+  "kicker": "Buying and delivery · Cars from Canada",
+  "h1": "Cars from Canada to Moldova: auctions, turnkey price and timing",
+  "lead": "Canada is a separate route with its own shipping path, exchange rate and set of costs. There are insurance auctions with damaged cars and dealer auctions with intact ones. We explain how each route works, how Canadian lots differ from American ones and how long you will wait.",
+  "card": {
+    "tag": "Canada",
+    "title": "Cars from Canada to Moldova: auctions, turnkey price and timing",
+    "text": "Copart and IAAI Canada insurance lots, intact cars from dealer auctions, CAD pricing, mileage in km and delivery times."
+  },
+  "og": { "k": "CANADA", "h": "Cars from Canada to Moldova", "s": "Two ways to buy, CAD pricing and timing" },
+  "summary": [
+    "**Two routes:** Copart and IAAI Canada insurance lots (damaged) and intact cars from dealer auctions.",
+    "**Price in Canadian dollars:** converted to US dollars at the TD rate.",
+    "**Mileage of Canadian lots is in kilometres,** not miles.",
+    "**Timing:** usually 1.5–2 months from the east, up to 2.5 months from the west."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Two ways to buy in Canada" },
+    { "t": "table", "head": ["", "Insurance auctions", "Dealer auctions"], "rows": [
+      ["Platforms", "Copart and IAAI Canada", "Canadian dealer auctions"],
+      ["Type of cars", "Damaged, total loss, insurance", "Intact cars from dealers and leasing companies"],
+      ["Where to look", "[[Auction catalog|auctions]], “Canada” filter", "[[Canada catalog|canada]]"],
+      ["Repair", "Needs to be assessed", "Usually not needed"]
+    ] },
+    { "t": "h2", "x": "What makes up the price" },
+    { "t": "p", "x": "The bid is placed in Canadian dollars and converted into US dollars at the TD bank rate. On top of it come:" },
+    { "t": "ul", "x": [
+      "the auction fee (the scale depends on the lot price);",
+      "delivery within Canada to the port, at the tariff of the nearest yard;",
+      "the bank commission and the services of the Canadian company;",
+      "storage and loading;",
+      "sea freight to Europe and a car carrier to Chișinău;",
+      "insurance, the Apex Auto fee, the fee for paying in lei and the broker;",
+      "customs clearance in Moldova."
+    ] },
+    { "t": "p", "x": "The amount for a specific lot is shown in the calculator on the car page. For the customs rules themselves, see the article [[Car customs clearance in Moldova|customs]]." },
+    { "t": "h2", "x": "Features of Canadian lots" },
+    { "t": "ul", "x": [
+      "**Mileage in kilometres.** In the listing of Canadian lots the mileage is given in km; do not confuse it with the miles of American lots. More in the article [[How to check resale and mileage|resale-check]].",
+      "**Prices in CAD.** The bid, the reserve and the bid history are shown in Canadian dollars.",
+      "**A different route.** Canadian lots go through a Canadian port, not a US one; costs and timing are calculated differently.",
+      "**Distance to the port.** Yards in the west are farther from the port than those in the east, so delivery costs more and takes longer."
+    ] },
+    { "t": "h2", "x": "Timing" },
+    { "t": "ul", "x": [
+      "**Eastern Canada** (Montreal, Toronto, Ottawa, Halifax and others): 1.5–2 months.",
+      "**Alberta and Saskatchewan:** about 2 months.",
+      "**British Columbia:** up to 2.5 months."
+    ] },
+    { "t": "p", "x": "These are guidelines. More about the stages and tracking in the article [[Delivery stages and timing|delivery-stages]]." },
+    { "t": "h2", "x": "What to choose" },
+    { "t": "p", "x": "If you need a car to repair and are ready to assess the damage, look at insurance auctions. If you need an intact car with no repair, look at Canadian dealer auctions. For a comparison with the USA, see [[How much it costs to bring a car from the USA|import-cost]]." }
+  ],
+  "faq": [
+    { "q": "Why are Canadian lots more or less expensive than American ones?", "a": "The exchange rate, delivery and route differ. Compare the final turnkey price, not the bid." },
+    { "q": "How is the Canadian dollar converted?", "a": "At the TD bank rate into US dollars, then at the leu rate when paying." },
+    { "q": "Can I buy an intact car with no repair?", "a": "Yes, Canadian dealer auctions sell intact cars." },
+    { "q": "Where can I see lots from Canada?", "a": "Insurance lots are in the auction catalog with the “Canada” filter, intact ones are in the Canada catalog." }
+  ],
+  "cta": {
+    "h": "Want to bring a car from Canada?",
+    "p": "Send a link to the lot or listing and we will calculate the turnkey price and tell you about timing.",
+    "b1": "Send the lot to Telegram",
+    "b2": "Canada catalog",
+    "b2slug": "canada"
+  },
+  "related": ["delivery-stages", "import-cost", "korea-cars"]
+}

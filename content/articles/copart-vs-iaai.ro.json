@@ -1,0 +1,155 @@
+{
+  "slug": "copart-vs-iaai",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Copart sau IAAI: care e diferența și unde să cumperi mașina | Apex Auto",
+    "description": "Cum diferă Copart și IAAI pentru un cumpărător din Moldova: taxe, tipuri de licitații, Timed, foto și 360°, liniile de licitație. Compară loturile, nu platformele.",
+    "ogTitle": "Copart sau IAAI: care e diferența pentru cumpărător",
+    "ogDesc": "Taxe, tipuri de licitații, Timed și foto: ce diferă cu adevărat și cum alegi lotul."
+  },
+  "tag": "Licitații",
+  "kicker": "Cumpărare și livrare · Copart și IAAI",
+  "h1": "Copart sau IAAI: care e diferența și unde să cumperi mașina",
+  "lead": "Copart și IAAI sunt cele două mari platforme de licitații de asigurări din SUA și Canada. Cumpărătorii întreabă adesea care e mai bună. Răspunsul scurt: se compară nu platformele, ci loturile concrete, după prețul final. Dar platformele au diferențe reale, iar despre ele merită să știi.",
+  "card": {
+    "tag": "Licitații",
+    "title": "Copart sau IAAI: care e diferența și unde să cumperi mașina",
+    "text": "Taxe, tipuri de licitații, Timed, foto și liniile de licitație. Ce diferă cu adevărat și cum compari loturile."
+  },
+  "og": {
+    "k": "LICITAȚII",
+    "h": "Copart sau IAAI",
+    "s": "Care e diferența și cum alegi lotul"
+  },
+  "summary": [
+    "**Sortimentul e asemănător:** pe ambele platforme se vând mașini de la asigurători, avariate și de la dealeri din SUA și Canada.",
+    "**Taxele sunt apropiate:** conform calculelor noastre, IAAI costă cu aproximativ $50 mai mult decât Copart pentru același lot.",
+    "**Timed există la IAAI:** în feedul nostru formatul Timed apare la IAAI, iar la Copart nu.",
+    "**Alege lotul, nu platforma:** prețul final la cheie, starea și istoricul contează mai mult decât logo-ul."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Ce au în comun"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Ambele platforme vând mașini de la companii de asigurări, bănci, companii de leasing și de închirieri, precum și mașini de la dealeri.",
+        "Licitațiile se desfășoară online, iar cumpărătorul are nevoie de licență de dealer, de aceea o persoană fizică din Moldova lucrează printr-un broker sau importator, ca Apex Auto.",
+        "Fiecare lot vine cu fotografii, descrierea avariilor, kilometrajul, tipul de document și estimarea valorii.",
+        "Ambele platforme au loturi atât în SUA, cât și în Canada, iar o parte din loturi se vând prin Buy Now."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Unde diferă cu adevărat"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Parametru",
+        "Copart",
+        "IAAI"
+      ],
+      "rows": [
+        [
+          "Taxele cumpărătorului",
+          "Scală progresivă",
+          "Aceeași scală, dar cu aproximativ $50 mai mult din cauza taxelor de serviciu"
+        ],
+        [
+          "Format de licitație",
+          "Licitații online, ofertă minimă, în curs de aprobare, Buy Now",
+          "La fel și Timed — licitații cu fereastră fixă de timp"
+        ],
+        [
+          "Ordinea licitației",
+          "Linie și număr de lot (de exemplu, B/2113): ordinea în linie se vede din timp",
+          "Linia și numărul se atribuie mai aproape de licitație, la Timed nu există coadă"
+        ],
+        [
+          "Media",
+          "Foto, la unele loturi — cadre 360° și panoramă a interiorului",
+          "Foto, la unele loturi — 360° de la platformă"
+        ],
+        [
+          "Date în fișă",
+          "Kilometraj, avarii, document, chei",
+          "La fel, cu un set de câmpuri diferit la unele loturi"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Tabelul detaliat al taxelor în funcție de prețul lotului — în articolul [[Taxele licitațiilor Copart și IAAI|auction-fees]]."
+    },
+    {
+      "t": "h2",
+      "x": "Ce este Timed"
+    },
+    {
+      "t": "p",
+      "x": "Timed este o licitație care nu se desfășoară într-un singur moment în „sală”, ci pe parcursul unei ferestre de timp stabilite. Ofertele se primesc până la închidere, după care lotul merge fie la cumpărător, fie este retras dacă rezerva nu a fost atinsă. În feedul nostru Timed apare la IAAI. Dacă ești obișnuit cu licitațiile online Copart, cu coadă de loturi, Timed are alt ritm: trebuie să urmărești ora închiderii și să nu amâni oferta."
+    },
+    {
+      "t": "h2",
+      "x": "Cum alegi lotul"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Calculează prețul la cheie**, nu doar oferta: platformele au taxe diferite, iar livrarea pleacă din state diferite. Calculul — în articolul [[Cât costă aducerea unei mașini din SUA|import-cost]].",
+        "**Verifică istoricul după VIN.** Aceeași mașină ar fi putut fi scoasă la licitație de mai multe ori; detalii — în articolul [[Cum verifici revânzarea și kilometrajul|resale-check]].",
+        "**Uită-te la avarie și la document.** Tipul de titlu influențează dacă mașina poate fi importată și înmatriculată: [[tipurile de titluri|title-types]].",
+        "**Compară loturile**: modelele identice de pe două platforme diferă adesea mai mult prin stare decât prin preț."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce contează mai mult decât platforma"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "statul și distanța până la port;",
+        "starea și tipul avariei;",
+        "kilometrajul și anul — ele determină vămuirea;",
+        "rezerva vânzătorului și formatul licitației;",
+        "existența fotografiilor de calitate și a istoricului complet."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Care platformă e mai ieftină?",
+      "a": "După taxe, Copart este în medie puțin mai ieftin, dar diferența este de circa $50 pe lot. Prețul final depinde de lot, de stat și de livrare."
+    },
+    {
+      "q": "Se poate cumpăra direct, fără broker?",
+      "a": "Este nevoie de licență de dealer. Unei persoane fizice din Moldova îi este mai simplu să lucreze printr-un broker sau importator."
+    },
+    {
+      "q": "Prin ce diferă Timed de licitațiile obișnuite?",
+      "a": "Licitația se desfășoară pe parcursul unei ferestre de timp, nu într-un singur moment. Trebuie să urmărești închiderea și să faci oferta la timp."
+    },
+    {
+      "q": "Au ambele platforme loturi din Canada?",
+      "a": "Da, ambele au loturi canadiene. Pentru ele se calculează alt traseu și alte cheltuieli; detalii — în articolul despre Canada."
+    }
+  ],
+  "cta": {
+    "h": "Nu poți alege între două loturi?",
+    "p": "Trimite-le pe ambele — calculăm prețul la cheie și îți spunem care e mai avantajos.",
+    "b1": "Trimite loturile pe Telegram",
+    "b2": "Cât costă aducerea unei mașini",
+    "b2slug": "import-cost"
+  },
+  "related": [
+    "import-cost",
+    "lot-card-guide",
+    "title-types"
+  ]
+}

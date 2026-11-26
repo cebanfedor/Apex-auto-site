@@ -1,0 +1,161 @@
+{
+  "slug": "deal-documents",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Contractul și documentele la cumpărarea unei mașini din străinătate: ce semnați | Apex Auto",
+    "description": "Ce documente primiți la cumpărarea unei mașini din SUA, Canada sau Coreea: contract, facturi, Title, Bill of Lading, acte vamale. Ce verificați înainte de a semna.",
+    "ogTitle": "Contractul și documentele la cumpărarea unei mașini din străinătate",
+    "ogDesc": "Ce documente semnați și primiți: contract, facturi, Title, Bill of Lading și acte vamale."
+  },
+  "tag": "Documente",
+  "kicker": "Cumpărare și livrare · Documente",
+  "h1": "Contractul și documentele la cumpărarea unei mașini din străinătate",
+  "lead": "Cumpărarea unei mașini în străinătate înseamnă nu doar licitație și livrare, ci și un set de documente. Pentru clienți este important să înțeleagă ce semnează, ce acte primesc și ce trebuie verificat înainte de plată. Vedem documentele principale și întrebările pe care merită să le puneți oricărui intermediar.",
+  "card": {
+    "tag": "Documente",
+    "title": "Contractul și documentele la cumpărarea unei mașini din străinătate",
+    "text": "Contract, facturi, Title, Bill of Lading și acte vamale. Ce primiți și ce verificați înainte de plată."
+  },
+  "og": {
+    "k": "DOCUMENTE",
+    "h": "Contract și documente",
+    "s": "Ce semnați și ce primiți la cumpărarea unei mașini"
+  },
+  "summary": [
+    "**Contractul cu intermediarul:** stabilește serviciile, condițiile de plată și răspunderea părților.",
+    "**Documentele mașinii:** factura licitației, Title sau documentul de cumpărare, Bill of Lading, actele vamale.",
+    "**De la dvs. este nevoie de pașaport:** restul îl întocmește intermediarul, dar trebuie să înțelegeți ce semnați.",
+    "**Plățile se fac pe etape:** mai întâi cheltuielile de cumpărare și livrare, apoi vămuirea la primire."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Ce semnați"
+    },
+    {
+      "t": "p",
+      "x": "Înainte de cumpărare se încheie un contract cu intermediarul. În el trebuie să fie clar: ce anume include serviciul, din ce plăți se compune prețul, în ce termene și în ce valută se achită, ce se întâmplă dacă lotul nu este câștigat sau mașina are defecte ascunse."
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Obiectul și serviciile:** selecție, licitație, livrare, vămuire.",
+        "**Prețul și plățile:** ce sume în dolari, euro și lei, când se achită.",
+        "**Comisionul intermediarului:** sumă fixă sau procent; trebuie să fie vizibil din start.",
+        "**Răspunderea:** cine răspunde de termene, de avarierea la transport și de documente.",
+        "**Confidențialitatea:** condițiile de prelucrare a datelor personale."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce documente însoțesc de obicei mașina"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Document",
+        "Ce este",
+        "La ce folosește"
+      ],
+      "rows": [
+        [
+          "Factura licitației",
+          "Factura platformei pentru lotul câștigat și taxe",
+          "Confirmă prețul de cumpărare și componența taxelor"
+        ],
+        [
+          "Title sau documentul de cumpărare",
+          "Document privind dreptul de proprietate asupra mașinii în țara de cumpărare",
+          "Confirmă proveniența și statutul juridic; tipul de Title este descris în articolul despre Title"
+        ],
+        [
+          "Bill of Lading",
+          "Document de transport maritim",
+          "Confirmă expedierea și permite ridicarea mașinii în portul de destinație"
+        ],
+        [
+          "Acte vamale",
+          "Declarația și documentele de plată pentru vămuire",
+          "Confirmă plata taxelor și importul legal"
+        ],
+        [
+          "Proces-verbal de predare-primire",
+          "Document privind predarea mașinii către dvs.",
+          "Consemnează starea mașinii în momentul predării"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Despre tipurile de Title — în articolul [[Tipurile de Title|title-types]]."
+    },
+    {
+      "t": "h2",
+      "x": "Cum se fac plățile"
+    },
+    {
+      "t": "p",
+      "x": "Cheltuielile se împart pe etape. Mai întâi se achită oferta, taxele licitației și livrarea; apoi, la primire, vămuirea în lei. Un exemplu de defalcare — în articolul [[Cât costă să aduci o mașină|import-cost]]. Pentru fiecare etapă primiți o factură sau o confirmare de plată."
+    },
+    {
+      "t": "h2",
+      "x": "Ce verificați înainte de plată"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "Că în contract sunt descrise toate plățile și termenele lor.",
+        "Că prețul final la cheie este vizibil din start, nu apare pe parcurs.",
+        "Că este clar ce se întâmplă dacă lotul nu este câștigat.",
+        "Că puteți verifica lotul: fotografii, document, istoric după VIN.",
+        "Că există o modalitate de a urmări livrarea: [[pagina de urmărire|tracking]]."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Ce întrebări să puneți intermediarului"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Care este comisionul și când se achită?",
+        "Ce este inclus în preț și ce se plătește separat?",
+        "Ce documente voi primi și în ce termene?",
+        "Cum voi afla starea mașinii?",
+        "Ce se întâmplă dacă termenul se amână mult?"
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Ce documente îmi sunt necesare?",
+      "a": "De obicei este suficient pașaportul. Restul le întocmește intermediarul, dar trebuie să primiți copii ale tuturor documentelor."
+    },
+    {
+      "q": "Ce este Bill of Lading?",
+      "a": "Este documentul de transport maritim, care confirmă expedierea și este necesar pentru ridicarea mașinii în port."
+    },
+    {
+      "q": "Pot primi copii ale facturilor?",
+      "a": "Da, are sens să cereți pentru dvs. factura licitației și confirmările de plată."
+    },
+    {
+      "q": "A cui este mașina în timpul transportului?",
+      "a": "Depinde de condițiile contractului. Clarificați această întrebare din timp și consemnați-o în contract."
+    }
+  ],
+  "cta": {
+    "h": "Mai aveți întrebări despre contract și documente?",
+    "p": "Scrieți-ne — vă explicăm cum sunt organizate la noi contractul, plățile și documentele, înainte de a semna ceva.",
+    "b1": "Scrie pe Telegram",
+    "b2": "Cum aduci o mașină din SUA",
+    "b2slug": "guide"
+  },
+  "related": [
+    "delivery-stages",
+    "import-cost",
+    "title-types"
+  ]
+}

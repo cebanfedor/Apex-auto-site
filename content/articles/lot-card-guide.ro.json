@@ -1,0 +1,79 @@
+{
+  "slug": "lot-card-guide",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Cum citești fișa unui lot Copart și IAAI: daune, titlu, licitații | Apex Auto",
+    "description": "Analiza fișei lotului: tip de daună, document, kilometraj, chei, ACV, estimare reparație, statusuri de licitație și rezervă. Ce verifici înainte de ofertă.",
+    "ogTitle": "Cum citești fișa unui lot Copart și IAAI",
+    "ogDesc": "Dauna, documentul, kilometrajul, cheile, ACV și tipul licitației: ce înseamnă fiecare câmp."
+  },
+  "tag": "Lot",
+  "kicker": "Cumpărare și livrare · Fișa lotului",
+  "h1": "Cum citești fișa unui lot Copart și IAAI: daune, titlu, licitații",
+  "lead": "Fișa lotului pare simplă, dar conține mulți termeni de care depind atât prețul, cât și riscul. Parcurgem câmpurile pe rând: ce înseamnă, la ce să te uiți și ce întrebări merită puse înainte de ofertă.",
+  "card": {
+    "tag": "Lot",
+    "title": "Cum citești fișa unui lot Copart și IAAI: daune, titlu, licitații",
+    "text": "Dauna, documentul, kilometrajul, cheile, ACV, estimarea reparației și tipul licitației. Ce înseamnă fiecare câmp și ce să verifici."
+  },
+  "og": { "k": "FIȘA LOTULUI", "h": "Cum citești fișa lotului", "s": "Daune, titlu, kilometraj, ACV și tipul licitației" },
+  "summary": [
+    "**Dauna nu este tot tabloul:** dauna principală și cea secundară arată direcția, dar problemele ascunse se văd abia după inspecție.",
+    "**Documentul influențează importul:** tipul de titlu spune ce s-a întâmplat cu mașina din punct de vedere juridic.",
+    "**ACV și estimarea reparației sunt repere, nu un preț:** sunt estimări ale platformei, nu o garanție.",
+    "**Tipul licitației stabilește regulile:** oferta minimă, rezerva și aprobarea de către vânzător schimbă tactica.",
+    "**Verifică kilometrajul, cheile și istoricul:** fac parte din preț și din risc."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Starea și daunele" },
+    { "t": "ul", "x": [
+      "**Dauna principală (Primary Damage)** — zona principală de impact: față, spate, lateral, apă, foc, mecanică etc.",
+      "**Dauna secundară (Secondary Damage)** — o zonă suplimentară. Două colțuri vecine înseamnă, de regulă, o singură lovitură; două zone diferite reprezintă un caz mai grav.",
+      "**Starea (Run and Drive, pornește, nu pornește)** — mențiunea platformei dacă mașina pornește. Nu este o garanție, ci o notă făcută în momentul inspecției.",
+      "**Fotografiile** — uită-te la toate: îmbinările panourilor, interiorul, partea de dedesubt, bordul, airbagurile."
+    ] },
+    { "t": "p", "x": "Care daune sunt periculoase și care nu, găsești în articolul [[Care daune sunt periculoase și care nu|damages]]." },
+    { "t": "h2", "x": "Documentul (titlul)" },
+    { "t": "p", "x": "Câmpul „document” arată statutul juridic al mașinii în SUA sau Canada: Clean, Salvage, Rebuilt, Non-Repairable și altele. De el depind posibilitatea de înmatriculare și prețul. Analiza detaliată este în articolul [[Tipuri de titluri|title-types]]." },
+    { "t": "h2", "x": "Kilometraj, chei, airbaguri" },
+    { "t": "ul", "x": [
+      "**Kilometrajul (Odometer)** — la loturile din SUA este în mile, la cele din Canada — în kilometri. Verifică unitatea de măsură indicată și compar-o cu fotografia bordului.",
+      "**Cheile** — prezența cheii influențează costurile: înlocuirea cheii și a imobilizatorului costă mai mult decât pare.",
+      "**Airbagurile** — mențiunea despre airbagurile declanșate arată cât de puternic a fost impactul."
+    ] },
+    { "t": "h2", "x": "ACV și estimarea reparației" },
+    { "t": "p", "x": "**ACV (Actual Cash Value)** este estimarea valorii de piață a mașinii întregi. **Estimarea reparației (Repair Estimate)** este estimarea costului de readucere în stare bună. Ambele cifre sunt repere ale platformei sau ale asiguratorului, nu un preț de vânzare: oferta reală este de obicei mult sub ACV. Când estimarea reparației se apropie de o parte însemnată din ACV, asigurătorul declară de regulă mașina daună totală (pragul depinde de stat și de companie). În fișa noastră se adaugă „Reperul ofertei”, calculat pe baza vânzărilor reale ale unor loturi similare." },
+    { "t": "h2", "x": "Tipul licitației și rezerva" },
+    { "t": "table", "head": ["Status", "Ce înseamnă", "Tactica"], "rows": [
+      ["Pure Sale / fără rezervă", "Lotul se vinde celei mai mari oferte, fără rezervă", "Poți licita mai curajos, dar nu peste plafonul tău"],
+      ["Ofertă minimă", "Ofertele sub minim nu sunt acceptate", "Minimul arată limita de jos a interesului vânzătorului"],
+      ["On Approval", "Vânzătorul decide dacă acceptă oferta", "Oferta nu garantează cumpărarea; rezultatul vine mai târziu"],
+      ["Timed", "Licitația se desfășoară într-un interval de timp", "Urmărește închiderea; nu amâna oferta"],
+      ["Buy Now", "Cumpărare la preț fix", "Verifică dacă prețul este mai avantajos decât plafonul tău la licitație"]
+    ] },
+    { "t": "p", "x": "**Rezerva vânzătorului** este prețul minim sub care lotul nu se vinde. Dacă este indicată, ține cont de ea când îți planifici oferta." },
+    { "t": "h2", "x": "Ce mai merită verificat" },
+    { "t": "ul", "x": [
+      "**Istoricul după VIN**: dacă mașina a mai fost scoasă la vânzare și dacă a fost revândută. [[Cum verifici|resale-check]].",
+      "**Vânzătorul**: companie de asigurări, firmă de închirieri, dealer. De el depind calitatea datelor și riscurile.",
+      "**Locul**: statul și platforma stabilesc livrarea până în port.",
+      "**Prețul la cheie**: un [[exemplu de calcul|import-cost]] arată cât ajunge totul împreună cu toate cheltuielile."
+    ] }
+  ],
+  "faq": [
+    { "q": "Pot avea încredere în fotografiile lotului?", "a": "Fotografiile ajută la evaluarea daunelor, dar nu arată problemele ascunse. De aceea este important să te uiți la toate unghiurile, la document și la istoricul după VIN, iar în buget să lași o rezervă." },
+    { "q": "Ce înseamnă „Run and Drive”?", "a": "Este mențiunea platformei că mașina pornește și se poate deplasa. Nu este o garanție a bunei funcționări, ci o notă făcută la momentul verificării." },
+    { "q": "De ce este ACV mult mai mare decât prețul de la licitație?", "a": "ACV este estimarea unei mașini întregi, fără daune. Pentru o mașină avariată, prețul final de la licitație este vizibil mai mic." },
+    { "q": "Ce fac dacă în fișă nu sunt chei?", "a": "Include în calcul înlocuirea cheii și programarea imobilizatorului; la unele mărci este scump." }
+  ],
+  "cta": {
+    "h": "Nu ești sigur cum să evaluezi un lot anume?",
+    "p": "Trimite-ne linkul lotului — analizăm dauna, documentul și istoricul și calculăm prețul la cheie.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Care daune sunt periculoase",
+    "b2slug": "damages"
+  },
+  "related": ["title-types", "resale-check", "copart-vs-iaai"]
+}

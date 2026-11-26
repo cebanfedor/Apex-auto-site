@@ -1,0 +1,80 @@
+{
+  "slug": "import-cost",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "How Much Does It Cost to Import a Car from the USA to Moldova | Apex Auto",
+    "description": "What a turnkey car from the USA costs in Chișinău: lot, auction fees, shipping, 2027 customs. Four calculation examples and what affects the total most.",
+    "ogTitle": "How much does it cost to import a car from the USA to Moldova",
+    "ogDesc": "Four turnkey calculation examples under 2027 rules: a budget sedan, a Camry, a hybrid crossover and an electric car."
+  },
+  "tag": "Cost",
+  "kicker": "Buying and delivery · How much it costs",
+  "h1": "How much does it cost to import a car from the USA to Moldova: a turnkey calculation",
+  "lead": "The lot price at auction is only part of the total. On top of it come auction fees, shipping across the USA and by sea, insurance, customs clearance and commissions. Below are four examples calculated with our calculator under the 2027 rules, and a breakdown of what moves the total the most.",
+  "card": {
+    "tag": "Cost",
+    "title": "How much does it cost to import a car from the USA to Moldova: a turnkey calculation",
+    "text": "Four calculation examples under 2027 rules: what is included in the price and what affects the total the most."
+  },
+  "og": { "k": "COST", "h": "How much it costs to import a car from the USA", "s": "Four turnkey calculation examples under 2027 rules" },
+  "summary": [
+    "**The lot is not the whole price:** auction fees, shipping, customs and commissions can add more to your bid than the bid itself.",
+    "**The biggest item is customs clearance:** it depends on engine size, age and fuel type, and from 2027 it is calculated under updated rates.",
+    "**A cheap lot is not always a good deal:** auction fees and shipping barely depend on the price, so on a cheap car they make up a larger share.",
+    "**Calculate exactly before you bid:** the calculator shows every line separately, and the total changes with the exchange rate and your options."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "What the turnkey price is made of" },
+    { "t": "ul", "x": [
+      "**Lot price** — your bid at the auction.",
+      "**Auction fees** — a progressive scale: the more expensive the lot, the lower the percentage. Details in the article [[Copart and IAAI auction fees|auction-fees]].",
+      "**Shipping across the USA** to the port — depends on the state and the auction location.",
+      "**Sea freight** to Europe and car carrier to Chișinău — depends on body type and fuel.",
+      "**Cargo insurance** and **Apex Auto commission**.",
+      "**Payment in lei:** a 1% commission (minimum $50) and a fixed broker and recycling fee of 2 000 lei.",
+      "**Customs clearance** — excise and taxes under Moldovan rules. Details in the article [[Customs clearance of a car in Moldova|customs]]."
+    ] },
+    { "t": "h2", "x": "Four calculation examples" },
+    { "t": "p", "x": "The calculation was made with the Apex Auto calculator for a Copart auction, New Jersey port, an exchange rate of 17.1 lei per dollar, customs under the 2027 rules. Shipping across the USA is taken for a typical location. Amounts are rounded." },
+    { "t": "table", "head": ["Scenario", "Lot", "Auction fees", "Delivery to Chișinău", "Insurance, commissions, broker", "Customs", "Total ≈"], "rows": [
+      ["2018 sedan, 2.0 petrol", "$4 000", "$920", "$2 800", "$570", "$3 350", "**$11 640**"],
+      ["2021 sedan, 2.5 petrol", "$8 000", "$1 130", "$2 800", "$610", "$5 115", "**$17 650**"],
+      ["2022 crossover, 2.5 hybrid", "$12 000", "$1 260", "$3 300", "$680", "$5 115", "**$22 360**"],
+      ["2022 electric sedan, 1 750 kg", "$15 000", "$1 350", "$2 900", "$745", "$1 650", "**$21 650**"]
+    ] },
+    { "t": "p", "x": "These are examples, not an offer: the real amount depends on the state of the auction location, the exchange rate, the options you choose and your terms. You can get an up-to-date calculation for a specific lot in the calculator." },
+    { "t": "h2", "x": "What affects the total the most" },
+    { "t": "ul", "x": [
+      "**Engine size and age.** Excise is calculated as a rate per cubic centimetre that grows with age. A car one year older or with an engine 500 cm³ larger is noticeably more expensive at customs.",
+      "**Fuel type.** From 2027 the discount for ordinary hybrids is abolished, for plug-ins it is 25%, and electric cars pay excise by weight. For electric cars the total depends on the weight of the car.",
+      "**Body type.** Crossovers, SUVs and minivans cost more to ship than sedans.",
+      "**Lot price and fees.** Fees are progressive, so on a cheap lot they make up a larger share of the price.",
+      "**State of the auction location.** Delivery to the port depends on it; the difference between states can be several hundred dollars."
+    ] },
+    { "t": "h2", "x": "Why a cheap lot is not always a good deal" },
+    { "t": "p", "x": "Some costs barely depend on the lot price: sea freight, shipping across the USA, the broker, commissions. So a $2 000 car gets the same logistics as an $8 000 car. If on top of the lot price you also need repairs, the total can end up higher than for an intact car. On how to estimate repairs — in the [[repair guide after the auction|repair-guide]]." },
+    { "t": "h2", "x": "How to calculate your own car" },
+    { "t": "ol", "x": [
+      "Choose a lot on Copart or IAAI in our catalog, or paste a link, lot number or VIN into the calculator on the home page.",
+      "Check the calculation: body type, fuel, engine size, year. For electric cars, enter the weight.",
+      "Look at the “Bid guide” and decide how high to bid so that the turnkey total suits you.",
+      "Send the lot to us if you need help with the check and the bidding."
+    ] }
+  ],
+  "faq": [
+    { "q": "Can I find out the final price before the auction?", "a": "Yes. The calculator works out the turnkey price from any bid, so you know in advance how high you can bid." },
+    { "q": "Why does the total in your calculator differ from other examples on the internet?", "a": "The exchange rate, the year of the customs calculation, auction fees and the set of items differ. Excise changed from 2027, so figures from past years no longer apply." },
+    { "q": "What happens if the exchange rate changes?", "a": "Some costs are in dollars and euros, some in lei. When the rate changes, the total in lei changes, so it is better to fix the final amount at payment." },
+    { "q": "How much does delivery to Chișinău cost?", "a": "In the examples above — from $2 800 to $3 300 including shipping across the USA. The exact amount depends on the state, body type and fuel." }
+  ],
+  "cta": {
+    "h": "Want us to calculate a specific lot?",
+    "p": "Send a link from Copart or IAAI — we will calculate the turnkey price and tell you how high it makes sense to bid.",
+    "b1": "Send the lot on Telegram",
+    "b2": "How to import a car from the USA",
+    "b2slug": "guide"
+  },
+  "related": ["delivery-stages", "copart-vs-iaai", "title-types"]
+}

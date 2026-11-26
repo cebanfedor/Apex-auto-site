@@ -1,0 +1,78 @@
+{
+  "slug": "korea-cars",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Cars from Korea to Moldova, Turnkey: How to Buy, Price and Timeline | Apex Auto",
+    "description": "How to buy a car from Korea to Moldova: the Encar catalog, inspection and history reports, three payments, 2027 customs rules and 2–3 months delivery.",
+    "ogTitle": "Cars from Korea to Moldova, turnkey",
+    "ogDesc": "The Encar catalog, inspection and history reports, three payments and a 2–3 month timeline."
+  },
+  "tag": "Korea",
+  "kicker": "Buying and delivery · Cars from Korea",
+  "h1": "Cars from Korea to Moldova, turnkey: how to buy, price and timeline",
+  "lead": "Korea is a market of intact cars with detailed inspection and history reports. Many Hyundai, Kia and Genesis models are cheaper there, and the condition of the cars is well documented. Here is how buying through our catalog works, what the price is made of and how long you wait.",
+  "card": {
+    "tag": "Korea",
+    "title": "Cars from Korea to Moldova, turnkey: how to buy, price and timeline",
+    "text": "The Encar catalog, inspection and history reports, three payments and customs under the 2027 rules. Delivery takes 2–3 months."
+  },
+  "og": { "k": "KOREA", "h": "Cars from Korea to Moldova", "s": "The Encar catalog, turnkey calculation and timeline" },
+  "summary": [
+    "**Intact cars:** the Korea catalog is made of regular listings, not auctions of damaged cars.",
+    "**Reports on the car page:** vehicle inspection and vehicle history, based on the source's real data.",
+    "**The turnkey price is visible right away:** three payments in dollars, euros and lei, customs under the 2027 rules.",
+    "**Timeline of 2–3 months:** the route goes through Europe."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "What the Korea catalog is" },
+    { "t": "p", "x": "The [[Korea catalog|korea]] collects listings from Encar, the largest Korean platform. These are intact cars from dealers and private sellers, not an auction of damaged lots. For each car we show photos, specifications, price history and, if the source has them, inspection and vehicle history reports." },
+    { "t": "h2", "x": "What you see on the car page" },
+    { "t": "ul", "x": [
+      "**Price in dollars.** The price in won is converted at the current rate with a small margin.",
+      "**Inspection report:** component check results, a body diagram and the marked findings.",
+      "**Vehicle history:** owner changes, insurance claims, mileage by date.",
+      "**Equipment and options.**",
+      "**Turnkey calculation:** how much it will cost in Chișinău with all expenses included."
+    ] },
+    { "t": "h2", "x": "What the turnkey price is made of" },
+    { "t": "p", "x": "The calculation is split into three payments:" },
+    { "t": "ol", "x": [
+      "**First payment, in dollars:** the price of the car, the dealer's fee, costs in Korea, delivery to the port and sea shipping to Europe. An inspection can be added if you wish. For electric cars, there is a separate surcharge.",
+      "**Second payment, in euros:** delivery from Europe to Moldova and the Apex Auto fee, which depends on the price of the car.",
+      "**Third payment, in lei:** customs clearance (excise and taxes), the broker and the recycling fee."
+    ] },
+    { "t": "p", "x": "The exact amounts are calculated on the car page and depend on the body class (sedan, crossover, SUV, minivan), fuel, engine size and year. Customs for Korea is always calculated under the 2027 rules, because the car will arrive in 2027. For the rules themselves, see the article [[Customs clearance in Moldova|customs]]." },
+    { "t": "h2", "x": "How cars from Korea differ from auction cars" },
+    { "t": "table", "head": ["", "Korea (Encar)", "US auctions (Copart, IAAI)"], "rows": [
+      ["Type of car", "Intact cars", "Often damaged, insurance write-offs"],
+      ["Buying", "Listing with a price", "Bidding"],
+      ["Reports", "Inspection and history, based on the source's data", "Photos and damage descriptions, VIN reports"],
+      ["Repair", "Usually not needed", "Needed, the cost has to be estimated"],
+      ["Timeline", "2–3 months", "6–12 weeks"]
+    ] },
+    { "t": "h2", "x": "What to check before buying" },
+    { "t": "ul", "x": [
+      "**Inspection report:** whether there are findings on the body and mechanics.",
+      "**History:** insurance claims, owner changes and mileage.",
+      "**Equipment:** it may differ from the European version of the model.",
+      "**Body class and engine size:** customs clearance depends on them."
+    ] },
+    { "t": "p", "x": "For more on timelines and stages, see the article [[Delivery stages and timelines|delivery-stages]]." }
+  ],
+  "faq": [
+    { "q": "Can Korean cars be damaged?", "a": "The catalog consists of intact cars. The history, based on the source's data, shows insurance claims if there were any." },
+    { "q": "Why is the price in dollars rather than won?", "a": "To make comparison easier, we convert the price at the current rate with a small margin. The original amount in won is shown too." },
+    { "q": "Can I order any car from the catalog?", "a": "Yes, through us. We check the listing and arrange the purchase and delivery." },
+    { "q": "Why is customs clearance under the 2027 rules?", "a": "Cars from Korea arrive in a few months, so customs clearance takes place in 2027." }
+  ],
+  "cta": {
+    "h": "Found a car in the Korea catalog?",
+    "p": "Send us the link — we will check the reports, calculate the turnkey price and tell you what to expect.",
+    "b1": "Send the link on Telegram",
+    "b2": "Korea catalog",
+    "b2slug": "korea"
+  },
+  "related": ["delivery-stages", "import-cost", "canada-cars"]
+}

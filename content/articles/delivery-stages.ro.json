@@ -1,0 +1,153 @@
+{
+  "slug": "delivery-stages",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Etapele livrării auto din SUA, Canada și Coreea în Moldova și termene | Apex Auto",
+    "description": "Etapele livrării unei mașini în Moldova: cumpărare, ridicare, port, mare, autotransportor, vamă, predare. Termene din SUA, Canada și Coreea și urmărirea mașinii.",
+    "ogTitle": "Etapele și termenele livrării auto în Moldova",
+    "ogDesc": "De la cumpărare la predarea la Chișinău: etape, termene din SUA, Canada și Coreea și urmărire."
+  },
+  "tag": "Livrare",
+  "kicker": "Cumpărare și livrare · Etape și termene",
+  "h1": "Etapele livrării auto din SUA, Canada și Coreea în Moldova și termene",
+  "lead": "După cumpărare, mașina trece prin mai multe etape: ridicarea de la platformă, portul, traversarea maritimă, autotransportorul, vama și predarea. Vă explicăm ce se întâmplă la fiecare, cât durează drumul din diferite țări și cum urmărești mașina.",
+  "card": {
+    "tag": "Livrare",
+    "title": "Etapele livrării auto din SUA, Canada și Coreea în Moldova și termene",
+    "text": "De la cumpărare la predarea la Chișinău: etape, termene din diferite țări și urmărire după VIN."
+  },
+  "og": {
+    "k": "LIVRARE",
+    "h": "Etapele și termenele livrării",
+    "s": "De la cumpărare la predarea la Chișinău"
+  },
+  "summary": [
+    "**Din SUA:** orientativ 6–12 săptămâni de la cumpărare până la Chișinău.",
+    "**Din Canada:** de obicei 1,5–2 luni din est, până la 2,5 luni din vest.",
+    "**Din Coreea:** orientativ 2–3 luni.",
+    "**Termenul depinde de etapă:** ridicarea, încărcarea containerului, nava și vama sunt cele mai variabile.",
+    "**Mașina poate fi urmărită:** după VIN sau numărul lotului, pe pagina de urmărire."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Etapele livrării din SUA"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Cumpărarea și plata.** Câștigați lotul, se achită oferta și taxele licitației.",
+        "**Ridicarea de la platformă.** Mașina este preluată din parcarea licitației și dusă la port. Durata depinde de stat și de distanță.",
+        "**Portul și încărcarea.** Mașina este pregătită pentru expediere și încărcată în container.",
+        "**Traversarea maritimă.** Containerul pleacă pe mare spre un port din Europa (de exemplu Klaipėda, Constanța sau Bremerhaven).",
+        "**Autotransportorul până la Chișinău.** De la port, mașina este transportată pe uscat.",
+        "**Vămuirea.** Se întocmesc plățile vamale și documentele.",
+        "**Predarea.** Ridicați mașina la Chișinău."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Termene pe direcții"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Direcția",
+        "Orientativ",
+        "De ce depinde"
+      ],
+      "rows": [
+        [
+          "SUA",
+          "6–12 săptămâni",
+          "Statul platformei, orarul navelor, coada din port"
+        ],
+        [
+          "Canada (est)",
+          "1,5–2 luni",
+          "Portul de plecare, nava, vama"
+        ],
+        [
+          "Canada (vest)",
+          "până la 2,5 luni",
+          "Distanța până la port, nava"
+        ],
+        [
+          "Coreea",
+          "2–3 luni",
+          "Exportul din Coreea, ruta prin Europa"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Acestea sunt repere, nu o garanție: termenul este influențat de orarul navelor, vreme, aglomerarea porturilor și a vămii. Vă anunțăm când se schimbă etapa sau termenul."
+    },
+    {
+      "t": "h2",
+      "x": "Ce influențează termenul"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Statul și platforma.** De ele depinde cât de repede ajunge mașina în port.",
+        "**Întocmirea documentelor.** Dacă titlul sau documentele întârzie, expedierea se amână.",
+        "**Orarul navelor.** Containerul pleacă cu prima navă disponibilă.",
+        "**Portul și vama.** Cozile și verificările pot adăuga zile.",
+        "**Anotimpul.** Iarna sunt posibile întârzieri din cauza vremii."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Cum urmărești mașina"
+    },
+    {
+      "t": "p",
+      "x": "Pe pagina de [[urmărire|tracking]] puteți introduce VIN-ul sau numărul lotului și vedeți etapele drumului: unde se află mașina acum și care este data estimativă de sosire. Pentru clienții obișnuiți, etapele apar și în contul personal, iar când se schimbă etapa vă scriem pe Telegram."
+    },
+    {
+      "t": "h2",
+      "x": "Ce faceți cât timp mașina este pe drum"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Pregătiți documentele pentru înmatriculare: detalii în articolul [[Contractul și documentele|deal-documents]].",
+        "Planificați plățile: o parte în dolari și euro, o parte în lei la primire. Un exemplu de repartizare — în articolul [[Cât costă să aduci o mașină|import-cost]].",
+        "Dacă termenul este critic, discutați cu noi variantele: mașinile întregi de la platformele dealerilor din Europa ajung mai repede. [[Mai multe despre rute|shipping]]."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Se poate accelera livrarea?",
+      "a": "În mare parte nu: termenul îl stabilesc nava și vama. Se poate alege o platformă mai apropiată sau o mașină întreagă din Europa, care ajunge în 1–2 săptămâni."
+    },
+    {
+      "q": "Cum aflu unde se află acum mașina mea?",
+      "a": "Pe pagina de urmărire, după VIN sau numărul lotului. Pentru clienții cu cont personal, etapele se văd și acolo."
+    },
+    {
+      "q": "De ce termenul din vestul Canadei este mai lung?",
+      "a": "Distanța până la port și numărul de transbordări sunt mai mari decât din est."
+    },
+    {
+      "q": "Ce se întâmplă după sosirea la Chișinău?",
+      "a": "Se întocmesc vămuirea și documentele, apoi mașina poate fi ridicată și înmatriculată."
+    }
+  ],
+  "cta": {
+    "h": "Vreți să aflați termenul pentru o anumită mașină?",
+    "p": "Trimiteți linkul lotului — vă spunem termenul orientativ până la Chișinău și vă arătăm calculul.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Urmărește mașina",
+    "b2slug": "tracking"
+  },
+  "related": [
+    "import-cost",
+    "deal-documents",
+    "canada-cars"
+  ]
+}

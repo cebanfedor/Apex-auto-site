@@ -1,0 +1,78 @@
+{
+  "slug": "korea-cars",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Mașini din Coreea în Moldova la cheie: cum cumperi, preț și termene | Apex Auto",
+    "description": "Cum cumperi o mașină din Coreea în Moldova: catalogul Encar, rapoarte de inspecție și istoric, trei plăți, vămuire după regulile 2027 și livrare în 2–3 luni.",
+    "ogTitle": "Mașini din Coreea în Moldova la cheie",
+    "ogDesc": "Catalogul Encar, rapoarte de inspecție și istoric, trei plăți și termen de 2–3 luni."
+  },
+  "tag": "Coreea",
+  "kicker": "Cumpărare și livrare · Mașini din Coreea",
+  "h1": "Mașini din Coreea în Moldova la cheie: cum cumperi, preț și termene",
+  "lead": "Coreea este o piață de mașini întregi, cu rapoarte detaliate de inspecție și de istoric. Multe modele Hyundai, Kia și Genesis costă acolo mai puțin, iar starea mașinilor este bine documentată. Vedem cum decurge cumpărarea prin catalogul nostru, din ce se compune prețul și cât trebuie să aștepți.",
+  "card": {
+    "tag": "Coreea",
+    "title": "Mașini din Coreea în Moldova la cheie: cum cumperi, preț și termene",
+    "text": "Catalogul Encar, rapoarte de inspecție și istoric, trei plăți și vămuire după regulile 2027. Termenul de livrare — 2–3 luni."
+  },
+  "og": { "k": "COREEA", "h": "Mașini din Coreea în Moldova", "s": "Catalogul Encar, calcul la cheie și termene" },
+  "summary": [
+    "**Mașini întregi:** catalogul Coreei înseamnă anunțuri obișnuite, nu licitații cu mașini avariate.",
+    "**Rapoarte pe pagina mașinii:** inspecția tehnică și istoricul automobilului, după datele reale ale sursei.",
+    "**Prețul la cheie se vede imediat:** trei plăți în dolari, euro și lei, vămuire după regulile 2027.",
+    "**Termen de 2–3 luni:** traseul trece prin Europa."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Ce este catalogul Coreei" },
+    { "t": "p", "x": "În [[catalogul Coreei|korea]] sunt adunate anunțurile de pe cea mai mare platformă coreeană, Encar. Sunt mașini întregi de la dealeri și de la vânzători privați, nu o licitație cu loturi avariate. Pentru fiecare mașină arătăm fotografii, caracteristici, istoricul prețului și, dacă sursa le are, rapoartele de inspecție și de istoric ale automobilului." },
+    { "t": "h2", "x": "Ce se vede pe pagina mașinii" },
+    { "t": "ul", "x": [
+      "**Prețul în dolari.** Prețul în woni este recalculat la cursul curent, cu o mică marjă.",
+      "**Raportul de inspecție:** rezultatele verificării componentelor, schema caroseriei și observațiile marcate.",
+      "**Istoricul automobilului:** schimbări de proprietari, evenimente asigurate, kilometrajul pe date.",
+      "**Dotări și opțiuni.**",
+      "**Calcul la cheie:** cât va costa la Chișinău împreună cu toate cheltuielile."
+    ] },
+    { "t": "h2", "x": "Din ce se compune prețul la cheie" },
+    { "t": "p", "x": "Calculul este împărțit în trei plăți:" },
+    { "t": "ol", "x": [
+      "**Prima plată, în dolari:** prețul automobilului, comisionul dealerului, cheltuielile din Coreea, transportul până în port și transportul maritim până în Europa. Opțional se adaugă inspecția. Pentru mașinile electrice — un supliment separat.",
+      "**A doua plată, în euro:** transportul din Europa în Moldova și comisionul Apex Auto, care depinde de prețul automobilului.",
+      "**A treia plată, în lei:** vămuirea (accize și taxe), broker și taxa de reciclare."
+    ] },
+    { "t": "p", "x": "Sumele exacte se calculează pe pagina mașinii și depind de clasa caroseriei (sedan, crossover, SUV, monovolum), de combustibil, de capacitatea motorului și de an. Vămuirea pentru Coreea se calculează întotdeauna după regulile anului 2027, pentru că mașina va ajunge deja în 2027. Despre regulile propriu-zise — în articolul [[Vămuirea mașinii în Moldova|customs]]." },
+    { "t": "h2", "x": "Prin ce se deosebesc mașinile din Coreea de cele de la licitații" },
+    { "t": "table", "head": ["", "Coreea (Encar)", "Licitații SUA (Copart, IAAI)"], "rows": [
+      ["Tipul mașinii", "Mașini întregi", "Adesea avariate, de la asigurători"],
+      ["Cumpărarea", "Anunț cu preț", "Licitație și oferte"],
+      ["Rapoarte", "Inspecție și istoric, după datele sursei", "Fotografii și descrierea avariilor, rapoarte după VIN"],
+      ["Reparația", "De obicei nu este necesară", "Este necesară, costul trebuie estimat"],
+      ["Termen", "2–3 luni", "6–12 săptămâni"]
+    ] },
+    { "t": "h2", "x": "Ce să verifici înainte de cumpărare" },
+    { "t": "ul", "x": [
+      "**Raportul de inspecție:** dacă există observații privind caroseria și mecanica.",
+      "**Istoricul:** evenimente asigurate, schimbări de proprietar și kilometrajul.",
+      "**Dotările:** pot diferi de versiunea europeană a modelului.",
+      "**Clasa caroseriei și capacitatea motorului:** de ele depinde vămuirea."
+    ] },
+    { "t": "p", "x": "Mai multe despre termene și etape — în articolul [[Etapele livrării și termenele|delivery-stages]]." }
+  ],
+  "faq": [
+    { "q": "Mașinile coreene pot fi avariate?", "a": "Catalogul este alcătuit din mașini întregi. Istoricul, după datele sursei, arată evenimentele asigurate, dacă au existat." },
+    { "q": "De ce prețul este în dolari, nu în woni?", "a": "Pentru a le putea compara mai ușor, recalculăm prețul la cursul curent, cu o mică marjă. Suma inițială în woni este afișată și ea." },
+    { "q": "Pot comanda orice mașină din catalog?", "a": "Da, prin noi. Verificăm anunțul, perfectăm cumpărarea și livrarea." },
+    { "q": "De ce vămuirea este după regulile 2027?", "a": "Mașinile din Coreea ajung peste câteva luni, de aceea vămuirea are loc deja în 2027." }
+  ],
+  "cta": {
+    "h": "Ați găsit o mașină în catalogul Coreei?",
+    "p": "Trimiteți linkul — verificăm rapoartele, calculăm prețul la cheie și vă spunem la ce să vă așteptați.",
+    "b1": "Trimite linkul pe Telegram",
+    "b2": "Catalogul Coreei",
+    "b2slug": "korea"
+  },
+  "related": ["delivery-stages", "import-cost", "canada-cars"]
+}

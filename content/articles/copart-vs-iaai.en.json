@@ -1,0 +1,155 @@
+{
+  "slug": "copart-vs-iaai",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Copart vs IAAI: what's the difference and where to buy a car | Apex Auto",
+    "description": "How Copart and IAAI differ for a buyer from Moldova: fees, auction types, Timed, photos and 360°, auction lanes. Compare lots, not platforms.",
+    "ogTitle": "Copart vs IAAI: what's the difference for a buyer",
+    "ogDesc": "Fees, auction types, Timed and photos: what really differs and how to choose a lot."
+  },
+  "tag": "Auctions",
+  "kicker": "Buying and delivery · Copart and IAAI",
+  "h1": "Copart vs IAAI: what's the difference and where to buy a car",
+  "lead": "Copart and IAAI are the two main insurance auction platforms in the USA and Canada. Buyers often ask which is better. The short answer: you should compare not the platforms but specific lots by final price. Still, the platforms have real differences, and they are worth knowing.",
+  "card": {
+    "tag": "Auctions",
+    "title": "Copart vs IAAI: what's the difference and where to buy a car",
+    "text": "Fees, auction types, Timed, photos and auction lanes. What really differs and how to compare lots."
+  },
+  "og": {
+    "k": "AUCTIONS",
+    "h": "Copart vs IAAI",
+    "s": "What's the difference and how to choose a lot"
+  },
+  "summary": [
+    "**The range is similar:** both platforms sell insurance, damaged and dealer cars from the USA and Canada.",
+    "**Fees are close:** by our calculations, IAAI costs about $50 more than Copart for the same lot.",
+    "**Timed is an IAAI format:** in our feed the Timed format appears at IAAI, and Copart has none.",
+    "**Choose the lot, not the platform:** the final turnkey price, condition and history matter more than the logo."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "What they have in common"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Both platforms sell cars from insurance companies, banks, leasing and rental companies, as well as dealer cars.",
+        "Bidding is online and the buyer needs a dealer license, so a private person from Moldova works through a broker or importer, such as Apex Auto.",
+        "Each lot comes with photos, a description of the damage, mileage, document type and a value estimate.",
+        "Both platforms have lots in the USA and in Canada, and some lots are sold via Buy Now."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Where they really differ"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Parameter",
+        "Copart",
+        "IAAI"
+      ],
+      "rows": [
+        [
+          "Buyer fees",
+          "Progressive scale",
+          "The same scale, but about $50 higher due to service fees"
+        ],
+        [
+          "Auction format",
+          "Online bidding, minimum bid, pending approval, Buy Now",
+          "The same plus Timed — bidding with a fixed time window"
+        ],
+        [
+          "Auction queue",
+          "Lane and lot number (for example, B/2113): the order in the lane is visible in advance",
+          "Lane and number are assigned closer to the auction, Timed has no queue"
+        ],
+        [
+          "Media",
+          "Photos, some lots have 360° frames and an interior panorama",
+          "Photos, some lots have 360° from the platform"
+        ],
+        [
+          "Data in the listing",
+          "Mileage, damage, document, keys",
+          "The same, with a different set of fields for individual lots"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "For a detailed fee table by lot price, see the article [[Copart and IAAI auction fees|auction-fees]]."
+    },
+    {
+      "t": "h2",
+      "x": "What is Timed"
+    },
+    {
+      "t": "p",
+      "x": "Timed is bidding that does not happen at a single moment in a “room” but over a set window of time. Bids are accepted until closing, after which the lot goes either to the buyer or is withdrawn if the reserve is not met. In our feed Timed appears at IAAI. If you are used to Copart online auctions with a queue of lots, Timed has a different rhythm: you need to watch the closing time and not put off your bid."
+    },
+    {
+      "t": "h2",
+      "x": "How to choose a lot"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Calculate the turnkey price**, not just the bid: platforms have different fees and delivery from different states. The calculation is in the article [[How much does it cost to bring a car from the USA|import-cost]].",
+        "**Check the history by VIN.** The same car may have been listed several times; more in the article [[How to check for resale and mileage|resale-check]].",
+        "**Look at the damage and the document.** The title type affects whether the car can be imported and registered: [[title types|title-types]].",
+        "**Compare lots**: identical models on two platforms often differ more in condition than in price."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What affects the choice more than the platform"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "the state and distance to the port;",
+        "the condition and type of damage;",
+        "mileage and year — they determine customs clearance;",
+        "the seller's reserve and the auction format;",
+        "the availability of quality photos and full history."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which platform is cheaper?",
+      "a": "By fees Copart is on average slightly cheaper, but the difference is about $50 per lot. The final price depends on the lot, the state and delivery."
+    },
+    {
+      "q": "Can I buy directly without a broker?",
+      "a": "A dealer license is required. For a private person from Moldova it is easier to work through a broker or importer."
+    },
+    {
+      "q": "How does Timed differ from regular auctions?",
+      "a": "Bidding runs over a time window, not at a single moment. You need to watch the closing and place your bid in time."
+    },
+    {
+      "q": "Do both platforms have lots from Canada?",
+      "a": "Yes, both have Canadian lots. Different routes and costs are calculated for them; more in the article about Canada."
+    }
+  ],
+  "cta": {
+    "h": "Can't choose between two lots?",
+    "p": "Send both — we will calculate the turnkey price and tell you which is the better deal.",
+    "b1": "Send the lots on Telegram",
+    "b2": "How much it costs to bring a car",
+    "b2slug": "import-cost"
+  },
+  "related": [
+    "import-cost",
+    "lot-card-guide",
+    "title-types"
+  ]
+}

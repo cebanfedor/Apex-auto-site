@@ -1,0 +1,159 @@
+{
+  "slug": "canada-cars",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Mașini din Canada în Moldova: licitații, preț la cheie și termene | Apex Auto",
+    "description": "Cum aduci o mașină din Canada în Moldova: loturi de asigurare Copart și IAAI Canada, mașini întregi de la dealeri, calcul în dolari canadieni, km și termene.",
+    "ogTitle": "Mașini din Canada în Moldova: preț la cheie și termene",
+    "ogDesc": "Mașini avariate și întregi din Canada: două căi de cumpărare, calcul în CAD și termene de livrare."
+  },
+  "tag": "Canada",
+  "kicker": "Cumpărare și livrare · Mașini din Canada",
+  "h1": "Mașini din Canada în Moldova: licitații, preț la cheie și termene",
+  "lead": "Canada este o direcție aparte, cu traseul, cursul și setul de cheltuieli proprii. Aici există atât licitații ale asiguratorilor cu mașini avariate, cât și licitații pentru dealeri cu mașini întregi. Explicăm cum funcționează fiecare cale, prin ce se deosebesc loturile canadiene de cele americane și cât trebuie să așteptați.",
+  "card": {
+    "tag": "Canada",
+    "title": "Mașini din Canada în Moldova: licitații, preț la cheie și termene",
+    "text": "Loturi de asigurare Copart și IAAI Canada, mașini întregi de la licitații pentru dealeri, calcul în CAD, kilometraj în km și termene."
+  },
+  "og": {
+    "k": "CANADA",
+    "h": "Mașini din Canada în Moldova",
+    "s": "Două căi de cumpărare, calcul în CAD și termene"
+  },
+  "summary": [
+    "**Două căi:** loturi de asigurare Copart și IAAI Canada (avariate) și mașini întregi de la licitații pentru dealeri.",
+    "**Prețul în dolari canadieni:** se convertește în dolari SUA la cursul TD.",
+    "**Kilometrajul loturilor canadiene este în kilometri,** nu în mile.",
+    "**Termen:** de obicei 1,5–2 luni din est, până la 2,5 luni din vest."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Două moduri de a cumpăra în Canada"
+    },
+    {
+      "t": "table",
+      "head": [
+        "",
+        "Licitații de asigurări",
+        "Licitații pentru dealeri"
+      ],
+      "rows": [
+        [
+          "Platforme",
+          "Copart și IAAI Canada",
+          "Licitații pentru dealeri din Canada"
+        ],
+        [
+          "Tipul mașinilor",
+          "Avariate, total distruse, de asigurare",
+          "Mașini întregi de la dealeri și companii de leasing"
+        ],
+        [
+          "Unde se caută",
+          "[[Catalogul de licitații|auctions]], filtrul „Canada”",
+          "[[Catalogul Canada|canada]]"
+        ],
+        [
+          "Reparație",
+          "Trebuie evaluată",
+          "De obicei nu este necesară"
+        ]
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Din ce se compune prețul"
+    },
+    {
+      "t": "p",
+      "x": "Oferta se face în dolari canadieni și se convertește în dolari SUA la cursul băncii TD. La ea se adaugă:"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "taxa de licitație (scara depinde de prețul lotului);",
+        "transportul în Canada până la port — după tariful celei mai apropiate platforme;",
+        "comisionul bancar și serviciile companiei canadiene;",
+        "depozitarea și încărcarea;",
+        "transportul maritim până în Europa și transportul cu platforma până la Chișinău;",
+        "asigurarea, comisionul Apex Auto, comisionul la plata în lei și brokerul;",
+        "vămuirea în Moldova."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Suma pentru un anumit lot este afișată în calculator, pe pagina mașinii. Despre regulile vamale în sine — în articolul [[Vămuirea auto în Moldova|customs]]."
+    },
+    {
+      "t": "h2",
+      "x": "Particularitățile loturilor canadiene"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Kilometraj în kilometri.** În fișa loturilor canadiene kilometrajul este indicat în km; nu îl confundați cu milele loturilor americane. Mai multe — în articolul [[Cum verifici revânzarea și kilometrajul|resale-check]].",
+        "**Prețuri în CAD.** Oferta, rezerva și istoricul ofertelor sunt afișate în dolari canadieni.",
+        "**Traseul este diferit.** Loturile canadiene trec prin portul din Canada, nu prin cel din SUA; cheltuielile și termenul se calculează în alt mod.",
+        "**Distanța până la port.** Platformele din vest sunt mai departe de port decât cele din est, de aceea livrarea costă mai mult și durează mai mult."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Termene"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Estul Canadei** (Montreal, Toronto, Ottawa, Halifax etc.) — 1,5–2 luni.",
+        "**Alberta și Saskatchewan** — aproximativ 2 luni.",
+        "**Columbia Britanică** — până la 2,5 luni."
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Acestea sunt repere. Mai multe despre etape și urmărire — în articolul [[Etapele livrării și termenele|delivery-stages]]."
+    },
+    {
+      "t": "h2",
+      "x": "Ce să alegeți"
+    },
+    {
+      "t": "p",
+      "x": "Dacă aveți nevoie de o mașină de reparat și sunteți gata să evaluați avaria, priviți licitațiile de asigurări. Dacă vă trebuie o mașină întreagă, fără reparație, priviți licitațiile pentru dealeri din Canada. Pentru comparație cu SUA, vedeți [[Cât costă să aduci o mașină din SUA|import-cost]]."
+    }
+  ],
+  "faq": [
+    {
+      "q": "De ce loturile canadiene sunt mai scumpe sau mai ieftine decât cele americane?",
+      "a": "Diferă cursul, livrarea și traseul. Trebuie comparat prețul final la cheie, nu oferta."
+    },
+    {
+      "q": "Cum se convertește dolarul canadian?",
+      "a": "La cursul băncii TD în dolari SUA, apoi la cursul leului la plată."
+    },
+    {
+      "q": "Se poate cumpăra o mașină întreagă, fără reparație?",
+      "a": "Da, la licitațiile pentru dealeri din Canada se vând mașini întregi."
+    },
+    {
+      "q": "Unde pot vedea loturile din Canada?",
+      "a": "Loturile de asigurare — în catalogul de licitații cu filtrul „Canada”, cele întregi — în catalogul Canada."
+    }
+  ],
+  "cta": {
+    "h": "Vreți să aduceți o mașină din Canada?",
+    "p": "Trimiteți linkul lotului sau al anunțului — calculăm prețul la cheie și vă spunem despre termene.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Catalogul Canada",
+    "b2slug": "canada"
+  },
+  "related": [
+    "delivery-stages",
+    "import-cost",
+    "korea-cars"
+  ]
+}

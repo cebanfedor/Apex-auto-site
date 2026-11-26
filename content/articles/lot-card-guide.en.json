@@ -1,0 +1,79 @@
+{
+  "slug": "lot-card-guide",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "How to Read a Copart and IAAI Lot Card: Damage, Title, Auction Types | Apex Auto",
+    "description": "Lot card breakdown: damage type, title, mileage, keys, ACV, repair estimate, auction statuses and reserve. What to check before you place a bid.",
+    "ogTitle": "How to read a Copart and IAAI lot card",
+    "ogDesc": "Damage, title, mileage, keys, ACV and auction type: what each field means."
+  },
+  "tag": "Lot",
+  "kicker": "Buying and delivery · Lot card",
+  "h1": "How to read a Copart and IAAI lot card: damage, title, auction types",
+  "lead": "A lot card looks simple, but it is full of terms that affect both the price and the risk. We go through the fields in order: what they mean, what to look at and which questions are worth asking before you bid.",
+  "card": {
+    "tag": "Lot",
+    "title": "How to read a Copart and IAAI lot card: damage, title, auction types",
+    "text": "Damage, title, mileage, keys, ACV, repair estimate and auction type. What each field means and what to check."
+  },
+  "og": { "k": "LOT CARD", "h": "How to read a lot card", "s": "Damage, title, mileage, ACV and auction type" },
+  "summary": [
+    "**Damage is not the whole picture:** primary and secondary damage show the direction, but hidden problems only appear after an inspection.",
+    "**The title affects import:** the title type tells you what legally happened to the car.",
+    "**ACV and repair estimate are guidelines, not a price:** they are the auction's estimates, not a guarantee.",
+    "**The auction type sets the rules:** minimum bid, reserve and seller approval change your tactics.",
+    "**Check mileage, keys and history:** they are part of the price and the risk."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Condition and damage" },
+    { "t": "ul", "x": [
+      "**Primary Damage** — the main impact zone: front, rear, side, water, fire, mechanical and so on.",
+      "**Secondary Damage** — an additional zone. Two adjacent corners are usually a single impact; two different zones are a more serious case.",
+      "**Condition (Run and Drive, starts, does not start)** — the auction's note on whether the car starts. It is not a guarantee, only a note made at the time of inspection.",
+      "**Photos** — look at all of them: panel gaps, interior, underbody, the dashboard, airbags."
+    ] },
+    { "t": "p", "x": "Which damage is dangerous and which is not is covered in the article [[Which damage is dangerous and which is not|damages]]." },
+    { "t": "h2", "x": "Title (document)" },
+    { "t": "p", "x": "The “document” field shows the legal status of the car in the USA or Canada: Clean, Salvage, Rebuilt, Non-Repairable and others. It determines whether the car can be registered and what it costs. A detailed breakdown is in the article [[Title types|title-types]]." },
+    { "t": "h2", "x": "Mileage, keys, airbags" },
+    { "t": "ul", "x": [
+      "**Mileage (Odometer)** — in miles for US lots and in kilometers for Canadian ones. Check the unit note and compare it with the photo of the instrument cluster.",
+      "**Keys** — whether a key is present affects costs: replacing a key and the immobilizer is more expensive than it seems.",
+      "**Airbags** — a note about deployed airbags tells you how hard the impact was."
+    ] },
+    { "t": "h2", "x": "ACV and repair estimate" },
+    { "t": "p", "x": "**ACV (Actual Cash Value)** is an estimate of the market value of an intact car. **Repair Estimate** is an estimate of the cost of restoring it. Both figures are guidelines from the auction or the insurer, not a selling price: the real bid is usually noticeably lower than ACV. When the repair estimate approaches a significant share of ACV, the insurer usually declares the car a total loss (the threshold depends on the state and the company). In our card this is complemented by the “Bid guide”, calculated from real sales of similar lots." },
+    { "t": "h2", "x": "Auction type and reserve" },
+    { "t": "table", "head": ["Status", "What it means", "Tactics"], "rows": [
+      ["Pure Sale / no reserve", "The lot goes to the highest bid with no reserve", "You can bid more boldly, but never above your own ceiling"],
+      ["Minimum bid", "Bids below the minimum are not accepted", "The minimum shows the lower limit of the seller's interest"],
+      ["On Approval", "The seller decides whether to accept the bid", "A bid does not guarantee the purchase; the result comes later"],
+      ["Timed", "Bidding runs within a time window", "Watch the closing time; do not put off your bid"],
+      ["Buy Now", "Purchase at a fixed price", "Check that the price beats your ceiling at the auction"]
+    ] },
+    { "t": "p", "x": "**Seller reserve** is the minimum price below which the lot is not sold. If it is shown, take it into account when planning your bid." },
+    { "t": "h2", "x": "What else is worth checking" },
+    { "t": "ul", "x": [
+      "**VIN history**: whether the car was listed before and whether it was resold. [[How to check|resale-check]].",
+      "**Seller**: insurance company, rental fleet, dealer. Data quality and risks depend on it.",
+      "**Location**: the state and the yard determine delivery to the port.",
+      "**Turnkey price**: an [[example calculation|import-cost]] shows what you end up paying with all costs included."
+    ] }
+  ],
+  "faq": [
+    { "q": "Can the lot photos be trusted?", "a": "Photos help you assess the damage but do not show hidden problems. That is why it is important to look at every angle, the title and the VIN history, and to leave a margin in the budget." },
+    { "q": "What does “Run and Drive” mean?", "a": "It is the auction's note that the car starts and can move. It is not a guarantee that everything works, only a note made at the time of inspection." },
+    { "q": "Why is ACV much higher than the auction price?", "a": "ACV is an estimate of an intact car with no damage. For a damaged car, the final auction price is noticeably lower." },
+    { "q": "What should I do if the lot card says there are no keys?", "a": "Include the cost of a replacement key and immobilizer programming in your calculation; for some brands it is expensive." }
+  ],
+  "cta": {
+    "h": "Not sure how to evaluate a specific lot?",
+    "p": "Send us the lot link and we will go through the damage, title and history, and calculate the turnkey price.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Which damage is dangerous",
+    "b2slug": "damages"
+  },
+  "related": ["title-types", "resale-check", "copart-vs-iaai"]
+}

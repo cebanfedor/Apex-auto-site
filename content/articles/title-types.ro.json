@@ -1,0 +1,71 @@
+{
+  "slug": "title-types",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Tipuri de titlu la licitații: Clean, Salvage, Rebuilt, Non-Repairable | Apex Auto",
+    "description": "Ce înseamnă Clean, Salvage, Rebuilt, Non-Repairable și Bill of Sale în fișa lotului Copart și IAAI și cum influențează tipul de titlu prețul, importul și riscul.",
+    "ogTitle": "Tipuri de titlu la licitații: ce înseamnă Clean, Salvage, Rebuilt",
+    "ogDesc": "Cum citești tipul de document din fișa lotului și ce înseamnă pentru preț și import."
+  },
+  "tag": "Titluri",
+  "kicker": "Cumpărare și livrare · Titluri",
+  "h1": "Tipuri de titlu la licitații: Clean, Salvage, Rebuilt, Non-Repairable",
+  "lead": "Titlul este documentul care descrie statutul juridic al unei mașini din SUA sau Canada. Influențează prețul lotului, riscul și ce mașini merită, în general, aduse. Analizăm principalele tipuri și ce înseamnă ele pentru un cumpărător din Moldova.",
+  "card": {
+    "tag": "Titluri",
+    "title": "Tipuri de titlu la licitații: Clean, Salvage, Rebuilt, Non-Repairable",
+    "text": "Ce înseamnă Clean, Salvage, Rebuilt, Non-Repairable și Bill of Sale în fișa lotului și cum influențează prețul și importul."
+  },
+  "og": { "k": "TITLURI", "h": "Tipuri de titlu la licitații", "s": "Clean, Salvage, Rebuilt și Non-Repairable" },
+  "summary": [
+    "**Clean** — mașină fără mențiune de daună totală; **Salvage** — asigurătorul a declarat-o daună totală.",
+    "**Rebuilt** — o mașină Salvage reparată, care a trecut verificarea în stat.",
+    "**Non-Repairable și Certificate of Destruction** — mașini „pentru piese”: de regulă, nu se aduc.",
+    "**Bill of Sale** — document fără titlu: este nevoie de o verificare suplimentară.",
+    "**Tipul de titlu influențează prețul:** Salvage este mai ieftin decât Clean, deci este interesant pentru reparare."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Tipurile principale" },
+    { "t": "table", "head": ["Tip", "Ce înseamnă", "Ce înseamnă pentru cumpărător"], "rows": [
+      ["Clean Title", "Nu există mențiune de daună totală", "Cea mai „curată” categorie. Lotul de la licitație poate fi totuși avariat, dar juridic este o mașină obișnuită"],
+      ["Salvage Title", "Asigurătorul a declarat mașina daună totală (reparația depășește pragul admis)", "Marfa principală a licitațiilor de asigurări. Mai ieftină decât Clean, potrivită pentru reparare"],
+      ["Rebuilt / Reconstructed", "Fost Salvage, reparat și care a trecut verificarea în stat", "Este deja reparat; e important să verifici calitatea reparației"],
+      ["Non-Repairable", "Nu poate fi reînmatriculat în SUA, doar pentru piese", "De regulă, astfel de loturi nu se aduc"],
+      ["Certificate of Destruction", "Mașina este destinată casării", "De regulă, nu se aduce"],
+      ["Bill of Sale", "Există doar actul de vânzare-cumpărare, fără titlu", "Trebuie verificate suplimentar istoricul și actele"]
+    ] },
+    { "t": "h2", "x": "Cum influențează tipul de titlu prețul" },
+    { "t": "p", "x": "Cu cât mențiunea este mai „strictă”, cu atât prețul este mai mic. Mașinile Salvage sunt mai ieftine decât Clean, iar Non-Repairable — și mai ieftine, dar nu are sens să le aduci. Pentru un cumpărător din Moldova, de multe ori tocmai Salvage este avantajos: după reparație rezultă o mașină la un preț sensibil sub cel al pieței. Dar avantajul există doar dacă reparația este realistă și nu „mănâncă” economia; despre costul reparației — în [[ghidul de reparații|repair-guide]]." },
+    { "t": "h2", "x": "Cum stau lucrurile în Moldova" },
+    { "t": "p", "x": "Din experiența noastră, Salvage Title nu limitează înmatricularea mașinii în Moldova: după import și vămuire, mașina se înmatriculează conform regulilor generale. Mai multe despre proces — în [[ghidul de livrare|guide]]. Asta nu înlătură nevoia de a verifica starea și istoricul: tipul de titlu nu spune cât de bine a fost reparată mașina." },
+    { "t": "h2", "x": "La ce te uiți în afară de titlu" },
+    { "t": "ul", "x": [
+      "**Avariile și fotografiile:** [[cum citești fișa lotului|lot-card-guide]].",
+      "**Istoricul după VIN:** dacă mașina nu a mai fost vândută sau scoasă la licitație înainte. [[Cum verifici|resale-check]].",
+      "**Tipul de vânzător:** asigurător, închirieri sau dealer.",
+      "**Probleme ascunse:** apă, foc, șasiu. Tipul lor contează adesea mai mult decât denumirea titlului."
+    ] },
+    { "t": "h2", "x": "Când e mai bine să renunți" },
+    { "t": "ul", "x": [
+      "Non-Repairable sau Certificate of Destruction: astfel de mașini nu sunt destinate drumurilor.",
+      "Bill of Sale fără un istoric clar, dacă nu poți verifica proveniența.",
+      "Rebuilt fără documente despre reparație și fără posibilitatea de a o inspecta."
+    ] }
+  ],
+  "faq": [
+    { "q": "Salvage înseamnă că mașina este „distrusă”?", "a": "Nu. Este un statut juridic: asigurătorul a considerat reparația neeconomică. Multe mașini Salvage se repară, iar starea depinde de avaria concretă." },
+    { "q": "Cu ce este Rebuilt mai bun decât Salvage?", "a": "Rebuilt este deja reparată și a trecut verificarea, dar calitatea reparației trebuie verificată separat. Prețul este de obicei mai mare decât la Salvage." },
+    { "q": "Se poate înmatricula un Salvage în Moldova?", "a": "Din experiența noastră, da: Salvage nu limitează înmatricularea după import și vămuire." },
+    { "q": "Ce înseamnă Bill of Sale?", "a": "Este un act de vânzare-cumpărare fără titlu. Astfel de loturi necesită o verificare separată a istoricului și a actelor." }
+  ],
+  "cta": {
+    "h": "Nu ești sigur ce titlu are lotul?",
+    "p": "Trimite linkul lotului — descifrăm documentul, verificăm istoricul și îți spunem dacă merită adus.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Cum citești fișa lotului",
+    "b2slug": "lot-card-guide"
+  },
+  "related": ["lot-card-guide", "resale-check", "copart-vs-iaai"]
+}

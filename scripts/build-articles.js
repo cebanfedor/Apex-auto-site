@@ -25,21 +25,37 @@ const PAGES = {
   "rear-quarter":        { ru: "/rear-quarter", ro: "/ro/inlocuire-aripa-spate", en: "/en/rear-quarter-replacement" },
   "frame-rails":         { ru: "/frame-rails", ro: "/ro/indreptare-lonjeroane", en: "/en/frame-rail-straightening" },
   "engine-transmission": { ru: "/engine-transmission", ro: "/ro/inlocuire-motor-cutie", en: "/en/engine-transmission-swap" },
+  guide:                 { ru: "/guide", ro: "/ro/ghid-auto-sua", en: "/guide?lang=en", old: true },
+  "auction-fees":        { ru: "/auction-fees", ro: "/ro/taxele-licitatiilor", en: "/auction-fees?lang=en", old: true },
+  auctions:              { ru: "/auctions", ro: "/auctions?lang=ro", en: "/auctions?lang=en", old: true },
+  korea:                 { ru: "/korea", ro: "/korea?lang=ro", en: "/korea?lang=en", old: true },
+  canada:                { ru: "/canada", ro: "/canada?lang=ro", en: "/canada?lang=en", old: true },
+  tracking:              { ru: "/tracking", ro: "/tracking?lang=ro", en: "/tracking?lang=en", old: true },
+  shipping:              { ru: "/shipping", ro: "/ro/transport-maritim", en: "/shipping?lang=en", old: true },
+  "import-cost":         { ru: "/import-cost", ro: "/ro/cost-import-auto", en: "/en/car-import-cost" },
+  "copart-vs-iaai":      { ru: "/copart-vs-iaai", ro: "/ro/copart-sau-iaai", en: "/en/copart-vs-iaai" },
+  "lot-card-guide":      { ru: "/lot-card-guide", ro: "/ro/cum-citesti-lotul", en: "/en/how-to-read-auction-lot" },
+  "title-types":         { ru: "/title-types", ro: "/ro/tipuri-titlu-auto", en: "/en/car-title-types" },
+  "resale-check":        { ru: "/resale-check", ro: "/ro/verificare-revanzari", en: "/en/resale-and-odometer-check" },
+  "delivery-stages":     { ru: "/delivery-stages", ro: "/ro/etape-livrare", en: "/en/delivery-stages" },
+  "korea-cars":          { ru: "/korea-cars", ro: "/ro/masini-din-coreea", en: "/en/cars-from-korea" },
+  "canada-cars":         { ru: "/canada-cars", ro: "/ro/masini-din-canada", en: "/en/cars-from-canada" },
+  "deal-documents":      { ru: "/deal-documents", ro: "/ro/acte-si-contract", en: "/en/deal-documents" },
   damages:               { ru: "/damages", ro: "/ro/daune-auto", en: "/damages?lang=en", old: true },
   customs:               { ru: "/customs", ro: "/ro/vamuirea-auto", en: "/customs?lang=en", old: true },
   "vin-check":           { ru: "/vin-check", ro: "/ro/verificare-vin", en: "/vin-check?lang=en", old: true },
   blog:                  { ru: "/blog", ro: "/ro/blog", en: "/blog?lang=en", old: true }
 };
-const ORDER = ["repair-guide", "body-panels", "rear-quarter", "frame-rails", "engine-transmission", "airbag", "painting", "car-electronics", "suspension", "car-interior"];
+const ORDER = ["repair-guide", "body-panels", "rear-quarter", "frame-rails", "engine-transmission", "airbag", "painting", "car-electronics", "suspension", "car-interior", "import-cost", "copart-vs-iaai", "lot-card-guide", "title-types", "resale-check", "delivery-stages", "korea-cars", "canada-cars", "deal-documents"];
 const fileOf = (slug, lang) => lang === "ru" ? `${slug}.html` : `${lang}-${PAGES[slug][lang].split("/").pop()}.html`;
 const urlOf = (slug, lang) => SITE + PAGES[slug][lang];
 const hrefOf = (slug, lang) => PAGES[slug][lang];
 
 // строки интерфейса
 const UI = {
-  ru: { home: "Главная", blog: "Блог", parts: "Запчасти и ремонт", summary: "Кратко о главном", faq: "Частые вопросы", also: "Читайте также", all: "Все статьи блога →", by: "Редакция Apex Auto", byLine: "Блог «Запчасти и ремонт»", published: "Опубликовано", months: ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"], min: "мин чтения", locale: "ru_RU", nav: "Навигация", more: "Статья есть и на других языках" },
-  ro: { home: "Principala", blog: "Blog", parts: "Piese și reparații", summary: "Pe scurt", faq: "Întrebări frecvente", also: "Citiți și", all: "Toate articolele din blog →", by: "Redacția Apex Auto", byLine: "Blog «Piese și reparații»", published: "Publicat", months: ["ianuarie","februarie","martie","aprilie","mai","iunie","iulie","august","septembrie","octombrie","noiembrie","decembrie"], min: "min de citit", locale: "ro_RO", nav: "Navigare", more: "" },
-  en: { home: "Home", blog: "Blog", parts: "Parts & repair", summary: "Key takeaways", faq: "FAQ", also: "Read also", all: "All blog articles →", by: "Apex Auto editorial team", byLine: "Blog “Parts & repair”", published: "Published", months: ["January","February","March","April","May","June","July","August","September","October","November","December"], min: "min read", locale: "en_US", nav: "Navigation", more: "" }
+  ru: { home: "Главная", blog: "Блог", parts: "Запчасти и ремонт", guides: "Покупка и доставка", byLineG: "Блог «Покупка и доставка»", summary: "Кратко о главном", faq: "Частые вопросы", also: "Читайте также", all: "Все статьи блога →", by: "Редакция Apex Auto", byLine: "Блог «Запчасти и ремонт»", published: "Опубликовано", months: ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"], min: "мин чтения", locale: "ru_RU", nav: "Навигация", more: "Статья есть и на других языках" },
+  ro: { home: "Principala", blog: "Blog", parts: "Piese și reparații", guides: "Cumpărare și livrare", byLineG: "Blog «Cumpărare și livrare»", summary: "Pe scurt", faq: "Întrebări frecvente", also: "Citiți și", all: "Toate articolele din blog →", by: "Redacția Apex Auto", byLine: "Blog «Piese și reparații»", published: "Publicat", months: ["ianuarie","februarie","martie","aprilie","mai","iunie","iulie","august","septembrie","octombrie","noiembrie","decembrie"], min: "min de citit", locale: "ro_RO", nav: "Navigare", more: "" },
+  en: { home: "Home", blog: "Blog", parts: "Parts & repair", guides: "Buying & delivery", byLineG: "Blog “Buying & delivery”", summary: "Key takeaways", faq: "FAQ", also: "Read also", all: "All blog articles →", by: "Apex Auto editorial team", byLine: "Blog “Parts & repair”", published: "Published", months: ["January","February","March","April","May","June","July","August","September","October","November","December"], min: "min read", locale: "en_US", nav: "Navigation", more: "" }
 };
 const LEGAL = {
   ru: "Все права защищены. Материалы сайта, расчёты и оценки защищены авторским правом — копирование без разрешения запрещено.",
@@ -61,6 +77,9 @@ const dateText = (iso, lang) => { const [y, m, d] = iso.split("-").map(Number); 
 
 const data = {};
 for (const slug of ORDER) { data[slug] = {}; for (const l of LANGS) data[slug][l] = JSON.parse(rd(`content/articles/${slug}.${l}.json`)); }
+// group: "guides" в ru-JSON — статья раздела «Покупка и доставка», иначе «Запчасти и ремонт»
+const isGuide = (slug) => data[slug].ru.group === "guides";
+const PARTS_ORDER = ORDER.filter((s) => !isGuide(s)), GUIDES_ORDER = ORDER.filter((s) => isGuide(s));
 
 // ---------- шаблоны шапки/подвала из существующих страниц
 const tplRU = rd("damages.html"), tplRO = rd("ro-daune-auto.html");
@@ -174,7 +193,9 @@ function page(slug, lang) {
   const faq = A.faq.map((f) => `<div class="guideFaqItem"><dt>${inline(f.q, lang)}</dt><dd>${inline(f.a, lang)}</dd></div>`).join("\n            ");
   const rel = (A.related || []).map((s) => `<li><a href="${hrefOf(s, lang)}">${esc(data[s][lang].card.title)}</a></li>`).join("");
   const blogHref = hrefOf("blog", lang);
-  const partsHref = lang === "en" ? "/blog?lang=en#parts" : blogHref + "#parts";
+  const secId = isGuide(slug) ? "guides" : "parts";
+  const secName = isGuide(slug) ? U.guides : U.parts;
+  const partsHref = lang === "en" ? `/blog?lang=en#${secId}` : blogHref + "#" + secId;
   const banner = lang === "ru"
     ? `<div id="artLangBannerV1" data-ro="${hrefOf(slug, "ro")}" data-en="${hrefOf(slug, "en")}" style="display:none;background:#fff3cd;border-bottom:2px solid #ffc107;padding:12px 20px;text-align:center;font-size:14px;"></div>\n  <script src="/lang-banner.js?v=2" defer></script>\n` : "";
   const body = `${banner}  <main class="guideMain">
@@ -185,7 +206,7 @@ function page(slug, lang) {
         <span>→</span>
         <a href="${blogHref}">${U.blog}</a>
         <span>→</span>
-        <a href="${partsHref}">${U.parts}</a>
+        <a href="${partsHref}">${secName}</a>
         <span>→</span>
         <span>${esc(A.card.tag)}</span>
       </nav>
@@ -198,7 +219,7 @@ function page(slug, lang) {
           <div class="guideAuthor">
             <div>
               <strong>${U.by}</strong>
-              <span>${U.byLine}</span>
+              <span>${isGuide(slug) ? U.byLineG : U.byLine}</span>
               <time datetime="${A.date}" style="display:block;font-size:12px;color:var(--muted);margin-top:2px;">${U.published}: ${dateText(A.date, lang)} · ${data[slug].ru.readMin} ${U.min}</time>
             </div>
           </div>
@@ -242,7 +263,7 @@ function page(slug, lang) {
   const ld = [
     { "@context": "https://schema.org", "@type": "Article", headline: A.h1, description: A.meta.description, inLanguage: lang, datePublished: A.date, dateModified: A.date, mainEntityOfPage: url, author: { "@type": "Organization", name: "Apex Auto", url: SITE }, publisher: { "@type": "Organization", name: "Apex Auto", url: SITE, logo: { "@type": "ImageObject", url: SITE + "/apple-touch-icon.png" } }, image: `${SITE}/assets/og/${ogName}.png` },
     { "@context": "https://schema.org", "@type": "FAQPage", inLanguage: lang, mainEntity: A.faq.map((f) => ({ "@type": "Question", name: f.q.replace(/\*\*|\[\[([^|\]]+)\|[^\]]+\]\]/g, "$1"), acceptedAnswer: { "@type": "Answer", text: f.a.replace(/\*\*/g, "").replace(/\[\[([^|\]]+)\|[^\]]+\]\]/g, "$1") } })) },
-    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemList: undefined, itemListElement: [[U.home, SITE], [U.blog, SITE + blogHref], [U.parts, SITE + partsHref], [A.card.tag, url]].map(([name, item], i) => ({ "@type": "ListItem", position: i + 1, name, item })) }
+    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemList: undefined, itemListElement: [[U.home, SITE], [U.blog, SITE + blogHref], [secName, SITE + partsHref], [A.card.tag, url]].map(([name, item], i) => ({ "@type": "ListItem", position: i + 1, name, item })) }
   ].map((o) => `<script type="application/ld+json">\n${JSON.stringify(o)}\n</script>`).join("\n");
   const scripts = `<script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
@@ -273,7 +294,7 @@ const BLOG_SEC = {
 };
 function partsBlock(lang) {
   const S = BLOG_SEC[lang];
-  const cards = ORDER.map((s) => cardHtml({ slug: s, ...data[s][lang].card, readMin: data[s].ru.readMin }, lang));
+  const cards = PARTS_ORDER.map((s) => cardHtml({ slug: s, ...data[s][lang].card, readMin: data[s].ru.readMin }, lang));
   return `<!-- parts:start -->
       <section class="blogSecV1" id="parts">
         <h2>${S.h}</h2>
@@ -283,6 +304,27 @@ function partsBlock(lang) {
 ${cards.join("\n")}
       </div>
       <!-- parts:end -->
+
+`;
+}
+const GUIDE_SEC = {
+  ru: { h: "Покупка и доставка", p: "Как устроены аукционы, титулы и сборы, сколько стоит привезти авто и как проходит доставка из США, Канады и Кореи. Цифры берём из нашего калькулятора, без выдуманных цен." },
+  ro: { h: "Cumpărare și livrare", p: "Cum funcționează licitațiile, titlurile și taxele, cât costă aducerea mașinii și cum decurge livrarea din SUA, Canada și Coreea. Cifrele vin din calculatorul nostru, fără prețuri inventate." }
+};
+const GUIDE_P_EN = "How auctions, titles and fees work, what it costs to bring a car and how delivery from the USA, Canada and Korea goes. The figures come from our calculator, with no invented prices.";
+function guidesBlock(lang) {
+  if (!GUIDES_ORDER.length) return "";
+  const S = GUIDE_SEC[lang];
+  const cards = GUIDES_ORDER.map((s) => cardHtml({ slug: s, ...data[s][lang].card, readMin: data[s].ru.readMin }, lang));
+  return `<!-- guides:start -->
+      <section class="blogSecV1" id="guides">
+        <h2>${S.h}</h2>
+        <p>${S.p}</p>
+      </section>
+      <div class="blogGridV1">
+${cards.join("\n")}
+      </div>
+      <!-- guides:end -->
 
 `;
 }
@@ -300,9 +342,17 @@ function patchBlog(file, lang) {
   else if (/<section class="blogSecV1" id="parts">/.test(s)) s = s.replace(/<section class="blogSecV1" id="parts">[\s\S]*?(?=      <div class="blogSubV1">)/, () => block.replace(/^<!-- parts:start -->\n/, "<!-- parts:start -->\n"));
   else s = s.replace('      <div class="blogSubV1">', () => block + '      <div class="blogSubV1">');
   if (!s.includes(".blogTabsV1")) s = s.replace("    .blogCardV1 { display: flex;", () => BLOG_CSS + "    .blogCardV1 { display: flex;");
+  // блок «Покупка и доставка» — сразу после блока «Запчасти и ремонт»
+  s = s.replace(/<!-- guides:start -->[\s\S]*?<!-- guides:end -->\n\n/, "");
+  const gb = guidesBlock(lang);
+  if (gb) s = s.replace("<!-- parts:end -->\n\n", () => "<!-- parts:end -->\n\n      " + gb);
+  const tabs = (lang === "ru"
+    ? '<a href="#all">Все статьи</a><a href="#guides">Покупка и доставка</a><a href="#parts">Запчасти и ремонт</a>'
+    : '<a href="#all">Toate articolele</a><a href="#guides">Cumpărare și livrare</a><a href="#parts">Piese și reparații</a>');
   if (!s.includes('class="blogTabsV1"')) {
-    const tabs = lang === "ru" ? '<a href="#all">Все статьи</a><a href="#parts">Запчасти и ремонт</a>' : '<a href="#all">Toate articolele</a><a href="#parts">Piese și reparații</a>';
     s = s.replace('      <div class="blogGridV1">', () => `      <nav class="blogTabsV1" aria-label="${lang === "ru" ? "Разделы блога" : "Secțiuni"}">${tabs}</nav>\n\n      <div class="blogGridV1" id="all">`);
+  } else {
+    s = s.replace(/(<nav class="blogTabsV1"[^>]*>)[\s\S]*?(<\/nav>)/, (m, a, b) => a + tabs + b);
   }
   wr(file, s);
 }
@@ -318,6 +368,8 @@ patchBlog("ro-blog.html", "ro");
   add("Все статьи", "Toate articolele", "All articles");
   add("Запчасти и ремонт", "Piese și reparații", "Parts & repair");
   add(BLOG_SEC.ru.p, BLOG_SEC.ro.p, "How body repair and unit replacement are done and what the cost is made of. No fluff and no invented prices: we show what is actually doable and when it does not cost “a fortune”.");
+  add(GUIDE_SEC.ru.h, GUIDE_SEC.ro.h, "Buying & delivery");
+  add(GUIDE_SEC.ru.p, GUIDE_SEC.ro.p, GUIDE_P_EN);
   for (const slug of ORDER) { const r = data[slug].ru.card, o = data[slug].ro.card, e = data[slug].en.card; add(r.tag, o.tag, e.tag); add(r.title, o.title, e.title); add(r.text, o.text, e.text); }
   for (const slug of ORDER) add(metaLine(slug, "ru"), metaLine(slug, "ro"), metaLine(slug, "en"));
   const pairs = (l) => Object.entries(entries[l]).map(([k, v]) => `      ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(",\n");

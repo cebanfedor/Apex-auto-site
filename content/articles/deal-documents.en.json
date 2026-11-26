@@ -1,0 +1,161 @@
+{
+  "slug": "deal-documents",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Contract and Documents When Buying a Car Abroad: What You Sign | Apex Auto",
+    "description": "Which documents you get when buying a car from the USA, Canada or Korea: contract, invoices, Title, Bill of Lading, customs papers. What to check before signing.",
+    "ogTitle": "Contract and documents when buying a car abroad",
+    "ogDesc": "Which documents you sign and receive: contract, invoices, Title, Bill of Lading and customs papers."
+  },
+  "tag": "Documents",
+  "kicker": "Purchase and delivery · Documents",
+  "h1": "Contract and documents when buying a car abroad",
+  "lead": "Buying a car abroad is not only auctions and delivery, but also a set of documents. It matters for clients to understand what they sign, which papers they receive and what to check before paying. Here are the main documents and the questions worth asking any intermediary.",
+  "card": {
+    "tag": "Documents",
+    "title": "Contract and documents when buying a car abroad",
+    "text": "Contract, invoices, Title, Bill of Lading and customs papers. What you receive and what to check before paying."
+  },
+  "og": {
+    "k": "DOCUMENTS",
+    "h": "Contract and documents",
+    "s": "What you sign and what you receive when buying a car"
+  },
+  "summary": [
+    "**The contract with the intermediary:** sets out the services, payment terms and the responsibility of the parties.",
+    "**The car's documents:** the auction invoice, Title or purchase document, Bill of Lading, customs documents.",
+    "**You need to provide a passport:** the intermediary prepares the rest, but you should understand what you sign.",
+    "**Payments come in stages:** first the purchase and delivery costs, then customs clearance on receipt."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "What you sign"
+    },
+    {
+      "t": "p",
+      "x": "Before buying, a contract is concluded with the intermediary. It should make clear: what exactly the service includes, what payments make up the price, when and in what currency they are paid, and what happens if the lot is not won or the car has hidden defects."
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Subject and services:** selection, bidding, delivery, customs clearance.",
+        "**Price and payments:** which amounts in dollars, euros and lei, and when they are paid.",
+        "**Intermediary's fee:** a fixed amount or a percentage; it should be visible in advance.",
+        "**Responsibility:** who is responsible for deadlines, transport damage and documents.",
+        "**Confidentiality:** the terms of personal data processing."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Which documents usually come with the car"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Document",
+        "What it is",
+        "What it is for"
+      ],
+      "rows": [
+        [
+          "Auction invoice",
+          "The platform's invoice for the won lot and fees",
+          "Confirms the purchase price and the make-up of the fees"
+        ],
+        [
+          "Title or purchase document",
+          "Document of ownership of the car in the country of purchase",
+          "Confirms origin and legal status; the title type is described in the article about titles"
+        ],
+        [
+          "Bill of Lading",
+          "Sea freight document",
+          "Confirms shipment and allows the car to be collected at the destination port"
+        ],
+        [
+          "Customs documents",
+          "Declaration and payment documents for customs clearance",
+          "Confirm payment of taxes and lawful import"
+        ],
+        [
+          "Handover certificate",
+          "Document on handing the car over to you",
+          "Records the car's condition at the moment of handover"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "On title types — see the article [[Title types|title-types]]."
+    },
+    {
+      "t": "h2",
+      "x": "How payments work"
+    },
+    {
+      "t": "p",
+      "x": "Costs are split into stages. First the bid, auction fees and delivery are paid; then, on receipt, customs clearance in lei. An example breakdown is in the article [[How much it costs to bring a car|import-cost]]. For each stage you receive an invoice or payment confirmation."
+    },
+    {
+      "t": "h2",
+      "x": "What to check before paying"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "That the contract describes all payments and their deadlines.",
+        "That the final turnkey price is visible in advance and does not appear along the way.",
+        "That it is clear what happens if the lot is not won.",
+        "That you can check the lot: photos, document, VIN history.",
+        "That there is a way to follow the delivery: [[tracking page|tracking]]."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "What questions to ask the intermediary"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "What is the fee and when is it paid?",
+        "What is included in the price and what is paid separately?",
+        "Which documents will I receive and by when?",
+        "How will I learn the status of the car?",
+        "What happens if the timeline shifts significantly?"
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Which documents do I need to provide?",
+      "a": "A passport is usually enough. The intermediary prepares the rest, but you should receive copies of all documents."
+    },
+    {
+      "q": "What is a Bill of Lading?",
+      "a": "It is a sea freight document that confirms shipment and is needed to collect the car at the port."
+    },
+    {
+      "q": "Can I get copies of the invoices?",
+      "a": "Yes, it makes sense to request the auction invoice and payment confirmations for yourself."
+    },
+    {
+      "q": "Who owns the car while it is in transit?",
+      "a": "It depends on the contract terms. Clarify this in advance and put it in the contract."
+    }
+  ],
+  "cta": {
+    "h": "Still have questions about the contract and documents?",
+    "p": "Write to us — we will explain how our contract, payments and documents work before you sign anything.",
+    "b1": "Message us on Telegram",
+    "b2": "How to bring a car from the USA",
+    "b2slug": "guide"
+  },
+  "related": [
+    "delivery-stages",
+    "import-cost",
+    "title-types"
+  ]
+}

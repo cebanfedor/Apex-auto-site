@@ -1,0 +1,77 @@
+{
+  "slug": "resale-check",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Cum verifici o mașină revândută și kilometrajul răsucit la mașinile de la licitație | Apex Auto",
+    "description": "Cum afli că mașina a fost revândută: istoric VIN, licitații repetate, lot schimbat, tip vânzător. Cum verifici kilometrajul și de ce în Canada e în km.",
+    "ogTitle": "Cum verifici o mașină revândută și kilometrajul la mașinile de la licitație",
+    "ogDesc": "Istoric VIN, licitații repetate și kilometraj: semnele unei mașini revândute și cum o verifici."
+  },
+  "tag": "Verificare",
+  "kicker": "Cumpărare și livrare · Verificare",
+  "h1": "Cum verifici o mașină revândută și kilometrajul răsucit la mașinile de la licitație",
+  "lead": "Un lot de la licitație nu este întotdeauna o mașină „proaspătă” de la asigurător. Uneori a fost deja cumpărată, retușată și scoasă din nou la vânzare. Alteori kilometrajul din fișă nu corespunde celui real. Vedem semnele unei mașini revândute, cum le găsești după VIN și cum verifici kilometrajul.",
+  "card": {
+    "tag": "Verificare",
+    "title": "Cum verifici o mașină revândută și kilometrajul răsucit la mașinile de la licitație",
+    "text": "Istoric VIN, licitații repetate, schimbarea numărului de lot și kilometrajul. Semnele unei mașini revândute și cum o verifici."
+  },
+  "og": { "k": "VERIFICARE", "h": "Mașini revândute și kilometraj", "s": "Cum verifici istoricul mașinii după VIN" },
+  "summary": [
+    "**Mașina revândută înseamnă o vânzare repetată:** mașina a fost cumpărată la licitație și scoasă din nou la vânzare, de obicei după o reparație estetică.",
+    "**VIN-ul este cheia principală:** numărul lotului se schimbă la repunerea în vânzare, iar VIN-ul rămâne la fel.",
+    "**Semne:** mai multe intrări la licitație, număr de lot schimbat, o vânzare anterioară, vânzătorul nu este o companie de asigurări.",
+    "**Kilometrajul trebuie verificat:** la loturile canadiene este în kilometri, iar asta e o cauză frecventă de confuzie."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "Ce este o mașină revândută" },
+    { "t": "p", "x": "O mașină revândută este un autovehicul care a trecut deja printr-o licitație: a fost cumpărat, adus într-o stare prezentabilă și scos din nou la vânzare. Nu e neapărat un lucru rău, dar prețul poate fi umflat, iar reparația — doar estetică. Pentru cumpărător e important să știe ce are în față înainte de a licita." },
+    { "t": "h2", "x": "Semnele unei mașini revândute" },
+    { "t": "ul", "x": [
+      "**Mai multe intrări la licitație.** Același VIN a mai fost scos la vânzare.",
+      "**Numărul lotului s-a schimbat.** Platforma atribuie un număr nou la repunerea în vânzare.",
+      "**A existat o vânzare.** Dacă după VIN există o vânzare anterioară, mașina și-a schimbat proprietarul.",
+      "**Vânzătorul nu este un asigurător.** Asigurătorul poate repune lotul în vânzare dacă rezerva nu a fost atinsă; la un dealer sau la un revânzător, repetările frecvente sunt un semn alarmant.",
+      "**Un aspect suspect de „proaspăt”** în fotografii, alături de o înregistrare de daună totală."
+    ] },
+    { "t": "h2", "x": "Cum verifici după VIN" },
+    { "t": "ol", "x": [
+      "Luați VIN-ul din fișa lotului (17 caractere).",
+      "Verificați istoricul licitațiilor după VIN: intrările anterioare, ofertele și vânzările. Pe site-ul nostru acest lucru se vede direct în fișa lotului.",
+      "Comparați datele și numerele loturilor: dacă numărul s-a schimbat, mașina a fost scoasă din nou la vânzare.",
+      "Comparați fotografiile din intrări diferite: ce s-a schimbat în avarie.",
+      "Dacă este nevoie, comandați un raport după VIN: [[verificare VIN|vin-check]]."
+    ] },
+    { "t": "p", "x": "Avem filtrul Feduk Clean Select, care ascunde loturile cu semne de revânzare. Nu înlocuiește verificarea, dar ajută să elimini rapid cazurile evidente." },
+    { "t": "h2", "x": "Cum verifici kilometrajul" },
+    { "t": "ul", "x": [
+      "**Uitați-vă la fotografia bordului.** Numărul de pe odometru și unitatea de măsură (mile sau km).",
+      "**Comparați cu vârsta.** Un kilometraj mult mai mic decât cel tipic pentru anul de fabricație este un motiv să verificați istoricul.",
+      "**Comparați cu istoricul:** rapoartele (Carfax, AutoCheck) arată kilometrajul la date diferite.",
+      "**Țineți cont de unități.** La loturile americane kilometrajul este în mile, la cele canadiene — în kilometri. Confuzia dintre mile și kilometri este o cauză frecventă a unui kilometraj „ciudat”."
+    ] },
+    { "t": "h2", "x": "Ce faceți dacă aveți îndoieli" },
+    { "t": "ul", "x": [
+      "Nu licitați până nu clarificați: kilometrajul și istoricul influențează prețul.",
+      "Cereți-ne să analizăm lotul: verificăm istoricul după VIN și vă spunem ce vedem.",
+      "Dacă datele se contrazic, e mai bine să renunțați la lot: la licitație există multe alte variante."
+    ] },
+    { "t": "p", "x": "Mai multe despre câmpurile fișei — în articolul [[Cum citești fișa unui lot|lot-card-guide]]." }
+  ],
+  "faq": [
+    { "q": "O mașină revândută e întotdeauna rea?", "a": "Nu întotdeauna, dar prețul poate fi mai mare, iar calitatea reparației — mai mică. E important să știți ce aveți în față înainte de a licita." },
+    { "q": "De ce la loturile canadiene kilometrajul este în kilometri?", "a": "Mașinile canadiene sunt exploatate în kilometri. În fișă kilometrajul este indicat în km, iar pentru loturile americane — în mile." },
+    { "q": "Se poate avea încredere într-un raport după VIN?", "a": "Rapoartele sunt utile, dar nu sunt perfecte: datele pot fi incomplete. De aceea e mai bine să comparați mai multe surse." },
+    { "q": "Ce face filtrul Clean Select?", "a": "Ascunde loturile cu semne de licitații repetate și de revânzare. Ajută să elimini cazurile evidente, dar nu înlocuiește verificarea." }
+  ],
+  "cta": {
+    "h": "Vreți să verificați un anumit lot?",
+    "p": "Trimiteți linkul sau VIN-ul — verificăm istoricul licitațiilor și vă spunem ce vedem.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Verificare VIN",
+    "b2slug": "vin-check"
+  },
+  "related": ["lot-card-guide", "title-types", "copart-vs-iaai"]
+}

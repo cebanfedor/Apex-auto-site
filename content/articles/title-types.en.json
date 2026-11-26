@@ -1,0 +1,71 @@
+{
+  "slug": "title-types",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Auction Title Types: Clean, Salvage, Rebuilt, Non-Repairable | Apex Auto",
+    "description": "What Clean, Salvage, Rebuilt, Non-Repairable and Bill of Sale mean on a Copart and IAAI lot page, and how the title type affects price, import and risk.",
+    "ogTitle": "Auction title types: what Clean, Salvage and Rebuilt mean",
+    "ogDesc": "How to read the document type on a lot page and what it means for price and import."
+  },
+  "tag": "Titles",
+  "kicker": "Buying and delivery · Titles",
+  "h1": "Auction Title Types: Clean, Salvage, Rebuilt, Non-Repairable",
+  "lead": "The title is the document that describes a car's legal status in the USA or Canada. It affects the lot price, the risk, and which cars are worth importing at all. We go through the main types and what they mean for a buyer from Moldova.",
+  "card": {
+    "tag": "Titles",
+    "title": "Auction Title Types: Clean, Salvage, Rebuilt, Non-Repairable",
+    "text": "What Clean, Salvage, Rebuilt, Non-Repairable and Bill of Sale mean on a lot page and how they affect price and import."
+  },
+  "og": { "k": "TITLES", "h": "Auction title types", "s": "Clean, Salvage, Rebuilt and Non-Repairable" },
+  "summary": [
+    "**Clean** — a car with no total-loss brand; **Salvage** — the insurer declared it a total loss.",
+    "**Rebuilt** — a repaired Salvage car that has passed the state inspection.",
+    "**Non-Repairable and Certificate of Destruction** — “parts only” cars: as a rule, they are not imported.",
+    "**Bill of Sale** — a document without a title: extra checking is needed.",
+    "**The title type affects the price:** Salvage is cheaper than Clean, so it is interesting for restoration."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "The main types" },
+    { "t": "table", "head": ["Type", "What it means", "What it means for the buyer"], "rows": [
+      ["Clean Title", "No total-loss brand", "The “cleanest” category. The auction lot may still be damaged, but legally it is an ordinary car"],
+      ["Salvage Title", "The insurer declared the car a total loss (repair costs more than the allowed threshold)", "The main product of insurance auctions. Cheaper than Clean, suitable for restoration"],
+      ["Rebuilt / Reconstructed", "Former Salvage, repaired and passed the state inspection", "Already repaired; it is important to check the quality of the repair"],
+      ["Non-Repairable", "Cannot be re-registered in the USA, parts only", "As a rule, such lots are not imported"],
+      ["Certificate of Destruction", "The car is intended for scrapping", "As a rule, not imported"],
+      ["Bill of Sale", "Only a purchase agreement exists, no title", "The history and paperwork need extra checking"]
+    ] },
+    { "t": "h2", "x": "How the title type affects the price" },
+    { "t": "p", "x": "The “stricter” the brand, the lower the price. Salvage cars are cheaper than Clean, Non-Repairable even cheaper, but there is no point importing them. For a buyer from Moldova, Salvage is often the profitable choice: after repair you get a car at a price noticeably below the market. But the benefit exists only if the repair is realistic and does not “eat” the savings; on repair costs, see the [[repair guide|repair-guide]]." },
+    { "t": "h2", "x": "What this means in Moldova" },
+    { "t": "p", "x": "In our experience, a Salvage Title does not restrict registering a car in Moldova: after import and customs clearance, the car is registered under the general rules. More about the process is in the [[delivery guide|guide]]. This does not remove the need to check the condition and history: the title type does not say how well the car was repaired." },
+    { "t": "h2", "x": "What to look at besides the title" },
+    { "t": "ul", "x": [
+      "**Damage and photos:** [[how to read a lot page|lot-card-guide]].",
+      "**VIN history:** whether the car was previously sold or listed before. [[How to check|resale-check]].",
+      "**Seller type:** insurer, rental company or dealer.",
+      "**Hidden problems:** water, fire, frame. Their type often matters more than the name of the title."
+    ] },
+    { "t": "h2", "x": "When it is better to walk away" },
+    { "t": "ul", "x": [
+      "Non-Repairable or Certificate of Destruction: such cars are not intended for the road.",
+      "Bill of Sale with no clear history, if you cannot verify the origin.",
+      "Rebuilt with no repair documents and no chance to inspect it."
+    ] }
+  ],
+  "faq": [
+    { "q": "Does Salvage mean the car is “wrecked”?", "a": "No. It is a legal status: the insurer considered the repair economically unviable. Many Salvage cars are repaired, and the condition depends on the specific damage." },
+    { "q": "How is Rebuilt better than Salvage?", "a": "Rebuilt has already been repaired and has passed inspection, but the quality of the repair must be checked separately. The price is usually higher than for Salvage." },
+    { "q": "Can a Salvage car be registered in Moldova?", "a": "In our experience, yes: Salvage does not restrict registration after import and customs clearance." },
+    { "q": "What does Bill of Sale mean?", "a": "It is a purchase document without a title. Such lots require a separate check of the history and paperwork." }
+  ],
+  "cta": {
+    "h": "Not sure what title a lot has?",
+    "p": "Send the lot link — we will decode the document, check the history and tell you whether it is worth importing.",
+    "b1": "Send the lot on Telegram",
+    "b2": "How to read a lot page",
+    "b2slug": "lot-card-guide"
+  },
+  "related": ["lot-card-guide", "resale-check", "copart-vs-iaai"]
+}

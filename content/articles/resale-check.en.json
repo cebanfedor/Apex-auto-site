@@ -1,0 +1,77 @@
+{
+  "slug": "resale-check",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "How to Check a Resold Car and Odometer Rollback on an Auction Car | Apex Auto",
+    "description": "How to tell a car was resold: VIN history, repeat auctions, lot number changes, seller type. How to check mileage and why Canadian lots show kilometers.",
+    "ogTitle": "How to check a resold car and mileage on an auction car",
+    "ogDesc": "VIN history, repeat auctions and mileage: signs of a resold car and how to check it."
+  },
+  "tag": "Checking",
+  "kicker": "Buying and delivery · Checking",
+  "h1": "How to check a resold car and odometer rollback on an auction car",
+  "lead": "A lot at auction is not always a “fresh” car from an insurer. Sometimes it has already been bought, touched up and listed again. Sometimes the mileage in the listing does not match the real one. Here are the signs of a resold car, how to see them by VIN and how to check the mileage.",
+  "card": {
+    "tag": "Checking",
+    "title": "How to check a resold car and odometer rollback on an auction car",
+    "text": "VIN history, repeat auctions, lot number changes and mileage. Signs of a resold car and how to check it."
+  },
+  "og": { "k": "CHECKING", "h": "Resold cars and mileage", "s": "How to check a car's history by VIN" },
+  "summary": [
+    "**A resold car is a repeat sale:** the car was bought at auction and listed again, usually after cosmetic repair.",
+    "**VIN is the main key:** the lot number changes when a car is relisted, while the VIN stays the same.",
+    "**Signs:** several auction runs, a changed lot number, a previous sale, a seller that is not an insurance company.",
+    "**Mileage must be checked:** Canadian lots show it in kilometers, and this is a common source of confusion."
+  ],
+  "blocks": [
+    { "t": "h2", "x": "What a resold car is" },
+    { "t": "p", "x": "A resold car is a vehicle that has already gone through an auction: it was bought, made presentable and listed again. That is not necessarily bad, but the price may be inflated and the repair may be only cosmetic. It is important for the buyer to know what is in front of them before bidding." },
+    { "t": "h2", "x": "Signs of a resold car" },
+    { "t": "ul", "x": [
+      "**Several auction runs.** The same VIN was listed before.",
+      "**The lot number changed.** The auction assigns a new number when a car is relisted.",
+      "**There was a sale.** If the VIN has a previous sale, the car has changed owners.",
+      "**The seller is not an insurer.** An insurer may relist a lot if the reserve was not met; frequent repeats from a dealer or reseller are a warning sign.",
+      "**A suspiciously “fresh” look** in the photos together with a total loss record."
+    ] },
+    { "t": "h2", "x": "How to check by VIN" },
+    { "t": "ol", "x": [
+      "Take the VIN from the lot listing (17 characters).",
+      "Check the auction history by VIN: previous runs, bids and sales. On our site this is shown right in the lot listing.",
+      "Compare dates and lot numbers: if the number changed, the car was listed again.",
+      "Compare photos from different runs: what changed in the damage.",
+      "If needed, order a VIN report: [[VIN check|vin-check]]."
+    ] },
+    { "t": "p", "x": "We have the Feduk Clean Select filter, which hides lots with signs of resale. It does not replace a check, but it helps quickly weed out the obvious cases." },
+    { "t": "h2", "x": "How to check mileage" },
+    { "t": "ul", "x": [
+      "**Look at the photo of the instrument cluster.** The number on the odometer and the units (miles or km).",
+      "**Compare with age.** Mileage far below what is typical for the model year is a reason to check the history.",
+      "**Compare with the history:** reports (Carfax, AutoCheck) show mileage on different dates.",
+      "**Mind the units.** American lots show mileage in miles, Canadian ones in kilometers. Mixing up miles and kilometers is a common cause of “strange” mileage."
+    ] },
+    { "t": "h2", "x": "What to do if you have doubts" },
+    { "t": "ul", "x": [
+      "Do not bid until it is clear: mileage and history affect the price.",
+      "Ask us to review the lot: we check the history by VIN and will tell you what we see.",
+      "If the data contradict each other, it is better to skip the lot: there are many other options at auction."
+    ] },
+    { "t": "p", "x": "More on the listing fields — in the article [[How to read a lot card|lot-card-guide]]." }
+  ],
+  "faq": [
+    { "q": "Is a resold car always bad?", "a": "Not always, but the price may be higher and the repair quality lower. It is important to know what you are dealing with before bidding." },
+    { "q": "Why do Canadian lots show mileage in kilometers?", "a": "Canadian cars are operated in kilometers. The listing shows mileage in km, while for American lots it is in miles." },
+    { "q": "Can a VIN report be trusted?", "a": "Reports are useful but not perfect: the data may be incomplete. That is why it is better to compare several sources." },
+    { "q": "What does the Clean Select filter do?", "a": "It hides lots with signs of repeat auctions and resale. It helps weed out the obvious cases but does not replace a check." }
+  ],
+  "cta": {
+    "h": "Want to check a specific lot?",
+    "p": "Send the link or VIN — we will check the auction history and tell you what we see.",
+    "b1": "Send the lot on Telegram",
+    "b2": "VIN check",
+    "b2slug": "vin-check"
+  },
+  "related": ["lot-card-guide", "title-types", "copart-vs-iaai"]
+}

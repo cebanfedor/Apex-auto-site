@@ -1,0 +1,153 @@
+{
+  "slug": "delivery-stages",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 6,
+  "meta": {
+    "title": "Car Delivery Stages from the USA, Canada and Korea to Moldova and Timelines | Apex Auto",
+    "description": "Stages of delivering a car to Moldova: purchase, pickup, port, sea, car carrier, customs, handover. Timelines from the USA, Canada, Korea and tracking.",
+    "ogTitle": "Car delivery stages and timelines to Moldova",
+    "ogDesc": "From purchase to handover in Chișinău: stages, timelines from the USA, Canada and Korea, and tracking."
+  },
+  "tag": "Delivery",
+  "kicker": "Purchase and delivery · Stages and timelines",
+  "h1": "Car Delivery Stages from the USA, Canada and Korea to Moldova and Timelines",
+  "lead": "After purchase, a car goes through several stages: pickup from the yard, the port, the sea crossing, the car carrier, customs and handover. We explain what happens at each one, how long the trip takes from different countries and how to track your car.",
+  "card": {
+    "tag": "Delivery",
+    "title": "Car Delivery Stages from the USA, Canada and Korea to Moldova and Timelines",
+    "text": "From purchase to handover in Chișinău: stages, timelines from different countries and tracking by VIN."
+  },
+  "og": {
+    "k": "DELIVERY",
+    "h": "Delivery stages and timelines",
+    "s": "From purchase to handover in Chișinău"
+  },
+  "summary": [
+    "**From the USA:** roughly 6–12 weeks from purchase to Chișinău.",
+    "**From Canada:** usually 1.5–2 months from the east, up to 2.5 months from the west.",
+    "**From Korea:** roughly 2–3 months.",
+    "**Timing depends on the stage:** pickup, container loading, the vessel and customs are the most variable.",
+    "**You can track the car:** by VIN or lot number on the tracking page."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Delivery stages from the USA"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "**Purchase and payment.** You win the lot, and the bid and auction fees are paid.",
+        "**Pickup from the yard.** The car is collected from the auction lot and taken to the port. The time depends on the state and the distance.",
+        "**Port and loading.** The car is prepared for shipping and loaded into a container.",
+        "**Sea crossing.** The container goes by sea to a European port (for example, Klaipėda, Constanța or Bremerhaven).",
+        "**Car carrier to Chișinău.** From the port, the car is transported overland.",
+        "**Customs clearance.** Customs payments and documents are processed.",
+        "**Handover.** You pick up the car in Chișinău."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Timelines by route"
+    },
+    {
+      "t": "table",
+      "head": [
+        "Route",
+        "Estimate",
+        "What it depends on"
+      ],
+      "rows": [
+        [
+          "USA",
+          "6–12 weeks",
+          "Yard state, vessel schedule, port queue"
+        ],
+        [
+          "Canada (east)",
+          "1.5–2 months",
+          "Departure port, vessel, customs"
+        ],
+        [
+          "Canada (west)",
+          "up to 2.5 months",
+          "Distance to the port, vessel"
+        ],
+        [
+          "Korea",
+          "2–3 months",
+          "Export from Korea, route via Europe"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "These are estimates, not a guarantee: timing is affected by vessel schedules, weather, and port and customs congestion. We let you know when the stage or timeline changes."
+    },
+    {
+      "t": "h2",
+      "x": "What affects the timeline"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**State and yard.** They determine how quickly the car reaches the port.",
+        "**Paperwork.** If the title or documents are delayed, shipping is postponed.",
+        "**Vessel schedule.** The container leaves on the nearest available vessel.",
+        "**Port and customs.** Queues and inspections can add days.",
+        "**Time of year.** In winter, weather delays are possible."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "How to track the car"
+    },
+    {
+      "t": "p",
+      "x": "On the [[tracking|tracking]] page you can enter a VIN or lot number and see the stages of the journey: where the car is now and the estimated arrival date. For returning clients, the stages are also shown in the personal account, and we message you on Telegram when the stage changes."
+    },
+    {
+      "t": "h2",
+      "x": "What to do while the car is on its way"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "Prepare the documents for registration: more details in the article [[Contract and documents|deal-documents]].",
+        "Plan your payments: part in dollars and euros, part in lei on receipt. An example breakdown is in the article [[How much it costs to bring a car|import-cost]].",
+        "If the timeline is critical, discuss the options with us: intact cars from dealer yards in Europe arrive faster. [[More about routes|shipping]]."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Can delivery be sped up?",
+      "a": "Mostly no: the vessel and customs set the timeline. You can choose a closer yard or an intact car from Europe, which arrives in 1–2 weeks."
+    },
+    {
+      "q": "How do I find out where my car is now?",
+      "a": "On the tracking page, by VIN or lot number. For clients with a personal account, the stages are visible there too."
+    },
+    {
+      "q": "Why is the timeline from western Canada longer?",
+      "a": "The distance to the port and the number of transfers are greater than from the east."
+    },
+    {
+      "q": "What happens after arrival in Chișinău?",
+      "a": "Customs clearance and documents are processed, after which the car can be collected and registered."
+    }
+  ],
+  "cta": {
+    "h": "Want to know the timeline for a specific car?",
+    "p": "Send the lot link — we will give you an estimated time to Chișinău and show you the calculation.",
+    "b1": "Send the lot on Telegram",
+    "b2": "Track your car",
+    "b2slug": "tracking"
+  },
+  "related": [
+    "import-cost",
+    "deal-documents",
+    "canada-cars"
+  ]
+}

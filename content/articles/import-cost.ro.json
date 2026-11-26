@@ -1,0 +1,177 @@
+{
+  "slug": "import-cost",
+  "group": "guides",
+  "date": "2026-11-26",
+  "readMin": 7,
+  "meta": {
+    "title": "Cât costă să aduci o mașină din SUA în Moldova: calcul la cheie | Apex Auto",
+    "description": "Din ce se compune prețul la cheie al unei mașini din SUA în Chișinău: lot, taxe licitație, transport, vămuire 2027. Patru exemple de calcul.",
+    "ogTitle": "Cât costă să aduci o mașină din SUA în Moldova",
+    "ogDesc": "Patru exemple de calcul la cheie după regulile 2027: sedan economic, Camry, crossover hibrid și mașină electrică."
+  },
+  "tag": "Cost",
+  "kicker": "Cumpărare și livrare · Cât costă",
+  "h1": "Cât costă să aduci o mașină din SUA în Moldova: calcul la cheie",
+  "lead": "Prețul lotului la licitație este doar o parte din sumă. La el se adaugă taxele licitației, transportul în SUA și pe mare, asigurarea, vămuirea și comisioanele. Mai jos sunt patru exemple calculate cu calculatorul nostru după regulile anului 2027 și o analiză a ceea ce influențează cel mai mult totalul.",
+  "card": {
+    "tag": "Cost",
+    "title": "Cât costă să aduci o mașină din SUA în Moldova: calcul la cheie",
+    "text": "Patru exemple de calcul după regulile 2027: ce intră în preț și ce influențează cel mai mult totalul."
+  },
+  "og": {
+    "k": "COST",
+    "h": "Cât costă să aduci o mașină din SUA",
+    "s": "Patru exemple de calcul la cheie după regulile 2027"
+  },
+  "summary": [
+    "**Lotul nu este tot prețul:** taxele licitației, transportul, vămuirea și comisioanele pot adăuga la ofertă mai mult decât oferta în sine.",
+    "**Cea mai mare cheltuială este vămuirea:** depinde de capacitatea motorului, de vârstă și de tipul de combustibil, iar din 2027 se calculează după tarife actualizate.",
+    "**Un lot ieftin nu este întotdeauna avantajos:** taxele licitației și transportul depind aproape deloc de preț, de aceea la o mașină ieftină ele reprezintă o pondere mai mare.",
+    "**Calculul exact se face înainte de ofertă:** în calculator toate rândurile se văd separat, iar totalul se schimbă odată cu cursul și cu opțiunile alese de dumneavoastră."
+  ],
+  "blocks": [
+    {
+      "t": "h2",
+      "x": "Din ce se compune prețul la cheie"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Prețul lotului** — oferta dumneavoastră la licitație.",
+        "**Taxele licitației** — scară progresivă: cu cât lotul este mai scump, cu atât procentul este mai mic. Detalii în articolul [[Taxele licitațiilor Copart și IAAI|auction-fees]].",
+        "**Transportul în SUA** până la port — depinde de stat și de locul licitației.",
+        "**Transportul maritim** până în Europa și autotransportorul până la Chișinău — depinde de tipul de caroserie și de combustibil.",
+        "**Asigurarea mărfii** și **comisionul Apex Auto**.",
+        "**Plata în lei:** comision de 1% (minimum $50) și taxa fixă de broker și taxa de utilizare de 2 000 de lei.",
+        "**Vămuirea** — accize și taxe după regulile Moldovei. Detalii în articolul [[Vămuirea mașinii în Moldova|customs]]."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "Patru exemple de calcul"
+    },
+    {
+      "t": "p",
+      "x": "Calculul a fost făcut cu calculatorul Apex Auto pentru licitația Copart, portul New Jersey, curs de 17,1 lei pentru un dolar, vămuire după regulile 2027. Transportul în SUA este luat pentru o locație obișnuită. Sumele sunt rotunjite."
+    },
+    {
+      "t": "table",
+      "head": [
+        "Scenariu",
+        "Lot",
+        "Taxele licitației",
+        "Livrare până la Chișinău",
+        "Asigurare, comisioane, broker",
+        "Vămuire",
+        "Total ≈"
+      ],
+      "rows": [
+        [
+          "Sedan 2018, 2.0 benzină",
+          "$4 000",
+          "$920",
+          "$2 800",
+          "$570",
+          "$3 350",
+          "**$11 640**"
+        ],
+        [
+          "Sedan 2021, 2.5 benzină",
+          "$8 000",
+          "$1 130",
+          "$2 800",
+          "$610",
+          "$5 115",
+          "**$17 650**"
+        ],
+        [
+          "Crossover 2022, hibrid 2.5",
+          "$12 000",
+          "$1 260",
+          "$3 300",
+          "$680",
+          "$5 115",
+          "**$22 360**"
+        ],
+        [
+          "Sedan electric 2022, 1 750 kg",
+          "$15 000",
+          "$1 350",
+          "$2 900",
+          "$745",
+          "$1 650",
+          "**$21 650**"
+        ]
+      ]
+    },
+    {
+      "t": "p",
+      "x": "Acestea sunt exemple, nu o ofertă: suma reală depinde de statul în care se află locul licitației, de curs, de opțiunile alese și de condițiile dumneavoastră. Un calcul actual pentru un lot concret îl obțineți în calculator."
+    },
+    {
+      "t": "h2",
+      "x": "Ce influențează cel mai mult totalul"
+    },
+    {
+      "t": "ul",
+      "x": [
+        "**Capacitatea motorului și vârsta.** Accizul se calculează ca tarif pe centimetru cub, care crește odată cu vârsta. O mașină cu un an mai veche sau cu un motor cu 500 cm³ mai mare costă vizibil mai mult la vamă.",
+        "**Tipul de combustibil.** Din 2027 reducerea pentru hibrizii obișnuiți a fost anulată, pentru plug-in este de 25%, iar mașinile electrice plătesc acciz în funcție de masă. La cele electrice totalul depinde de greutatea mașinii.",
+        "**Tipul de caroserie.** Crossoverele, SUV-urile și monovolumele costă mai mult la transport decât sedanurile.",
+        "**Prețul lotului și taxele.** Taxele sunt progresive, de aceea la un lot ieftin ele reprezintă o pondere mai mare din preț.",
+        "**Statul locului licitației.** De el depinde transportul până la port; diferența dintre state poate fi de câteva sute de dolari."
+      ]
+    },
+    {
+      "t": "h2",
+      "x": "De ce un lot ieftin nu este întotdeauna avantajos"
+    },
+    {
+      "t": "p",
+      "x": "O parte din cheltuieli nu depinde aproape deloc de prețul lotului: transportul maritim, transportul în SUA, brokerul, comisioanele. De aceea o mașină de $2 000 are aceeași logistică ca o mașină de $8 000. Dacă pe lângă prețul lotului mai este nevoie și de reparație, totalul poate ieși mai mare decât la o mașină întreagă. Despre cum se evaluează reparația — în [[ghidul de reparație după licitație|repair-guide]]."
+    },
+    {
+      "t": "h2",
+      "x": "Cum calculezi mașina ta"
+    },
+    {
+      "t": "ol",
+      "x": [
+        "Alegeți un lot pe Copart sau IAAI în catalogul nostru sau inserați linkul, numărul lotului ori VIN-ul în calculatorul de pe pagina principală.",
+        "Verificați calculul: tipul de caroserie, combustibilul, capacitatea motorului, anul. Pentru mașinile electrice indicați masa.",
+        "Uitați-vă la „Reperul ofertei” și hotărâți până la ce sumă vă licitați, ca totalul la cheie să vă convină.",
+        "Trimiteți-ne lotul dacă aveți nevoie de ajutor la verificare și la licitație."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Pot afla prețul final înainte de licitație?",
+      "a": "Da. Calculatorul calculează prețul la cheie pornind de la orice ofertă, așa că știți din timp până la ce sumă puteți licita."
+    },
+    {
+      "q": "De ce totalul din calculatorul vostru diferă de alte exemple de pe internet?",
+      "a": "Diferă cursul, anul după care se calculează vama, tarifele licitației și componența cheltuielilor. Din 2027 accizele s-au schimbat, de aceea cifrele din anii trecuți nu mai sunt valabile."
+    },
+    {
+      "q": "Ce se întâmplă dacă se schimbă cursul?",
+      "a": "O parte din cheltuieli este în dolari și euro, o parte în lei. Când cursul se schimbă, totalul în lei se schimbă, de aceea suma finală este mai bine fixată la plată."
+    },
+    {
+      "q": "Cât costă livrarea până la Chișinău?",
+      "a": "În exemplele de mai sus — de la $2 800 la $3 300, împreună cu transportul în SUA. Suma exactă depinde de stat, de caroserie și de combustibil."
+    }
+  ],
+  "cta": {
+    "h": "Vreți să calculăm un lot concret?",
+    "p": "Trimiteți linkul de pe Copart sau IAAI — calculăm prețul la cheie și vă spunem până la ce ofertă are sens să licitați.",
+    "b1": "Trimite lotul pe Telegram",
+    "b2": "Cum aduci o mașină din SUA",
+    "b2slug": "guide"
+  },
+  "related": [
+    "delivery-stages",
+    "copart-vs-iaai",
+    "title-types"
+  ]
+}
