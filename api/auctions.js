@@ -36,19 +36,21 @@ function usageBump(ep){
   usageDirty = true;
   if(Date.now() - usageFlushAt > 5 * 60 * 1000) usageFlush();
 }
-function usageFlush(){
-  usageFlushAt = Date.now();
-  if(!usageDirty) return;
+function usageFlush(force){
+  if(!force) usageFlushAt = Date.now();
+  if(!usageDirty) return Promise.resolve();
   usageDirty = false;
+  let p = Promise.resolve();
   try{
     const rows = Object.keys(usageBuckets).map(h => ({k:`apiuse:${h}:${USAGE_INST}`, v:usageBuckets[h], updated_at:new Date().toISOString()}));
-    syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(rows)}).catch(() => {});
+    p = syncSbFetch(`/alert_meta?on_conflict=k`, {method:"POST", headers:{prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(rows)}).catch(() => {});
     for(const h of Object.keys(usageBuckets)) if(h < usageHourKey(Date.now() - 3 * 3600e3)) delete usageBuckets[h];
     if(Math.random() < 0.02){
       const old = new Date(Date.now() - 4 * 86400e3).toISOString();
       syncSbFetch(`/alert_meta?k=like.${encodeURIComponent("apiuse:*")}&updated_at=lt.${encodeURIComponent(old)}`, {method:"DELETE", headers:{prefer:"return=minimal"}}).catch(() => {});
     }
   }catch(e){}
+  return p;
 }
 
 // Rate limiting: max 3 lead submissions per IP per 10 minutes
@@ -5856,7 +5858,7 @@ async function runResaleCheck(budgetMs){
   return out;
 }
 
-module.exports = async function handler(request, response){
+const handlerInner = async function handler(request, response){
   const query = getQuery(request);
   const action = query.get("action") || "search";
 
@@ -7495,6 +7497,12 @@ module.exports = async function handler(request, response){
         : "Не удалось загрузить реальные лоты AuctionsAPI. Попробуйте позже.",
     });
   }
+};
+// Счётчик расхода: короткие вызовы (крон) замораживаются сразу после ответа — несброшенные корзины терялись
+// (26.11.2026 счётчик показывал 39k при 112k у провайдера). Сбрасываем В КОНЦЕ каждого вызова, пока функция жива.
+module.exports = async function handler(request, response){
+  try{ return await handlerInner(request, response); }
+  finally{ await usageFlush(true).catch(() => {}); }
 };
 // Для юнит-тестов (test/comps.test.js, test/attach-vin-history.test.js) — сам модуль экспортирует только
 // handler (Vercel зовёт его как функцию), computeComps/attachVinHistory довешены свойствами отдельно,
