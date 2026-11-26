@@ -189,9 +189,10 @@ function renderRows(container, items, type){
       </article>`;
     }
     if(type === "customer"){
+      const cab = cabinetOf(item.phone);
       return `<article class="rowItem">
         <div>
-          <h3>${escapeHtml(item.name || "Клиент")}</h3>
+          <h3>${escapeHtml(item.name || "Клиент")}${cab ? ` <a href="#client=${escapeHtml(cab.chat)}" data-cab-open="${escapeHtml(cab.chat)}" title="Открыть карточку клиента в кабинете" style="font-size:12px;font-weight:700;color:#4f46e5;text-decoration:none;background:#eef0ff;border-radius:999px;padding:2px 9px;margin-left:6px">${cab.online ? "🟢" : "🔗"} в кабинете${cab.unread ? " · 💬 " + cab.unread : ""}</a>` : ""}</h3>
           <p>${escapeHtml(item.phone || "—")} · ${escapeHtml(item.telegram || "—")} · ${badge(item.status)}</p>
           <p>${escapeHtml(item.source || "—")} · ${escapeHtml(fmtWhen(item.created_at) || "—")}</p>
         </div>
@@ -296,6 +297,12 @@ function pickDealClient(chat){
 }
 
 const digits = p => String(p || "").replace(/\D/g, "");
+// Клиент CRM ↔ клиент Telegram-кабинета: по последним 8 цифрам телефона (из списка «Клиенты сайта»)
+function cabinetOf(phone){
+  const k = digits(phone).slice(-8);
+  if(k.length < 7) return null;
+  return (state.dealClients || []).find(c => digits(c.phone).slice(-8) === k) || null;
+}
 // Готовый текст клиенту о сделке (для WhatsApp/Viber, если клиент не в Telegram)
 function dealWaText(d, stageLabel){
   const eta = d.eta_date ? ` Ожидаемая выдача: ${String(d.eta_date).split("-").reverse().join(".")}.` : "";
@@ -394,7 +401,16 @@ function setDealForm(item){
   form.elements.calc_discount_on.checked = !!c.discount_on;
 }
 
+document.addEventListener("click", ev => {
+  const a = ev.target.closest && ev.target.closest("[data-cab-open]");
+  if(!a) return;
+  ev.preventDefault();
+  location.hash = "client=" + a.dataset.cabOpen;
+  if(window.cabDeepLink) window.cabDeepLink();
+});
+
 async function loadCustomers(){
+  if(!state.dealClients) loadDealClients().then(() => { if(state.view === "customers") renderRows("customersList", state.customers, "customer"); });
   const q = $("#customerSearch")?.value || "";
   const status = $("#customerStatusFilter")?.value || "";
   const data = await api(`/api/customers?limit=100${q ? `&q=${encodeURIComponent(q)}` : ""}${status ? `&status=${encodeURIComponent(status)}` : ""}`);
