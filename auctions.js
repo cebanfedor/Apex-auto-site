@@ -1528,7 +1528,8 @@ function alertable(lot){
       if(!val && cls === "histUnsold") label = L("Не продан · без ставок");
       if(!val && cls === "histSold") label = L("Продан · цена не указана");
       // Timed-раунд (по данным фида): «Timed · не продан $14 200» — сразу видно, что это ночной аукцион, а не живые торги.
-      if(h.timed && (cls === "histUnsold" || cls === "histSold")) label = `Timed · ${label.toLowerCase()}`;
+      if(h.bn && cls === "histSold") label = "Buy Now · продан";
+      else if(h.timed && (cls === "histUnsold" || cls === "histSold")) label = `Timed · ${label.toLowerCase()}`;
       const pct = Math.max(6, Math.round(val / max * 100));
       // Номер лота в каждой записи — ссылкой на ту продажу (как DreamBid/BidCars): машина перевыставляется под новым
       // номером (Volvo XC60: разобранной — лот 62957656, собранной — 69432156), по клику переходим к тому заходу.

@@ -610,7 +610,10 @@ function locationLabel(loc){
 function saleStatusInfo(lot, item, auction){
   // seller_reserve: раньше число, с сентября 2026 — объект {price, updated_at} (резерв продавца на Timed).
   const rawRes = lot?.seller_reserve != null ? lot.seller_reserve : item?.seller_reserve;
-  const reserve = rawRes && typeof rawRes === "object" ? Number(rawRes.price) || 0 : Number(rawRes) || 0;
+  let reserve = rawRes && typeof rawRes === "object" ? Number(rawRes.price) || 0 : Number(rawRes) || 0;
+  // 27.11.2026 (IAAI 46399247: «резерв $777 725» при ACV $16 500): у части лотов фид кладёт в seller_reserve мусор. Резерв выше
+  // max(3×ACV, $15 000) или выше $300 000 — не данные, игнорируем (иначе «пол Timed» поднимал финал продажи до мусорной суммы).
+  { const acvN = safeNumber(lot?.actual_cash_value || lot?.pre_accident_price || item?.acv); if(reserve > 300000 || (reserve > 0 && reserve > Math.max(acvN > 0 ? acvN * 3 : 0, 15000) && acvN > 0)) reserve = 0; }
   const reserveAt = rawRes && typeof rawRes === "object" ? (rawRes.updated_at || "") : "";
   const auctionType = safeName(lot?.auction_type || item?.auction_type).toLowerCase();
   // 30.09.2026 (Федор: «Timed показывает 426, а реально ~4182» — проверил: в БД лежит ~19.7k «скоро»
@@ -1959,7 +1962,8 @@ async function attachVinHistory(lot){
         const ptimed = p?.is_timed_auction === true || p?.timed === true || /timed/i.test(String(p?.auction_type || p?.sale_type || p?.type || "")) || (lotTimed && String(pd).slice(0, 10) === curDay) || looksTimed(pd);
         // пред-ставки текущих торгов (тот же день) — не история
         const cur = String(pd).slice(0, 10) === curDay;
-        entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur, timed:ptimed});
+        const bnRound = /sold/.test(pst) && !/not/.test(pst) && new Date(pd).getUTCSeconds() !== 0 && safeNumber(l?.buy_now) > 0 && pb > 0 && Math.abs(pb - safeNumber(l?.buy_now)) <= safeNumber(l?.buy_now) * 0.01;
+        entries.push({bid:pb, buyNow:0, date:new Date(pd).toISOString(), status:pst, lot:lotNo, auction:dom, current:cur, timed:bnRound ? false : ptimed, ...(bnRound ? {bn:true} : {})});
       }
     }
     try{ Object.defineProperty(lot, "_vinOk", {value:true, enumerable:false, configurable:true}); }catch(_){}   // запрос к фиду прошёл (отличаем «VIN не найден» от сбоя)
@@ -1970,10 +1974,11 @@ async function attachVinHistory(lot){
     const seen = new Set();
     const bn = Number(lot.buyNow) || 0;
     const absurd = e => /not_sold/.test(e.status) && ((erv > 1 && e.bid > erv * 1.15) || (bn > 0 && e.bid > bn * 1.5));
+    const absurdSold = e => erv >= 1000 && e.bid > Math.max(erv * 3, 15000);   // 27.11.2026: «продан $777 725» при ACV $16 500 — мусор фида, не продажа по такой цене
     lot.priceHistory = entries
       // Копеечный пребид ($100 у Volvo 06.08) — это не ставка, но сам раунд был: показываем как «не продан · без ставок» (как DreamBid).
       .map(e => (/not_sold/.test(e.status) && e.bid > 0 && e.bid < cap) ? {...e, bid:0, prebid:e.bid} : e)
-      .filter(e => !absurd(e))
+      .filter(e => !absurd(e) && !absurdSold(e))
       // одна продажа, отданная и «заходом», и «раундом» на соседний день — одна запись
       .filter((e, i, arr) => !(e.status === "sold" && arr.some((o, j) => j < i && o.status === "sold" && o.lot === e.lot && o.bid === e.bid && Math.abs(Date.parse(o.date) - Date.parse(e.date)) < 3 * 864e5)))
       .filter(e => { const k = e.date.slice(0, 10) + "|" + e.lot + "|" + e.status; if(seen.has(k)) return false; seen.add(k); return true; })
@@ -2009,7 +2014,7 @@ async function attachVinHistory(lot){
     // Lexus RX 46048508: current_bid $34 750 → молоток из истории $36 250.
     // Tesla M3 45937998: фид «продан $8 300» при резерве $9 100 (невозможно) → пол по резерву $9 100
     //   (реальный молоток $9 500 в наш фид не попал — показываем минимально корректное, не заниженное).
-    if(lot.timed && (lot.soldOnTimed || Number(lot.statusId) === 6)){
+    if(lot.timed && !lot.soldByBuyNow && (lot.soldOnTimed || Number(lot.statusId) === 6)){   // покупка по Buy Now — цена = выкуп, пол по резерву не применяем
       const saleTs = Date.parse(lot.auctionDate || "");
       let best = Math.max(Number(lot.finalBid) || 0, Number(lot.currentBid) || 0);
       for(const ph of (lot.priceHistory || [])){
@@ -6671,7 +6676,7 @@ const handlerInner = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g55" : "";   // g55: BMW X5 G65 с 2027; g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g56" : "";   // g56: мусорный резерв (>3×ACV) игнорируем, Buy Now без пола Timed; g55: BMW X5 G65 с 2027; g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   if(freshMode && Date.now() - (freshStamp.get(key) || 0) < FRESH_MIN_MS) freshMode = false;
   const cached = getCached(key);
