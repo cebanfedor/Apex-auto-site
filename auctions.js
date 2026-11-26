@@ -702,7 +702,11 @@ function alertable(lot){
       });
     }finally{ clearTimeout(timer); }
     const payload = await response.json().catch(() => ({}));
-    if(!response.ok || payload.ok === false) throw new Error(payload.error || "Запрос не выполнен");
+    if(!response.ok || payload.ok === false){
+      const err = new Error(payload.error || "Запрос не выполнен");
+      err.status = response.status; err.rateLimited = !!payload.rateLimited;
+      throw err;
+    }
     return payload;
   }
 
@@ -5274,6 +5278,16 @@ function alertable(lot){
       const payload = await api(`/api/auctions?action=vin&vin=${encodeURIComponent(clean)}`);
       renderDetailI18nSafe(payload.lot, opts);
     }catch(error){
+      // 26.11.2026: лимит провайдера/сбой/таймаут — это НЕ «лот не найден» (раньше любая ошибка писала именно так)
+      if(error && (error.rateLimited || !error.status || error.status >= 500)){
+        $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← ${L("Назад к каталогу")}</a>
+        <div class="vinEmptyV1">
+          <h2>${L("Данные по VIN сейчас недоступны")}</h2>
+          <p>${L("Не удалось загрузить данные (лимит запросов к аукционам или сбой связи). Повторите через минуту — машина могла не пропасть.")}</p>
+          <a class="vinLeadBtnV1" href="${escapeHtml(location.pathname + location.search)}" onclick="location.reload();return false">${L("Повторить")}</a>
+        </div>`;
+        return;
+      }
       $("#auctionDetail").innerHTML = `<a class="detailBackV1" href="/auctions">← Назад к каталогу</a>
         <div class="vinEmptyV1">
           ${trackArt()}

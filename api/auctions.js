@@ -7406,6 +7406,22 @@ module.exports = async function handler(request, response){
   }catch(error){
     // Upstream failed (rate limit or outage): serve stale Supabase cache if we have it —
     // slightly old lots beat an empty catalog.
+    // 26.11.2026 (Федор: VIN 2T36DRBV9TW028813 «вчера был, сегодня не находит»): лот лежит в НАШЕЙ базе, а живой /search-vin
+    // упал (лимит провайдера/сбой/фид уже не знает VIN) — раньше страница писала «лот не найден». Теперь берём запись из базы.
+    if(action === "vin"){
+      try{
+        const v = String(query.get("vin") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        if(isValidVin(v)){
+          const r = await searchFromDb(new URLSearchParams({vin:v, tab:"all", per_page:"1"}));
+          const lot = r && r.items && r.items[0];
+          if(lot){
+            await attachGenRange(lot).catch(() => {});
+            sendJson(response, 200, {ok:true, lot, fromDb:true, stale:true}, {"cache-control":"public, s-maxage=30, max-age=0"});
+            return;
+          }
+        }
+      }catch(e){}
+    }
     if(action === "search" || action === "detail" || action === "vin"){
       const stale = await getDbCacheStale(key);
       if(stale && stale.ok){
