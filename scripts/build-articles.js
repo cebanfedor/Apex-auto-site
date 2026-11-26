@@ -265,13 +265,16 @@ function page(slug, lang) {
     { "@context": "https://schema.org", "@type": "FAQPage", inLanguage: lang, mainEntity: A.faq.map((f) => ({ "@type": "Question", name: f.q.replace(/\*\*|\[\[([^|\]]+)\|[^\]]+\]\]/g, "$1"), acceptedAnswer: { "@type": "Answer", text: f.a.replace(/\*\*/g, "").replace(/\[\[([^|\]]+)\|[^\]]+\]\]/g, "$1") } })) },
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemList: undefined, itemListElement: [[U.home, SITE], [U.blog, SITE + blogHref], [secName, SITE + partsHref], [A.card.tag, url]].map(([name, item], i) => ({ "@type": "ListItem", position: i + 1, name, item })) }
   ].map((o) => `<script type="application/ld+json">\n${JSON.stringify(o)}\n</script>`).join("\n");
-  const scripts = `<script src="/analytics.js?v=1" defer></script>
-<script src="/cookie-consent.js?v=1" defer></script>
-<script src="/site-nav.js?v=v10" defer></script>
-<script src="/cab-ping.js?v=v1" defer></script>
-<script src="/mobile-bar.js?v=v10" defer></script>
-<script src="/site-bg.js?v=v5" defer></script>`;
-  const i18nTag = lang === "ru" ? '  <script src="i18n.js?v=multilang-v651" defer></script>\n' : "";
+  // версии скриптов берём с главной (там их бампают при релизах) — иначе пересборка откатывает кэш-бастинг
+  const idx = rd("index.html");
+  const sv = (name, fb) => { const m = idx.match(new RegExp(name.replace(/[.]/g, "\\.") + "\\?v=([A-Za-z0-9._-]+)")); return m ? m[1] : fb; };
+  const scripts = `<script src="/analytics.js?v=${sv("analytics.js", "1")}" defer></script>
+<script src="/cookie-consent.js?v=${sv("cookie-consent.js", "1")}" defer></script>
+<script src="/site-nav.js?v=${sv("site-nav.js", "v10")}" defer></script>
+<script src="/cab-ping.js?v=${sv("cab-ping.js", "v1")}" defer></script>
+<script src="/mobile-bar.js?v=${sv("mobile-bar.js", "v10")}" defer></script>
+<script src="/site-bg.js?v=${sv("site-bg.js", "v5")}" defer></script>`;
+  const i18nTag = lang === "ru" ? `  <script src="i18n.js?v=${sv("i18n.js", "multilang-v651")}" defer></script>\n` : "";
   return `${head}\n<body>\n  ${headerFor(slug, lang)}\n\n${body}\n\n  ${footerFor(lang)}\n${i18nTag}\n${ld}\n${scripts}\n</body>\n</html>\n`;
 }
 
