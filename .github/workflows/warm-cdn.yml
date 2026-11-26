@@ -14,9 +14,9 @@ jobs:
       - name: Warm catalog endpoints
         run: |
           for id in 1 2 5 7; do
-            curl -s -o /dev/null -w "type=$id %{time_total}s\n" "https://apexauto.md/api/auctions?action=search&per_page=30&vehicleType=$id&sort=smart&auction=all&tab=all"
+            curl -s --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 -o /dev/null -w "type=$id %{time_total}s\n" "https://apexauto.md/api/auctions?action=search&per_page=30&vehicleType=$id&sort=smart&auction=all&tab=all" || true
             sleep 3
           done
-          curl -s -o /dev/null -w "count %{time_total}s\n" "https://apexauto.md/api/auctions?action=count"
-          curl -s -o /dev/null -w "list %{time_total}s\n" "https://apexauto.md/api/auctions?action=search&auction=all&tab=all&sort=soon&page=1&per_page=30"
-          curl -s -o /dev/null -w "manufacturers %{time_total}s\n" "https://apexauto.md/api/auctions?action=manufacturers"
+          curl -s --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 -o /dev/null -w "count %{time_total}s\n" "https://apexauto.md/api/auctions?action=count" || true
+          curl -s --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 -o /dev/null -w "list %{time_total}s\n" "https://apexauto.md/api/auctions?action=search&auction=all&tab=all&sort=soon&page=1&per_page=30" || true
+          curl -s --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 -o /dev/null -w "manufacturers %{time_total}s\n" "https://apexauto.md/api/auctions?action=manufacturers" || true
