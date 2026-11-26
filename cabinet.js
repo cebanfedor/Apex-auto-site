@@ -60,6 +60,11 @@
     push_need:["Сначала подключите Telegram — это ваш вход в кабинет.","Mai întâi conectează Telegram — este accesul în cont.","Connect Telegram first — it's your sign-in."],
     push_err:["Не получилось включить. Попробуйте ещё раз.","Nu a reușit. Încearcă din nou.","Couldn't turn on. Try again."], push_sent:["Отправили проверочное уведомление","Am trimis o notificare de test","Test notification sent"],
     set_h:["Настройки и вход","Setări și autentificare","Settings & sign-in"], set_dev_h:["Как войти с другого устройства","Cum intri de pe alt dispozitiv","Sign in on another device"], set_dev:["Откройте этот кабинет на новом устройстве → «Подключить Telegram» → «Start» в боте. Те же данные появятся автоматически.","Deschide acest cont pe noul dispozitiv → „Conectează Telegram” → „Start” în bot. Aceleași date apar automat.","Open this page on the new device → “Connect Telegram” → “Start” in the bot. The same data appears automatically."],
+    ref_h:["Пригласите друга","Invită un prieten","Invite a friend"],
+    ref_p:["Поделитесь своей ссылкой. Когда друг оставит заявку по ней, менеджер увидит, что он от вас, и учтёт это в условиях для вас обоих.","Distribuie linkul tău. Când un prieten lasă o cerere prin el, managerul vede că vine de la tine și ține cont în condițiile pentru amândoi.","Share your link. When a friend sends a request through it, the manager will see they came from you and take it into account for both of you."],
+    ref_copy:["Скопировать ссылку","Copiază linkul","Copy link"], ref_share:["Поделиться","Distribuie","Share"], ref_ok:["Ссылка скопирована","Link copiat","Link copied"],
+    ref_hits:["Заявок по вашей ссылке","Cereri prin linkul tău","Requests via your link"],
+    ref_msg:["Привезу авто из США, Канады и Кореи под ключ в Молдову — вот ссылка на Apex Auto:","Aduc mașini din SUA, Canada și Coreea la cheie în Moldova — iată linkul Apex Auto:","Cars from the USA, Canada and Korea, turnkey to Moldova — here is the Apex Auto link:"],
     set_out:["Выйти на этом устройстве","Ieși de pe acest dispozitiv","Sign out on this device"], set_out_d:["Данные на сервере останутся, с устройства будут убраны токен и локальные копии.","Datele de pe server rămân; de pe dispozitiv se șterg tokenul și copiile locale.","Server data stays; the token and local copies are removed from this device."],
     set_wipe:["Удалить все мои данные","Șterge toate datele mele","Delete all my data"], set_wipe_d:["Удалит избранное, заметки, список машин и историю просмотров на сервере и на этом устройстве.","Șterge favoritele, notițele, mașinile și istoricul de pe server și de pe acest dispozitiv.","Removes favourites, notes, cars and history from the server and this device."],
     confirm_out:["Выйти из кабинета на этом устройстве?","Ieși din cont pe acest dispozitiv?","Sign out on this device?"], confirm_wipe:["Удалить ВСЕ данные кабинета? Это нельзя отменить.","Ștergi TOATE datele? Nu se poate anula.","Delete ALL account data? This cannot be undone."], done:["Готово","Gata","Done"],
@@ -75,6 +80,8 @@
     p_digest:["Утренняя сводка по избранному","Rezumat de dimineață despre favorite","Morning digest of my favourites"],
     t_deals:["Мои сделки","Tranzacțiile mele","My orders"],
     dl_h:["Мои сделки","Tranzacțiile mele","My orders"],
+    dl_ics:["📅 Добавить выдачу в календарь","📅 Adaugă predarea în calendar","📅 Add handover to calendar"],
+    dl_ics_ev:["Выдача авто","Predarea mașinii","Car handover"],
     dl_verify_h:["Подтвердите номер телефона","Confirmă numărul de telefon","Confirm your phone number"],
     dl_verify_p:["Менеджер заводит вашу сделку по номеру телефона. Нажмите кнопку, затем в Telegram — «Поделиться номером»: Telegram передаёт только ваш собственный номер. После этого здесь появятся этапы, фото и документы по вашей машине.","Managerul creează tranzacția după numărul de telefon. Apasă butonul, apoi în Telegram — „Trimite numărul”: Telegram trimite doar propriul număr. Apoi apar aici etapele, pozele și documentele.","Your manager creates the order by phone number. Tap the button, then “Share my number” in Telegram — Telegram only shares your own number. Stages, photos and documents will then appear here."],
     dl_verify_b:["Подтвердить номер в Telegram","Confirmă numărul în Telegram","Confirm number in Telegram"],
@@ -239,6 +246,7 @@
     return Promise.resolve(p).then(function(r){
       if(r && r.ready === false) S.ready = false;
       applyLoad(r);
+      loadRef();
       if(r && r.name){ lsSet(K.name, r.name); }
       if(r && r.items && r.items.car){
         var cars = r.items.car.map(function(it){ return {vin:it.key, label:(it.data && it.data.label) || "", addedAt:(it.data && it.data.addedAt) || it.t}; });
@@ -433,6 +441,25 @@
     }
     return '<div class="cabCalcV1"><div class="cabCalcHeadV1"><b>' + t("dl_calc_h") + '</b>' + (rate ? '<small>' + t("dl_rate") + ' 1 $ = ' + rate + ' ' + ({ru:"лей", ro:"lei", en:"MDL"}[LANG] || "MDL") + '</small>' : "") + '</div>' + ship + lei2 + '<p class="cabMutedV1">' + t("dl_calc_p") + '</p></div>';
   }
+  // .ics на дату выдачи (целый день + напоминание за сутки), собирается в браузере
+  function downloadIcs(id){
+    var d = (S.deals && S.deals.list || []).filter(function(x){ return String(x.id) === String(id); })[0];
+    if(!d || !d.eta) return;
+    var day = String(d.eta).replace(/-/g, "");
+    var nxt = new Date(String(d.eta) + "T00:00:00Z"); nxt.setUTCDate(nxt.getUTCDate() + 1);
+    var end = nxt.toISOString().slice(0, 10).replace(/-/g, "");
+    var esc2 = function(s){ return String(s || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); };
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Apex Auto//Cabinet//RU", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+      "UID:deal-" + d.id + "-" + day + "@apexauto.md", "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+      "DTSTART;VALUE=DATE:" + day, "DTEND;VALUE=DATE:" + end,
+      "SUMMARY:" + esc2(t("dl_ics_ev") + ": " + d.title),
+      "DESCRIPTION:" + esc2((d.next_step ? d.next_step + "\n" : "") + "https://apexauto.md/cabinet#deals"),
+      "LOCATION:" + esc2("Strada Bucovinei 9F, Chișinău"),
+      "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:" + esc2(t("dl_ics_ev") + ": " + d.title), "END:VALARM", "END:VEVENT", "END:VCALENDAR"];
+    var blob = new Blob([lines.join("\r\n")], {type: "text/calendar;charset=utf-8"});
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "apex-auto-" + d.id + ".ics";
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
   function dealCard(d, compact){
     var idx = Math.max(0, DSTAGES.indexOf(d.stage));
     var steps = DSTAGES.map(function(k, i){
@@ -448,7 +475,7 @@
     var head = '<header class="cabDealHeadV1"><div><h3>' + esc(d.title) + '</h3>' + (d.vin ? '<small>' + esc(d.vin) + '</small>' : "") + '</div><span class="cabStatusV1' + (d.stage === "done" || d.stage === "ready" ? " isDone" : "") + '">' + t("dl_f_" + d.stage) + '</span></header>';
     var stepper = '<ol class="cabStepperV1" data-cur="' + idx + '">' + steps + '</ol>';
     var next = d.next_step ? '<div class="cabNextV1"><b>' + t("nx_h") + '</b><span>' + esc(d.next_step) + '</span></div>' : "";
-    var eta = d.eta && d.stage !== "done" ? '<div class="cabEtaV1">' + t("dl_eta") + ': <b>' + esc(fmtDay(d.eta)) + '</b></div>' : "";
+    var eta = d.eta && d.stage !== "done" ? '<div class="cabEtaV1">' + t("dl_eta") + ': <b>' + esc(fmtDay(d.eta)) + '</b> <button type="button" class="cabLinkV1" data-act="ics" data-id="' + esc(String(d.id)) + '">' + t("dl_ics") + '</button></div>' : "";
     if(compact) return '<article class="cabDealV1 isCompact">' + head + '<div class="cabBarV1"><i style="width:' + pct + '%"></i></div>' + next + eta + '<a class="cabLinkV1" href="#deals" data-act="tab" data-v="deals">' + t("det") + ' →</a></article>';
     var photos = d.photos && d.photos.length ? '<div class="cabDealSecV1"><h4>' + t("dl_photos") + ' <em>' + d.photos.length + '</em></h4><div class="cabPhotosV1">' +
       d.photos.map(function(p){ return '<a href="' + esc(p.url) + '" target="_blank" rel="noopener"><img src="' + esc(p.url) + '" alt="' + esc(p.caption || "") + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.remove()">' + (p.caption ? '<small>' + esc(p.caption) + '</small>' : "") + '</a>'; }).join("") + '</div></div>' : "";
@@ -692,7 +719,22 @@
       '<label><span>' + t("pf_city") + '</span><input name="city" type="text" maxlength="60" autocomplete="address-level2" value="' + esc(P.city || "") + '" placeholder="' + esc(t("pf_city_ph")) + '"></label>' +
       '<label><span>' + t("pf_phone") + '</span><input name="phone" type="tel" inputmode="tel" maxlength="24" autocomplete="tel" value="' + esc(ph || S.verifiedPhone || "") + '" placeholder="' + esc(t("pf_phone_ph")) + '"></label>' +
       '<p class="cabErrV1" id="cabPfErr" hidden></p>' +
-      '<button class="cabBtnV1" type="submit">' + t("pf_save") + '</button></form>' + ver + '</section>';
+      '<button class="cabBtnV1" type="submit">' + t("pf_save") + '</button></form>' + ver + '</section>' + refBox();
+  }
+  // Реферальная ссылка: код создаёт сервер (action=cabref), счётчик — по заявкам с этим кодом
+  function refUrl(){ return S.ref && S.ref.code ? "https://apexauto.md/?ref=" + S.ref.code : ""; }
+  function refBox(){
+    if(!S.ref || !S.ref.code) return "";
+    return '<section class="cabBoxV1 cabRefV1"><h2>' + ico("tg") + ' ' + t("ref_h") + '</h2><p class="cabMutedV1">' + t("ref_p") + '</p>' +
+      '<div class="cabRefRowV1"><input readonly value="' + esc(refUrl()) + '" aria-label="ref"><button type="button" class="cabBtnV1" data-act="refcopy">' + t("ref_copy") + '</button>' +
+      '<a class="cabGhostV1" target="_blank" rel="noopener" href="https://t.me/share/url?url=' + encodeURIComponent(refUrl()) + '&text=' + encodeURIComponent(t("ref_msg")) + '">' + t("ref_share") + '</a></div>' +
+      (S.ref.hits ? '<p class="cabMutedV1">' + t("ref_hits") + ': <b>' + S.ref.hits + '</b></p>' : "") + '</section>';
+  }
+  function loadRef(){
+    if(!token() || !S.bound || S.ref) return Promise.resolve();
+    return getApi("cabref", "token=" + encodeURIComponent(token())).then(function(r){
+      if(r && r.ok && r.code){ S.ref = {code:r.code, hits:r.hits || 0}; if(S.tab === "profile" || S.tab === "set") render(true); }
+    });
   }
   function saveProfile(f){
     var err = $("#cabPfErr"); if(err) err.hidden = true;
@@ -833,6 +875,7 @@
     render();
     if(v === "cars") refreshTracks();
     if(v === "deals") loadDeals();
+    loadRef();
     if(v === "picks") loadPicks();
     if(v === "fav") refreshLive();
   }
@@ -898,6 +941,8 @@
     var act = b.getAttribute("data-act"), id = b.getAttribute("data-id");
     if(act === "tab"){ e.preventDefault(); return setTab(b.getAttribute("data-v")); }
     if(act === "connect") return startConnect();
+    if(act === "refcopy"){ var u = refUrl(); try{ navigator.clipboard.writeText(u).then(function(){ toast(t("ref_ok")); }); }catch(e){ window.prompt("", u); } return; }
+    if(act === "ics") return downloadIcs(id);
     if(act === "pkreact") return reactPick(Number(id), b.getAttribute("data-v"), b);
     if(act === "pkfav"){ var rid = id, fromPick = S.picks && S.picks.list.filter(function(x){ return x.lot_id === rid; })[0]; if(findFav(rid)){ unfav(rid); } else if(fromPick){ var fo = Object.assign({}, fromPick.data, {id:rid}); S.favs.unshift(fo); saveFavs(); if(cab()) cab().put("fav", rid, fo); toast(t("done")); render(); } return; }
     if(act === "dealverify"){ startDealPoll(); setTimeout(function(){ render(true); }, 50); return; }

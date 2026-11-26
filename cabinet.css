@@ -353,3 +353,12 @@
 .cabPfVerV1 svg { flex: none; width: 16px; height: 16px; margin-top: 1px; }
 .cabPfVerV1.isOk { color: #14532d; }
 @media (max-width: 640px) { .cabPfV1 .cabBtnV1 { align-self: stretch; } }
+
+/* Mini App (внутри Telegram): «как приложение» — без шапки сайта, подвала и нижней панели связи (27.11.2026) */
+.inTgV1 .siteHeader, .inTgV1 .siteFooter, .inTgV1 #mBarV1, .inTgV1 .mBarV1, .inTgV1 [class*="cookieConsent"] { display: none !important; }
+.inTgV1 body { padding-bottom: 0 !important; }
+
+/* Реферальная ссылка (27.11.2026) */
+.cabRefRowV1 { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.cabRefRowV1 input { flex: 1 1 220px; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--cab-line, #e3e6ec); border-radius: 12px; background: #f6f7fb; font: inherit; font-size: 14px; }
+.cabRefRowV1 a { display: inline-flex; align-items: center; text-decoration: none; }

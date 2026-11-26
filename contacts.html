@@ -39,7 +39,7 @@
   <link rel="preload" href="/assets/fonts/onest-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/onest-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=v580">
+  <link rel="stylesheet" href="styles.css?v=v583">
   <script src="/img-fallback.js?v=v4" defer></script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ed0012">
@@ -201,6 +201,7 @@
       <p>Приезд по предварительной договорённости — напишите в Telegram, и мы согласуем удобное время.</p>
 
       <figure class="routeFigV1" aria-label="Схема проезда к офису Apex Auto">
+        <div class="routeBoxV1" id="routeBoxV1">
         <svg class="routeSvgV1" viewBox="0 0 600 300" role="img" aria-labelledby="routeTitleV1">
           <title id="routeTitleV1">Схема проезда: от центра города по улице Букович к офису Apex Auto</title>
           <rect class="rtBg" width="600" height="300" rx="18"/>
@@ -238,7 +239,9 @@
           </g></g>
           <g class="rtTag" transform="translate(486 54)"><rect width="104" height="34" rx="10"/><text x="12" y="15">Apex Auto</text><text class="rtTagSub" x="12" y="28">Bucovina 9F</text></g>
         </svg>
-        <figcaption>Схема не в масштабе — точный маршрут построит навигатор</figcaption>
+        <div class="routeMapV1" id="routeMapV1" role="region" aria-label="Карта Кишинёва: маршрут от центра города к офису Apex Auto"></div>
+        </div>
+        <figcaption>Маршрут от центра города — около 7,6 км, примерно 11 минут без пробок. Точный путь построит навигатор</figcaption>
       </figure>
 
       <div class="contactAddressLinksV306">
@@ -321,11 +324,12 @@
     </div>
   </footer>
   <script src="site-content.js?v=admin-v168" defer></script>
-  <script src="i18n.js?v=multilang-v646" defer></script>
+  <script src="i18n.js?v=multilang-v647" defer></script>
   <!-- Форма контактов: самодостаточный обработчик (script.js на этой странице не грузится).
        Пишет лид на сервер (Supabase+Telegram-бот), Telegram-share — доп-канал. -->
   <script src="contacts-form.js?v=v1" defer></script>
   <script src="contacts-fx.js?v=v1" defer></script>
+  <script src="contacts-map.js?v=v2" defer></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -341,7 +345,7 @@
 </script>
 <script src="/analytics.js?v=1" defer></script>
 <script src="/cookie-consent.js?v=1" defer></script>
-<script src="/site-nav.js?v=v8" defer></script>
+<script src="/site-nav.js?v=v9" defer></script>
 <script src="/cab-ping.js?v=v1" defer></script>
 <script src="/mobile-bar.js?v=v8" defer></script>
 <script src="/site-bg.js?v=v5" defer></script>

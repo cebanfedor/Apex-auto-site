@@ -56,7 +56,7 @@
           <span>${e(c.phone || "телефон не указан")}</span>
           <span class="ccSeenV1${c.online ? " on" : ""}">${c.online ? "онлайн" + (c.page ? " · " + e(c.page) : "") : "был " + ago(c.seenAt)}</span>
         </div>
-        <div class="ccCountsV1">${c.favs ? `<span title="В избранном">♡ ${c.favs}</span>` : ""}${c.picks ? `<span title="Подборок отправлено">🎯 ${c.picks}${c.reacts ? ` · ${c.reacts} отв.` : ""}</span>` : ""}</div>
+        <div class="ccCountsV1">${c.unread ? `<span class="ccUnreadV1" title="Непрочитанные сообщения">💬 ${c.unread}</span>` : ""}${c.favs ? `<span title="В избранном">♡ ${c.favs}</span>` : ""}${c.picks ? `<span title="Подборок отправлено">🎯 ${c.picks}${c.reacts ? ` · ${c.reacts} отв.` : ""}</span>` : ""}</div>
       </div>`).join("") : `<p class="ccEmptyV1">${CC.items.length ? "Никого не найдено." : "Пока нет клиентов с подключённым Telegram."}</p>`;
   }
 
@@ -83,26 +83,38 @@
     const c = CC.card; if(!c) return;
     const name = c.profile.name || c.tgName || "Без имени";
     const phone = c.profile.phone || c.phone.number;
-    const wa = digits(phone) ? `https://api.whatsapp.com/send?phone=${digits(phone)}` : "";
+    const hello = `Здравствуйте${name && name !== "Без имени" ? ", " + name : ""}! Это Apex Auto (Федор). `;
+    const wa = digits(phone) ? `https://api.whatsapp.com/send?phone=${digits(phone)}&text=${encodeURIComponent(hello)}` : "";
     const seen = c.seen.online ? `<span class="ccPillV1 on">онлайн${c.seen.title ? " · " + e(c.seen.title) : ""}</span>` : `<span class="ccPillV1">был ${ago(c.seen.at)}</span>`;
     const sec = (title, body, count) => body ? `<section class="ccSecV1"><h3>${title}${count != null ? ` <em>${count}</em>` : ""}</h3>${body}</section>` : "";
     const lotRow = (id, d, right) => `<a class="ccLotV1" href="${lotUrl(id)}" target="_blank" rel="noopener"><span class="ccThumbV1">${thumb(d)}</span><span class="ccLotTxtV1"><b>${e(titleOf(d) || id)}</b><small>${e(id)}${d && d.year ? "" : ""}${right ? " · " + right : ""}</small></span></a>`;
 
     const views = c.views.length ? c.views.slice(0, 30).map(v => lotRow(v.key, v.data, `${v.n > 1 ? `<b class="ccHotV1">${times(v.n)}</b> · ` : ""}${ago(v.last)}`)).join("") : "";
     const searches = c.searches.map(sr => `<a class="ccSrV1" href="/auctions?${e(sr.data.qs || "")}" target="_blank" rel="noopener"><b>${e(sr.data.label || sr.key)}</b><small>${sr.n > 1 ? times(sr.n) + " · " : ""}${ago(sr.last)}</small></a>`).join("");
-    const favs = c.favs.map(f => lotRow(f.id, f, [money(f.currentBid), f.note ? "✎ " + e(f.note) : ""].filter(Boolean).join(" · "))).join("");
+    const dealBtn = id => `<button type="button" class="ghost ccMiniV1" data-cc-mkdeal="${e(id)}" title="Создать сделку по этому лоту для клиента">➕ Сделка</button>`;
+    const favs = c.favs.map(f => `<div class="ccPickV1">${lotRow(f.id, f, [money(f.currentBid), f.note ? "✎ " + e(f.note) : ""].filter(Boolean).join(" · "))}<div class="ccPickMetaV1">${dealBtn(f.id)}</div></div>`).join("");
     const picks = c.picks.map(p => {
       const rx = p.reaction ? REACT[p.reaction] : null;
       return `<div class="ccPickV1">${lotRow(p.lot_id, p.data, ago(Date.parse(p.created_at)) + (p.seen_at ? " · просмотрено" : " · не открыто"))}
         <div class="ccPickMetaV1">${rx ? `<span class="ccRx ${rx[2]}">${rx[0]} ${rx[1]}${p.reaction_note ? ": «" + e(p.reaction_note) + "»" : ""}</span>` : `<span class="ccRx">без ответа</span>`}
-        <button type="button" class="ghost ccMiniV1" data-cc-unpick="${p.id}">Убрать</button></div></div>`;
+        ${dealBtn(p.lot_id)}<button type="button" class="ghost ccMiniV1" data-cc-unpick="${p.id}">Убрать</button></div></div>`;
     }).join("");
     const subs = c.subs.map(s => `<div class="ccSrV1"><b>${s.kind === "lot" ? "🔔 Лот" : "🔎 Поиск"}: ${e(s.name)}</b>${s.kind === "lot" ? `<small><a href="${lotUrl(s.lot_id)}" target="_blank" rel="noopener">${e(s.lot_id)}</a></small>` : ""}</div>`).join("");
     const dealsHtml = c.deals.map(d => `<div class="ccSrV1"><b>${e(d.title)}</b><small>${e(STAGE_RU[d.stage] || d.stage)}${d.eta_date ? " · выдача " + e(d.eta_date) : ""}${d.active === false ? " · скрыта" : ""}</small></div>`).join("");
     const leads = c.leads.map(l => `<div class="ccSrV1"><b>${e(l.title || l.message || "Заявка")}</b><small>${e(l.status || "")}${l.source ? " · " + e(l.source) : ""} · ${fmtWhen(l.created_at)}</small></div>`).join("");
     const cars = c.cars.map(x => `<div class="ccSrV1"><b>${e(x.label || x.vin)}</b><small>${e(x.vin)} · <a href="/tracking?vin=${e(x.vin)}" target="_blank" rel="noopener">отследить</a></small></div>`).join("");
+    // Путь клиента: заявка → кабинет → подборка → сделка (одним списком, по времени)
+    const jr = [];
+    for(const l of c.leads) jr.push({t: Date.parse(l.created_at) || 0, i: "📩", x: "Заявка: " + (l.title || l.message || "с сайта") + (l.source ? " (" + l.source + ")" : "")});
+    if(c.boundAt) jr.push({t: Date.parse(c.boundAt) || 0, i: "🔗", x: "Подключил Telegram-кабинет"});
+    const firstView = c.views.length ? Math.min.apply(null, c.views.map(v => v.first || v.last || Infinity)) : 0;
+    if(firstView && isFinite(firstView)) jr.push({t: firstView, i: "👁", x: "Первый просмотр лота в каталоге"});
+    for(const p of c.picks) jr.push({t: Date.parse(p.created_at) || 0, i: "🎯", x: "Отправили подборку: " + (titleOf(p.data) || p.lot_id) + (p.reaction ? " — " + (REACT[p.reaction] || [""])[0] + " " + (REACT[p.reaction] || ["", ""])[1] : "")});
+    for(const d of c.deals) jr.push({t: Date.parse(d.updated_at) || 0, i: "🚚", x: "Сделка: " + d.title + " — " + (STAGE_RU[d.stage] || d.stage)});
+    const journey = jr.filter(x => x.t).sort((a, b) => a.t - b.t).map(x => `<div class="ccTlV1"><i></i><span>${dt(x.t)}</span><b>${x.i} ${e(x.x)}</b></div>`).join("");
     const tl = c.timeline.map(t => `<div class="ccTlV1"><i></i><span>${dt(t.at)}</span><b>${t.kind === "search" ? "🔎 " + e(t.data.label || t.key) : "👁 " + e(titleOf(t.data) || t.key)}</b></div>`).join("");
 
+    const draft = $("#ccSayText") ? $("#ccSayText").value : "";
     $("#ccCard").innerHTML = `
       <button type="button" class="ghost ccBackV1" data-cc-back>← К списку клиентов</button>
       <header class="ccHeadV1">
@@ -112,6 +124,12 @@
         <div class="ccActsV1">${phone ? `<a class="ccBtnV1" href="tel:${e(phone.replace(/[^\d+]/g, ""))}">Позвонить</a>` : ""}${wa ? `<a class="ccBtnV1 isWa" href="${e(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
       </header>
       ${!c.eventsReady ? `<p class="ccWarnV1">${c.eventsNoTable ? "Журнал просмотров и подборки ещё не включены: выполните SQL из supabase/migrations/20261126_cab_clients.sql в Supabase → SQL Editor." : "Журнал просмотров временно недоступен."}</p>` : ""}
+
+      <section class="ccSecV1 ccChatV1"><h3>💬 Переписка <small>(клиент видит ответы в своём Telegram)</small></h3>
+        <div id="ccThread" class="ccThreadV1"><p class="ccEmptyV1">Загрузка…</p></div>
+        <div class="ccSayV1"><textarea id="ccSayText" rows="2" maxlength="3500" placeholder="Ответ клиенту… (Ctrl+Enter — отправить)"></textarea><button type="button" data-cc-say>Отправить</button></div>
+        <p class="ccMsgV1" id="ccSayMsg"></p>
+      </section>
 
       <section class="ccSecV1 ccPickFormV1"><h3>🎯 Подборка клиенту</h3>
         <textarea id="ccPickIds" rows="2" placeholder="Ссылки с сайта или номера лотов: copart-61420506, iaai-45839097 — по одному в строке"></textarea>
@@ -127,6 +145,7 @@
         <div class="ccRowBtnsV1"><button type="button" class="ghost" data-cc-savenote>Сохранить заметку</button><span class="ccMsgV1" id="ccNoteMsg"></span></div>
       </section>
 
+      ${sec("Путь клиента", journey, null)}
       ${sec("Отправленные подборки", picks, c.picks.length)}
       ${sec("Что смотрел", views, c.views.length)}
       ${sec("Что ищет", searches, c.searches.length)}
@@ -137,7 +156,72 @@
       ${sec("Мои машины (трекинг)", cars, c.cars.length)}
       ${sec("Последние действия", tl, null)}
       ${!(views || searches || favs) ? `<p class="ccEmptyV1">Клиент пока ничего не смотрел и не сохранял.</p>` : ""}`;
+    if(draft) $("#ccSayText").value = draft;
+    loadThread(false);
   }
+  // ---------- «Создать сделку» из лота клиента ----------
+  async function makeDeal(lotId, btn){
+    const c = CC.card; if(!c) return;
+    const old = btn.textContent; btn.disabled = true; btn.textContent = "…";
+    try{
+      const src = [].concat(c.favs.map(f => ({id: f.id, d: f})), c.picks.map(p => ({id: p.lot_id, d: p.data})), c.views.map(v => ({id: v.key, d: v.data}))).find(x => x.id === lotId);
+      let d = (src && src.d) || {}, vin = d.vin || "", title = titleOf(d);
+      if(!vin || !title){
+        try{
+          const [auction, lot] = String(lotId).split("-");
+          const r = await api(`/api/auctions?action=detail&auction=${encodeURIComponent(auction)}&lot=${encodeURIComponent(lot)}`);
+          const l = r.lot || r;
+          vin = vin || l.vin || ""; title = title || l.title || [l.year, l.make, l.model].filter(Boolean).join(" ");
+        }catch(_){ /* сделка заполнится руками */ }
+      }
+      const tab = document.querySelector('.tabs button[data-view="deals"]'); if(tab) tab.click();
+      await new Promise(r => setTimeout(r, 350));
+      await loadDealClients();
+      resetForm("dealForm");
+      const f = $("#dealForm");
+      f.elements.client_pick.value = c.chat;
+      pickDealClient(c.chat);
+      if(!f.elements.client_name.value) f.elements.client_name.value = c.profile.name || c.tgName || "";
+      f.elements.title.value = title;
+      f.elements.vin.value = vin;
+      f.scrollIntoView({behavior: "smooth", block: "start"});
+      showNotice(vin ? "Сделка подготовлена: подтягиваю данные по VIN (расчёт доставки и таможни, трекинг)…" : "Сделка подготовлена. VIN у лота не найден — впишите его, остальное подтянется.", true);
+      if(vin){ f.dataset.lastVin = ""; lookupDealVin(true); }
+    }catch(error){ showNotice(error.message); }
+    finally{ btn.disabled = false; btn.textContent = old; }
+  }
+
+  // ---------- переписка ----------
+  const fmtMsgTime = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("ru-RU", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}); };
+  function renderThread(msgs, noTable){
+    const box = $("#ccThread"); if(!box) return;
+    if(noTable){ box.innerHTML = `<p class="ccWarnV1">Переписка ещё не включена: выполните SQL из supabase/migrations/20261127_cab_msgs.sql в Supabase → SQL Editor.</p>`; return; }
+    const near = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    box.innerHTML = msgs.length ? msgs.map(m => `<div class="ccMsgRowV1 ${m.dir === "in" ? "isIn" : "isOut"}"><div class="ccBubbleV1">${e(m.text).replace(/\n/g, "<br>")}<small>${fmtMsgTime(m.at)}${m.dir === "in" && !m.seen ? " · новое" : ""}</small></div></div>`).join("")
+      : `<p class="ccEmptyV1">Пока ничего не писали. Когда клиент напишет боту, сообщение появится здесь, а вам придёт уведомление в Telegram.</p>`;
+    if(near || !box.dataset.once){ box.scrollTop = box.scrollHeight; box.dataset.once = "1"; }
+  }
+  async function loadThread(poll){
+    const chat = CC.chat; if(!chat || !$("#ccThread")) return;
+    try{
+      const r = await api("/api/clients?chat=" + encodeURIComponent(chat) + "&thread=1&seen=1" + (poll ? "&poll=1" : ""));
+      if(chat !== CC.chat) return;
+      renderThread(r.msgs || [], r.noTable);
+    }catch(_){ /* следующая попытка через 10 с */ }
+  }
+  setInterval(() => { if(state.view === "cabclients" && CC.chat && !document.hidden) loadThread(true); }, 10000);
+  async function sendSay(){
+    const ta = $("#ccSayText"), msg = $("#ccSayMsg");
+    const text = ta.value.trim(); if(!text) return;
+    msg.className = "ccMsgV1"; msg.textContent = "Отправляю…";
+    try{
+      const r = await post({action: "say", text});
+      ta.value = "";
+      msg.className = "ccMsgV1 ok"; msg.textContent = r.logged === false ? "Отправлено в Telegram (но в историю не записалось — выполните SQL из 20261127_cab_msgs.sql)" : "Отправлено ✓";
+      await loadThread(false);
+    }catch(error){ msg.className = "ccMsgV1 err"; msg.textContent = error.message; }
+  }
+
   function suggestHtml(){
     const s = CC.suggest;
     if(!s) return "";
@@ -182,6 +266,16 @@
       if(!text.trim()){ $("#ccPickMsg").className = "ccMsgV1 err"; $("#ccPickMsg").textContent = "Вставьте ссылку на лот или номер вида copart-61420506"; return; }
       sendPick([], text); return;
     }
+    if(t.closest("[data-cc-say]")){ sendSay(); return; }
+    const mk = t.closest("[data-cc-mkdeal]");
+    if(mk){ makeDeal(mk.dataset.ccMkdeal, mk); return; }
+    if(t.closest("[data-cc-tgmenu]")){
+      const m = $("#ccTgMenuMsg"); m.textContent = "Подключаю…";
+      api("/api/clients", {method: "POST", body: {action: "tgmenu"}})
+        .then(r => { m.textContent = "Готово ✓ В боте появилась кнопка «Кабинет»" + (r.commands ? " и список команд" : ""); })
+        .catch(error => { m.textContent = "Не получилось: " + error.message; });
+      return;
+    }
     if(t.closest("[data-cc-suggest]")){ loadSuggest(); return; }
     const sel = t.closest("[data-cc-sel]");
     if(sel){
@@ -202,6 +296,7 @@
     }
   });
   document.addEventListener("input", ev => { if(ev.target && ev.target.id === "ccSearch") renderList(); });
+  document.addEventListener("keydown", ev => { if(ev.target && ev.target.id === "ccSayText" && ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); sendSay(); } });
   document.addEventListener("change", ev => {
     const c = ev.target.closest && ev.target.closest("[data-cc-pref]"); if(!c) return;
     const prefs = {}; $$("[data-cc-pref]").forEach(x => { prefs[x.dataset.ccPref] = x.checked; });

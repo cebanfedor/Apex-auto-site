@@ -2229,3 +2229,13 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .deckEmptyV1 b { font-size:20px; }
 .deckEmptyV1 p { margin:0; font-size:14px; color:#aeb6c3; }
 @media (min-width:700px){ .deckV1 { align-items:center; } .deckStageV1 { width:100%; max-width:440px; } .deckTopV1, .deckBtnsV1, .deckHintV1 { width:100%; max-width:440px; } }
+/* Проверка телефона 320px (25.11.2026) */
+/* калькулятор лота: три пилюли («Экспорт-документы / Offsite / Оплата в MDL») растягивали страницу на 6px → колонки сжимаются */
+.calcPairRowV1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.calcPairRowV1 .calcOptV2 span { overflow-wrap: anywhere; }
+@media (max-width: 380px) {
+  .calcPairRowV1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .calcPairRowV1 .calcOptV2:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+/* «Смотреть видео» в таблице лота не выходит из ячейки */
+.dLinkBtnV1 { max-width: 100%; text-align: left; white-space: normal; }

@@ -70,13 +70,15 @@ function parseDocs(v){
 function cleanDeal(b){
   b = b || {};
   const title = String(b.title || "").trim().slice(0, 140);
-  const key = phoneKey(b.phone);
+  // клиент из Telegram (chat_id из «Клиентов сайта») — телефон тогда не обязателен: пишем прямо в его чат
+  const chat = String(b.chat_id == null ? "" : b.chat_id).replace(/[^0-9-]/g, "").slice(0, 20);
+  const key = phoneKey(b.phone) || (chat ? "tg" + chat.replace(/-/g, "m") : "");
   if(!title || !key) return null;
   const stage = STAGE_KEYS.includes(b.stage) ? b.stage : "bought";
   const vin = String(b.vin || "").toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, "").slice(0, 17);
   const eta = /^\d{4}-\d{2}-\d{2}$/.test(String(b.eta_date || "")) ? String(b.eta_date) : null;
   return {
-    phone_key: key, phone: String(b.phone || "").trim().slice(0, 40), client_name: String(b.client_name || "").trim().slice(0, 100) || null,
+    phone_key: key, chat_id: chat || null, phone: String(b.phone || "").trim().slice(0, 40), client_name: String(b.client_name || "").trim().slice(0, 100) || null,
     title, vin: vin || null, stage, next_step: String(b.next_step || "").trim().slice(0, 300) || null, eta_date: eta,
     total_usd: num(b.total_usd), paid_usd: num(b.paid_usd),
     timeline: parseTimeline(b.timeline), photos: parsePhotos(b.photos), docs: parseDocs(b.docs), calc: cleanCalc(b.calc),
@@ -119,7 +121,7 @@ async function sendTelegram(chatId, text, lang){
   try{
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST", headers: {"content-type": "application/json"}, signal: ctl.signal,
-      body: JSON.stringify({chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: {inline_keyboard: [[{text: T.btn, url: SITE + "/cabinet#deals"}]]}})
+      body: JSON.stringify({chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: {inline_keyboard: [[require("./tgapp").inlineButton({text: T.btn, url: SITE + "/cabinet#deals"})]]}})
     });
     const j = await r.json();
     return !!(j && j.ok);
@@ -294,6 +296,48 @@ async function chatForKey(supabase, key){
   return {chat, lang: (links && links[0] && links[0].lang) || "ru"};
 }
 
+// Кому писать по сделке: привязанный клиент из Telegram (chat_id) важнее подтверждённого телефона
+async function chatForDeal(supabase, row){
+  if(row && row.chat_id){
+    const links = await supabase.list("alert_links", {select: "lang", chat_id: `eq.${row.chat_id}`, limit: "1"}).catch(() => []);
+    if(links && links[0]) return {chat: row.chat_id, lang: links[0].lang || "ru"};
+  }
+  return chatForKey(supabase, row && row.phone_key);
+}
+
+// ---------- Просьба об отзыве (27.11.2026): через сутки после «Выдана» ----------
+const REVIEW_URL = "https://search.google.com/local/writereview?placeid=ChIJ10gGyT59yUARKjcF5NyJ-LY";
+const REVIEW_MSG = {
+  ru: {t: "Спасибо, что выбрали Apex Auto! 🙌\nЕсли всё понравилось — оставьте, пожалуйста, короткий отзыв в Google (минута). Для нас это очень важно.", b: "Оставить отзыв"},
+  ro: {t: "Mulțumim că ai ales Apex Auto! 🙌\nDacă ți-a plăcut totul, lasă te rog o recenzie scurtă pe Google (un minut). Este foarte important pentru noi.", b: "Lasă o recenzie"},
+  en: {t: "Thank you for choosing Apex Auto! 🙌\nIf you're happy with everything, please leave a short Google review (one minute). It means a lot to us.", b: "Leave a review"}
+};
+function reviewMessage(lang){ const m = REVIEW_MSG[lang] || REVIEW_MSG.ru; return {text: m.t, button: {text: m.b, url: REVIEW_URL}}; }
+// Один раз на сделку: «выдана» > 24 часов назад (но не старше 30 дней), клиент подключён в Telegram
+async function processReviews({supabase, budgetMs}, out){
+  out = out || {}; out.reviewMsgs = 0;
+  const deadline = Date.now() + (budgetMs || 8000);
+  const now = Date.now();
+  const rows = await supabase.list("cab_deals", {select: "*", active: "eq.true", stage: "eq.done",
+    and: `(updated_at.lt.${new Date(now - 24 * 3600e3).toISOString()},updated_at.gt.${new Date(now - 30 * 86400e3).toISOString()})`, limit: "30"}).catch(() => null);
+  if(!rows || !rows.length) return out;
+  const keys = rows.map(r => `review:${r.id}`);
+  const sent = await supabase.list("alert_meta", {select: "k", k: `in.(${keys.join(",")})`}).catch(() => []);
+  const done = new Set((sent || []).map(x => x.k));
+  const cl = require("./clients");
+  for(const row of rows){
+    if(Date.now() > deadline - 2500) break;
+    if(done.has(`review:${row.id}`)) continue;
+    const c = await chatForDeal(supabase, row);
+    // метку ставим всегда: нет чата — не повторяем попытки каждые 3 минуты (если клиент подключится позже, просьбу уже не шлём)
+    await supabase.upsert("alert_meta", {k: `review:${row.id}`, v: {chat: c ? c.chat : null, t: now}, updated_at: new Date().toISOString()}, "k").catch(() => {});
+    if(!c) continue;
+    const m = reviewMessage(c.lang);
+    if(await cl.tgSend(c.chat, m.text, [m.button])) out.reviewMsgs++;
+  }
+  return out;
+}
+
 // Фоновая синхронизация: по кругу берём активные сделки с VIN, подтягиваем трекинг, обновляем и пишем клиенту при смене этапа.
 async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   out = out || {}; out.dealsChecked = 0; out.dealsUpdated = 0; out.dealMsgs = 0;
@@ -315,7 +359,7 @@ async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
     if(!saved) continue;
     out.dealsUpdated++;
     if(patch.stage && patch.stage !== row.notified_stage){
-      const c = await chatForKey(supabase, row.phone_key);
+      const c = await chatForDeal(supabase, row);
       if(c){
         const merged = Object.assign({}, row, patch);
         if(await sendTelegram(c.chat, stageMessage(merged, c.lang), c.lang)){ out.dealMsgs++; await supabase.update("cab_deals", row.id, {notified_stage: patch.stage}).catch(() => {}); }
@@ -326,4 +370,4 @@ async function syncDeals({supabase, fetchTrack, budgetMs, batch}, out){
   return out;
 }
 
-module.exports = {calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};
+module.exports = {processReviews, reviewMessage, calcFromLot, cleanCalc, fromTracking, mergeTracking, chatForKey, chatForDeal, syncDeals, STAGES, STAGE_KEYS, stageLabel, phoneKey, cleanDeal, publicDeal, parseTimeline, parsePhotos, parseDocs, stageMessage, sendTelegram};

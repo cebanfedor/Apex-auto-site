@@ -68,6 +68,36 @@ async function resolveAdminChatId(){
     return chatId;
   }catch(_){ return adminChatCache.chatId; }
 }
+async function leadCabinetNote(phone, name, ref){
+  const sb = require("../server/supabase").rest;
+  const cl = require("../server/clients");
+  const key = String(phone || "").replace(/\D/g, "").slice(-8);
+  const m = key.length >= 7 ? await sb(`/alert_meta?k=eq.${encodeURIComponent("phonekey:" + key)}&select=v&limit=1`).catch(() => null) : null;
+  const chat = m && m[0] && m[0].v && m[0].v.chat;
+  // Реферальная ссылка: заявка пришла по коду клиента — менеджеру видно, кто привёл (+ счётчик в кабинете приглашающего)
+  const code = /^[A-Z0-9]{6}$/.test(String(ref || "")) ? String(ref) : "";
+  let refChat = null;
+  if(code){
+    const r = await sb(`/alert_meta?k=eq.${encodeURIComponent("refcode:" + code)}&select=v&limit=1`).catch(() => null);
+    refChat = r && r[0] && r[0].v && r[0].v.chat || null;
+    if(refChat && String(refChat) === String(chat || "")) refChat = null;   // свой собственный код
+    if(refChat){
+      const h = await sb(`/alert_meta?k=eq.${encodeURIComponent("refhits:" + code)}&select=v&limit=1`).catch(() => []);
+      await cl.metaSet(sb, "refhits:" + code, {n: (Number(h && h[0] && h[0].v && h[0].v.n) || 0) + 1}).catch(() => {});
+    }
+  }
+  if(!chat && !refChat) return;
+  const adm = await cl.adminChat(sb).catch(() => null);
+  if(!adm) return;
+  if(chat){
+    const who = await cl.clientLabel(sb, chat);
+    await cl.tgSend(adm, `🔗 Заявка от клиента из кабинета: <b>${who.text}</b>. Смотрите, что он просматривал и сохранял — перед звонком.`, [{text: "Карточка клиента", url: cl.SITE + "/admin/#client=" + chat}]);
+  }
+  if(refChat){
+    const rw = await cl.clientLabel(sb, refChat);
+    await cl.tgSend(adm, `🎁 Заявку привёл по реферальной ссылке клиент: <b>${rw.text}</b>. Учтите в условиях для обоих.`, [{text: "Карточка приглашающего", url: cl.SITE + "/admin/#client=" + refChat}]);
+  }
+}
 async function notifyTelegram(data){
   const token = process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID || await resolveAdminChatId().catch(() => null);
@@ -2113,6 +2143,9 @@ async function handleLead(request, response){
     // колонка message, у customers — UNIQUE на phone → запись в CRM падала и
     // блокировала всю заявку.)
     const tgOk = await notifyTelegram({name, phone, comment, lot, vin, auction, lotUrl, source, page}).catch(() => false);
+    // Заявка от человека, который уже в кабинете (подтверждённый номер): менеджеру — отдельная короткая строка с кнопкой на его карточку.
+    // Жёсткий лимит 3 с: заявка уже ушла, это приятное дополнение, а не критичный канал.
+    await Promise.race([leadCabinetNote(phone, name, body.ref), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
 
     // Запись в CRM — best-effort, не должна валить заявку. Снисходительный insert:
     // если схема таблицы отстала и колонки нет («Could not find the 'X' column»),

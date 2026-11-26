@@ -418,6 +418,16 @@ textarea{resize:vertical}
 .ccSiteV1 b{color:var(--text)}
 .ccRowV1{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer}
 .ccRowV1:hover{border-color:var(--accent)}
+.ccUnreadV1{display:inline-flex;align-items:center;gap:3px;background:#ed0012;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;font-weight:800}
+.ccThreadV1{max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#f6f7fb}
+.ccMsgRowV1{display:flex}
+.ccMsgRowV1.isOut{justify-content:flex-end}
+.ccBubbleV1{max-width:82%;padding:8px 11px;border-radius:14px;background:#fff;border:1px solid var(--line);font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.ccMsgRowV1.isOut .ccBubbleV1{background:var(--accent,#4f46e5);border-color:transparent;color:#fff}
+.ccBubbleV1 small{display:block;margin-top:3px;font-size:11px;opacity:.65}
+.ccSayV1{display:flex;gap:8px;align-items:stretch;margin-top:8px}
+.ccSayV1 textarea{flex:1;min-width:0}
+.ccSayV1 button{flex:none}
 .ccRowV1.is-sel{border-color:var(--accent);background:var(--accent-soft)}
 .ccDotV1{width:10px;height:10px;border-radius:50%;background:#c4c9d2}
 .ccDotV1.on{background:#19a463;box-shadow:0 0 0 4px rgba(25,164,99,.18)}

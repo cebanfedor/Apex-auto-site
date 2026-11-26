@@ -215,7 +215,7 @@ function create(deps){
   const push = require("./push").create(sb);
   async function send(chatId, text, buttons, opts){
     const body = {chat_id:chatId, text, parse_mode:"HTML", disable_web_page_preview:true};
-    if(buttons && buttons.length) body.reply_markup = {inline_keyboard:[buttons.map(b => ({text:b.text, url:b.url}))]};
+    if(buttons && buttons.length) body.reply_markup = {inline_keyboard:[buttons.map(require("./tgapp").inlineButton)]};
     const wantPush = opts && opts.push;
     // push и Telegram — параллельно; сбой push не влияет на ответ бота
     const pushP = wantPush ? Promise.race([push.sendToChat(chatId, text, buttons && buttons[0] && buttons[0].url).catch(() => 0), new Promise(r => setTimeout(() => r(0), 7000))]) : Promise.resolve(0);
@@ -257,6 +257,31 @@ function create(deps){
       ? `• 🔨 ${esc(s.name || s.lot_title || "")}${s.state && s.state.v ? ` · <code>${esc(s.state.v)}</code>` : ""}\n${lotUrl(s.lot_id)}`
       : `• 🆕 ${esc(s.name || "")}`).join("\n");
   }
+  // ---------- переписка: сообщение клиента боту → cab_msgs + уведомление менеджеру ----------
+  const ACK = {
+    ru: "Получили ваше сообщение ✅ Ответим в ближайшее время — прямо здесь, в этом чате.",
+    ro: "Am primit mesajul tău ✅ Îți răspundem în curând — chiar aici, în acest chat.",
+    en: "We got your message ✅ We'll reply shortly — right here in this chat."
+  };
+  async function inboundMsg(chatId, text, m){
+    const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=lang&limit=1`).catch(() => []);
+    if(!links || !links[0]) return;                                  // пишет не клиент сайта — не наш разговор
+    const cl = require("./clients");
+    const mgr = await cl.adminChat(sb).catch(() => null);
+    if(mgr && String(mgr) === String(chatId)) return;                // сам менеджер пишет боту — это не переписка с клиентом
+    const lang = links[0].lang || "ru";
+    try{ await cl.msgAdd(sb, chatId, "in", text); }catch(_){ return; }   // таблицы cab_msgs ещё нет — молчим, не ломаем бота
+    const who = await cl.clientLabel(sb, chatId);
+    const fn = m && m.from && String(m.from.first_name || "").trim();
+    if(fn) await metaSet("tgname:" + chatId, {n:fn}).catch(() => {});
+    await cl.notifyManager(sb, "msg", `💬 <b>${who.text}</b> пишет:\n${esc(String(text).slice(0, 500))}`, [{text:"Ответить в админке", url:SITE + "/admin/#client=" + chatId}]).catch(() => {});
+    // автоответ — не чаще раза в 6 часов на клиента
+    const ack = await metaGet("ack:" + chatId);
+    if(!ack || Date.now() - (Date.parse(ack.updated_at) || 0) > 6 * 3600e3){
+      await metaSet("ack:" + chatId, {t:Date.now()}).catch(() => {});
+      await send(chatId, ACK[lang] || ACK.ru);
+    }
+  }
   async function pollUpdates(){
     if(!tgToken()) return {ok:false, reason:"no_token"};
     if(!(await takeLock("tg_poll", 4000))) return {ok:true, skipped:true};
@@ -283,6 +308,12 @@ function create(deps){
         }else{
           await send(m.chat.id, tx(clang).phoneOther);
         }
+        continue;
+      }
+      // Вложение без текста (фото, файл, голосовое) — в переписку попадёт пометкой: само вложение открывается в Telegram
+      if(m && m.chat && m.chat.type === "private" && typeof m.text !== "string" && (m.photo || m.document || m.voice || m.video || m.video_note || m.audio || m.sticker || m.location)){
+        const kind = m.photo ? "🖼 фото" : m.document ? "📎 файл" : m.voice ? "🎤 голосовое" : (m.video || m.video_note) ? "🎬 видео" : m.audio ? "🎵 аудио" : m.location ? "📍 геопозиция" : "🙂 стикер";
+        await inboundMsg(m.chat.id, `${kind}${m.caption ? ": " + m.caption : " (откройте в Telegram)"}`, m).catch(() => {});
         continue;
       }
       if(!m || !m.chat || m.chat.type !== "private" || typeof m.text !== "string") continue;
@@ -326,6 +357,8 @@ function create(deps){
       }else if(/^\/list\b/i.test(text)){
         const links = await sb(`/alert_links?chat_id=eq.${chatId}&select=token,lang&limit=1`).catch(() => []);
         await send(chatId, links[0] ? await subsSummary(links[0].token, links[0].lang || "ru") : tx("ru").none);
+      }else if(text && text[0] !== "/"){
+        await inboundMsg(chatId, text, m).catch(() => {});   // обычный текст клиента → переписка в админке
       }
     }
     if(last != null) await metaSet("tg_offset", {o:last + 1});
@@ -630,6 +663,35 @@ function create(deps){
     }
   }
 
+  // «Лот дня» (27.11.2026): раз в сутки в 10–12 по Кишинёву берём лучший лот витрины (минимум ремонта,
+  // см. action=showcase) и шлём менеджеру ЧЕРНОВИК со ссылкой — страница лота с ?post=1 сразу открывает окно
+  // публикации в канал. Сам в канал НИЧЕГО не публикуем: решает Федор. Уже предлагавшиеся лоты не повторяем.
+  async function processLotOfDay(budgetMs, out){
+    out.lotday = 0;
+    const now = Date.now(), h = localHour(now);
+    if(h < 10 || h > 12) return;
+    const day = localYmd(now);
+    const m = await sb(`/alert_meta?k=eq.lotday&select=v&limit=1`).catch(() => null);
+    const st = (m && m[0] && m[0].v) || {};
+    if(st.day === day) return;
+    const cl = require("./clients");
+    const r = await Promise.race([
+      fetch(cl.SITE + "/api/auctions?action=showcase").then(x => x.ok ? x.json() : null),
+      new Promise(res => setTimeout(() => res(null), Math.max(2000, budgetMs)))
+    ]).catch(() => null);
+    const items = (r && r.items) || [];
+    const seen = Array.isArray(st.seen) ? st.seen : [];
+    const pick = items.find(it => it && it.id && seen.indexOf(String(it.id)) < 0);
+    if(!pick){ await cl.metaSet(sb, "lotday", {day, seen}).catch(() => {}); return; }
+    const slug = require("./slug").lotSlug({auction: pick.auction, lot: pick.lot, title: pick.title, vin: pick.vin});
+    const url = cl.SITE + "/auctions/" + slug + "?post=1";
+    const bid = Number(pick.currentBid || 0);
+    const text = "📣 <b>Лот дня — черновик для канала</b>\n" + cl.esc(String(pick.title || pick.id)) +
+      (pick.year ? " · " + pick.year : "") + (bid ? " · ставка $" + bid.toLocaleString("en-US") : "") +
+      "\nОткройте страницу лота, проверьте текст и нажмите «Опубликовать». Без вашего клика ничего не уйдёт в канал.";
+    const ok = await cl.notifyManager(sb, "lotday", text, [{text: "Открыть и опубликовать", url}]).catch(() => false);
+    if(ok){ out.lotday = 1; await cl.metaSet(sb, "lotday", {day, seen: seen.concat(String(pick.id)).slice(-60)}).catch(() => {}); }
+  }
   async function tick(){
     const out = {ok:true, soon:0, playing:0, sold:0, notSold:0, moved:0, dateSet:0, timedOn:0, dayOf:0, buyNow:0, newMsgs:0, searchErr:0};
     if(!tgToken()){ out.ok = false; out.reason = "no_token"; return out; }
@@ -644,6 +706,10 @@ function create(deps){
     if(left2 > 6000) await processDigest(Math.min(left2 - 2000, 10000), out).catch(e => { out.digestErr = String(e.message || e).slice(0, 120); });
     const left3 = 54000 - (Date.now() - started);
     if(left3 > 6000) await require("./deals").syncDeals({supabase: require("./supabase"), fetchTrack, budgetMs: Math.min(left3 - 2000, 12000)}, out).catch(e => { out.dealErr = String(e.message || e).slice(0, 120); });
+    const left4 = 56000 - (Date.now() - started);
+    if(left4 > 4000) await require("./deals").processReviews({supabase: require("./supabase"), budgetMs: Math.min(left4 - 1500, 6000)}, out).catch(e => { out.reviewErr = String(e.message || e).slice(0, 120); });
+    const left5 = 57000 - (Date.now() - started);
+    if(left5 > 4000) await processLotOfDay(Math.min(left5 - 1500, 5000), out).catch(e => { out.lotdayErr = String(e.message || e).slice(0, 120); });
     out.ms = Date.now() - started;
     return out;
   }

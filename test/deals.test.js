@@ -54,7 +54,40 @@ test("cabdeals: без подтверждённого телефона сдел�
   const m = mock({});
   await m.api.handle("cabdeals", {method: "GET"}, {}, new URLSearchParams({token: TOK}));
   assert.strictEqual(m.out.verified, false);
-  assert.ok(!m.calls.some(c => c.startsWith("/cab_deals")));
+  assert.strictEqual(m.out.deals.length, 0);
+  // по телефону не ищем (его нет); по chat_id — ищем (сделка, привязанная менеджером напрямую)
+  assert.ok(!m.calls.some(c => c.startsWith("/cab_deals?phone_key")));
+});
+test("cabdeals: сделка, привязанная к клиенту из Telegram (chat_id), видна без подтверждённого телефона", async () => {
+  const calls = [];
+  const sb = async path => {
+    calls.push(path);
+    if(path.startsWith("/alert_links?token=eq.bound")) return [{chat_id: 777, lang: "ru"}];
+    if(path.startsWith("/cab_deals?chat_id=eq.777")) return [{id: 9, phone: "", phone_key: "tg777", chat_id: "777", title: "Audi Q5", stage: "port", timeline: [], photos: [], docs: []}];
+    return [];
+  };
+  let out = null;
+  const api = create({sb, sendJson: (r, c, b) => { out = b; }, readBody: async r => r.body});
+  await api.handle("cabdeals", {method: "GET"}, {}, new URLSearchParams({token: TOK}));
+  assert.strictEqual(out.verified, true);
+  assert.strictEqual(out.deals.length, 1);
+  assert.strictEqual(out.deals[0].title, "Audi Q5");
+  assert.ok(!("chat_id" in out.deals[0]));
+});
+test("cabdeals: и по chat_id, и по телефону — без дублей", async () => {
+  const same = {id: 5, phone_key: "68832032", chat_id: "777", title: "BMW", stage: "sea", updated_at: "2026-11-26T10:00:00Z", timeline: [], photos: [], docs: []};
+  const other = {id: 6, phone_key: "68832032", chat_id: null, title: "Tesla", stage: "bought", updated_at: "2026-11-25T10:00:00Z", timeline: [], photos: [], docs: []};
+  const sb = async path => {
+    if(path.startsWith("/alert_links?token=eq.bound")) return [{chat_id: 777, lang: "ru"}];
+    if(path.startsWith("/alert_meta?k=eq.phone%3A777")) return [{v: {k: "68832032"}}];
+    if(path.startsWith("/cab_deals?chat_id=eq.777")) return [same];
+    if(path.startsWith("/cab_deals?phone_key=eq.68832032")) return [same, other];
+    return [];
+  };
+  let out = null;
+  const api = create({sb, sendJson: (r, c, b) => { out = b; }, readBody: async r => r.body});
+  await api.handle("cabdeals", {method: "GET"}, {}, new URLSearchParams({token: TOK}));
+  assert.deepStrictEqual(out.deals.map(d => d.id), [5, 6]);
 });
 test("cabdeals: с телефоном — только его сделки и без служебных полей", async () => {
   const m = mock({phone: true, deals: [{id: 5, phone: "068832032", phone_key: "68832032", title: "BMW", stage: "sea", timeline: [], photos: [], docs: []}]});
@@ -120,4 +153,61 @@ test("calcFromLot: США считает доставку/таможню в ле
   const ev = await deals.calcFromLot({auction: "iaai", location: "unknown place", year: 2022, make: "Tesla", model: "Model 3", fuelKind: 2, currentBid: 9000}, "2027");
   assert.strictEqual(ev.rules, "2027");
   assert.strictEqual(ev.fuel, "electric");
+});
+
+test("cleanDeal: клиент из Telegram (chat_id) — телефон не обязателен", () => {
+  const r = deals.cleanDeal({chat_id: "123456789", title: "BMW X5"});
+  assert.ok(r);
+  assert.strictEqual(r.chat_id, "123456789");
+  assert.strictEqual(r.phone_key, "tg123456789");
+  // телефон есть — ключ по телефону, chat_id сохраняется
+  const r2 = deals.cleanDeal({chat_id: "123456789", phone: "068 832 032", title: "BMW X5"});
+  assert.strictEqual(r2.phone_key, "68832032");
+  assert.strictEqual(r2.chat_id, "123456789");
+  // без chat_id: прежнее поведение
+  assert.strictEqual(deals.cleanDeal({title: "X"}), null);
+  assert.strictEqual(deals.cleanDeal({phone: "068832032", title: "X"}).chat_id, null);
+  // мусор в chat_id не проходит
+  assert.strictEqual(deals.cleanDeal({chat_id: "abc'; drop", title: "X"}), null);
+});
+
+test("chatForDeal: привязанный chat_id важнее телефона; без chat_id — по подтверждённому номеру", async () => {
+  const calls = [];
+  const sb = {list: async (table, q) => {
+    calls.push([table, q.k || q.chat_id]);
+    if(table === "alert_links") return q.chat_id === "eq.555" ? [{lang: "ro"}] : [];
+    if(table === "alert_meta") return q.k === "eq.phonekey:68832032" ? [{v: {chat: 777}}] : [];
+    return [];
+  }};
+  assert.deepStrictEqual(await deals.chatForDeal(sb, {chat_id: "555", phone_key: "68832032"}), {chat: "555", lang: "ro"});
+  // chat_id есть, но клиент отвязался (нет в alert_links) → запасной путь по телефону
+  const fb = await deals.chatForDeal(sb, {chat_id: "999", phone_key: "68832032"});
+  assert.strictEqual(fb.chat, 777);
+  assert.strictEqual(await deals.chatForDeal(sb, {chat_id: null, phone_key: "11111111"}), null);
+});
+
+test("processReviews: просьба об отзыве один раз, только подключённым клиентам; метка ставится всегда", async () => {
+  const sent = [], upserts = [];
+  const rows = [{id: 1, chat_id: "555", phone_key: "tg555", stage: "done"}, {id: 2, chat_id: null, phone_key: "11111111", stage: "done"}, {id: 3, chat_id: "555", phone_key: "tg555", stage: "done"}];
+  const supabase = {
+    list: async (table, q) => {
+      if(table === "cab_deals") return rows;
+      if(table === "alert_meta" && q.k && q.k.startsWith("in.(")) return [{k: "review:3"}];     // по сделке 3 уже просили
+      if(table === "alert_meta") return [];
+      if(table === "alert_links") return q.chat_id === "eq.555" ? [{lang: "ro"}] : [];
+      return [];
+    },
+    upsert: async (table, row) => { upserts.push(row.k); }
+  };
+  const realFetch = global.fetch;
+  process.env.ALERTS_BOT_TOKEN = "t";
+  global.fetch = async (url, opt) => { sent.push(JSON.parse(opt.body)); return {json: async () => ({ok: true})}; };
+  try{
+    const out = await deals.processReviews({supabase, budgetMs: 20000}, {});
+    assert.strictEqual(out.reviewMsgs, 1);
+    assert.deepStrictEqual(upserts.sort(), ["review:1", "review:2"]);   // 3 пропущена; у 2 нет чата — метка есть, сообщения нет
+    assert.strictEqual(sent.length, 1);
+    assert.ok(/recenzie/i.test(sent[0].text));
+    assert.ok(/writereview/.test(sent[0].reply_markup.inline_keyboard[0][0].url));
+  }finally{ global.fetch = realFetch; }
 });

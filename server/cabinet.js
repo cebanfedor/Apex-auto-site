@@ -71,6 +71,34 @@ function create(deps){
   }
 
   async function handle(action, request, response, query){
+    // Вход из Telegram Mini App: подпись initData проверяем токеном бота — клиент привязывается без «Start»-ссылки
+    if(action === "cabtg"){
+      if(request.method !== "POST"){ sendJson(response, 405, {ok:false}); return true; }
+      const body = await readBody(request).catch(() => ({}));
+      const botTok = process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || "";
+      const u = require("./tgapp").verifyInitData(body.initData, botTok);
+      if(!u || u.isBot){ sendJson(response, 200, {ok:false, error:"bad_init"}, NO); return true; }
+      let token = okToken(body.token) ? body.token : "";
+      try{
+        if(token){
+          const ex = await sb(`/alert_links?token=eq.${q(token)}&select=chat_id&limit=1`).catch(() => []);
+          if(ex && ex[0]){
+            if(ex[0].chat_id && Number(ex[0].chat_id) !== u.id) token = "";   // токен уже у другого — выдаём новый
+            else if(!ex[0].chat_id) await sb(`/alert_links?token=eq.${q(token)}&chat_id=is.null`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({chat_id:u.id, bound_at:new Date().toISOString(), lang:u.lang})});
+          }else token = "";                                               // такого токена нет в базе — не принимаем чужой
+        }
+        if(!token){
+          token = require("crypto").randomBytes(24).toString("base64url");
+          await sb(`/alert_links`, {method:"POST", headers:{prefer:"return=minimal"}, body:JSON.stringify({token, lang:u.lang, chat_id:u.id, bound_at:new Date().toISOString()})});
+        }
+        if(u.first_name) await cl.metaSet(sb, "tgname:" + u.id, {n:u.first_name}).catch(() => {});
+        sendJson(response, 200, {ok:true, token, lang:u.lang}, NO);
+      }catch(e){
+        sendJson(response, 200, {ok:false, error:"db_error"}, NO);
+      }
+      return true;
+    }
+
     if(action === "cabload"){
       const who = await chatOf(query.get("token"));
       if(who.error){ sendJson(response, 200, {ok:true, bound:false, reason:who.error}, NO); return true; }
@@ -90,15 +118,47 @@ function create(deps){
       return true;
     }
 
+    // Реферальная ссылка клиента: короткий код (alert_meta ref:<chat>, refcode:<код>), счётчик заявок по ссылке — refhits:<код>
+    if(action === "cabref"){
+      const who = await chatOf(query.get("token"));
+      if(who.error){ sendJson(response, 200, {ok:true, bound:false}, NO); return true; }
+      try{
+        const cur = await sb(`/alert_meta?k=eq.${q("ref:" + who.chat)}&select=v&limit=1`).catch(() => []);
+        let code = cur && cur[0] && cur[0].v && cur[0].v.code;
+        if(!code){
+          const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", crypto = require("crypto");
+          for(let i = 0; i < 5 && !code; i++){
+            const c = Array.from(crypto.randomBytes(6)).map(b => ALPHA[b % ALPHA.length]).join("");
+            const taken = await sb(`/alert_meta?k=eq.${q("refcode:" + c)}&select=k&limit=1`).catch(() => []);
+            if(!taken || !taken.length) code = c;
+          }
+          if(!code){ sendJson(response, 200, {ok:false, error:"code"}, NO); return true; }
+          await cl.metaSet(sb, "refcode:" + code, {chat:String(who.chat)});
+          await cl.metaSet(sb, "ref:" + who.chat, {code});
+        }
+        const hits = await sb(`/alert_meta?k=eq.${q("refhits:" + code)}&select=v&limit=1`).catch(() => []);
+        sendJson(response, 200, {ok:true, code, hits:Number(hits && hits[0] && hits[0].v && hits[0].v.n) || 0}, NO);
+      }catch(e){ sendJson(response, 200, {ok:false, error:"db_error"}, NO); }
+      return true;
+    }
+
     if(action === "cabdeals"){
       const who = await chatOf(query.get("token"));
       if(who.error){ sendJson(response, 200, {ok:true, bound:false}, NO); return true; }
       try{
         const pm = await sb(`/alert_meta?k=eq.${q("phone:" + who.chat)}&select=v&limit=1`).catch(() => []);
         const key = pm && pm[0] && pm[0].v && pm[0].v.k;
-        if(!key){ sendJson(response, 200, {ok:true, bound:true, verified:false, deals:[]}, NO); return true; }
-        const rows = await sb(`/cab_deals?phone_key=eq.${q(key)}&active=eq.true&select=*&order=updated_at.desc&limit=20`);
-        sendJson(response, 200, {ok:true, bound:true, verified:true, deals:(rows || []).map(dealsLib.publicDeal)}, NO);
+        // сделки: привязанные менеджером к этому Telegram-клиенту (chat_id) + по подтверждённому телефону
+        let rows = [];
+        try{ rows = await sb(`/cab_deals?chat_id=eq.${q(who.chat)}&active=eq.true&select=*&order=updated_at.desc&limit=20`) || []; }catch(_){ rows = []; }   // колонки chat_id может не быть — тогда только по телефону
+        if(key){
+          const byKey = await sb(`/cab_deals?phone_key=eq.${q(key)}&active=eq.true&select=*&order=updated_at.desc&limit=20`);
+          const have = new Set(rows.map(r => r.id));
+          for(const r of byKey || []) if(!have.has(r.id)) rows.push(r);
+          rows.sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+        }
+        if(!key && !rows.length){ sendJson(response, 200, {ok:true, bound:true, verified:false, deals:[]}, NO); return true; }
+        sendJson(response, 200, {ok:true, bound:true, verified:true, deals:rows.map(dealsLib.publicDeal)}, NO);
       }catch(e){
         sendJson(response, 200, {ok:true, bound:true, verified:true, deals:[], ready:!tableMissing(e) ? true : false, reason:tableMissing(e) ? "no_table" : "db_error"}, NO);
       }
