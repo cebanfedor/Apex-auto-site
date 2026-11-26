@@ -213,7 +213,7 @@ function create(deps){
   }
   async function send(chatId, text, buttons){
     const body = {chat_id:chatId, text, parse_mode:"HTML", disable_web_page_preview:true};
-    if(buttons && buttons.length) body.reply_markup = {inline_keyboard:[buttons.map(b => ({text:b.text, url:b.url}))]};
+    if(buttons && buttons.length) body.reply_markup = {inline_keyboard:[buttons.map(require("./tgapp").inlineButton)]};
     const r = await tg("sendMessage", body);
     // Пользователь заблокировал бота → отключаем его подписки, чтобы не долбить впустую
     if(r && r.ok === false && /blocked|deactivated|chat not found/i.test(String(r.description || ""))) return {ok:false, dead:true};

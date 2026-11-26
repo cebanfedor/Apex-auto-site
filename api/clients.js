@@ -220,6 +220,21 @@ module.exports = async function handler(request, response){
         sendJson(response, 200, {ok: true, prefs});
         return;
       }
+      if(action === "tgmenu"){
+        // Кнопка «Кабинет» в меню бота открывает Mini App (вход без ссылок и токенов) + список команд
+        const token = process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || "";
+        if(!token){ sendJson(response, 400, {ok: false, error: "Не задан токен бота (ALERTS_BOT_TOKEN)"}); return; }
+        const call = async (method, payload) => {
+          const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
+          try{ const r = await fetch(`https://api.telegram.org/bot${token}/${method}`, {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify(payload), signal: ctl.signal}); return await r.json(); }
+          catch(_){ return {ok: false, description: "нет ответа от Telegram"}; }
+          finally{ clearTimeout(timer); }
+        };
+        const menu = await call("setChatMenuButton", {menu_button: {type: "web_app", text: "Кабинет", web_app: {url: cl.SITE + "/cabinet"}}});
+        const cmds = await call("setMyCommands", {commands: [{command: "cabinet", description: "Личный кабинет"}, {command: "list", description: "Мои уведомления"}, {command: "stop", description: "Отключить уведомления"}]});
+        sendJson(response, menu.ok ? 200 : 502, {ok: !!menu.ok, menu: !!menu.ok, commands: !!cmds.ok, error: menu.ok ? undefined : String(menu.description || "Telegram отказал")});
+        return;
+      }
       const chat = String(body.chat || "").replace(/[^0-9-]/g, "");
       if(!chat){ sendJson(response, 400, {ok: false, error: "chat"}); return; }
       if(action === "say"){

@@ -121,7 +121,7 @@ async function sendTelegram(chatId, text, lang){
   try{
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST", headers: {"content-type": "application/json"}, signal: ctl.signal,
-      body: JSON.stringify({chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: {inline_keyboard: [[{text: T.btn, url: SITE + "/cabinet#deals"}]]}})
+      body: JSON.stringify({chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: {inline_keyboard: [[require("./tgapp").inlineButton({text: T.btn, url: SITE + "/cabinet#deals"})]]}})
     });
     const j = await r.json();
     return !!(j && j.ok);

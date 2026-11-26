@@ -121,12 +121,13 @@ function pickMessage(lang, picks, note){
 }
 
 // ---------- Telegram: клиенту и менеджеру ----------
+const {inlineButton} = require("./tgapp");
 function botToken(){ return process.env.ALERTS_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || ""; }
 async function tgSend(chatId, text, buttons){
   const token = botToken();
   if(!token || !chatId) return false;
   const body = {chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true};
-  if(buttons && buttons.length) body.reply_markup = {inline_keyboard: [buttons.map(b => ({text: b.text, url: b.url}))]};
+  if(buttons && buttons.length) body.reply_markup = {inline_keyboard: [buttons.map(inlineButton)]};
   const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
   try{
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify(body), signal: ctl.signal});

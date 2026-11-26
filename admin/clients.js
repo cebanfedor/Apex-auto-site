@@ -223,6 +223,13 @@
       sendPick([], text); return;
     }
     if(t.closest("[data-cc-say]")){ sendSay(); return; }
+    if(t.closest("[data-cc-tgmenu]")){
+      const m = $("#ccTgMenuMsg"); m.textContent = "Подключаю…";
+      api("/api/clients", {method: "POST", body: {action: "tgmenu"}})
+        .then(r => { m.textContent = "Готово ✓ В боте появилась кнопка «Кабинет»" + (r.commands ? " и список команд" : ""); })
+        .catch(error => { m.textContent = "Не получилось: " + error.message; });
+      return;
+    }
     if(t.closest("[data-cc-suggest]")){ loadSuggest(); return; }
     const sel = t.closest("[data-cc-sel]");
     if(sel){

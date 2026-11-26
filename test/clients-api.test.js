@@ -88,7 +88,7 @@ test("подборка: лот берётся с сайта, пишется в c
   assert.strictEqual(ins.b[0].data.secret, undefined);
   assert.strictEqual(String(tg[0].chat_id), "5");
   assert.ok(/Managerul/.test(tg[0].text));                        // язык клиента — румынский
-  assert.ok(/#picks$/.test(tg[0].reply_markup.inline_keyboard[0][0].url));
+  assert.ok(/#picks$/.test(tg[0].reply_markup.inline_keyboard[0][0].web_app.url))   // кабинет открывается как Mini App;
 
   const bad = await run("POST", "/api/clients", {action: "pick", chat: "5", text: "просто текст"});
   assert.strictEqual(bad.status, 400);
