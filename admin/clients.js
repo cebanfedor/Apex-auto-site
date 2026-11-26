@@ -2,9 +2,10 @@
    и подборки клиенту прямо в его личный кабинет. Данные — /api/clients (только админ). Использует общие функции admin.js. */
 (function(){
   "use strict";
-  const CC = {items: [], chat: "", card: null, timer: null, suggest: null, picked: new Set(), site: null, loading: false};
+  const CC = {items: [], chat: "", card: null, timer: null, suggest: null, picked: new Set(), site: null, loading: false, filter: "all", sort: "act", tab: "over"};
   const REACT = {like: ["👍", "нравится", "ccRxLike"], no: ["👎", "не подходит", "ccRxNo"], discuss: ["💬", "хочет обсудить", "ccRxDisc"]};
   const e = escapeHtml;
+  const STAGE_ORDER = ["bought", "paid", "pickup", "port", "sea", "klaipeda", "road", "customs", "ready", "done"];
   const STAGE_RU = {bought: "Куплен", paid: "Лот оплачен", pickup: "Вывоз с площадки", port: "На складе в порту", sea: "В море", klaipeda: "В порту Клайпеда", road: "В пути в Кишинёв", customs: "Растаможка", ready: "Готова к выдаче", done: "Выдана"};
   const times = n => { const m10 = n % 10, m100 = n % 100; return n + (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? " раза" : " раз"); };
   const dt = ms => ms ? new Date(ms).toLocaleString("ru-RU", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}) : "";
@@ -18,6 +19,7 @@
     return d < 14 ? d + " дн назад" : dt(ms);
   };
   const digits = p => String(p || "").replace(/\D/g, "");
+  const short = n => n >= 10000 ? Math.round(n / 1000) + " тыс." : n >= 1000 ? (n / 1000).toFixed(1).replace(".0", "").replace(".", ",") + " тыс." : String(n);
   const money = n => Number(n) > 0 ? Number(n).toLocaleString("ru-RU") + " $" : "";
   const lotUrl = id => "/auctions/" + encodeURIComponent(id);
   const thumb = d => d && (d.image || (d.images && d.images[0])) ? `<img src="${e(d.image || d.images[0])}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
@@ -41,13 +43,32 @@
     clearTimeout(CC.timer);
     CC.timer = setTimeout(() => { if(state.view === "cabclients") loadCabClients(true); }, 30000);
   }
+  const FILTERS = {
+    all: () => true, online: c => c.online, deals: c => c.dealsOpen > 0, debt: c => c.debt > 0, unread: c => c.unread > 0,
+    noname: c => !c.name || /^(без имени)$/i.test(c.name)
+  };
+  const SORTS = {
+    act: (a, b) => ((b.unread > 0) - (a.unread > 0)) || (b.online - a.online) || (b.seenAt - a.seenAt),
+    deals: (a, b) => (b.dealsOpen - a.dealsOpen) || (b.deals - a.deals) || (b.seenAt - a.seenAt),
+    favs: (a, b) => (b.favs - a.favs) || (b.seenAt - a.seenAt),
+    new: (a, b) => (Date.parse(b.boundAt) || 0) - (Date.parse(a.boundAt) || 0),
+    name: (a, b) => String(a.name || "яяя").localeCompare(String(b.name || "яяя"), "ru")
+  };
+  const stageChip = st => st ? `<span class="ccStageV1">${e(STAGE_RU[st] || st)}</span>` : "";
   function renderList(){
     const q = ($("#ccSearch").value || "").trim().toLowerCase();
-    const items = CC.items.filter(c => !q || [c.name, c.phone, c.city].join(" ").toLowerCase().includes(q));
     $("#ccOnlineV1").textContent = CC.online ? CC.online + " онлайн" : "";
     $("#ccOnlineV1").hidden = !CC.online;
-    const s = CC.site;
-    $("#ccSiteV1").innerHTML = s ? `Сейчас на сайте: <b>${Number(s.online) || 0}</b> посетителей, из них клиентов кабинета: <b>${CC.online || 0}</b>` : "";
+    const s = CC.site, all = CC.items;
+    const sum = {n: all.length, work: all.reduce((a, c) => a + (c.dealsOpen || 0), 0), debt: all.reduce((a, c) => a + (c.debt || 0), 0), unread: all.reduce((a, c) => a + (c.unread || 0), 0)};
+    $("#ccKpiV1").innerHTML = `<div><b>${sum.n}</b><span>клиентов</span></div><div><b>${CC.online || 0}</b><span>онлайн</span></div><div><b>${sum.work}</b><span>сделок в работе</span></div><div class="${sum.debt ? "isWarn" : ""}"><b>${sum.debt ? short(sum.debt) + " $" : "—"}</b><span>к доплате</span></div>`;
+    $("#ccSiteV1").innerHTML = s ? `На сайте сейчас: <b>${Number(s.online) || 0}</b> посетителей, из них клиентов: <b>${CC.online || 0}</b>${sum.unread ? ` · непрочитанных сообщений: <b>${sum.unread}</b>` : ""}` : "";
+    $$("[data-cc-filter]").forEach(b => {
+      const f = b.dataset.ccFilter, n = all.filter(FILTERS[f]).length;
+      b.classList.toggle("is-on", CC.filter === f);
+      b.dataset.n = f === "all" ? "" : n;
+    });
+    const items = all.filter(c => (FILTERS[CC.filter] || FILTERS.all)(c) && (!q || [c.name, c.phone, c.city, c.chat].join(" ").toLowerCase().includes(q))).sort(SORTS[CC.sort] || SORTS.act);
     $("#ccList").innerHTML = items.length ? items.map(c => `
       <div class="ccRowV1${c.chat === CC.chat ? " is-sel" : ""}" data-cc-open="${e(c.chat)}">
         <i class="ccDotV1${c.online ? " on" : ""}"></i>
@@ -56,13 +77,19 @@
           <span>${e(c.phone || "телефон не указан")}</span>
           <span class="ccSeenV1${c.online ? " on" : ""}">${c.online ? "онлайн" + (c.page ? " · " + e(c.page) : "") : "был " + ago(c.seenAt)}</span>
         </div>
-        <div class="ccCountsV1">${c.unread ? `<span class="ccUnreadV1" title="Непрочитанные сообщения">💬 ${c.unread}</span>` : ""}${c.favs ? `<span title="В избранном">♡ ${c.favs}</span>` : ""}${c.picks ? `<span title="Подборок отправлено">🎯 ${c.picks}${c.reacts ? ` · ${c.reacts} отв.` : ""}</span>` : ""}</div>
-      </div>`).join("") : `<p class="ccEmptyV1">${CC.items.length ? "Никого не найдено." : "Пока нет клиентов с подключённым Telegram."}</p>`;
+        <div class="ccCountsV1">
+          ${c.unread ? `<span class="ccUnreadV1" title="Непрочитанные сообщения">💬 ${c.unread}</span>` : ""}
+          <span class="${c.deals ? "has" : ""}" title="Сделки: в работе / всего">🚚 ${c.dealsOpen}${c.deals > c.dealsOpen ? "/" + c.deals : ""}</span>
+          <span class="${c.favs ? "has" : ""}" title="В избранном">♡ ${c.favs}</span>
+          ${c.picks ? `<span class="has" title="Подборок отправлено">🎯 ${c.picks}${c.reacts ? "·" + c.reacts : ""}</span>` : ""}
+        </div>
+        ${c.dealsOpen || c.debt ? `<div class="ccRowFootV1">${stageChip(c.dealStage)}${c.debt ? `<span class="ccDebtV1">доплатить ${c.debt.toLocaleString("ru-RU")} $</span>` : ""}</div>` : ""}
+      </div>`).join("") : `<p class="ccEmptyV1">${all.length ? "Никого не найдено — попробуйте другой фильтр." : "Пока нет клиентов с подключённым Telegram."}</p>`;
   }
 
   // ---------- карточка ----------
   async function openClient(chat){
-    CC.chat = chat; CC.suggest = null; CC.picked = new Set();
+    CC.chat = chat; CC.suggest = null; CC.picked = new Set(); CC.tab = "over";
     $("#ccSplitV1").classList.add("ccOpenV1");
     renderList();
     $("#ccCard").innerHTML = `<p class="ccEmptyV1">Загрузка…</p>`;
@@ -100,7 +127,6 @@
         ${dealBtn(p.lot_id)}<button type="button" class="ghost ccMiniV1" data-cc-unpick="${p.id}">Убрать</button></div></div>`;
     }).join("");
     const subs = c.subs.map(s => `<div class="ccSrV1"><b>${s.kind === "lot" ? "🔔 Лот" : "🔎 Поиск"}: ${e(s.name)}</b>${s.kind === "lot" ? `<small><a href="${lotUrl(s.lot_id)}" target="_blank" rel="noopener">${e(s.lot_id)}</a></small>` : ""}</div>`).join("");
-    const dealsHtml = c.deals.map(d => `<div class="ccSrV1"><b>${e(d.title)}</b><small>${e(STAGE_RU[d.stage] || d.stage)}${d.eta_date ? " · выдача " + e(d.eta_date) : ""}${d.active === false ? " · скрыта" : ""}</small></div>`).join("");
     const leads = c.leads.map(l => `<div class="ccSrV1"><b>${e(l.title || l.message || "Заявка")}</b><small>${e(l.status || "")}${l.source ? " · " + e(l.source) : ""} · ${fmtWhen(l.created_at)}</small></div>`).join("");
     const cars = c.cars.map(x => `<div class="ccSrV1"><b>${e(x.label || x.vin)}</b><small>${e(x.vin)} · <a href="/tracking?vin=${e(x.vin)}" target="_blank" rel="noopener">отследить</a></small></div>`).join("");
     // Путь клиента: заявка → кабинет → подборка → сделка (одним списком, по времени)
@@ -115,6 +141,64 @@
     const tl = c.timeline.map(t => `<div class="ccTlV1"><i></i><span>${dt(t.at)}</span><b>${t.kind === "search" ? "🔎 " + e(t.data.label || t.key) : "👁 " + e(titleOf(t.data) || t.key)}</b></div>`).join("");
 
     const draft = $("#ccSayText") ? $("#ccSayText").value : "";
+    const openDeals = c.deals.filter(d => d.active !== false && d.stage !== "done");
+    const debt = openDeals.reduce((a, d) => a + Math.max(0, (Number(d.total_usd) || 0) - (Number(d.paid_usd) || 0)), 0);
+    const unread = CC.items.find(x => x.chat === c.chat);
+    const kpi = (n, l, tab, cls) => `<button type="button" class="ccKpiTileV1 ${cls || ""}" data-cc-tab="${tab}"><b>${n}</b><span>${l}</span></button>`;
+    const kpis = kpi(openDeals.length + (c.deals.length > openDeals.length ? "/" + c.deals.length : ""), "сделки", "deals", openDeals.length ? "isHot" : "") + kpi(debt ? short(debt) + " $" : "—", "к доплате", "deals", debt ? "isWarn" : "") +
+      kpi(c.favs.length, "избранное", "fav") + kpi(c.picks.length, "подборки", "fav") + kpi(c.views.length, "смотрел", "int") + kpi(c.leads.length, "заявки", "hist");
+    const tabs = [["over", "Обзор", ""], ["deals", "Сделки", c.deals.length], ["chat", "Переписка", unread && unread.unread ? "💬" + unread.unread : ""], ["fav", "Избранное и подборки", c.favs.length + c.picks.length], ["int", "Интересы", c.views.length + c.searches.length], ["hist", "История", ""]];
+    const tabBar = `<nav class="ccTabsV1" role="tablist">${tabs.map(t => `<button type="button" role="tab" class="${CC.tab === t[0] ? "is-on" : ""}" data-cc-tab="${t[0]}">${t[1]}${t[2] !== "" && t[2] !== 0 ? `<em>${t[2]}</em>` : ""}</button>`).join("")}</nav>`;
+
+    // --- вкладки ---
+    const noteBox = `<section class="ccSecV1"><h3>📝 Заметка менеджера <small>(клиент не видит)</small></h3>
+        <textarea id="ccNoteText" rows="3" placeholder="Бюджет, пожелания, договорённости…">${e(c.manager.text)}</textarea>
+        <input id="ccNoteTags" class="ccTagsV1" placeholder="Теги через запятую: горячий, Tesla, до 10к" value="${e(c.manager.tags.join(", "))}">
+        <div class="ccRowBtnsV1"><button type="button" class="ghost" data-cc-savenote>Сохранить заметку</button><span class="ccMsgV1" id="ccNoteMsg"></span></div></section>`;
+    const tagPills = c.manager.tags.length ? `<div class="ccPillsV1 ccTagsRowV1">${c.manager.tags.map(t => `<span class="ccPillV1 isTag">#${e(t)}</span>`).join("")}</div>` : "";
+    const dealCard = d => {
+      const idx = Math.max(0, STAGE_ORDER.indexOf(d.stage)), pct = Math.round(idx / (STAGE_ORDER.length - 1) * 100);
+      const total = Number(d.total_usd) || 0, paid = Number(d.paid_usd) || 0, left = Math.max(0, total - paid);
+      const done = d.stage === "done", hidden = d.active === false;
+      return `<article class="ccDealV1${done ? " isDone" : ""}${hidden ? " isHidden" : ""}">
+        <header><div><b>${e(d.title)}</b><small>${d.vin ? e(d.vin) : "VIN не указан"}${hidden ? " · скрыта от клиента" : ""}</small></div><span class="ccStageV1${done ? " isDone" : ""}">${e(STAGE_RU[d.stage] || d.stage)}</span></header>
+        <div class="ccProgV1" title="Этап ${idx + 1} из ${STAGE_ORDER.length}"><i style="width:${Math.max(4, pct)}%"></i></div>
+        <div class="ccDealMetaV1">
+          ${d.eta_date ? `<span>📅 выдача ${e(String(d.eta_date).split("-").reverse().join("."))}</span>` : ""}
+          ${d.next_step ? `<span>➡ ${e(d.next_step)}</span>` : ""}
+          ${total ? `<span class="${left ? "isWarn" : "isOk"}">💵 ${paid.toLocaleString("ru-RU")} из ${total.toLocaleString("ru-RU")} $${left ? ` · осталось ${left.toLocaleString("ru-RU")} $` : " · оплачено"}</span>` : ""}
+          <span class="muted">обновлена ${ago(Date.parse(d.updated_at))}</span>
+        </div>
+        <div class="ccRowBtnsV1"><button type="button" class="ccMiniV1" data-cc-opendeal="${d.id}">Открыть и править</button>${d.vin ? `<a class="ghost ccMiniV1 ccLinkBtnV1" href="/tracking?vin=${e(d.vin)}" target="_blank" rel="noopener">Трекинг</a>` : ""}</div>
+      </article>`;
+    };
+    const dealsTab = `<section class="ccSecV1 ccFirstV1"><div class="ccSecHeadV1"><h3>Сделки клиента <em>${c.deals.length}</em></h3><button type="button" class="ccBtnV1 ccBtnSmV1" data-cc-newdeal>➕ Новая сделка</button></div>
+        ${c.deals.length ? c.deals.map(dealCard).join("") : `<p class="ccEmptyV1">У клиента пока нет сделок. Нажмите «Новая сделка» — клиент и телефон подставятся сами, а когда сохраните, он увидит её в кабинете и получит сообщение в Telegram.</p>`}
+      </section>${cars ? sec("Мои машины (трекинг)", cars, c.cars.length) : ""}`;
+    const chatTab = `<section class="ccSecV1 ccChatV1 ccFirstV1"><h3>💬 Переписка <small>(клиент видит ответы в своём Telegram)</small></h3>
+        <div id="ccThread" class="ccThreadV1"><p class="ccEmptyV1">Загрузка…</p></div>
+        <div class="ccSayV1"><textarea id="ccSayText" rows="2" maxlength="3500" placeholder="Ответ клиенту… (Ctrl+Enter — отправить)"></textarea><button type="button" data-cc-say>Отправить</button></div>
+        <p class="ccMsgV1" id="ccSayMsg"></p></section>`;
+    const pickForm = `<section class="ccSecV1 ccPickFormV1 ccFirstV1"><h3>🎯 Подборка клиенту</h3>
+        <textarea id="ccPickIds" rows="2" placeholder="Ссылки с сайта или номера лотов: copart-61420506, iaai-45839097 — по одному в строке"></textarea>
+        <textarea id="ccPickNote" rows="2" maxlength="600" placeholder="Комментарий клиенту (необязательно): подходит по бюджету, ставка до 9 000 $"></textarea>
+        <div class="ccRowBtnsV1"><button type="button" data-cc-sendpick>Отправить в кабинет</button><button type="button" class="ghost" data-cc-suggest>Подобрать похожее на просмотренное</button></div>
+        <p class="ccMsgV1" id="ccPickMsg"></p>
+        <div id="ccSuggestBox">${suggestHtml()}</div></section>`;
+    const overTab = `${tagPills}
+      <div class="ccOverGridV1">
+        <section class="ccSecV1 ccFirstV1"><h3>Ближайшее</h3>
+          ${openDeals.length ? openDeals.slice(0, 2).map(dealCard).join("") : `<p class="ccEmptyV1">Нет сделок в работе.</p>`}
+          ${unread && unread.unread ? `<button type="button" class="ccBannerV1" data-cc-tab="chat">💬 Клиент написал: непрочитанных ${unread.unread} — открыть переписку</button>` : ""}
+        </section>
+        ${noteBox}
+      </div>
+      ${sec("Путь клиента", journey, null)}`;
+    const favTab = pickForm + sec("Отправленные подборки", picks, c.picks.length) + sec("Избранное", favs, c.favs.length) + (!favs && !picks ? `<p class="ccEmptyV1">Клиент пока ничего не сохранял, подборок не отправляли.</p>` : "");
+    const intTab = `<div class="ccFirstV1"></div>${sec("Что смотрел", views, c.views.length)}${sec("Что ищет", searches, c.searches.length)}${sec("Подписки на уведомления", subs, c.subs.length)}${!(views || searches || subs) ? `<p class="ccEmptyV1">Клиент пока ничего не смотрел и не искал.</p>` : ""}`;
+    const histTab = `<div class="ccFirstV1"></div>${sec("Заявки с сайта", leads, c.leads.length)}${sec("Последние действия", tl, null)}${!(leads || tl) ? `<p class="ccEmptyV1">Истории пока нет.</p>` : ""}`;
+    const body = {over: overTab, deals: dealsTab, chat: chatTab, fav: favTab, int: intTab, hist: histTab}[CC.tab] || overTab;
+
     $("#ccCard").innerHTML = `
       <button type="button" class="ghost ccBackV1" data-cc-back>← К списку клиентов</button>
       <header class="ccHeadV1">
@@ -123,41 +207,12 @@
           <div class="ccPillsV1">${seen}<span class="ccPillV1">язык: ${e(c.lang)}</span>${c.boundAt ? `<span class="ccPillV1">в кабинете с ${e(String(c.boundAt).slice(0, 10))}</span>` : ""}</div></div>
         <div class="ccActsV1">${phone ? `<a class="ccBtnV1" href="tel:${e(phone.replace(/[^\d+]/g, ""))}">Позвонить</a>` : ""}${wa ? `<a class="ccBtnV1 isWa" href="${e(wa)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div>
       </header>
+      <div class="ccKpiTilesV1">${kpis}</div>
       ${!c.eventsReady ? `<p class="ccWarnV1">${c.eventsNoTable ? "Журнал просмотров и подборки ещё не включены: выполните SQL из supabase/migrations/20261126_cab_clients.sql в Supabase → SQL Editor." : "Журнал просмотров временно недоступен."}</p>` : ""}
-
-      <section class="ccSecV1 ccChatV1"><h3>💬 Переписка <small>(клиент видит ответы в своём Telegram)</small></h3>
-        <div id="ccThread" class="ccThreadV1"><p class="ccEmptyV1">Загрузка…</p></div>
-        <div class="ccSayV1"><textarea id="ccSayText" rows="2" maxlength="3500" placeholder="Ответ клиенту… (Ctrl+Enter — отправить)"></textarea><button type="button" data-cc-say>Отправить</button></div>
-        <p class="ccMsgV1" id="ccSayMsg"></p>
-      </section>
-
-      <section class="ccSecV1 ccPickFormV1"><h3>🎯 Подборка клиенту</h3>
-        <textarea id="ccPickIds" rows="2" placeholder="Ссылки с сайта или номера лотов: copart-61420506, iaai-45839097 — по одному в строке"></textarea>
-        <textarea id="ccPickNote" rows="2" maxlength="600" placeholder="Комментарий клиенту (необязательно): подходит по бюджету, ставка до 9 000 $"></textarea>
-        <div class="ccRowBtnsV1"><button type="button" data-cc-sendpick>Отправить в кабинет</button><button type="button" class="ghost" data-cc-suggest>Подобрать похожее на просмотренное</button></div>
-        <p class="ccMsgV1" id="ccPickMsg"></p>
-        <div id="ccSuggestBox">${suggestHtml()}</div>
-      </section>
-
-      <section class="ccSecV1"><h3>📝 Заметка менеджера <small>(клиент не видит)</small></h3>
-        <textarea id="ccNoteText" rows="3" placeholder="Бюджет, пожелания, договорённости…">${e(c.manager.text)}</textarea>
-        <input id="ccNoteTags" class="ccTagsV1" placeholder="Теги через запятую: горячий, Tesla, до 10к" value="${e(c.manager.tags.join(", "))}">
-        <div class="ccRowBtnsV1"><button type="button" class="ghost" data-cc-savenote>Сохранить заметку</button><span class="ccMsgV1" id="ccNoteMsg"></span></div>
-      </section>
-
-      ${sec("Путь клиента", journey, null)}
-      ${sec("Отправленные подборки", picks, c.picks.length)}
-      ${sec("Что смотрел", views, c.views.length)}
-      ${sec("Что ищет", searches, c.searches.length)}
-      ${sec("Избранное", favs, c.favs.length)}
-      ${sec("Подписки на уведомления", subs, c.subs.length)}
-      ${sec("Сделки", dealsHtml, c.deals.length)}
-      ${sec("Заявки с сайта", leads, c.leads.length)}
-      ${sec("Мои машины (трекинг)", cars, c.cars.length)}
-      ${sec("Последние действия", tl, null)}
-      ${!(views || searches || favs) ? `<p class="ccEmptyV1">Клиент пока ничего не смотрел и не сохранял.</p>` : ""}`;
-    if(draft) $("#ccSayText").value = draft;
-    loadThread(false);
+      ${tabBar}
+      <div class="ccPaneV1">${body}</div>`;
+    if(draft && $("#ccSayText")) $("#ccSayText").value = draft;
+    if(CC.tab === "chat") loadThread(false);
   }
   // ---------- «Создать сделку» из лота клиента ----------
   async function makeDeal(lotId, btn){
@@ -191,6 +246,36 @@
     finally{ btn.disabled = false; btn.textContent = old; }
   }
 
+  // ---------- сделки клиента: открыть существующую / завести новую ----------
+  async function gotoDeals(){
+    const tab = document.querySelector('.tabs button[data-view="deals"]'); if(tab) tab.click();
+    await new Promise(r => setTimeout(r, 350));
+  }
+  async function openDeal(id){
+    await gotoDeals();
+    for(let i = 0; i < 20 && !(state.deals || []).some(d => String(d.id) === String(id)); i++) await new Promise(r => setTimeout(r, 200));
+    const item = (state.deals || []).find(d => String(d.id) === String(id));
+    if(!item){ showNotice("Не удалось открыть сделку — найдите её во вкладке «Сделки»"); return; }
+    setDealForm(item); $("#dealForm").scrollIntoView({behavior: "smooth", block: "start"});
+  }
+  async function newDeal(){
+    const c = CC.card; if(!c) return;
+    await gotoDeals();
+    await loadDealClients();
+    resetForm("dealForm");
+    const f = $("#dealForm");
+    f.elements.client_pick.value = c.chat;
+    pickDealClient(c.chat);
+    if(!f.elements.client_name.value) f.elements.client_name.value = c.profile.name || c.tgName || "";
+    f.scrollIntoView({behavior: "smooth", block: "start"});
+    showNotice("Клиент подставлен. Введите VIN — машина, этап и расчёт подтянутся сами.", true);
+  }
+  function setTab(tab){
+    CC.tab = tab; renderCard();
+    const box = $("#ccCard"); const nav = box && box.querySelector(".ccTabsV1");
+    if(nav && nav.getBoundingClientRect().top < 0) nav.scrollIntoView({block: "start"});
+  }
+
   // ---------- переписка ----------
   const fmtMsgTime = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("ru-RU", {day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"}); };
   function renderThread(msgs, noTable){
@@ -207,6 +292,7 @@
       const r = await api("/api/clients?chat=" + encodeURIComponent(chat) + "&thread=1&seen=1" + (poll ? "&poll=1" : ""));
       if(chat !== CC.chat) return;
       renderThread(r.msgs || [], r.noTable);
+      const it = CC.items.find(x => x.chat === chat); if(it && it.unread){ it.unread = 0; renderList(); }   // открыли переписку — прочитано
     }catch(_){ /* следующая попытка через 10 с */ }
   }
   setInterval(() => { if(state.view === "cabclients" && CC.chat && !document.hidden) loadThread(true); }, 10000);
@@ -267,6 +353,10 @@
       sendPick([], text); return;
     }
     if(t.closest("[data-cc-say]")){ sendSay(); return; }
+    const tabB = t.closest("[data-cc-tab]"); if(tabB){ setTab(tabB.dataset.ccTab); return; }
+    const flt = t.closest("[data-cc-filter]"); if(flt){ CC.filter = flt.dataset.ccFilter; renderList(); return; }
+    const od = t.closest("[data-cc-opendeal]"); if(od){ openDeal(od.dataset.ccOpendeal); return; }
+    if(t.closest("[data-cc-newdeal]")){ newDeal(); return; }
     const mk = t.closest("[data-cc-mkdeal]");
     if(mk){ makeDeal(mk.dataset.ccMkdeal, mk); return; }
     if(t.closest("[data-cc-tgmenu]")){
@@ -296,6 +386,7 @@
     }
   });
   document.addEventListener("input", ev => { if(ev.target && ev.target.id === "ccSearch") renderList(); });
+  document.addEventListener("change", ev => { if(ev.target && ev.target.id === "ccSort"){ CC.sort = ev.target.value; renderList(); } });
   document.addEventListener("keydown", ev => { if(ev.target && ev.target.id === "ccSayText" && ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); sendSay(); } });
   document.addEventListener("change", ev => {
     const c = ev.target.closest && ev.target.closest("[data-cc-pref]"); if(!c) return;

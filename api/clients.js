@@ -10,6 +10,7 @@ const {selfOrigin} = require("../server/origin");
 const sb = supabase.rest;
 const q = s => encodeURIComponent(s);
 const safe = (p, d) => p.catch(() => d);
+const DEAL_COLS = "id,title,vin,stage,eta_date,updated_at,active,next_step,total_usd,paid_usd,client_name";
 const tableMissing = e => /cab_events|cab_picks|cab_msgs|relation|PGRST20|42P01|schema cache/i.test(String((e && e.message) || e));
 
 async function metaByPrefix(prefix){
@@ -42,6 +43,13 @@ async function listClients(){
     const k = String(r.chat_id), a = picks.get(k) || {n: 0, react: 0};
     a.n++; if(r.reaction) a.react++; picks.set(k, a);
   }
+  // Сделки: по chat_id или по телефонному ключу клиента (подтверждённый номер / номер из профиля) — без двойного счёта
+  const dealAll = await safe(sb(`/cab_deals?select=id,chat_id,phone_key,stage,active,total_usd,paid_usd,updated_at&limit=3000`), []);
+  const dealsByChat = new Map(), dealsByKey = new Map();
+  for(const d of dealAll || []){
+    if(d.chat_id) (dealsByChat.get(String(d.chat_id)) || dealsByChat.set(String(d.chat_id), []).get(String(d.chat_id))).push(d);
+    if(d.phone_key) (dealsByKey.get(d.phone_key) || dealsByKey.set(d.phone_key, []).get(d.phone_key)).push(d);
+  }
   const unreadRows = await safe(sb(`/cab_msgs?dir=eq.in&seen=eq.false&select=chat_id&limit=2000`), []);
   const unread = new Map();
   for(const r of unreadRows || []) unread.set(String(r.chat_id), (unread.get(String(r.chat_id)) || 0) + 1);
@@ -51,6 +59,12 @@ async function listClients(){
     if(byChat.has(id)) continue;
     const pr = (profiles.get(id) || {}).v || {}, tg = (names.get(id) || {}).v || {}, ph = (phones.get(id) || {}).v || {}, seen = (seens.get(id) || {}).v || {};
     const seenAt = Number(seen.t) || 0;
+    const dl = new Map();
+    for(const d of dealsByChat.get(id) || []) dl.set(d.id, d);
+    for(const k of [ph.k, cl.phoneKey(pr.phone)].filter(Boolean)) for(const d of dealsByKey.get(k) || []) dl.set(d.id, d);
+    const dlist = Array.from(dl.values());
+    const open = dlist.filter(d => d.active !== false && d.stage !== "done");
+    const debt = open.reduce((a, d) => a + Math.max(0, (Number(d.total_usd) || 0) - (Number(d.paid_usd) || 0)), 0);
     byChat.set(id, {
       chat: id,
       name: pr.name || tg.n || "",
@@ -65,7 +79,9 @@ async function listClients(){
       favs: favs.get(id) || 0,
       unread: unread.get(id) || 0,
       picks: (picks.get(id) || {}).n || 0,
-      reacts: (picks.get(id) || {}).react || 0
+      reacts: (picks.get(id) || {}).react || 0,
+      deals: dlist.length, dealsOpen: open.length, debt: Math.round(debt),
+      dealStage: open.length ? open.sort((a, b) => (Date.parse(b.updated_at) || 0) - (Date.parse(a.updated_at) || 0))[0].stage : ""
     });
   }
   const items = Array.from(byChat.values()).sort((a, b) => ((b.unread > 0) - (a.unread > 0)) || (b.online - a.online) || (b.seenAt - a.seenAt) || (Date.parse(b.boundAt) || 0) - (Date.parse(a.boundAt) || 0));
@@ -99,10 +115,10 @@ async function clientCard(chat){
   const keys = [...new Set([M.phone && M.phone.k, cl.phoneKey(M.profile && M.profile.phone)].filter(Boolean))];
   let dealRows = [], leadRows = [], customerRows = [];
   // сделки, привязанные к Telegram-клиенту напрямую (chat_id) — даже без телефона
-  const byChat = await safe(sb(`/cab_deals?chat_id=eq.${q(chat)}&select=id,title,vin,stage,eta_date,updated_at,active&order=updated_at.desc&limit=20`), []);
+  const byChat = await safe(sb(`/cab_deals?chat_id=eq.${q(chat)}&select=${DEAL_COLS}&order=updated_at.desc&limit=20`), []);
   dealRows = byChat || [];
   if(keys.length){
-    const byKey = await safe(sb(`/cab_deals?phone_key=in.(${keys.map(q).join(",")})&select=id,title,vin,stage,eta_date,updated_at,active&order=updated_at.desc&limit=20`), []);
+    const byKey = await safe(sb(`/cab_deals?phone_key=in.(${keys.map(q).join(",")})&select=${DEAL_COLS}&order=updated_at.desc&limit=20`), []);
     const have = new Set(dealRows.map(d => d.id));
     for(const d of byKey || []) if(!have.has(d.id)) dealRows.push(d);
     const custs = await safe(supabase.list("customers", {select: "id,name,phone,status,notes", limit: "3000"}), []);
