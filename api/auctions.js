@@ -4021,8 +4021,10 @@ async function fetchSoldComps(makeId, modelId){
   const p = (async () => {
     let rowsOut = null;
     try{ rowsOut = await fetchSoldCompsFromDb(makeId, modelId); }catch(e){ rowsOut = null; }
-    if(!rowsOut) rowsOut = await fetchSoldCompsLive(makeId, modelId);
-    soldPoolCache.set(ck, {rows:rowsOut, at:Date.now()});
+    // 27.11.2026 (Федор: «статистику делай из нашей базы проданных»): платный живой /cars?status=6 больше НЕ дёргаем —
+    // оценка строится только из api_lots. Нет базы/нет продаж — пул пуст, клиент покажет ориентир по другим сигналам.
+    // Пустой результат помним недолго (2 мин), чтобы не бить базу на каждый лот той же модели.
+    soldPoolCache.set(ck, {rows:rowsOut, at:rowsOut ? Date.now() : Date.now() - SOLD_POOL_TTL + 2 * 60e3});
     // 27.10.2026 (QA-аудит): до 6000 строк (SOLD_POOL_MAX) с текстовыми полями на одну make+model —
     // без предела на число моделей в карте это самый тяжёлый по памяти кэш в файле.
     if(soldPoolCache.size > 500) soldPoolCache.delete(soldPoolCache.keys().next().value);
@@ -4504,26 +4506,31 @@ async function computeCompsForQ(q){
 // компасбатчем как последний фолбэк, когда для лота нет ни строки в таблице Федора, ни похожих продаж).
 const statsRowsCache = new Map();
 const STATS_ROWS_TTL = 30 * 60e3;
-async function fetchStatsRows(makeId, modelId){
-  const ck = `${makeId}:${modelId}`;
-  const cc = statsRowsCache.get(ck);
-  if(cc){
-    if(cc.promise) return cc.promise;
-    if(Date.now() - cc.at < STATS_ROWS_TTL) return cc.rows;
+// Агрегат «по годам» из НАШЕЙ базы проданных (27.11.2026): те же поля, что отдавал /statistics провайдера
+// ({year, lot_count, avg_final_bid, min_final_bid, max_final_bid}), но без запроса к провайдеру. Среднее —
+// с отсечением 5% хвостов, min/max — p10/p90 (одиночные не-продажи и пики не тянут вилку).
+function statsRowsFromPool(pool){
+  if(!Array.isArray(pool) || !pool.length) return [];
+  const byYear = new Map();
+  for(const r of pool){
+    if(!(r.year > 0) || !(r.final_bid > 0)) continue;
+    if(!byYear.has(r.year)) byYear.set(r.year, []);
+    byYear.get(r.year).push(r.final_bid);
   }
-  const p = (async () => {
-    let rows = [];
-    try{
-      const p2 = new URLSearchParams({manufacturer_id:String(makeId), model_id:String(modelId)});
-      const data = await fetchJson(`${AUCTIONS_API_BASE}/statistics?${p2}`);
-      rows = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-    }catch(e){ rows = []; }
-    statsRowsCache.set(ck, {rows, at:Date.now()});
-    if(statsRowsCache.size > 500) statsRowsCache.delete(statsRowsCache.keys().next().value);
-    return rows;
-  })();
-  statsRowsCache.set(ck, {promise:p});
-  return p;
+  const out = [];
+  for(const [year, arr] of byYear){
+    arr.sort((a, b) => a - b);
+    const cut = arr.length >= 10 ? Math.floor(arr.length * 0.05) : 0;
+    const t = arr.slice(cut, arr.length - cut);
+    const avg = t.reduce((a, b) => a + b, 0) / t.length;
+    const q = f => arr[Math.min(arr.length - 1, Math.max(0, Math.round((arr.length - 1) * f)))];
+    out.push({year, engine:null, lot_count:arr.length, avg_final_bid:Math.round(avg), min_final_bid:q(0.1), max_final_bid:q(0.9)});
+  }
+  return out.sort((a, b) => b.year - a.year);
+}
+async function fetchStatsRows(makeId, modelId){
+  try{ return statsRowsFromPool(await fetchSoldComps(makeId, modelId)); }
+  catch(e){ return []; }
 }
 // Зеркало клиентского forecastFromRows (auctions.js) — взвешенное среднее /statistics по году±tol,
 // сужение по двигателю, если есть.
@@ -7664,16 +7671,15 @@ const handlerInner = async function handler(request, response){
     }
 
     if(action === "statistics"){
-      const p = new URLSearchParams();
-      ["manufacturer_id","model_id","generation_id","engine_id","year"].forEach(k => {
-        const v = String(query.get(k) || "").replace(/[^0-9]/g, "");
-        if(k === "generation_id" && parseSynGen(v)) return;   // наш синтетический id провайдеру неизвестен
-        if(v) p.set(k, v);
-      });
-      const data = await fetchJson(`${AUCTIONS_API_BASE}/statistics?${p}`);
-      const payload = {ok:true, stats:(data && data.data) || data || null};
+      // 27.11.2026: агрегат считается из нашей базы проданных (api_lots), провайдер не трогаем.
+      const mk = String(query.get("manufacturer_id") || "").replace(/[^0-9]/g, "");
+      const md = String(query.get("model_id") || "").replace(/[^0-9]/g, "");
+      if(!mk || !md){ sendJson(response, 200, {ok:true, stats:[]}, STATS_EDGE_CACHE); return; }
+      let rows = await fetchStatsRows(mk, md);
+      const yr = Number(String(query.get("year") || "").replace(/[^0-9]/g, "")) || 0;
+      if(yr) rows = rows.filter(x => x.year === yr);
+      const payload = {ok:true, stats:rows, src:"db"};
       setCached(key, payload);
-      // Агрегат меняется медленно и общий на всю модель → держим на edge подольше.
       sendJson(response, 200, payload, STATS_EDGE_CACHE);
       return;
     }
