@@ -6783,7 +6783,7 @@ const handlerInner = async function handler(request, response){
   // lotQualityScore / окна выборки доходят до людей с опозданием. Поднимать при
   // изменении этой логики.
   const SEARCH_CACHE_VER = "37";   // 28.10.2026: клампим total снизу числом реально вернувшихся строк (broadCountP-занижение)
-  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g56" : "";   // g56: мусорный резерв (>3×ACV) игнорируем, Buy Now без пола Timed; g55: BMW X5 G65 с 2027; g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
+  const GEN_CACHE_SALT = (action === "generations" || action === "detail" || action === "vin") ? "|g57" : "";   // g57: Timed/Buy Now не кэшируем на 3 ч; g56: мусорный резерв (>3×ACV) игнорируем, Buy Now без пола Timed; g55: BMW X5 G65 с 2027; g54: список поколений вне таблицы — свежие первыми, верх открыт; GLC X253/X254. бамп при смене таблицы поколений и формы detail (g53: сессии линии учитывают номер заезда; g52: дата по линии для лотов без sale_date; g51: поиск не в api_cache; g50: тяжёлые поля 360/копии фото не пишем в payload; g49: тег/копии фото/«Ao» в detail; g48: tags, imagesDl, скрыт «Ao»; g47: локальная проверка номера лота; g46: медиа youtube/360-кадры/интерьер, buyerCountry, флаги продавца; g45: покупка по Buy Now до аукциона по полям фида; g44: выбор текущего лота из lots[] по номеру/площадке/created_at; g43: проданный лот с final_bid=null → финал из bid; g42: штат IAAI по координатам, note; g41: pre_accident_price -1 больше не «$1»; g40: IAAI Канада — .km без .mi трактуем как мили, 4 новых подтверждённых лота)
   const key = cacheKey(action, query) + (action === "search" ? `|sv${SEARCH_CACHE_VER}` : "") + GEN_CACHE_SALT;
   if(freshMode && Date.now() - (freshStamp.get(key) || 0) < FRESH_MIN_MS) freshMode = false;
   const cached = getCached(key);
@@ -7012,7 +7012,10 @@ const handlerInner = async function handler(request, response){
         setCached(key, payload);
         // 26.11.2026 (экономия лимита): торги дальше 8 ч — данные у источника меняются ~раз в 2 ч, живой опрос каждые 30 мин не нужен → 3 ч.
         const farMs = Date.parse(lot.auctionDate || "") - Date.now();
-        setDbCache(key, payload, "detail", farMs > 8 * 3600e3 ? 3 * 3600 : 0);
+        // 27.11.2026 (IAAI 46423375, Timed): лот закрылся досрочно 26.11, а у нас жил как «торги 01.12» — 3 ч кэша держали устаревшее «идут торги».
+        // Timed закрывается по резерву/ставке в любой момент, Buy Now покупают тоже в любой — для них длинный кэш не годится (30 мин, как у ближних).
+        const earlyClose = Boolean(lot.timed) || Number(lot.buyNow) > 0;
+        setDbCache(key, payload, "detail", farMs > 8 * 3600e3 && !earlyClose ? 3 * 3600 : 0);
         // Clean Select: страницу лота открыли — метку перекупа получаем сразу, не ждём очереди фоновой проверки
         if(lot.vinChecked && lot.id && Number(lot.statusId) !== 6 && Date.parse(lot.auctionDate || "") > Date.now()){
           syncSbFetch(`/api_lots?id=eq.${encodeURIComponent(lot.id)}&archived=eq.false&resale_at=is.null`, {method:"PATCH", headers:{prefer:"return=minimal"},
