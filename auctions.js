@@ -3103,7 +3103,7 @@ function alertable(lot){
   // Доставка по США: если площадку не нашли — НЕ прочерк, а красная пометка (09.11.2026, Федор: клиент увидел «—» и мы потеряли $300).
   function calcLandRow(calc){
     if(calc.landMissing){
-      return `<div class="calcRowV2 calcLandWarnV1" role="alert"><span><span class="calcLblV1">${escapeHtml(L("Доставка по США"))}</span><small>${escapeHtml(L("Площадка не найдена — суша не посчитана, итог занижен"))}</small></span><b>${escapeHtml(L("Уточнить"))}</b></div>`;
+      return `<div class="calcRowV2 calcLandWarnV1"><span><span class="calcLblV1">${escapeHtml(L("Доставка по США"))}</span></span><b>—</b></div>`;
     }
     const label = calc.port ? `${L("Доставка по США")} (${calc.port})` : "Доставка по США";
     return calcRow(label, calc.land);
@@ -3334,7 +3334,6 @@ function alertable(lot){
         <b id="lotCalcTotal">${money(calc.total)}</b>
         <small id="lotCalcTotalAlt">${altCurrency(calc)}</small>
       </div>
-      <div id="lotCalcLandWarn" class="calcLandAlertV1" role="alert"${calc.landMissing ? "" : " hidden"}>${escapeHtml(L("Доставка по США не посчитана — площадка не найдена, уточните у менеджера"))}</div>
       <div class="calcRatesV2">
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
         <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
@@ -3533,7 +3532,6 @@ function alertable(lot){
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
-    { const w = $("#lotCalcLandWarn"); if(w) w.hidden = !calc.landMissing; }
     syncStickyTotal();
     try{ bidPlanSync(calc); }catch(e){}
     // ≈USD (карточка «Продано» и текущая ставка) пересчитываем живым курсом TD
@@ -3591,7 +3589,7 @@ function alertable(lot){
     const lot = state.selectedLot;
     const calc = updateLotCalculator();
     if(!calc || !lot) return null;
-    const rows = calcRowsData(calc).filter(r => r[1] > 0 || (calc.landMissing && r[0] === "Доставка по США"));
+    const rows = calcRowsData(calc).filter(r => r[1] > 0);
     const photo = await loadImg((lot.images && lot.images[0]) || lot.image || "");
     const W = 1080, PAD = 56, FONT = "Onest, Inter, system-ui, -apple-system, Segoe UI, sans-serif";
     const photoH = photo ? 520 : 0, rowH = 64;
@@ -3628,9 +3626,8 @@ function alertable(lot){
       const ry = y + 15 + i * rowH + rowH / 2;
       ctx.fillStyle = "#44505f"; ctx.font = `500 30px ${FONT}`; ctx.textAlign = "left";
       ctx.fillText(L(r[0]) + (r[2] && !calc.canada ? ` (${r[2]})` : ""), PAD + 28, ry);
-      const landWarn = calc.landMissing && r[0] === "Доставка по США";
-      ctx.fillStyle = landWarn ? "#ed0012" : "#11141a"; ctx.font = `700 31px ${FONT}`; ctx.textAlign = "right";
-      ctx.fillText(landWarn ? L("Уточнить") : money(r[1]), W - PAD - 28, ry);
+      ctx.fillStyle = "#11141a"; ctx.font = `700 31px ${FONT}`; ctx.textAlign = "right";
+      ctx.fillText(money(r[1]), W - PAD - 28, ry);
       if(i < rows.length - 1){ ctx.fillStyle = "#eef0f3"; ctx.fillRect(PAD + 28, y + 15 + (i + 1) * rowH, W - PAD * 2 - 56, 2); }
     });
     ctx.textAlign = "left";
@@ -3698,7 +3695,6 @@ function alertable(lot){
       lot.lot ? `${L("Номер лота")}: ${lot.lot}` : null,
       lot.vin ? `VIN: ${lot.vin}` : null,
       "", ...rows.filter(Boolean),
-      calc.landMissing ? `⚠ ${L("Доставка по США не посчитана — площадка не найдена, уточните у менеджера")}` : null,
       "",
       `${L("Итого под ключ")}: ${money(calc.total)}`,
       altCurrency(calc),

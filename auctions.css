@@ -2308,5 +2308,3 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .calcRowV2.calcLandWarnV1, .calcRowV2.calcLandWarnV1 b, .calcRowV2.calcLandWarnV1 small { color:#c4001a; }
 .calcRowV2.calcLandWarnV1 b { font-weight:800; }
 .calcRowV2.calcLandWarnV1 small { font-weight:600; }
-.calcLandAlertV1 { margin:8px 0 0; padding:9px 12px; border-radius:10px; background:#ed0012; color:#fff; font-size:12.5px; font-weight:700; line-height:1.35; }
-.calcLandAlertV1[hidden] { display:none; }
