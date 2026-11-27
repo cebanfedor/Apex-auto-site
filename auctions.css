@@ -2302,3 +2302,11 @@ html[data-vt-dir="prev"]::view-transition-new(root) { animation:vtInL .22s ease 
 .pmLinkV1 { margin:-8px 0 16px; font-size:14px; font-weight:700; }
 .pmLinkV1 a { color:var(--aRed,#ed0012); text-decoration:none; }
 .pmLinkV1 a:hover { text-decoration:underline; }
+
+/* 09.11.2026: доставка по США не определена / приблизительна — красная пометка (Федор: клиент увидел «—», потеряли $300) */
+.calcRowV2.calcLandWarnV1 { background:#fff1f2; border:1px solid #fecdd3; border-radius:10px; padding:7px 10px; margin:2px 0; }
+.calcRowV2.calcLandWarnV1, .calcRowV2.calcLandWarnV1 b, .calcRowV2.calcLandWarnV1 small { color:#c4001a; }
+.calcRowV2.calcLandWarnV1 b { font-weight:800; }
+.calcRowV2.calcLandWarnV1 small { font-weight:600; }
+.calcLandAlertV1 { margin:8px 0 0; padding:9px 12px; border-radius:10px; background:#ed0012; color:#fff; font-size:12.5px; font-weight:700; line-height:1.35; }
+.calcLandAlertV1[hidden] { display:none; }

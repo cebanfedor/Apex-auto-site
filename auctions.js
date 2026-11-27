@@ -934,6 +934,27 @@ function alertable(lot){
     return label || tc(lot.location);
   }
 
+  // Поиск площадки для тарифа суши (09.11.2026 переписан: Федор — у части лотов в калькуляторе стоял прочерк вместо
+  // доставки по США, клиент увидел «—» и мы потеряли $300). Нормализуем названия («St. Louis»/«Saint Louis», «Mt.», «Ft.»,
+  // скобки со штатом, дефисы), ищем по городу+штату, затем по городу, затем по слову из названия, а если город не нашли —
+  // берём площадку того же штата с медианным тарифом и ПОМЕЧАЕМ `approx` (в калькуляторе красная пометка).
+  const US_STATE_BY_NAME = {alabama:"AL", alaska:"AK", arizona:"AZ", arkansas:"AR", california:"CA", colorado:"CO", connecticut:"CT", delaware:"DE", "district of columbia":"DC", florida:"FL", georgia:"GA", hawaii:"HI", idaho:"ID", illinois:"IL", indiana:"IN", iowa:"IA", kansas:"KS", kentucky:"KY", louisiana:"LA", maine:"ME", maryland:"MD", massachusetts:"MA", michigan:"MI", minnesota:"MN", mississippi:"MS", missouri:"MO", montana:"MT", nebraska:"NE", nevada:"NV", "new hampshire":"NH", "new jersey":"NJ", "new mexico":"NM", "new york":"NY", "north carolina":"NC", "north dakota":"ND", ohio:"OH", oklahoma:"OK", oregon:"OR", pennsylvania:"PA", "rhode island":"RI", "south carolina":"SC", "south dakota":"SD", tennessee:"TN", texas:"TX", utah:"UT", vermont:"VT", virginia:"VA", washington:"WA", "west virginia":"WV", wisconsin:"WI", wyoming:"WY"};
+  function normPlace(v){
+    return String(v || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/&/g, " and ").replace(/\bsaint\b/g, "st").replace(/\bmount\b/g, "mt").replace(/\bfort\b/g, "ft")
+      .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  }
+  function lotStateCode(lot){
+    const raw = String(lot.location || "");
+    const paren = raw.match(/\(([A-Za-z]{2})\)\s*$/);
+    if(paren) return paren[1].toUpperCase();
+    const tail = (raw.split(",")[1] || "").trim();
+    if(/^[A-Za-z]{2}\b/.test(tail) && tail.replace(/[^A-Za-z]/g, "").length <= 3) return tail.slice(0, 2).toUpperCase();
+    const byName = US_STATE_BY_NAME[normPlace(tail)] || US_STATE_BY_NAME[normPlace(raw.split(",").slice(-1)[0])];
+    if(byName) return byName;
+    const sc = String(lot.stateCode || "").toUpperCase();
+    return /^[A-Z]{2}$/.test(sc) ? sc : "";
+  }
   function findLotLocation(lot){
     const locs = window.LOCATIONS || [];
     if(!locs.length) return null;
@@ -945,28 +966,37 @@ function alertable(lot){
       if(auction.includes("iaai")) return a.includes("iaai");
       return true;
     });
-    const src = String(lot.location || "").toLowerCase().replace(/[^a-z0-9, ]/g, "").trim();
-    if(!src) return null;
-    const tokens = src.split(",").map(s => s.trim()).filter(Boolean);
-    const city = tokens[0] || "";
-    const state = (tokens[1] || "").slice(0, 2);
-    // 1. Strict: city + state match
-    let m = byAuction.find(l => {
-      const lc = String(l.city || "").toLowerCase();
-      const ls = String(l.state || "").toLowerCase();
-      return city && (lc === city || lc.includes(city)) && (!state || ls === state);
-    });
-    // 2. City-only match — API sometimes returns wrong state (e.g. "Acworth, Florida" for GA)
-    if(!m && city) m = byAuction.find(l => {
-      const lc = String(l.city || "").toLowerCase();
-      return lc === city || lc.includes(city);
-    });
-    // 3. City string anywhere in location name, displayName, or city field
-    if(!m && city) m = byAuction.find(l => {
-      const hay = (String(l.displayName || "") + " " + String(l.location || "") + " " + String(l.city || "")).toLowerCase();
-      return hay.includes(city);
-    });
-    return m || null;
+    const raw = String(lot.location || "");
+    if(!raw.trim()) return null;
+    const state = lotStateCode(lot);
+    const cityRaw = raw.split(",")[0].replace(/\([^)]*\)/g, " ");
+    const city = normPlace(cityRaw);
+    const names = l => {
+      const out = [normPlace(l.city), normPlace(String(l.location || "").replace(/\d{5}.*$/, "").replace(/\([^)]*\)/g, " ")),
+        normPlace(String(l.displayName || "").split(/→|\(/)[0])].filter(Boolean);
+      return out;
+    };
+    const sameState = l => !state || String(l.state || "").toUpperCase() === state;
+    const eq = l => names(l).some(n => n === city);
+    const inc = l => city.length >= 4 && names(l).some(n => n.includes(city) || (n.length >= 4 && city.includes(n)));
+    let m = null;
+    if(city){
+      m = byAuction.find(l => sameState(l) && eq(l)) || byAuction.find(l => sameState(l) && inc(l))
+        || byAuction.find(eq) || byAuction.find(inc);
+      // слово из названия города (≥4 букв) целиком в названии площадки того же штата: «Miami North» ↔ «Miami»
+      if(!m && state){
+        const words = city.split(" ").filter(w => w.length >= 4);
+        m = byAuction.find(l => sameState(l) && words.some(w => names(l).some(n => (" " + n + " ").includes(" " + w + " "))));
+      }
+    }
+    if(m) return m;
+    // Города нет в таблице — площадка того же штата с медианным тарифом, помечаем как приблизительную.
+    if(state){
+      const pool = byAuction.filter(l => String(l.state || "").toUpperCase() === state && Number(l.landPrice || l.autoLand) > 0)
+        .sort((a, b) => Number(a.landPrice || a.autoLand) - Number(b.landPrice || b.autoLand));
+      if(pool.length) return Object.assign({}, pool[Math.floor((pool.length - 1) / 2)], {approx:true});
+    }
+    return null;
   }
   // Живые курсы MDL — тот же источник, что у калькулятора на главной (/api/content?rates=1),
   // чтобы итоги на странице лота и на главной совпадали до копейки.
@@ -1132,7 +1162,8 @@ function alertable(lot){
       customsUsd:Math.round(r.customsUsd), total:Math.round(r.totalUsd),
       totalMdl:Math.round(r.totalMdl), totalEur:Math.round(r.totalEur),
       kind, green:["hybrid","phev","electric"].includes(fuel), usdMdl, eurMdl,
-      port: r.port || "",
+      port: loc ? (r.port || "") : "",
+      landMissing: !loc, landApprox: !!(loc && loc.approx), landWhere: loc ? String(loc.displayName || loc.location || "") : "",
       landRoute: r.route || landRouteLabel(lot),
       seaRoute: r.port ? `${r.port} → ${L("Кишинёв")}` : seaRouteLabel(lot)
     };
@@ -3069,6 +3100,18 @@ function alertable(lot){
     return `<div class="calcRowV2"><span><span class="calcLblV1">${escapeHtml(L(label))}${tipHtml}</span>${sub ? `<small>${escapeHtml(L(sub))}</small>` : ""}</span><b>${money(value)}</b></div>`;
   }
 
+  // Доставка по США: если площадку не нашли — НЕ прочерк, а красная пометка (09.11.2026, Федор: клиент увидел «—» и мы потеряли $300).
+  function calcLandRow(calc){
+    if(calc.landMissing){
+      return `<div class="calcRowV2 calcLandWarnV1" role="alert"><span><span class="calcLblV1">${escapeHtml(L("Доставка по США"))}</span><small>${escapeHtml(L("Площадка не найдена — суша не посчитана, итог занижен"))}</small></span><b>${escapeHtml(L("Уточнить"))}</b></div>`;
+    }
+    const label = calc.port ? `${L("Доставка по США")} (${calc.port})` : "Доставка по США";
+    if(calc.landApprox){
+      return `<div class="calcRowV2 calcLandWarnV1"><span><span class="calcLblV1">${escapeHtml(L(label))}</span><small>${escapeHtml(L("Площадка определена по штату — сумма приблизительная"))}</small></span><b>≈ ${money(calc.land)}</b></div>`;
+    }
+    return calcRow(label, calc.land);
+  }
+
   // Свёрнутые секции калькулятора переживают перерисовку при изменении инпутов
   const calcClosedSecs = new Set();
   function calcSec(key, title, subtotal, rowsHtml){
@@ -3115,7 +3158,7 @@ function alertable(lot){
         ${calcRow("Аукционный сбор", calc.auctionFee)}
         ${calc.paymentFee ? calcRow("Комиссия на оплату", calc.paymentFee, "", "1% от ставки и аукционного сбора (минимум $50) при оплате в MDL") : ""}`)
       + calcSec("clear", "Оплата при получении (~2 мес.)", payLaterSub, `
-        ${calcRow(calc.port ? `${L("Доставка по США")} (${calc.port})` : "Доставка по США", calc.land)}
+        ${calcLandRow(calc)}
         ${calcRow("Доставка морем", calc.sea)}
         ${calcRow("Таможенные платежи", calc.customsUsd)}
         ${calc.brokerUsd ? calcRow("Брокер + утиль сбор", calc.brokerUsd, "", "Фиксированный сбор 2000 MDL при оплате в MDL") : ""}
@@ -3294,6 +3337,7 @@ function alertable(lot){
         <b id="lotCalcTotal">${money(calc.total)}</b>
         <small id="lotCalcTotalAlt">${altCurrency(calc)}</small>
       </div>
+      <div id="lotCalcLandWarn" class="calcLandAlertV1" role="alert"${calc.landMissing ? "" : " hidden"}>${escapeHtml(L("Доставка по США не посчитана — площадка не найдена, уточните у менеджера"))}</div>
       <div class="calcRatesV2">
         <label><span>USD → MDL</span><input id="lotCalcUsdMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.usdMdl.toFixed(2)}"></label>
         <label><span>EUR → MDL</span><input id="lotCalcEurMdl" data-calc-input type="number" step="0.01" min="1" value="${liveRates.eurMdl.toFixed(2)}"></label>
@@ -3492,6 +3536,7 @@ function alertable(lot){
     $("#lotCalcBody").innerHTML = renderCalcRows(calc);
     $("#lotCalcTotal").textContent = money(calc.total);
     $("#lotCalcTotalAlt").textContent = altCurrency(calc);
+    { const w = $("#lotCalcLandWarn"); if(w) w.hidden = !calc.landMissing; }
     syncStickyTotal();
     try{ bidPlanSync(calc); }catch(e){}
     // ≈USD (карточка «Продано» и текущая ставка) пересчитываем живым курсом TD
@@ -3549,7 +3594,7 @@ function alertable(lot){
     const lot = state.selectedLot;
     const calc = updateLotCalculator();
     if(!calc || !lot) return null;
-    const rows = calcRowsData(calc).filter(r => r[1] > 0);
+    const rows = calcRowsData(calc).filter(r => r[1] > 0 || (calc.landMissing && r[0] === "Доставка по США"));
     const photo = await loadImg((lot.images && lot.images[0]) || lot.image || "");
     const W = 1080, PAD = 56, FONT = "Onest, Inter, system-ui, -apple-system, Segoe UI, sans-serif";
     const photoH = photo ? 520 : 0, rowH = 64;
@@ -3586,8 +3631,9 @@ function alertable(lot){
       const ry = y + 15 + i * rowH + rowH / 2;
       ctx.fillStyle = "#44505f"; ctx.font = `500 30px ${FONT}`; ctx.textAlign = "left";
       ctx.fillText(L(r[0]) + (r[2] && !calc.canada ? ` (${r[2]})` : ""), PAD + 28, ry);
-      ctx.fillStyle = "#11141a"; ctx.font = `700 31px ${FONT}`; ctx.textAlign = "right";
-      ctx.fillText(money(r[1]), W - PAD - 28, ry);
+      const landWarn = calc.landMissing && r[0] === "Доставка по США";
+      ctx.fillStyle = landWarn ? "#ed0012" : "#11141a"; ctx.font = `700 31px ${FONT}`; ctx.textAlign = "right";
+      ctx.fillText(landWarn ? L("Уточнить") : money(r[1]), W - PAD - 28, ry);
       if(i < rows.length - 1){ ctx.fillStyle = "#eef0f3"; ctx.fillRect(PAD + 28, y + 15 + (i + 1) * rowH, W - PAD * 2 - 56, 2); }
     });
     ctx.textAlign = "left";
@@ -3654,7 +3700,9 @@ function alertable(lot){
       lot.url ? `${aucName}: ${lot.url}` : null,
       lot.lot ? `${L("Номер лота")}: ${lot.lot}` : null,
       lot.vin ? `VIN: ${lot.vin}` : null,
-      "", ...rows.filter(Boolean), "",
+      "", ...rows.filter(Boolean),
+      calc.landMissing ? `⚠ ${L("Доставка по США не посчитана — площадка не найдена, уточните у менеджера")}` : (calc.landApprox ? `≈ ${L("Доставка по США приблизительная (площадка определена по штату)")}` : null),
+      "",
       `${L("Итого под ключ")}: ${money(calc.total)}`,
       altCurrency(calc),
       "", L("Расчёт предварительный.")
