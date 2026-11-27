@@ -5649,6 +5649,39 @@ async function runBuyNowCheck(budgetMs = 44000){
       }
     }
 
+    // 27.11.2026 (Федор, IAAI 46423375 и ещё 9 лотов со скриншота каталога: «эти тоже проданы»): список фида отдаёт Timed-лоты, которые
+    // уже ПРОДАНЫ (22–26.11, ставка ≥ резерва), с «будущей» датой следующего слота (27.11 17:00, 01–04.12 14:30…) — сами лоты (/search-lot)
+    // показывают продажу. В выборке 100 Timed-лотов с датой ≥03.12 87 оказались такими. Эвристикой «ставка ≥ резерва = продан» это не
+    // отличить от идущего раунда (там ставка тоже может быть ≥ резерва до конца торгов), поэтому проверяем сам лот: Timed IAAI, торги в
+    // будущем, ставка ≥ 97% резерва (две продажи прошли с 2450 при резерве 2500) → /search-lot → upsertClosedLot (продан → архив, дата → новая).
+    const remain4 = budgetMs - (Date.now() - t0);
+    if(remain4 > 4000){
+      const cutT = encodeURIComponent(new Date(Date.now() - BN_COOLDOWN_MS).toISOString());
+      const tUrl = `/api_lots?select=id,auction,lot,sale_date,current_bid,sr:payload->>sellerReserve&archived=eq.false&status_id=neq.6&auction=eq.iaai&payload->>timed=eq.true&current_bid=gt.0&sale_date=gt.${nowIso}&sale_date=lte.${encodeURIComponent(new Date(now + 10 * 86400e3).toISOString())}&or=(bn_checked_at.is.null,bn_checked_at.lt.${cutT})&order=sale_date.asc&limit=300`;
+      const tRowsAll = await syncSbFetch(tUrl).catch(() => null);
+      const tRows = Array.isArray(tRowsAll) ? tRowsAll.filter(r => Number(r.sr) > 0 && Number(r.current_bid) >= Number(r.sr) * 0.97).slice(0, 100) : [];
+      if(tRows.length){
+        out.timedMetDue = tRows.length;
+        const t3 = Date.now(); let tIdx = 0; const tChecked = [];
+        const tWorker = async () => {
+          while(tIdx < tRows.length && Date.now() - t3 < remain4 - 1500){
+            const r = tRows[tIdx++]; tChecked.push(r.id);
+            try{
+              const lot = await fetchDetail(new URLSearchParams({auction:r.auction, lot:String(r.lot)}));
+              out.checked++;
+              if(Number(lot.statusId) === 6) out.timedSold = (out.timedSold || 0) + 1;
+              upsertClosedLot(lot);
+            }catch(e){ out.fail++; }
+          }
+        };
+        await Promise.all(Array.from({length:6}, tWorker));
+        if(tChecked.length){
+          const ids4 = tChecked.map(id => `"${String(id).replace(/"/g, "")}"`).join(",");
+          await syncSbFetch(`/api_lots?id=in.(${ids4})`, {method:"PATCH", headers:{prefer:"return=minimal"}, body:JSON.stringify({bn_checked_at:new Date().toISOString()})}).catch(() => {});
+        }
+      }
+    }
+
     out.ms = Date.now() - t0;
     return out;
   }
