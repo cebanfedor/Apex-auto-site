@@ -4735,6 +4735,7 @@ function alertable(lot){
               <label for="dNoteTextV1">${dbIco("note")}<span>${L("Моя заметка")}</span><span class="dNoteSavedV1" data-note-saved>${L("Сохранено ✓")}</span></label>
               <textarea id="dNoteTextV1" data-note="${escapeHtml(lot.id)}" maxlength="600" placeholder="${escapeHtml(L("Видно только вам на этом устройстве — например, до какой ставки торговаться"))}">${escapeHtml(noteGet(lot.id))}</textarea>
             </div>
+            ${damageMapHtml(lot)}
           </div>
           <div class="lotDetailCenterV1">
             <section class="dSec">
@@ -4776,7 +4777,6 @@ function alertable(lot){
               ${lot.saleType ? dMain("Тип ущерба", ruDamage(lot.saleType), "damage") : ""}
               ${vinReport ? dPlain("Экстра", `<a class="dLink" href="${vinReport}" target="_blank" rel="noopener">${L("Отчет VIN")}</a>`, "gem") : ""}
             </section>
-            ${damageMapHtml(lot)}
             ${(() => { const b = exportBan(lot); return b ? `<div class="dExportBanV1">${dbIco(toneIcon("warn"))}<div><b>${L("Экспорт запрещён")}</b><p>${L(b.long)}</p></div></div>` : ""; })()}
             ${exportBan(lot) || isResaleLot ? "" : `<div class="dRecoV2">${dbIco("check")}<div><b>${L("Apex Auto рекомендует")}</b><p>${L("Поможем проверить лот, документы и историю, рассчитать стоимость под ключ до Кишинёва и сопроводить сделку от ставки до выдачи.")}</p></div></div>`}
             <section class="dSec">
