@@ -1542,6 +1542,11 @@ function alertable(lot){
     if(Date.parse(e.date) > Date.now()) return true;
     return lotSaleState(lot).isSold && e.lot && String(e.lot) === String(lot.lot) && /^sold$/i.test(String(e.status || ""));
   }
+  // 27.11.2026 (Федор, IAAI 46423375: «продан на другом аукционе», а аукцион один): запись с ТЕМ ЖЕ номером лота и площадкой — это раунды этого же лота
+  // (Timed закрывается по раундам, фид мог пометить промежуточный «sold»), а не продажа «на другом аукционе»/«ранее». Предупреждение и «Продан ранее» — только для других лотов.
+  function isSameLotEntry(e, lot){
+    return !!(e && e.lot && String(e.lot) === String(lot.lot) && String(e.auction || lot.auction || "").toLowerCase() === String(lot.auction || "").toLowerCase());
+  }
   const HIST_VISIBLE = 5;   // сколько записей истории цены показываем сразу, остальное — по кнопке «Показать все» (Федор 28.09.2026: короче список, кнопка сворачивает обратно)
   function renderPriceHistory(rawHistory, isCad, curLot){
     // Запись текущих торгов (h.current) — не история продаж: снапшоты
@@ -2086,7 +2091,7 @@ function alertable(lot){
       const curMs = Date.parse(lot.auctionDate || "");
       entries.forEach(e => { if(e.status === "sold" && String(e.lot) === String(lot.lot) && !isSold && Number.isFinite(curMs) && Date.parse(e.date) < curMs - 3600e3) e.status = "not_sold"; });
       const past = entries.filter(e => !isCurrentRound(e, lot));
-      const pastSold = past.filter(e => e.status === "sold");
+      const pastSold = past.filter(e => e.status === "sold" && !isSameLotEntry(e, lot));
       const fmt = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : d; };
       if(!past.length){
         li.className = "dbCheck good";
@@ -4666,7 +4671,7 @@ function alertable(lot){
     const curLotNo = String(lot.lot || ""), curDay = String(lot.auctionDate || "").slice(0, 10);
     const pastHistory = (Array.isArray(lot.priceHistory) ? lot.priceHistory : []).filter(h => !isCurrentRound(h, lot));
     const histCount = pastHistory.length;
-    const pastSold = pastHistory.filter(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not"); });
+    const pastSold = pastHistory.filter(h => { const s = String(h.status || "").toLowerCase(); return s.includes("sold") && !s.includes("not") && !isSameLotEntry(h, lot); });
     const fmtHd = d => { const t = Date.parse(d); return Number.isFinite(t) ? new Date(t).toLocaleDateString(window.APEX_LANG === "ro" ? "ro-RO" : window.APEX_LANG === "en" ? "en-GB" : "ru-RU", {day:"numeric", month:"short", year:"numeric"}) : ""; };
     const curMs = Date.parse(lot.auctionDate || "");
     const soldEarlier = pastSold.filter(h => !Number.isFinite(curMs) || Date.parse(h.date) < curMs);
