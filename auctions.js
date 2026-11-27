@@ -3106,9 +3106,6 @@ function alertable(lot){
       return `<div class="calcRowV2 calcLandWarnV1" role="alert"><span><span class="calcLblV1">${escapeHtml(L("Доставка по США"))}</span><small>${escapeHtml(L("Площадка не найдена — суша не посчитана, итог занижен"))}</small></span><b>${escapeHtml(L("Уточнить"))}</b></div>`;
     }
     const label = calc.port ? `${L("Доставка по США")} (${calc.port})` : "Доставка по США";
-    if(calc.landApprox){
-      return `<div class="calcRowV2 calcLandWarnV1"><span><span class="calcLblV1">${escapeHtml(L(label))}</span><small>${escapeHtml(L("Площадка определена по штату — сумма приблизительная"))}</small></span><b>≈ ${money(calc.land)}</b></div>`;
-    }
     return calcRow(label, calc.land);
   }
 
@@ -3701,7 +3698,7 @@ function alertable(lot){
       lot.lot ? `${L("Номер лота")}: ${lot.lot}` : null,
       lot.vin ? `VIN: ${lot.vin}` : null,
       "", ...rows.filter(Boolean),
-      calc.landMissing ? `⚠ ${L("Доставка по США не посчитана — площадка не найдена, уточните у менеджера")}` : (calc.landApprox ? `≈ ${L("Доставка по США приблизительная (площадка определена по штату)")}` : null),
+      calc.landMissing ? `⚠ ${L("Доставка по США не посчитана — площадка не найдена, уточните у менеджера")}` : null,
       "",
       `${L("Итого под ключ")}: ${money(calc.total)}`,
       altCurrency(calc),
